@@ -64,3 +64,71 @@ fn load(url: Url, start_chan: Chan<LoadResponse>) {
         progress_chan.send(Done(Ok(())));
     }
 }
+
+#[cfg(test)]
+fn assert_parse(url:          &'static str,
+                content_type: Option<(~str, ~str)>,
+                charset:      Option<~str>,
+                data:         Option<~[u8]>) {
+    use std::from_str::FromStr;
+    use std::comm;
+
+    let (start_port, start_chan) = comm::stream();
+    load(FromStr::from_str(url).unwrap(), start_chan);
+
+    let response = start_port.recv();
+    assert_eq!(&response.metadata.content_type, &content_type);
+    assert_eq!(&response.metadata.charset,      &charset);
+
+    let progress = response.progress_port.recv();
+
+    match data {
+        None => {
+            assert_eq!(progress, Done(Err(())));
+        }
+        Some(dat) => {
+            assert_eq!(progress, Payload(dat));
+            assert_eq!(response.progress_port.recv(), Done(Ok(())));
+        }
+    }
+}
+
+#[test]
+fn empty_invalid() {
+    assert_parse("data:", None, None, None);
+}
+
+#[test]
+fn plain() {
+    assert_parse("data:,hello%20world", None, None, Some(bytes!("hello world").into_owned()));
+}
+
+#[test]
+fn plain_ct() {
+    assert_parse("data:text/plain,hello",
+        Some((~"text", ~"plain")), None, Some(bytes!("hello").into_owned()));
+}
+
+#[test]
+fn plain_charset() {
+    assert_parse("data:text/plain;charset=latin1,hello",
+        Some((~"text", ~"plain")), Some(~"latin1"), Some(bytes!("hello").into_owned()));
+}
+
+#[test]
+fn base64() {
+    assert_parse("data:;base64,C62+7w==", None, None, Some(~[0x0B, 0xAD, 0xBE, 0xEF]));
+}
+
+#[test]
+fn base64_ct() {
+    assert_parse("data:application/octet-stream;base64,C62+7w==",
+        Some((~"application", ~"octet-stream")), None, Some(~[0x0B, 0xAD, 0xBE, 0xEF]));
+}
+
+#[test]
+fn base64_charset() {
+    assert_parse("data:text/plain;charset=koi8-r;base64,8PLl9+XkIO3l5Pfl5A==",
+        Some((~"text", ~"plain")), Some(~"koi8-r"),
+        Some(~[0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4]));
+}
