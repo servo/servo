@@ -532,18 +532,18 @@ impl Node<ScriptView> {
 
     pub fn NodeName(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
         Some(match self.type_id {
-          ElementNodeTypeId(*) => {
-            do abstract_self.with_imm_element |element| {
-                element.TagName().expect("tagName should never be null")
+            ElementNodeTypeId(*) => {
+                do abstract_self.with_imm_element |element| {
+                    element.TagName().expect("tagName should never be null")
+                }
             }
-          }
-          CommentNodeTypeId => ~"#comment",
-          TextNodeTypeId => ~"#text",
-          DoctypeNodeTypeId => {
-            do abstract_self.with_imm_doctype |doctype| {
-                doctype.name.clone()
+            CommentNodeTypeId => ~"#comment",
+            TextNodeTypeId => ~"#text",
+            DoctypeNodeTypeId => {
+                do abstract_self.with_imm_doctype |doctype| {
+                    doctype.name.clone()
+                }
             }
-          }
         })
     }
 
@@ -553,11 +553,11 @@ impl Node<ScriptView> {
 
     pub fn GetOwnerDocument(&self) -> Option<AbstractDocument> {
         match self.type_id {
-          ElementNodeTypeId(*) |
-          CommentNodeTypeId |
-          TextNodeTypeId |
-          DoctypeNodeTypeId => Some(self.owner_doc),
-          // DocumentNodeTypeId => None
+            ElementNodeTypeId(*) |
+            CommentNodeTypeId |
+            TextNodeTypeId |
+            DoctypeNodeTypeId => Some(self.owner_doc),
+            // DocumentNodeTypeId => None
         }
     }
 
@@ -591,15 +591,15 @@ impl Node<ScriptView> {
 
     pub fn GetNodeValue(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
         match self.type_id {
-          // ProcessingInstruction
-          CommentNodeTypeId | TextNodeTypeId => { 
-            do abstract_self.with_imm_characterdata() |characterdata| {
-                characterdata.Data()
+            // ProcessingInstruction
+            CommentNodeTypeId | TextNodeTypeId => { 
+                do abstract_self.with_imm_characterdata() |characterdata| {
+                    characterdata.Data()
+                }
             }
-          }
-          _ => {
-            None
-          }
+            _ => {
+                None
+            }
         }
     }
 
