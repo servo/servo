@@ -5,6 +5,7 @@
 use dom::bindings::codegen::HTMLElementBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::bindings::utils::{Reflectable, BindingObject, Reflector};
+use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId};
 use dom::node::{AbstractNode, ScriptView};
 use js::jsapi::{JSObject, JSContext, JSVal};
@@ -15,9 +16,9 @@ pub struct HTMLElement {
 }
 
 impl HTMLElement {
-    pub fn new(type_id: ElementTypeId, tag_name: ~str) -> HTMLElement {
+    pub fn new(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> HTMLElement {
         HTMLElement {
-            element: Element::new(type_id, tag_name)
+            element: Element::new(type_id, tag_name, document)
         }
     }
 }

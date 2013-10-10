@@ -77,9 +77,21 @@ impl AbstractDocument {
         }
     }
 
+    pub fn from_box<T>(ptr: *mut Box<T>) -> AbstractDocument {
+        AbstractDocument {
+            document: ptr as *Document
+        }
+    }
+
     pub fn set_root(&self, root: AbstractNode<ScriptView>) {
+        assert!(root.traverse_preorder().all(|node| {
+            do node.with_base |node| {
+                node.owner_doc == *self
+            }
+        }));
         self.with_mut_base(|document| {
             document.root = Some(root);
+            document.content_changed();
         });
     }
 }
@@ -116,7 +128,7 @@ impl Document {
         let document = AbstractDocument::as_abstract(cx, @mut Document::new(None, XML));
 
         let root = @HTMLHtmlElement {
-            htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
+            htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html", document)
         };
         let root = unsafe { Node::as_abstract_node(cx, root) };
         document.set_root(root);
@@ -248,23 +260,23 @@ impl Document {
         None
     }
 
-    pub fn CreateElement(&self, local_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
+    pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         let cx = self.get_cx();
         let local_name = null_str_as_empty(local_name);
         if !is_valid_element_name(local_name) {
             return Err(InvalidCharacter);
         }
         let local_name = local_name.to_ascii_lower();
-        Ok(build_element_from_tag(cx, local_name))
+        Ok(build_element_from_tag(cx, local_name, abstract_self))
     }
 
     pub fn CreateElementNS(&self, _namespace: &DOMString, _qualified_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         fail!("stub")
     }
 
-    pub fn CreateTextNode(&self, data: &DOMString) -> AbstractNode<ScriptView> {
+    pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
         let cx = self.get_cx();
-        let text = @Text::new(null_str_as_empty(data));
+        let text = @Text::new(null_str_as_empty(data), abstract_self);
         unsafe { Node::as_abstract_node(cx, text) }
     }
 
@@ -288,7 +300,7 @@ impl Document {
         None
     }
 
-    pub fn Title(&self) -> DOMString {
+    pub fn Title(&self, _: AbstractDocument) -> DOMString {
         let mut title = ~"";
         match self.doctype {
             SVG => {
@@ -322,7 +334,7 @@ impl Document {
         Some(title)
     }
 
-    pub fn SetTitle(&self, title: &DOMString) -> ErrorResult {
+    pub fn SetTitle(&self, abstract_self: AbstractDocument, title: &DOMString) -> ErrorResult {
         match self.doctype {
             SVG => {
                 fail!("no SVG document yet")
@@ -345,17 +357,17 @@ impl Document {
                                 for title_child in child.children() {
                                     child.remove_child(title_child);
                                 }
-                                child.add_child(self.CreateTextNode(title));
+                                child.add_child(self.CreateTextNode(abstract_self, title));
                                 break;
                             }
                             if !has_title {
                                 let new_title = @HTMLTitleElement {
-                                    htmlelement: HTMLElement::new(HTMLTitleElementTypeId, ~"title")
+                                    htmlelement: HTMLElement::new(HTMLTitleElementTypeId, ~"title", abstract_self)
                                 };
                                 let new_title = unsafe { 
                                     Node::as_abstract_node(cx, new_title) 
                                 };
-                                new_title.add_child(self.CreateTextNode(title));
+                                new_title.add_child(self.CreateTextNode(abstract_self, title));
                                 node.add_child(new_title);
                             }
                             break;

@@ -43,12 +43,10 @@ impl HTMLImageElement {
         let name = null_str_as_empty(name);
         if "src" == name {
             let doc = self.htmlelement.element.node.owner_doc;
-            for doc in doc.iter() {
-                do doc.with_base |doc| {
-                    for window in doc.window.iter() {
-                        let url = window.page.url.map(|&(ref url, _)| url.clone());
-                        self.update_image(window.image_cache_task.clone(), url);
-                    }
+            do doc.with_base |doc| {
+                for window in doc.window.iter() {
+                    let url = window.page.url.map(|&(ref url, _)| url.clone());
+                    self.update_image(window.image_cache_task.clone(), url);
                 }
             }
         }
@@ -102,26 +100,18 @@ impl HTMLImageElement {
 
     pub fn Width(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
         let node = &self.htmlelement.element.node;
-        match node.owner_doc {
-            Some(doc) => {
-                match doc.with_base(|doc| doc.window) {
-                    Some(win) => {
-                        let page = win.page;
-                        let (port, chan) = stream();
-                        match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
-                            ContentBoxResponse(rect) => {
-                                to_px(rect.size.width) as u32
-                            }
-                        }
-                    }
-                    None => {
-                        debug!("no window");
-                        0
+        match node.owner_doc.with_base(|doc| doc.window) {
+            Some(win) => {
+                let page = win.page;
+                let (port, chan) = stream();
+                match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
+                    ContentBoxResponse(rect) => {
+                        to_px(rect.size.width) as u32
                     }
                 }
             }
             None => {
-                debug!("no document");
+                debug!("no window");
                 0
             }
         }
@@ -139,26 +129,18 @@ impl HTMLImageElement {
 
     pub fn Height(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
         let node = &self.htmlelement.element.node;
-        match node.owner_doc {
-            Some(doc) => {
-                match doc.with_base(|doc| doc.window) {
-                    Some(win) => {
-                        let page = win.page;
-                        let (port, chan) = stream();
-                        match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
-                            ContentBoxResponse(rect) => {
-                                to_px(rect.size.height) as u32
-                            }
-                        }
-                    }
-                    None => {
-                        debug!("no window");
-                        0
+        match node.owner_doc.with_base(|doc| doc.window) {
+            Some(win) => {
+                let page = win.page;
+                let (port, chan) = stream();
+                match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
+                    ContentBoxResponse(rect) => {
+                        to_px(rect.size.height) as u32
                     }
                 }
             }
             None => {
-                debug!("no document");
+                debug!("no window");
                 0
             }
         }

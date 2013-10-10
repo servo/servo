@@ -86,7 +86,7 @@ pub struct Node<View> {
     prev_sibling: Option<AbstractNode<View>>,
 
     /// The document that this node belongs to.
-    owner_doc: Option<AbstractDocument>,
+    owner_doc: AbstractDocument,
 
     /// Layout information. Only the layout task may touch this data.
     priv layout_data: LayoutData,
@@ -393,6 +393,34 @@ impl<'self, View> AbstractNode<View> {
             current_node: self.first_child(),
         }
     }
+
+    // Issue #1030: should not walk the tree
+    pub fn is_in_doc(&self) -> bool {
+        do self.with_base |node| {
+            do node.owner_doc.with_base |document| {
+                match document.root {
+                    None => false,
+                    Some(root) => {
+                        let mut node = *self;
+                        let mut in_doc;
+                        loop {
+                            match node.parent_node() {
+                                Some(parent) => {
+                                    node = parent;
+                                },
+                                None => {
+                                    // Issue #1029: this is horrible.
+                                    in_doc = unsafe { node.raw_object() as uint == root.raw_object() as uint };
+                                    break;
+                                }
+                            }
+                        }
+                        in_doc
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
@@ -415,23 +443,22 @@ impl Node<ScriptView> {
 
     pub fn add_to_doc(&mut self, doc: AbstractDocument) {
         let old_doc = self.owner_doc;
-        self.owner_doc = Some(doc);
+        self.owner_doc = doc;
         let mut cur_node = self.first_child;
         while cur_node.is_some() {
             for node in cur_node.unwrap().traverse_preorder() {
                 do node.with_mut_base |node_base| {
-                    node_base.owner_doc = Some(doc);
+                    node_base.owner_doc = doc;
                 }
             };
             cur_node = cur_node.unwrap().next_sibling();
         }
 
         // Signal the old document that it needs to update its display
-        match old_doc {
-            Some(old_doc) if old_doc != doc => do old_doc.with_base |old_doc| {
+        if old_doc != doc {
+            do old_doc.with_base |old_doc| {
                 old_doc.content_changed();
-            },
-            _ => ()
+            }
         }
 
         // Signal the new document that it needs to update its display
@@ -440,30 +467,7 @@ impl Node<ScriptView> {
         }
     }
 
-    pub fn remove_from_doc(&mut self) {
-        let old_doc = self.owner_doc;
-        self.owner_doc = None;
-
-        let mut cur_node = self.first_child;
-        while cur_node.is_some() {
-            for node in cur_node.unwrap().traverse_preorder() {
-                do node.with_mut_base |node_base| {
-                    node_base.owner_doc = None;
-                }
-            };
-            cur_node = cur_node.unwrap().next_sibling();
-        }
-
-        // Signal the old document that it needs to update its display
-        match old_doc {
-            Some(doc) => do doc.with_base |doc| {
-                doc.content_changed();
-            },
-            None => ()
-        }
-    }
-
-    pub fn new(type_id: NodeTypeId) -> Node<ScriptView> {
+    pub fn new(type_id: NodeTypeId, doc: AbstractDocument) -> Node<ScriptView> {
         Node {
             reflector_: Reflector::new(),
             type_id: type_id,
@@ -476,7 +480,7 @@ impl Node<ScriptView> {
             next_sibling: None,
             prev_sibling: None,
 
-            owner_doc: None,
+            owner_doc: doc,
 
             layout_data: LayoutData::new(),
         }
@@ -616,8 +620,8 @@ impl Node<ScriptView> {
             let node = if is_empty {
                 None
             } else {
-                let text_node = do self.owner_doc.unwrap().with_base |document| {
-                    document.CreateTextNode(value)
+                let text_node = do self.owner_doc.with_base |document| {
+                    document.CreateTextNode(self.owner_doc, value)
                 };
                 Some(text_node)
             };
@@ -630,10 +634,8 @@ impl Node<ScriptView> {
                 characterdata.data = null_str_as_empty(value);
 
                 // Notify the document that the content of this node is different
-                for doc in self.owner_doc.iter() {
-                    do doc.with_base |doc| {
-                        doc.content_changed();
-                    }
+                do self.owner_doc.with_base |doc| {
+                    doc.content_changed();
                 }
             }
           }
@@ -647,10 +649,8 @@ impl Node<ScriptView> {
     }
 
     fn wait_until_safe_to_modify_dom(&self) {
-        for doc in self.owner_doc.iter() {
-            do doc.with_base |doc| {
-                doc.wait_until_safe_to_modify_dom();
-            }
+        do self.owner_doc.with_base |doc| {
+            doc.wait_until_safe_to_modify_dom();
         }
     }
 
@@ -689,11 +689,8 @@ impl Node<ScriptView> {
         // If the node already exists it is removed from current parent node.
         node.parent_node().map(|parent| parent.remove_child(node));
         abstract_self.add_child(node);
-        match self.owner_doc {
-            Some(doc) => do node.with_mut_base |node| {
-                node.add_to_doc(doc);
-            },
-            None => ()
+        do node.with_mut_base |node| {
+            node.add_to_doc(self.owner_doc);
         }
         Ok(node)
     }
@@ -720,7 +717,10 @@ impl Node<ScriptView> {
         self.wait_until_safe_to_modify_dom();
 
         abstract_self.remove_child(node);
-        self.remove_from_doc();
+        // Signal the document that it needs to update its display.
+        do self.owner_doc.with_base |document| {
+            document.content_changed();
+        }
         Ok(node)
     }
 
