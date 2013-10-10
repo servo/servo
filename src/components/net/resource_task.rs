@@ -6,6 +6,7 @@
 
 use file_loader;
 use http_loader;
+use data_loader;
 
 use std::cell::Cell;
 use std::comm::{Chan, Port, SharedChan};
@@ -110,6 +111,7 @@ pub fn ResourceTask() -> ResourceTask {
     let loaders = ~[
         (~"file", file_loader::factory),
         (~"http", http_loader::factory),
+        (~"data", data_loader::factory),
     ];
     create_resource_task_with_loaders(loaders)
 }
