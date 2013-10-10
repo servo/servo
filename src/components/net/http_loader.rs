@@ -35,26 +35,22 @@ fn load(url: Url, start_chan: Chan<LoadResponse>) {
         }
     };
 
-    info!("got HTTP response %s, headers:", response.status.to_str())
-
-    let is_redirect = 3 == (response.status.code() / 100);
-    let mut redirect: Option<Url> = None;
-    for header in response.headers.iter() {
-        let name  = header.header_name();
-        let value = header.header_value();
-        info!(" - %s: %s", name, value);
-        if is_redirect && ("Location" == name) {
-            redirect = Some(FromStr::from_str(value).expect("Failed to parse redirect URL"));
-        }
-    }
+    // Dump headers, but only do the iteration if info!() is enabled.
+    info!("got HTTP response %s, headers:", response.status.to_str());
+    info!("%?",
+        for header in response.headers.iter() {
+            info!(" - %s: %s", header.header_name(), header.header_value());
+        });
 
     // FIXME: detect redirect loops
-    match redirect {
-        Some(url) => {
-            info!("redirecting to %s", url.to_str());
-            return load(url, start_chan);
+    if 3 == (response.status.code() / 100) {
+        match response.headers.location {
+            Some(url) => {
+                info!("redirecting to %s", url.to_str());
+                return load(url, start_chan);
+            }
+            None => ()
         }
-        None => ()
     }
 
     let mut metadata = Metadata::default(url);
