@@ -7,6 +7,8 @@ use script_task::page_from_context;
 
 use js::jsapi::{JSContext, JSObject};
 
+use std::cast;
+
 pub struct WindowProxy {
     reflector_: Reflector
 }
@@ -34,7 +36,7 @@ impl BindingObject for WindowProxy {
 
 impl Reflectable for WindowProxy {
     fn reflector(&mut self) -> &mut Reflector {
-        return self.reflector()
+        unsafe { cast::transmute(self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
