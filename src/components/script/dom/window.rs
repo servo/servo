@@ -19,7 +19,6 @@ use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JS_CallTracer};
 use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JSTracer, JSTRACE_OBJECT};
 use js::{JSVAL_NULL, JSPROP_ENUMERATE};
 
-use std::cast;
 use std::cell::Cell;
 use std::comm;
 use std::comm::SharedChan;
@@ -136,8 +135,12 @@ impl Window {
 }
 
 impl Reflectable for Window {
-    fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&self.reflector_) }
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        &self.reflector_
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        &mut self.reflector_
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

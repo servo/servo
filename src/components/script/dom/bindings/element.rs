@@ -12,8 +12,12 @@ use js::jsapi::{JSContext, JSObject, JSTracer};
 macro_rules! generate_cacheable_wrapper(
     ($name: path, $wrap: path) => (
         impl Reflectable for $name {
-            fn reflector(&mut self) -> &mut Reflector {
+            fn reflector<'a>(&'a self) -> &'a Reflector {
                 self.element.reflector()
+            }
+
+            fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+                self.element.mut_reflector()
             }
 
             fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -27,8 +31,12 @@ macro_rules! generate_cacheable_wrapper(
 macro_rules! generate_cacheable_wrapper_htmlelement(
     ($name: path, $wrap: path) => (
         impl Reflectable for $name {
-            fn reflector(&mut self) -> &mut Reflector {
+            fn reflector<'a>(&'a self) -> &'a Reflector {
                 self.htmlelement.reflector()
+            }
+
+            fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+                self.htmlelement.mut_reflector()
             }
 
             fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -42,8 +50,12 @@ macro_rules! generate_cacheable_wrapper_htmlelement(
 macro_rules! generate_cacheable_wrapper_node(
     ($name: path, $wrap: path) => (
         impl Reflectable for $name {
-            fn reflector(&mut self) -> &mut Reflector {
+            fn reflector<'a>(&'a self) -> &'a Reflector {
                 self.node.reflector()
+            }
+
+            fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+                self.node.mut_reflector()
             }
 
             fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

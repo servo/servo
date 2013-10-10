@@ -10,7 +10,6 @@ use script_task::page_from_context;
 
 use js::jsapi::{JSObject, JSContext};
 
-use std::cast;
 use std::ptr;
 
 pub struct HTMLCollection {
@@ -69,10 +68,12 @@ impl BindingObject for HTMLCollection {
 }
 
 impl Reflectable for HTMLCollection {
-    fn reflector(&mut self) -> &mut Reflector {
-        unsafe {
-            cast::transmute(&self.reflector_)
-        }
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        &self.reflector_
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        &mut self.reflector_
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

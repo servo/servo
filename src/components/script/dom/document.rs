@@ -144,9 +144,15 @@ impl ReflectableDocument for Document {
 }
 
 impl Reflectable for AbstractDocument {
-    fn reflector(&mut self) -> &mut Reflector {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
         do self.with_mut_base |doc| {
-            doc.reflector()
+            unsafe { cast::transmute(doc.reflector()) }
+        }
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        do self.with_mut_base |doc| {
+            unsafe { cast::transmute(doc.mut_reflector()) }
         }
     }
 
@@ -185,10 +191,12 @@ impl DerivedWrapper for AbstractDocument {
 
 
 impl Reflectable for Document {
-    fn reflector(&mut self) -> &mut Reflector {
-        unsafe {
-            cast::transmute(&self.reflector_)
-        }
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        &self.reflector_
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        &mut self.reflector_
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

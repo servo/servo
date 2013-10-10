@@ -33,8 +33,12 @@ impl BindingObject for WindowProxy {
 }
 
 impl Reflectable for WindowProxy {
-    fn reflector(&mut self) -> &mut Reflector {
-        return self.reflector()
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        &self.reflector_
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        &mut self.reflector_
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {

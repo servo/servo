@@ -2464,7 +2464,7 @@ class CGAbstractMethod(CGThing):
 
 def CreateBindingJSObject(descriptor, parent=None):
     if descriptor.proxy:
-        handler = """  //let reflector = ptr::to_unsafe_ptr(aObject.reflector());
+        handler = """  //let reflector = aObject.mut_reflector();
 
   let page = page_from_context(aCx);
   let handler = (*page).js_info.get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
@@ -2520,7 +2520,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     return ptr::null();
   }
 
-  let reflector = ptr::to_mut_unsafe_ptr(aObject.reflector());
+  let reflector = aObject.mut_reflector();
 %s
 
   //NS_ADDREF(aObject);
@@ -2529,7 +2529,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
 
   return obj;""" % (CreateBindingJSObject(self.descriptor, "parent"))
         else:
-            return """    let reflector = ptr::to_mut_unsafe_ptr(aObject.reflector());
+            return """    let reflector = aObject.mut_reflector();
 %s
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);

@@ -790,8 +790,12 @@ impl VoidPtrLike for AbstractNode<LayoutView> {
 }
 
 impl Reflectable for Node<ScriptView> {
-    fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&mut self.reflector_) }
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        &self.reflector_
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        &mut self.reflector_
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {

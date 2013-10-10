@@ -30,8 +30,12 @@ pub struct Element {
 }
 
 impl Reflectable for Element {
-    fn reflector(&mut self) -> &mut Reflector {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
         self.node.reflector()
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        self.node.mut_reflector()
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
