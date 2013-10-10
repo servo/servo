@@ -9,8 +9,6 @@ use script_task::page_from_context;
 
 use js::jsapi::{JSObject, JSContext};
 
-use std::cast;
-
 pub struct ClientRectList {
     reflector_: Reflector,
     rects: ~[@mut ClientRect]
@@ -49,10 +47,12 @@ impl ClientRectList {
 }
 
 impl Reflectable for ClientRectList {
-    fn reflector(&mut self) -> &mut Reflector {
-        unsafe {
-            cast::transmute(&self.reflector_)
-        }
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        &self.reflector_
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        &mut self.reflector_
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

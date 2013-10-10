@@ -10,11 +10,13 @@ use dom::domparser::DOMParser;
 use js::jsapi::{JSContext, JSObject, JSVal};
 use js::glue::{RUST_OBJECT_TO_JSVAL};
 
-use std::cast;
-
 impl Reflectable for DOMParser {
-    fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&self.reflector_) }
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        &self.reflector_
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        &mut self.reflector_
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

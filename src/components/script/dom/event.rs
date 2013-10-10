@@ -14,9 +14,6 @@ use js::jsapi::{JSObject, JSContext, JSVal};
 
 use script_task::page_from_context;
 
-use std::cast;
-
-
 pub enum Event_ {
     ResizeEvent(uint, uint), 
     ReflowEvent,
@@ -114,8 +111,12 @@ impl Event {
 }
 
 impl Reflectable for Event {
-    fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&self.reflector_) }
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        &self.reflector_
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        &mut self.reflector_
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

@@ -5,7 +5,6 @@
 use dom::bindings::utils::{Reflector, BindingObject, Reflectable};
 use dom::bindings::codegen::ValidityStateBinding;
 use js::jsapi::{JSContext, JSObject};
-use std::cast;
 
 pub struct ValidityState {
     reflector_: Reflector,
@@ -60,8 +59,12 @@ impl ValidityState {
 }
 
 impl Reflectable for ValidityState {
-    fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&self.reflector_) }
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        &self.reflector_
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        &mut self.reflector_
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

@@ -200,8 +200,12 @@ impl HTMLDocument {
 }
 
 impl Reflectable for HTMLDocument {
-    fn reflector(&mut self) -> &mut Reflector {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
         self.parent.reflector()
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        self.parent.mut_reflector()
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

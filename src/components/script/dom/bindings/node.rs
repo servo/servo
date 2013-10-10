@@ -96,11 +96,15 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
 }
 
 impl Reflectable for AbstractNode<ScriptView> {
-    fn reflector(&mut self) -> &mut Reflector {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        do self.with_base |base| {
+            unsafe { cast::transmute(base.reflector()) }
+        }
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         do self.with_mut_base |base| {
-            unsafe {
-                cast::transmute(&base.reflector_)
-            }
+            unsafe { cast::transmute(base.reflector()) }
         }
     }
 
@@ -117,7 +121,7 @@ impl Traceable for Node<ScriptView> {
                 return;
             }
             debug!("tracing %s", name);
-            let mut node = node.unwrap();
+            let node = node.unwrap();
             let obj = node.reflector().get_jsobject();
             assert!(obj.is_not_null());
             unsafe {
