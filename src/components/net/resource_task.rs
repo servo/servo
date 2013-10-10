@@ -15,6 +15,9 @@ use extra::url::Url;
 use util::spawn_listener;
 use http::headers::content_type::MediaType;
 
+#[cfg(test)]
+use std::from_str::FromStr;
+
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
     Load(Url, Chan<LoadResponse>),
@@ -191,28 +194,40 @@ fn test_exit() {
 #[test]
 fn test_bad_scheme() {
     let resource_task = ResourceTask();
-    let progress = Port();
-    resource_task.send(Load(url::from_str(~"bogus://whatever").get(), progress.chan()));
-    match progress.recv() {
+    let (start, start_chan) = comm::stream();
+    resource_task.send(Load(FromStr::from_str("bogus://whatever").unwrap(), start_chan));
+    let response = start.recv();
+    match response.progress_port.recv() {
       Done(result) => { assert!(result.is_err()) }
-      _ => fail
+      _ => fail!("bleh")
     }
     resource_task.send(Exit);
 }
 
-#[test]
-fn should_delegate_to_scheme_loader() {
-    let payload = ~[1, 2, 3];
-    let loader_factory = |url: Url, start_chan: Chan<LoadResponse>| {
+#[cfg(test)]
+static snicklefritz_payload: [u8, ..3] = [1, 2, 3];
+
+#[cfg(test)]
+fn snicklefritz_loader_factory() -> LoaderTask {
+    let f: LoaderTask = |url: Url, start_chan: Chan<LoadResponse>| {
         let progress_chan = start_sending(start_chan, Metadata::default(url));
-        progress_chan.send(Payload(payload.clone()));
+        progress_chan.send(Payload(snicklefritz_payload.into_owned()));
         progress_chan.send(Done(Ok(())));
     };
-    let loader_factories = ~[(~"snicklefritz", loader_factory)];
+    f
+}
+
+#[test]
+fn should_delegate_to_scheme_loader() {
+    let loader_factories = ~[(~"snicklefritz", snicklefritz_loader_factory)];
     let resource_task = create_resource_task_with_loaders(loader_factories);
-    let progress = Port();
-    resource_task.send(Load(url::from_str(~"snicklefritz://heya").get(), progress.chan()));
-    assert!(progress.recv() == Payload(payload));
+    let (start, start_chan) = comm::stream();
+    resource_task.send(Load(FromStr::from_str("snicklefritz://heya").unwrap(), start_chan));
+
+    let response = start.recv();
+    let progress = response.progress_port;
+
+    assert!(progress.recv() == Payload(snicklefritz_payload.into_owned()));
     assert!(progress.recv() == Done(Ok(())));
     resource_task.send(Exit);
 }

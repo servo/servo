@@ -200,12 +200,9 @@ pub fn time<T>(msg: &str, callback: &fn() -> T) -> T{
     return val;
 }
 
-#[cfg(test)]
-mod test {
-    // ensure that the order of the buckets matches the order of the enum categories
-    #[test]
-    fn check_order() {
-        let buckets = ProfilerCategory::empty_buckets();
-        assert!(buckets.len() == NumBuckets as uint);
-    }
+// ensure that the order of the buckets matches the order of the enum categories
+#[test]
+fn check_order() {
+    let buckets = ProfilerCategory::empty_buckets();
+    assert!(buckets.len() == NumBuckets as uint);
 }

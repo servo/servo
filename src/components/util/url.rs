@@ -77,7 +77,10 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
     url::from_str(str_url).unwrap()
 }
 
+#[cfg(test)]
 mod make_url_tests {
+    use super::make_url;
+    use std::os;
 
     #[test]
     fn should_create_absolute_file_url_if_current_url_is_none_and_str_url_looks_filey() {
