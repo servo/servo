@@ -9,6 +9,7 @@ use dom::bindings::utils::{Reflector, DOMString, ErrorResult, Fallible, NotFound
 use dom::bindings::utils::{BindingObject, Reflectable, null_str_as_empty};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
+use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
 use dom::htmlimageelement::HTMLImageElement;
@@ -267,6 +268,20 @@ impl<'self, View> AbstractNode<View> {
         self.type_id() == DoctypeNodeTypeId
     }
 
+    pub fn with_imm_doctype<R>(self, f: &fn(&DocumentType<View>) -> R) -> R {
+        if !self.is_doctype() {
+            fail!(~"node is not doctype");
+        }
+        self.transmute(f)
+    }
+
+    pub fn with_mut_doctype<R>(self, f: &fn(&mut DocumentType<View>) -> R) -> R {
+        if !self.is_doctype() {
+            fail!(~"node is not doctype");
+        }
+        self.transmute_mut(f)
+    }
+
     pub fn is_comment(self) -> bool {
         self.type_id() == CommentNodeTypeId
     }
@@ -486,15 +501,6 @@ impl Node<ScriptView> {
         }
     }
 
-    pub fn getNodeType(&self) -> i32 {
-        match self.type_id {
-            ElementNodeTypeId(_) => 1,
-            TextNodeTypeId       => 3,
-            CommentNodeTypeId    => 8,
-            DoctypeNodeTypeId    => 10
-        }
-    }
-
     pub fn getNextSibling(&mut self) -> Option<&mut AbstractNode<ScriptView>> {
         match self.next_sibling {
             // transmute because the compiler can't deduce that the reference
@@ -516,11 +522,29 @@ impl Node<ScriptView> {
 
 impl Node<ScriptView> {
     pub fn NodeType(&self) -> u16 {
-        0
+        match self.type_id {
+            ElementNodeTypeId(_) => 1,
+            TextNodeTypeId       => 3,
+            CommentNodeTypeId    => 8,
+            DoctypeNodeTypeId    => 10
+        }
     }
 
-    pub fn NodeName(&self) -> DOMString {
-        None
+    pub fn NodeName(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
+        Some(match self.type_id {
+          ElementNodeTypeId(*) => {
+            do abstract_self.with_imm_element |element| {
+                element.TagName().expect("tagName should never be null")
+            }
+          }
+          CommentNodeTypeId => ~"#comment",
+          TextNodeTypeId => ~"#text",
+          DoctypeNodeTypeId => {
+            do abstract_self.with_imm_doctype |doctype| {
+                doctype.name.clone()
+            }
+          }
+        })
     }
 
     pub fn GetBaseURI(&self) -> DOMString {
@@ -528,7 +552,13 @@ impl Node<ScriptView> {
     }
 
     pub fn GetOwnerDocument(&self) -> Option<AbstractDocument> {
-        None
+        match self.type_id {
+          ElementNodeTypeId(*) |
+          CommentNodeTypeId |
+          TextNodeTypeId |
+          DoctypeNodeTypeId => Some(self.owner_doc),
+          // DocumentNodeTypeId => None
+        }
     }
 
     pub fn GetParentNode(&self) -> Option<AbstractNode<ScriptView>> {
@@ -559,11 +589,21 @@ impl Node<ScriptView> {
         self.next_sibling
     }
 
-    pub fn GetNodeValue(&self) -> DOMString {
-        None
+    pub fn GetNodeValue(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
+        match self.type_id {
+          // ProcessingInstruction
+          CommentNodeTypeId | TextNodeTypeId => { 
+            do abstract_self.with_imm_characterdata() |characterdata| {
+                characterdata.Data()
+            }
+          }
+          _ => {
+            None
+          }
+        }
     }
 
-    pub fn SetNodeValue(&mut self, _val: &DOMString) -> ErrorResult {
+    pub fn SetNodeValue(&mut self, _abstract_self: AbstractNode<ScriptView>, _val: &DOMString) -> ErrorResult {
         Ok(())
     }
 
