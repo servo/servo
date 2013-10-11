@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{ProgressMsg, Payload, Done, UrlChange, LoaderTask};
+use resource_task::{Metadata, Payload, Done, LoadResponse, LoaderTask, start_sending};
 
 use std::cell::Cell;
 use std::vec;
@@ -13,15 +13,15 @@ use http::headers::HeaderEnum;
 use std::rt::io::Reader;
 
 pub fn factory() -> LoaderTask {
-	let f: LoaderTask = |url, progress_chan| {
+    let f: LoaderTask = |url, start_chan| {
         let url = Cell::new(url);
-        let progress_chan = Cell::new(progress_chan);
-        spawn(|| load(url.take(), progress_chan.take()))
-	};
-	f
+        let start_chan = Cell::new(start_chan);
+        spawn(|| load(url.take(), start_chan.take()))
+    };
+    f
 }
 
-fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
+fn load(url: Url, start_chan: Chan<LoadResponse>) {
     assert!("http" == url.scheme);
 
     info!("requesting %s", url.to_str());
@@ -30,34 +30,33 @@ fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
     let mut response = match request.read_response() {
         Ok(r) => r,
         Err(_) => {
-            progress_chan.send(Done(Err(())));
+            start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
             return;
         }
     };
 
-    info!("got HTTP response %s, headers:", response.status.to_str())
-
-    let is_redirect = 3 == (response.status.code() / 100);
-    let mut redirect: Option<Url> = None;
-    for header in response.headers.iter() {
-        let name  = header.header_name();
-        let value = header.header_value();
-        info!(" - %s: %s", name, value);
-        if is_redirect && ("Location" == name) {
-            redirect = Some(FromStr::from_str(value).expect("Failed to parse redirect URL"));
-        }
-    }
+    // Dump headers, but only do the iteration if info!() is enabled.
+    info!("got HTTP response %s, headers:", response.status.to_str());
+    info!("%?",
+        for header in response.headers.iter() {
+            info!(" - %s: %s", header.header_name(), header.header_value());
+        });
 
     // FIXME: detect redirect loops
-    match redirect {
-        Some(url) => {
-            info!("redirecting to %s", url.to_str());
-            progress_chan.send(UrlChange(url.clone()));
-            return load(url, progress_chan);
+    if 3 == (response.status.code() / 100) {
+        match response.headers.location {
+            Some(url) => {
+                info!("redirecting to %s", url.to_str());
+                return load(url, start_chan);
+            }
+            None => ()
         }
-        None => ()
     }
 
+    let mut metadata = Metadata::default(url);
+    metadata.set_content_type(&response.headers.content_type);
+
+    let progress_chan = start_sending(start_chan, metadata);
     loop {
         let mut buf = vec::with_capacity(1024);
 

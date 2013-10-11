@@ -17,6 +17,21 @@ $(foreach submodule,$(SUBMODULES),\
 $(eval $(call DEF_SUBMODULE_TEST_RULES,$(submodule))))
 
 
+define DEF_LIB_CRATE_TEST_RULES
+servo-test-$(1): $$(DEPS_$(1))
+	@$$(call E, compile: servo-test-$(1))
+	$$(Q)$$(RUSTC) $$(RFLAGS_$(1)) --test -o $$@ $$<
+
+.PHONY: check-servo-$(1)
+check-servo-$(1): servo-test-$(1)
+	@$$(call E, check: $(1))
+	$$(Q)./servo-test-$(1)
+endef
+
+$(foreach lib_crate,$(SERVO_LIB_CRATES),\
+$(eval $(call DEF_LIB_CRATE_TEST_RULES,$(lib_crate))))
+
+
 # Testing targets
 
 servo-test: $(DEPS_servo)
@@ -50,7 +65,7 @@ check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo check-content tidy
 	@$(call E, check: all)
 
 .PHONY: check-servo
-check-servo: servo-test
+check-servo: $(foreach lib_crate,$(SERVO_LIB_CRATES),check-servo-$(lib_crate)) servo-test
 	@$(call E, check: servo)
 	$(Q)./servo-test
 
