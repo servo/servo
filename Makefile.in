@@ -238,12 +238,19 @@ DONE_script = $(B)src/components/script/libscript.dummy
 
 DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_net) $(DONE_gfx) $(DONE_msg)
 
-RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/msg
+RFLAGS_style = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util
+SRC_style = $(call rwildcard,$(S)src/components/style/,*.rs)
+CRATE_style = $(S)src/components/style/style.rc
+DONE_style = $(B)src/components/style/libstyle.dummy
+
+DEPS_style = $(CRATE_style) $(SRC_style) $(DONE_SUBMODULES) $(DONE_util)
+
+RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg
 
 SRC_servo = $(call rwildcard,$(S)src/components/main/,*.rs)
 CRATE_servo = $(S)src/components/main/servo.rc
 
-DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_script) $(DONE_net) $(DONE_msg)
+DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_script) $(DONE_style) $(DONE_net) $(DONE_msg)
 
 .DEFAULT_GOAL := all
 .PHONY:	all
@@ -251,7 +258,7 @@ all: servo package
 
 # Servo helper libraries
 
-SERVO_LIB_CRATES = util net msg gfx script
+SERVO_LIB_CRATES = util net msg gfx script style
 
 define DEF_LIB_CRATE_RULES
 $$(DONE_$(1)):	$$(DEPS_$(1))
