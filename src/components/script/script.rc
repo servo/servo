@@ -127,6 +127,7 @@ pub mod dom {
     pub mod mouseevent;
     pub mod navigator;
     pub mod node;
+    pub mod nodelist;
     pub mod uievent;
     pub mod text;
     pub mod validitystate;

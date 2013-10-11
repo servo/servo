@@ -12,6 +12,7 @@ use dom::document::AbstractDocument;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
+use dom::nodelist::{NodeList};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::text::Text;
@@ -88,6 +89,9 @@ pub struct Node<View> {
 
     /// The document that this node belongs to.
     owner_doc: AbstractDocument,
+
+    /// The live list of children return by .childNodes.
+    child_list: Option<@mut NodeList>,
 
     /// Layout information. Only the layout task may touch this data.
     priv layout_data: LayoutData,
@@ -496,6 +500,7 @@ impl Node<ScriptView> {
             prev_sibling: None,
 
             owner_doc: doc,
+            child_list: None,
 
             layout_data: LayoutData::new(),
         }
@@ -570,7 +575,7 @@ impl Node<ScriptView> {
     }
 
     pub fn HasChildNodes(&self) -> bool {
-        false
+        self.first_child.is_some()
     }
 
     pub fn GetFirstChild(&self) -> Option<AbstractNode<ScriptView>> {
@@ -630,6 +635,24 @@ impl Node<ScriptView> {
             None
           }
         }
+    }
+
+    pub fn ChildNodes(&mut self, abstract_self: AbstractNode<ScriptView>) -> @mut NodeList {
+        match self.child_list {
+            None => {
+                let (scope, cx) = self.get_scope_and_cx();
+                let list = NodeList::new_child_list(abstract_self, cx, scope);
+                self.child_list = Some(list);
+                list
+            }
+            Some(list) => list
+        }
+    }
+
+    pub fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
+        let win = self.owner_doc.with_base(|doc| doc.window.unwrap());
+        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
+        (win.reflector().get_jsobject(), cx)
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace-all
