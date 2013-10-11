@@ -55,7 +55,11 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLLegendElementTypeId) => generate_element!(HTMLLegendElement),
         ElementNodeTypeId(HTMLLIElementTypeId) => generate_element!(HTMLLIElement),
         ElementNodeTypeId(HTMLLinkElementTypeId) => generate_element!(HTMLLinkElement),
+<<<<<<< HEAD
 	ElementNodeTypeId(HTMLMainElementTypeId) => generate_element!(HTMLMainElement),
+=======
+        ElementNodeTypeId(HTMLMainElementTypeId) => generate_element!(HTMLMainElement),
+>>>>>>> ec72b7b2846eb7e41037d05c2b8afc5b5a81cc54
         ElementNodeTypeId(HTMLMapElementTypeId) => generate_element!(HTMLMapElement),
         ElementNodeTypeId(HTMLMediaElementTypeId) => generate_element!(HTMLMediaElement),
         ElementNodeTypeId(HTMLMetaElementTypeId) => generate_element!(HTMLMetaElement),
