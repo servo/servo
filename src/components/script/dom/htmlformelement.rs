@@ -2,26 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, DOMString, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, ScriptView};
-
-use js::jsapi::{JSObject, JSContext};
 
 pub struct HTMLFormElement {
     htmlelement: HTMLElement
 }
 
 impl HTMLFormElement {
-    fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let doc = self.htmlelement.element.node.owner_doc;
-        let win = doc.with_base(|doc| doc.window.unwrap());
-        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let scope = win.reflector().get_jsobject();
-        (scope, cx)
-    }
-
     pub fn AcceptCharset(&self) -> DOMString {
         None
     }
@@ -95,7 +85,7 @@ impl HTMLFormElement {
     }
 
     pub fn Elements(&self) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
+        let (scope, cx) = self.htmlelement.element.node.get_scope_and_cx();
         HTMLCollection::new(~[], cx, scope)
     }
 

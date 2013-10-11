@@ -42,8 +42,8 @@ interface Node /*: EventTarget*/ {
   [Pure]
   readonly attribute Element? parentElement;
   boolean hasChildNodes();
-  /*[Constant]
-    readonly attribute NodeList childNodes;*/
+  [Constant]
+  readonly attribute NodeList childNodes;
   [Pure]
   readonly attribute Node? firstChild;
   [Pure]
