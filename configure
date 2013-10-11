@@ -258,6 +258,16 @@ cpu_type() {
     esac
 }
 
+if [ -f configure -a -f Makefile.in ]; then
+    msg "You seem to be running configure within the source tree root."
+    msg "This is not supported.  Instead, make a build directory:"
+    msg ""
+    msg "    mkdir -p build && cd build && ../configure"
+    msg ""
+    msg "See README.md for more information."
+    exit 1
+fi
+
 msg "looking for configure programs"
 need_cmd cmp
 need_cmd mkdir
