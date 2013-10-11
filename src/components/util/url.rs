@@ -62,6 +62,12 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
                         _ => str_url
                     }
                 },
+                ~"data" => {
+                    // Drop whitespace within data: URLs, e.g. newlines within a base64
+                    // src="..." block.  Whitespace intended as content should be
+                    // %-encoded or base64'd.
+                    str_url.iter().filter(|&c| !c.is_whitespace()).collect()
+                },
                 _ => str_url
             }
         }
@@ -71,7 +77,10 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
     url::from_str(str_url).unwrap()
 }
 
+#[cfg(test)]
 mod make_url_tests {
+    use super::make_url;
+    use std::os;
 
     #[test]
     fn should_create_absolute_file_url_if_current_url_is_none_and_str_url_looks_filey() {

@@ -245,35 +245,27 @@ CRATE_servo = $(S)src/components/main/servo.rc
 
 DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_script) $(DONE_net) $(DONE_msg)
 
-# rules that depend on having correct meta-target vars (DEPS_CLEAN, DEPS_servo, etc)
-include $(S)mk/check.mk
-include $(S)mk/clean.mk
-
 .DEFAULT_GOAL := all
 .PHONY:	all
 all: $(B)/src/compiler/rust/rust-auto-clean-stamp servo package
 
 # Servo helper libraries
 
-$(DONE_util):	$(DEPS_util)
-	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_util) --out-dir $(B)src/components/util $< && touch $@
+SERVO_LIB_CRATES = util net msg gfx script
 
-$(DONE_net):	$(DEPS_net)
-	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_net) --out-dir $(B)src/components/net $< && touch $@
+define DEF_LIB_CRATE_RULES
+$$(DONE_$(1)):	$$(DEPS_$(1))
+	@$$(call E, compile: $$@)
+	$$(Q)$$(RUSTC) $$(RFLAGS_$(1)) --out-dir $$(B)src/components/$(1) $$< && touch $$@
+endef
 
-$(DONE_msg):	$(DEPS_msg)
-	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_msg) --out-dir $(B)src/components/msg $< && touch $@
+$(foreach lib_crate,$(SERVO_LIB_CRATES),\
+$(eval $(call DEF_LIB_CRATE_RULES,$(lib_crate))))
 
-$(DONE_gfx):	$(DEPS_gfx)
-	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_gfx) --out-dir $(B)src/components/gfx $< && touch $@
-
-$(DONE_script):	$(DEPS_script)
-	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_script) --out-dir $(B)src/components/script $< && touch $@
+# rules that depend on having correct meta-target vars (DEPS_CLEAN, DEPS_servo, etc)
+# and SERVO_LIB_CRATES
+include $(S)mk/check.mk
+include $(S)mk/clean.mk
 
 BINDINGS_SRC = $(S)/src/components/script/dom/bindings/codegen
 
