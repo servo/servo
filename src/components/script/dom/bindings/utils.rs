@@ -106,6 +106,14 @@ pub fn null_str_as_empty_ref<'a>(s: &'a DOMString) -> &'a str {
     }
 }
 
+pub fn null_str_as_word_null(s: &DOMString) -> ~str {
+    // We don't use map_default because it would allocate ~"null" even for Some.
+    match *s {
+        Some(ref s) => s.clone(),
+        None => ~"null"
+    }
+}
+
 fn is_dom_class(clasp: *JSClass) -> bool {
     unsafe {
         ((*clasp).flags & js::JSCLASS_IS_DOMJSCLASS) != 0
