@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::comment::Comment;
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, Reflector, ErrorResult, Fallible};
 use dom::bindings::utils::{BindingObject, Reflectable, DerivedWrapper};
-use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty};
+use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty, null_str_as_word_null};
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
@@ -286,6 +287,12 @@ impl Document {
         let cx = self.get_cx();
         let text = @Text::new(null_str_as_empty(data), abstract_self);
         unsafe { Node::as_abstract_node(cx, text) }
+    }
+
+    pub fn CreateComment(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
+        let cx = self.get_cx();
+        let comment = @Comment::new(null_str_as_word_null(data), abstract_self);
+        unsafe { Node::as_abstract_node(cx, comment) }
     }
 
     pub fn CreateEvent(&self, _interface: &DOMString) -> Fallible<@mut Event> {
