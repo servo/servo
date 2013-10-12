@@ -91,7 +91,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLUnknownElementTypeId) => generate_element!(HTMLUnknownElement),
         CommentNodeTypeId => generate_element!(Comment),
         DoctypeNodeTypeId => generate_element!(DocumentType<ScriptView>),
-        DocumentFragmentNodeTypeId => generate_element!(DocumentFragment<ScriptView>),
+        DocumentFragmentNodeTypeId => generate_element!(DocumentFragment),
         TextNodeTypeId => generate_element!(Text),
     }
 }

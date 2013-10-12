@@ -8,20 +8,20 @@ use dom::node::{ScriptView, Node, DocumentFragmentNodeTypeId};
 use dom::node::{AbstractNode};
 use dom::window::Window;
 
-pub struct DocumentFragment<View> {
-    node: Node<View>,
+pub struct DocumentFragment {
+    node: Node<ScriptView>,
 }
 
-impl DocumentFragment<ScriptView> {
+impl DocumentFragment {
     /// Creates a new DocumentFragment.
-    pub fn new(document: AbstractDocument) -> DocumentFragment<ScriptView> {
+    pub fn new(document: AbstractDocument) -> DocumentFragment {
         DocumentFragment {
             node: Node::new(DocumentFragmentNodeTypeId, document),
         }
     }
 
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractNode<ScriptView>> {
-        let cx = (*owner.page).js_info.get_ref().js_compartment.cx.ptr;
+        let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
         let fragment = @DocumentFragment::new(owner.Document());
         Ok(unsafe { Node::as_abstract_node(cx, fragment) })
     }
