@@ -6,7 +6,7 @@ use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::element::*;
 use dom::types::*;
 use dom::node::{AbstractNode, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
-use dom::node::{DoctypeNodeTypeId, ScriptView};
+use dom::node::{DoctypeNodeTypeId, DocumentFragmentNodeTypeId, ScriptView};
 
 use std::cast;
 use std::libc;
@@ -91,8 +91,9 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLUnknownElementTypeId) => generate_element!(HTMLUnknownElement),
         CommentNodeTypeId => generate_element!(Comment),
         DoctypeNodeTypeId => generate_element!(DocumentType<ScriptView>),
-        TextNodeTypeId => generate_element!(Text)
-     }
+        DocumentFragmentNodeTypeId => generate_element!(DocumentFragment<ScriptView>),
+        TextNodeTypeId => generate_element!(Text),
+    }
 }
 
 impl Reflectable for AbstractNode<ScriptView> {

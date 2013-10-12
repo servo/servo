@@ -50,6 +50,7 @@ pub mod dom {
     pub mod clientrectlist;
     pub mod comment;
     pub mod document;
+    pub mod documentfragment;
     pub mod documenttype;
     pub mod domparser;
     pub mod element;
