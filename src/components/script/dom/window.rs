@@ -50,6 +50,12 @@ pub struct Window {
     next_timer_handle: i32,
 }
 
+impl Window {
+    pub fn get_cx(&self) -> *JSObject {
+        self.page.js_info.get_ref().js_compartment.cx.ptr
+    }
+}
+
 #[unsafe_destructor]
 impl Drop for Window {
     fn drop(&self) {

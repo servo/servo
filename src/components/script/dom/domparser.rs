@@ -26,7 +26,7 @@ impl DOMParser {
         };
 
         // TODO(tkuehn): This just handles the top-level page. Need to handle subframes.
-        let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
+        let cx = owner.get_cx();
         let scope = owner.reflector().get_jsobject();
         parser.wrap_object_shared(cx, scope);
         parser
@@ -40,7 +40,7 @@ impl DOMParser {
                            _s: &DOMString,
                            ty: DOMParserBinding::SupportedType)
                            -> Fallible<AbstractDocument> {
-        let cx = (*self.owner.page).js_info.get_ref().js_compartment.cx.ptr;
+        let cx = self.owner.get_cx();
         let document = match ty {
             Text_html => {
                 HTMLDocument::new(None)

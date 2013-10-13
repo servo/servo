@@ -278,12 +278,11 @@ impl Element {
         let win = document.with_base(|doc| doc.window).expect("no window");
         let node = abstract_self;
         assert!(node.is_element());
-        let page = win.page;
         let (port, chan) = comm::stream();
         let (rects, cx, scope) =
-            match page.query_layout(ContentBoxesQuery(node, chan), port) {
+            match win.page.query_layout(ContentBoxesQuery(node, chan), port) {
                 ContentBoxesResponse(rects) => {
-                    let cx = page.js_info.get_ref().js_compartment.cx.ptr;
+                    let cx = win.get_cx();
                     let scope = win.reflector().get_jsobject();
                     let rects = do rects.map |r| {
                         ClientRect::new(
@@ -304,13 +303,12 @@ impl Element {
     pub fn GetBoundingClientRect(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRect {
         let document = self.node.owner_doc;
         let win = document.with_base(|doc| doc.window).expect("no window");
-        let page = win.page;
         let node = abstract_self;
         assert!(node.is_element());
         let (port, chan) = comm::stream();
-        match page.query_layout(ContentBoxQuery(node, chan), port) {
+        match win.page.query_layout(ContentBoxQuery(node, chan), port) {
             ContentBoxResponse(rect) => {
-                let cx = page.js_info.get_ref().js_compartment.cx.ptr;
+                let cx = win.get_cx();
                 let scope = win.reflector().get_jsobject();
                 ClientRect::new(
                     rect.origin.y.to_f32(),

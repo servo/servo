@@ -29,8 +29,7 @@ impl HTMLDocument {
             parent: Document::new(window, HTML)
         };
 
-        let compartment = window.get_ref().page.js_info.get_ref().js_compartment;
-        AbstractDocument::as_abstract(compartment.cx.ptr, doc)
+        AbstractDocument::as_abstract(window.get_ref().get_cx(), doc)
     }
 }
 

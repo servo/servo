@@ -651,8 +651,7 @@ impl Node<ScriptView> {
 
     pub fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
         let win = self.owner_doc.with_base(|doc| doc.window.unwrap());
-        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        (win.reflector().get_jsobject(), cx)
+        (win.reflector().get_jsobject(), win.get_cx())
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace-all
