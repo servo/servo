@@ -104,7 +104,7 @@ pub enum DocumentType {
 }
 
 pub struct Document {
-    root: Option<AbstractNode<ScriptView>>,
+    priv root: Option<AbstractNode<ScriptView>>,
     reflector_: Reflector,
     window: Option<@mut Window>,
     doctype: DocumentType,
@@ -322,7 +322,7 @@ impl Document {
                 fail!("no SVG document yet")
             },
             _ => {
-                match self.root {
+                match self.GetDocumentElement() {
                     None => {},
                     Some(root) => {
                         for node in root.traverse_preorder() {
@@ -338,7 +338,7 @@ impl Document {
                                 }
                             }
                             break;
-                        };
+                        }
                     }
                 }
             }
@@ -356,7 +356,7 @@ impl Document {
             },
             _ => {
                 let (_scope, cx) = self.get_scope_and_cx();
-                match self.root {
+                match self.GetDocumentElement() {
                     None => {},
                     Some(root) => {
                         for node in root.traverse_preorder() {
@@ -386,7 +386,7 @@ impl Document {
                                 node.add_child(new_title);
                             }
                             break;
-                        };
+                        }
                     }
                 }
             }
@@ -484,7 +484,7 @@ impl Document {
 
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
         let mut elements = ~[];
-        match self.root {
+        match self.GetDocumentElement() {
             None => {},
             Some(root) => {
                 for child in root.traverse_preorder() {
@@ -495,7 +495,7 @@ impl Document {
                             }
                         }
                     }
-                };
+                }
             }
         }
         let (scope, cx) = self.get_scope_and_cx();
