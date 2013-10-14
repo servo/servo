@@ -655,6 +655,81 @@ pub mod shorthands {
         }
     </%self:shorthand>
 
+    <%self:shorthand name="font" sub_properties="font-style font-variant font-weight
+                                                 font-size line-height font-family">
+        let mut iter = input.skip_whitespace();
+        let mut nb_normals = 0u;
+        let mut style = None;
+        let mut variant = None;
+        let mut weight = None;
+        let mut size = None;
+        let mut line_height = None;
+        for component_value in iter {
+            // Special-case 'normal' because it is valid in each of
+            // font-style, font-weight and font-variant.
+            // Leaves the values to None, 'normal' is the initial value for each of them.
+            if get_ident_lower(component_value).filtered(
+                    |v| v.eq_ignore_ascii_case("normal")).is_some() {
+                nb_normals += 1;
+                loop;
+            }
+            if style.is_none() {
+                match font_style::from_component_value(component_value) {
+                    Some(s) => { style = Some(s); loop },
+                    None => ()
+                }
+            }
+            if weight.is_none() {
+                match font_weight::from_component_value(component_value) {
+                    Some(w) => { weight = Some(w); loop },
+                    None => ()
+                }
+            }
+            if variant.is_none() {
+                match font_variant::from_component_value(component_value) {
+                    Some(v) => { variant = Some(v); loop },
+                    None => ()
+                }
+            }
+            match font_size::from_component_value(component_value) {
+                Some(s) => { size = Some(s); break },
+                None => return None
+            }
+        }
+        #[inline]
+        fn count<T>(opt: &Option<T>) -> uint {
+            match opt {
+                &Some(_) => 1,
+                &None => 0,
+            }
+        }
+        if size.is_none() || (count(&style) + count(&weight) + count(&variant) + nb_normals) > 3 {
+            return None
+        }
+        let mut copied_iter = iter.clone();
+        match copied_iter.next() {
+            Some(&Delim('/')) => {
+                iter = copied_iter;
+                line_height = match iter.next() {
+                    Some(v) => line_height::from_component_value(v),
+                    _ => return None,
+                };
+                if line_height.is_none() { return None }
+            }
+            _ => ()
+        }
+        let family = font_family::from_iter(iter);
+        if family.is_none() { return None }
+        Some(Longhands {
+            font_style: style,
+            font_variant: variant,
+            font_weight: weight,
+            font_size: size,
+            line_height: line_height,
+            font_family: family
+        })
+    </%self:shorthand>
+
 }
 
 
