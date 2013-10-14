@@ -8,8 +8,8 @@ use std::ascii::StrAsciiExt;
 use std::at_vec;
 pub use std::iterator;
 pub use cssparser::*;
-pub use style::errors::{ErrorLoggerIterator, log_css_error};
-pub use style::parsing_utils::*;
+pub use errors::{ErrorLoggerIterator, log_css_error};
+pub use parsing_utils::*;
 pub use self::common_types::*;
 
 pub mod common_types;
@@ -19,7 +19,7 @@ pub mod common_types;
 
 def to_rust_ident(name):
     name = name.replace("-", "_")
-    if name in ["static"]:  # Rust keywords
+    if name in ["static", "super"]:  # Rust keywords
         name += "_"
     return name
 
@@ -128,15 +128,15 @@ pub mod longhands {
     </%def>
 
     <%def name="predefined_type(name, type, initial_value, parse_method='parse', inherited=False)">
-        <%self:longhand name="${name}" inherited="${inherited}">
+        <%self:single_component_value name="${name}" inherited="${inherited}">
             pub use to_computed_value = super::super::common_types::computed::compute_${type};
             pub type SpecifiedValue = specified::${type};
             pub type ComputedValue = computed::${type};
             #[inline] pub fn get_initial_value() -> ComputedValue { ${initial_value} }
-            pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
-                one_component_value(input).chain(specified::${type}::${parse_method})
+            #[inline] pub fn from_component_value(v: &ComponentValue) -> Option<SpecifiedValue> {
+                specified::${type}::${parse_method}(v)
             }
-        </%self:longhand>
+        </%self:single_component_value>
     </%def>
 
 
@@ -240,7 +240,7 @@ pub mod longhands {
                 &ast::Number(ref value) if value.value >= 0.
                 => Some(SpecifiedNumber(value.value)),
                 &ast::Percentage(ref value) if value.value >= 0.
-                => Some(SpecifiedLength(specified::Em(value.value))),
+                => Some(SpecifiedLength(specified::Em(value.value / 100.))),
                 &Dimension(ref value, ref unit) if value.value >= 0.
                 => specified::Length::parse_dimension(value.value, unit.as_slice())
                     .map_move(SpecifiedLength),
@@ -265,6 +265,55 @@ pub mod longhands {
             }
         }
     </%self:single_component_value>
+
+    <%self:single_component_value name="vertical-align">
+        <% vertical_align_keywords = (
+            "baseline sub super top text-top middle bottom text-bottom".split()) %>
+        #[deriving(Clone)]
+        pub enum SpecifiedValue {
+            % for keyword in vertical_align_keywords:
+                Specified_${to_rust_ident(keyword)},
+            % endfor
+            SpecifiedLengthOrPercentage(specified::LengthOrPercentage),
+        }
+        /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
+        /// | <percentage> | <length>
+        pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
+            match input {
+                &Ident(ref value) => match value.to_ascii_lower().as_slice() {
+                    % for keyword in vertical_align_keywords:
+                        "${keyword}" => Some(Specified_${to_rust_ident(keyword)}),
+                    % endfor
+                    _ => None,
+                },
+                _ => specified::LengthOrPercentage::parse_non_negative(input)
+                     .map_move(SpecifiedLengthOrPercentage)
+            }
+        }
+        #[deriving(Clone)]
+        pub enum ComputedValue {
+            % for keyword in vertical_align_keywords:
+                ${to_rust_ident(keyword)},
+            % endfor
+            Length(computed::Length),
+            Percentage(Float),
+        }
+        #[inline] pub fn get_initial_value() -> ComputedValue { baseline }
+        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                              -> ComputedValue {
+            match value {
+                % for keyword in vertical_align_keywords:
+                    Specified_${to_rust_ident(keyword)} => ${to_rust_ident(keyword)},
+                % endfor
+                SpecifiedLengthOrPercentage(value)
+                => match computed::compute_LengthOrPercentage(value, context) {
+                    computed::LP_Length(value) => Length(value),
+                    computed::LP_Percentage(value) => Percentage(value)
+                }
+            }
+        }
+    </%self:single_component_value>
+
 
     // CSS 2.1, Section 11 - Visual effects
 
@@ -583,6 +632,9 @@ pub mod shorthands {
         }
     </%self:shorthand>
 
+    ${four_sides_shorthand("margin", "margin-%s", "margin_top::from_component_value")}
+    ${four_sides_shorthand("padding", "padding-%s", "padding_top::from_component_value")}
+
     ${four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse")}
     ${four_sides_shorthand("border-style", "border-%s-style",
                            "border_top_style::from_component_value")}
@@ -650,6 +702,81 @@ pub mod shorthands {
                 % endfor
             }
         }
+    </%self:shorthand>
+
+    <%self:shorthand name="font" sub_properties="font-style font-variant font-weight
+                                                 font-size line-height font-family">
+        let mut iter = input.skip_whitespace();
+        let mut nb_normals = 0u;
+        let mut style = None;
+        let mut variant = None;
+        let mut weight = None;
+        let mut size = None;
+        let mut line_height = None;
+        for component_value in iter {
+            // Special-case 'normal' because it is valid in each of
+            // font-style, font-weight and font-variant.
+            // Leaves the values to None, 'normal' is the initial value for each of them.
+            if get_ident_lower(component_value).filtered(
+                    |v| v.eq_ignore_ascii_case("normal")).is_some() {
+                nb_normals += 1;
+                loop;
+            }
+            if style.is_none() {
+                match font_style::from_component_value(component_value) {
+                    Some(s) => { style = Some(s); loop },
+                    None => ()
+                }
+            }
+            if weight.is_none() {
+                match font_weight::from_component_value(component_value) {
+                    Some(w) => { weight = Some(w); loop },
+                    None => ()
+                }
+            }
+            if variant.is_none() {
+                match font_variant::from_component_value(component_value) {
+                    Some(v) => { variant = Some(v); loop },
+                    None => ()
+                }
+            }
+            match font_size::from_component_value(component_value) {
+                Some(s) => { size = Some(s); break },
+                None => return None
+            }
+        }
+        #[inline]
+        fn count<T>(opt: &Option<T>) -> uint {
+            match opt {
+                &Some(_) => 1,
+                &None => 0,
+            }
+        }
+        if size.is_none() || (count(&style) + count(&weight) + count(&variant) + nb_normals) > 3 {
+            return None
+        }
+        let mut copied_iter = iter.clone();
+        match copied_iter.next() {
+            Some(&Delim('/')) => {
+                iter = copied_iter;
+                line_height = match iter.next() {
+                    Some(v) => line_height::from_component_value(v),
+                    _ => return None,
+                };
+                if line_height.is_none() { return None }
+            }
+            _ => ()
+        }
+        let family = font_family::from_iter(iter);
+        if family.is_none() { return None }
+        Some(Longhands {
+            font_style: style,
+            font_variant: variant,
+            font_weight: weight,
+            font_size: size,
+            line_height: line_height,
+            font_family: family
+        })
     </%self:shorthand>
 
 }

@@ -583,6 +583,7 @@ make_dir ${CFG_BUILD_DIR}src/components/msg
 make_dir ${CFG_BUILD_DIR}src/components/net
 make_dir ${CFG_BUILD_DIR}src/components/gfx
 make_dir ${CFG_BUILD_DIR}src/components/script
+make_dir ${CFG_BUILD_DIR}src/components/style
 make_dir ${CFG_BUILD_DIR}src/components/main
 make_dir src/test/html/ref
 make_dir src/compiler/rust

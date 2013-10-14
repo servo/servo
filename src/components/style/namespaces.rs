@@ -4,7 +4,7 @@
 
 use std::hashmap::HashMap;
 use cssparser::*;
-use style::errors::log_css_error;
+use errors::log_css_error;
 
 pub struct NamespaceMap {
     default: Option<~str>,  // Optional URL
