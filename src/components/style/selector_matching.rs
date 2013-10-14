@@ -5,12 +5,12 @@
 use std::ascii::StrAsciiExt;
 use extra::sort::tim_sort;
 
-use style::selectors::*;
-use style::stylesheets::parse_stylesheet;
-use style::media_queries::{Device, Screen};
-use style::properties::{ComputedValues, cascade, PropertyDeclaration};
-use dom::node::{AbstractNode, ScriptView};
-use dom::element::Element;
+use selectors::*;
+use stylesheets::parse_stylesheet;
+use media_queries::{Device, Screen};
+use properties::{ComputedValues, cascade, PropertyDeclaration};
+use script::dom::node::{AbstractNode, ScriptView};
+use script::dom::element::Element;
 
 
 pub enum StylesheetOrigin {

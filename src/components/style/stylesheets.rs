@@ -5,12 +5,12 @@
 use std::iterator::Iterator;
 use std::ascii::StrAsciiExt;
 use cssparser::*;
-use style::selectors;
-use style::properties;
-use style::errors::{ErrorLoggerIterator, log_css_error};
-use style::namespaces::{NamespaceMap, parse_namespace_rule};
-use style::media_queries::{MediaRule, parse_media_rule};
-use style::media_queries;
+use selectors;
+use properties;
+use errors::{ErrorLoggerIterator, log_css_error};
+use namespaces::{NamespaceMap, parse_namespace_rule};
+use media_queries::{MediaRule, parse_media_rule};
+use media_queries;
 
 
 pub struct Stylesheet {

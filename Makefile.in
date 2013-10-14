@@ -229,21 +229,22 @@ DEPS_gfx = $(CRATE_gfx) $(SRC_gfx) $(DONE_SUBMODULES) $(DONE_util) $(DONE_net) $
 RFLAGS_script = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/gfx -L $(B)src/components/msg
 WEBIDL_script = $(call rwildcard,$(S)src/components/script/,*.webidl)
 AUTOGEN_SRC_script = $(patsubst %.webidl, %Binding.rs, $(WEBIDL_script))
-MAKO_ZIP = $(S)src/components/script/style/properties/Mako-0.8.1.zip
-MAKO_script = $(S)src/components/script/style/properties/mod.rs
-MAKO_SRC_script = $(MAKO_script).mako
-SRC_script = $(call rwildcard,$(S)src/components/script/,*.rs) $(AUTOGEN_SRC_script) $(MAKO_script)
+SRC_script = $(call rwildcard,$(S)src/components/script/,*.rs) $(AUTOGEN_SRC_script)
 CRATE_script = $(S)src/components/script/script.rc
 DONE_script = $(B)src/components/script/libscript.dummy
 
 DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_net) $(DONE_gfx) $(DONE_msg)
 
-RFLAGS_style = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util
-SRC_style = $(call rwildcard,$(S)src/components/style/,*.rs)
+RFLAGS_style = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/script -L $(B)src/components/gfx -L $(B)src/components/net -L $(B)src/components/msg
+MAKO_ZIP = $(S)src/components/style/properties/Mako-0.8.1.zip
+MAKO_style = $(S)src/components/style/properties/mod.rs
+MAKO_SRC_style = $(MAKO_style).mako
+SRC_style = $(call rwildcard,$(S)src/components/style/,*.rs) $(MAKO_style)
 CRATE_style = $(S)src/components/style/style.rc
 DONE_style = $(B)src/components/style/libstyle.dummy
 
-DEPS_style = $(CRATE_style) $(SRC_style) $(DONE_SUBMODULES) $(DONE_util)
+# TODO: reverse the dependency with script
+DEPS_style = $(CRATE_style) $(SRC_style) $(DONE_SUBMODULES) $(DONE_util) $(DONE_script)
 
 RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg
 
@@ -292,7 +293,7 @@ $(AUTOGEN_SRC_script): %Binding.rs: $(bindinggen_dependencies) \
 
 globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/, GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done
 
-$(MAKO_script): $(MAKO_SRC_script)
+$(MAKO_style): $(MAKO_SRC_style)
 	PYTHONPATH=$(MAKO_ZIP) python -c "from mako.template import Template; print(Template(filename='$<').render())" > $@
 
 

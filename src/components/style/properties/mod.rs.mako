@@ -8,8 +8,8 @@ use std::ascii::StrAsciiExt;
 use std::at_vec;
 pub use std::iterator;
 pub use cssparser::*;
-pub use style::errors::{ErrorLoggerIterator, log_css_error};
-pub use style::parsing_utils::*;
+pub use errors::{ErrorLoggerIterator, log_css_error};
+pub use parsing_utils::*;
 pub use self::common_types::*;
 
 pub mod common_types;
