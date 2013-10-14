@@ -21,7 +21,7 @@ impl DocumentFragment {
     }
 
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractNode<ScriptView>> {
-        let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
+        let cx = owner.get_cx();
         let fragment = @DocumentFragment::new(owner.Document());
         Ok(unsafe { Node::as_abstract_node(cx, fragment) })
     }
