@@ -105,6 +105,10 @@ DEPS_libcss += \
 	libparserutils \
 	$(NULL)
 
+DEPS_rust-png += \
+	libpng \
+	$(NULL)
+
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),apple-darwin)
 DEPS_rust-azure += \
