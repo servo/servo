@@ -101,6 +101,7 @@ pub struct Node<View> {
 #[deriving(Eq)]
 pub enum NodeTypeId {
     DoctypeNodeTypeId,
+    DocumentFragmentNodeTypeId,
     CommentNodeTypeId,
     ElementNodeTypeId(ElementTypeId),
     TextNodeTypeId,
@@ -531,7 +532,8 @@ impl Node<ScriptView> {
             ElementNodeTypeId(_) => 1,
             TextNodeTypeId       => 3,
             CommentNodeTypeId    => 8,
-            DoctypeNodeTypeId    => 10
+            DoctypeNodeTypeId    => 10,
+            DocumentFragmentNodeTypeId => 11,
         }
     }
 
@@ -548,7 +550,8 @@ impl Node<ScriptView> {
                 do abstract_self.with_imm_doctype |doctype| {
                     doctype.name.clone()
                 }
-            }
+            },
+            DocumentFragmentNodeTypeId => ~"#document-fragment",
         })
     }
 
@@ -561,7 +564,8 @@ impl Node<ScriptView> {
             ElementNodeTypeId(*) |
             CommentNodeTypeId |
             TextNodeTypeId |
-            DoctypeNodeTypeId => Some(self.owner_doc),
+            DoctypeNodeTypeId |
+            DocumentFragmentNodeTypeId => Some(self.owner_doc),
             // DocumentNodeTypeId => None
         }
     }
@@ -614,7 +618,7 @@ impl Node<ScriptView> {
 
     pub fn GetTextContent(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
         match self.type_id {
-          ElementNodeTypeId(*) => {
+          DocumentFragmentNodeTypeId | ElementNodeTypeId(*) => {
             let mut content = ~"";
             for node in abstract_self.traverse_preorder() {
                 if node.is_text() {
@@ -679,7 +683,7 @@ impl Node<ScriptView> {
             _ => false
         };
         match self.type_id {
-          ElementNodeTypeId(*) => {
+          DocumentFragmentNodeTypeId | ElementNodeTypeId(*) => {
             let node = if is_empty {
                 None
             } else {

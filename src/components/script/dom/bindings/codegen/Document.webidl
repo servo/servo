@@ -44,8 +44,8 @@ interface Document /*: Node*/ { //XXXjdm Requires servo/#623
   Element createElement(DOMString localName);
   [Creator, Throws]
   Element createElementNS(DOMString? namespace, DOMString qualifiedName);
-  /*[Creator]
-  DocumentFragment createDocumentFragment();*/
+  [Creator]
+  DocumentFragment createDocumentFragment();
   [Creator]
   Text createTextNode(DOMString data);
   [Creator]
