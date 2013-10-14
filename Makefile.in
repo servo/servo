@@ -94,7 +94,7 @@ $(S)config.stamp : $(S)configure $(S)Makefile.in
 
 # Build the compiler
 ifneq ($(CFG_LOCAL_RUSTC),1)
-$(CFG_RUSTC):
+$(CFG_RUSTC): $(B)src/compiler/rust/rust-auto-clean-stamp
 	@$(call E, building rustc)
 	$(Q)CFG_RUSTC_FLAGS= CFG_ENABLE_DEBUG= RUSTFLAGS= $(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CC=gcc CXX=g++ LD=ld AR=ar
 
@@ -109,7 +109,7 @@ clean-rust:
 
 endif
 
-$(B)/src/compiler/rust/rust-auto-clean-stamp: $(S)src/compiler/rust-auto-clean-trigger
+$(B)src/compiler/rust/rust-auto-clean-stamp: $(S)src/compiler/rust-auto-clean-trigger
 	$(Q)$(MAKE) clean-rust
 	touch $@
 
@@ -247,7 +247,7 @@ DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_
 
 .DEFAULT_GOAL := all
 .PHONY:	all
-all: $(B)/src/compiler/rust/rust-auto-clean-stamp servo package
+all: servo package
 
 # Servo helper libraries
 
