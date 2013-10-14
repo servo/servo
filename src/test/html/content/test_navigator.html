@@ -6,7 +6,7 @@
 <body>
 <script>
 is(window.navigator, window.navigator);
-is(String(window.navigator), '[object Navigator]');
+is_a(window.navigator, Navigator);
 
 var nav = window.navigator;
 is(nav.doNotTrack, "unspecified");

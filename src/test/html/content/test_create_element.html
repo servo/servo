@@ -8,11 +8,11 @@
     var elem = document.createElement("foo");
     is(elem.tagName, "FOO");
     var elem = document.createElement("p");
-    is(elem instanceof HTMLParagraphElement, true);
+    is_a(elem, HTMLParagraphElement);
     var elem = document.createElement("sPAn");
-    is(elem instanceof HTMLSpanElement, true);
+    is_a(elem, HTMLSpanElement);
     var text = document.createTextNode("hello");
-    is(text instanceof Text, true);
+    is_a(text, Text);
     finish();
   </script>
 </body>

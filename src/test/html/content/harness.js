@@ -12,16 +12,28 @@ function _pass(s, m) {
   window.alert(_oneline("TEST-PASS | " + s + ": " + m));
 }
 
-function is(a, b, c) {
-  let f = a != b ? _fail : _pass;
-  let m = !c ? "" : c;
-  f(a + " == " + b, m);
+function _printer(opstr, op) {
+  return function (a, b, msg) {
+    let f = op(a,b) ? _pass : _fail;
+    if (!msg) msg = "";
+    f(a + " " + opstr + " " + b, msg);
+  };
 }
 
-function isnot(a, b, c) {
-  let f = (a != b) ? _pass : _fail;
-  let m = !c ? "" : c;
-  f(a + " != " + b, m);
+var is          = _printer("==",           function (a,b) { return a == b; });
+var is_a        = _printer("is a",         function (a,b) { return a instanceof b; });
+var is_in       = _printer("is in",        function (a,b) { return a in b; });
+var is_not_in   = _printer("is not in",    function (a,b) { return !(a in b); });
+var as_str_is   = _printer("as string is", function (a,b) { return String(a) == b; });
+var isnot       = _printer("!=",           function (a,b) { return a != b; });
+var lt          = _printer("<",            function (a,b) { return a <  b; });
+var gt          = _printer(">",            function (a,b) { return a >  b; });
+var leq         = _printer("<=",           function (a,b) { return a <= b; });
+var geq         = _printer(">=",           function (a,b) { return a >= b; });
+var starts_with = _printer("starts with",  function (a,b) { return a.indexOf(b) == 0; });
+
+function is_function(val, name) {
+  starts_with(String(val), "function " + name + "(");
 }
 
 var _test_complete = false;
