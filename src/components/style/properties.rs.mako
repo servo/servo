@@ -128,15 +128,15 @@ pub mod longhands {
     </%def>
 
     <%def name="predefined_type(name, type, initial_value, parse_method='parse', inherited=False)">
-        <%self:longhand name="${name}" inherited="${inherited}">
+        <%self:single_component_value name="${name}" inherited="${inherited}">
             pub use to_computed_value = super::super::common_types::computed::compute_${type};
             pub type SpecifiedValue = specified::${type};
             pub type ComputedValue = computed::${type};
             #[inline] pub fn get_initial_value() -> ComputedValue { ${initial_value} }
-            pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
-                one_component_value(input).chain(specified::${type}::${parse_method})
+            #[inline] pub fn from_component_value(v: &ComponentValue) -> Option<SpecifiedValue> {
+                specified::${type}::${parse_method}(v)
             }
-        </%self:longhand>
+        </%self:single_component_value>
     </%def>
 
 
@@ -582,6 +582,9 @@ pub mod shorthands {
             Longhands { background_color: Some(color) }
         }
     </%self:shorthand>
+
+    ${four_sides_shorthand("margin", "margin-%s", "margin_top::from_component_value")}
+    ${four_sides_shorthand("padding", "padding-%s", "padding_top::from_component_value")}
 
     ${four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse")}
     ${four_sides_shorthand("border-style", "border-%s-style",
