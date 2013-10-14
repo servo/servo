@@ -254,7 +254,7 @@ DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_
 
 .DEFAULT_GOAL := all
 .PHONY:	all
-all: servo package
+all: servo
 
 # Servo helper libraries
 
