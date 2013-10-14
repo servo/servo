@@ -418,7 +418,7 @@ impl<'self, View> AbstractNode<View> {
     pub fn is_in_doc(&self) -> bool {
         do self.with_base |node| {
             do node.owner_doc.with_base |document| {
-                match document.root {
+                match document.GetDocumentElement() {
                     None => false,
                     Some(root) => {
                         let mut node = *self;
