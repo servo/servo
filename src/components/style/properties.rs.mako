@@ -19,7 +19,7 @@ pub mod common_types;
 
 def to_rust_ident(name):
     name = name.replace("-", "_")
-    if name in ["static"]:  # Rust keywords
+    if name in ["static", "super"]:  # Rust keywords
         name += "_"
     return name
 
@@ -265,6 +265,55 @@ pub mod longhands {
             }
         }
     </%self:single_component_value>
+
+    <%self:single_component_value name="vertical-align">
+        <% vertical_align_keywords = (
+            "baseline sub super top text-top middle bottom text-bottom".split()) %>
+        #[deriving(Clone)]
+        pub enum SpecifiedValue {
+            % for keyword in vertical_align_keywords:
+                Specified_${to_rust_ident(keyword)},
+            % endfor
+            SpecifiedLengthOrPercentage(specified::LengthOrPercentage),
+        }
+        /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
+        /// | <percentage> | <length>
+        pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
+            match input {
+                &Ident(ref value) => match value.to_ascii_lower().as_slice() {
+                    % for keyword in vertical_align_keywords:
+                        "${keyword}" => Some(Specified_${to_rust_ident(keyword)}),
+                    % endfor
+                    _ => None,
+                },
+                _ => specified::LengthOrPercentage::parse_non_negative(input)
+                     .map_move(SpecifiedLengthOrPercentage)
+            }
+        }
+        #[deriving(Clone)]
+        pub enum ComputedValue {
+            % for keyword in vertical_align_keywords:
+                ${to_rust_ident(keyword)},
+            % endfor
+            Length(computed::Length),
+            Percentage(Float),
+        }
+        #[inline] pub fn get_initial_value() -> ComputedValue { baseline }
+        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                              -> ComputedValue {
+            match value {
+                % for keyword in vertical_align_keywords:
+                    Specified_${to_rust_ident(keyword)} => ${to_rust_ident(keyword)},
+                % endfor
+                SpecifiedLengthOrPercentage(value)
+                => match computed::compute_LengthOrPercentage(value, context) {
+                    computed::LP_Length(value) => Length(value),
+                    computed::LP_Percentage(value) => Percentage(value)
+                }
+            }
+        }
+    </%self:single_component_value>
+
 
     // CSS 2.1, Section 11 - Visual effects
 
