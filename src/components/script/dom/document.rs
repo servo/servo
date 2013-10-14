@@ -125,7 +125,7 @@ impl Document {
     }
 
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
-        let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
+        let cx = owner.get_cx();
 
         let document = AbstractDocument::as_abstract(cx, @mut Document::new(None, XML));
 
@@ -242,14 +242,12 @@ impl Document {
     }
 
     fn get_cx(&self) -> *JSContext {
-        let win = self.window.get_ref();
-        win.page.js_info.get_ref().js_compartment.cx.ptr
+        self.window.get_ref().get_cx()
     }
 
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
         let win = self.window.get_ref();
-        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        (win.reflector().get_jsobject(), cx)
+        (win.reflector().get_jsobject(), win.get_cx())
     }
 
     pub fn GetElementsByTagName(&self, tag: &DOMString) -> @mut HTMLCollection {
