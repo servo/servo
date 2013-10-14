@@ -34,13 +34,13 @@ impl<K: Clone + Eq, V: Clone> Cache<K,V> for MonoCache<K,V> {
     }
 
     fn find_or_create(&mut self, key: &K, blk: &fn(&K) -> V) -> V {
-        match self.entry {
-            None => { 
+        match self.find(key) {
+            Some(value) => value,
+            None => {
                 let value = blk(key);
                 self.entry = Some((key.clone(), value.clone()));
                 value
-            },
-            Some((ref _k, ref v)) => v.clone()
+            }
         }
     }
 
@@ -58,11 +58,9 @@ fn test_monocache() {
 
     assert!(cache.find(&1).is_some());
     assert!(cache.find(&2).is_none());
-    /* FIXME: clarify behavior here:
     cache.find_or_create(&2, |_v| { two });
     assert!(cache.find(&2).is_some());
     assert!(cache.find(&1).is_none());
-    */
 }
 
 pub struct HashCache<K, V> {
