@@ -236,8 +236,8 @@ DONE_script = $(B)src/components/script/libscript.dummy
 DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_net) $(DONE_gfx) $(DONE_msg)
 
 RFLAGS_style = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/script -L $(B)src/components/gfx -L $(B)src/components/net -L $(B)src/components/msg
-MAKO_ZIP = $(S)src/components/style/properties/Mako-0.8.1.zip
-MAKO_style = $(S)src/components/style/properties/mod.rs
+MAKO_ZIP = $(S)src/components/style/Mako-0.8.1.zip
+MAKO_style = $(S)src/components/style/properties.rs
 MAKO_SRC_style = $(MAKO_style).mako
 SRC_style = $(call rwildcard,$(S)src/components/style/,*.rs) $(MAKO_style)
 CRATE_style = $(S)src/components/style/style.rc
