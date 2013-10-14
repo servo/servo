@@ -1,10 +1,15 @@
+function _oneline(x) {
+  var i = x.indexOf("\n");
+  return (i == -1) ? x : (x.slice(0, i) + "...");
+}
+
 function _fail(s, m) {
   // string split to avoid problems with tests that end up printing the value of window._fail.
-  window.alert("TEST-UNEXPECTED" + "-FAIL | " + s + ": " + m);
+  window.alert(_oneline("TEST-UNEXPECTED" + "-FAIL | " + s + ": " + m));
 }
 
 function _pass(s, m) {
-  window.alert("TEST-PASS | " + s + ": " + m);
+  window.alert(_oneline("TEST-PASS | " + s + ": " + m));
 }
 
 function is(a, b, c) {
