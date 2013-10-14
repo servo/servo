@@ -240,7 +240,7 @@ pub mod longhands {
                 &ast::Number(ref value) if value.value >= 0.
                 => Some(SpecifiedNumber(value.value)),
                 &ast::Percentage(ref value) if value.value >= 0.
-                => Some(SpecifiedLength(specified::Em(value.value))),
+                => Some(SpecifiedLength(specified::Em(value.value / 100.))),
                 &Dimension(ref value, ref unit) if value.value >= 0.
                 => specified::Length::parse_dimension(value.value, unit.as_slice())
                     .map_move(SpecifiedLength),

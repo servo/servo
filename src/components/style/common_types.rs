@@ -69,7 +69,7 @@ pub mod specified {
     #[deriving(Clone)]
     pub enum LengthOrPercentage {
         LP_Length(Length),
-        LP_Percentage(Float),
+        LP_Percentage(Float),  // [0 .. 100%] maps to [0.0 .. 1.0]
     }
     impl LengthOrPercentage {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
@@ -78,7 +78,7 @@ pub mod specified {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
                 => Length::parse_dimension(value.value, unit.as_slice()).map_move(LP_Length),
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
-                => Some(LP_Percentage(value.value)),
+                => Some(LP_Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. =>  Some(LP_Length(Au(0))),
                 _ => None
             }
@@ -96,7 +96,7 @@ pub mod specified {
     #[deriving(Clone)]
     pub enum LengthOrPercentageOrAuto {
         LPA_Length(Length),
-        LPA_Percentage(Float),
+        LPA_Percentage(Float),  // [0 .. 100%] maps to [0.0 .. 1.0]
         LPA_Auto,
     }
     impl LengthOrPercentageOrAuto {
@@ -106,7 +106,7 @@ pub mod specified {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
                 => Length::parse_dimension(value.value, unit.as_slice()).map_move(LPA_Length),
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
-                => Some(LPA_Percentage(value.value)),
+                => Some(LPA_Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. => Some(LPA_Length(Au(0))),
                 &Ident(ref value) if value.eq_ignore_ascii_case("auto") => Some(LPA_Auto),
                 _ => None
