@@ -5,7 +5,7 @@
 use std::{vec, iterator};
 use std::ascii::StrAsciiExt;
 use cssparser::*;
-use style::namespaces::NamespaceMap;
+use namespaces::NamespaceMap;
 
 
 pub struct Selector {

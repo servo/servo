@@ -2,6 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[link(name = "style",
+       vers = "0.1",
+       uuid = "4a50ca00-3283-11e3-aa6e-0800200c9a66",
+       url = "http://servo.org/")];
+
+#[comment = "The Servo Parallel Browser Project"];
+#[license = "MPL"];
+#[crate_type = "lib"];
+
+
+extern mod extra;
+extern mod cssparser;
+extern mod script;
+
+
 // The "real" public API
 pub use self::selector_matching::{Stylist, StylesheetOrigin};
 
