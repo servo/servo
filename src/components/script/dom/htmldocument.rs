@@ -61,18 +61,11 @@ impl HTMLDocument {
     }
 
     pub fn GetHead(&self) -> Option<AbstractNode<ScriptView>> {
-        match self.parent.root {
+        match self.parent.GetDocumentElement() {
             None => None,
-            Some(root) => {
-                let mut headNode: Option<AbstractNode<ScriptView>> = None;
-                let _ = for child in root.traverse_preorder() {
-                    if child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId) {
-                        headNode = Some(child);
-                        break;
-                    }
-                };
-                headNode 
-            }
+            Some(root) => root.traverse_preorder().find(|child| {
+                child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
+            })
         }
     }
 
