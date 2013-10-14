@@ -22,7 +22,7 @@ impl Text {
     }
 
     pub fn Constructor(owner: @mut Window, text: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
-        let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
+        let cx = owner.get_cx();
         let text = @Text::new(null_str_as_empty(text), owner.Document());
         Ok(unsafe { Node::as_abstract_node(cx, text) })
     }
