@@ -7,6 +7,7 @@ use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, Reflector, ErrorResult, Fallible};
 use dom::bindings::utils::{BindingObject, Reflectable, DerivedWrapper};
 use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty, null_str_as_word_null};
+use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
@@ -281,6 +282,12 @@ impl Document {
 
     pub fn CreateElementNS(&self, _namespace: &DOMString, _qualified_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         fail!("stub")
+    }
+
+    pub fn CreateDocumentFragment(&self, abstract_self: AbstractDocument) -> AbstractNode<ScriptView> {
+        let cx = self.get_cx();
+        let fragment = @DocumentFragment::new(abstract_self);
+        unsafe { Node::as_abstract_node(cx, fragment) }
     }
 
     pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {

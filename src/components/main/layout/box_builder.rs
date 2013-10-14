@@ -27,6 +27,7 @@ use newcss::values::{CSSFloatNone, CSSFloatLeft, CSSFloatRight};
 use layout::float_context::{FloatLeft, FloatRight};
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
+use script::dom::node::DocumentFragmentNodeTypeId;
 use servo_util::range::Range;
 use servo_util::tree::{TreeNodeRef, TreeNode};
 use std::cell::Cell;
@@ -398,7 +399,9 @@ impl LayoutTreeBuilder {
 
                 ElementNodeTypeId(_) => CSSDisplayInline,
                 TextNodeTypeId => CSSDisplayInline,
-                DoctypeNodeTypeId | CommentNodeTypeId => return NoGenerator,
+                DoctypeNodeTypeId |
+                DocumentFragmentNodeTypeId |
+                CommentNodeTypeId => return NoGenerator,
             }
         };
 
