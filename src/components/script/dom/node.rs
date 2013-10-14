@@ -461,7 +461,7 @@ impl Node<ScriptView> {
         node
     }
 
-    pub fn add_to_doc(&mut self, doc: AbstractDocument) {
+    pub fn add_to_doc(&mut self, abstract_self: AbstractNode<ScriptView>, doc: AbstractDocument) {
         let old_doc = self.owner_doc;
         self.owner_doc = doc;
         let mut cur_node = self.first_child;
@@ -472,6 +472,16 @@ impl Node<ScriptView> {
                 }
             };
             cur_node = cur_node.unwrap().next_sibling();
+        }
+
+        // Unregister elements having "id' from the old doc.
+        do old_doc.with_mut_base |old_doc| {
+            old_doc.unregister_nodes_with_id(&abstract_self);
+        }
+
+        // Register elements having "id" attribute to the owner doc.
+        do doc.with_mut_base |doc| {
+            doc.register_nodes_with_id(&abstract_self);
         }
 
         // Signal the old document that it needs to update its display
@@ -756,7 +766,7 @@ impl Node<ScriptView> {
         node.parent_node().map(|parent| parent.remove_child(node));
         abstract_self.add_child(node);
         do node.with_mut_base |node| {
-            node.add_to_doc(self.owner_doc);
+            node.add_to_doc(abstract_self, self.owner_doc);
         }
         Ok(node)
     }
@@ -781,6 +791,12 @@ impl Node<ScriptView> {
         }
 
         self.wait_until_safe_to_modify_dom();
+
+        // Unregister elements having "id' from the owner doc.
+        // This need be called before target nodes are removed from tree.
+        do self.owner_doc.with_mut_base |doc| {
+            doc.unregister_nodes_with_id(&abstract_self);
+        }
 
         abstract_self.remove_child(node);
         // Signal the document that it needs to update its display.

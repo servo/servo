@@ -170,6 +170,9 @@ impl<'self> Element {
                     null_str_as_empty_ref(raw_value)));
         }
 
+        // TODO: update owner document's id hashmap for `document.getElementById()`
+        //       if `name` == "id".
+
         //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
         //       This hardcoding is awful.
         match abstract_self.type_id() {
