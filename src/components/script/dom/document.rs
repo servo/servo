@@ -26,6 +26,8 @@ use js::jsapi::{JSTRACE_OBJECT, JSTracer, JS_CallTracer};
 use js::glue::RUST_OBJECT_TO_JSVAL;
 use servo_util::tree::TreeNodeRef;
 
+use std::hashmap::HashMap;
+
 use std::cast;
 use std::ptr;
 use std::str::eq_slice;
@@ -93,6 +95,9 @@ impl AbstractDocument {
         }));
         self.with_mut_base(|document| {
             document.root = Some(root);
+            // Register elements having "id" attribute to the owner doc.
+            document.register_nodes_with_id(&root);
+
             document.content_changed();
         });
     }
@@ -109,7 +114,8 @@ pub struct Document {
     reflector_: Reflector,
     window: Option<@mut Window>,
     doctype: DocumentType,
-    title: ~str
+    title: ~str,
+    idmap: HashMap<~str, AbstractNode<ScriptView>>
 }
 
 impl Document {
@@ -120,7 +126,8 @@ impl Document {
             reflector_: Reflector::new(),
             window: window,
             doctype: doctype,
-            title: ~""
+            title: ~"",
+            idmap: HashMap::new()
         }
     }
 
@@ -264,8 +271,11 @@ impl Document {
         HTMLCollection::new(~[], cx, scope)
     }
 
-    pub fn GetElementById(&self, _id: &DOMString) -> Option<AbstractNode<ScriptView>> {
-        None
+    pub fn GetElementById(&self, id: &DOMString) -> Option<AbstractNode<ScriptView>> {
+        let key: &~str = &null_str_as_empty(id);
+        // TODO: "in tree order, within the context object's tree"
+        // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
+        self.idmap.find_equiv(key).map(|node| **node)
     }
 
     pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
@@ -516,6 +526,41 @@ impl Document {
     pub fn wait_until_safe_to_modify_dom(&self) {
         for window in self.window.iter() {
             window.wait_until_safe_to_modify_dom();
+        }
+    }
+
+    pub fn register_nodes_with_id(&mut self, root: &AbstractNode<ScriptView>) {
+        foreach_ided_elements(root, |id: &~str, abstract_node: &AbstractNode<ScriptView>| {
+            // TODO: "in tree order, within the context object's tree"
+            // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
+            self.idmap.find_or_insert(id.clone(), *abstract_node);
+        });
+    }
+
+    pub fn unregister_nodes_with_id(&mut self, root: &AbstractNode<ScriptView>) {
+        foreach_ided_elements(root, |id: &~str, _| {
+            // TODO: "in tree order, within the context object's tree"
+            // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
+            self.idmap.pop(id);
+        });
+    }
+}
+
+#[inline(always)]
+fn foreach_ided_elements(root: &AbstractNode<ScriptView>,
+                         callback: &fn(&~str, &AbstractNode<ScriptView>)) {
+    for node in root.traverse_preorder() {
+        if !node.is_element() {
+            loop;
+        }
+
+        do node.with_imm_element |element| {
+            match element.get_attr("id") {
+                Some(id) => {
+                    callback(&id.to_str(), &node);
+                }
+                None => ()
+            }
         }
     }
 }

@@ -1,0 +1,58 @@
+<html>
+<head id="foo">
+  <title></title>
+  <script src="harness.js"></script>
+</head>
+<body>
+  <div id="bar"></div>
+  <script>
+    let gBody = document.getElementsByTagName("body")[0];
+
+    // test1: on static page
+    {
+      let foo = document.getElementById("foo");
+      isnot(foo, null, "test-1-0, on static page");
+      is(foo && foo.tagName, "HEAD", "test1-1, on static page");
+      is(foo instanceof HTMLHeadElement, true, "test1-2, on static page");
+
+      let bar = document.getElementById("bar");
+      isnot(bar, null, "test1-3, on static page");
+      is(bar && bar.tagName, "DIV", "test1-4, on static page");
+      is(bar instanceof HTMLDivElement, true, "test1-5, on static page");
+    }
+
+    // test2: scripted element
+    {
+      let TEST_ID = "test";
+      let test = document.createElement("div");
+      test.setAttribute("id", TEST_ID);
+      gBody.appendChild(test);
+
+      // test: appended element
+      let appended = document.getElementById(TEST_ID);
+      isnot(appended, null, "test2-0, appended element");
+      is(appended && appended.tagName, "DIV", "test2-1, appended element");
+      is(appended instanceof HTMLDivElement, true, "test2-2, appended element");
+
+      // test: removed element
+      gBody.removeChild(test);
+      let removed = document.getElementById(TEST_ID);
+      // `document.getElementById()` returns `null` if there is none.
+      // http://www.w3.org/TR/DOM-Level-3-Core/core.html#ID-getElBId
+      // http://dom.spec.whatwg.org/#dom-document-getelementbyid (2013-09-20)
+      is(removed, null, "test2-3, removed element");
+    }
+
+    // TODO:
+    // test3: update `id` attribute
+
+    // TODO:
+    // test4: "in tree order, within the context object's tree"
+    // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
+
+    // TODO:
+    // test5: innerHTML
+    finish();
+  </script>
+</body>
+</html>
