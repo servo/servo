@@ -618,4 +618,3 @@ pub fn parse_html(cx: *JSContext,
         url: load_response.metadata.final_url,
     }
 }
-
