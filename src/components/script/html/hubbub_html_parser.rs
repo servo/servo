@@ -61,7 +61,7 @@ macro_rules! handle_htmlmediaelement(
     ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident) => (
         if eq_slice($tag, $string) {
             let _element = @$ctor {
-                htmlelement: HTMLMediaElement::new($type_id, ($tag).to_str(), document)
+                htmlmediaelement: HTMLMediaElement::new($type_id, ($tag).to_str(), document)
             };
             unsafe {
                 return Node::as_abstract_node(cx, _element);
@@ -73,7 +73,7 @@ macro_rules! handle_htmltablecellelement(
     ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident) => (
         if eq_slice($tag, $string) {
             let _element = @$ctor {
-                htmlelement: HTMLTableCellElement::new($type_id, ($tag).to_str(), document)
+                htmltablecellelement: HTMLTableCellElement::new($type_id, ($tag).to_str(), document)
             };
             unsafe {
                 return Node::as_abstract_node(cx, _element);

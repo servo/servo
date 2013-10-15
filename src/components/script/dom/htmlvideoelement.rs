@@ -6,7 +6,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlmediaelement::HTMLMediaElement;
 
 pub struct HTMLVideoElement {
-    htmlelement: HTMLMediaElement
+    htmlmediaelement: HTMLMediaElement
 }
 
 impl HTMLVideoElement {

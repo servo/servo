@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::bindings::utils::{BindingObject, Reflectable, DOMString, ErrorResult, Fallible, Reflector};
+use dom::bindings::utils::{Reflectable, DOMString, ErrorResult, Fallible, Reflector};
 use dom::bindings::utils::{null_str_as_empty, null_str_as_empty_ref};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
@@ -40,12 +40,6 @@ impl Reflectable for Element {
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!("no wrapping")
-    }
-}
-
-impl BindingObject for Element {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        self.node.GetParentObject(cx)
     }
 }
 
