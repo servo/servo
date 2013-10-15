@@ -106,6 +106,8 @@ pub enum ElementTypeId {
     HTMLTableElementTypeId,
     HTMLTableCaptionElementTypeId,
     HTMLTableCellElementTypeId,
+    HTMLTableDataCellElementTypeId,
+    HTMLTableHeaderCellElementTypeId,
     HTMLTableColElementTypeId,
     HTMLTableRowElementTypeId,
     HTMLTableSectionElementTypeId,
