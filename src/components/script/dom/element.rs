@@ -77,6 +77,7 @@ pub enum ElementTypeId {
     HTMLLegendElementTypeId,
     HTMLLinkElementTypeId,
     HTMLLIElementTypeId,
+    HTMLMainElementTypeId,
     HTMLMapElementTypeId,
     HTMLMediaElementTypeId,
     HTMLMetaElementTypeId,
