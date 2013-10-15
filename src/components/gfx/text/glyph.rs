@@ -4,9 +4,8 @@
 
 use servo_util::vec::*;
 use servo_util::range::Range;
-
-use geometry::Au;
-use geometry;
+use servo_util::geometry::Au;
+use servo_util::geometry;
 
 use std::cmp::{Ord, Eq};
 use std::num::NumCast;

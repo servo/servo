@@ -12,7 +12,7 @@ use std::comm::{Chan, SharedChan};
 use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::point::Point2D;
-use gfx::geometry::Au;
+use servo_util::geometry::Au;
 use newcss::stylesheet::Stylesheet;
 use extra::url::Url;
 

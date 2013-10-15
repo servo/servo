@@ -13,8 +13,8 @@ use std::cell::Cell;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
-use gfx::geometry::Au;
-use gfx::geometry;
+use servo_util::geometry::Au;
+use servo_util::geometry;
 
 pub struct FloatFlowData {
     /// Data common to all flows.

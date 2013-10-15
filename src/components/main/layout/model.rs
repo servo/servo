@@ -6,7 +6,7 @@
 
 use std::num::Zero;
 use geom::side_offsets::SideOffsets2D;
-use gfx::geometry::Au;
+use servo_util::geometry::Au;
 use newcss::complete::CompleteStyle;
 use newcss::units::{Length, Em, Px};
 use newcss::values::{CSSBorderWidth, CSSBorderWidthLength, CSSBorderWidthMedium};

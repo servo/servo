@@ -17,8 +17,8 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
-use gfx::geometry::{Au, to_frac_px};
-use gfx::geometry;
+use servo_util::geometry::{Au, to_frac_px};
+use servo_util::geometry;
 
 pub struct BlockFlowData {
     /// Data common to all flows.

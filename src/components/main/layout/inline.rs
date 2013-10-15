@@ -17,7 +17,7 @@ use std::u16;
 use std::util;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
-use gfx::geometry::Au;
+use servo_util::geometry::Au;
 use newcss::units::{Em, Px};
 use newcss::values::{CSSFontSizeLength};
 use newcss::values::{CSSTextAlignLeft, CSSTextAlignCenter, CSSTextAlignRight, CSSTextAlignJustify};

@@ -9,8 +9,10 @@
 #[crate_type = "lib"];
 
 extern mod extra;
+extern mod geom;
 
 pub mod cache;
+pub mod geometry;
 pub mod range;
 pub mod time;
 pub mod tree;
