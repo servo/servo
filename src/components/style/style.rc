@@ -19,6 +19,9 @@ extern mod script;
 
 // The "real" public API
 pub use self::selector_matching::{Stylist, StylesheetOrigin};
+pub use self::properties::cascade;
+pub use self::properties::{PropertyDeclarationBlock,
+                           parse_property_declaration_list};  // Style attributes
 
 
 // Things that need to be public to make the compiler happy

@@ -8,7 +8,7 @@ use extra::sort::tim_sort;
 use selectors::*;
 use stylesheets::parse_stylesheet;
 use media_queries::{Device, Screen};
-use properties::{ComputedValues, cascade, PropertyDeclaration};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use script::dom::node::{AbstractNode, ScriptView};
 use script::dom::element::Element;
 
@@ -77,20 +77,13 @@ impl Stylist {
         }
     }
 
-    pub fn get_computed_style(&self, element: AbstractNode<ScriptView>,
-                              parent_style: Option<&ComputedValues>,
-                              pseudo_element: Option<PseudoElement>)
-                              -> ComputedValues {
+    pub fn get_applicable_declarations(&self, element: AbstractNode<ScriptView>,
+                                       style_attribute: Option<&PropertyDeclarationBlock>,
+                                       pseudo_element: Option<PseudoElement>)
+                                       -> ~[@[PropertyDeclaration]] {
         assert!(element.is_element())
-        // Only the root does not inherit.
-        // The root has no parent or a non-element parent.
-        assert_eq!(
-            parent_style.is_none(),
-            match element.parent_node() {
-                None => true,
-                Some(ref node) => !node.is_element()
-            }
-        );
+        assert!(style_attribute.is_none() || pseudo_element.is_none(),
+                "Style attributes do not apply to pseudo-elements")
         let mut applicable_declarations = ~[];  // TODO: use an iterator?
 
         macro_rules! append(
@@ -106,13 +99,18 @@ impl Stylist {
         // In cascading order
         append!(self.ua_rules.normal);
         append!(self.user_rules.normal);
+
+        // Style attributes have author origin but higher specificity than style rules.
         append!(self.author_rules.normal);
-        // TODO add style attribute
+        style_attribute.map(|sa| applicable_declarations.push(sa.normal));
+
         append!(self.author_rules.important);
+        style_attribute.map(|sa| applicable_declarations.push(sa.important));
+
         append!(self.user_rules.important);
         append!(self.ua_rules.important);
 
-        cascade(applicable_declarations, parent_style)
+        applicable_declarations
     }
 }
 
