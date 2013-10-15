@@ -14,6 +14,7 @@
 
 extern mod extra;
 extern mod cssparser;
+extern mod servo_util (name = "util");
 extern mod script;
 
 
