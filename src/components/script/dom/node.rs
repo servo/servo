@@ -88,7 +88,7 @@ pub struct Node<View> {
     prev_sibling: Option<AbstractNode<View>>,
 
     /// The document that this node belongs to.
-    owner_doc: AbstractDocument,
+    priv owner_doc: AbstractDocument,
 
     /// The live list of children return by .childNodes.
     child_list: Option<@mut NodeList>,
@@ -425,7 +425,7 @@ impl<'self, View> AbstractNode<View> {
     // Issue #1030: should not walk the tree
     pub fn is_in_doc(&self) -> bool {
         do self.with_base |node| {
-            do node.owner_doc.with_base |document| {
+            do node.owner_doc().with_base |document| {
                 match document.GetDocumentElement() {
                     None => false,
                     Some(root) => {
@@ -459,6 +459,16 @@ impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
     }
 }
 
+impl<View> Node<View> {
+    pub fn owner_doc(&self) -> AbstractDocument {
+        self.owner_doc
+    }
+
+    pub fn set_owner_doc(&mut self, document: AbstractDocument) {
+        self.owner_doc = document;
+    }
+}
+
 impl Node<ScriptView> {
     pub unsafe fn as_abstract_node<N>(cx: *JSContext, node: @N) -> AbstractNode<ScriptView> {
         // This surrenders memory management of the node!
@@ -470,13 +480,13 @@ impl Node<ScriptView> {
     }
 
     pub fn add_to_doc(&mut self, abstract_self: AbstractNode<ScriptView>, doc: AbstractDocument) {
-        let old_doc = self.owner_doc;
-        self.owner_doc = doc;
+        let old_doc = self.owner_doc();
+        self.set_owner_doc(doc);
         let mut cur_node = self.first_child;
         while cur_node.is_some() {
             for node in cur_node.unwrap().traverse_preorder() {
                 do node.with_mut_base |node_base| {
-                    node_base.owner_doc = doc;
+                    node_base.set_owner_doc(doc);
                 }
             };
             cur_node = cur_node.unwrap().next_sibling();
@@ -583,7 +593,7 @@ impl Node<ScriptView> {
             CommentNodeTypeId |
             TextNodeTypeId |
             DoctypeNodeTypeId |
-            DocumentFragmentNodeTypeId => Some(self.owner_doc),
+            DocumentFragmentNodeTypeId => Some(self.owner_doc()),
             // DocumentNodeTypeId => None
         }
     }
@@ -672,7 +682,7 @@ impl Node<ScriptView> {
     }
 
     pub fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let win = self.owner_doc.with_base(|doc| doc.window);
+        let win = self.owner_doc().with_base(|doc| doc.window);
         (win.reflector().get_jsobject(), win.get_cx())
     }
 
@@ -704,8 +714,8 @@ impl Node<ScriptView> {
             let node = if is_empty {
                 None
             } else {
-                let text_node = do self.owner_doc.with_base |document| {
-                    document.CreateTextNode(self.owner_doc, value)
+                let text_node = do self.owner_doc().with_base |document| {
+                    document.CreateTextNode(self.owner_doc(), value)
                 };
                 Some(text_node)
             };
@@ -718,7 +728,7 @@ impl Node<ScriptView> {
                 characterdata.data = null_str_as_empty(value);
 
                 // Notify the document that the content of this node is different
-                do self.owner_doc.with_base |doc| {
+                do self.owner_doc().with_base |doc| {
                     doc.content_changed();
                 }
             }
@@ -733,7 +743,7 @@ impl Node<ScriptView> {
     }
 
     fn wait_until_safe_to_modify_dom(&self) {
-        do self.owner_doc.with_base |doc| {
+        do self.owner_doc().with_base |doc| {
             doc.wait_until_safe_to_modify_dom();
         }
     }
@@ -774,7 +784,7 @@ impl Node<ScriptView> {
         node.parent_node().map(|parent| parent.remove_child(node));
         abstract_self.add_child(node);
         do node.with_mut_base |node| {
-            node.add_to_doc(abstract_self, self.owner_doc);
+            node.add_to_doc(abstract_self, self.owner_doc());
         }
         Ok(node)
     }
@@ -808,7 +818,7 @@ impl Node<ScriptView> {
 
         abstract_self.remove_child(node);
         // Signal the document that it needs to update its display.
-        do self.owner_doc.with_base |document| {
+        do self.owner_doc().with_base |document| {
             document.content_changed();
         }
         Ok(node)
