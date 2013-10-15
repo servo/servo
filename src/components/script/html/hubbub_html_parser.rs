@@ -69,6 +69,18 @@ macro_rules! handle_htmlmediaelement(
         }
     )
 )
+macro_rules! handle_htmltablecellelement(
+    ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident) => (
+        if eq_slice($tag, $string) {
+            let _element = @$ctor {
+                htmlelement: HTMLTableCellElement::new($type_id, ($tag).to_str(), document)
+            };
+            unsafe {
+                return Node::as_abstract_node(cx, _element);
+            }
+        }
+    )
+)
 
 
 pub struct JSFile {
@@ -260,8 +272,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, tag, "style",   HTMLStyleElementTypeId, HTMLStyleElement, []);
     handle_element!(cx, tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
     handle_element!(cx, tag, "caption", HTMLTableCaptionElementTypeId, HTMLTableCaptionElement, []);
-    handle_element!(cx, tag, "th",      HTMLTableCellElementTypeId, HTMLTableCellElement, []);
-    handle_element!(cx, tag, "td",      HTMLTableCellElementTypeId, HTMLTableCellElement, []);
     handle_element!(cx, tag, "col",     HTMLTableColElementTypeId, HTMLTableColElement, []);
     handle_element!(cx, tag, "colgroup",HTMLTableColElementTypeId, HTMLTableColElement, []);
     handle_element!(cx, tag, "tbody",   HTMLTableSectionElementTypeId, HTMLTableSectionElement, []);
@@ -292,6 +302,9 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
 
     handle_htmlmediaelement!(cx, tag, "audio", HTMLAudioElementTypeId, HTMLAudioElement);
     handle_htmlmediaelement!(cx, tag, "video", HTMLVideoElementTypeId, HTMLVideoElement);
+
+    handle_htmltablecellelement!(cx, tag, "td", HTMLTableDataCellElementTypeId, HTMLTableDataCellElement);
+    handle_htmltablecellelement!(cx, tag, "th", HTMLTableHeaderCellElementTypeId, HTMLTableHeaderCellElement);
 
     let element = @HTMLUnknownElement {
        htmlelement: HTMLElement::new(HTMLUnknownElementTypeId, tag.to_str(), document)

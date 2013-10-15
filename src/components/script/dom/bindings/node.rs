@@ -77,6 +77,8 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLStyleElementTypeId) => generate_element!(HTMLStyleElement),
         ElementNodeTypeId(HTMLTableElementTypeId) => generate_element!(HTMLTableElement),
         ElementNodeTypeId(HTMLTableCellElementTypeId) => generate_element!(HTMLTableCellElement),
+        ElementNodeTypeId(HTMLTableDataCellElementTypeId) => generate_element!(HTMLTableDataCellElement),
+        ElementNodeTypeId(HTMLTableHeaderCellElementTypeId) => generate_element!(HTMLTableHeaderCellElement),
         ElementNodeTypeId(HTMLTableCaptionElementTypeId) => generate_element!(HTMLTableCaptionElement),
         ElementNodeTypeId(HTMLTableColElementTypeId) => generate_element!(HTMLTableColElement),
         ElementNodeTypeId(HTMLTableRowElementTypeId) => generate_element!(HTMLTableRowElement),
