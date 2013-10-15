@@ -348,6 +348,10 @@ generate_cacheable_wrapper_htmlelement!(HTMLLinkElement, HTMLLinkElementBinding:
 generate_binding_object_htmlelement!(HTMLLinkElement)
 generate_traceable_htmlelement!(HTMLLinkElement)
 
+generate_cacheable_wrapper_htmlelement!(HTMLMainElement, HTMLMainElementBinding::Wrap)
+generate_binding_object_htmlelement!(HTMLMainElement)
+generate_traceable_htmlelement!(HTMLMainElement)
+
 generate_cacheable_wrapper_htmlelement!(HTMLMapElement, HTMLMapElementBinding::Wrap)
 generate_binding_object_htmlelement!(HTMLMapElement)
 generate_traceable_htmlelement!(HTMLMapElement)

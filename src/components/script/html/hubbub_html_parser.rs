@@ -251,6 +251,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, tag, "legend",  HTMLLegendElementTypeId, HTMLLegendElement, []);
     handle_element!(cx, tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
     handle_element!(cx, tag, "li",      HTMLLIElementTypeId, HTMLLIElement, []);
+    handle_element!(cx, tag, "main",    HTMLMainElementTypeId, HTMLMainElement, []);
     handle_element!(cx, tag, "map",     HTMLMapElementTypeId, HTMLMapElement, []);
     handle_element!(cx, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
     handle_element!(cx, tag, "meter",   HTMLMeterElementTypeId, HTMLMeterElement, []);
