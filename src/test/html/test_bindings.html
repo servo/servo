@@ -204,19 +204,21 @@ window.alert(tags.length);
 window.alert(tags[0].tagName);
 window.alert(tags[0] instanceof HTMLQuoteElement);
 
-window.alert("HTMLTableCellElement:");
+window.alert("HTMLTableHeaderCellElement:");
 let tags = document.getElementsByTagName("th");
 window.alert(tags);
 window.alert(tags.length);
 window.alert(tags[0].tagName);
 window.alert(tags[0] instanceof HTMLTableCellElement);
+window.alert(tags[0] instanceof HTMLTableHeaderCellElement);
 
-window.alert("HTMLTableCellElement:");
+window.alert("HTMLTableDataCellElement:");
 let tags = document.getElementsByTagName("td");
 window.alert(tags);
 window.alert(tags.length);
 window.alert(tags[0].tagName);
 window.alert(tags[0] instanceof HTMLTableCellElement);
+window.alert(tags[0] instanceof HTMLTableDataCellElement);
 
 window.alert("HTMLTableColElement");
 let tagList = ["col", "colgroup"];

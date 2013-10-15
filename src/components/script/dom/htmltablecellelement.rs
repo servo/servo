@@ -3,10 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::document::AbstractDocument;
+use dom::element::ElementTypeId;
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
+}
+
+impl HTMLTableCellElement {
+    pub fn new(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> HTMLTableCellElement {
+        HTMLTableCellElement {
+            htmlelement: HTMLElement::new(type_id, tag_name, document)
+        }
+    }
 }
 
 impl HTMLTableCellElement {

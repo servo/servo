@@ -113,6 +113,8 @@ pub mod dom {
     pub mod htmltableelement;
     pub mod htmltablecaptionelement;
     pub mod htmltablecellelement;
+    pub mod htmltabledatacellelement;
+    pub mod htmltableheadercellelement;
     pub mod htmltablecolelement;
     pub mod htmltablerowelement;
     pub mod htmltablesectionelement;
