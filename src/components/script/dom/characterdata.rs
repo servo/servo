@@ -5,7 +5,7 @@
 //! DOM bindings for `CharacterData`.
 
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
-use dom::bindings::utils::{BindingObject, Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::AbstractDocument;
 use dom::node::{Node, NodeTypeId, ScriptView};
 use js::jsapi::{JSObject, JSContext};
@@ -69,11 +69,5 @@ impl Reflectable for CharacterData {
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"need to implement wrapping");
-    }
-}
-
-impl BindingObject for CharacterData {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        self.node.GetParentObject(cx)
     }
 }
