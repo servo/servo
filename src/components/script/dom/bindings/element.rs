@@ -5,7 +5,6 @@
 use dom::types::*;
 use dom::bindings::codegen::*;
 use dom::bindings::utils::{BindingObject, Reflector, Reflectable, Traceable};
-use dom::node::ScriptView;
 
 use js::jsapi::{JSContext, JSObject, JSTracer};
 
@@ -132,9 +131,9 @@ generate_traceable!(Comment)
 generate_cacheable_wrapper_node!(DocumentFragment, DocumentFragmentBinding::Wrap)
 generate_binding_object_node!(DocumentFragment)
 generate_traceable_node!(DocumentFragment)
-generate_cacheable_wrapper_node!(DocumentType<ScriptView>, DocumentTypeBinding::Wrap)
-generate_binding_object_node!(DocumentType<ScriptView>)
-generate_traceable_node!(DocumentType<ScriptView>)
+generate_cacheable_wrapper_node!(DocumentType, DocumentTypeBinding::Wrap)
+generate_binding_object_node!(DocumentType)
+generate_traceable_node!(DocumentType)
 generate_cacheable_wrapper!(Text, TextBinding::Wrap)
 generate_binding_object!(Text)
 generate_traceable!(Text)

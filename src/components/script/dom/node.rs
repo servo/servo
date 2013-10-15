@@ -273,14 +273,14 @@ impl<'self, View> AbstractNode<View> {
         self.type_id() == DoctypeNodeTypeId
     }
 
-    pub fn with_imm_doctype<R>(self, f: &fn(&DocumentType<View>) -> R) -> R {
+    pub fn with_imm_doctype<R>(self, f: &fn(&DocumentType) -> R) -> R {
         if !self.is_doctype() {
             fail!(~"node is not doctype");
         }
         self.transmute(f)
     }
 
-    pub fn with_mut_doctype<R>(self, f: &fn(&mut DocumentType<View>) -> R) -> R {
+    pub fn with_mut_doctype<R>(self, f: &fn(&mut DocumentType) -> R) -> R {
         if !self.is_doctype() {
             fail!(~"node is not doctype");
         }

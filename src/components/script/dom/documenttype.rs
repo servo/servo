@@ -7,22 +7,22 @@ use dom::document::AbstractDocument;
 use dom::node::{ScriptView, Node, DoctypeNodeTypeId};
 
 /// The `DOCTYPE` tag.
-pub struct DocumentType<View> {
-    node: Node<View>,
+pub struct DocumentType {
+    node: Node<ScriptView>,
     name: ~str,
     public_id: Option<~str>,
     system_id: Option<~str>,
     force_quirks: bool
 }
 
-impl DocumentType<ScriptView> {
+impl DocumentType {
     /// Creates a new `DOCTYPE` tag.
     pub fn new(name: ~str,
                public_id: Option<~str>,
                system_id: Option<~str>,
                force_quirks: bool,
                document: AbstractDocument)
-            -> DocumentType<ScriptView> {
+            -> DocumentType {
         DocumentType {
             node: Node::new(DoctypeNodeTypeId, document),
             name: name,
