@@ -8,6 +8,7 @@ use dom::bindings::utils::{BindingObject, Reflector, Reflectable, Traceable};
 
 use js::jsapi::{JSContext, JSObject, JSTracer};
 
+// generate_cacheable_wrapper
 macro_rules! generate_cacheable_wrapper(
     ($name: path, $wrap: path) => (
         impl Reflectable for $name {
@@ -46,6 +47,44 @@ macro_rules! generate_cacheable_wrapper_htmlelement(
     )
 )
 
+macro_rules! generate_cacheable_wrapper_htmlmediaelement(
+    ($name: path, $wrap: path) => (
+        impl Reflectable for $name {
+            fn reflector<'a>(&'a self) -> &'a Reflector {
+                self.htmlmediaelement.reflector()
+            }
+
+            fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+                self.htmlmediaelement.mut_reflector()
+            }
+
+            fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+                let mut unused = false;
+                $wrap(cx, scope, self, &mut unused)
+            }
+        }
+    )
+)
+
+macro_rules! generate_cacheable_wrapper_htmltablecellelement(
+    ($name: path, $wrap: path) => (
+        impl Reflectable for $name {
+            fn reflector<'a>(&'a self) -> &'a Reflector {
+                self.htmltablecellelement.reflector()
+            }
+
+            fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+                self.htmltablecellelement.mut_reflector()
+            }
+
+            fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+                let mut unused = false;
+                $wrap(cx, scope, self, &mut unused)
+            }
+        }
+    )
+)
+
 macro_rules! generate_cacheable_wrapper_node(
     ($name: path, $wrap: path) => (
         impl Reflectable for $name {
@@ -65,6 +104,8 @@ macro_rules! generate_cacheable_wrapper_node(
     )
 )
 
+
+// generate_binding_object
 macro_rules! generate_binding_object(
     ($name: path) => (
         impl BindingObject for $name {
@@ -85,6 +126,26 @@ macro_rules! generate_binding_object_htmlelement(
     )
 )
 
+macro_rules! generate_binding_object_htmlmediaelement(
+    ($name: path) => (
+        impl BindingObject for $name {
+            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
+                self.htmlmediaelement.GetParentObject(cx)
+            }
+        }
+    )
+)
+
+macro_rules! generate_binding_object_htmltablecellelement(
+    ($name: path) => (
+        impl BindingObject for $name {
+            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
+                self.htmltablecellelement.GetParentObject(cx)
+            }
+        }
+    )
+)
+
 macro_rules! generate_binding_object_node(
     ($name: path) => (
         impl BindingObject for $name {
@@ -95,6 +156,8 @@ macro_rules! generate_binding_object_node(
     )
 )
 
+
+// generate_traceable
 macro_rules! generate_traceable(
     ($name: path) => (
         impl Traceable for $name {
@@ -110,6 +173,26 @@ macro_rules! generate_traceable_htmlelement(
         impl Traceable for $name {
             fn trace(&self, trc: *mut JSTracer) {
                 self.htmlelement.trace(trc);
+            }
+        }
+    )
+)
+
+macro_rules! generate_traceable_htmlmediaelement(
+    ($name: path) => (
+        impl Traceable for $name {
+            fn trace(&self, trc: *mut JSTracer) {
+                self.htmlmediaelement.trace(trc);
+            }
+        }
+    )
+)
+
+macro_rules! generate_traceable_htmltablecellelement(
+    ($name: path) => (
+        impl Traceable for $name {
+            fn trace(&self, trc: *mut JSTracer) {
+                self.htmltablecellelement.trace(trc);
             }
         }
     )
@@ -157,9 +240,9 @@ generate_cacheable_wrapper_htmlelement!(HTMLAreaElement, HTMLAreaElementBinding:
 generate_binding_object_htmlelement!(HTMLAreaElement)
 generate_traceable_htmlelement!(HTMLAreaElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLAudioElement, HTMLAudioElementBinding::Wrap)
-generate_binding_object_htmlelement!(HTMLAudioElement)
-generate_traceable_htmlelement!(HTMLAudioElement)
+generate_cacheable_wrapper_htmlmediaelement!(HTMLAudioElement, HTMLAudioElementBinding::Wrap)
+generate_binding_object_htmlmediaelement!(HTMLAudioElement)
+generate_traceable_htmlmediaelement!(HTMLAudioElement)
 
 generate_cacheable_wrapper_htmlelement!(HTMLBaseElement, HTMLBaseElementBinding::Wrap)
 generate_binding_object_htmlelement!(HTMLBaseElement)
@@ -357,13 +440,13 @@ generate_cacheable_wrapper_htmlelement!(HTMLTableCellElement, HTMLTableCellEleme
 generate_binding_object_htmlelement!(HTMLTableCellElement)
 generate_traceable_htmlelement!(HTMLTableCellElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTableDataCellElement, HTMLTableDataCellElementBinding::Wrap)
-generate_binding_object_htmlelement!(HTMLTableDataCellElement)
-generate_traceable_htmlelement!(HTMLTableDataCellElement)
+generate_cacheable_wrapper_htmltablecellelement!(HTMLTableDataCellElement, HTMLTableDataCellElementBinding::Wrap)
+generate_binding_object_htmltablecellelement!(HTMLTableDataCellElement)
+generate_traceable_htmltablecellelement!(HTMLTableDataCellElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLTableHeaderCellElement, HTMLTableHeaderCellElementBinding::Wrap)
-generate_binding_object_htmlelement!(HTMLTableHeaderCellElement)
-generate_traceable_htmlelement!(HTMLTableHeaderCellElement)
+generate_cacheable_wrapper_htmltablecellelement!(HTMLTableHeaderCellElement, HTMLTableHeaderCellElementBinding::Wrap)
+generate_binding_object_htmltablecellelement!(HTMLTableHeaderCellElement)
+generate_traceable_htmltablecellelement!(HTMLTableHeaderCellElement)
 
 generate_cacheable_wrapper_htmlelement!(HTMLTableColElement, HTMLTableColElementBinding::Wrap)
 generate_binding_object_htmlelement!(HTMLTableColElement)
@@ -405,9 +488,9 @@ generate_cacheable_wrapper_htmlelement!(HTMLUnknownElement, HTMLUnknownElementBi
 generate_binding_object_htmlelement!(HTMLUnknownElement)
 generate_traceable_htmlelement!(HTMLUnknownElement)
 
-generate_cacheable_wrapper_htmlelement!(HTMLVideoElement, HTMLVideoElementBinding::Wrap)
-generate_binding_object_htmlelement!(HTMLVideoElement)
-generate_traceable_htmlelement!(HTMLVideoElement)
+generate_cacheable_wrapper_htmlmediaelement!(HTMLVideoElement, HTMLVideoElementBinding::Wrap)
+generate_binding_object_htmlmediaelement!(HTMLVideoElement)
+generate_traceable_htmlmediaelement!(HTMLVideoElement)
 
 generate_traceable!(HTMLElement)
 generate_traceable_node!(Element)
