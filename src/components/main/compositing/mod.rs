@@ -22,7 +22,7 @@ use std::comm;
 use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
 use std::vec;
-use std::rt::rtio::RtioTimer;
+use std::path::Path;
 use std::rt::io::timer::Timer;
 use geom::matrix::identity;
 use geom::point::Point2D;
@@ -38,7 +38,7 @@ use servo_util::{time, url};
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
 
-use extra::future::from_value;
+use extra::future::Future;
 use extra::time::precise_time_s;
 
 use constellation::SendableFrameTree;
@@ -226,7 +226,7 @@ impl CompositorTask {
         // Keeps track of the current zoom factor
         let mut world_zoom = 1f32;
         let mut zoom_action = false;
-        let mut zoom_time = 0f;
+        let mut zoom_time = 0f64;
 
         // The root CompositorLayer
         let mut compositor_layer: Option<CompositorLayer> = None;
@@ -395,7 +395,7 @@ impl CompositorTask {
                     match constellation_chan {
                         Some(ref chan) => chan.send(LoadUrlMsg(root_pipeline_id,
                                                                url::make_url(url_string.to_str(), None),
-                                                               from_value(window_size))),
+                                                               Future::from_value(window_size))),
                         None => error!("Compositor: Recieved loadurl event without initialized layout chan"),
                     }
                 }
@@ -488,7 +488,7 @@ impl CompositorTask {
             // window.present()) as OpenGL ES 2 does not have glReadBuffer().
             if write_png {
                 let (width, height) = (window_size.width as uint, window_size.height as uint);
-                let path = Path(*self.opts.output_file.get_ref());
+                let path = from_str::<Path>(*self.opts.output_file.get_ref()).unwrap();
                 let mut pixels = gl2::read_pixels(0, 0,
                                                   width as gl2::GLsizei,
                                                   height as gl2::GLsizei,

@@ -57,23 +57,19 @@ pub fn min(x: Au, y: Au) -> Au { if x < y { x } else { y } }
 pub fn max(x: Au, y: Au) -> Au { if x > y { x } else { y } }
 
 impl NumCast for Au {
-    fn from<T:NumCast>(n: T) -> Au { Au(n.to_i32()) }
+    fn from<T:ToPrimitive>(n: T) -> Option<Au> {
+        Some(Au(n.to_i32().unwrap()))
+    }
+}
 
-    fn to_u8(&self) -> u8       { (**self).to_u8() }
-    fn to_u16(&self) -> u16     { (**self).to_u16() }
-    fn to_u32(&self) -> u32     { (**self).to_u32() }
-    fn to_u64(&self) -> u64     { (**self).to_u64() }
-    fn to_uint(&self) -> uint   { (**self).to_uint() }
+impl ToPrimitive for Au {
+    fn to_i64(&self) -> Option<i64> {
+        Some(**self as i64)
+    }
 
-    fn to_i8(&self) -> i8       { (**self).to_i8() }
-    fn to_i16(&self) -> i16     { (**self).to_i16() }
-    fn to_i32(&self) -> i32     { (**self).to_i32() }
-    fn to_i64(&self) -> i64     { (**self).to_i64() }
-    fn to_int(&self) -> int     { (**self).to_int() }
-
-    fn to_f32(&self) -> f32     { (**self).to_f32() }
-    fn to_f64(&self) -> f64     { (**self).to_f64() }
-    fn to_float(&self) -> float { (**self).to_float() }
+    fn to_u64(&self) -> Option<u64> {
+        Some(**self as u64)
+    }
 }
 
 pub fn box<T:Clone + Ord + Add<T,T> + Sub<T,T>>(x: T, y: T, w: T, h: T) -> Rect<T> {
@@ -81,16 +77,16 @@ pub fn box<T:Clone + Ord + Add<T,T> + Sub<T,T>>(x: T, y: T, w: T, h: T) -> Rect<
 }
 
 impl Au {
-    pub fn scale_by(self, factor: float) -> Au {
-        Au(((*self as float) * factor).round() as i32)
+    pub fn scale_by(self, factor: f64) -> Au {
+        Au(((*self as f64) * factor).round() as i32)
     }
 
     pub fn from_px(px: int) -> Au {
-        NumCast::from(px * 60)
+        NumCast::from(px * 60).unwrap()
     }
 
     pub fn to_nearest_px(&self) -> int {
-        ((**self as float) / 60f).round() as int
+        ((**self as f64) / 60f64).round() as int
     }
 
     pub fn to_snapped(&self) -> Au {
@@ -108,12 +104,12 @@ impl Au {
         Rect(Point2D(z, z), Size2D(z, z))
     }
 
-    pub fn from_pt(pt: float) -> Au {
+    pub fn from_pt(pt: f64) -> Au {
         from_px(pt_to_px(pt) as int)
     }
 
-    pub fn from_frac_px(px: float) -> Au {
-        Au((px * 60f) as i32)
+    pub fn from_frac_px(px: f64) -> Au {
+        Au((px * 60f64) as i32)
     }
 
     pub fn min(x: Au, y: Au) -> Au { if *x < *y { x } else { y } }
@@ -121,13 +117,13 @@ impl Au {
 }
 
 // assumes 72 points per inch, and 96 px per inch
-pub fn pt_to_px(pt: float) -> float {
-    pt / 72f * 96f
+pub fn pt_to_px(pt: f64) -> f64 {
+    pt / 72f64 * 96f64
 }
 
 // assumes 72 points per inch, and 96 px per inch
-pub fn px_to_pt(px: float) -> float {
-    px / 96f * 72f
+pub fn px_to_pt(px: f64) -> f64 {
+    px / 96f64 * 72f64
 }
 
 pub fn zero_rect() -> Rect<Au> {
@@ -143,23 +139,23 @@ pub fn zero_size() -> Size2D<Au> {
     Size2D(Au(0), Au(0))
 }
 
-pub fn from_frac_px(px: float) -> Au {
-    Au((px * 60f) as i32)
+pub fn from_frac_px(px: f64) -> Au {
+    Au((px * 60f64) as i32)
 }
 
 pub fn from_px(px: int) -> Au {
-    NumCast::from(px * 60)
+    NumCast::from(px * 60).unwrap()
 }
 
 pub fn to_px(au: Au) -> int {
     (*au / 60) as int
 }
 
-pub fn to_frac_px(au: Au) -> float {
-    (*au as float) / 60f
+pub fn to_frac_px(au: Au) -> f64 {
+    (*au as f64) / 60f64
 }
 
 // assumes 72 points per inch, and 96 px per inch
-pub fn from_pt(pt: float) -> Au {
-    from_px((pt / 72f * 96f) as int)
+pub fn from_pt(pt: f64) -> Au {
+    from_px((pt / 72f64 * 96f64) as int)
 }

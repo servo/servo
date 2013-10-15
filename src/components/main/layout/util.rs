@@ -6,7 +6,7 @@ use layout::box::{RenderBox};
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::range::Range;
 
-use std::iterator::Enumerate;
+use std::iter::Enumerate;
 use std::vec::VecIterator;
 
 pub struct NodeRange {

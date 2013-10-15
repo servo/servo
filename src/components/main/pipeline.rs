@@ -180,7 +180,7 @@ impl Pipeline {
     }
 
     pub fn reload(&mut self) {
-        do self.url.clone().map_move() |url| {
+        do self.url.clone().map() |url| {
             self.load(url);
         };
     }

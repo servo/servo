@@ -141,7 +141,7 @@ struct AutoPattern {
 
 impl Drop for AutoPattern {
     #[fixed_stack_segment]
-    fn drop(&self) {
+    fn drop(&mut self) {
         unsafe {
             FcPatternDestroy(self.pattern);
         }

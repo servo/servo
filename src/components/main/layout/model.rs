@@ -26,10 +26,10 @@ pub struct BoxModel {
 
 fn from_length(length: Length, font_size: CSSFontSize) -> Au {
     match length {
-        Px(v) => Au::from_frac_px(v),
+        Px(v) => Au::from_frac_px(v as f64),
         Em(em) => {
             match font_size {
-                CSSFontSizeLength(Px(v)) => Au::from_frac_px(em * v),
+                CSSFontSizeLength(Px(v)) => Au::from_frac_px((em * v) as f64),
                 _ => fail!("expected non-relative font size")
             }
         }
@@ -46,7 +46,7 @@ impl MaybeAuto {
     pub fn from_margin(margin: CSSMargin, containing_width: Au, font_size: CSSFontSize) -> MaybeAuto {
         match margin {
             CSSMarginAuto => Auto,
-            CSSMarginPercentage(percent) => Specified(containing_width.scale_by(percent/100.0)),
+            CSSMarginPercentage(percent) => Specified(containing_width.scale_by(percent as f64 / 100.0f64)),
             CSSMarginLength(length) => Specified(from_length(length, font_size))
         }
     }
@@ -54,7 +54,7 @@ impl MaybeAuto {
     pub fn from_width(width: CSSWidth, containing_width: Au, font_size: CSSFontSize) -> MaybeAuto {
         match width {
             CSSWidthAuto => Auto,
-            CSSWidthPercentage(percent) => Specified(containing_width.scale_by(percent/100.0)),
+            CSSWidthPercentage(percent) => Specified(containing_width.scale_by(percent as f64 / 100.0f64)),
             CSSWidthLength(length) => Specified(from_length(length, font_size))
         }
     }
@@ -62,7 +62,7 @@ impl MaybeAuto {
     pub fn from_height(height: CSSHeight, cb_height: Au, font_size: CSSFontSize) -> MaybeAuto {
         match height {
             CSSHeightAuto => Auto,
-            CSSHeightPercentage(percent) => Specified(cb_height.scale_by(percent/100.0)),
+            CSSHeightPercentage(percent) => Specified(cb_height.scale_by(percent as f64 / 100.0f64)),
             CSSHeightLength(length) => Specified(from_length(length, font_size))
         }
     }
@@ -140,7 +140,7 @@ impl BoxModel {
     pub fn compute_padding_length(&self, padding: CSSPadding, content_box_width: Au, font_size: CSSFontSize) -> Au {
         match padding {
             CSSPaddingLength(length) => from_length(length, font_size),
-            CSSPaddingPercentage(p) => content_box_width.scale_by(p/100.0)
+            CSSPaddingPercentage(p) => content_box_width.scale_by(p as f64 / 100.0f64)
         }
     }
 }

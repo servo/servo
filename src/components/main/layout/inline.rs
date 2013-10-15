@@ -171,11 +171,11 @@ impl LineboxScanner {
 
     fn calculate_line_height(&self, box: RenderBox, font_size: Au) -> Au { 
         match box.line_height() {
-            CSSLineHeightNormal => font_size.scale_by(1.14f),
-            CSSLineHeightNumber(l) => font_size.scale_by(l),
-            CSSLineHeightLength(Em(l)) => font_size.scale_by(l),
-            CSSLineHeightLength(Px(l)) => Au::from_frac_px(l),
-            CSSLineHeightPercentage(p) => font_size.scale_by(p / 100.0f)
+            CSSLineHeightNormal => font_size.scale_by(1.14f64),
+            CSSLineHeightNumber(l) => font_size.scale_by(l as f64),
+            CSSLineHeightLength(Em(l)) => font_size.scale_by(l as f64),
+            CSSLineHeightLength(Px(l)) => Au::from_frac_px(l as f64),
+            CSSLineHeightPercentage(p) => font_size.scale_by(p as f64 / 100.0f64)
         }
     }
 
@@ -183,7 +183,7 @@ impl LineboxScanner {
         match box {
             ImageRenderBoxClass(image_box) => {
                 let size = image_box.image.get_size();
-                let height = Au::from_px(size.unwrap_or_default(Size2D(0, 0)).height);
+                let height = Au::from_px(size.unwrap_or(Size2D(0, 0)).height);
                 image_box.base.position.size.height = height;
                 debug!("box_height: found image height: %?", height);
                 height
@@ -645,7 +645,7 @@ impl InlineFlowData {
                     }
                 }
                 CSSTextAlignCenter => {
-                    offset_x = offset_x + slack_width.scale_by(0.5f);
+                    offset_x = offset_x + slack_width.scale_by(0.5f64);
                     for i in line.range.eachi() {
                         do self.boxes[i].with_mut_base |base| {
                             base.position.origin.x = offset_x;
@@ -715,7 +715,7 @@ impl InlineFlowData {
                         let text_ascent = text_box.run.font.metrics.ascent;
                        
                         // Offset from the top of the box is 1/2 of the leading + ascent
-                        let text_offset = text_ascent + (line_height - em_size).scale_by(0.5f);
+                        let text_offset = text_ascent + (line_height - em_size).scale_by(0.5f64);
                         text_bounds.translate(&Point2D(text_box.base.position.origin.x, Au(0)));
 
                         (text_offset, line_height - text_offset, text_ascent)
@@ -746,13 +746,17 @@ impl InlineFlowData {
                 let parent_text_bottom  = Au(0);
                 do cur_box.with_mut_base |base| {
                     // Get parent node
-                    let parent = base.node.parent_node().map_default(base.node, |parent| *parent);
+                    let parent = match base.node.parent_node() {
+                        None => base.node,
+                        Some(parent) => parent,
+                    };
+
                     // TODO: When the calculation of font-size style is supported, it should be updated.
                     let font_size = match parent.style().font_size() {
-                        CSSFontSizeLength(Px(length)) => length,
+                        CSSFontSizeLength(Px(length)) => length as f64,
                         // todo: this is based on a hard coded font size, should be the parent element's font size
-                        CSSFontSizeLength(Em(length)) => length * 16f, 
-                        _ => 16f // px units
+                        CSSFontSizeLength(Em(length)) => length as f64 * 16f64,
+                        _ => 16f64 // px units
                     };
                     parent_text_top = Au::from_frac_px(font_size);
                 }
@@ -814,15 +818,15 @@ impl InlineFlowData {
                     },
                     CSSVerticalAlignLength(length) => {
                         let length_offset = match length {
-                            Em(l) => Au::from_frac_px(cur_box.font_style().pt_size * l),
-                            Px(l) => Au::from_frac_px(l),
+                            Em(l) => Au::from_frac_px(cur_box.font_style().pt_size * l as f64),
+                            Px(l) => Au::from_frac_px(l as f64),
                         };
                         -(length_offset + ascent)
                     },
                     CSSVerticalAlignPercentage(p) => {
                         let pt_size = cur_box.font_style().pt_size; 
                         let line_height = scanner.calculate_line_height(cur_box, Au::from_pt(pt_size));
-                        let percent_offset = line_height.scale_by(p / 100.0f);
+                        let percent_offset = line_height.scale_by(p as f64 / 100.0f64);
                         -(percent_offset + ascent)
                     }
                 };

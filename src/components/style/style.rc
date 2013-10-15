@@ -11,6 +11,7 @@
 #[license = "MPL"];
 #[crate_type = "lib"];
 
+#[feature(globs, macro_rules)];
 
 extern mod extra;
 extern mod cssparser;

@@ -27,7 +27,10 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
                 if str_url.starts_with("/") {
                     ~"file://" + str_url
                 } else {
-                    ~"file://" + os::getcwd().push(str_url).to_str()
+                    let mut path = os::getcwd();
+                    path.push(str_url);
+                    // FIXME (#1094): not the right way to transform a path
+                    ~"file://" + path.display().to_str()
                 }
             } else {
                 let current_url = current_url.unwrap();
@@ -57,7 +60,12 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
             match scheme {
                 ~"about" => {
                     match page {
-                        ~"failure" => ~"file://" + os::getcwd().push("../src/test/html/failure.html").to_str(),
+                        ~"failure" => {
+                            let mut path = os::getcwd();
+                            path.push("../src/test/html/failure.html");
+                            // FIXME (#1094): not the right way to transform a path
+                            ~"file://" + path.display().to_str()
+                        }
                         // TODO: handle the rest of the about: pages
                         _ => str_url
                     }
@@ -88,7 +96,9 @@ mod make_url_tests {
         let url = make_url(file, None);
         debug!("url: %?", url);
         assert!(url.scheme == ~"file");
-        assert!(url.path.contains(os::getcwd().to_str()));
+        let path = os::getcwd();
+        // FIXME (#1094): not the right way to transform a path
+        assert!(url.path.contains(path.display().to_str()));
     }
 
     #[test]

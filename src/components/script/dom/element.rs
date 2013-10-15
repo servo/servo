@@ -133,7 +133,7 @@ impl ElementLike for Element {
     fn get_attr<'a>(&'a self, name: &str) -> Option<&'a str> {
         // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
         let name = name.to_ascii_lower();
-        let value: Option<&str> = self.attrs.find_equiv(&name).map(|&value| {
+        let value: Option<&str> = self.attrs.find_equiv(&name).map(|value| {
             let value: &str = *value;
             value
         });
@@ -296,10 +296,10 @@ impl Element {
                     let scope = win.reflector().get_jsobject();
                     let rects = do rects.map |r| {
                         ClientRect::new(
-                             r.origin.y.to_f32(),
-                             (r.origin.y + r.size.height).to_f32(),
-                             r.origin.x.to_f32(),
-                             (r.origin.x + r.size.width).to_f32(),
+                             r.origin.y.to_f32().unwrap(),
+                             (r.origin.y + r.size.height).to_f32().unwrap(),
+                             r.origin.x.to_f32().unwrap(),
+                             (r.origin.x + r.size.width).to_f32().unwrap(),
                              cx,
                              scope)
                     };
@@ -320,10 +320,10 @@ impl Element {
                 let cx = win.get_cx();
                 let scope = win.reflector().get_jsobject();
                 ClientRect::new(
-                    rect.origin.y.to_f32(),
-                    (rect.origin.y + rect.size.height).to_f32(),
-                    rect.origin.x.to_f32(),
-                    (rect.origin.x + rect.size.width).to_f32(),
+                    rect.origin.y.to_f32().unwrap(),
+                    (rect.origin.y + rect.size.height).to_f32().unwrap(),
+                    rect.origin.x.to_f32().unwrap(),
+                    (rect.origin.x + rect.size.width).to_f32().unwrap(),
                     cx,
                     scope)
             }

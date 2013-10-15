@@ -38,7 +38,7 @@ impl ApplicationMethods for Application {
 }
 
 impl Drop for Application {
-    fn drop(&self) {
+    fn drop(&mut self) {
         drop_local_window();
         glfw::terminate();
     }
@@ -52,7 +52,7 @@ pub struct Window {
 
     drag_origin: Point2D<c_int>,
 
-    mouse_down_button: @mut c_int,
+    mouse_down_button: @mut Option<glfw::MouseButton>,
     mouse_down_point: @mut Point2D<c_int>,
 
     ready_state: ReadyState,
@@ -76,7 +76,7 @@ impl WindowMethods<Application> for Window {
 
             drag_origin: Point2D(0 as c_int, 0),
 
-            mouse_down_button: @mut 0,
+            mouse_down_button: @mut None,
             mouse_down_point: @mut Point2D(0 as c_int, 0),
 
             ready_state: Blank,
@@ -91,7 +91,7 @@ impl WindowMethods<Application> for Window {
             local_window().event_queue.push(ResizeWindowEvent(width as uint, height as uint))
         }
         do window.glfw_window.set_key_callback |_win, key, _scancode, action, mods| {
-            if action == glfw::PRESS {
+            if action == glfw::Press {
                 local_window().handle_key(key, mods)
             }
         }
@@ -103,7 +103,7 @@ impl WindowMethods<Application> for Window {
             let hidpi = (backing_size as f32) / (window_size as f32);
             let x = x as f32 * hidpi;
             let y = y as f32 * hidpi;
-            if button < 3 {
+            if button == glfw::MouseButtonLeft || button == glfw::MouseButtonRight {
                 local_window().handle_mouse(button, action, x as i32, y as i32);
             }
         }
@@ -206,21 +206,20 @@ impl Window {
     }
 
     /// Helper function to handle keyboard events.
-    fn handle_key(&self, key: c_int, mods: glfw::KeyMods) {
-        let mods = *mods;
+    fn handle_key(&self, key: glfw::Key, mods: glfw::Modifiers) {
         match key {
-            glfw::KEY_ESCAPE => self.glfw_window.set_should_close(true),
-            glfw::KEY_L if mods & glfw::MOD_CONTROL != 0 => self.load_url(), // Ctrl+L
-            glfw::KEY_EQUAL if mods & glfw::MOD_CONTROL != 0 => { // Ctrl-+
+            glfw::KeyEscape => self.glfw_window.set_should_close(true),
+            glfw::KeyL if mods.contains(glfw::Control) => self.load_url(), // Ctrl+L
+            glfw::KeyEqual if mods.contains(glfw::Control) => { // Ctrl-+
                 self.event_queue.push(ZoomWindowEvent(1.1));
             }
-            glfw::KEY_MINUS if mods & glfw::MOD_CONTROL != 0 => { // Ctrl--
+            glfw::KeyMinus if mods.contains(glfw::Control) => { // Ctrl--
                 self.event_queue.push(ZoomWindowEvent(0.90909090909));
             }
-            glfw::KEY_BACKSPACE if mods & glfw::MOD_SHIFT != 0 => { // Shift-Backspace
+            glfw::KeyBackspace if mods.contains(glfw::Shift) => { // Shift-Backspace
                 self.event_queue.push(NavigationWindowEvent(Forward));
             }
-            glfw::KEY_BACKSPACE => { // Backspace
+            glfw::KeyBackspace => { // Backspace
                 self.event_queue.push(NavigationWindowEvent(Back));
             }
             _ => {}
@@ -228,25 +227,29 @@ impl Window {
     }
 
     /// Helper function to handle a click
-    fn handle_mouse(&self, button: c_int, action: c_int, x: c_int, y: c_int) {
+    fn handle_mouse(&self, button: glfw::MouseButton, action: glfw::Action, x: c_int, y: c_int) {
         // FIXME(tkuehn): max pixel dist should be based on pixel density
-        let max_pixel_dist = 10f;
+        let max_pixel_dist = 10f64;
         let event = match action {
-            glfw::PRESS => {
+            glfw::Press => {
                 *self.mouse_down_point = Point2D(x, y);
-                *self.mouse_down_button = button;
+                *self.mouse_down_button = Some(button);
                 MouseWindowMouseDownEvent(button as uint, Point2D(x as f32, y as f32))
             }
-            glfw::RELEASE => {
-                if *self.mouse_down_button == button {
-                    let pixel_dist = *self.mouse_down_point - Point2D(x, y);
-                    let pixel_dist = ((pixel_dist.x * pixel_dist.x +
-                                       pixel_dist.y * pixel_dist.y) as float).sqrt();
-                    if pixel_dist < max_pixel_dist {
-                        let click_event = MouseWindowClickEvent(button as uint,
-                                                           Point2D(x as f32, y as f32));
-                        self.event_queue.push(MouseWindowEventClass(click_event));
+            glfw::Release => {
+                match *self.mouse_down_button {
+                    None => (),
+                    Some(but) if button == but => {
+                        let pixel_dist = *self.mouse_down_point - Point2D(x, y);
+                        let pixel_dist = ((pixel_dist.x * pixel_dist.x +
+                                           pixel_dist.y * pixel_dist.y) as f64).sqrt();
+                        if pixel_dist < max_pixel_dist {
+                            let click_event = MouseWindowClickEvent(button as uint,
+                                                                    Point2D(x as f32, y as f32));
+                            self.event_queue.push(MouseWindowEventClass(click_event));
+                        }
                     }
+                    Some(_) => (),
                 }
                 MouseWindowMouseUpEvent(button as uint, Point2D(x as f32, y as f32))
             }

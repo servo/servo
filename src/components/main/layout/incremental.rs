@@ -112,9 +112,10 @@ impl RestyleDamage {
 // version of this macro might be safe anyway, but we want to avoid silent
 // breakage on modifications.
 macro_rules! add_if_not_equal(
-    ([ $($effect:ident),* ], [ $($getter:ident),* ]) => ({
-        if $( (old.$getter() != new.$getter()) )||* {
-            damage.union_in_place( restyle_damage!( $($effect),* ) );
+    ($old:ident, $new:ident, $damage:ident,
+     [ $($effect:ident),* ], [ $($getter:ident),* ]) => ({
+        if $( ($old.$getter() != $new.$getter()) )||* {
+            $damage.union_in_place( restyle_damage!( $($effect),* ) );
         }
     })
 )
@@ -132,11 +133,11 @@ pub fn compute_damage(node: &AbstractNode<LayoutView>,
 
     // FIXME: We can short-circuit more of this.
 
-    add_if_not_equal!([ Repaint ],
+    add_if_not_equal!(old, new, damage, [ Repaint ],
         [ color, background_color, border_top_color, border_right_color,
           border_bottom_color, border_left_color ]);
 
-    add_if_not_equal!([ Repaint, BubbleWidths, Reflow ],
+    add_if_not_equal!(old, new, damage, [ Repaint, BubbleWidths, Reflow ],
         [ border_top_width, border_right_width, border_bottom_width,
           border_left_width, margin_top, margin_right, margin_bottom, margin_left,
           padding_top, padding_right, padding_bottom, padding_left, position,

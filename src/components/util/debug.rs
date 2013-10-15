@@ -5,7 +5,7 @@
 use std::io;
 use std::vec::raw::buf_as_slice;
 use std::cast::transmute;
-use std::sys::size_of;
+use std::mem::size_of;
 
 fn hexdump_slice(buf: &[u8]) {
     let stderr = io::stderr();

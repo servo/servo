@@ -254,7 +254,10 @@ impl Document {
         let key: &~str = &null_str_as_empty(id);
         // TODO: "in tree order, within the context object's tree"
         // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
-        self.idmap.find_equiv(key).map(|node| **node)
+        match self.idmap.find_equiv(key) {
+            None => None,
+            Some(node) => Some(*node),
+        }
     }
 
     pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
@@ -321,7 +324,7 @@ impl Document {
                     Some(root) => {
                         for node in root.traverse_preorder() {
                             if node.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
-                                loop;
+                                continue;
                             }
                             for child in node.children() {
                                 if child.is_text() {
@@ -355,12 +358,12 @@ impl Document {
                     Some(root) => {
                         for node in root.traverse_preorder() {
                             if node.type_id() != ElementNodeTypeId(HTMLHeadElementTypeId) {
-                                loop;
+                                continue;
                             }
                             let mut has_title = false;
                             for child in node.children() {
                                 if child.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
-                                    loop;
+                                    continue;
                                 }
                                 has_title = true;
                                 for title_child in child.children() {
@@ -526,7 +529,7 @@ fn foreach_ided_elements(root: &AbstractNode<ScriptView>,
                          callback: &fn(&~str, &AbstractNode<ScriptView>)) {
     for node in root.traverse_preorder() {
         if !node.is_element() {
-            loop;
+            continue;
         }
 
         do node.with_imm_element |element| {

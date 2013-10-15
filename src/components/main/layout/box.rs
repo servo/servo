@@ -362,10 +362,10 @@ impl RenderBox {
                     None
                 };
 
-                let right_box = do right_range.map_default(None) |range: &Range| {
+                let right_box = do right_range.map_default(None) |range: Range| {
                     let new_text_box = @mut text::adapt_textbox_with_range(text_box.base,
                                                                            text_box.run,
-                                                                           *range);
+                                                                           range);
                     Some(TextRenderBoxClass(new_text_box))
                 };
 
@@ -498,7 +498,7 @@ impl RenderBox {
         let px_width = if attr_width.is_some() {
             attr_width.unwrap()
         } else {
-            image_box.image.get_size().unwrap_or_default(Size2D(0, 0)).width
+            image_box.image.get_size().unwrap_or(Size2D(0, 0)).width
         };
 
         Au::from_px(px_width)
@@ -524,7 +524,7 @@ impl RenderBox {
         let px_height = if attr_height.is_some() {
             attr_height.unwrap()
         } else {
-            image_box.image.get_size().unwrap_or_default(Size2D(0, 0)).height
+            image_box.image.get_size().unwrap_or(Size2D(0, 0)).height
         };
 
         Au::from_px(px_height)
@@ -852,10 +852,10 @@ impl RenderBox {
             debug!("(font style) font families: `%s`", font_families);
 
             let font_size = match my_style.font_size() {
-                CSSFontSizeLength(Px(length)) => length,
+                CSSFontSizeLength(Px(length)) => length as f64,
                 // todo: this is based on a hard coded font size, should be the parent element's font size
-                CSSFontSizeLength(Em(length)) => length * 16f,
-                _ => 16f // px units
+                CSSFontSizeLength(Em(length)) => (length as f64) * 16f64,
+                _ => 16f64 // px units
             };
             debug!("(font style) font size: `%fpx`", font_size);
 

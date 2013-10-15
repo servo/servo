@@ -405,7 +405,7 @@ impl LayoutTreeBuilder {
             }
         };
 
-        let sibling_flow: Option<&mut FlowContext> = sibling_generator.map_mut(|gen| &mut *gen.flow);
+        let sibling_flow: Option<&mut FlowContext> = sibling_generator.as_mut().map(|gen| &mut *gen.flow);
 
         // TODO(eatkinson): use the value of the float property to
         // determine whether to float left or right.

@@ -25,7 +25,7 @@ use servo_util::url::make_url;
 use std::hashmap::{HashMap, HashSet};
 use std::util::replace;
 use extra::url::Url;
-use extra::future::{Future, from_value};
+use extra::future::Future;
 
 /// Maintains the pipelines and navigation context and grants permission to composite
 pub struct Constellation {
@@ -377,7 +377,7 @@ impl Constellation {
                                              self.opts.clone(),
                                              {
                                                 let size = self.compositor_chan.get_size();
-                                                from_value(Size2D(size.width as uint, size.height as uint))
+                                                Future::from_value(Size2D(size.width as uint, size.height as uint))
                                              });
         let failure = ~"about:failure";
         let url = make_url(failure, None);
@@ -402,7 +402,7 @@ impl Constellation {
                                              self.opts.clone(),
                                              {
                                                  let size = self.compositor_chan.get_size();
-                                                 from_value(Size2D(size.width as uint, size.height as uint))
+                                                 Future::from_value(Size2D(size.width as uint, size.height as uint))
                                              });
         pipeline.load(url);
 
@@ -458,7 +458,7 @@ impl Constellation {
             for source_frame in source_frame.iter() {
                 let found_child = source_frame.children.mut_iter()
                     .find(|child| subpage_eq(child));
-                found_child.map_move(|child| update_child_rect(child, true));
+                found_child.map(|child| update_child_rect(child, true));
             }
         }
 
@@ -467,7 +467,7 @@ impl Constellation {
         for frame_tree in frames.iter() {
             let found_child = frame_tree.children.mut_iter()
                 .find(|child| subpage_eq(child));
-            found_child.map_move(|child| update_child_rect(child, false));
+            found_child.map(|child| update_child_rect(child, false));
         }
 
         // At this point, if no pipelines were sent a resize msg, then this subpage id

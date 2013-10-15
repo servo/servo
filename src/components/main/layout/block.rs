@@ -106,10 +106,10 @@ impl BlockFlowData {
 
         /* if not an anonymous block context, add in block box's widths.
            these widths will not include child elements, just padding etc. */
-        self.box.map(|&box| {
+        for box in self.box.iter() {
             min_width = min_width.add(&box.get_min_width(ctx));
             pref_width = pref_width.add(&box.get_pref_width(ctx));
-        });
+        }
 
         self.common.min_width = min_width;
         self.common.pref_width = pref_width;
@@ -409,7 +409,7 @@ impl BlockFlowData {
         }
 
         let mut noncontent_height = Au(0);
-        self.box.map(|&box| {
+        for box in self.box.mut_iter() {
             do box.with_mut_base |base| {
                 //The associated box is the border box of this flow
                 base.model.margin.top = margin_top;
@@ -424,7 +424,7 @@ impl BlockFlowData {
                 noncontent_height = noncontent_height + clearance +
                     base.model.margin.top + base.model.margin.bottom;
             }
-        });
+        }
 
         //TODO(eatkinson): compute heights using the 'height' property.
         self.common.position.size.height = height + noncontent_height;
@@ -444,16 +444,16 @@ impl BlockFlowData {
                                                             -> bool {
 
         if self.common.node.is_iframe_element() {
-            let x = self.common.abs_position.x + do self.box.map_default(Au(0)) |box| {
+            let x = self.common.abs_position.x + do self.box.as_ref().map_default(Au(0)) |box| {
                 box.with_model(|model| model.margin.left + model.border.left + model.padding.left)
             };
-            let y = self.common.abs_position.y + do self.box.map_default(Au(0)) |box| {
+            let y = self.common.abs_position.y + do self.box.as_ref().map_default(Au(0)) |box| {
                 box.with_model(|model| model.margin.top + model.border.top + model.padding.top)
             };
-            let w = self.common.position.size.width - do self.box.map_default(Au(0)) |box| {
+            let w = self.common.position.size.width - do self.box.as_ref().map_default(Au(0)) |box| {
                 box.with_model(|model| model.noncontent_width())
             };
-            let h = self.common.position.size.height - do self.box.map_default(Au(0)) |box| {
+            let h = self.common.position.size.height - do self.box.as_ref().map_default(Au(0)) |box| {
                 box.with_model(|model| model.noncontent_height())
             };
             do self.common.node.with_mut_iframe_element |iframe_element| {
@@ -472,10 +472,9 @@ impl BlockFlowData {
         debug!("build_display_list_block: adding display element");
 
         // add box that starts block context
-        self.box.map(|&box| {
+        for box in self.box.iter() {
             box.build_display_list(builder, dirty, &self.common.abs_position, list)
-        });
-
+        }
 
         // TODO: handle any out-of-flow elements
         let this_position = self.common.abs_position;

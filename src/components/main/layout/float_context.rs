@@ -300,7 +300,7 @@ impl FloatContextBase{
                        f_data.bounds.origin.x + f_data.bounds.size.width > left &&
                        f_data.bounds.origin.x < left + width {
                            let new_y = f_data.bounds.origin.y;
-                           max_height = Some(min(max_height.unwrap_or_default(new_y), new_y));
+                           max_height = Some(min(max_height.unwrap_or(new_y), new_y));
                        }
                 }
             }
@@ -340,7 +340,7 @@ impl FloatContextBase{
                         let height = self.max_height_for_bounds(rect.origin.x, 
                                                                 rect.origin.y, 
                                                                 rect.size.width);
-                        let height = height.unwrap_or_default(Au(max_value));
+                        let height = height.unwrap_or(Au(max_value));
                         return match info.f_type {
                             FloatLeft => Rect(Point2D(rect.origin.x, float_y),
                                               Size2D(rect.size.width, height)),

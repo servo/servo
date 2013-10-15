@@ -45,7 +45,7 @@ impl HTMLImageElement {
         if "src" == name {
             let document = self.htmlelement.element.node.owner_doc();
             let window = document.document().window;
-            let url = window.page.url.map(|&(ref url, _)| url.clone());
+            let url = window.page.url.as_ref().map(|&(ref url, _)| url.clone());
             self.update_image(window.image_cache_task.clone(), url);
         }
     }

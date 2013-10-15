@@ -55,7 +55,7 @@ pub trait FontHandleMethods {
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
-pub type FractionalPixel = float;
+pub type FractionalPixel = f64;
 
 pub type FontTableTag = u32;
 
@@ -123,7 +123,7 @@ impl CSSFontWeight {
 // For now, the cases are differentiated with a typedef
 #[deriving(Clone, Eq)]
 pub struct FontStyle {
-    pt_size: float,
+    pt_size: f64,
     weight: CSSFontWeight,
     italic: bool,
     oblique: bool,
@@ -391,7 +391,7 @@ impl Font {
         assert!(azure_pattern.is_not_null());
 
         let options = struct__AzDrawOptions {
-            mAlpha: 1f as AzFloat,
+            mAlpha: 1f64 as AzFloat,
             fields: 0x0200 as uint16_t
         };
 
@@ -402,7 +402,7 @@ impl Font {
         for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
             for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
                 let glyph_advance = glyph.advance();
-                let glyph_offset = glyph.offset().unwrap_or_default(Au::zero_point());
+                let glyph_offset = glyph.offset().unwrap_or(Au::zero_point());
 
                 let azglyph = struct__AzGlyph {
                     mIndex: glyph.index() as uint32_t,
@@ -481,7 +481,7 @@ impl Font {
         do self.glyph_advance_cache.find_or_create(&glyph) |glyph| {
             match self.handle.glyph_h_advance(*glyph) {
                 Some(adv) => adv,
-                None => /* FIXME: Need fallback strategy */ 10f as FractionalPixel
+                None => /* FIXME: Need fallback strategy */ 10f64 as FractionalPixel
             }
         }
     }

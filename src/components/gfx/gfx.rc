@@ -8,6 +8,8 @@
        url = "http://servo.org/")];
 #[crate_type = "lib"];
 
+#[feature(globs)];
+
 extern mod azure;
 extern mod geom;
 extern mod newcss (name = "css");

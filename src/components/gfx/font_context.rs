@@ -20,7 +20,7 @@ use std::hashmap::HashMap;
 pub fn dummy_style() -> FontStyle {
     use font::FontWeight300;
     return FontStyle {
-        pt_size: 20f,
+        pt_size: 20f64,
         weight: FontWeight300,
         italic: false,
         oblique: false,
@@ -131,8 +131,9 @@ impl<'self> FontContext {
             let transformed_family_name = self.transform_family(family_name);
             debug!("(create font group) transformed family is `%s`", transformed_family_name);
 
-            let result = do self.font_list.chain_ref |fl| {
-                fl.find_font_in_family(transformed_family_name, style)
+            let result = match self.font_list {
+                Some(ref fl) => fl.find_font_in_family(transformed_family_name, style),
+                None => None,
             };
 
             let mut found = false;
@@ -156,8 +157,9 @@ impl<'self> FontContext {
         let last_resort = FontList::get_last_resort_font_families();
 
         for family in last_resort.iter() {
-            let result = do self.font_list.chain_ref |fl| {
-                fl.find_font_in_family(*family, style)
+            let result = match self.font_list {
+                Some(ref fl) => fl.find_font_in_family(*family, style),
+                None => None,
             };
 
             for font_entry in result.iter() {
@@ -188,7 +190,7 @@ impl<'self> FontContext {
             &SelectorPlatformIdentifier(ref identifier) => { 
                 let result_handle = self.handle.create_font_from_identifier((*identifier).clone(),
                                                                             desc.style.clone());
-                do result_handle.chain |handle| {
+                do result_handle.and_then |handle| {
                     Ok(Font::new_from_adopted_handle(self,
                                                      handle,
                                                      &desc.style,

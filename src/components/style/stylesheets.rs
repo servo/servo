@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::str;
-use std::iterator::Iterator;
+use std::iter::Iterator;
 use std::ascii::StrAsciiExt;
 use cssparser::*;
 use selectors;

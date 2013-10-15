@@ -84,7 +84,7 @@ impl FontList {
         debug!("FontList: %s font family with name=%s", decision, family_name);
 
         // TODO(Issue #188): look up localized font family names if canonical name not found
-        family.map(|f| **f)
+        family.map(|f| *f)
     }
 
     pub fn get_last_resort_font_families() -> ~[~str] {

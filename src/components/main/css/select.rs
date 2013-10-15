@@ -30,14 +30,24 @@ fn default_url(name: &str) -> Url {
     FromStr::from_str(fmt!("http://%s", name)).unwrap()
 }
 
-fn style_stream(style: &str) -> DataStream {
+fn style_stream(style: &str) -> @mut DataStream {
     let style = Cell::new(style.as_bytes().to_owned());
-    let d: DataStream = || if !style.is_empty() {
-        Some(style.take())
-    } else {
-        None
+    struct StyleDataStream {
+        style: Cell<~[u8]>,
+    }
+    impl DataStream for StyleDataStream {
+        fn read(&mut self) -> Option<~[u8]> {
+            if !self.style.is_empty() {
+                Some(self.style.take())
+            } else {
+                None
+            }
+        }
+    }
+    let stream = @mut StyleDataStream {
+        style: style,
     };
-    return d;
+    stream as @mut DataStream
 }
 
 fn html4_default_style_str() -> &'static str {
