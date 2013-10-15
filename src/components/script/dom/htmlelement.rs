@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::HTMLElementBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
-use dom::bindings::utils::{Reflectable, BindingObject, Reflector};
 use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId};
 use dom::node::{AbstractNode, ScriptView};
-use js::jsapi::{JSObject, JSContext, JSVal};
+use js::jsapi::{JSContext, JSVal};
 use js::JSVAL_NULL;
 
 pub struct HTMLElement {
@@ -146,26 +144,5 @@ impl HTMLElement {
 
     pub fn OffsetHeight(&self) -> i32 {
         0
-    }
-}
-
-impl Reflectable for HTMLElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.element.reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.element.mut_reflector()
-    }
-
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        HTMLElementBinding::Wrap(cx, scope, self, &mut unused)
-    }
-}
-
-impl BindingObject for HTMLElement {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        self.element.GetParentObject(cx)
     }
 }

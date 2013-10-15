@@ -5,7 +5,7 @@
 use dom::htmlmediaelement::HTMLMediaElement;
 
 pub struct HTMLAudioElement {
-    htmlelement: HTMLMediaElement
+    htmlmediaelement: HTMLMediaElement
 }
 
 impl HTMLAudioElement {

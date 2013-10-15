@@ -5,5 +5,5 @@
 use dom::htmltablecellelement::HTMLTableCellElement;
 
 pub struct HTMLTableHeaderCellElement {
-    htmlelement: HTMLTableCellElement,
+    htmltablecellelement: HTMLTableCellElement,
 }
