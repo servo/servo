@@ -33,51 +33,69 @@ use extra::future::{Future, from_port};
 use geom::size::Size2D;
 
 macro_rules! handle_element(
-    ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident, [ $(($field:ident : $field_init:expr)),* ]) => (
+    ($cx: expr,
+     $document: expr,
+     $tag: expr,
+     $string: expr,
+     $type_id: expr,
+     $ctor: ident,
+     [ $(($field:ident : $field_init:expr)),* ]) => (
+        handle_element_base!(htmlelement, HTMLElement,
+                             $cx, $document, $tag, $string, $type_id, $ctor,
+                             [$(($field:$field_init)),*]);
+    )
+)
+macro_rules! handle_htmlelement(
+    ($cx: expr,
+     $document: expr,
+     $tag: expr,
+     $string: expr,
+     $type_id: expr,
+     $ctor: ident) => (
+        handle_element_base!(element, Element,
+                             $cx, $document, $tag, $string, $type_id, $ctor, []);
+    )
+)
+macro_rules! handle_htmlmediaelement(
+    ($cx: expr,
+     $document: expr,
+     $tag: expr,
+     $string: expr,
+     $type_id: expr,
+     $ctor: ident) => (
+        handle_element_base!(htmlmediaelement, HTMLMediaElement,
+                             $cx, $document, $tag, $string, $type_id, $ctor, []);
+    )
+)
+macro_rules! handle_htmltablecellelement(
+    ($cx: expr,
+     $document: expr,
+     $tag: expr,
+     $string: expr,
+     $type_id: expr,
+     $ctor: ident) => (
+        handle_element_base!(htmltablecellelement, HTMLTableCellElement,
+                             $cx, $document, $tag, $string, $type_id, $ctor, []);
+    )
+)
+macro_rules! handle_element_base(
+    ($parent: ident,
+     $parent_init: ident,
+     $cx: expr,
+     $document: expr,
+     $tag: expr,
+     $string: expr,
+     $type_id: expr,
+     $ctor: ident,
+     [ $(($field:ident : $field_init:expr)),* ]) => (
         if eq_slice($tag, $string) {
             let _element = @$ctor {
-                htmlelement: HTMLElement::new($type_id, ($tag).to_str(), document),
+                $parent: $parent_init::new($type_id, ($tag).to_str(), $document),
                 $(
                     $field: $field_init,
                 )*
             };
-            unsafe {
-                return Node::as_abstract_node(cx, _element);
-            }
-        }
-    )
-)
-macro_rules! handle_htmlelement(
-    ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident) => (
-        if eq_slice($tag, $string) {
-            let _element = @HTMLElement::new($type_id, ($tag).to_str(), document);
-            unsafe {
-                return Node::as_abstract_node(cx, _element);
-            }
-        }
-    )
-)
-macro_rules! handle_htmlmediaelement(
-    ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident) => (
-        if eq_slice($tag, $string) {
-            let _element = @$ctor {
-                htmlmediaelement: HTMLMediaElement::new($type_id, ($tag).to_str(), document)
-            };
-            unsafe {
-                return Node::as_abstract_node(cx, _element);
-            }
-        }
-    )
-)
-macro_rules! handle_htmltablecellelement(
-    ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident) => (
-        if eq_slice($tag, $string) {
-            let _element = @$ctor {
-                htmltablecellelement: HTMLTableCellElement::new($type_id, ($tag).to_str(), document)
-            };
-            unsafe {
-                return Node::as_abstract_node(cx, _element);
-            }
+            return unsafe { Node::as_abstract_node($cx, _element) };
         }
     )
 )
@@ -224,92 +242,92 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 
 pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocument) -> AbstractNode<ScriptView> {
     // TODO (Issue #85): use atoms
-    handle_element!(cx, tag, "a",       HTMLAnchorElementTypeId, HTMLAnchorElement, []);
-    handle_element!(cx, tag, "applet",  HTMLAppletElementTypeId, HTMLAppletElement, []);
-    handle_element!(cx, tag, "area",    HTMLAreaElementTypeId, HTMLAreaElement, []);
-    handle_element!(cx, tag, "base",    HTMLBaseElementTypeId, HTMLBaseElement, []);
-    handle_element!(cx, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
-    handle_element!(cx, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
-    handle_element!(cx, tag, "button",  HTMLButtonElementTypeId, HTMLButtonElement, []);
-    handle_element!(cx, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
-    handle_element!(cx, tag, "data",    HTMLDataElementTypeId, HTMLDataElement, []);
-    handle_element!(cx, tag, "datalist",HTMLDataListElementTypeId, HTMLDataListElement, []);
-    handle_element!(cx, tag, "directory",HTMLDirectoryElementTypeId, HTMLDirectoryElement, []);
-    handle_element!(cx, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
-    handle_element!(cx, tag, "dl",      HTMLDListElementTypeId, HTMLDListElement, []);
-    handle_element!(cx, tag, "embed",   HTMLEmbedElementTypeId, HTMLEmbedElement, []);
-    handle_element!(cx, tag, "fieldset",HTMLFieldSetElementTypeId, HTMLFieldSetElement, []);
-    handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
-    handle_element!(cx, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
-    handle_element!(cx, tag, "frame",   HTMLFrameElementTypeId, HTMLFrameElement, []);
-    handle_element!(cx, tag, "frameset",HTMLFrameSetElementTypeId, HTMLFrameSetElement, []);
-    handle_element!(cx, tag, "hr",      HTMLHRElementTypeId, HTMLHRElement, []);
-    handle_element!(cx, tag, "head",    HTMLHeadElementTypeId, HTMLHeadElement, []);
-    handle_element!(cx, tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
-    handle_element!(cx, tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
-    handle_element!(cx, tag, "label",   HTMLLabelElementTypeId, HTMLLabelElement, []);
-    handle_element!(cx, tag, "legend",  HTMLLegendElementTypeId, HTMLLegendElement, []);
-    handle_element!(cx, tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
-    handle_element!(cx, tag, "li",      HTMLLIElementTypeId, HTMLLIElement, []);
-    handle_element!(cx, tag, "map",     HTMLMapElementTypeId, HTMLMapElement, []);
-    handle_element!(cx, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
-    handle_element!(cx, tag, "meter",   HTMLMeterElementTypeId, HTMLMeterElement, []);
-    handle_element!(cx, tag, "mod",     HTMLModElementTypeId, HTMLModElement, []);
-    handle_element!(cx, tag, "object",  HTMLObjectElementTypeId, HTMLObjectElement, []);
-    handle_element!(cx, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
-    handle_element!(cx, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
-    handle_element!(cx, tag, "optgroup",HTMLOptGroupElementTypeId, HTMLOptGroupElement, []);
-    handle_element!(cx, tag, "output",  HTMLOutputElementTypeId, HTMLOutputElement, []);
-    handle_element!(cx, tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
-    handle_element!(cx, tag, "param",   HTMLParamElementTypeId, HTMLParamElement, []);
-    handle_element!(cx, tag, "pre",     HTMLPreElementTypeId, HTMLPreElement, []);
-    handle_element!(cx, tag, "progress",HTMLProgressElementTypeId, HTMLProgressElement, []);
-    handle_element!(cx, tag, "q",       HTMLQuoteElementTypeId, HTMLQuoteElement, []);
-    handle_element!(cx, tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
-    handle_element!(cx, tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);
-    handle_element!(cx, tag, "source",  HTMLSourceElementTypeId, HTMLSourceElement, []);
-    handle_element!(cx, tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
-    handle_element!(cx, tag, "style",   HTMLStyleElementTypeId, HTMLStyleElement, []);
-    handle_element!(cx, tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
-    handle_element!(cx, tag, "caption", HTMLTableCaptionElementTypeId, HTMLTableCaptionElement, []);
-    handle_element!(cx, tag, "col",     HTMLTableColElementTypeId, HTMLTableColElement, []);
-    handle_element!(cx, tag, "colgroup",HTMLTableColElementTypeId, HTMLTableColElement, []);
-    handle_element!(cx, tag, "tbody",   HTMLTableSectionElementTypeId, HTMLTableSectionElement, []);
-    handle_element!(cx, tag, "template",HTMLTemplateElementTypeId, HTMLTemplateElement, []);
-    handle_element!(cx, tag, "textarea",HTMLTextAreaElementTypeId, HTMLTextAreaElement, []);
-    handle_element!(cx, tag, "time",    HTMLTimeElementTypeId, HTMLTimeElement, []);
-    handle_element!(cx, tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);
-    handle_element!(cx, tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
-    handle_element!(cx, tag, "track",   HTMLTrackElementTypeId, HTMLTrackElement, []);
-    handle_element!(cx, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
+    handle_element!(cx, document, tag, "a",       HTMLAnchorElementTypeId, HTMLAnchorElement, []);
+    handle_element!(cx, document, tag, "applet",  HTMLAppletElementTypeId, HTMLAppletElement, []);
+    handle_element!(cx, document, tag, "area",    HTMLAreaElementTypeId, HTMLAreaElement, []);
+    handle_element!(cx, document, tag, "base",    HTMLBaseElementTypeId, HTMLBaseElement, []);
+    handle_element!(cx, document, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
+    handle_element!(cx, document, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
+    handle_element!(cx, document, tag, "button",  HTMLButtonElementTypeId, HTMLButtonElement, []);
+    handle_element!(cx, document, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
+    handle_element!(cx, document, tag, "data",    HTMLDataElementTypeId, HTMLDataElement, []);
+    handle_element!(cx, document, tag, "datalist",HTMLDataListElementTypeId, HTMLDataListElement, []);
+    handle_element!(cx, document, tag, "directory",HTMLDirectoryElementTypeId, HTMLDirectoryElement, []);
+    handle_element!(cx, document, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
+    handle_element!(cx, document, tag, "dl",      HTMLDListElementTypeId, HTMLDListElement, []);
+    handle_element!(cx, document, tag, "embed",   HTMLEmbedElementTypeId, HTMLEmbedElement, []);
+    handle_element!(cx, document, tag, "fieldset",HTMLFieldSetElementTypeId, HTMLFieldSetElement, []);
+    handle_element!(cx, document, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
+    handle_element!(cx, document, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
+    handle_element!(cx, document, tag, "frame",   HTMLFrameElementTypeId, HTMLFrameElement, []);
+    handle_element!(cx, document, tag, "frameset",HTMLFrameSetElementTypeId, HTMLFrameSetElement, []);
+    handle_element!(cx, document, tag, "hr",      HTMLHRElementTypeId, HTMLHRElement, []);
+    handle_element!(cx, document, tag, "head",    HTMLHeadElementTypeId, HTMLHeadElement, []);
+    handle_element!(cx, document, tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
+    handle_element!(cx, document, tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
+    handle_element!(cx, document, tag, "label",   HTMLLabelElementTypeId, HTMLLabelElement, []);
+    handle_element!(cx, document, tag, "legend",  HTMLLegendElementTypeId, HTMLLegendElement, []);
+    handle_element!(cx, document, tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
+    handle_element!(cx, document, tag, "li",      HTMLLIElementTypeId, HTMLLIElement, []);
+    handle_element!(cx, document, tag, "map",     HTMLMapElementTypeId, HTMLMapElement, []);
+    handle_element!(cx, document, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
+    handle_element!(cx, document, tag, "meter",   HTMLMeterElementTypeId, HTMLMeterElement, []);
+    handle_element!(cx, document, tag, "mod",     HTMLModElementTypeId, HTMLModElement, []);
+    handle_element!(cx, document, tag, "object",  HTMLObjectElementTypeId, HTMLObjectElement, []);
+    handle_element!(cx, document, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
+    handle_element!(cx, document, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
+    handle_element!(cx, document, tag, "optgroup",HTMLOptGroupElementTypeId, HTMLOptGroupElement, []);
+    handle_element!(cx, document, tag, "output",  HTMLOutputElementTypeId, HTMLOutputElement, []);
+    handle_element!(cx, document, tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
+    handle_element!(cx, document, tag, "param",   HTMLParamElementTypeId, HTMLParamElement, []);
+    handle_element!(cx, document, tag, "pre",     HTMLPreElementTypeId, HTMLPreElement, []);
+    handle_element!(cx, document, tag, "progress",HTMLProgressElementTypeId, HTMLProgressElement, []);
+    handle_element!(cx, document, tag, "q",       HTMLQuoteElementTypeId, HTMLQuoteElement, []);
+    handle_element!(cx, document, tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
+    handle_element!(cx, document, tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);
+    handle_element!(cx, document, tag, "source",  HTMLSourceElementTypeId, HTMLSourceElement, []);
+    handle_element!(cx, document, tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
+    handle_element!(cx, document, tag, "style",   HTMLStyleElementTypeId, HTMLStyleElement, []);
+    handle_element!(cx, document, tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
+    handle_element!(cx, document, tag, "caption", HTMLTableCaptionElementTypeId, HTMLTableCaptionElement, []);
+    handle_element!(cx, document, tag, "col",     HTMLTableColElementTypeId, HTMLTableColElement, []);
+    handle_element!(cx, document, tag, "colgroup",HTMLTableColElementTypeId, HTMLTableColElement, []);
+    handle_element!(cx, document, tag, "tbody",   HTMLTableSectionElementTypeId, HTMLTableSectionElement, []);
+    handle_element!(cx, document, tag, "template",HTMLTemplateElementTypeId, HTMLTemplateElement, []);
+    handle_element!(cx, document, tag, "textarea",HTMLTextAreaElementTypeId, HTMLTextAreaElement, []);
+    handle_element!(cx, document, tag, "time",    HTMLTimeElementTypeId, HTMLTimeElement, []);
+    handle_element!(cx, document, tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);
+    handle_element!(cx, document, tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
+    handle_element!(cx, document, tag, "track",   HTMLTrackElementTypeId, HTMLTrackElement, []);
+    handle_element!(cx, document, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
-    handle_element!(cx, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
-    handle_element!(cx, tag, "iframe",  HTMLIframeElementTypeId, HTMLIFrameElement, [(frame: None), (size: None), (sandbox: None)]);
+    handle_element!(cx, document, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
+    handle_element!(cx, document, tag, "iframe",  HTMLIframeElementTypeId, HTMLIFrameElement, [(frame: None), (size: None), (sandbox: None)]);
 
-    handle_element!(cx, tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
-    handle_element!(cx, tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
-    handle_element!(cx, tag, "h3", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading3)]);
-    handle_element!(cx, tag, "h4", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading4)]);
-    handle_element!(cx, tag, "h5", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading5)]);
-    handle_element!(cx, tag, "h6", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading6)]);
+    handle_element!(cx, document, tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
+    handle_element!(cx, document, tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
+    handle_element!(cx, document, tag, "h3", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading3)]);
+    handle_element!(cx, document, tag, "h4", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading4)]);
+    handle_element!(cx, document, tag, "h5", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading5)]);
+    handle_element!(cx, document, tag, "h6", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading6)]);
 
 
-    handle_htmlelement!(cx, tag, "aside",   HTMLElementTypeId, HTMLElement);
-    handle_htmlelement!(cx, tag, "b",       HTMLElementTypeId, HTMLElement);
-    handle_htmlelement!(cx, tag, "i",       HTMLElementTypeId, HTMLElement);
-    handle_htmlelement!(cx, tag, "section", HTMLElementTypeId, HTMLElement);
-    handle_htmlelement!(cx, tag, "small",   HTMLElementTypeId, HTMLElement);
+    handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
+    handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
+    handle_htmlelement!(cx, document, tag, "i",       HTMLElementTypeId, HTMLElement);
+    handle_htmlelement!(cx, document, tag, "section", HTMLElementTypeId, HTMLElement);
+    handle_htmlelement!(cx, document, tag, "small",   HTMLElementTypeId, HTMLElement);
 
-    handle_htmlmediaelement!(cx, tag, "audio", HTMLAudioElementTypeId, HTMLAudioElement);
-    handle_htmlmediaelement!(cx, tag, "video", HTMLVideoElementTypeId, HTMLVideoElement);
+    handle_htmlmediaelement!(cx, document, tag, "audio", HTMLAudioElementTypeId, HTMLAudioElement);
+    handle_htmlmediaelement!(cx, document, tag, "video", HTMLVideoElementTypeId, HTMLVideoElement);
 
-    handle_htmltablecellelement!(cx, tag, "td", HTMLTableDataCellElementTypeId, HTMLTableDataCellElement);
-    handle_htmltablecellelement!(cx, tag, "th", HTMLTableHeaderCellElementTypeId, HTMLTableHeaderCellElement);
+    handle_htmltablecellelement!(cx, document, tag, "td", HTMLTableDataCellElementTypeId, HTMLTableDataCellElement);
+    handle_htmltablecellelement!(cx, document, tag, "th", HTMLTableHeaderCellElementTypeId, HTMLTableHeaderCellElement);
 
     let element = @HTMLUnknownElement {
        htmlelement: HTMLElement::new(HTMLUnknownElementTypeId, tag.to_str(), document)
     };
-    unsafe { Node::as_abstract_node(cx, element) }
+    return unsafe { Node::as_abstract_node(cx, element) };
 }
 
 pub fn parse_html(cx: *JSContext,

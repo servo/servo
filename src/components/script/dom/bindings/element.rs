@@ -11,89 +11,43 @@ use js::jsapi::{JSContext, JSObject, JSTracer};
 // generate_cacheable_wrapper
 macro_rules! generate_cacheable_wrapper(
     ($name: path, $wrap: path) => (
-        impl Reflectable for $name {
-            fn reflector<'a>(&'a self) -> &'a Reflector {
-                self.element.reflector()
-            }
-
-            fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-                self.element.mut_reflector()
-            }
-
-            fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-                let mut unused = false;
-                $wrap(cx, scope, self, &mut unused)
-            }
-        }
+        generate_cacheable_wrapper_base!($name, $wrap, element)
     )
 )
 
 macro_rules! generate_cacheable_wrapper_htmlelement(
     ($name: path, $wrap: path) => (
-        impl Reflectable for $name {
-            fn reflector<'a>(&'a self) -> &'a Reflector {
-                self.htmlelement.reflector()
-            }
-
-            fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-                self.htmlelement.mut_reflector()
-            }
-
-            fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-                let mut unused = false;
-                $wrap(cx, scope, self, &mut unused)
-            }
-        }
+        generate_cacheable_wrapper_base!($name, $wrap, htmlelement)
     )
 )
 
 macro_rules! generate_cacheable_wrapper_htmlmediaelement(
     ($name: path, $wrap: path) => (
-        impl Reflectable for $name {
-            fn reflector<'a>(&'a self) -> &'a Reflector {
-                self.htmlmediaelement.reflector()
-            }
-
-            fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-                self.htmlmediaelement.mut_reflector()
-            }
-
-            fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-                let mut unused = false;
-                $wrap(cx, scope, self, &mut unused)
-            }
-        }
+        generate_cacheable_wrapper_base!($name, $wrap, htmlmediaelement)
     )
 )
 
 macro_rules! generate_cacheable_wrapper_htmltablecellelement(
     ($name: path, $wrap: path) => (
-        impl Reflectable for $name {
-            fn reflector<'a>(&'a self) -> &'a Reflector {
-                self.htmltablecellelement.reflector()
-            }
-
-            fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-                self.htmltablecellelement.mut_reflector()
-            }
-
-            fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-                let mut unused = false;
-                $wrap(cx, scope, self, &mut unused)
-            }
-        }
+        generate_cacheable_wrapper_base!($name, $wrap, htmltablecellelement)
     )
 )
 
 macro_rules! generate_cacheable_wrapper_node(
     ($name: path, $wrap: path) => (
+        generate_cacheable_wrapper_base!($name, $wrap, node)
+    )
+)
+
+macro_rules! generate_cacheable_wrapper_base(
+    ($name: path, $wrap: path, $parent: ident) => (
         impl Reflectable for $name {
             fn reflector<'a>(&'a self) -> &'a Reflector {
-                self.node.reflector()
+                self.$parent.reflector()
             }
 
             fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-                self.node.mut_reflector()
+                self.$parent.mut_reflector()
             }
 
             fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -108,49 +62,39 @@ macro_rules! generate_cacheable_wrapper_node(
 // generate_binding_object
 macro_rules! generate_binding_object(
     ($name: path) => (
-        impl BindingObject for $name {
-            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-                self.element.GetParentObject(cx)
-            }
-        }
+        generate_binding_base!($name, element)
     )
 )
 
 macro_rules! generate_binding_object_htmlelement(
     ($name: path) => (
-        impl BindingObject for $name {
-            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-                self.htmlelement.GetParentObject(cx)
-            }
-        }
+        generate_binding_base!($name, htmlelement)
     )
 )
 
 macro_rules! generate_binding_object_htmlmediaelement(
     ($name: path) => (
-        impl BindingObject for $name {
-            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-                self.htmlmediaelement.GetParentObject(cx)
-            }
-        }
+        generate_binding_base!($name, htmlmediaelement)
     )
 )
 
 macro_rules! generate_binding_object_htmltablecellelement(
     ($name: path) => (
-        impl BindingObject for $name {
-            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-                self.htmltablecellelement.GetParentObject(cx)
-            }
-        }
+        generate_binding_base!($name, htmltablecellelement)
     )
 )
 
 macro_rules! generate_binding_object_node(
     ($name: path) => (
+        generate_binding_base!($name, node)
+    )
+)
+
+macro_rules! generate_binding_base(
+    ($name: path, $parent: ident) => (
         impl BindingObject for $name {
             fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-                self.node.GetParentObject(cx)
+                self.$parent.GetParentObject(cx)
             }
         }
     )
@@ -160,53 +104,44 @@ macro_rules! generate_binding_object_node(
 // generate_traceable
 macro_rules! generate_traceable(
     ($name: path) => (
-        impl Traceable for $name {
-            fn trace(&self, trc: *mut JSTracer) {
-                self.element.trace(trc);
-            }
-        }
+        generate_traceable_base!($name, element)
     )
 )
 
 macro_rules! generate_traceable_htmlelement(
     ($name: path) => (
-        impl Traceable for $name {
-            fn trace(&self, trc: *mut JSTracer) {
-                self.htmlelement.trace(trc);
-            }
-        }
+        generate_traceable_base!($name, htmlelement)
     )
 )
 
 macro_rules! generate_traceable_htmlmediaelement(
     ($name: path) => (
-        impl Traceable for $name {
-            fn trace(&self, trc: *mut JSTracer) {
-                self.htmlmediaelement.trace(trc);
-            }
-        }
+        generate_traceable_base!($name, htmlmediaelement)
     )
 )
 
 macro_rules! generate_traceable_htmltablecellelement(
     ($name: path) => (
-        impl Traceable for $name {
-            fn trace(&self, trc: *mut JSTracer) {
-                self.htmltablecellelement.trace(trc);
-            }
-        }
+        generate_traceable_base!($name, htmltablecellelement)
     )
 )
 
 macro_rules! generate_traceable_node(
     ($name: path) => (
+        generate_traceable_base!($name, node)
+    )
+)
+
+macro_rules! generate_traceable_base(
+    ($name: path, $parent: ident) => (
         impl Traceable for $name {
             fn trace(&self, trc: *mut JSTracer) {
-                self.node.trace(trc);
+                self.$parent.trace(trc);
             }
         }
     )
 )
+
 
 generate_cacheable_wrapper!(Comment, CommentBinding::Wrap)
 generate_binding_object!(Comment)
