@@ -1,0 +1,40 @@
+<html>
+<head>
+<script src="harness.js"></script>
+<script>
+var elems = document.getElementsByTagName('div');
+var rects = elems[0].getClientRects();
+is_a(rects, ClientRectList);
+
+is(rects.length, 3);
+
+for (var i=0; i<rects.length; i++) {
+    var rect = rects[i];
+    is_a(rect, ClientRect);
+
+    geq(rect.top,    100);
+    geq(rect.bottom, 100);
+    geq(rect.left,   100);
+    geq(rect.right,  100);
+
+    is(rect.width,  rect.right  - rect.left);
+    is(rect.height, rect.bottom - rect.top);
+}
+
+finish();
+</script>
+<style>
+div {
+    margin-top:  100px;
+    margin-left: 100px;
+}
+</style>
+</head>
+<body>
+    <div>
+        my div
+        <div>foo</div>
+        <div>bar</div>
+    </div>
+</body>
+</html>

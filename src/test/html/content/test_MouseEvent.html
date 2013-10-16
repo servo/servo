@@ -1,0 +1,22 @@
+<html>
+<head>
+<script src="harness.js"></script>
+<script>
+is_function(MouseEvent, "MouseEvent");
+
+/* broken due to #1042
+let ev = new MouseEvent("press", {bubbles: true, screenX: 150, detail: 100});
+
+// FIXME: assert correct values
+alert(ev);
+alert(ev.screenX);
+alert(ev.detail);
+alert(ev.getModifierState("ctrl"));
+is_a(ev, Event);
+is_a(ev, UIEvent);
+*/
+
+finish();
+</script>
+</head>
+</html>
