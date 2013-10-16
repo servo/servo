@@ -118,8 +118,12 @@ impl<'self> BoxGenerator<'self> {
                     for spacer in inline_spacer.iter() {
                         inline.boxes.push(*spacer);
                     }
+                } else {
+                    // TODO: cases for inline-block, etc.
+                    let new_box = BoxGenerator::make_box(ctx, box_type, node, builder);
+                    inline.boxes.push(new_box);
+                    debug!("BoxGenerator: creating box for node %s, now %? boxes", node.debug_str(), inline.boxes.len());
                 }
-                // TODO: cases for inline-block, etc.
             },
             BlockFlow(ref mut block) => {
                 debug!("BoxGenerator[f%d]: point b", block.common.id);
