@@ -14,6 +14,7 @@ use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
 use newcss::stylesheet::Stylesheet;
+use servo_util::tree::ElementLike;
 
 use js::jsapi::{JSContext, JSObject};
 
@@ -119,17 +120,12 @@ pub enum ElementTypeId {
 // Element methods
 //
 
-impl<'self> Element {
-    pub fn new(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> Element {
-        Element {
-            node: Node::new(ElementNodeTypeId(type_id), document),
-            tag_name: tag_name,
-            attrs: ~[],
-            style_attribute: None,
-        }
+impl<'self> ElementLike<'self> for Element {
+    fn get_local_name(&'self self) -> &'self str {
+        self.tag_name.as_slice()
     }
 
-    pub fn get_attr(&'self self, name: &str) -> Option<&'self str> {
+    fn get_attr(&'self self, name: &str) -> Option<&'self str> {
         // FIXME: Need an each() that links lifetimes in Rust.
         for attr in self.attrs.iter() {
             // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
@@ -139,6 +135,17 @@ impl<'self> Element {
             }
         }
         return None;
+    }
+}
+
+impl<'self> Element {
+    pub fn new(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> Element {
+        Element {
+            node: Node::new(ElementNodeTypeId(type_id), document),
+            tag_name: tag_name,
+            attrs: ~[],
+            style_attribute: None,
+        }
     }
 
     pub fn set_attr(&mut self,

@@ -38,6 +38,7 @@ use script::dom::node::{AbstractNode, LayoutView};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::range::*;
+use servo_util::tree::ElementLike;
 use extra::url::Url;
 
 /// Render boxes (`struct RenderBox`) are the leaves of the layout tree. They cannot position

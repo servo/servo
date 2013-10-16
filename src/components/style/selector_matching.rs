@@ -11,6 +11,7 @@ use media_queries::{Device, Screen};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use script::dom::node::{AbstractNode, ScriptView};
 use script::dom::element::Element;
+use servo_util::tree::ElementLike;
 
 
 pub enum StylesheetOrigin {
@@ -192,6 +193,7 @@ fn matches_simple_selector(selector: &SimpleSelector, element: &Element) -> bool
 
     match *selector {
         // TODO: case-sensitivity depends on the document type
+        // TODO: intern element names
         LocalNameSelector(ref name) => element.tag_name.eq_ignore_ascii_case(name.as_slice()),
         NamespaceSelector(_) => false,  // TODO, when the DOM supports namespaces on elements.
         // TODO: case-sensitivity depends on the document type and quirks mode

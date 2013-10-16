@@ -1,3 +1,4 @@
+
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,6 +12,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::url::make_url;
+use servo_util::tree::ElementLike;
 
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,

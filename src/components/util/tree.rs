@@ -324,3 +324,9 @@ pub trait TreeNode<Ref: TreeNodeRef<Self>> {
         TreeNodeRef::<Self>::set_next_sibling(self, new_next_sibling)
     }
 }
+
+
+pub trait ElementLike<'self> {
+    fn get_local_name(&'self self) -> &'self str;
+    fn get_attr(&'self self, name: &str) -> Option<&'self str>;
+}
