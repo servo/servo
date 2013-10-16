@@ -43,10 +43,10 @@ impl DOMParser {
         let cx = self.owner.get_cx();
         let document = match ty {
             Text_html => {
-                HTMLDocument::new(None)
+                HTMLDocument::new(self.owner)
             }
             Text_xml => {
-                AbstractDocument::as_abstract(cx, @mut Document::new(None, XML))
+                AbstractDocument::as_abstract(cx, @mut Document::new(self.owner, XML))
             }
             _ => {
                 fail!("unsupported document type")
