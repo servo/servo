@@ -12,8 +12,8 @@ use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FontWeight100, FontWeight200, FontWeight300, FontWeight400};
 use font::{FontWeight500, FontWeight600, FontWeight700, FontWeight800, FontWeight900};
 use font::{FractionalPixel, SpecifiedFontStyle};
-use geometry::{Au, px_to_pt};
-use geometry;
+use servo_util::geometry::{Au, px_to_pt};
+use servo_util::geometry;
 use platform::macos::font_context::FontContextHandle;
 use text::glyph::GlyphIndex;
 

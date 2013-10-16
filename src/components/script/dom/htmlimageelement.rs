@@ -6,11 +6,12 @@ use dom::bindings::utils::{DOMString, ErrorResult, null_str_as_empty};
 use dom::htmlelement::HTMLElement;
 use dom::node::{ScriptView, AbstractNode};
 use extra::url::Url;
-use gfx::geometry::to_px;
+use servo_util::geometry::to_px;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::url::make_url;
+use servo_util::tree::ElementLike;
 
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,

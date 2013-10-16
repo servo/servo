@@ -5,7 +5,7 @@
 use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
-use gfx::geometry::{Au, max, min};
+use servo_util::geometry::{Au, max, min};
 use std::util::replace;
 use std::vec;
 use std::i32::max_value;

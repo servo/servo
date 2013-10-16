@@ -8,9 +8,8 @@ use extra::sort::tim_sort;
 use selectors::*;
 use stylesheets::parse_stylesheet;
 use media_queries::{Device, Screen};
-use properties::{ComputedValues, cascade, PropertyDeclaration};
-use script::dom::node::{AbstractNode, ScriptView};
-use script::dom::element::Element;
+use properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use servo_util::tree::{TreeNodeRefAsElement, TreeNode, ElementLike};
 
 
 pub enum StylesheetOrigin {
@@ -77,26 +76,18 @@ impl Stylist {
         }
     }
 
-    pub fn get_computed_style(&self, element: AbstractNode<ScriptView>,
-                              parent_style: Option<&ComputedValues>,
-                              pseudo_element: Option<PseudoElement>)
-                              -> ComputedValues {
+    pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+            &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>,
+            pseudo_element: Option<PseudoElement>) -> ~[@[PropertyDeclaration]] {
         assert!(element.is_element())
-        // Only the root does not inherit.
-        // The root has no parent or a non-element parent.
-        assert_eq!(
-            parent_style.is_none(),
-            match element.parent_node() {
-                None => true,
-                Some(ref node) => !node.is_element()
-            }
-        );
+        assert!(style_attribute.is_none() || pseudo_element.is_none(),
+                "Style attributes do not apply to pseudo-elements")
         let mut applicable_declarations = ~[];  // TODO: use an iterator?
 
         macro_rules! append(
             ($rules: expr) => {
                 for rule in $rules.iter() {
-                    if matches_selector(rule.selector, element, pseudo_element) {
+                    if matches_selector::<N, T, E>(rule.selector, element, pseudo_element) {
                         applicable_declarations.push(rule.declarations)
                     }
                 }
@@ -106,13 +97,18 @@ impl Stylist {
         // In cascading order
         append!(self.ua_rules.normal);
         append!(self.user_rules.normal);
+
+        // Style attributes have author origin but higher specificity than style rules.
         append!(self.author_rules.normal);
-        // TODO add style attribute
+        style_attribute.map(|sa| applicable_declarations.push(sa.normal));
+
         append!(self.author_rules.important);
+        style_attribute.map(|sa| applicable_declarations.push(sa.important));
+
         append!(self.user_rules.important);
         append!(self.ua_rules.important);
 
-        cascade(applicable_declarations, parent_style)
+        applicable_declarations
     }
 }
 
@@ -145,16 +141,16 @@ impl Ord for Rule {
 
 
 #[inline]
-fn matches_selector(selector: &Selector, element: AbstractNode<ScriptView>,
-                    pseudo_element: Option<PseudoElement>) -> bool {
+fn matches_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+        selector: &Selector, element: &T, pseudo_element: Option<PseudoElement>) -> bool {
     selector.pseudo_element == pseudo_element &&
-    matches_compound_selector(&selector.compound_selectors, element)
+    matches_compound_selector::<N, T, E>(&selector.compound_selectors, element)
 }
 
 
-fn matches_compound_selector(selector: &CompoundSelector,
-                             element: AbstractNode<ScriptView>) -> bool {
-    if do element.with_imm_element |element| {
+fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+        selector: &CompoundSelector, element: &T) -> bool {
+    if do element.with_imm_element_like |element: &E| {
         !do selector.simple_selectors.iter().all |simple_selector| {
             matches_simple_selector(simple_selector, element)
         }
@@ -170,14 +166,17 @@ fn matches_compound_selector(selector: &CompoundSelector,
                 NextSibling => (true, true),
                 LaterSibling => (true, false),
             };
-            let mut node = element;
+            let mut node = element.clone();
             loop {
-                match if siblings { node.prev_sibling() } else { node.parent_node() } {
+                let next_node = do node.with_base |node| {
+                    if siblings { node.prev_sibling() } else { node.parent_node() }
+                };
+                match next_node {
                     None => return false,
                     Some(next_node) => node = next_node,
                 }
                 if node.is_element() {
-                    if matches_compound_selector(&**next_selector, node) {
+                    if matches_compound_selector(&**next_selector, &node) {
                         return true
                     } else if just_one {
                         return false
@@ -189,12 +188,14 @@ fn matches_compound_selector(selector: &CompoundSelector,
 }
 
 #[inline]
-fn matches_simple_selector(selector: &SimpleSelector, element: &Element) -> bool {
+fn matches_simple_selector<E: ElementLike>(selector: &SimpleSelector, element: &E) -> bool {
     static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
 
     match *selector {
         // TODO: case-sensitivity depends on the document type
-        LocalNameSelector(ref name) => element.tag_name.eq_ignore_ascii_case(name.as_slice()),
+        // TODO: intern element names
+        LocalNameSelector(ref name)
+        => element.get_local_name().eq_ignore_ascii_case(name.as_slice()),
         NamespaceSelector(_) => false,  // TODO, when the DOM supports namespaces on elements.
         // TODO: case-sensitivity depends on the document type and quirks mode
         // TODO: cache and intern IDs on elements.
@@ -234,7 +235,7 @@ fn matches_simple_selector(selector: &SimpleSelector, element: &Element) -> bool
 
 
 #[inline]
-fn match_attribute(attr: &AttrSelector, element: &Element, f: &fn(&str)-> bool) -> bool {
+fn match_attribute<E: ElementLike>(attr: &AttrSelector, element: &E, f: &fn(&str)-> bool) -> bool {
     match attr.namespace {
         Some(_) => false,  // TODO, when the DOM supports namespaces on attributes
         None => match element.get_attr(attr.name) {

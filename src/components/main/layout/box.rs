@@ -21,7 +21,7 @@ use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextDisplayItem};
 use gfx::display_list::{TextDisplayItemClass};
 use gfx::font::{FontStyle, FontWeight300};
-use gfx::geometry::Au;
+use servo_util::geometry::Au;
 use gfx::text::text_run::TextRun;
 use newcss::color::rgb;
 use newcss::complete::CompleteStyle;
@@ -38,6 +38,7 @@ use script::dom::node::{AbstractNode, LayoutView};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::range::*;
+use servo_util::tree::{TreeNodeRef, ElementLike};
 use extra::url::Url;
 
 /// Render boxes (`struct RenderBox`) are the leaves of the layout tree. They cannot position

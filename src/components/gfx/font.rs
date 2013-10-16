@@ -4,7 +4,7 @@
 
 use color::Color;
 use font_context::FontContext;
-use geometry::Au;
+use servo_util::geometry::Au;
 use platform::font_context::FontContextHandle;
 use platform::font::{FontHandle, FontTable};
 use render_context::RenderContext;

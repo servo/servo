@@ -23,7 +23,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::display_list::DisplayList;
 use gfx::font_context::FontContext;
-use gfx::geometry::Au;
+use servo_util::geometry::Au;
 use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::render_task;
