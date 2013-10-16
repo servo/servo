@@ -11,7 +11,7 @@ use media_queries::{Device, Screen};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use script::dom::node::{AbstractNode, ScriptView};
 use script::dom::element::Element;
-use servo_util::tree::ElementLike;
+use servo_util::tree::{TreeNodeRef, ElementLike};
 
 
 pub enum StylesheetOrigin {

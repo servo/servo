@@ -154,6 +154,13 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
     fn with_mut_base<R>(&self, callback: &fn(&mut Node<View>) -> R) -> R {
         self.transmute_mut(callback)
     }
+
+    fn is_element(self) -> bool {
+        match self.type_id() {
+            ElementNodeTypeId(*) => true,
+            _ => false
+        }
+    }
 }
 
 impl<View> TreeNodeRefAsElement<Node<View>, Element> for AbstractNode<View> {
@@ -315,13 +322,6 @@ impl<'self, View> AbstractNode<View> {
             fail!(~"node is not text");
         }
         self.transmute_mut(f)
-    }
-
-    pub fn is_element(self) -> bool {
-        match self.type_id() {
-            ElementNodeTypeId(*) => true,
-            _ => false
-        }
     }
 
     // FIXME: This should be doing dynamic borrow checking for safety.

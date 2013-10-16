@@ -14,7 +14,7 @@ use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
 use newcss::stylesheet::Stylesheet;
-use servo_util::tree::ElementLike;
+use servo_util::tree::{TreeNodeRef, ElementLike};
 
 use js::jsapi::{JSContext, JSObject};
 

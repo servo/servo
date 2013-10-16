@@ -9,7 +9,7 @@
 use std::str::eq_slice;
 use newcss::select::SelectHandler;
 use script::dom::node::{AbstractNode, LayoutView};
-use servo_util::tree::ElementLike;
+use servo_util::tree::{TreeNodeRef, ElementLike};
 
 pub struct NodeSelectHandler {
     node: AbstractNode<LayoutView>,

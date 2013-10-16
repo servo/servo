@@ -248,6 +248,8 @@ pub trait TreeNodeRef<Node>: Clone {
         gather(self, &mut nodes, true, prune);
         TreeIterator::new(nodes)
     }
+
+    fn is_element(self) -> bool;
 }
 
 pub trait TreeNodeRefAsElement<Node, E: ElementLike>: TreeNodeRef<Node> {
