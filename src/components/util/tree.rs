@@ -249,11 +249,11 @@ pub trait TreeNodeRef<Node>: Clone {
         TreeIterator::new(nodes)
     }
 
-    fn is_element(self) -> bool;
+    fn is_element(&self) -> bool;
 }
 
 pub trait TreeNodeRefAsElement<Node, E: ElementLike>: TreeNodeRef<Node> {
-    fn with_imm_element_like<R>(self, f: &fn(&E) -> R) -> R;
+    fn with_imm_element_like<R>(&self, f: &fn(&E) -> R) -> R;
 }
 
 fn gather<Node, Ref: TreeNodeRef<Node>>(cur: &Ref, refs: &mut ~[Ref],

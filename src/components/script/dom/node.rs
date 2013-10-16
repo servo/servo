@@ -155,7 +155,7 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
         self.transmute_mut(callback)
     }
 
-    fn is_element(self) -> bool {
+    fn is_element(&self) -> bool {
         match self.type_id() {
             ElementNodeTypeId(*) => true,
             _ => false
@@ -165,7 +165,7 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
 
 impl<View> TreeNodeRefAsElement<Node<View>, Element> for AbstractNode<View> {
     #[inline]
-    fn with_imm_element_like<R>(self, f: &fn(&Element) -> R) -> R {
+    fn with_imm_element_like<R>(&self, f: &fn(&Element) -> R) -> R {
         self.with_imm_element(f)
     }
 }
