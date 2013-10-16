@@ -30,6 +30,7 @@ use std::comm;
 use std::comm::{Port, SharedChan};
 use std::io::read_whole_file;
 use std::ptr;
+use std::str;
 use std::task::{spawn_sched, SingleThreaded};
 use std::util::replace;
 use dom::window::TimerData;
@@ -578,7 +579,7 @@ impl ScriptTask {
             Ok(bytes) => {
                 compartment.define_functions(debug_fns);
                 cx.evaluate_script(compartment.global_obj,
-                                   bytes,
+                                   str::from_utf8(bytes),
                                    url.path.clone(),
                                    1);
             }

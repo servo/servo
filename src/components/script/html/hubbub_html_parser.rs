@@ -19,6 +19,7 @@ use std::cast;
 use std::cell::Cell;
 use std::comm;
 use std::comm::{Port, SharedChan};
+use std::str;
 use std::str::eq_slice;
 use std::task;
 use std::from_str::FromStr;
@@ -102,7 +103,7 @@ macro_rules! handle_element_base(
 
 
 pub struct JSFile {
-    data: ~[u8],
+    data: ~str,
     url: Url
 }
 
@@ -222,11 +223,11 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 
                 let bytes = result_port.recv();
                 if bytes.is_some() {
-                    result_vec.push(JSFile { data: bytes.unwrap(), url: url_clone });
+                    result_vec.push(JSFile { data: str::from_utf8(bytes.unwrap()), url: url_clone });
                 }
             }
             JSTaskNewInlineScript(data, url) => {
-                result_vec.push(JSFile { data: data.into_bytes(), url: url });
+                result_vec.push(JSFile { data: data, url: url });
             }
             JSTaskExit => {
                 break;
