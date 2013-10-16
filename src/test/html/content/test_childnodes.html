@@ -18,11 +18,11 @@
     var child2 = document.createElement("p");
     elem.appendChild(child2);
 
-    is(1 in children, true);
+    is_in(1, children);
     is(children.length, 2);
     is(children.item(1), child2);
 
-    is(!(2 in children), true);
+    is_not_in(2, children);
     is(children.item(2), null);
 
     finish();

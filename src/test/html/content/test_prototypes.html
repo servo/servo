@@ -5,14 +5,14 @@
 <body>
   <foo-á>foo</foo-á>
 <script>
-is(window.document.documentElement instanceof Node, true);
-is(window.document.documentElement instanceof Element, true);
-is(window.document.documentElement instanceof HTMLElement, true);
-is(window.document.documentElement instanceof HTMLHtmlElement, true);
-is(window.document instanceof Document, true);
-is(window.document instanceof HTMLDocument, true);
+is_a(window.document.documentElement, Node);
+is_a(window.document.documentElement, Element);
+is_a(window.document.documentElement, HTMLElement);
+is_a(window.document.documentElement, HTMLHtmlElement);
+is_a(window.document, Document);
+is_a(window.document, HTMLDocument);
 is(window.document.documentElement.tagName, "HTML");
-is(window.document.getElementsByTagName('foo-á')[0] instanceof HTMLUnknownElement, true);
+is_a(window.document.getElementsByTagName('foo-á')[0], HTMLUnknownElement);
 is(window.document.getElementsByTagName('foo-á')[0].tagName, "FOO-á");
 finish();
 </script>

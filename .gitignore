@@ -11,7 +11,7 @@
 servo-test
 Makefile
 Servo.app
-build
+build*
 objdir
 config.mk
 config.stamp

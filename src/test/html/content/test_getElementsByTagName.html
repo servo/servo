@@ -1,0 +1,18 @@
+<html>
+<head>
+<script src="harness.js"></script>
+<script>
+var elems = document.getElementsByTagName('div');
+is(elems.length, 2);
+let elem = elems[0];
+is(elem.nodeType, 1);
+is_a(elem, HTMLDivElement);
+is(elem.tagName, "DIV");
+finish();
+</script>
+</head>
+<body>
+    <div>div one</div>
+    <div>div two</div>
+</body>
+</html>
