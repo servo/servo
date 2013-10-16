@@ -24,8 +24,10 @@ function check_collection(obj, num, classes, name) {
     }
 }
 
-function check_tag(tagname, num, classes) {
-    check_collection(document.getElementsByTagName(tagname), num, classes, tagname.toUpperCase());
+function check_tag(tagname, num, classes, tagname_upper) {
+    if (tagname_upper === undefined)
+        tagname_upper = tagname.toUpperCase();
+    check_collection(document.getElementsByTagName(tagname), num, classes, tagname_upper);
 }
 
 check_collection(document.links,   1, [HTMLAnchorElement], "A");
@@ -73,8 +75,8 @@ check_tag("track",    1, [HTMLTrackElement]);
 check_tag("audio",    1, [HTMLMediaElement, HTMLAudioElement]);
 check_tag("video",    1, [HTMLMediaElement, HTMLVideoElement]);
 
-// FIXME: Test non-ASCII tag names
-check_tag("foo", 1, [HTMLUnknownElement]);
+// Test non-ASCII tag names.  The ASCII-only uppercasing matches Firefox's behavior.
+check_tag("foo-á", 1, [HTMLUnknownElement], "FOO-á");
 
 finish();
 </script>
@@ -134,7 +136,7 @@ finish();
   <track></track>
 </video>
 
-<foo>hi</foo>
+<foo-á>hi</foo-á>
 
 </body>
 </html>
