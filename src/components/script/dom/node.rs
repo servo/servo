@@ -664,7 +664,7 @@ impl Node<ScriptView> {
     }
 
     pub fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let win = self.owner_doc.with_base(|doc| doc.window.unwrap());
+        let win = self.owner_doc.with_base(|doc| doc.window);
         (win.reflector().get_jsobject(), win.get_cx())
     }
 

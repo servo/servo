@@ -112,7 +112,7 @@ pub enum DocumentType {
 pub struct Document {
     priv root: Option<AbstractNode<ScriptView>>,
     reflector_: Reflector,
-    window: Option<@mut Window>,
+    window: @mut Window,
     doctype: DocumentType,
     title: ~str,
     idmap: HashMap<~str, AbstractNode<ScriptView>>
@@ -120,7 +120,7 @@ pub struct Document {
 
 impl Document {
     #[fixed_stack_segment]
-    pub fn new(window: Option<@mut Window>, doctype: DocumentType) -> Document {
+    pub fn new(window: @mut Window, doctype: DocumentType) -> Document {
         Document {
             root: None,
             reflector_: Reflector::new(),
@@ -134,7 +134,7 @@ impl Document {
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
         let cx = owner.get_cx();
 
-        let document = AbstractDocument::as_abstract(cx, @mut Document::new(None, XML));
+        let document = AbstractDocument::as_abstract(cx, @mut Document::new(owner, XML));
 
         let root = @HTMLHtmlElement {
             htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html", document)
@@ -216,10 +216,7 @@ impl Reflectable for Document {
 
 impl BindingObject for Document {
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
-        match self.window {
-            Some(win) => Some(win as @mut Reflectable),
-            None => None
-        }
+        Some(self.window as @mut Reflectable)
     }
 }
 
@@ -249,11 +246,11 @@ impl Document {
     }
 
     fn get_cx(&self) -> *JSContext {
-        self.window.get_ref().get_cx()
+        self.window.get_cx()
     }
 
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let win = self.window.get_ref();
+        let win = self.window;
         (win.reflector().get_jsobject(), win.get_cx())
     }
 
@@ -518,15 +515,11 @@ impl Document {
     }
 
     pub fn content_changed(&self) {
-        for window in self.window.iter() {
-            window.content_changed()
-        }
+        self.window.content_changed();
     }
 
     pub fn wait_until_safe_to_modify_dom(&self) {
-        for window in self.window.iter() {
-            window.wait_until_safe_to_modify_dom();
-        }
+        self.window.wait_until_safe_to_modify_dom();
     }
 
     pub fn register_nodes_with_id(&mut self, root: &AbstractNode<ScriptView>) {

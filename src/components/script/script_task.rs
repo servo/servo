@@ -717,7 +717,7 @@ impl ScriptTask {
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
-        let document = HTMLDocument::new(Some(window));
+        let document = HTMLDocument::new(window);
 
         let html_parsing_result = hubbub_html_parser::parse_html(cx.ptr,
                                                                  document,

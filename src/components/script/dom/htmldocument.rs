@@ -24,12 +24,12 @@ pub struct HTMLDocument {
 }
 
 impl HTMLDocument {
-    pub fn new(window: Option<@mut Window>) -> AbstractDocument {
+    pub fn new(window: @mut Window) -> AbstractDocument {
         let doc = @mut HTMLDocument {
             parent: Document::new(window, HTML)
         };
 
-        AbstractDocument::as_abstract(window.get_ref().get_cx(), doc)
+        AbstractDocument::as_abstract(window.get_cx(), doc)
     }
 }
 
