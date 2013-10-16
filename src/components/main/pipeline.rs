@@ -9,7 +9,7 @@ use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::opts::Opts;
 use layout::layout_task::LayoutTask;
 use script::layout_interface::LayoutChan;
-use script::script_task::{ExecuteMsg, LoadMsg};
+use script::script_task::LoadMsg;
 use servo_msg::constellation_msg::{ConstellationChan, FailureMsg, PipelineId, SubpageId};
 use script::dom::node::AbstractNode;
 use script::script_task::{AttachLayoutMsg, NewLayoutInfo, ScriptTask, ScriptChan};
@@ -192,11 +192,6 @@ impl Pipeline {
     pub fn load(&mut self, url: Url) {
         self.url = Some(url.clone());
         self.script_chan.send(LoadMsg(self.id, url));
-    }
-
-    pub fn execute(&mut self, url: Url) {
-        self.url = Some(url.clone());
-        self.script_chan.send(ExecuteMsg(self.id, url));
     }
 
     pub fn grant_paint_permission(&self) {

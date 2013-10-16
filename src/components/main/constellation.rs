@@ -16,7 +16,7 @@ use servo_msg::constellation_msg::{IFrameSandboxState, InitLoadUrlMsg, LoadIfram
 use servo_msg::constellation_msg::{Msg, NavigateMsg, NavigationType, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{PipelineId, RendererReadyMsg, ResizedWindowMsg, SubpageId};
 use servo_msg::constellation_msg;
-use script::script_task::{ResizeMsg, ResizeInactiveMsg, ExecuteMsg};
+use script::script_task::{ResizeMsg, ResizeInactiveMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
@@ -404,21 +404,17 @@ impl Constellation {
                                                  let size = self.compositor_chan.get_size();
                                                  from_value(Size2D(size.width as uint, size.height as uint))
                                              });
-        if url.path.ends_with(".js") {
-            pipeline.script_chan.send(ExecuteMsg(pipeline.id, url));
-        } else {
-            pipeline.load(url);
+        pipeline.load(url);
 
-            self.pending_frames.push(FrameChange{
-                before: None,
-                after: @mut FrameTree {
-                    pipeline: pipeline, 
-                    parent: None,
-                    children: ~[],
-                },
-                navigation_type: constellation_msg::Load,
-            });
-        }
+        self.pending_frames.push(FrameChange{
+            before: None,
+            after: @mut FrameTree {
+                pipeline: pipeline,
+                parent: None,
+                children: ~[],
+            },
+            navigation_type: constellation_msg::Load,
+        });
         self.pipelines.insert(pipeline.id, pipeline);
     }
     
@@ -549,12 +545,8 @@ impl Constellation {
                              size_future)
         };
 
-        if url.path.ends_with(".js") {
-            pipeline.execute(url);
-        } else {
-            debug!("Constellation: sending load msg to pipeline %?", pipeline.id);
-            pipeline.load(url);
-        }
+        debug!("Constellation: sending load msg to pipeline %?", pipeline.id);
+        pipeline.load(url);
         let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
         for frame_tree in frame_trees.iter() {
             frame_tree.children.push(ChildFrameTree {
@@ -606,21 +598,17 @@ impl Constellation {
                                              self.opts.clone(),
                                              size_future);
 
-        if url.path.ends_with(".js") {
-            pipeline.script_chan.send(ExecuteMsg(pipeline.id, url));
-        } else {
-            pipeline.load(url);
+        pipeline.load(url);
 
-            self.pending_frames.push(FrameChange{
-                before: Some(source_id),
-                after: @mut FrameTree {
-                    pipeline: pipeline, 
-                    parent: parent,
-                    children: ~[],
-                },
-                navigation_type: constellation_msg::Load,
-            });
-        }
+        self.pending_frames.push(FrameChange{
+            before: Some(source_id),
+            after: @mut FrameTree {
+                pipeline: pipeline,
+                parent: parent,
+                children: ~[],
+            },
+            navigation_type: constellation_msg::Load,
+        });
         self.pipelines.insert(pipeline.id, pipeline);
     }
     
