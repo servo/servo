@@ -5,7 +5,7 @@
 extern mod harfbuzz;
 
 use font::{Font, FontHandleMethods, FontTableMethods, FontTableTag};
-use geometry::Au;
+use servo_util::geometry::Au;
 use platform::font::FontTable;
 use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
 use text::shaping::ShaperMethods;

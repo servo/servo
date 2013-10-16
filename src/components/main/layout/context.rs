@@ -6,7 +6,7 @@
 
 use geom::rect::Rect;
 use gfx::font_context::FontContext;
-use gfx::geometry::Au;
+use servo_util::geometry::Au;
 use servo_net::local_image_cache::LocalImageCache;
 
 /// Data needed by the layout task.

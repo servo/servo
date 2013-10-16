@@ -146,14 +146,14 @@ pub mod longhands {
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("margin-" + side, "LengthOrPercentageOrAuto",
-                          "computed::LPA_Length(computed::Length(0))")}
+                          "computed::LPA_Length(Au(0))")}
     % endfor
 
     ${new_style_struct("Padding")}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("padding-" + side, "LengthOrPercentage",
-                          "computed::LP_Length(computed::Length(0))",
+                          "computed::LP_Length(Au(0))",
                           "parse_non_negative")}
     % endfor
 
@@ -187,17 +187,17 @@ pub mod longhands {
     % for side in ["top", "right", "bottom", "left"]:
         <%self:longhand name="border-${side}-width">
             pub type SpecifiedValue = specified::Length;
-            pub type ComputedValue = computed::Length;
+            pub type ComputedValue = Au;
             #[inline] pub fn get_initial_value() -> ComputedValue {
-                computed::Length(3 * 60)  // medium
+                Au::from_px(3)  // medium
             }
             pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
                 one_component_value(input).chain(parse_border_width)
             }
             pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                                   -> ComputedValue {
-                if context.has_border_${side} { computed::compute_Length(value, context) }
-                else { computed::Length(0) }
+                if context.has_border_${side} { computed::compute_Au(value, context) }
+                else { Au(0) }
             }
         </%self:longhand>
     % endfor
@@ -252,7 +252,7 @@ pub mod longhands {
         #[deriving(Clone)]
         pub enum ComputedValue {
             Normal,
-            Length(computed::Length),
+            Length(Au),
             Number(Float),
         }
         #[inline] pub fn get_initial_value() -> ComputedValue { Normal }
@@ -260,7 +260,7 @@ pub mod longhands {
                               -> ComputedValue {
             match value {
                 SpecifiedNormal => Normal,
-                SpecifiedLength(value) => Length(computed::compute_Length(value, context)),
+                SpecifiedLength(value) => Length(computed::compute_Au(value, context)),
                 SpecifiedNumber(value) => Number(value),
             }
         }
@@ -295,7 +295,7 @@ pub mod longhands {
             % for keyword in vertical_align_keywords:
                 ${to_rust_ident(keyword)},
             % endfor
-            Length(computed::Length),
+            Length(Au),
             Percentage(Float),
         }
         #[inline] pub fn get_initial_value() -> ComputedValue { baseline }
@@ -502,11 +502,11 @@ pub mod longhands {
     </%self:single_component_value>
 
     <%self:single_component_value name="font-size" inherited="True">
-        pub use to_computed_value = super::super::common_types::computed::compute_Length;
+        pub use to_computed_value = super::super::common_types::computed::compute_Au;
         pub type SpecifiedValue = specified::Length;  // Percentages are the same as em.
-        pub type ComputedValue = computed::Length;
+        pub type ComputedValue = Au;
         #[inline] pub fn get_initial_value() -> ComputedValue {
-            computed::Length(16 * 60)  // medium
+            Au::from_px(16)  // medium
         }
         /// <length> | <percentage>
         /// TODO: support <absolute-size> and <relative-size>

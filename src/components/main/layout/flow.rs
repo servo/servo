@@ -42,7 +42,7 @@ use std::io::stderr;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
-use gfx::geometry::Au;
+use servo_util::geometry::Au;
 use script::dom::node::{AbstractNode, LayoutView};
 
 /// The type of the formatting context and data specific to each context, such as line box

@@ -46,7 +46,7 @@ use js::rust::{Compartment, Cx};
 use js;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
-use servo_util::tree::TreeNodeRef;
+use servo_util::tree::{TreeNodeRef, ElementLike};
 use servo_util::url::make_url;
 use extra::url::Url;
 use extra::future::{from_value, Future};

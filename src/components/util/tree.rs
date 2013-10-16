@@ -248,6 +248,12 @@ pub trait TreeNodeRef<Node>: Clone {
         gather(self, &mut nodes, true, prune);
         TreeIterator::new(nodes)
     }
+
+    fn is_element(&self) -> bool;
+}
+
+pub trait TreeNodeRefAsElement<Node, E: ElementLike>: TreeNodeRef<Node> {
+    fn with_imm_element_like<R>(&self, f: &fn(&E) -> R) -> R;
 }
 
 fn gather<Node, Ref: TreeNodeRef<Node>>(cur: &Ref, refs: &mut ~[Ref],
@@ -323,4 +329,10 @@ pub trait TreeNode<Ref: TreeNodeRef<Self>> {
     fn set_next_sibling(&mut self, new_next_sibling: Option<Ref>) {
         TreeNodeRef::<Self>::set_next_sibling(self, new_next_sibling)
     }
+}
+
+
+pub trait ElementLike {
+    fn get_local_name<'a>(&'a self) -> &'a str;
+    fn get_attr<'a>(&'a self, name: &str) -> Option<&'a str>;
 }

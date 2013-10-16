@@ -41,13 +41,12 @@ mod render_context;
 // Rendering
 pub mod color;
 pub mod display_list;
-pub mod geometry;
 pub mod render_task;
 pub mod surface;
 
 // Fonts
 pub mod font;
-pub mod font_context; 
+pub mod font_context;
 pub mod font_list;
 
 // Misc.

@@ -24,7 +24,7 @@ use html::hubbub_html_parser::build_element_from_tag;
 use js::jsapi::{JSObject, JSContext, JSVal};
 use js::jsapi::{JSTRACE_OBJECT, JSTracer, JS_CallTracer};
 use js::glue::RUST_OBJECT_TO_JSVAL;
-use servo_util::tree::TreeNodeRef;
+use servo_util::tree::{TreeNodeRef, ElementLike};
 
 use std::hashmap::HashMap;
 

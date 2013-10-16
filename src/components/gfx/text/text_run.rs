@@ -5,7 +5,7 @@
 use std::vec::VecIterator;
 
 use font_context::FontContext;
-use geometry::Au;
+use servo_util::geometry::Au;
 use text::glyph::GlyphStore;
 use font::{Font, FontDescriptor, RunMetrics};
 use servo_util::range::Range;
