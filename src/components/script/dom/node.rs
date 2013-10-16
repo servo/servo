@@ -25,7 +25,7 @@ use extra::arc::Arc;
 use js::jsapi::{JSObject, JSContext};
 use netsurfcss::util::VoidPtrLike;
 use newcss::complete::CompleteSelectResults;
-use servo_util::tree::{TreeNode, TreeNodeRef};
+use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement};
 use servo_util::range::Range;
 use gfx::display_list::DisplayList;
 
@@ -155,6 +155,14 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
         self.transmute_mut(callback)
     }
 }
+
+impl<View> TreeNodeRefAsElement<Node<View>, Element> for AbstractNode<View> {
+    #[inline]
+    fn with_imm_element_like<R>(self, f: &fn(&Element) -> R) -> R {
+        self.with_imm_element(f)
+    }
+}
+
 
 impl<View> TreeNode<AbstractNode<View>> for Node<View> { }
 

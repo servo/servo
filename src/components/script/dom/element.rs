@@ -120,12 +120,12 @@ pub enum ElementTypeId {
 // Element methods
 //
 
-impl<'self> ElementLike<'self> for Element {
-    fn get_local_name(&'self self) -> &'self str {
+impl ElementLike for Element {
+    fn get_local_name<'a>(&'a self) -> &'a str {
         self.tag_name.as_slice()
     }
 
-    fn get_attr(&'self self, name: &str) -> Option<&'self str> {
+    fn get_attr<'a>(&'a self, name: &str) -> Option<&'a str> {
         // FIXME: Need an each() that links lifetimes in Rust.
         for attr in self.attrs.iter() {
             // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)

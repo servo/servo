@@ -250,6 +250,10 @@ pub trait TreeNodeRef<Node>: Clone {
     }
 }
 
+pub trait TreeNodeRefAsElement<Node, E: ElementLike>: TreeNodeRef<Node> {
+    fn with_imm_element_like<R>(self, f: &fn(&E) -> R) -> R;
+}
+
 fn gather<Node, Ref: TreeNodeRef<Node>>(cur: &Ref, refs: &mut ~[Ref],
                                         postorder: bool, prune: &fn(&Ref) -> bool) {
     // prune shouldn't mutate, so don't clone
@@ -326,7 +330,7 @@ pub trait TreeNode<Ref: TreeNodeRef<Self>> {
 }
 
 
-pub trait ElementLike<'self> {
-    fn get_local_name(&'self self) -> &'self str;
-    fn get_attr(&'self self, name: &str) -> Option<&'self str>;
+pub trait ElementLike {
+    fn get_local_name<'a>(&'a self) -> &'a str;
+    fn get_attr<'a>(&'a self, name: &str) -> Option<&'a str>;
 }
