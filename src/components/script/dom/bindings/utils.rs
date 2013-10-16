@@ -14,17 +14,17 @@ use std::libc;
 use std::ptr;
 use std::ptr::{null, to_unsafe_ptr};
 use std::str;
+use std::vec;
 use std::unstable::raw::Box;
 use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction, JS_GetGlobalObject};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
-use js::jsapi::{JS_EncodeString, JS_free, JS_GetStringCharsAndLength};
-use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype};
+use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
 use js::jsapi::{JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject};
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
-use js::jsapi::{JS_NewStringCopyN, JS_DefineFunctions, JS_DefineProperty};
+use js::jsapi::{JS_NewUCStringCopyN, JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
@@ -205,25 +205,21 @@ pub fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
             }
         }
 
-        let strbuf = JS_EncodeString(cx, jsstr);
-        let buf = str::raw::from_c_str(strbuf);
-        JS_free(cx, strbuf as *libc::c_void);
-        Ok(buf)
+        let length = 0;
+        let chars = JS_GetStringCharsAndLength(cx, jsstr, &length);
+        do vec::raw::buf_as_slice(chars, length as uint) |char_vec| {
+            Ok(str::from_utf16(char_vec))
+        }
     }
 }
 
 #[fixed_stack_segment]
 pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
     match string {
-      &None => {
-        JSVAL_NULL
-      }
-      &Some(ref s) => {
-        do s.as_imm_buf |buf, len| {
-            let cbuf = cast::transmute(buf);
-            RUST_STRING_TO_JSVAL(JS_NewStringCopyN(cx, cbuf, len as libc::size_t))
+        &None => JSVAL_NULL,
+        &Some(ref s) => do s.to_utf16().as_imm_buf |buf, len| {
+            RUST_STRING_TO_JSVAL(JS_NewUCStringCopyN(cx, buf, len as libc::size_t))
         }
-      }
     }
 }
 
