@@ -150,8 +150,7 @@ impl Reflectable for Window {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        WindowBinding::Wrap(cx, scope, self, &mut unused)
+        WindowBinding::Wrap(cx, scope, self)
     }
 }
 

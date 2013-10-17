@@ -69,8 +69,7 @@ impl Reflectable for ClientRect {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        ClientRectBinding::Wrap(cx, scope, self, &mut unused)
+        ClientRectBinding::Wrap(cx, scope, self)
     }
 }
 

@@ -56,8 +56,7 @@ impl Reflectable for ClientRectList {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        ClientRectListBinding::Wrap(cx, scope, self, &mut unused)
+        ClientRectListBinding::Wrap(cx, scope, self)
     }
 }
 
