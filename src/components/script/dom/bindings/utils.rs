@@ -547,7 +547,7 @@ pub struct Reflector {
 
 impl Reflector {
     pub fn get_jsobject(&self) -> *JSObject {
-        unsafe { cast::transmute(self.object) }
+        self.object
     }
 
     pub fn set_jsobject(&mut self, object: *JSObject) {
