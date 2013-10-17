@@ -75,7 +75,8 @@ check_tag("track",    1, [HTMLTrackElement]);
 check_tag("audio",    1, [HTMLMediaElement, HTMLAudioElement]);
 check_tag("video",    1, [HTMLMediaElement, HTMLVideoElement]);
 
-// Test non-ASCII tag names.  The ASCII-only uppercasing matches Firefox's behavior.
+// Test non-ASCII tag names.  Uppercasing is ASCII-only per spec:
+// http://dom.spec.whatwg.org/#dom-element-tagname
 check_tag("foo-á", 1, [HTMLUnknownElement], "FOO-á");
 
 finish();
