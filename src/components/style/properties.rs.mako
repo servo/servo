@@ -815,10 +815,15 @@ pub struct PropertyDeclarationBlock {
 }
 
 
-pub fn parse_property_declaration_list(input: ~[Node]) -> PropertyDeclarationBlock {
+pub fn parse_style_attribute(input: &str) -> PropertyDeclarationBlock {
+    parse_property_declaration_list(tokenize(input))
+}
+
+
+pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I) -> PropertyDeclarationBlock {
     let mut important = ~[];
     let mut normal = ~[];
-    for item in ErrorLoggerIterator(parse_declaration_list(input.move_iter())) {
+    for item in ErrorLoggerIterator(parse_declaration_list(input)) {
         match item {
             Decl_AtRule(rule) => log_css_error(
                 rule.location, fmt!("Unsupported at-rule in declaration list: @%s", rule.name)),

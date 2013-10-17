@@ -18,10 +18,10 @@ extern mod servo_util (name = "util");
 
 
 // The "real" public API
+pub use stylesheets::Stylesheet;
 pub use selector_matching::{Stylist, StylesheetOrigin};
-pub use properties::{cascade, computed_values};
-pub use properties::{PropertyDeclarationBlock,
-                     parse_property_declaration_list};  // Style attributes
+pub use properties::{cascade, ComputedValues, computed_values};
+pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 
 // Things that need to be public to make the compiler happy
 pub mod stylesheets;

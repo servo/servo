@@ -6,7 +6,7 @@ use std::ascii::StrAsciiExt;
 use extra::sort::tim_sort;
 
 use selectors::*;
-use stylesheets::parse_stylesheet;
+use stylesheets::Stylesheet;
 use media_queries::{Device, Screen};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use servo_util::tree::{TreeNodeRefAsElement, TreeNode, ElementLike};
@@ -36,8 +36,7 @@ impl Stylist {
         }
     }
 
-    pub fn add_stylesheet(&mut self, css_source: &str, origin: StylesheetOrigin) {
-        let stylesheet = parse_stylesheet(css_source);
+    pub fn add_stylesheet(&mut self, stylesheet: Stylesheet, origin: StylesheetOrigin) {
         let rules = match origin {
             UserAgentOrigin => &mut self.ua_rules,
             AuthorOrigin => &mut self.author_rules,
