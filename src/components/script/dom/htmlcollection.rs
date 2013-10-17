@@ -77,7 +77,6 @@ impl Reflectable for HTMLCollection {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        HTMLCollectionBinding::Wrap(cx, scope, self, &mut unused)
+        HTMLCollectionBinding::Wrap(cx, scope, self)
     }
 }

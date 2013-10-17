@@ -85,7 +85,6 @@ impl Reflectable for NodeList {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        NodeListBinding::Wrap(cx, scope, self, &mut unused)
+        NodeListBinding::Wrap(cx, scope, self)
     }
 }

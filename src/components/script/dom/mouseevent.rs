@@ -152,8 +152,7 @@ impl Reflectable for MouseEvent {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        MouseEventBinding::Wrap(cx, scope, self, &mut unused)
+        MouseEventBinding::Wrap(cx, scope, self)
     }
 }
 

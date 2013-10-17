@@ -95,8 +95,7 @@ impl Reflectable for Navigator {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        NavigatorBinding::Wrap(cx, scope, self, &mut unused)
+        NavigatorBinding::Wrap(cx, scope, self)
     }
 }
 

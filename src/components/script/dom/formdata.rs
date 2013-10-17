@@ -58,8 +58,7 @@ impl Reflectable for FormData {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        FormDataBinding::Wrap(cx, scope, self, &mut unused)
+        FormDataBinding::Wrap(cx, scope, self)
     }
 }
 
