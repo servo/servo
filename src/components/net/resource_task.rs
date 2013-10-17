@@ -96,6 +96,23 @@ pub fn start_sending(start_chan: Chan<LoadResponse>,
     progress_chan
 }
 
+/// Convenience function for synchronously loading a whole resource.
+pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
+        -> Result<(Metadata, ~[u8]), ()> {
+    let (start_port, start_chan) = comm::stream();
+    resource_task.send(Load(url, start_chan));
+    let response = start_port.recv();
+
+    let mut buf = ~[];
+    loop {
+        match response.progress_port.recv() {
+            Payload(data) => buf.push_all(data),
+            Done(Ok(()))  => return Ok((response.metadata, buf)),
+            Done(Err(e))  => return Err(e)
+        }
+    }
+}
+
 /// Handle to a resource task
 pub type ResourceTask = SharedChan<ControlMsg>;
 
