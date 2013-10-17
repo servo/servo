@@ -168,8 +168,8 @@ pub mod longhands {
         ${predefined_type("border-%s-color" % side, "CSSColor", "CurrentColor")}
     % endfor
 
-    // dotted dashed double groove ridge insed outset
-    ${single_keyword("border-top-style", "none solid hidden")}
+    //  double groove ridge insed outset
+    ${single_keyword("border-top-style", "none solid dotted dashed hidden")}
     % for side in ["right", "bottom", "left"]:
         <%self:longhand name="border-${side}-style", no_super="True">
             pub use super::border_top_style::*;
@@ -1056,4 +1056,6 @@ pub mod computed_values {
     % for property in LONGHANDS:
         pub use ${property.ident} = super::longhands::${property.ident}::computed_value;
     % endfor
+    // Don't use a side-specific name needlessly:
+    pub use border_style = super::longhands::border_top_style::computed_value;
 }
