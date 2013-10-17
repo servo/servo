@@ -218,7 +218,13 @@ pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
     match string {
         &None => JSVAL_NULL,
         &Some(ref s) => do s.to_utf16().as_imm_buf |buf, len| {
-            RUST_STRING_TO_JSVAL(JS_NewUCStringCopyN(cx, buf, len as libc::size_t))
+            let jsstr = JS_NewUCStringCopyN(cx, buf, len as libc::size_t);
+            if jsstr.is_null() {
+                // FIXME: is there something else we should do on failure?
+                JSVAL_NULL
+            } else {
+                RUST_STRING_TO_JSVAL(jsstr)
+            }
         }
     }
 }
