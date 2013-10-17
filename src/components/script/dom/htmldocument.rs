@@ -194,8 +194,7 @@ impl Reflectable for HTMLDocument {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        HTMLDocumentBinding::Wrap(cx, scope, self, &mut unused)
+        HTMLDocumentBinding::Wrap(cx, scope, self)
     }
 }
 

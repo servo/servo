@@ -30,8 +30,7 @@ impl Reflectable for Blob {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        BlobBinding::Wrap(cx, scope, self, &mut unused)
+        BlobBinding::Wrap(cx, scope, self)
     }
 }
 

@@ -209,8 +209,7 @@ impl Reflectable for Document {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        DocumentBinding::Wrap(cx, scope, self, &mut unused)
+        DocumentBinding::Wrap(cx, scope, self)
     }
 }
 

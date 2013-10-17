@@ -68,8 +68,7 @@ impl Reflectable for ValidityState {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        ValidityStateBinding::Wrap(cx, scope, self, &mut unused)
+        ValidityStateBinding::Wrap(cx, scope, self)
     }
 }
 

@@ -20,8 +20,7 @@ impl Reflectable for DOMParser {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        DOMParserBinding::Wrap(cx, scope, self, &mut unused)
+        DOMParserBinding::Wrap(cx, scope, self)
     }
 }
 

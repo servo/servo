@@ -125,8 +125,7 @@ impl Reflectable for UIEvent {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        UIEventBinding::Wrap(cx, scope, self, &mut unused)
+        UIEventBinding::Wrap(cx, scope, self)
     }
 }
 

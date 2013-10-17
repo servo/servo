@@ -2496,18 +2496,15 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('@mut ' + descriptor.concreteType, 'aObject'),
-                Argument('*mut bool', 'aTriedToWrap')]
+                Argument('@mut ' + descriptor.concreteType, 'aObject')]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap_', '*JSObject', args)
 
     def definition_body(self):
         if self.descriptor.workers:
-            return """  *aTriedToWrap = true;
-  return aObject->GetJSObject();"""
+            return """return aObject->GetJSObject();"""
 
         if not self.descriptor.createGlobal:
-            return """  *aTriedToWrap = true;
-  let mut parent = aObject.GetParentObject(aCx);
+            return """let mut parent = aObject.GetParentObject(aCx);
   let parent = WrapNativeParent(aCx, aScope, parent);
   if parent.is_null() {
     return ptr::null();
@@ -2541,12 +2538,11 @@ class CGWrapMethod(CGAbstractMethod):
         # XXX can we wrap if we don't have an interface prototype object?
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('@mut ' + descriptor.concreteType, 'aObject'),
-                Argument('*mut bool', 'aTriedToWrap')]
+                Argument('@mut ' + descriptor.concreteType, 'aObject')]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, inline=True, pub=True)
 
     def definition_body(self):
-        return "return Wrap_(aCx, aScope, aObject, aTriedToWrap);"
+        return "return Wrap_(aCx, aScope, aObject);"
 
 class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):

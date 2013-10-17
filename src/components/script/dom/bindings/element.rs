@@ -51,8 +51,7 @@ macro_rules! generate_cacheable_wrapper_base(
             }
 
             fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-                let mut unused = false;
-                $wrap(cx, scope, self, &mut unused)
+                $wrap(cx, scope, self)
             }
         }
     )
