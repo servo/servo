@@ -43,7 +43,7 @@ impl HTMLImageElement {
     pub fn AfterSetAttr(&mut self, name: &DOMString, _value: &DOMString) {
         let name = null_str_as_empty(name);
         if "src" == name {
-            let doc = self.htmlelement.element.node.owner_doc;
+            let doc = self.htmlelement.element.node.owner_doc();
             do doc.with_base |doc| {
                 let window = doc.window;
                 let url = window.page.url.map(|&(ref url, _)| url.clone());
@@ -100,7 +100,7 @@ impl HTMLImageElement {
 
     pub fn Width(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
         let node = &self.htmlelement.element.node;
-        let page = node.owner_doc.with_base(|doc| doc.window).page;
+        let page = node.owner_doc().with_base(|doc| doc.window).page;
         let (port, chan) = stream();
         match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
             ContentBoxResponse(rect) => {
@@ -121,7 +121,7 @@ impl HTMLImageElement {
 
     pub fn Height(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
         let node = &self.htmlelement.element.node;
-        let page = node.owner_doc.with_base(|doc| doc.window).page;
+        let page = node.owner_doc().with_base(|doc| doc.window).page;
         let (port, chan) = stream();
         match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
             ContentBoxResponse(rect) => {

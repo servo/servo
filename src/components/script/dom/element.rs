@@ -193,7 +193,7 @@ impl<'self> Element {
         }
 
         if abstract_self.is_in_doc() {
-            do self.node.owner_doc.with_base |owner| {
+            do self.node.owner_doc().with_base |owner| {
                 owner.content_changed();
             }
         }
@@ -280,7 +280,7 @@ impl Element {
     }
 
     pub fn GetClientRects(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRectList {
-        let document = self.node.owner_doc;
+        let document = self.node.owner_doc();
         let win = document.with_base(|doc| doc.window);
         let node = abstract_self;
         assert!(node.is_element());
@@ -307,7 +307,7 @@ impl Element {
     }
 
     pub fn GetBoundingClientRect(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRect {
-        let document = self.node.owner_doc;
+        let document = self.node.owner_doc();
         let win = document.with_base(|doc| doc.window);
         let node = abstract_self;
         assert!(node.is_element());
