@@ -24,7 +24,7 @@ enum VisibilityState { "hidden", "visible" };
 
 /* http://dom.spec.whatwg.org/#interface-document */
 [Constructor]
-interface Document /*: Node*/ { //XXXjdm Requires servo/#623
+interface Document : Node {
   /*[Throws]
     readonly attribute DOMImplementation implementation;*/
   // readonly attribute DOMString URL;
