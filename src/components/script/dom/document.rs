@@ -90,7 +90,7 @@ impl AbstractDocument {
     pub fn set_root(&self, root: AbstractNode<ScriptView>) {
         assert!(root.traverse_preorder().all(|node| {
             do node.with_base |node| {
-                node.owner_doc == *self
+                node.owner_doc() == *self
             }
         }));
         self.with_mut_base(|document| {
