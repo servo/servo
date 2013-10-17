@@ -4,34 +4,34 @@
 
 pub use servo_util::geometry::Au;
 
-pub type Float = f64;
+pub type CSSFloat = f64;
 
 
 pub mod specified {
     use std::ascii::StrAsciiExt;
     use cssparser::*;
-    use super::{Au, Float};
+    use super::{Au, CSSFloat};
     pub use CSSColor = cssparser::Color;
 
     #[deriving(Clone)]
     pub enum Length {
         Au_(Au),  // application units
-        Em(Float),
-        Ex(Float),
+        Em(CSSFloat),
+        Ex(CSSFloat),
         // XXX uncomment when supported:
-//        Ch(Float),
-//        Rem(Float),
-//        Vw(Float),
-//        Vh(Float),
-//        Vmin(Float),
-//        Vmax(Float),
+//        Ch(CSSFloat),
+//        Rem(CSSFloat),
+//        Vw(CSSFloat),
+//        Vh(CSSFloat),
+//        Vmin(CSSFloat),
+//        Vmax(CSSFloat),
     }
-    static AU_PER_PX: Float = 60.;
-    static AU_PER_IN: Float = AU_PER_PX * 96.;
-    static AU_PER_CM: Float = AU_PER_IN / 2.54;
-    static AU_PER_MM: Float = AU_PER_IN / 25.4;
-    static AU_PER_PT: Float = AU_PER_IN / 72.;
-    static AU_PER_PC: Float = AU_PER_PT * 12.;
+    static AU_PER_PX: CSSFloat = 60.;
+    static AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
+    static AU_PER_CM: CSSFloat = AU_PER_IN / 2.54;
+    static AU_PER_MM: CSSFloat = AU_PER_IN / 25.4;
+    static AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
+    static AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
     impl Length {
         #[inline]
         fn parse_internal(input: &ComponentValue, negative_ok: bool) -> Option<Length> {
@@ -48,7 +48,7 @@ pub mod specified {
         pub fn parse_non_negative(input: &ComponentValue) -> Option<Length> {
             Length::parse_internal(input, /* negative_ok = */ false)
         }
-        pub fn parse_dimension(value: Float, unit: &str) -> Option<Length> {
+        pub fn parse_dimension(value: CSSFloat, unit: &str) -> Option<Length> {
             match unit.to_ascii_lower().as_slice() {
                 "px" => Some(Length::from_px(value)),
                 "in" => Some(Au_(Au((value * AU_PER_IN) as i32))),
@@ -62,7 +62,7 @@ pub mod specified {
             }
         }
         #[inline]
-        pub fn from_px(px_value: Float) -> Length {
+        pub fn from_px(px_value: CSSFloat) -> Length {
             Au_(Au((px_value * AU_PER_PX) as i32))
         }
     }
@@ -70,7 +70,7 @@ pub mod specified {
     #[deriving(Clone)]
     pub enum LengthOrPercentage {
         LP_Length(Length),
-        LP_Percentage(Float),  // [0 .. 100%] maps to [0.0 .. 1.0]
+        LP_Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
     }
     impl LengthOrPercentage {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
@@ -97,7 +97,7 @@ pub mod specified {
     #[deriving(Clone)]
     pub enum LengthOrPercentageOrAuto {
         LPA_Length(Length),
-        LPA_Percentage(Float),  // [0 .. 100%] maps to [0.0 .. 1.0]
+        LPA_Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
         LPA_Auto,
     }
     impl LengthOrPercentageOrAuto {
@@ -135,7 +135,7 @@ pub mod computed {
     pub struct Context {
         current_color: cssparser::RGBA,
         font_size: Au,
-        font_weight: longhands::font_weight::ComputedValue,
+        font_weight: longhands::font_weight::computed_value::T,
         position: longhands::position::SpecifiedValue,
         float: longhands::float::SpecifiedValue,
         is_root_element: bool,
@@ -147,7 +147,7 @@ pub mod computed {
     }
 
     #[inline]
-    fn mul(a: Au, b: Float) -> Au { Au(((*a as Float) * b) as i32) }
+    fn mul(a: Au, b: CSSFloat) -> Au { Au(((*a as CSSFloat) * b) as i32) }
 
     pub fn compute_Au(value: specified::Length, context: &Context) -> Au {
         match value {
@@ -163,7 +163,7 @@ pub mod computed {
     #[deriving(Clone)]
     pub enum LengthOrPercentage {
         LP_Length(Au),
-        LP_Percentage(Float),
+        LP_Percentage(CSSFloat),
     }
     pub fn compute_LengthOrPercentage(value: specified::LengthOrPercentage, context: &Context)
                                    -> LengthOrPercentage {
@@ -176,7 +176,7 @@ pub mod computed {
     #[deriving(Clone)]
     pub enum LengthOrPercentageOrAuto {
         LPA_Length(Au),
-        LPA_Percentage(Float),
+        LPA_Percentage(CSSFloat),
         LPA_Auto,
     }
     pub fn compute_LengthOrPercentageOrAuto(value: specified::LengthOrPercentageOrAuto,
