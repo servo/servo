@@ -19,7 +19,6 @@ use servo_net::resource_task::ResourceTask;
 use servo_util::time::ProfilerChan;
 use geom::size::Size2D;
 use extra::future::Future;
-use std::cell::Cell;
 use std::task;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and render task. 
@@ -100,28 +99,18 @@ impl Pipeline {
                                      script_chan.clone(),
                                      layout_chan.clone(),
                                      render_chan.clone());
-        let (port, chan) = stream::<task::TaskResult>();
-        
-        let script_port = Cell::new(script_port);
-        let resource_task = Cell::new(resource_task);
-        let size = Cell::new(size);
-        let render_port = Cell::new(render_port);
-        let layout_port = Cell::new(layout_port);
-        let constellation_chan_handler = Cell::new(constellation_chan.clone());
-        let constellation_chan = Cell::new(constellation_chan);
-        let image_cache_task = Cell::new(image_cache_task);
-        let profiler_chan = Cell::new(profiler_chan);
 
-        do Pipeline::spawn(chan) {
-            let script_port = script_port.take();
-            let resource_task = resource_task.take();
-            let size = size.take();
-            let render_port = render_port.take();
-            let layout_port = layout_port.take();
-            let constellation_chan = constellation_chan.take();
-            let image_cache_task = image_cache_task.take();
-            let profiler_chan = profiler_chan.take();
+        // Wrap task creation within a supervised task so that failure will
+        // only tear down those tasks instead of ours.
+        let failure_chan = constellation_chan.clone();
+        let (task_port, task_chan) = stream::<task::TaskResult>();
+        let mut supervised_task = task::task();
+        supervised_task.opts.notify_chan = Some(task_chan);
+        supervised_task.supervised();
 
+        spawn_with!(supervised_task, [script_port, resource_task, size, render_port,
+                                      layout_port, constellation_chan, image_cache_task,
+                                      profiler_chan], {
             ScriptTask::create(id,
                                compositor_chan.clone(),
                                layout_chan.clone(),
@@ -147,30 +136,18 @@ impl Pipeline {
                                image_cache_task,
                                opts.clone(),
                                profiler_chan);
-        };
+        });
 
-        do spawn {
-            match port.recv() {
+        spawn_with!(task::task(), [failure_chan], {
+            match task_port.recv() {
                 task::Success => (),
                 task::Failure => {
-                    let constellation_chan = constellation_chan_handler.take();
-                    constellation_chan.send(FailureMsg(id, subpage_id));
+                    failure_chan.send(FailureMsg(id, subpage_id));
                 }
             }
-        };
+        });
 
         pipeline
-    }
-
-    /// This function wraps the task creation within a supervised task
-    /// so that failure will only tear down those tasks instead of ours.
-    pub fn spawn(chan: Chan<task::TaskResult>, f: ~fn()) {
-        let mut task = task::task();
-        task.opts.notify_chan = Some(chan);
-        task.supervised();
-        do task.spawn {
-            f();
-        };
     }
 
     pub fn new(id: PipelineId,

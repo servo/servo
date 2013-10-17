@@ -17,6 +17,7 @@ use layout::incremental::{RestyleDamage, BubbleWidths};
 use std::cast::transmute;
 use std::cell::Cell;
 use std::comm::{Port};
+use std::task;
 use extra::arc::Arc;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -75,25 +76,18 @@ impl LayoutTask {
                   img_cache_task: ImageCacheTask,
                   opts: Opts,
                   profiler_chan: ProfilerChan) {
-
-        let port = Cell::new(port);
-        let constellation_chan = Cell::new(constellation_chan);
-        let script_chan = Cell::new(script_chan);
-        let render_chan = Cell::new(render_chan);
-        let img_cache_task = Cell::new(img_cache_task);
-        let profiler_chan = Cell::new(profiler_chan);
-
-        do spawn {
+        spawn_with!(task::task(), [port, constellation_chan, script_chan,
+                                   render_chan, img_cache_task, profiler_chan], {
             let mut layout = LayoutTask::new(id,
-                                             port.take(),
-                                             constellation_chan.take(),
-                                             script_chan.take(),
-                                             render_chan.take(),
-                                             img_cache_task.take(),
+                                             port,
+                                             constellation_chan,
+                                             script_chan,
+                                             render_chan,
+                                             img_cache_task,
                                              &opts,
-                                             profiler_chan.take());
+                                             profiler_chan);
             layout.start();
-        };
+        });
     }
 
     fn new(id: PipelineId,
