@@ -10,7 +10,6 @@ use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 
-use js::glue::RUST_OBJECT_TO_JSVAL;
 use js::jsapi::{JSObject, JSContext, JSVal};
 
 pub struct MouseEvent {
@@ -166,16 +165,4 @@ impl DerivedWrapper for MouseEvent {
     fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
         fail!(~"nyi")
     }
-
-    #[fixed_stack_segment]
-    fn wrap_shared(@mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32 {
-        let obj = self.wrap_object_shared(cx, scope);
-        if obj.is_null() {
-            return 0;
-        } else {
-            unsafe { *vp = RUST_OBJECT_TO_JSVAL(obj) };
-            return 1;
-        }
-    }
-
 }
