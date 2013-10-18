@@ -22,7 +22,9 @@ use constellation::SendableFrameTree;
 
 mod quadtree;
 mod compositor_layer;
+
 mod run;
+mod run_headless;
 
 
 /// The implementation of the layers-based compositor.
@@ -159,6 +161,10 @@ impl CompositorTask {
     }
 
     pub fn run(&self) {
-        run::run_compositor(self);
+        if self.opts.headless {
+            run_headless::run_compositor(self);
+        } else {
+            run::run_compositor(self);
+        }
     }
 }
