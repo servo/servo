@@ -5,12 +5,11 @@
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
-use dom::bindings::utils::{Reflectable, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, BindingObject};
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible, Reflector};
 
 use geom::point::Point2D;
-use js::glue::RUST_OBJECT_TO_JSVAL;
-use js::jsapi::{JSObject, JSContext, JSVal};
+use js::jsapi::{JSObject, JSContext};
 
 use script_task::page_from_context;
 
@@ -129,23 +128,6 @@ impl BindingObject for Event {
         let page = page_from_context(cx);
         unsafe {
             Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
-    }
-}
-
-impl DerivedWrapper for Event {
-    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
-        fail!(~"nyi")
-    }
-
-    #[fixed_stack_segment]
-    fn wrap_shared(@mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32 {
-        let obj = self.wrap_object_shared(cx, scope);
-        if obj.is_null() {
-            return 0;
-        } else {
-            unsafe { *vp = RUST_OBJECT_TO_JSVAL(obj) };
-            return 1;
         }
     }
 }

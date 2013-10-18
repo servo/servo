@@ -192,10 +192,6 @@ impl DerivedWrapper for AbstractDocument {
         unsafe { *vp = RUST_OBJECT_TO_JSVAL(self.reflector().get_jsobject()) };
         return 1;
     }
-
-    fn wrap_shared(@mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
-        fail!(~"nyi")
-    }
 }
 
 
