@@ -945,6 +945,22 @@ pub struct ComputedValues {
     % endfor
 }
 
+impl ComputedValues {
+    /// Resolves the currentColor keyword.
+    /// Any color value form computed values (except for the 'color' property itself)
+    /// should go through this method.
+    ///
+    /// Usage example:
+    /// let top_color = style.resolve_color(style.Border.border_top_color);
+    #[inline]
+    pub fn resolve_color(&self, color: computed::CSSColor) -> RGBA {
+        match color {
+            RGBA(rgba) => rgba,
+            CurrentColor => self.Color.color,
+        }
+    }
+}
+
 #[inline]
 fn get_initial_values() -> ComputedValues {
     ComputedValues {
