@@ -114,6 +114,12 @@ impl Reflectable for AbstractNode<ScriptView> {
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"need to implement wrapping");
     }
+
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
+        do self.with_mut_base |base| {
+            base.GetParentObject(cx)
+        }
+    }
 }
 
 impl Traceable for Node<ScriptView> {

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::UIEventBinding;
 use dom::bindings::utils::{DOMString, Fallible};
-use dom::bindings::utils::{Reflectable, Reflector, BindingObject};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::node::{AbstractNode, ScriptView};
 use dom::event::Event;
 use dom::window::Window;
@@ -126,9 +126,7 @@ impl Reflectable for UIEvent {
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         UIEventBinding::Wrap(cx, scope, self)
     }
-}
 
-impl BindingObject for UIEvent {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.parent.GetParentObject(cx)
     }

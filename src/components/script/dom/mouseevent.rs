@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::MouseEventBinding;
 use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
-use dom::bindings::utils::{Reflectable, Reflector, BindingObject};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
@@ -153,9 +153,7 @@ impl Reflectable for MouseEvent {
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         MouseEventBinding::Wrap(cx, scope, self)
     }
-}
 
-impl BindingObject for MouseEvent {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.parent.GetParentObject(cx)
     }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflector, BindingObject, Reflectable};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::codegen::NavigatorBinding;
 use script_task::{page_from_context};
@@ -97,9 +97,7 @@ impl Reflectable for Navigator {
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         NavigatorBinding::Wrap(cx, scope, self)
     }
-}
 
-impl BindingObject for Navigator {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         unsafe {

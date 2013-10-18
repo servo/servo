@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::WindowBinding;
-use dom::bindings::utils::{Reflector, DOMString, Traceable};
-use dom::bindings::utils::{Reflectable, BindingObject, null_str_as_empty};
+use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{DOMString, null_str_as_empty, Traceable};
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView};
 use dom::navigator::Navigator;
@@ -152,9 +152,7 @@ impl Reflectable for Window {
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         WindowBinding::Wrap(cx, scope, self)
     }
-}
 
-impl BindingObject for Window {
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         None
     }
