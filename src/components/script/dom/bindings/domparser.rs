@@ -3,11 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DOMParserBinding;
-use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::utils::{BindingObject, DerivedWrapper};
+use dom::bindings::utils::{BindingObject, Reflectable, Reflector};
 use dom::domparser::DOMParser;
 
-use js::jsapi::{JSContext, JSObject, JSVal};
+use js::jsapi::{JSContext, JSObject};
 
 impl Reflectable for DOMParser {
     fn reflector<'a>(&'a self) -> &'a Reflector {
@@ -26,11 +25,5 @@ impl Reflectable for DOMParser {
 impl BindingObject for DOMParser {
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         Some(self.owner as @mut Reflectable)
-    }
-}
-
-impl DerivedWrapper for DOMParser {
-    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
-        fail!(~"nyi")
     }
 }

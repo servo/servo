@@ -4,13 +4,13 @@
 
 use dom::bindings::codegen::MouseEventBinding;
 use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
-use dom::bindings::utils::{Reflectable, Reflector, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, Reflector, BindingObject};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 
-use js::jsapi::{JSObject, JSContext, JSVal};
+use js::jsapi::{JSObject, JSContext};
 
 pub struct MouseEvent {
     parent: UIEvent,
@@ -158,11 +158,5 @@ impl Reflectable for MouseEvent {
 impl BindingObject for MouseEvent {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.parent.GetParentObject(cx)
-    }
-}
-
-impl DerivedWrapper for MouseEvent {
-    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
-        fail!(~"nyi")
     }
 }

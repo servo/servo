@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, BindingObject};
 use dom::bindings::utils::{Reflector, DOMString, null_str_as_empty};
 use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
 use script_task::{page_from_context};
 
-use js::jsapi::{JSObject, JSContext, JSVal};
+use js::jsapi::{JSObject, JSContext};
 
 use std::hashmap::HashMap;
 
@@ -67,11 +67,5 @@ impl BindingObject for FormData {
         unsafe {
             Some((*page).frame.get_ref().window as @mut Reflectable)
         }
-    }
-}
-
-impl DerivedWrapper for FormData {
-    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
-        fail!(~"nyi")
     }
 }

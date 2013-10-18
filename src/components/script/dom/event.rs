@@ -5,11 +5,11 @@
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
-use dom::bindings::utils::{Reflectable, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, BindingObject};
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible, Reflector};
 
 use geom::point::Point2D;
-use js::jsapi::{JSObject, JSContext, JSVal};
+use js::jsapi::{JSObject, JSContext};
 
 use script_task::page_from_context;
 
@@ -129,11 +129,5 @@ impl BindingObject for Event {
         unsafe {
             Some((*page).frame.get_ref().window as @mut Reflectable)
         }
-    }
-}
-
-impl DerivedWrapper for Event {
-    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
-        fail!(~"nyi")
     }
 }

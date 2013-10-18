@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::EventTargetBinding;
-use dom::bindings::utils::{Reflectable, Reflector, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, Reflector, BindingObject};
 use script_task::page_from_context;
 
-use js::jsapi::{JSObject, JSContext, JSVal};
+use js::jsapi::{JSObject, JSContext};
 
 pub struct EventTarget {
     reflector_: Reflector
@@ -45,11 +45,5 @@ impl BindingObject for EventTarget {
         unsafe {
             Some((*page).frame.get_ref().window as @mut Reflectable)
         }
-    }
-}
-
-impl DerivedWrapper for EventTarget {
-    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
-        fail!(~"nyi")
     }
 }
