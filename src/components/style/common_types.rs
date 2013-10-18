@@ -160,7 +160,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(Clone)]
+    #[deriving(Eq, Clone)]
     pub enum LengthOrPercentage {
         LP_Length(Au),
         LP_Percentage(CSSFloat),
@@ -173,7 +173,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(Clone)]
+    #[deriving(Eq, Clone)]
     pub enum LengthOrPercentageOrAuto {
         LPA_Length(Au),
         LPA_Percentage(CSSFloat),

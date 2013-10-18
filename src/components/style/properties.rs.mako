@@ -105,7 +105,7 @@ pub mod longhands {
             // The computed value is the same as the specified value.
             pub use to_computed_value = super::computed_as_specified;
             pub mod computed_value {
-                #[deriving(Clone)]
+                #[deriving(Eq, Clone)]
                 pub enum T {
                     % for value in values.split():
                         ${to_rust_ident(value)},
@@ -260,7 +260,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
-            #[deriving(Clone)]
+            #[deriving(Eq, Clone)]
             pub enum T {
                 Normal,
                 Length(Au),
@@ -304,7 +304,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
-            #[deriving(Clone)]
+            #[deriving(Eq, Clone)]
             pub enum T {
                 % for keyword in vertical_align_keywords:
                     ${to_rust_ident(keyword)},
@@ -370,7 +370,7 @@ pub mod longhands {
 
     <%self:longhand name="font-family" inherited="True">
         pub use to_computed_value = super::computed_as_specified;
-        #[deriving(Clone)]
+        #[deriving(Eq, Clone)]
         enum FontFamily {
             FamilyName(~str),
             // Generic
@@ -482,7 +482,7 @@ pub mod longhands {
             }
         }
         pub mod computed_value {
-            #[deriving(Clone)]
+            #[deriving(Eq, Clone)]
             pub enum T {
                 % for weight in range(100, 901, 100):
                     Weight${weight},
@@ -553,7 +553,7 @@ pub mod longhands {
 
     <%self:longhand name="text-decoration">
         pub use to_computed_value = super::computed_as_specified;
-        #[deriving(Clone)]
+        #[deriving(Eq, Clone)]
         pub struct SpecifiedValue {
             underline: bool,
             overline: bool,
@@ -931,6 +931,7 @@ impl PropertyDeclaration {
 pub mod style_structs {
     use super::longhands;
     % for name, longhands in LONGHANDS_PER_STYLE_STRUCT:
+        #[deriving(Eq, Clone)]
         pub struct ${name} {
             % for longhand in longhands:
                 ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
@@ -939,6 +940,7 @@ pub mod style_structs {
     % endfor
 }
 
+#[deriving(Eq, Clone)]
 pub struct ComputedValues {
     % for name, longhands in LONGHANDS_PER_STYLE_STRUCT:
         ${name}: style_structs::${name},
