@@ -42,6 +42,10 @@ impl Reflectable for Element {
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!("no wrapping")
     }
+
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
+        self.node.GetParentObject(cx)
+    }
 }
 
 #[deriving(Eq)]

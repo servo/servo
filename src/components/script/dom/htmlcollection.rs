@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLCollectionBinding;
-use dom::bindings::utils::{Reflectable, BindingObject, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::node::{AbstractNode, ScriptView};
 use script_task::page_from_context;
@@ -57,16 +57,6 @@ impl HTMLCollection {
     }
 }
 
-impl BindingObject for HTMLCollection {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        // TODO(tkuehn): This only handles the top-level frame. Need to grab subframes.
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
-    }
-}
-
 impl Reflectable for HTMLCollection {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
@@ -78,5 +68,13 @@ impl Reflectable for HTMLCollection {
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         HTMLCollectionBinding::Wrap(cx, scope, self)
+    }
+
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
+        let page = page_from_context(cx);
+        // TODO(tkuehn): This only handles the top-level frame. Need to grab subframes.
+        unsafe {
+            Some((*page).frame.get_ref().window as @mut Reflectable)
+        }
     }
 }

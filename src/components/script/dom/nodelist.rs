@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::NodeListBinding;
-use dom::bindings::utils::{Reflectable, BindingObject, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::node::{AbstractNode, ScriptView};
 use script_task::page_from_context;
 
@@ -66,15 +66,6 @@ impl NodeList {
     }
 }
 
-impl BindingObject for NodeList {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
-    }
-}
-
 impl Reflectable for NodeList {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
@@ -86,5 +77,12 @@ impl Reflectable for NodeList {
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         NodeListBinding::Wrap(cx, scope, self)
+    }
+
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
+        let page = page_from_context(cx);
+        unsafe {
+            Some((*page).frame.get_ref().window as @mut Reflectable)
+        }
     }
 }

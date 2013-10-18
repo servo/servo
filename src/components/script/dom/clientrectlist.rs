@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::ClientRectListBinding;
-use dom::bindings::utils::{Reflector, Reflectable, BindingObject};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::clientrect::ClientRect;
 use script_task::page_from_context;
 
@@ -58,9 +58,7 @@ impl Reflectable for ClientRectList {
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         ClientRectListBinding::Wrap(cx, scope, self)
     }
-}
 
-impl BindingObject for ClientRectList {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         unsafe {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector, BindingObject};
+use dom::bindings::utils::{Reflectable, Reflector};
 use script_task::page_from_context;
 
 use js::jsapi::{JSContext, JSObject};
@@ -23,15 +23,6 @@ impl WindowProxy {
     }
 }
 
-impl BindingObject for WindowProxy {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
-    }
-}
-
 impl Reflectable for WindowProxy {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_
@@ -43,5 +34,12 @@ impl Reflectable for WindowProxy {
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!("not yet implemented")
+    }
+
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
+        let page = page_from_context(cx);
+        unsafe {
+            Some((*page).frame.get_ref().window as @mut Reflectable)
+        }
     }
 }

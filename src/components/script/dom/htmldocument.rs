@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible, Traceable};
-use dom::bindings::utils::{Reflectable, BindingObject, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{AbstractDocument, Document, ReflectableDocument, HTML};
 use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
@@ -196,9 +196,7 @@ impl Reflectable for HTMLDocument {
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         HTMLDocumentBinding::Wrap(cx, scope, self)
     }
-}
 
-impl BindingObject for HTMLDocument {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.parent.GetParentObject(cx)
     }

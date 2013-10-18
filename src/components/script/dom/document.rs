@@ -4,8 +4,8 @@
 
 use dom::comment::Comment;
 use dom::bindings::codegen::DocumentBinding;
-use dom::bindings::utils::{DOMString, Reflector, ErrorResult, Fallible};
-use dom::bindings::utils::{BindingObject, Reflectable, DerivedWrapper};
+use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
+use dom::bindings::utils::{Reflectable, Reflector, DerivedWrapper};
 use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty, null_str_as_word_null};
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
@@ -176,9 +176,7 @@ impl Reflectable for AbstractDocument {
             }
         }
     }
-}
 
-impl BindingObject for AbstractDocument {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         do self.with_mut_base |doc| {
             doc.GetParentObject(cx)
@@ -207,9 +205,7 @@ impl Reflectable for Document {
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         DocumentBinding::Wrap(cx, scope, self)
     }
-}
 
-impl BindingObject for Document {
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         Some(self.window as @mut Reflectable)
     }
