@@ -27,6 +27,11 @@ pub struct Application;
 
 impl ApplicationMethods for Application {
     fn new() -> Application {
+        // Per GLFW docs it's safe to set the error callback before calling
+        // glfwInit(), and this way we notice errors from init too.
+        do glfw::set_error_callback |_error_code, description| {
+            error!("GLFW error: %s", description);
+        };
         glfw::init();
         Application
     }
