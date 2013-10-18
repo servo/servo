@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::EventTargetBinding;
-use dom::bindings::utils::{Reflectable, Reflector, BindingObject};
+use dom::bindings::utils::{Reflectable, Reflector};
 use script_task::page_from_context;
 
 use js::jsapi::{JSObject, JSContext};
@@ -36,9 +36,7 @@ impl Reflectable for EventTarget {
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         EventTargetBinding::Wrap(cx, scope, self)
     }
-}
 
-impl BindingObject for EventTarget {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         // TODO(tkuehn): This only handles top-level pages. Needs to handle subframes.

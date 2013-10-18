@@ -541,6 +541,7 @@ pub trait Reflectable {
     fn reflector<'a>(&'a self) -> &'a Reflector;
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector;
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject;
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable>;
 }
 
 pub struct Reflector {
@@ -605,10 +606,6 @@ pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: Option<@mut Ref
         }
         None => unsafe { JS_GetGlobalObject(cx) }
     }
-}
-
-pub trait BindingObject {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable>;
 }
 
 #[fixed_stack_segment]
