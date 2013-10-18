@@ -5,7 +5,6 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 use std::ascii::StrAsciiExt;
-use std::at_vec;
 pub use std::iterator;
 pub use cssparser::*;
 pub use errors::{ErrorLoggerIterator, log_css_error};
@@ -810,8 +809,8 @@ pub mod shorthands {
 
 
 pub struct PropertyDeclarationBlock {
-    important: @[PropertyDeclaration],
-    normal: @[PropertyDeclaration],
+    important: ~[PropertyDeclaration],
+    normal: ~[PropertyDeclaration],
 }
 
 
@@ -837,9 +836,8 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I) -> PropertyD
         }
     }
     PropertyDeclarationBlock {
-        // TODO avoid copying?
-        important: at_vec::to_managed_move(important),
-        normal: at_vec::to_managed_move(normal),
+        important: important,
+        normal: normal,
     }
 }
 
@@ -872,6 +870,7 @@ pub enum DeclaredValue<T> {
     CSSWideKeyword(CSSWideKeyword),
 }
 
+#[deriving(Clone)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.ident}_declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
@@ -961,7 +960,7 @@ fn get_initial_values() -> ComputedValues {
 
 
 // Most specific/important declarations last
-pub fn cascade(applicable_declarations: &[@[PropertyDeclaration]],
+pub fn cascade(applicable_declarations: &[~[PropertyDeclaration]],
                parent_style: Option< &ComputedValues>)
             -> ComputedValues {
     let initial_keep_alive;

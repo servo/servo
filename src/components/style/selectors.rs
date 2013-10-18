@@ -8,6 +8,7 @@ use cssparser::*;
 use namespaces::NamespaceMap;
 
 
+#[deriving(Clone)]
 pub struct Selector {
     compound_selectors: CompoundSelector,
     pseudo_element: Option<PseudoElement>,
@@ -17,7 +18,7 @@ pub struct Selector {
 pub static STYLE_ATTRIBUTE_SPECIFICITY: u32 = 1 << 31;
 
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 pub enum PseudoElement {
     Before,
     After,
@@ -26,11 +27,13 @@ pub enum PseudoElement {
 }
 
 
+#[deriving(Clone)]
 pub struct CompoundSelector {
     simple_selectors: ~[SimpleSelector],
     next: Option<(~CompoundSelector, Combinator)>,  // c.next is left of c
 }
 
+#[deriving(Eq, Clone)]
 pub enum Combinator {
     Child,  //  >
     Descendant,  // space
@@ -38,6 +41,7 @@ pub enum Combinator {
     LaterSibling,  // ~
 }
 
+#[deriving(Clone)]
 pub enum SimpleSelector {
     IDSelector(~str),
     ClassSelector(~str),
@@ -62,6 +66,7 @@ pub enum SimpleSelector {
     // ...
 }
 
+#[deriving(Clone)]
 pub struct AttrSelector {
     name: ~str,
     namespace: Option<~str>,
@@ -73,7 +78,7 @@ type Iter = iterator::Peekable<ComponentValue, vec::MoveIterator<ComponentValue>
 
 // None means invalid selector
 pub fn parse_selector_list(input: ~[ComponentValue], namespaces: &NamespaceMap)
-                           -> Option<~[@Selector]> {
+                           -> Option<~[Selector]> {
     let iter = &mut input.move_iter().peekable();
     let first = match parse_selector(iter, namespaces) {
         None => return None,
@@ -99,7 +104,7 @@ pub fn parse_selector_list(input: ~[ComponentValue], namespaces: &NamespaceMap)
 
 // None means invalid selector
 fn parse_selector(iter: &mut Iter, namespaces: &NamespaceMap)
-                  -> Option<@Selector> {
+                  -> Option<Selector> {
     let (first, pseudo_element) = match parse_simple_selectors(iter, namespaces) {
         None => return None,
         Some(result) => result
@@ -130,7 +135,7 @@ fn parse_selector(iter: &mut Iter, namespaces: &NamespaceMap)
             }
         }
     }
-    Some(@Selector {
+    Some(Selector {
         specificity: compute_specificity(&compound, &pseudo_element),
         compound_selectors: compound,
         pseudo_element: pseudo_element,

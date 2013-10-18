@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::at_vec;
 use std::ascii::StrAsciiExt;
 use extra::sort::tim_sort;
 
@@ -50,9 +51,10 @@ impl Stylist {
                 if style_rule.declarations.$priority.len() > 0 {
                     $flag = true;
                     for selector in style_rule.selectors.iter() {
+                        // TODO: avoid copying?
                         rules.$priority.push(Rule {
-                            selector: *selector,
-                            declarations: style_rule.declarations.$priority,
+                            selector: @(*selector).clone(),
+                            declarations:at_vec::to_managed(style_rule.declarations.$priority),
                         })
                     }
                 }
@@ -99,10 +101,12 @@ impl Stylist {
 
         // Style attributes have author origin but higher specificity than style rules.
         append!(self.author_rules.normal);
-        style_attribute.map(|sa| applicable_declarations.push(sa.normal));
+        // TODO: avoid copying?
+        style_attribute.map(|sa| applicable_declarations.push(at_vec::to_managed(sa.normal)));
 
         append!(self.author_rules.important);
-        style_attribute.map(|sa| applicable_declarations.push(sa.important));
+        // TODO: avoid copying?
+        style_attribute.map(|sa| applicable_declarations.push(at_vec::to_managed(sa.important)));
 
         append!(self.user_rules.important);
         append!(self.ua_rules.important);
