@@ -21,12 +21,11 @@ use std::comm;
 use std::comm::{Port, SharedChan};
 use std::str;
 use std::str::eq_slice;
-use std::task;
 use std::from_str::FromStr;
 use hubbub::hubbub;
 use servo_msg::constellation_msg::{ConstellationChan, SubpageId};
 use servo_net::image_cache_task::ImageCacheTask;
-use servo_net::resource_task::{Load, Payload, Done, ResourceTask};
+use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
 use servo_util::tree::{TreeNodeRef, ElementLike};
 use servo_util::url::make_url;
 use extra::url::Url;
@@ -193,37 +192,16 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
     loop {
         match from_parent.recv() {
             JSTaskNewFile(url) => {
-                let (result_port, result_chan) = comm::stream();
-                let resource_task = resource_task.clone();
-                let url_clone = url.clone();
-                do task::spawn {
-                    let (input_port, input_chan) = comm::stream();
-                    // TODO: change copy to move once we can move into closures
-                    resource_task.send(Load(url.clone(), input_chan));
-
-                    let progress_port = input_port.recv().progress_port;
-                    let mut buf = ~[];
-                    loop {
-                        match progress_port.recv() {
-                            Payload(data) => {
-                                buf.push_all(data);
-                            }
-                            Done(Ok(*)) => {
-                                result_chan.send(Some(buf));
-                                break;
-                            }
-                            Done(Err(*)) => {
-                                error!("error loading script %s", url.to_str());
-                                result_chan.send(None);
-                                break;
-                            }
-                        }
+                match load_whole_resource(&resource_task, url.clone()) {
+                    Err(_) => {
+                        error!("error loading script %s", url.to_str());
                     }
-                }
-
-                let bytes = result_port.recv();
-                if bytes.is_some() {
-                    result_vec.push(JSFile { data: str::from_utf8(bytes.unwrap()), url: url_clone });
+                    Ok((metadata, bytes)) => {
+                        result_vec.push(JSFile {
+                            data: str::from_utf8(bytes),
+                            url: metadata.final_url,
+                        });
+                    }
                 }
             }
             JSTaskNewInlineScript(data, url) => {

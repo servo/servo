@@ -28,9 +28,7 @@ use servo_msg::constellation_msg;
 use std::cell::Cell;
 use std::comm;
 use std::comm::{Port, SharedChan};
-use std::io::read_whole_file;
 use std::ptr;
-use std::str;
 use std::task::{spawn_sched, SingleThreaded};
 use std::util::replace;
 use dom::window::TimerData;
@@ -58,8 +56,6 @@ pub enum ScriptMsg {
     LoadMsg(PipelineId, Url),
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
     AttachLayoutMsg(NewLayoutInfo),
-    /// Executes a standalone script.
-    ExecuteMsg(PipelineId, Url),
     /// Instructs the script task to send a navigate message to the constellation.
     NavigateMsg(NavigationDirection),
     /// Sends a DOM event.
@@ -533,7 +529,6 @@ impl ScriptTask {
                 // TODO(tkuehn) need to handle auxiliary layouts for iframes
                 AttachLayoutMsg(new_layout_info) => self.handle_new_layout(new_layout_info),
                 LoadMsg(id, url) => self.load(id, url),
-                ExecuteMsg(id, url) => self.handle_execute_msg(id, url),
                 SendEventMsg(id, event) => self.handle_event(id, event),
                 FireTimerMsg(id, timer_data) => self.handle_fire_timer_msg(id, timer_data),
                 NavigateMsg(direction) => self.handle_navigate_msg(direction),
@@ -562,28 +557,6 @@ impl ScriptTask {
             task's page tree. This is a bug.");
         let new_page_tree = PageTree::new(new_id, layout_chan, size_future);
         parent_page_tree.inner.push(new_page_tree);
-    }
-
-    /// Handles a request to execute a script.
-    fn handle_execute_msg(&mut self, id: PipelineId, url: Url) {
-        debug!("script: Received url `%s` to execute", url.to_str());
-
-        let page_tree = self.page_tree.find(id).expect("ScriptTask: received fire timer msg for a
-            pipeline ID not associated with this script task. This is a bug.");
-        let compartment = page_tree.page.js_info.get_ref().js_compartment;
-        let cx = page_tree.page.js_info.get_ref().js_context;
-
-        match read_whole_file(&Path(url.path)) {
-            Err(msg) => println(fmt!("Error opening %s: %s", url.to_str(), msg)),
-
-            Ok(bytes) => {
-                compartment.define_functions(debug_fns);
-                cx.evaluate_script(compartment.global_obj,
-                                   str::from_utf8(bytes),
-                                   url.path.clone(),
-                                   1);
-            }
-        }
     }
 
     /// Handles a timer that fired.

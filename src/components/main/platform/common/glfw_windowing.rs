@@ -27,6 +27,11 @@ pub struct Application;
 
 impl ApplicationMethods for Application {
     fn new() -> Application {
+        // Per GLFW docs it's safe to set the error callback before calling
+        // glfwInit(), and this way we notice errors from init too.
+        do glfw::set_error_callback |_error_code, description| {
+            error!("GLFW error: %s", description);
+        };
         glfw::init();
         Application
     }
@@ -59,7 +64,8 @@ impl WindowMethods<Application> for Window {
     /// Creates a new window.
     fn new(_: &Application) -> @mut Window {
         // Create the GLFW window.
-        let glfw_window = glfw::Window::create(800, 600, "Servo", glfw::Windowed).unwrap();
+        let glfw_window = glfw::Window::create(800, 600, "Servo", glfw::Windowed)
+            .expect("Failed to create GLFW window");
         glfw_window.make_context_current();
 
         // Create our window object.
