@@ -70,4 +70,8 @@ impl Reflectable for CharacterData {
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"need to implement wrapping");
     }
+
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
+        self.node.GetParentObject(cx)
+    }
 }

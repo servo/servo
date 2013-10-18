@@ -5,8 +5,9 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::bindings::node;
-use dom::bindings::utils::{Reflector, DOMString, ErrorResult, Fallible, NotFound, HierarchyRequest};
-use dom::bindings::utils::{BindingObject, Reflectable, null_str_as_empty};
+use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{DOMString, null_str_as_empty};
+use dom::bindings::utils::{ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::documenttype::DocumentType;
@@ -901,9 +902,7 @@ impl Reflectable for Node<ScriptView> {
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"need to implement wrapping");
     }
-}
 
-impl BindingObject for Node<ScriptView> {
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         match self.parent_node {
             Some(node) => Some(unsafe {node.as_cacheable_wrapper()}),

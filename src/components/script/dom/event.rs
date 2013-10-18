@@ -5,8 +5,8 @@
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
-use dom::bindings::utils::{Reflectable, BindingObject};
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 
 use geom::point::Point2D;
 use js::jsapi::{JSObject, JSContext};
@@ -121,9 +121,7 @@ impl Reflectable for Event {
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         EventBinding::Wrap(cx, scope, self)
     }
-}
 
-impl BindingObject for Event {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         unsafe {

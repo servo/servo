@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DOMParserBinding;
-use dom::bindings::utils::{BindingObject, Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::domparser::DOMParser;
 
 use js::jsapi::{JSContext, JSObject};
@@ -20,9 +20,7 @@ impl Reflectable for DOMParser {
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         DOMParserBinding::Wrap(cx, scope, self)
     }
-}
 
-impl BindingObject for DOMParser {
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         Some(self.owner as @mut Reflectable)
     }
