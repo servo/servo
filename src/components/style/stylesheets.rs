@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::str;
 use std::iterator::Iterator;
 use std::ascii::StrAsciiExt;
 use cssparser::*;
@@ -26,70 +27,85 @@ pub enum CSSRule {
 
 
 pub struct StyleRule {
-    selectors: ~[@selectors::Selector],
+    selectors: ~[selectors::Selector],
     declarations: properties::PropertyDeclarationBlock,
 }
 
 
-pub fn parse_stylesheet(css: &str) -> Stylesheet {
-    static STATE_CHARSET: uint = 1;
-    static STATE_IMPORTS: uint = 2;
-    static STATE_NAMESPACES: uint = 3;
-    static STATE_BODY: uint = 4;
-    let mut state: uint = STATE_CHARSET;
-
-    let mut rules = ~[];
-    let mut namespaces = NamespaceMap::new();
-
-    for rule in ErrorLoggerIterator(parse_stylesheet_rules(tokenize(css))) {
-        let next_state;  // Unitialized to force each branch to set it.
-        match rule {
-            QualifiedRule(rule) => {
-                next_state = STATE_BODY;
-                parse_style_rule(rule, &mut rules, &namespaces)
-            },
-            AtRule(rule) => {
-                let lower_name = rule.name.to_ascii_lower();
-                match lower_name.as_slice() {
-                    "charset" => {
-                        if state > STATE_CHARSET {
-                            log_css_error(rule.location, "@charset must be the first rule")
-                        }
-                        // Valid @charset rules are just ignored
-                        next_state = STATE_IMPORTS;
-                    },
-                    "import" => {
-                        if state > STATE_IMPORTS {
-                            next_state = state;
-                            log_css_error(rule.location,
-                                          "@import must be before any rule but @charset")
-                        } else {
-                            next_state = STATE_IMPORTS;
-                            log_css_error(rule.location, "@import is not supported yet")  // TODO
-                        }
-                    },
-                    "namespace" => {
-                        if state > STATE_NAMESPACES {
-                            next_state = state;
-                            log_css_error(
-                                rule.location,
-                                "@namespace must be before any rule but @charset and @import"
-                            )
-                        } else {
-                            next_state = STATE_NAMESPACES;
-                            parse_namespace_rule(rule, &mut namespaces)
-                        }
-                    },
-                    _ => {
-                        next_state = STATE_BODY;
-                        parse_nested_at_rule(lower_name, rule, &mut rules, &namespaces)
-                    },
-                }
-            },
+impl Stylesheet {
+    pub fn from_iter<I: Iterator<~[u8]>>(input: I) -> Stylesheet {
+        let mut string = ~"";
+        let mut input = input;
+        // TODO: incremental tokinization/parsing
+        for chunk in input {
+            // Assume UTF-8. This fails on invalid UTF-8
+            // TODO: support character encodings (use rust-encodings in rust-cssparser)
+            string.push_str(str::from_utf8_owned(chunk))
         }
-        state = next_state;
+        Stylesheet::from_str(string)
     }
-    Stylesheet{ rules: rules, namespaces: namespaces }
+
+    pub fn from_str(css: &str) -> Stylesheet {
+        static STATE_CHARSET: uint = 1;
+        static STATE_IMPORTS: uint = 2;
+        static STATE_NAMESPACES: uint = 3;
+        static STATE_BODY: uint = 4;
+        let mut state: uint = STATE_CHARSET;
+
+        let mut rules = ~[];
+        let mut namespaces = NamespaceMap::new();
+
+        for rule in ErrorLoggerIterator(parse_stylesheet_rules(tokenize(css))) {
+            let next_state;  // Unitialized to force each branch to set it.
+            match rule {
+                QualifiedRule(rule) => {
+                    next_state = STATE_BODY;
+                    parse_style_rule(rule, &mut rules, &namespaces)
+                },
+                AtRule(rule) => {
+                    let lower_name = rule.name.to_ascii_lower();
+                    match lower_name.as_slice() {
+                        "charset" => {
+                            if state > STATE_CHARSET {
+                                log_css_error(rule.location, "@charset must be the first rule")
+                            }
+                            // Valid @charset rules are just ignored
+                            next_state = STATE_IMPORTS;
+                        },
+                        "import" => {
+                            if state > STATE_IMPORTS {
+                                next_state = state;
+                                log_css_error(rule.location,
+                                              "@import must be before any rule but @charset")
+                            } else {
+                                next_state = STATE_IMPORTS;
+                                // TODO: support @import
+                                log_css_error(rule.location, "@import is not supported yet")
+                            }
+                        },
+                        "namespace" => {
+                            if state > STATE_NAMESPACES {
+                                next_state = state;
+                                log_css_error(
+                                    rule.location,
+                                    "@namespace must be before any rule but @charset and @import"
+                                )
+                            } else {
+                                next_state = STATE_NAMESPACES;
+                                parse_namespace_rule(rule, &mut namespaces)
+                            }
+                        },
+                        _ => {
+                            next_state = STATE_BODY;
+                            parse_nested_at_rule(lower_name, rule, &mut rules, &namespaces)
+                        },
+                    }
+                },
+            }
+            state = next_state;
+        }
+        Stylesheet{ rules: rules, namespaces: namespaces }
+    }
 }
 
 
@@ -99,7 +115,7 @@ pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut ~[CSSRule],
     match selectors::parse_selector_list(prelude, namespaces) {
         Some(selectors) => parent_rules.push(CSSStyleRule(StyleRule{
             selectors: selectors,
-            declarations: properties::parse_property_declaration_list(block)
+            declarations: properties::parse_property_declaration_list(block.move_iter())
         })),
         None => log_css_error(location, "Unsupported CSS selector."),
     }
@@ -125,7 +141,7 @@ impl Stylesheet {
 
 struct StyleRuleIterator<'self> {
     device: &'self media_queries::Device,
-    // FIXME: I couldn’t get this to borrow-check with a stack of VecIterator
+    // FIXME: I couldn't get this to borrow-check with a stack of VecIterator
     stack: ~[(&'self [CSSRule], uint)],
 }
 

@@ -5,7 +5,6 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 use std::ascii::StrAsciiExt;
-use std::at_vec;
 pub use std::iterator;
 pub use cssparser::*;
 pub use errors::{ErrorLoggerIterator, log_css_error};
@@ -68,6 +67,7 @@ pub mod longhands {
             % if not no_super:
                 use super::*;
             % endif
+            pub use self::computed_value::*;
             ${caller.body()}
             pub fn parse_declared(input: &[ComponentValue])
                                -> Option<DeclaredValue<SpecifiedValue>> {
@@ -104,14 +104,16 @@ pub mod longhands {
         <%self:single_component_value name="${name}" inherited="${inherited}">
             // The computed value is the same as the specified value.
             pub use to_computed_value = super::computed_as_specified;
-            #[deriving(Clone)]
-            pub enum SpecifiedValue {
-                % for value in values.split():
-                    ${to_rust_ident(value)},
-                % endfor
+            pub mod computed_value {
+                #[deriving(Eq, Clone)]
+                pub enum T {
+                    % for value in values.split():
+                        ${to_rust_ident(value)},
+                    % endfor
+                }
             }
-            pub type ComputedValue = SpecifiedValue;
-            #[inline] pub fn get_initial_value() -> ComputedValue {
+            pub type SpecifiedValue = computed_value::T;
+            #[inline] pub fn get_initial_value() -> computed_value::T {
                 ${to_rust_ident(values.split()[0])}
             }
             pub fn from_component_value(v: &ComponentValue) -> Option<SpecifiedValue> {
@@ -131,8 +133,10 @@ pub mod longhands {
         <%self:single_component_value name="${name}" inherited="${inherited}">
             pub use to_computed_value = super::super::common_types::computed::compute_${type};
             pub type SpecifiedValue = specified::${type};
-            pub type ComputedValue = computed::${type};
-            #[inline] pub fn get_initial_value() -> ComputedValue { ${initial_value} }
+            pub mod computed_value {
+                pub type T = super::super::computed::${type};
+            }
+            #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
             #[inline] pub fn from_component_value(v: &ComponentValue) -> Option<SpecifiedValue> {
                 specified::${type}::${parse_method}(v)
             }
@@ -163,13 +167,15 @@ pub mod longhands {
         ${predefined_type("border-%s-color" % side, "CSSColor", "CurrentColor")}
     % endfor
 
-    // dotted dashed double groove ridge insed outset
-    ${single_keyword("border-top-style", "none solid hidden")}
+    //  double groove ridge insed outset
+    ${single_keyword("border-top-style", "none solid dotted dashed hidden")}
     % for side in ["right", "bottom", "left"]:
         <%self:longhand name="border-${side}-style", no_super="True">
             pub use super::border_top_style::*;
             pub type SpecifiedValue = super::border_top_style::SpecifiedValue;
-            pub type ComputedValue = super::border_top_style::ComputedValue;
+            pub mod computed_value {
+                pub type T = super::super::border_top_style::computed_value::T;
+            }
         </%self:longhand>
     % endfor
 
@@ -187,15 +193,18 @@ pub mod longhands {
     % for side in ["top", "right", "bottom", "left"]:
         <%self:longhand name="border-${side}-width">
             pub type SpecifiedValue = specified::Length;
-            pub type ComputedValue = Au;
-            #[inline] pub fn get_initial_value() -> ComputedValue {
+            pub mod computed_value {
+                use super::super::Au;
+                pub type T = Au;
+            }
+            #[inline] pub fn get_initial_value() -> computed_value::T {
                 Au::from_px(3)  // medium
             }
             pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
                 one_component_value(input).chain(parse_border_width)
             }
             pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                                  -> ComputedValue {
+                                  -> computed_value::T {
                 if context.has_border_${side} { computed::compute_Au(value, context) }
                 else { Au(0) }
             }
@@ -231,7 +240,7 @@ pub mod longhands {
         pub enum SpecifiedValue {
             SpecifiedNormal,
             SpecifiedLength(specified::Length),
-            SpecifiedNumber(Float),
+            SpecifiedNumber(CSSFloat),
             // percentage are the same as em.
         }
         /// normal | <number> | <length> | <percentage>
@@ -249,15 +258,18 @@ pub mod longhands {
                 _ => None,
             }
         }
-        #[deriving(Clone)]
-        pub enum ComputedValue {
-            Normal,
-            Length(Au),
-            Number(Float),
+        pub mod computed_value {
+            use super::super::{Au, CSSFloat};
+            #[deriving(Eq, Clone)]
+            pub enum T {
+                Normal,
+                Length(Au),
+                Number(CSSFloat),
+            }
         }
-        #[inline] pub fn get_initial_value() -> ComputedValue { Normal }
+        #[inline] pub fn get_initial_value() -> computed_value::T { Normal }
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                              -> ComputedValue {
+                              -> computed_value::T {
             match value {
                 SpecifiedNormal => Normal,
                 SpecifiedLength(value) => Length(computed::compute_Au(value, context)),
@@ -290,17 +302,20 @@ pub mod longhands {
                      .map_move(SpecifiedLengthOrPercentage)
             }
         }
-        #[deriving(Clone)]
-        pub enum ComputedValue {
-            % for keyword in vertical_align_keywords:
-                ${to_rust_ident(keyword)},
-            % endfor
-            Length(Au),
-            Percentage(Float),
+        pub mod computed_value {
+            use super::super::{Au, CSSFloat};
+            #[deriving(Eq, Clone)]
+            pub enum T {
+                % for keyword in vertical_align_keywords:
+                    ${to_rust_ident(keyword)},
+                % endfor
+                Length(Au),
+                Percentage(CSSFloat),
+            }
         }
-        #[inline] pub fn get_initial_value() -> ComputedValue { baseline }
+        #[inline] pub fn get_initial_value() -> computed_value::T { baseline }
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                              -> ComputedValue {
+                              -> computed_value::T {
             match value {
                 % for keyword in vertical_align_keywords:
                     Specified_${to_rust_ident(keyword)} => ${to_rust_ident(keyword)},
@@ -334,8 +349,10 @@ pub mod longhands {
     <%self:raw_longhand name="color" inherited="True">
         pub use to_computed_value = super::computed_as_specified;
         pub type SpecifiedValue = RGBA;
-        pub type ComputedValue = SpecifiedValue;
-        #[inline] pub fn get_initial_value() -> ComputedValue {
+        pub mod computed_value {
+            pub type T = super::SpecifiedValue;
+        }
+        #[inline] pub fn get_initial_value() -> computed_value::T {
             RGBA { red: 0., green: 0., blue: 0., alpha: 1. }  /* black */
         }
         pub fn parse_specified(input: &[ComponentValue]) -> Option<DeclaredValue<SpecifiedValue>> {
@@ -353,7 +370,7 @@ pub mod longhands {
 
     <%self:longhand name="font-family" inherited="True">
         pub use to_computed_value = super::computed_as_specified;
-        #[deriving(Clone)]
+        #[deriving(Eq, Clone)]
         enum FontFamily {
             FamilyName(~str),
             // Generic
@@ -364,8 +381,10 @@ pub mod longhands {
 //            Monospace,
         }
         pub type SpecifiedValue = ~[FontFamily];
-        pub type ComputedValue = SpecifiedValue;
-        #[inline] pub fn get_initial_value() -> ComputedValue { ~[FamilyName(~"serif")] }
+        pub mod computed_value {
+            pub type T = super::SpecifiedValue;
+        }
+        #[inline] pub fn get_initial_value() -> computed_value::T { ~[FamilyName(~"serif")] }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
         /// TODO: <generic-familiy>
@@ -462,15 +481,17 @@ pub mod longhands {
                 _ => None
             }
         }
-        #[deriving(Clone)]
-        pub enum ComputedValue {
-            % for weight in range(100, 901, 100):
-                Weight${weight},
-            % endfor
+        pub mod computed_value {
+            #[deriving(Eq, Clone)]
+            pub enum T {
+                % for weight in range(100, 901, 100):
+                    Weight${weight},
+                % endfor
+            }
         }
-        #[inline] pub fn get_initial_value() -> ComputedValue { Weight400 }  // normal
+        #[inline] pub fn get_initial_value() -> computed_value::T { Weight400 }  // normal
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                              -> ComputedValue {
+                              -> computed_value::T {
             match value {
                 % for weight in range(100, 901, 100):
                     SpecifiedWeight${weight} => Weight${weight},
@@ -504,8 +525,11 @@ pub mod longhands {
     <%self:single_component_value name="font-size" inherited="True">
         pub use to_computed_value = super::super::common_types::computed::compute_Au;
         pub type SpecifiedValue = specified::Length;  // Percentages are the same as em.
-        pub type ComputedValue = Au;
-        #[inline] pub fn get_initial_value() -> ComputedValue {
+        pub mod computed_value {
+            use super::super::Au;
+            pub type T = Au;
+        }
+        #[inline] pub fn get_initial_value() -> computed_value::T {
             Au::from_px(16)  // medium
         }
         /// <length> | <percentage>
@@ -529,7 +553,7 @@ pub mod longhands {
 
     <%self:longhand name="text-decoration">
         pub use to_computed_value = super::computed_as_specified;
-        #[deriving(Clone)]
+        #[deriving(Eq, Clone)]
         pub struct SpecifiedValue {
             underline: bool,
             overline: bool,
@@ -537,8 +561,10 @@ pub mod longhands {
             // 'blink' is accepted in the parser but ignored.
             // Just not blinking the text is a conforming implementation per CSS 2.1.
         }
-        pub type ComputedValue = SpecifiedValue;
-        #[inline] pub fn get_initial_value() -> ComputedValue {
+        pub mod computed_value {
+            pub type T = super::SpecifiedValue;
+        }
+        #[inline] pub fn get_initial_value() -> computed_value::T {
             SpecifiedValue { underline: false, overline: false, line_through: false }  // none
         }
         /// none | [ underline || overline || line-through || blink ]
@@ -783,15 +809,20 @@ pub mod shorthands {
 
 
 pub struct PropertyDeclarationBlock {
-    important: @[PropertyDeclaration],
-    normal: @[PropertyDeclaration],
+    important: ~[PropertyDeclaration],
+    normal: ~[PropertyDeclaration],
 }
 
 
-pub fn parse_property_declaration_list(input: ~[Node]) -> PropertyDeclarationBlock {
+pub fn parse_style_attribute(input: &str) -> PropertyDeclarationBlock {
+    parse_property_declaration_list(tokenize(input))
+}
+
+
+pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I) -> PropertyDeclarationBlock {
     let mut important = ~[];
     let mut normal = ~[];
-    for item in ErrorLoggerIterator(parse_declaration_list(input.move_iter())) {
+    for item in ErrorLoggerIterator(parse_declaration_list(input)) {
         match item {
             Decl_AtRule(rule) => log_css_error(
                 rule.location, fmt!("Unsupported at-rule in declaration list: @%s", rule.name)),
@@ -805,9 +836,8 @@ pub fn parse_property_declaration_list(input: ~[Node]) -> PropertyDeclarationBlo
         }
     }
     PropertyDeclarationBlock {
-        // TODO avoid copying?
-        important: at_vec::to_managed_move(important),
-        normal: at_vec::to_managed_move(normal),
+        important: important,
+        normal: normal,
     }
 }
 
@@ -840,6 +870,7 @@ pub enum DeclaredValue<T> {
     CSSWideKeyword(CSSWideKeyword),
 }
 
+#[deriving(Clone)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.ident}_declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
@@ -900,18 +931,36 @@ impl PropertyDeclaration {
 pub mod style_structs {
     use super::longhands;
     % for name, longhands in LONGHANDS_PER_STYLE_STRUCT:
+        #[deriving(Eq, Clone)]
         pub struct ${name} {
             % for longhand in longhands:
-                ${longhand.ident}: longhands::${longhand.ident}::ComputedValue,
+                ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
             % endfor
         }
     % endfor
 }
 
+#[deriving(Eq, Clone)]
 pub struct ComputedValues {
     % for name, longhands in LONGHANDS_PER_STYLE_STRUCT:
         ${name}: style_structs::${name},
     % endfor
+}
+
+impl ComputedValues {
+    /// Resolves the currentColor keyword.
+    /// Any color value form computed values (except for the 'color' property itself)
+    /// should go through this method.
+    ///
+    /// Usage example:
+    /// let top_color = style.resolve_color(style.Border.border_top_color);
+    #[inline]
+    pub fn resolve_color(&self, color: computed::CSSColor) -> RGBA {
+        match color {
+            RGBA(rgba) => rgba,
+            CurrentColor => self.Color.color,
+        }
+    }
 }
 
 #[inline]
@@ -929,7 +978,7 @@ fn get_initial_values() -> ComputedValues {
 
 
 // Most specific/important declarations last
-pub fn cascade(applicable_declarations: &[@[PropertyDeclaration]],
+pub fn cascade(applicable_declarations: &[~[PropertyDeclaration]],
                parent_style: Option< &ComputedValues>)
             -> ComputedValues {
     let initial_keep_alive;
@@ -1016,4 +1065,14 @@ pub fn cascade(applicable_declarations: &[@[PropertyDeclaration]],
             },
         % endfor
     }
+}
+
+
+// Only re-export the types for computed values.
+pub mod computed_values {
+    % for property in LONGHANDS:
+        pub use ${property.ident} = super::longhands::${property.ident}::computed_value;
+    % endfor
+    // Don't use a side-specific name needlessly:
+    pub use border_style = super::longhands::border_top_style::computed_value;
 }
