@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::Fallible;
 use dom::bindings::codegen::BlobBinding;
 use dom::window::Window;
 
@@ -30,6 +31,12 @@ impl Blob {
         }
         assert!(blob.reflector().get_jsobject().is_not_null());
         blob
+    }
+}
+
+impl Blob {
+    pub fn Constructor(window: @mut Window) -> Fallible<@mut Blob> {
+        Ok(Blob::new(window))
     }
 }
 
