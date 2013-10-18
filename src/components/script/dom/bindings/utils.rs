@@ -738,7 +738,6 @@ pub fn InitIds(cx: *JSContext, specs: &[JSPropertySpec], ids: &mut [jsid]) -> bo
 
 pub trait DerivedWrapper {
     fn wrap(&mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32;
-    fn wrap_shared(@mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32;
 }
 
 impl DerivedWrapper for AbstractNode<ScriptView> {
@@ -751,10 +750,6 @@ impl DerivedWrapper for AbstractNode<ScriptView> {
         }
         unsafe { *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, self)) };
         return 1;
-    }
-
-    fn wrap_shared(@mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
-        fail!(~"nyi")
     }
 }
 

@@ -4,14 +4,13 @@
 
 use dom::bindings::codegen::UIEventBinding;
 use dom::bindings::utils::{DOMString, Fallible};
-use dom::bindings::utils::{Reflectable, Reflector, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, Reflector, BindingObject};
 use dom::node::{AbstractNode, ScriptView};
 use dom::event::Event;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 
-use js::glue::RUST_OBJECT_TO_JSVAL;
-use js::jsapi::{JSObject, JSContext, JSVal};
+use js::jsapi::{JSObject, JSContext};
 
 pub struct UIEvent {
     parent: Event,
@@ -132,22 +131,5 @@ impl Reflectable for UIEvent {
 impl BindingObject for UIEvent {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.parent.GetParentObject(cx)
-    }
-}
-
-impl DerivedWrapper for UIEvent {
-    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
-        fail!(~"nyi")
-    }
-
-    #[fixed_stack_segment]
-    fn wrap_shared(@mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32 {
-        let obj = self.wrap_object_shared(cx, scope);
-        if obj.is_null() {
-            return 0;
-        } else {
-            unsafe { *vp = RUST_OBJECT_TO_JSVAL(obj) };
-            return 1;
-        }
     }
 }
