@@ -3,20 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::Fallible;
 use dom::bindings::codegen::BlobBinding;
-use script_task::{page_from_context};
+use dom::window::Window;
 
 use js::jsapi::{JSContext, JSObject};
 
 pub struct Blob {
-    reflector_: Reflector
+    reflector_: Reflector,
+    window: @mut Window,
 }
 
 impl Blob {
-    pub fn new() -> @mut Blob {
-        @mut Blob {
-            reflector_: Reflector::new()
+    pub fn new_inherited(window: @mut Window) -> Blob {
+        Blob {
+            reflector_: Reflector::new(),
+            window: window,
         }
+    }
+
+    pub fn new(window: @mut Window) -> @mut Blob {
+        let blob = @mut Blob::new_inherited(window);
+        let cx = window.get_cx();
+        let scope = window.reflector().get_jsobject();
+        if BlobBinding::Wrap(cx, scope, blob).is_null() {
+            fail!("BlobBinding::Wrap failed");
+        }
+        assert!(blob.reflector().get_jsobject().is_not_null());
+        blob
+    }
+}
+
+impl Blob {
+    pub fn Constructor(window: @mut Window) -> Fallible<@mut Blob> {
+        Ok(Blob::new(window))
     }
 }
 
@@ -29,14 +49,11 @@ impl Reflectable for Blob {
         &mut self.reflector_
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        BlobBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!();
     }
 
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
+        Some(self.window as @mut Reflectable)
     }
 }
