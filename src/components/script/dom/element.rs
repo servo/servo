@@ -18,15 +18,15 @@ use servo_util::tree::{TreeNodeRef, ElementLike};
 
 use js::jsapi::{JSContext, JSObject};
 
-use std::cell::Cell;
 use std::comm;
-use std::str::eq_slice;
+use std::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
 
 pub struct Element {
     node: Node<ScriptView>,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
-    attrs: ~[Attr],
+    attrs: HashMap<~str, ~str>,
+    attrs_list: ~[~str], // store an order of attributes.
     style_attribute: Option<Stylesheet>,
 }
 
@@ -131,15 +131,14 @@ impl ElementLike for Element {
     }
 
     fn get_attr<'a>(&'a self, name: &str) -> Option<&'a str> {
-        // FIXME: Need an each() that links lifetimes in Rust.
-        for attr in self.attrs.iter() {
-            // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
-            if attr.name.eq_ignore_ascii_case(name) {
-                let val: &str = attr.value;
-                return Some(val);
-            }
-        }
-        return None;
+        // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
+        let name = name.to_ascii_lower();
+        let value: Option<&str> = self.attrs.find_equiv(&name).map(|&value| {
+            let value: &str = *value;
+            value
+        });
+
+        return value;
     }
 }
 
@@ -148,7 +147,8 @@ impl<'self> Element {
         Element {
             node: Node::new(ElementNodeTypeId(type_id), document),
             tag_name: tag_name,
-            attrs: ~[],
+            attrs: HashMap::new(),
+            attrs_list: ~[],
             style_attribute: None,
         }
     }
@@ -157,19 +157,20 @@ impl<'self> Element {
                     abstract_self: AbstractNode<ScriptView>,
                     raw_name: &DOMString,
                     raw_value: &DOMString) {
-        let name = null_str_as_empty(raw_name);
-        let value_cell = Cell::new(null_str_as_empty(raw_value));
-        let mut found = false;
-        for attr in self.attrs.mut_iter() {
-            if eq_slice(attr.name, name) {
-                attr.value = value_cell.take().clone();
-                found = true;
-                break;
-            }
-        }
-        if !found {
-            self.attrs.push(Attr::new(name.to_str(), value_cell.take().clone()));
-        }
+        let name = null_str_as_empty(raw_name).to_ascii_lower();
+        let value = null_str_as_empty(raw_value);
+
+        // FIXME: reduce the time of `value.clone()`.
+        self.attrs.mangle(name.clone(), value.clone(),
+                          |new_name: &~str, new_value: ~str| {
+                              // register to the ordered list.
+                              self.attrs_list.push(new_name.clone());
+                              new_value
+                          },
+                          |_, old_value: &mut ~str, new_value: ~str| {
+                              // update value.
+                              *old_value = new_value;
+                          });
 
         if "style" == name {
             self.style_attribute = Some(
