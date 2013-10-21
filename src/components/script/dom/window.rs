@@ -253,16 +253,14 @@ impl Traceable for Window {
         unsafe {
             match self.page.frame {
                 Some(frame) => {
-                    do frame.document.with_base |doc| {
-                        (*tracer).debugPrinter = ptr::null();
-                        (*tracer).debugPrintIndex = -1;
-                        do "document".to_c_str().with_ref |name| {
-                            (*tracer).debugPrintArg = name as *libc::c_void;
-                            debug!("tracing document");
-                            JS_CallTracer(tracer as *JSTracer,
-                                          doc.reflector_.object,
-                                          JSTRACE_OBJECT as u32);
-                        }
+                    (*tracer).debugPrinter = ptr::null();
+                    (*tracer).debugPrintIndex = -1;
+                    do "document".to_c_str().with_ref |name| {
+                        (*tracer).debugPrintArg = name as *libc::c_void;
+                        debug!("tracing document");
+                        JS_CallTracer(tracer as *JSTracer,
+                                      frame.document.reflector().get_jsobject(),
+                                      JSTRACE_OBJECT as u32);
                     }
                 }
                 None => ()

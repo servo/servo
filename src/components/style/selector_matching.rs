@@ -171,8 +171,10 @@ fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
             };
             let mut node = element.clone();
             loop {
-                let next_node = do node.with_base |node| {
-                    if siblings { node.prev_sibling() } else { node.parent_node() }
+                let next_node = if siblings {
+                    node.node().prev_sibling()
+                } else {
+                    node.node().parent_node()
                 };
                 match next_node {
                     None => return false,

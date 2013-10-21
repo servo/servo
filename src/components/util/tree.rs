@@ -37,7 +37,7 @@ impl<Node, Ref: TreeNodeRef<Node>> Iterator<Ref> for ChildIterator<Ref> {
 
         // FIXME: Do we need two clones here?
         let x = self.current.get_ref().clone();
-        self.current = x.with_base(|n| TreeNodeRef::<Node>::next_sibling(n));
+        self.current = TreeNodeRef::<Node>::next_sibling(x.node());
         Some(x.clone())
     }
 }
@@ -54,7 +54,7 @@ impl<Node, Ref: TreeNodeRef<Node>> Iterator<Ref> for AncestorIterator<Ref> {
 
         // FIXME: Do we need two clones here?
         let x = self.current.get_ref().clone();
-        self.current = x.with_base(|n| TreeNodeRef::<Node>::parent_node(n));
+        self.current = TreeNodeRef::<Node>::parent_node(x.node());
         Some(x.clone())
     }
 }
@@ -98,11 +98,9 @@ pub trait TreeNodeRef<Node>: Clone {
     // Fundamental operations on refs.
 
     /// Borrows this node as immutable.
-    fn with_base<R>(&self, callback: &fn(&Node) -> R) -> R;
-
+    fn node<'a>(&'a self) -> &'a Node;
     /// Borrows this node as mutable.
-    fn with_mut_base<R>(&self, callback: &fn(&mut Node) -> R) -> R;
-
+    fn mut_node<'a>(&'a self) -> &'a mut Node;
 
     // Fundamental operations on nodes.
 
@@ -141,82 +139,73 @@ pub trait TreeNodeRef<Node>: Clone {
 
     /// Returns true if this node is disconnected from the tree or has no children.
     fn is_leaf(&self) -> bool {
-        do self.with_base |this_node| {
-            (get!(this_node, first_child)).is_none()
-        }
+        (get!(self.node(), first_child)).is_none()
     }
 
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
     fn add_child(&self, new_child: Self) {
-        do self.with_mut_base |this_node| {
-            do new_child.with_mut_base |new_child_node| {
-                assert!((get!(new_child_node, parent_node)).is_none());
-                assert!((get!(new_child_node, prev_sibling)).is_none());
-                assert!((get!(new_child_node, next_sibling)).is_none());
+        let this_node = self.mut_node();
+        let new_child_node = new_child.mut_node();
+        assert!((get!(new_child_node, parent_node)).is_none());
+        assert!((get!(new_child_node, prev_sibling)).is_none());
+        assert!((get!(new_child_node, next_sibling)).is_none());
 
-                match get!(this_node, last_child) {
-                    None => set!(this_node, set_first_child, Some(new_child.clone())),
-                    Some(last_child) => {
-                        do last_child.with_mut_base |last_child_node| {
-                            assert!((get!(last_child_node, next_sibling)).is_none());
-                            set!(last_child_node, set_next_sibling, Some(new_child.clone()));
-                            set!(new_child_node, set_prev_sibling, Some(last_child.clone()));
-                        }
-                    }
-                }
-
-                set!(this_node, set_last_child, Some(new_child.clone()));
-                set!(new_child_node, set_parent_node, Some((*self).clone()));
+        match get!(this_node, last_child) {
+            None => set!(this_node, set_first_child, Some(new_child.clone())),
+            Some(last_child) => {
+                let last_child_node = last_child.mut_node();
+                assert!((get!(last_child_node, next_sibling)).is_none());
+                set!(last_child_node, set_next_sibling, Some(new_child.clone()));
+                set!(new_child_node, set_prev_sibling, Some(last_child.clone()));
             }
         }
+
+        set!(this_node, set_last_child, Some(new_child.clone()));
+        set!(new_child_node, set_parent_node, Some((*self).clone()));
     }
 
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node. (FIXME: This is not yet checked.)
     fn remove_child(&self, child: Self) {
-        do self.with_mut_base |this_node| {
-            do child.with_mut_base |child_node| {
-                assert!((get!(child_node, parent_node)).is_some());
+        let this_node = self.mut_node();
+        let child_node = child.mut_node();
+        assert!((get!(child_node, parent_node)).is_some());
 
-                match get!(child_node, prev_sibling) {
-                    None => set!(this_node, set_first_child, get!(child_node, next_sibling)),
-                    Some(prev_sibling) => {
-                        do prev_sibling.with_mut_base |prev_sibling_node| {
-                            set!(prev_sibling_node, set_next_sibling, get!(child_node, next_sibling));
-                        }
-                    }
-                }
-
-                match get!(child_node, next_sibling) {
-                    None => set!(this_node, set_last_child, get!(child_node, prev_sibling)),
-                    Some(next_sibling) => {
-                        do next_sibling.with_mut_base |next_sibling_node| {
-                            set!(next_sibling_node, set_prev_sibling, get!(child_node, prev_sibling));
-                        }
-                    }
-                }
-
-                set!(child_node, set_prev_sibling, None);
-                set!(child_node, set_next_sibling, None);
-                set!(child_node, set_parent_node,  None);
+        match get!(child_node, prev_sibling) {
+            None => set!(this_node, set_first_child, get!(child_node, next_sibling)),
+            Some(prev_sibling) => {
+                let prev_sibling_node = prev_sibling.mut_node();
+                set!(prev_sibling_node, set_next_sibling, get!(child_node, next_sibling));
             }
         }
+
+        match get!(child_node, next_sibling) {
+            None => set!(this_node, set_last_child, get!(child_node, prev_sibling)),
+            Some(next_sibling) => {
+                let next_sibling_node = next_sibling.mut_node();
+                set!(next_sibling_node, set_prev_sibling, get!(child_node, prev_sibling));
+            }
+        }
+
+        set!(child_node, set_prev_sibling, None);
+        set!(child_node, set_next_sibling, None);
+        set!(child_node, set_parent_node,  None);
     }
 
     /// Iterates over all children of this node.
     fn children(&self) -> ChildIterator<Self> {
         ChildIterator {
-            current: self.with_base(|n| get!(n, first_child)),
+            current: get!(self.node(), first_child),
         }
     }
 
     /// Iterates over all ancestors of this node.
     fn ancestors(&self) -> AncestorIterator<Self> {
         AncestorIterator {
-            current: self.with_base(|n| get!(n, parent_node)),
+            current: get!(self.node(), parent_node),
         }
     }
 
