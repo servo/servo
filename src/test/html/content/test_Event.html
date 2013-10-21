@@ -4,16 +4,13 @@
 <script>
 is_function(Event, "Event");
 
-/* broken due to #1042
 let ev = new Event("foopy");
 is_a(ev, Event);
 
-// FIXME: assert correct values
-alert(ev.type);
-alert(ev.defaultPrevented);
+is(ev.type, 'foopy');
+is(ev.defaultPrevented, false);
 ev.preventDefault();
-alert(ev.defaultPrevented);
-*/
+is(ev.defaultPrevented, true);
 
 finish();
 </script>
