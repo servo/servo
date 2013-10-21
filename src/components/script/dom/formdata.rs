@@ -6,7 +6,7 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{DOMString, null_str_as_empty};
 use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
-use script_task::{page_from_context};
+use dom::window::Window;
 
 use js::jsapi::{JSObject, JSContext};
 
@@ -19,19 +19,28 @@ enum FormDatum {
 
 pub struct FormData {
     data: HashMap<~str, FormDatum>,
-    reflector_: Reflector
+    reflector_: Reflector,
+    window: @mut Window,
 }
 
 impl FormData {
-    pub fn new() -> @mut FormData {
-        @mut FormData {
+    pub fn new_inherited(window: @mut Window) -> FormData {
+        FormData {
             data: HashMap::new(),
-            reflector_: Reflector::new()
+            reflector_: Reflector::new(),
+            window: window,
         }
     }
 
-    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
-        self.wrap_object_shared(cx, scope);
+    pub fn new(window: @mut Window) -> @mut FormData {
+        let formdata = @mut FormData::new_inherited(window);
+        let cx = window.get_cx();
+        let scope = window.reflector().get_jsobject();
+        if FormDataBinding::Wrap(cx, scope, formdata).is_null() {
+            fail!("FormDataBinding::Wrap failed");
+        }
+        assert!(formdata.reflector().get_jsobject().is_not_null());
+        formdata
     }
 
     pub fn Append(&mut self, name: &DOMString, value: @mut Blob, filename: Option<DOMString>) {
@@ -56,14 +65,11 @@ impl Reflectable for FormData {
         &mut self.reflector_
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        FormDataBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!();
     }
 
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
+        Some(self.window as @mut Reflectable)
     }
 }
