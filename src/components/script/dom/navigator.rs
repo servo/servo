@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::codegen::NavigatorBinding;
 use dom::window::Window;
@@ -22,14 +22,7 @@ impl Navigator {
     }
 
     pub fn new(window: &Window) -> @mut Navigator {
-        let nav = @mut Navigator::new_inherited();
-        let cx = window.get_cx();
-        let scope = window.reflector().get_jsobject();
-        if NavigatorBinding::Wrap(cx, scope, nav).is_null() {
-            fail!("NavigatorBinding::Wrap failed");
-        }
-        assert!(nav.reflector().get_jsobject().is_not_null());
-        nav
+        reflect_dom_object(@mut Navigator::new_inherited(), window, NavigatorBinding::Wrap)
     }
 
     pub fn DoNotTrack(&self) -> DOMString {

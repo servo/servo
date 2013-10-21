@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, null_str_as_empty};
 use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
@@ -33,14 +33,7 @@ impl FormData {
     }
 
     pub fn new(window: @mut Window) -> @mut FormData {
-        let formdata = @mut FormData::new_inherited(window);
-        let cx = window.get_cx();
-        let scope = window.reflector().get_jsobject();
-        if FormDataBinding::Wrap(cx, scope, formdata).is_null() {
-            fail!("FormDataBinding::Wrap failed");
-        }
-        assert!(formdata.reflector().get_jsobject().is_not_null());
-        formdata
+        reflect_dom_object(@mut FormData::new_inherited(window), window, FormDataBinding::Wrap)
     }
 
     pub fn Append(&mut self, name: &DOMString, value: @mut Blob, filename: Option<DOMString>) {
