@@ -584,8 +584,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             declArgs = None
         templateBody = "${declName} = Some(${val}.to_object());"
         setToNullCode = "${declName} = None;"
-        template = wrapObjectTemplate(templateBody, type, setToNullCode,
-                                      failureCode)
+        template = wrapObjectTemplate(templateBody, False, type, failureCode)
         return (template, declType, None, isOptional, None) #XXX declArgs
 
     assert not (isEnforceRange and isClamp) # These are mutually exclusive
@@ -2160,16 +2159,16 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         #XXXjdm This self.descriptor.concrete check shouldn't be necessary
         if not self.descriptor.concrete or self.descriptor.proxy:
             body += """  let traps = ProxyTraps {
-    getPropertyDescriptor: getPropertyDescriptor,
-    getOwnPropertyDescriptor: getOwnPropertyDescriptor,
-    defineProperty: defineProperty,
+    getPropertyDescriptor: Some(getPropertyDescriptor),
+    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
+    defineProperty: Some(defineProperty),
     getOwnPropertyNames: ptr::null(),
     delete_: ptr::null(),
     enumerate: ptr::null(),
 
-    has: ptr::null(),
-    hasOwn: hasOwn,
-    get: get,
+    has: None,
+    hasOwn: Some(hasOwn),
+    get: Some(get),
     set: ptr::null(),
     keys: ptr::null(),
     iterate: ptr::null(),
@@ -2180,21 +2179,21 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     hasInstance: ptr::null(),
     typeOf: ptr::null(),
     objectClassIs: ptr::null(),
-    obj_toString: obj_toString,
+    obj_toString: Some(obj_toString),
     fun_toString: ptr::null(),
     //regexp_toShared: ptr::null(),
     defaultValue: ptr::null(),
     iteratorNext: ptr::null(),
-    finalize: %s,
+    finalize: Some(%s),
     getElementIfPresent: ptr::null(),
     getPrototypeOf: ptr::null(),
-    trace: %s
+    trace: Some(%s)
   };
   js_info.dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
                                            CreateProxyHandler(&traps, cast::transmute(&Class)));
 
 """ % (FINALIZE_HOOK_NAME,
-       ('Some(%s)' % TRACE_HOOK_NAME),
+       TRACE_HOOK_NAME,
        self.descriptor.name)
 
         return (body + """  let cx = js_info.js_context.deref().ptr;

@@ -10,8 +10,8 @@
 [NamedPropertiesObject]
 /*sealed*/ interface Window : EventTarget {
   // the current browsing context
-  /*[Unforgeable] readonly attribute WindowProxy window;
-    [Replaceable] readonly attribute WindowProxy self;*/
+  [Unforgeable] readonly attribute WindowProxy window;
+  [Replaceable] readonly attribute WindowProxy self;
   [Unforgeable] readonly attribute Document document;
            attribute DOMString name; 
   /* [PutForwards=href, Unforgeable] */ readonly attribute Location location;

@@ -59,6 +59,7 @@ pub mod dom {
     pub mod attr;
     pub mod attrlist;
     pub mod blob;
+    pub mod browsercontext;
     pub mod characterdata;
     pub mod clientrect;
     pub mod clientrectlist;

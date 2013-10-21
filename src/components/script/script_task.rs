@@ -8,7 +8,7 @@
 use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCast, EventCast};
 use dom::bindings::js::JS;
-use dom::bindings::utils::{Reflectable, GlobalStaticData, with_gc_enabled};
+use dom::bindings::utils::{Reflectable, GlobalStaticData, with_gc_enabled, wrap_for_same_compartment};
 use dom::document::{Document, HTMLDocument};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
@@ -31,7 +31,7 @@ use layout_interface;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use js::global::DEBUG_FNS;
-use js::jsapi::{JSObject, JS_InhibitGC, JS_AllowGC, JS_CallFunctionValue};
+use js::jsapi::{JSObject, JS_InhibitGC, JS_AllowGC, JS_CallFunctionValue, JS_SetWrapObjectCallbacks};
 use js::jsval::NullValue;
 use js::rust::{Compartment, Cx, CxUtils, RtUtils};
 use js;
@@ -427,6 +427,13 @@ impl Page {
         // Note that the order that these variables are initialized is _not_ arbitrary. Switching
         // them around can -- and likely will -- lead to things breaking.
 
+        unsafe {
+            JS_SetWrapObjectCallbacks(js_context.rt.deref().ptr,
+                                      ptr::null(),
+                                      wrap_for_same_compartment,
+                                      ptr::null());
+        }
+
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
 
@@ -790,12 +797,14 @@ impl ScriptTask {
 
         let cx = self.js_runtime.cx();
         // Create the window and document objects.
-        let window = Window::new(cx.deref().ptr,
-                                 page_tree.page.clone(),
-                                 self.chan.clone(),
-                                 self.compositor.dup(),
-                                 self.image_cache_task.clone());
+        let mut window = Window::new(cx.deref().ptr,
+                                     page_tree.page.clone(),
+                                     self.chan.clone(),
+                                     self.compositor.dup(),
+                                     self.image_cache_task.clone());
         page.initialize_js_info(cx.clone(), window.reflector().get_jsobject());
+        let mut document = Document::new(&window, Some(url.clone()), HTMLDocument, None);
+        window.get_mut().init_browser_context(document.clone());
 
         {
             let mut js_info = page.mut_js_info();
@@ -806,7 +815,6 @@ impl ScriptTask {
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
-        let mut document = Document::new(&window, Some(url.clone()), HTMLDocument, None);
         let html_parsing_result = hubbub_html_parser::parse_html(page,
                                                                  &mut document,
                                                                  url.clone(),
@@ -969,7 +977,8 @@ impl ScriptTask {
                     Some(ref frame) => {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                        let window_proxy = ptr::null();
+                        let win = frame.window.get();
+                        let window_proxy = win.browser_context.get_ref().window_proxy();
                         let mut uievent = UIEvent::new(&frame.window);
                         uievent.get_mut().InitUIEvent(~"resize", false, false, Some(window_proxy), 0i32);
                         let event: &mut JS<Event> = &mut EventCast::from(&uievent);
