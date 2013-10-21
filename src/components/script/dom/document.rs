@@ -88,11 +88,9 @@ impl AbstractDocument {
     }
 
     pub fn set_root(&self, root: AbstractNode<ScriptView>) {
-        assert!(root.traverse_preorder().all(|node| {
-            do node.with_base |node| {
-                node.owner_doc() == *self
-            }
-        }));
+        assert!(do root.traverse_preorder().all |node| {
+            node.node().owner_doc() == *self
+        });
         self.with_mut_base(|document| {
             document.root = Some(root);
             // Register elements having "id" attribute to the owner doc.
@@ -561,11 +559,9 @@ impl Traceable for Document {
                     do "root".to_c_str().with_ref |name| {
                         (*tracer).debugPrintArg = name as *libc::c_void;
                         debug!("tracing root node");
-                        do root.with_base |node| {
-                            JS_CallTracer(tracer as *JSTracer,
-                                          node.reflector_.object,
-                                          JSTRACE_OBJECT as u32);
-                        }
+                        JS_CallTracer(tracer as *JSTracer,
+                                      root.reflector().get_jsobject(),
+                                      JSTRACE_OBJECT as u32);
                     }
                 }
             }
