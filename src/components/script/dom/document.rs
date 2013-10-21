@@ -41,7 +41,7 @@ pub trait ReflectableDocument {
 
 #[deriving(Eq)]
 pub struct AbstractDocument {
-    document: *Document
+    document: *mut Box<Document>
 }
 
 impl AbstractDocument {
@@ -49,6 +49,18 @@ impl AbstractDocument {
         doc.init_reflector(cx);
         AbstractDocument {
             document: unsafe { cast::transmute(doc) }
+        }
+    }
+
+    pub fn document<'a>(&'a self) -> &'a Document {
+        unsafe {
+            &(*self.document).data
+        }
+    }
+
+    pub fn mut_document<'a>(&'a self) -> &'a mut Document {
+        unsafe {
+            &mut (*self.document).data
         }
     }
 
@@ -62,20 +74,8 @@ impl AbstractDocument {
         f(&mut (*box).data)
     }
 
-    pub fn with_base<R>(&self, callback: &fn(&Document) -> R) -> R {
-        unsafe {
-            self.transmute(callback)
-        }
-    }
-
-    pub fn with_mut_base<R>(&self, callback: &fn(&mut Document) -> R) -> R {
-        unsafe {
-            self.transmute_mut(callback)
-        }
-    }
-
     pub fn with_html<R>(&self, callback: &fn(&HTMLDocument) -> R) -> R {
-        match self.with_base(|doc| doc.doctype) {
+        match self.document().doctype {
             HTML => unsafe { self.transmute(callback) },
             _ => fail!("attempt to downcast a non-HTMLDocument to HTMLDocument")
         }
@@ -83,23 +83,20 @@ impl AbstractDocument {
 
     pub fn from_box<T>(ptr: *mut Box<T>) -> AbstractDocument {
         AbstractDocument {
-            document: ptr as *Document
+            document: ptr as *mut Box<Document>
         }
     }
 
     pub fn set_root(&self, root: AbstractNode<ScriptView>) {
-        assert!(root.traverse_preorder().all(|node| {
-            do node.with_base |node| {
-                node.owner_doc() == *self
-            }
-        }));
-        self.with_mut_base(|document| {
-            document.root = Some(root);
-            // Register elements having "id" attribute to the owner doc.
-            document.register_nodes_with_id(&root);
-
-            document.content_changed();
+        assert!(do root.traverse_preorder().all |node| {
+            node.node().owner_doc() == *self
         });
+
+        let document = self.mut_document();
+        document.root = Some(root);
+        // Register elements having "id" attribute to the owner doc.
+        document.register_nodes_with_id(&root);
+        document.content_changed();
     }
 }
 
@@ -154,19 +151,15 @@ impl ReflectableDocument for Document {
 
 impl Reflectable for AbstractDocument {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        do self.with_mut_base |doc| {
-            unsafe { cast::transmute(doc.reflector()) }
-        }
+        self.document().reflector()
     }
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        do self.with_mut_base |doc| {
-            unsafe { cast::transmute(doc.mut_reflector()) }
-        }
+        self.mut_document().mut_reflector()
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        match self.with_base(|doc| doc.doctype) {
+        match self.document().doctype {
             HTML => {
                 let doc: @mut HTMLDocument = unsafe { cast::transmute(self.document) };
                 doc.wrap_object_shared(cx, scope)
@@ -178,9 +171,7 @@ impl Reflectable for AbstractDocument {
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        do self.with_mut_base |doc| {
-            doc.GetParentObject(cx)
-        }
+        self.document().GetParentObject(cx)
     }
 }
 
@@ -561,11 +552,9 @@ impl Traceable for Document {
                     do "root".to_c_str().with_ref |name| {
                         (*tracer).debugPrintArg = name as *libc::c_void;
                         debug!("tracing root node");
-                        do root.with_base |node| {
-                            JS_CallTracer(tracer as *JSTracer,
-                                          node.reflector_.object,
-                                          JSTRACE_OBJECT as u32);
-                        }
+                        JS_CallTracer(tracer as *JSTracer,
+                                      root.reflector().get_jsobject(),
+                                      JSTRACE_OBJECT as u32);
                     }
                 }
             }

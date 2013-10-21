@@ -101,15 +101,11 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
 
 impl Reflectable for AbstractNode<ScriptView> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        do self.with_base |base| {
-            unsafe { cast::transmute(base.reflector()) }
-        }
+        self.node().reflector()
     }
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        do self.with_mut_base |base| {
-            unsafe { cast::transmute(base.reflector()) }
-        }
+        self.mut_node().mut_reflector()
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
@@ -117,9 +113,7 @@ impl Reflectable for AbstractNode<ScriptView> {
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        do self.with_mut_base |base| {
-            base.GetParentObject(cx)
-        }
+        self.node().GetParentObject(cx)
     }
 }
 

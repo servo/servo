@@ -214,9 +214,8 @@ impl<'self> Iterator<@mut Page> for PageTreeIterator<'self> {
 impl Page {
     /// Adds the given damage.
     fn damage(&mut self, level: DocumentDamageLevel) {
-        let root = do self.frame.get_ref().document.with_base |doc| {
-            doc.GetDocumentElement()
-        };
+        let root = self.frame.get_ref().document.document().
+            GetDocumentElement();
         match root {
             None => {},
             Some(root) => {
@@ -277,9 +276,7 @@ impl Page {
         let root = match self.frame {
             None => fail!(~"Tried to relayout with no root frame!"),
             Some(ref frame) => {
-                do frame.document.with_base |doc| {
-                    doc.GetDocumentElement()
-                }
+                frame.document.document().GetDocumentElement()
             }
         };
         match root {
@@ -804,9 +801,8 @@ impl ScriptTask {
             ClickEvent(_button, point) => {
                 debug!("ClickEvent: clicked at %?", point);
 
-                let root = do page.frame.expect("root frame is None").document.with_base |doc| {
-                    doc.GetDocumentElement()
-                };
+                let document = page.frame.expect("root frame is None").document;
+                let root = document.document().GetDocumentElement();
                 if root.is_none() {
                     return;
                 }

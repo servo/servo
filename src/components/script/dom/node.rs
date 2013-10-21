@@ -52,7 +52,7 @@ pub struct LayoutView;
 /// FIXME: This should be replaced with a trait once they can inherit from structs.
 #[deriving(Eq)]
 pub struct AbstractNode<View> {
-    priv obj: *mut Node<View>,
+    priv obj: *mut Box<Node<View>>,
 }
 
 pub struct AbstractNodeChildrenIterator<View> {
@@ -115,6 +115,18 @@ impl<View> Clone for AbstractNode<View> {
 }
 
 impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
+    fn node<'a>(&'a self) -> &'a Node<View> {
+        unsafe {
+            &(*self.obj).data
+        }
+    }
+
+    fn mut_node<'a>(&'a self) -> &'a mut Node<View> {
+        unsafe {
+            &mut (*self.obj).data
+        }
+    }
+
     fn parent_node(node: &Node<View>) -> Option<AbstractNode<View>> {
         node.parent_node
     }
@@ -145,15 +157,6 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
     }
     fn set_next_sibling(node: &mut Node<View>, new_next_sibling: Option<AbstractNode<View>>) {
         node.next_sibling = new_next_sibling
-    }
-
-    // FIXME: The duplication between `with_base` and `with_mut_base` is ugly.
-    fn with_base<R>(&self, callback: &fn(&Node<View>) -> R) -> R {
-        self.transmute(callback)
-    }
-
-    fn with_mut_base<R>(&self, callback: &fn(&mut Node<View>) -> R) -> R {
-        self.transmute_mut(callback)
     }
 
     fn is_element(&self) -> bool {
@@ -194,7 +197,7 @@ impl<'self, View> AbstractNode<View> {
     /// chain for nodes.
     pub fn from_box<T>(ptr: *mut Box<T>) -> AbstractNode<View> {
         AbstractNode {
-            obj: ptr as *mut Node<View>
+            obj: ptr as *mut Box<Node<View>>
         }
     }
 
@@ -202,32 +205,32 @@ impl<'self, View> AbstractNode<View> {
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
     pub fn type_id(self) -> NodeTypeId {
-        self.with_base(|b| b.type_id)
+        self.node().type_id
     }
 
     /// Returns the parent node of this node. Fails if this node is borrowed mutably.
     pub fn parent_node(self) -> Option<AbstractNode<View>> {
-        self.with_base(|b| b.parent_node)
+        self.node().parent_node
     }
 
     /// Returns the first child of this node. Fails if this node is borrowed mutably.
     pub fn first_child(self) -> Option<AbstractNode<View>> {
-        self.with_base(|b| b.first_child)
+        self.node().first_child
     }
 
     /// Returns the last child of this node. Fails if this node is borrowed mutably.
     pub fn last_child(self) -> Option<AbstractNode<View>> {
-        self.with_base(|b| b.last_child)
+        self.node().last_child
     }
 
     /// Returns the previous sibling of this node. Fails if this node is borrowed mutably.
     pub fn prev_sibling(self) -> Option<AbstractNode<View>> {
-        self.with_base(|b| b.prev_sibling)
+        self.node().prev_sibling
     }
 
     /// Returns the next sibling of this node. Fails if this node is borrowed mutably.
     pub fn next_sibling(self) -> Option<AbstractNode<View>> {
-        self.with_base(|b| b.next_sibling)
+        self.node().next_sibling
     }
 
     /// Is this node a root?
@@ -381,11 +384,11 @@ impl<'self, View> AbstractNode<View> {
         self.type_id() == ElementNodeTypeId(HTMLStyleElementTypeId)
     }
 
-    pub unsafe fn raw_object(self) -> *mut Node<View> {
+    pub unsafe fn raw_object(self) -> *mut Box<Node<View>> {
         self.obj
     }
 
-    pub fn from_raw(raw: *mut Node<View>) -> AbstractNode<View> {
+    pub fn from_raw(raw: *mut Box<Node<View>>) -> AbstractNode<View> {
         AbstractNode {
             obj: raw
         }
@@ -425,28 +428,25 @@ impl<'self, View> AbstractNode<View> {
 
     // Issue #1030: should not walk the tree
     pub fn is_in_doc(&self) -> bool {
-        do self.with_base |node| {
-            do node.owner_doc().with_base |document| {
-                match document.GetDocumentElement() {
-                    None => false,
-                    Some(root) => {
-                        let mut node = *self;
-                        let mut in_doc;
-                        loop {
-                            match node.parent_node() {
-                                Some(parent) => {
-                                    node = parent;
-                                },
-                                None => {
-                                    // Issue #1029: this is horrible.
-                                    in_doc = unsafe { node.raw_object() as uint == root.raw_object() as uint };
-                                    break;
-                                }
-                            }
+        let document = self.node().owner_doc();
+        match document.document().GetDocumentElement() {
+            None => false,
+            Some(root) => {
+                let mut node = *self;
+                let mut in_doc;
+                loop {
+                    match node.parent_node() {
+                        Some(parent) => {
+                            node = parent;
+                        },
+                        None => {
+                            // Issue #1029: this is horrible.
+                            in_doc = unsafe { node.raw_object() as uint == root.raw_object() as uint };
+                            break;
                         }
-                        in_doc
                     }
                 }
+                in_doc
             }
         }
     }
@@ -486,34 +486,24 @@ impl Node<ScriptView> {
         let mut cur_node = self.first_child;
         while cur_node.is_some() {
             for node in cur_node.unwrap().traverse_preorder() {
-                do node.with_mut_base |node_base| {
-                    node_base.set_owner_doc(doc);
-                }
+                node.mut_node().set_owner_doc(doc);
             };
             cur_node = cur_node.unwrap().next_sibling();
         }
 
         // Unregister elements having "id' from the old doc.
-        do old_doc.with_mut_base |old_doc| {
-            old_doc.unregister_nodes_with_id(&abstract_self);
-        }
+        old_doc.mut_document().unregister_nodes_with_id(&abstract_self);
 
         // Register elements having "id" attribute to the owner doc.
-        do doc.with_mut_base |doc| {
-            doc.register_nodes_with_id(&abstract_self);
-        }
+        doc.mut_document().register_nodes_with_id(&abstract_self);
 
         // Signal the old document that it needs to update its display
         if old_doc != doc {
-            do old_doc.with_base |old_doc| {
-                old_doc.content_changed();
-            }
+            old_doc.document().content_changed();
         }
 
         // Signal the new document that it needs to update its display
-        do doc.with_base |doc| {
-            doc.content_changed();
-        }
+        doc.document().content_changed();
     }
 
     pub fn new(type_id: NodeTypeId, doc: AbstractDocument) -> Node<ScriptView> {
@@ -683,7 +673,7 @@ impl Node<ScriptView> {
     }
 
     pub fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let win = self.owner_doc().with_base(|doc| doc.window);
+        let win = self.owner_doc().document().window;
         (win.reflector().get_jsobject(), win.get_cx())
     }
 
@@ -715,10 +705,8 @@ impl Node<ScriptView> {
             let node = if is_empty {
                 None
             } else {
-                let text_node = do self.owner_doc().with_base |document| {
-                    document.CreateTextNode(self.owner_doc(), value)
-                };
-                Some(text_node)
+                let document = self.owner_doc();
+                Some(document.document().CreateTextNode(document, value))
             };
             self.replace_all(abstract_self, node);
           }
@@ -729,9 +717,8 @@ impl Node<ScriptView> {
                 characterdata.data = null_str_as_empty(value);
 
                 // Notify the document that the content of this node is different
-                do self.owner_doc().with_base |doc| {
-                    doc.content_changed();
-                }
+                let document = self.owner_doc();
+                document.document().content_changed();
             }
           }
           DoctypeNodeTypeId => {}
@@ -744,9 +731,8 @@ impl Node<ScriptView> {
     }
 
     fn wait_until_safe_to_modify_dom(&self) {
-        do self.owner_doc().with_base |doc| {
-            doc.wait_until_safe_to_modify_dom();
-        }
+        let document = self.owner_doc();
+        document.document().wait_until_safe_to_modify_dom();
     }
 
     pub fn AppendChild(&mut self,
@@ -784,9 +770,7 @@ impl Node<ScriptView> {
         // If the node already exists it is removed from current parent node.
         node.parent_node().map(|parent| parent.remove_child(node));
         abstract_self.add_child(node);
-        do node.with_mut_base |node| {
-            node.add_to_doc(abstract_self, self.owner_doc());
-        }
+        node.mut_node().add_to_doc(node, self.owner_doc());
         Ok(node)
     }
 
@@ -813,15 +797,12 @@ impl Node<ScriptView> {
 
         // Unregister elements having "id' from the owner doc.
         // This need be called before target nodes are removed from tree.
-        do self.owner_doc.with_mut_base |doc| {
-            doc.unregister_nodes_with_id(&abstract_self);
-        }
+        self.owner_doc.mut_document().unregister_nodes_with_id(&abstract_self);
 
         abstract_self.remove_child(node);
         // Signal the document that it needs to update its display.
-        do self.owner_doc().with_base |document| {
-            document.content_changed();
-        }
+        let document = self.owner_doc();
+        document.document().content_changed();
         Ok(node)
     }
 
@@ -949,14 +930,10 @@ impl AbstractNode<LayoutView> {
     // Node.  Also this makes it easier to switch to RWArc if we decide that is
     // necessary.
     pub fn read_layout_data<R>(self, blk: &fn(data: &LayoutData) -> R) -> R {
-        do self.with_base |b| {
-            blk(&b.layout_data)
-        }
+        blk(&self.node().layout_data)
     }
 
     pub fn write_layout_data<R>(self, blk: &fn(data: &mut LayoutData) -> R) -> R {
-        do self.with_mut_base |b| {
-            blk(&mut b.layout_data)
-        }
+        blk(&mut self.mut_node().layout_data)
     }
 }
