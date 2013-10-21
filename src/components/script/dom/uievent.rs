@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::UIEventBinding;
 use dom::bindings::utils::{DOMString, Fallible};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{AbstractNode, ScriptView};
 use dom::event::Event;
 use dom::window::Window;
@@ -21,10 +21,10 @@ pub struct UIEvent {
 }
 
 impl UIEvent {
-    pub fn new(type_: &DOMString, can_bubble: bool, cancelable: bool,
-               view: Option<@mut WindowProxy>, detail: i32) -> UIEvent {
+    pub fn new_inherited(type_: &DOMString, can_bubble: bool, cancelable: bool,
+                         view: Option<@mut WindowProxy>, detail: i32) -> UIEvent {
         UIEvent {
-            parent: Event::new(type_),
+            parent: Event::new_inherited(type_),
             can_bubble: can_bubble,
             cancelable: cancelable,
             view: view,
@@ -32,15 +32,22 @@ impl UIEvent {
         }
     }
 
+    pub fn new(window: @mut Window, type_: &DOMString, can_bubble: bool, cancelable: bool,
+               view: Option<@mut WindowProxy>, detail: i32) -> @mut UIEvent {
+        reflect_dom_object(@mut UIEvent::new_inherited(type_, can_bubble, cancelable, view, detail),
+                           window,
+                           UIEventBinding::Wrap)
+    }
+
     pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
         self.wrap_object_shared(cx, scope);
     }
 
-    pub fn Constructor(_owner: @mut Window,
+    pub fn Constructor(owner: @mut Window,
                        type_: &DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<@mut UIEvent> {
-        Ok(@mut UIEvent::new(type_, init.parent.bubbles, init.parent.cancelable,
-                             init.view, init.detail))
+        Ok(UIEvent::new(owner, type_, init.parent.bubbles, init.parent.cancelable,
+                        init.view, init.detail))
     }
 
     pub fn GetView(&self) -> Option<@mut WindowProxy> {
@@ -123,8 +130,8 @@ impl Reflectable for UIEvent {
         self.parent.mut_reflector()
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        UIEventBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!()
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
