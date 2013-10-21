@@ -7,14 +7,9 @@
 use std::num::Zero;
 use geom::side_offsets::SideOffsets2D;
 use servo_util::geometry::Au;
-use newcss::complete::CompleteStyle;
-use newcss::units::{Length, Em, Px};
-use newcss::values::{CSSBorderWidth, CSSBorderWidthLength, CSSBorderWidthMedium};
-use newcss::values::{CSSBorderWidthThick, CSSBorderWidthThin, CSSFontSize, CSSFontSizeLength};
-use newcss::values::{CSSWidth, CSSWidthLength, CSSWidthPercentage, CSSWidthAuto};
-use newcss::values::{CSSHeight, CSSHeightLength, CSSHeightPercentage, CSSHeightAuto};
-use newcss::values::{CSSMargin, CSSMarginLength, CSSMarginPercentage, CSSMarginAuto};
-use newcss::values::{CSSPadding, CSSPaddingLength, CSSPaddingPercentage};
+use style::ComputedValues;
+use style::properties::common_types::computed;
+
 /// Encapsulates the borders, padding, and margins, which we collectively call the "box model".
 pub struct BoxModel {
     border: SideOffsets2D<Au>,
@@ -24,18 +19,6 @@ pub struct BoxModel {
     content_box_width: Au,
 }
 
-fn from_length(length: Length, font_size: CSSFontSize) -> Au {
-    match length {
-        Px(v) => Au::from_frac_px(v as f64),
-        Em(em) => {
-            match font_size {
-                CSSFontSizeLength(Px(v)) => Au::from_frac_px((em * v) as f64),
-                _ => fail!("expected non-relative font size")
-            }
-        }
-    }
-}
-
 /// Useful helper data type when computing values for blocks and positioned elements.
 pub enum MaybeAuto {
     Auto,
@@ -43,27 +26,11 @@ pub enum MaybeAuto {
 }
 
 impl MaybeAuto {
-    pub fn from_margin(margin: CSSMargin, containing_width: Au, font_size: CSSFontSize) -> MaybeAuto {
-        match margin {
-            CSSMarginAuto => Auto,
-            CSSMarginPercentage(percent) => Specified(containing_width.scale_by(percent as f64 / 100.0f64)),
-            CSSMarginLength(length) => Specified(from_length(length, font_size))
-        }
-    }
-
-    pub fn from_width(width: CSSWidth, containing_width: Au, font_size: CSSFontSize) -> MaybeAuto {
-        match width {
-            CSSWidthAuto => Auto,
-            CSSWidthPercentage(percent) => Specified(containing_width.scale_by(percent as f64 / 100.0f64)),
-            CSSWidthLength(length) => Specified(from_length(length, font_size))
-        }
-    }
-
-    pub fn from_height(height: CSSHeight, cb_height: Au, font_size: CSSFontSize) -> MaybeAuto {
-        match height {
-            CSSHeightAuto => Auto,
-            CSSHeightPercentage(percent) => Specified(cb_height.scale_by(percent as f64 / 100.0f64)),
-            CSSHeightLength(length) => Specified(from_length(length, font_size))
+    pub fn from_style(length: computed::LengthOrPercentageOrAuto, containing_length: Au) -> MaybeAuto {
+        match length {
+            computed::LPA_Auto => Auto,
+            computed::LPA_Percentage(percent) => Specified(containing_length.scale_by(percent)),
+            computed::LPA_Length(length) => Specified(length)
         }
     }
 
@@ -96,19 +63,19 @@ impl Zero for BoxModel {
 
 impl BoxModel {
     /// Populates the box model parameters from the given computed style.
-    pub fn compute_borders(&mut self, style: CompleteStyle) {
+    pub fn compute_borders(&mut self, style: &ComputedValues) {
         // Compute the borders.
-        self.border.top = self.compute_border_width(style.border_top_width(), style.font_size());
-        self.border.right = self.compute_border_width(style.border_right_width(), style.font_size());
-        self.border.bottom = self.compute_border_width(style.border_bottom_width(), style.font_size());
-        self.border.left = self.compute_border_width(style.border_left_width(), style.font_size());
+        self.border.top = style.Border.border_top_width;
+        self.border.right = style.Border.border_right_width;
+        self.border.bottom = style.Border.border_bottom_width;
+        self.border.left = style.Border.border_left_width;
     }
 
-    pub fn compute_padding(&mut self, style: CompleteStyle, containing_width: Au) {
-        self.padding.top = self.compute_padding_length(style.padding_top(), containing_width, style.font_size());
-        self.padding.right = self.compute_padding_length(style.padding_right(), containing_width, style.font_size());
-        self.padding.bottom = self.compute_padding_length(style.padding_bottom(), containing_width, style.font_size());
-        self.padding.left = self.compute_padding_length(style.padding_left(), containing_width, style.font_size());
+    pub fn compute_padding(&mut self, style: &ComputedValues, containing_width: Au) {
+        self.padding.top = self.compute_padding_length(style.Padding.padding_top, containing_width);
+        self.padding.right = self.compute_padding_length(style.Padding.padding_right, containing_width);
+        self.padding.bottom = self.compute_padding_length(style.Padding.padding_bottom, containing_width);
+        self.padding.left = self.compute_padding_length(style.Padding.padding_left, containing_width);
     }
 
     pub fn noncontent_width(&self) -> Au {
@@ -127,20 +94,10 @@ impl BoxModel {
         self.margin.left + self.border.left + self.padding.left
     }
 
-    /// Helper function to compute the border width in app units from the CSS border width.
-    pub fn compute_border_width(&self, width: CSSBorderWidth, font_size: CSSFontSize) -> Au {
-        match width {
-            CSSBorderWidthLength(length) => from_length(length, font_size),
-            CSSBorderWidthThin => Au::from_px(1),
-            CSSBorderWidthMedium => Au::from_px(5),
-            CSSBorderWidthThick => Au::from_px(10),
-        }
-    }
-
-    pub fn compute_padding_length(&self, padding: CSSPadding, content_box_width: Au, font_size: CSSFontSize) -> Au {
+    pub fn compute_padding_length(&self, padding: computed::LengthOrPercentage, content_box_width: Au) -> Au {
         match padding {
-            CSSPaddingLength(length) => from_length(length, font_size),
-            CSSPaddingPercentage(p) => content_box_width.scale_by(p as f64 / 100.0f64)
+            computed::LP_Length(length) => length,
+            computed::LP_Percentage(p) => content_box_width.scale_by(p)
         }
     }
 }

@@ -10,7 +10,7 @@ use std::cast::transmute;
 use script::dom::node::AbstractNode;
 
 use gfx;
-use newcss;
+use style;
 
 /// Display list data is usually an AbstractNode with view () to indicate
 /// that nodes in this view shoud not really be touched. The idea is to
@@ -61,9 +61,9 @@ pub trait ToGfxColor {
     fn to_gfx_color(&self) -> gfx::color::Color;
 }
 
-impl ToGfxColor for newcss::color::Color {
+impl ToGfxColor for style::properties::RGBA {
     fn to_gfx_color(&self) -> gfx::color::Color {
-        gfx::color::rgba(self.red, self.green, self.blue, self.alpha as f64)
+        gfx::color::rgba(self.red, self.green, self.blue, self.alpha)
     }
 }
 

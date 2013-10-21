@@ -16,7 +16,7 @@
 
 use color::Color;
 use servo_util::geometry::Au;
-use newcss::values::CSSBorderStyle;
+use style::computed_values::border_style;
 use render_context::RenderContext;
 use text::SendableTextRun;
 
@@ -25,8 +25,6 @@ use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use servo_net::image::base::Image;
 use servo_util::range::Range;
 use extra::arc::Arc;
-
-use newcss::values::{CSSTextDecorationUnderline, CSSTextDecorationOverline, CSSTextDecorationLineThrough};
 
 /// A list of rendering operations to be performed.
 pub struct DisplayList<E> {
@@ -110,7 +108,7 @@ pub struct BorderDisplayItem<E> {
     color: SideOffsets2D<Color>,
 
     /// The border styles.
-    style: SideOffsets2D<CSSBorderStyle>
+    style: SideOffsets2D<border_style::T>
 }
 
 impl<E> DisplayItem<E> {
@@ -143,25 +141,22 @@ impl<E> DisplayItem<E> {
                 let strikeout_size = font.metrics.strikeout_size;
                 let strikeout_offset = font.metrics.strikeout_offset;
 
-                match new_run.decoration {
-                    CSSTextDecorationUnderline => {
-                        let underline_y = baseline_origin.y - underline_offset;
-                        let underline_bounds = Rect(Point2D(baseline_origin.x, underline_y),
-                                                    Size2D(width, underline_size));
-                        render_context.draw_solid_color(&underline_bounds, text.color);
-                    },
-                    CSSTextDecorationOverline => {
-                        let overline_bounds = Rect(Point2D(baseline_origin.x, origin.y),
-                                                   Size2D(width, underline_size));
-                        render_context.draw_solid_color(&overline_bounds, text.color);
-                    },
-                    CSSTextDecorationLineThrough => {
-                        let strikeout_y = baseline_origin.y - strikeout_offset;
-                        let strikeout_bounds = Rect(Point2D(baseline_origin.x, strikeout_y),
-                                                    Size2D(width, strikeout_size));
-                        render_context.draw_solid_color(&strikeout_bounds, text.color);
-                    },
-                    _ => ()
+                if new_run.decoration.underline {
+                    let underline_y = baseline_origin.y - underline_offset;
+                    let underline_bounds = Rect(Point2D(baseline_origin.x, underline_y),
+                                                Size2D(width, underline_size));
+                    render_context.draw_solid_color(&underline_bounds, text.color);
+                }
+                if new_run.decoration.overline {
+                    let overline_bounds = Rect(Point2D(baseline_origin.x, origin.y),
+                                               Size2D(width, underline_size));
+                    render_context.draw_solid_color(&overline_bounds, text.color);
+                }
+                if new_run.decoration.line_through {
+                    let strikeout_y = baseline_origin.y - strikeout_offset;
+                    let strikeout_bounds = Rect(Point2D(baseline_origin.x, strikeout_y),
+                                                Size2D(width, strikeout_size));
+                    render_context.draw_solid_color(&strikeout_bounds, text.color);
                 }
             }
 

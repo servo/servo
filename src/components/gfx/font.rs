@@ -28,7 +28,7 @@ use servo_util::time;
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
 
-use newcss::values::CSSTextDecoration;
+use style::computed_values::text_decoration;
 
 // FontHandle encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables
@@ -195,7 +195,7 @@ impl FontGroup {
         self.fonts = ~[];
     }
 
-    pub fn create_textrun(&self, text: ~str, decoration: CSSTextDecoration) -> TextRun {
+    pub fn create_textrun(&self, text: ~str, decoration: text_decoration::T) -> TextRun {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.

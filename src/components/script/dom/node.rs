@@ -25,7 +25,8 @@ use std::unstable::raw::Box;
 use extra::arc::Arc;
 use js::jsapi::{JSObject, JSContext};
 use netsurfcss::util::VoidPtrLike;
-use newcss::complete::CompleteSelectResults;
+use style::ComputedValues;
+use style::properties::PropertyDeclaration;
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement};
 use servo_util::range::Range;
 use gfx::display_list::DisplayList;
@@ -904,8 +905,11 @@ pub struct DisplayBoxes {
 
 /// Data that layout associates with a node.
 pub struct LayoutData {
+    /// The results of CSS matching for this node.
+    applicable_declarations: ~[@[PropertyDeclaration]],
+
     /// The results of CSS styling for this node.
-    style: Option<CompleteSelectResults>,
+    style: Option<ComputedValues>,
 
     /// Description of how to account for recent style changes.
     restyle_damage: Option<int>,
@@ -919,6 +923,7 @@ impl LayoutData {
     /// Creates new layout data.
     pub fn new() -> LayoutData {
         LayoutData {
+            applicable_declarations: ~[],
             style: None,
             restyle_damage: None,
             boxes: DisplayBoxes { display_list: None, range: None },

@@ -18,13 +18,9 @@ use std::util;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
-use newcss::units::{Em, Px};
-use newcss::values::{CSSFontSizeLength};
-use newcss::values::{CSSTextAlignLeft, CSSTextAlignCenter, CSSTextAlignRight, CSSTextAlignJustify};
-use newcss::values::{CSSLineHeightNormal, CSSLineHeightNumber, CSSLineHeightLength, CSSLineHeightPercentage};
-use newcss::values::{CSSVerticalAlignBaseline, CSSVerticalAlignMiddle, CSSVerticalAlignSub, CSSVerticalAlignSuper, 
-                     CSSVerticalAlignTextTop, CSSVerticalAlignTextBottom, CSSVerticalAlignTop, CSSVerticalAlignBottom, 
-                     CSSVerticalAlignLength, CSSVerticalAlignPercentage};
+use style::computed_values::line_height;
+use style::computed_values::text_align;
+use style::computed_values::vertical_align;
 use servo_util::range::Range;
 use servo_util::tree::TreeNodeRef;
 use extra::container::Deque;
@@ -171,11 +167,9 @@ impl LineboxScanner {
 
     fn calculate_line_height(&self, box: RenderBox, font_size: Au) -> Au { 
         match box.line_height() {
-            CSSLineHeightNormal => font_size.scale_by(1.14f64),
-            CSSLineHeightNumber(l) => font_size.scale_by(l as f64),
-            CSSLineHeightLength(Em(l)) => font_size.scale_by(l as f64),
-            CSSLineHeightLength(Px(l)) => Au::from_frac_px(l as f64),
-            CSSLineHeightPercentage(p) => font_size.scale_by(p as f64 / 100.0f64)
+            line_height::Normal => font_size.scale_by(1.14),
+            line_height::Number(l) => font_size.scale_by(l),
+            line_height::Length(l) => l
         }
     }
 
@@ -628,7 +622,7 @@ impl InlineFlowData {
                 linebox_align = first_box.text_align();
             } else {
                 // Nothing to lay out, so assume left alignment.
-                linebox_align = CSSTextAlignLeft;
+                linebox_align = text_align::left;
             }
 
             // Set the box x positions
@@ -636,7 +630,7 @@ impl InlineFlowData {
             match linebox_align {
                 // So sorry, but justified text is more complicated than shuffling linebox coordinates.
                 // TODO(Issue #213): implement `text-align: justify`
-                CSSTextAlignLeft | CSSTextAlignJustify => {
+                text_align::left | text_align::justify => {
                     for i in line.range.eachi() {
                         do self.boxes[i].with_mut_base |base| {
                             base.position.origin.x = offset_x;
@@ -644,8 +638,8 @@ impl InlineFlowData {
                         }
                     }
                 }
-                CSSTextAlignCenter => {
-                    offset_x = offset_x + slack_width.scale_by(0.5f64);
+                text_align::center => {
+                    offset_x = offset_x + slack_width.scale_by(0.5);
                     for i in line.range.eachi() {
                         do self.boxes[i].with_mut_base |base| {
                             base.position.origin.x = offset_x;
@@ -653,7 +647,7 @@ impl InlineFlowData {
                         }
                     }
                 }
-                CSSTextAlignRight => {
+                text_align::right => {
                     offset_x = offset_x + slack_width;
                     for i in line.range.eachi() {
                         do self.boxes[i].with_mut_base |base| {
@@ -715,7 +709,7 @@ impl InlineFlowData {
                         let text_ascent = text_box.run.font.metrics.ascent;
                        
                         // Offset from the top of the box is 1/2 of the leading + ascent
-                        let text_offset = text_ascent + (line_height - em_size).scale_by(0.5f64);
+                        let text_offset = text_ascent + (line_height - em_size).scale_by(0.5);
                         text_bounds.translate(&Point2D(text_box.base.position.origin.x, Au(0)));
 
                         (text_offset, line_height - text_offset, text_ascent)
@@ -751,14 +745,8 @@ impl InlineFlowData {
                         Some(parent) => parent,
                     };
 
-                    // TODO: When the calculation of font-size style is supported, it should be updated.
-                    let font_size = match parent.style().font_size() {
-                        CSSFontSizeLength(Px(length)) => length as f64,
-                        // todo: this is based on a hard coded font size, should be the parent element's font size
-                        CSSFontSizeLength(Em(length)) => length as f64 * 16f64,
-                        _ => 16f64 // px units
-                    };
-                    parent_text_top = Au::from_frac_px(font_size);
+                    let font_size = parent.style().Font.font_size;
+                    parent_text_top = font_size;
                 }
 
                 // This flag decides whether topmost and bottommost are updated or not.
@@ -766,41 +754,41 @@ impl InlineFlowData {
                 let mut no_update_flag = false;
                 // Calculate a relative offset from baseline.
                 let offset = match cur_box.vertical_align() {
-                    CSSVerticalAlignBaseline => {
+                    vertical_align::baseline => {
                         -ascent
                     },
-                    CSSVerticalAlignMiddle => {
+                    vertical_align::middle => {
                         // TODO: x-height value should be used from font info.
                         let xheight = Au(0);
                         -(xheight + scanner.box_height(cur_box)).scale_by(0.5)
                     },
-                    CSSVerticalAlignSub => {
+                    vertical_align::sub => {
                         // TODO: The proper position for subscripts should be used.
                         // Lower the baseline to the proper position for subscripts
                         let sub_offset = Au(0);
                         (sub_offset - ascent)
                     },
-                    CSSVerticalAlignSuper => {
+                    vertical_align::super_ => {
                         // TODO: The proper position for superscripts should be used.
                         // Raise the baseline to the proper position for superscripts
                         let super_offset = Au(0);
                         (-super_offset - ascent)
                     },
-                    CSSVerticalAlignTextTop => {
+                    vertical_align::text_top => {
                         let box_height = top_from_base + bottom_from_base;
                         let prev_bottom_from_base = bottom_from_base;
                         top_from_base = parent_text_top;
                         bottom_from_base = box_height - top_from_base;
                         (bottom_from_base - prev_bottom_from_base - ascent)
                     },
-                    CSSVerticalAlignTextBottom => {
+                    vertical_align::text_bottom => {
                         let box_height = top_from_base + bottom_from_base;
                         let prev_bottom_from_base = bottom_from_base;
                         bottom_from_base = parent_text_bottom;
                         top_from_base = box_height - bottom_from_base;
                         (bottom_from_base - prev_bottom_from_base - ascent)
                     },
-                    CSSVerticalAlignTop => {
+                    vertical_align::top => {
                         if biggest_top < (top_from_base + bottom_from_base) {
                             biggest_top = top_from_base + bottom_from_base;
                         }
@@ -808,7 +796,7 @@ impl InlineFlowData {
                         no_update_flag = true;
                         offset_top
                     },
-                    CSSVerticalAlignBottom => {
+                    vertical_align::bottom => {
                         if biggest_bottom < (top_from_base + bottom_from_base) {
                             biggest_bottom = top_from_base + bottom_from_base;
                         }
@@ -816,17 +804,13 @@ impl InlineFlowData {
                         no_update_flag = true;
                         offset_bottom
                     },
-                    CSSVerticalAlignLength(length) => {
-                        let length_offset = match length {
-                            Em(l) => Au::from_frac_px(cur_box.font_style().pt_size * l as f64),
-                            Px(l) => Au::from_frac_px(l as f64),
-                        };
-                        -(length_offset + ascent)
+                    vertical_align::Length(length) => {
+                        -(length + ascent)
                     },
-                    CSSVerticalAlignPercentage(p) => {
+                    vertical_align::Percentage(p) => {
                         let pt_size = cur_box.font_style().pt_size; 
                         let line_height = scanner.calculate_line_height(cur_box, Au::from_pt(pt_size));
-                        let percent_offset = line_height.scale_by(p as f64 / 100.0f64);
+                        let percent_offset = line_height.scale_by(p);
                         -(percent_offset + ascent)
                     }
                 };
@@ -866,10 +850,10 @@ impl InlineFlowData {
             for box_i in line.range.eachi() {
                 let cur_box = self.boxes[box_i];
                 let adjust_offset = match cur_box.vertical_align() {
-                    CSSVerticalAlignTop => {
+                    vertical_align::top => {
                         Au(0)
                     },
-                    CSSVerticalAlignBottom => {
+                    vertical_align::bottom => {
                         baseline_offset + bottommost
                     },
                     _ => {

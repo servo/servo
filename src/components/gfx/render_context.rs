@@ -5,8 +5,7 @@
 use servo_msg::compositor_msg::LayerBuffer;
 use servo_util::geometry::Au;
 use font_context::FontContext;
-use newcss::values::CSSBorderStyle;
-use newcss::values::{CSSBorderStyleNone, CSSBorderStyleHidden, CSSBorderStyleDotted, CSSBorderStyleDashed, CSSBorderStyleSolid, CSSBorderStyleDouble, CSSBorderStyleGroove, CSSBorderStyleRidge, CSSBorderStyleInset, CSSBorderStyleOutset};
+use style::computed_values::border_style;
 use opts::Opts;
 
 use azure::azure_hl::{B8G8R8A8, Color, ColorPattern, DrawOptions};
@@ -44,7 +43,7 @@ impl<'self> RenderContext<'self>  {
                        bounds: &Rect<Au>,
                        border: SideOffsets2D<Au>,
                        color: SideOffsets2D<Color>,
-                       style: SideOffsets2D<CSSBorderStyle>) {
+                       style: SideOffsets2D<border_style::T>) {
         let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
         let rect = bounds.to_azure_rect();
         let border = border.to_float_px();
@@ -113,14 +112,14 @@ impl<'self> RenderContext<'self>  {
         self.canvas.draw_target.fill_rect(&rect, &pattern);
     }
 
-    fn apply_border_style(style: CSSBorderStyle, border_width: AzFloat, dash: &mut [AzFloat], stroke_opts: &mut StrokeOptions){
+    fn apply_border_style(style: border_style::T, border_width: AzFloat, dash: &mut [AzFloat], stroke_opts: &mut StrokeOptions){
         match style{
-            CSSBorderStyleNone => {
+            border_style::none => {
             }
-            CSSBorderStyleHidden => {
+            border_style::hidden => {
             }
             //FIXME(sammykim): This doesn't work with dash_pattern and cap_style well. I referred firefox code.
-            CSSBorderStyleDotted => {
+            border_style::dotted => {
                 stroke_opts.line_width = border_width;
                 
                 if border_width > 2.0 {
@@ -135,7 +134,7 @@ impl<'self> RenderContext<'self>  {
                 stroke_opts.mDashPattern = vec::raw::to_ptr(dash);
                 stroke_opts.mDashLength = dash.len() as size_t;
             }
-            CSSBorderStyleDashed => {
+            border_style::dashed => {
                 stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
                 stroke_opts.line_width = border_width;
                 dash[0] = border_width*3 as AzFloat;
@@ -144,28 +143,14 @@ impl<'self> RenderContext<'self>  {
                 stroke_opts.mDashLength = dash.len() as size_t;
             }
             //FIXME(sammykim): BorderStyleSolid doesn't show proper join-style with comparing firefox.
-            CSSBorderStyleSolid => {
+            border_style::solid => {
                 stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
                 stroke_opts.set_join_style(AZ_JOIN_BEVEL as u8);
                 stroke_opts.line_width = border_width; 
                 stroke_opts.mDashLength = 0 as size_t;
             }            
             //FIXME(sammykim): Five more styles should be implemented.
-            CSSBorderStyleDouble => {
-
-            }
-            CSSBorderStyleGroove => {
-
-            }
-            CSSBorderStyleRidge => {
-
-            }
-            CSSBorderStyleInset => {
-
-            }
-            CSSBorderStyleOutset => {
-
-            }
+            //double, groove, ridge, inset, outset
         }
     }
 }
