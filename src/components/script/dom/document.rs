@@ -10,7 +10,6 @@ use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, n
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
-use dom::event::Event;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::htmlelement::HTMLElement;
@@ -18,7 +17,6 @@ use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId};
 use dom::text::Text;
 use dom::window::Window;
-use dom::windowproxy::WindowProxy;
 use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
 use js::jsapi::{JSObject, JSContext, JSVal};
@@ -212,26 +210,6 @@ impl Reflectable for Document {
 }
 
 impl Document {
-    pub fn URL(&self) -> DOMString {
-        None
-    }
-
-    pub fn DocumentURI(&self) -> DOMString {
-        None
-    }
-
-    pub fn CompatMode(&self) -> DOMString {
-        None
-    }
-
-    pub fn CharacterSet(&self) -> DOMString {
-        None
-    }
-
-    pub fn ContentType(&self) -> DOMString {
-        None
-    }
-
     pub fn GetDocumentElement(&self) -> Option<AbstractNode<ScriptView>> {
         self.root
     }
@@ -276,10 +254,6 @@ impl Document {
         Ok(build_element_from_tag(cx, local_name, abstract_self))
     }
 
-    pub fn CreateElementNS(&self, _namespace: &DOMString, _qualified_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
-        fail!("stub")
-    }
-
     pub fn CreateDocumentFragment(&self, abstract_self: AbstractDocument) -> AbstractNode<ScriptView> {
         let cx = self.get_cx();
         let fragment = @DocumentFragment::new(abstract_self);
@@ -296,26 +270,6 @@ impl Document {
         let cx = self.get_cx();
         let comment = @Comment::new(null_str_as_word_null(data), abstract_self);
         unsafe { Node::as_abstract_node(cx, comment) }
-    }
-
-    pub fn CreateEvent(&self, _interface: &DOMString) -> Fallible<@mut Event> {
-        fail!("stub")
-    }
-
-    pub fn GetInputEncoding(&self) -> DOMString {
-        None
-    }
-
-    pub fn Referrer(&self) -> DOMString {
-        None
-    }
-
-    pub fn LastModified(&self) -> DOMString {
-        None
-    }
-
-    pub fn ReadyState(&self) -> DOMString {
-        None
     }
 
     pub fn Title(&self, _: AbstractDocument) -> DOMString {
@@ -395,89 +349,6 @@ impl Document {
             }
         }
         Ok(())
-    }
-
-    pub fn Dir(&self) -> DOMString {
-        None
-    }
-
-    pub fn SetDir(&self, _dir: &DOMString) {
-    }
-
-    pub fn GetDefaultView(&self) -> Option<@mut WindowProxy> {
-        None
-    }
-
-    pub fn GetActiveElement(&self) -> Option<AbstractNode<ScriptView>> {
-        None
-    }
-
-    pub fn HasFocus(&self) -> Fallible<bool> {
-        Ok(false)
-    }
-
-    pub fn GetCurrentScript(&self) -> Option<AbstractNode<ScriptView>> {
-        None
-    }
-
-    pub fn ReleaseCapture(&self) {
-    }
-
-    pub fn MozFullScreenEnabled(&self) -> bool {
-        false
-    }
-
-    pub fn GetMozFullScreenElement(&self) -> Fallible<Option<AbstractNode<ScriptView>>> {
-        Ok(None)
-    }
-
-    pub fn GetMozPointerLockElement(&self) -> Option<AbstractNode<ScriptView>> {
-        None
-    }
-
-    pub fn MozExitPointerLock(&self) {
-    }
-
-    pub fn Hidden(&self) -> bool {
-        false
-    }
-
-    pub fn MozHidden(&self) -> bool {
-        self.Hidden()
-    }
-
-    pub fn VisibilityState(&self) -> DocumentBinding::VisibilityState {
-        DocumentBinding::VisibilityStateValues::Visible
-    }
-
-    pub fn MozVisibilityState(&self) -> DocumentBinding::VisibilityState {
-        self.VisibilityState()
-    }
-
-    pub fn GetSelectedStyleSheetSet(&self) -> DOMString {
-        None
-    }
-
-    pub fn SetSelectedStyleSheetSet(&self, _sheet: &DOMString) {
-    }
-
-    pub fn GetLastStyleSheetSet(&self) -> DOMString {
-        None
-    }
-
-    pub fn GetPreferredStyleSheetSet(&self) -> DOMString {
-        None
-    }
-
-    pub fn EnableStyleSheetsForSet(&self, _name: &DOMString) {
-    }
-
-    pub fn ElementFromPoint(&self, _x: f32, _y: f32) -> Option<AbstractNode<ScriptView>> {
-        None
-    }
-
-    pub fn QuerySelector(&self, _selectors: &DOMString) -> Fallible<Option<AbstractNode<ScriptView>>> {
-        Ok(None)
     }
 
     pub fn GetElementsByName(&self, name: &DOMString) -> @mut HTMLCollection {
