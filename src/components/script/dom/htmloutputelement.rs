@@ -52,7 +52,8 @@ impl HTMLOutputElement {
     }
 
     pub fn Validity(&self) -> @mut ValidityState {
-        @mut ValidityState::valid()
+        let global = self.htmlelement.element.node.owner_doc().document().window;
+        ValidityState::new(global)
     }
 
     pub fn SetValidity(&mut self, _validity: @mut ValidityState) {
