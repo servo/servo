@@ -5,19 +5,31 @@
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::codegen::NavigatorBinding;
+use dom::window::Window;
 use script_task::{page_from_context};
 
 use js::jsapi::{JSContext, JSObject};
 
 pub struct Navigator {
-    reflector_: Reflector
+    reflector_: Reflector //XXXjdm cycle: window->navigator->window
 }
 
 impl Navigator {
-    pub fn new() -> @mut Navigator {
-        @mut Navigator {
+    pub fn new_inherited() -> Navigator {
+        Navigator {
             reflector_: Reflector::new()
         }
+    }
+
+    pub fn new(window: &Window) -> @mut Navigator {
+        let nav = @mut Navigator::new_inherited();
+        let cx = window.get_cx();
+        let scope = window.reflector().get_jsobject();
+        if NavigatorBinding::Wrap(cx, scope, nav).is_null() {
+            fail!("NavigatorBinding::Wrap failed");
+        }
+        assert!(nav.reflector().get_jsobject().is_not_null());
+        nav
     }
 
     pub fn DoNotTrack(&self) -> DOMString {
@@ -94,8 +106,8 @@ impl Reflectable for Navigator {
         &mut self.reflector_
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        NavigatorBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!();
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {

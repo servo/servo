@@ -119,7 +119,7 @@ impl Window {
 
     pub fn Navigator(&mut self) -> @mut Navigator {
         if self.navigator.is_none() {
-            self.navigator = Some(Navigator::new());
+            self.navigator = Some(Navigator::new(self));
         }
         self.navigator.unwrap()
     }
