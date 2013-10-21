@@ -428,26 +428,25 @@ impl<'self, View> AbstractNode<View> {
 
     // Issue #1030: should not walk the tree
     pub fn is_in_doc(&self) -> bool {
-        do self.node().owner_doc().with_base |document| {
-            match document.GetDocumentElement() {
-                None => false,
-                Some(root) => {
-                    let mut node = *self;
-                    let mut in_doc;
-                    loop {
-                        match node.parent_node() {
-                            Some(parent) => {
-                                node = parent;
-                            },
-                            None => {
-                                // Issue #1029: this is horrible.
-                                in_doc = unsafe { node.raw_object() as uint == root.raw_object() as uint };
-                                break;
-                            }
+        let document = self.node().owner_doc();
+        match document.document().GetDocumentElement() {
+            None => false,
+            Some(root) => {
+                let mut node = *self;
+                let mut in_doc;
+                loop {
+                    match node.parent_node() {
+                        Some(parent) => {
+                            node = parent;
+                        },
+                        None => {
+                            // Issue #1029: this is horrible.
+                            in_doc = unsafe { node.raw_object() as uint == root.raw_object() as uint };
+                            break;
                         }
                     }
-                    in_doc
                 }
+                in_doc
             }
         }
     }
@@ -493,26 +492,18 @@ impl Node<ScriptView> {
         }
 
         // Unregister elements having "id' from the old doc.
-        do old_doc.with_mut_base |old_doc| {
-            old_doc.unregister_nodes_with_id(&abstract_self);
-        }
+        old_doc.mut_document().unregister_nodes_with_id(&abstract_self);
 
         // Register elements having "id" attribute to the owner doc.
-        do doc.with_mut_base |doc| {
-            doc.register_nodes_with_id(&abstract_self);
-        }
+        doc.mut_document().register_nodes_with_id(&abstract_self);
 
         // Signal the old document that it needs to update its display
         if old_doc != doc {
-            do old_doc.with_base |old_doc| {
-                old_doc.content_changed();
-            }
+            old_doc.document().content_changed();
         }
 
         // Signal the new document that it needs to update its display
-        do doc.with_base |doc| {
-            doc.content_changed();
-        }
+        doc.document().content_changed();
     }
 
     pub fn new(type_id: NodeTypeId, doc: AbstractDocument) -> Node<ScriptView> {
@@ -682,7 +673,7 @@ impl Node<ScriptView> {
     }
 
     pub fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let win = self.owner_doc().with_base(|doc| doc.window);
+        let win = self.owner_doc().document().window;
         (win.reflector().get_jsobject(), win.get_cx())
     }
 
@@ -714,10 +705,8 @@ impl Node<ScriptView> {
             let node = if is_empty {
                 None
             } else {
-                let text_node = do self.owner_doc().with_base |document| {
-                    document.CreateTextNode(self.owner_doc(), value)
-                };
-                Some(text_node)
+                let document = self.owner_doc();
+                Some(document.document().CreateTextNode(document, value))
             };
             self.replace_all(abstract_self, node);
           }
@@ -728,9 +717,8 @@ impl Node<ScriptView> {
                 characterdata.data = null_str_as_empty(value);
 
                 // Notify the document that the content of this node is different
-                do self.owner_doc().with_base |doc| {
-                    doc.content_changed();
-                }
+                let document = self.owner_doc();
+                document.document().content_changed();
             }
           }
           DoctypeNodeTypeId => {}
@@ -743,9 +731,8 @@ impl Node<ScriptView> {
     }
 
     fn wait_until_safe_to_modify_dom(&self) {
-        do self.owner_doc().with_base |doc| {
-            doc.wait_until_safe_to_modify_dom();
-        }
+        let document = self.owner_doc();
+        document.document().wait_until_safe_to_modify_dom();
     }
 
     pub fn AppendChild(&mut self,
@@ -810,15 +797,12 @@ impl Node<ScriptView> {
 
         // Unregister elements having "id' from the owner doc.
         // This need be called before target nodes are removed from tree.
-        do self.owner_doc.with_mut_base |doc| {
-            doc.unregister_nodes_with_id(&abstract_self);
-        }
+        self.owner_doc.mut_document().unregister_nodes_with_id(&abstract_self);
 
         abstract_self.remove_child(node);
         // Signal the document that it needs to update its display.
-        do self.owner_doc().with_base |document| {
-            document.content_changed();
-        }
+        let document = self.owner_doc();
+        document.document().content_changed();
         Ok(node)
     }
 
