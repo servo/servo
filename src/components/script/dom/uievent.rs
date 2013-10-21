@@ -6,6 +6,7 @@ use dom::bindings::codegen::UIEventBinding;
 use dom::bindings::codegen::InheritTypes::UIEventDerived;
 use dom::bindings::js::JS;
 use dom::bindings::error::Fallible;
+use dom::bindings::trace::trace_object;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, UIEventTypeId};
 use dom::node::Node;
@@ -13,11 +14,32 @@ use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
+use js::jsapi::JSTracer;
+
+use serialize::{Encoder, Encodable};
+use std::cast;
+
 #[deriving(Encodable)]
 pub struct UIEvent {
     event: Event,
-    view: Option<JS<WindowProxy>>,
+    extra: Untraceable,
     detail: i32
+}
+
+pub struct Untraceable {
+    view: Option<WindowProxy>,
+}
+
+impl<S: Encoder> Encodable<S> for Untraceable {
+    fn encode(&self, tracer: &mut S) {
+        match self.view {
+            Some(view) => {
+                let tracer: &mut JSTracer = unsafe { cast::transmute(tracer) };
+                trace_object(tracer, "view", view);
+            }
+            None => (),
+        }
+    }
 }
 
 impl UIEventDerived for Event {
@@ -30,7 +52,9 @@ impl UIEvent {
     pub fn new_inherited(type_id: EventTypeId) -> UIEvent {
         UIEvent {
             event: Event::new_inherited(type_id),
-            view: None,
+            extra: Untraceable {
+                view: None,
+            },
             detail: 0
         }
     }
@@ -50,8 +74,8 @@ impl UIEvent {
         Ok(ev)
     }
 
-    pub fn GetView(&self) -> Option<JS<WindowProxy>> {
-        self.view.clone()
+    pub fn GetView(&self) -> Option<WindowProxy> {
+        self.extra.view
     }
 
     pub fn Detail(&self) -> i32 {
@@ -62,10 +86,10 @@ impl UIEvent {
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
-                       view: Option<JS<WindowProxy>>,
+                       view: Option<WindowProxy>,
                        detail: i32) {
         self.event.InitEvent(type_, can_bubble, cancelable);
-        self.view = view;
+        self.extra.view = view;
         self.detail = detail;
     }
 

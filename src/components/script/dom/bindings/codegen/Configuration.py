@@ -133,6 +133,7 @@ class Descriptor(DescriptorProvider):
         else:
             nativeTypeDefault = 'JS<%s>' % ifaceName
 
+        self.pointerType = desc.get('pointerType', '')
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
         self.concreteType = desc.get('concreteType', ifaceName)
         self.needsAbstract = desc.get('needsAbstract', [])

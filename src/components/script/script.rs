@@ -157,7 +157,11 @@ pub mod dom {
     pub mod validitystate;
     pub mod virtualmethods;
     pub mod window;
-    pub mod windowproxy;
+
+    pub mod windowproxy {
+        use js::jsapi::JSObject;
+        pub type WindowProxy = *JSObject;
+    }
 
     pub mod testbinding;
 }

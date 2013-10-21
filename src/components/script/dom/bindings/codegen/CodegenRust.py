@@ -571,6 +571,23 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
         return templateBody
 
+    # A helper function for converting things that look like a JSObject*.
+    def handleJSObjectType(type, isMember, failureCode):
+        if not isMember:
+            declType = CGGeneric('Option<*JSObject>')
+            declArgs="cx"
+        else:
+            #assert (isMember == "Sequence" or isMember == "Variadic" or
+            #        isMember == "Dictionary" or isMember == "OwningUnion")
+            # We'll get traced by the sequence or dictionary or union tracer
+            declType = CGGeneric("Option<*JSObject>")
+            declArgs = None
+        templateBody = "${declName} = Some(${val}.to_object());"
+        setToNullCode = "${declName} = None;"
+        template = wrapObjectTemplate(templateBody, type, setToNullCode,
+                                      failureCode)
+        return (template, declType, None, isOptional, None) #XXX declArgs
+
     assert not (isEnforceRange and isClamp) # These are mutually exclusive
 
     if type.isArray():
@@ -620,6 +637,9 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             template = wrapObjectTemplate(conversion, isDefinitelyObject, type,
                                           failureCode)
             return (template, declType, None, isOptional, None)
+
+        if descriptor.nativeType == 'JSObject':
+            return handleJSObjectType(type, isMember, failureCode)
 
         # Sequences and callbacks have to hold a strong ref to the thing being
         # passed down.
@@ -1090,7 +1110,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isGeckoInterface():
         descriptor = descriptorProvider.getDescriptor(
             returnType.unroll().inner.identifier.name)
-        result = CGGeneric(descriptor.nativeType)
+        result = CGGeneric(descriptor.pointerType + descriptor.nativeType)
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -4209,6 +4229,8 @@ class CGDictionary(CGThing):
                 return '~""'
             elif ty.startswith("Option"):
                 return "None"
+            elif ty == '*JSObject':
+                return "ptr::null()"
             else:
                 return "/* uh oh: %s */" % ty
 

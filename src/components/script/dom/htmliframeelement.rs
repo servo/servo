@@ -154,7 +154,7 @@ impl HTMLIFrameElement {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<JS<WindowProxy>> {
+    pub fn GetContentWindow(&self) -> Option<WindowProxy> {
         None
     }
 

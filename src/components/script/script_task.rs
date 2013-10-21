@@ -17,7 +17,6 @@ use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{Node, NodeHelpers};
 use dom::window::{TimerData, Window};
-use dom::windowproxy::WindowProxy;
 use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
@@ -970,7 +969,7 @@ impl ScriptTask {
                     Some(ref frame) => {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                        let window_proxy: JS<WindowProxy> = WindowProxy::new(&frame.window);
+                        let window_proxy = ptr::null();
                         let mut uievent = UIEvent::new(&frame.window);
                         uievent.get_mut().InitUIEvent(~"resize", false, false, Some(window_proxy), 0i32);
                         let event: &mut JS<Event> = &mut EventCast::from(&uievent);
