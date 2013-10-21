@@ -26,7 +26,7 @@ interface MouseEvent : UIEvent {
   void                              initMouseEvent(DOMString typeArg, 
                                                    boolean canBubbleArg, 
                                                    boolean cancelableArg, 
-                                                   WindowProxy? viewArg, 
+                                                   Window? viewArg, 
                                                    long detailArg, 
                                                    long screenXArg, 
                                                    long screenYArg, 
@@ -56,7 +56,7 @@ dictionary MouseEventInit {
   boolean        cancelable    = false;
 
   // Attributes from UIEvent:
-  WindowProxy?   view          = null;
+  Window?        view          = null;
   long           detail        = 0;
 
   // Attributes for MouseEvent:

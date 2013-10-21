@@ -27,7 +27,7 @@ interface HTMLIFrameElement : HTMLElement {
   [SetterThrows, Pure]
            attribute DOMString height;
   readonly attribute Document? contentDocument;
-  readonly attribute WindowProxy? contentWindow;
+  readonly attribute Window? contentWindow;
 };
 
 // http://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis

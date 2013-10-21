@@ -4,9 +4,10 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::FromJSValConvertible;
+use dom::bindings::conversions::{FromJSValConvertible, IDLInterface};
 use dom::bindings::js::JS;
 use dom::bindings::trace::Untraceable;
+use dom::browsercontext;
 use dom::window;
 use servo_util::str::DOMString;
 
@@ -19,12 +20,14 @@ use std::ptr;
 use std::ptr::null;
 use std::slice;
 use std::str;
-use js::glue::*;
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
+use js::glue::{GetGlobalForObjectCrossCompartment, UnwrapObject, GetProxyHandlerExtra};
+use js::glue::{IsWrapper, RUST_JSID_TO_STRING, RUST_JSID_IS_INT, RUST_INTERNED_STRING_TO_JSID};
+use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
-use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate};
+use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate, JSHandleObject};
 use js::jsapi::{JS_InternString, JS_GetFunctionObject};
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
 use js::jsapi::{JS_GetProperty, JS_HasProperty};
@@ -46,12 +49,14 @@ use js;
 
 #[deriving(Encodable)]
 pub struct GlobalStaticData {
-    proxy_handlers: Untraceable<HashMap<uint, *libc::c_void>>
+    proxy_handlers: Untraceable<HashMap<uint, *libc::c_void>>,
+    windowproxy_handler: Untraceable<*libc::c_void>,
 }
 
 pub fn GlobalStaticData() -> GlobalStaticData {
     GlobalStaticData {
-        proxy_handlers: Untraceable::new(HashMap::new())
+        proxy_handlers: Untraceable::new(HashMap::new()),
+        windowproxy_handler: Untraceable::new(browsercontext::new_window_proxy_handler()),
     }
 }
 
@@ -100,11 +105,29 @@ pub unsafe fn get_dom_class(obj: *JSObject) -> Result<DOMClass, ()> {
     return Err(());
 }
 
-pub fn unwrap_jsmanaged<T: Reflectable>(obj: *JSObject,
+pub fn unwrap_jsmanaged<T: Reflectable>(mut obj: *JSObject,
                                         proto_id: PrototypeList::id::ID,
                                         proto_depth: uint) -> Result<JS<T>, ()> {
     unsafe {
-        get_dom_class(obj).and_then(|dom_class| {
+        let dom_class = get_dom_class(obj).or_else(|_| {
+            if IsWrapper(obj) == 1 {
+                debug!("found wrapper");
+                obj = UnwrapObject(obj, /* stopAtOuter = */ 0, ptr::null());
+                if obj.is_null() {
+                    debug!("unwrapping security wrapper failed");
+                    Err(())
+                } else {
+                    assert!(IsWrapper(obj) == 0);
+                    debug!("unwrapped successfully");
+                    get_dom_class(obj)
+                }
+            } else {
+                debug!("not a dom wrapper");
+                Err(())
+            }
+        });
+
+        dom_class.and_then(|dom_class| {
             if dom_class.interface_chain[proto_depth] == proto_id {
                 debug!("good prototype");
                 Ok(JS::from_raw(unwrap(obj)))
@@ -178,7 +201,7 @@ pub struct DOMClass {
 }
 
 pub struct DOMJSClass {
-    base: JSClass,
+    base: js::Class,
     dom_class: DOMClass
 }
 
@@ -560,6 +583,36 @@ pub fn CreateDOMGlobal(cx: *JSContext, class: *JSClass) -> *JSObject {
     }
 }
 
+pub extern fn wrap_for_same_compartment(cx: *JSContext, obj: *JSObject) -> *JSObject {
+    unsafe {
+        let clasp = JS_GetClass(obj);
+        let clasp = clasp as *js::Class;
+        match (*clasp).ext.outerObject {
+            Some(outerize) => {
+                debug!("found an outerize hook");
+                let obj = JSHandleObject { unnamed: &obj };
+                outerize(cx, obj)
+            }
+            None => {
+                debug!("no outerize hook found");
+                obj
+            }
+        }
+    }
+}
+
+pub extern fn outerize_global(_cx: *JSContext, obj: JSHandleObject) -> *JSObject {
+    unsafe {
+        debug!("outerizing");
+        let obj = *obj.unnamed;
+        let win: JS<window::Window> =
+            unwrap_jsmanaged(obj,
+                             IDLInterface::get_prototype_id(None::<window::Window>),
+                             IDLInterface::get_prototype_depth(None::<window::Window>)).unwrap();
+        win.get().browser_context.get_ref().window_proxy()
+    }
+}
+
 /// Returns the global object of the realm that the given JS object was created in.
 pub fn global_object_for_js_object(obj: *JSObject) -> JS<window::Window> {
     unsafe {
@@ -578,11 +631,6 @@ fn cx_for_dom_reflector(obj: *JSObject) -> *JSContext {
         Some(ref info) => info.js_context.deref().deref().ptr,
         None => fail!("no JS context for DOM global")
     }
-}
-
-/// Returns the global object of the realm that the given DOM object was created in.
-pub fn global_object_for_dom_object<T: Reflectable>(obj: &T) -> JS<window::Window> {
-    global_object_for_js_object(obj.reflector().get_jsobject())
 }
 
 pub fn cx_for_dom_object<T: Reflectable>(obj: &T) -> *JSContext {
