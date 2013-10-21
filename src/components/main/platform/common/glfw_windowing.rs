@@ -39,8 +39,8 @@ impl ApplicationMethods for Application {
 
 impl Drop for Application {
     fn drop(&self) {
-        glfw::terminate();
         drop_local_window();
+        glfw::terminate();
     }
 }
 
