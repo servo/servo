@@ -82,19 +82,14 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         from_str(period).unwrap()
     };
 
-    let exit_after_load = opt_match.opt_present("x");
-    let headless = opt_match.opt_present("z");
-
-    let output_file = opt_match.opt_str("o");
-
     Opts {
         urls: urls,
         render_backend: render_backend,
         n_render_threads: n_render_threads,
         tile_size: tile_size,
         profiler_period: profiler_period,
-        exit_after_load: exit_after_load,
-        output_file: output_file,
-        headless: headless,
+        exit_after_load: opt_match.opt_present("x"),
+        output_file: opt_match.opt_str("o"),
+        headless: opt_match.opt_present("z"),
     }
 }
