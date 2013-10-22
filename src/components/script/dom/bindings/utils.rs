@@ -5,6 +5,7 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::node;
+use dom::window;
 use dom::node::{AbstractNode, ScriptView};
 
 use std::libc::c_uint;
@@ -542,6 +543,20 @@ pub trait Reflectable {
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector;
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject;
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable>;
+}
+
+pub fn reflect_dom_object<T: Reflectable>
+        (obj:     @mut T,
+         window:  &window::Window,
+         wrap_fn: extern "Rust" fn(*JSContext, *JSObject, @mut T) -> *JSObject)
+         ->       @mut T {
+    let cx = window.get_cx();
+    let scope = window.reflector().get_jsobject();
+    if wrap_fn(cx, scope, obj).is_null() {
+        fail!("Could not eagerly wrap object");
+    }
+    assert!(obj.reflector().get_jsobject().is_not_null());
+    obj
 }
 
 pub struct Reflector {

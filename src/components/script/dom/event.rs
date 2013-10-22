@@ -5,7 +5,7 @@
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 
 use geom::point::Point2D;
@@ -31,7 +31,7 @@ pub struct Event {
 }
 
 impl Event {
-    pub fn new(type_: &DOMString) -> Event {
+    pub fn new_inherited(type_: &DOMString) -> Event {
         Event {
             reflector_: Reflector::new(),
             type_: (*type_).clone(),
@@ -40,6 +40,10 @@ impl Event {
             bubbles: true,
             trusted: false
         }
+    }
+
+    pub fn new(window: @mut Window, type_: &DOMString) -> @mut Event {
+        reflect_dom_object(@mut Event::new_inherited(type_), window, EventBinding::Wrap)
     }
 
     pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
@@ -102,10 +106,10 @@ impl Event {
         self.trusted
     }
 
-    pub fn Constructor(_global: @mut Window,
+    pub fn Constructor(global: @mut Window,
                    type_: &DOMString,
                    _init: &EventBinding::EventInit) -> Fallible<@mut Event> {
-        Ok(@mut Event::new(type_))
+        Ok(Event::new(global, type_))
     }
 }
 
@@ -118,8 +122,8 @@ impl Reflectable for Event {
         &mut self.reflector_
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        EventBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!()
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {

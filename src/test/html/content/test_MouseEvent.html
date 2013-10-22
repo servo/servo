@@ -4,17 +4,14 @@
 <script>
 is_function(MouseEvent, "MouseEvent");
 
-/* broken due to #1042
 let ev = new MouseEvent("press", {bubbles: true, screenX: 150, detail: 100});
 
-// FIXME: assert correct values
-alert(ev);
-alert(ev.screenX);
-alert(ev.detail);
-alert(ev.getModifierState("ctrl"));
 is_a(ev, Event);
 is_a(ev, UIEvent);
-*/
+is_a(ev, MouseEvent);
+is(ev.screenX, 150);
+is(ev.detail, 100);
+is(ev.getModifierState("ctrl"), false);
 
 finish();
 </script>

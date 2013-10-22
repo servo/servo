@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::MouseEventBinding;
 use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
@@ -27,13 +27,13 @@ pub struct MouseEvent {
 }
 
 impl MouseEvent {
-    pub fn new(type_: &DOMString, can_bubble: bool, cancelable: bool,
+    pub fn new(window: @mut Window, type_: &DOMString, can_bubble: bool, cancelable: bool,
                view: Option<@mut WindowProxy>, detail: i32, screen_x: i32,
                screen_y: i32, client_x: i32, client_y: i32, ctrl_key: bool,
                shift_key: bool, alt_key: bool, meta_key: bool, button: u16,
-               _buttons: u16, related_target: Option<@mut EventTarget>) -> MouseEvent {
-        MouseEvent {
-            parent: UIEvent::new(type_, can_bubble, cancelable, view, detail),
+               _buttons: u16, related_target: Option<@mut EventTarget>) -> @mut MouseEvent {
+        let ev = @mut MouseEvent {
+            parent: UIEvent::new_inherited(type_, can_bubble, cancelable, view, detail),
             screen_x: screen_x,
             screen_y: screen_y,
             client_x: client_x,
@@ -44,20 +44,21 @@ impl MouseEvent {
             meta_key: meta_key,
             button: button,
             related_target: related_target
-        }
+        };
+        reflect_dom_object(ev, window, MouseEventBinding::Wrap)
     }
 
     pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
         self.wrap_object_shared(cx, scope);
     }
 
-    pub fn Constructor(_owner: @mut Window,
+    pub fn Constructor(owner: @mut Window,
                        type_: &DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<@mut MouseEvent> {
-        Ok(@mut MouseEvent::new(type_, init.bubbles, init.cancelable, init.view, init.detail,
-                                init.screenX, init.screenY, init.clientX, init.clientY,
-                                init.ctrlKey, init.shiftKey, init.altKey, init.metaKey,
-                                init.button, init.buttons, init.relatedTarget))
+        Ok(MouseEvent::new(owner, type_, init.bubbles, init.cancelable, init.view, init.detail,
+                           init.screenX, init.screenY, init.clientX, init.clientY,
+                           init.ctrlKey, init.shiftKey, init.altKey, init.metaKey,
+                           init.button, init.buttons, init.relatedTarget))
     }
 
     pub fn ScreenX(&self) -> i32 {
@@ -150,8 +151,8 @@ impl Reflectable for MouseEvent {
         self.parent.mut_reflector()
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        MouseEventBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!()
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {

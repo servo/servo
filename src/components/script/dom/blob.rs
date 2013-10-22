@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::Fallible;
 use dom::bindings::codegen::BlobBinding;
 use dom::window::Window;
@@ -23,14 +23,7 @@ impl Blob {
     }
 
     pub fn new(window: @mut Window) -> @mut Blob {
-        let blob = @mut Blob::new_inherited(window);
-        let cx = window.get_cx();
-        let scope = window.reflector().get_jsobject();
-        if BlobBinding::Wrap(cx, scope, blob).is_null() {
-            fail!("BlobBinding::Wrap failed");
-        }
-        assert!(blob.reflector().get_jsobject().is_not_null());
-        blob
+        reflect_dom_object(@mut Blob::new_inherited(window), window, BlobBinding::Wrap)
     }
 }
 
