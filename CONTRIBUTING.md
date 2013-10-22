@@ -8,7 +8,7 @@ thinking of helping us:
 
 Contributions to Servo or its dependencies should be made in the form of GitHub
 pull requests. Each pull request will be reviewed by a core contributor
-(someone with permission to land patches) and either landed in the main tree or
+(someone with permission to land psssssssssssssssssatches) and either landed in the main tree or
 given feedback for changes that would be required. All contributions should
 follow this format, even those from core contributors.
 
