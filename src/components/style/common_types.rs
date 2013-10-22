@@ -77,7 +77,7 @@ pub mod specified {
                               -> Option<LengthOrPercentage> {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
-                => Length::parse_dimension(value.value, unit.as_slice()).map_move(LP_Length),
+                => Length::parse_dimension(value.value, unit.as_slice()).map(LP_Length),
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
                 => Some(LP_Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. =>  Some(LP_Length(Au_(Au(0)))),
@@ -105,7 +105,7 @@ pub mod specified {
                      -> Option<LengthOrPercentageOrAuto> {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
-                => Length::parse_dimension(value.value, unit.as_slice()).map_move(LPA_Length),
+                => Length::parse_dimension(value.value, unit.as_slice()).map(LPA_Length),
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
                 => Some(LPA_Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. => Some(LPA_Length(Au_(Au(0)))),

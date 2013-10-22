@@ -37,6 +37,7 @@ fn main() {
         ratchet_noise_percent: None,
         ratchet_metrics: None,
         save_metrics: None,
+        test_shard: None,
     };
 
     if !run_tests_console(&test_opts, tests) {
@@ -59,7 +60,7 @@ struct Reftest {
 fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
     let mut tests: ~[TestDescAndFn] = ~[];
     for file in filenames.iter() {
-        let file_path = Path(*file);
+        let file_path = Path::new(file.clone());
         let contents = match io::read_whole_file_str(&file_path) {
             Ok(x) => x,
             Err(s) => fail!(s)
@@ -78,8 +79,8 @@ fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
                 _ => fail!(fmt!("reftest line: '%s' has invalid kind '%s'",
                                 line, parts[0]))
             };
-            let src_dir = file_path.dirname();
-            let file_left = src_dir + "/" + parts[1];
+            let src_dir = file_path.dirname().to_str();
+            let file_left =  src_dir + "/" + parts[1];
             let file_right = src_dir + "/" + parts[2];
             
             let reftest = Reftest {
@@ -114,17 +115,16 @@ fn check_reftest(reftest: Reftest) {
     let id = gen_id(&reftest);
     let left_filename = fmt!("/tmp/%s-left.png", id);
     let right_filename = fmt!("/tmp/%s-right.png", id);
-    let left_path = Path(left_filename);
-    let right_path = Path(right_filename);
+    let left_path = Path::new(left_filename.clone());
+    let right_path = Path::new(right_filename.clone());
 
-    let options = run::ProcessOptions::new();
     let args = ~[~"-o", left_filename.clone(), reftest.left.clone()];
-    let mut process = run::Process::new("./servo", args, options);
+    let mut process = run::Process::new("./servo", args, run::ProcessOptions::new());
     let _retval = process.finish();
     // assert!(retval == 0);
 
     let args = ~[~"-o", right_filename.clone(), reftest.right.clone()];
-    let mut process = run::Process::new("./servo", args, options);
+    let mut process = run::Process::new("./servo", args, run::ProcessOptions::new());
     let _retval = process.finish();
     // assert!(retval == 0);
 

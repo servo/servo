@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::{vec, iterator};
+use std::{vec, iter};
 use std::ascii::StrAsciiExt;
 use cssparser::*;
 use namespaces::NamespaceMap;
@@ -73,7 +73,7 @@ pub struct AttrSelector {
 }
 
 
-type Iter = iterator::Peekable<ComponentValue, vec::MoveIterator<ComponentValue>>;
+type Iter = iter::Peekable<ComponentValue, vec::MoveIterator<ComponentValue>>;
 
 
 // None means invalid selector
@@ -310,7 +310,7 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
     #[inline]
     fn default_namespace(namespaces: &NamespaceMap, local_name: Option<~str>)
                          -> Option<Option<(Option<~str>, Option<~str>)>> {
-        Some(Some((namespaces.default.map(|url| url.to_owned()), local_name)))
+        Some(Some((namespaces.default.as_ref().map(|url| url.to_owned()), local_name)))
     }
 
     #[inline]

@@ -81,7 +81,7 @@ impl FloatFlowData {
         self.floated_children = num_floats;
 
 
-        self.box.map(|&box| {
+        for box in self.box.iter() {
             let style = box.style();
             do box.with_model |model| {
                 model.compute_borders(style)
@@ -89,7 +89,7 @@ impl FloatFlowData {
 
             min_width = min_width.add(&box.get_min_width(ctx));
             pref_width = pref_width.add(&box.get_pref_width(ctx));
-        });
+        }
 
         self.common.min_width = min_width;
         self.common.pref_width = pref_width;
@@ -185,7 +185,7 @@ impl FloatFlowData {
         let mut full_noncontent_width = Au(0);
         let mut margin_height = Au(0);
 
-        self.box.map(|&box| {
+        for box in self.box.iter() {
             height = do box.with_base |base| {
                 base.position.size.height
             };
@@ -204,7 +204,7 @@ impl FloatFlowData {
                 margin_height = base.model.margin.top + base.model.margin.bottom;
             }
 
-        });
+        }
 
         let info = PlacementInfo {
             width: self.common.position.size.width + full_noncontent_width,
@@ -257,7 +257,7 @@ impl FloatFlowData {
 
         let mut noncontent_width = Au(0);
         let mut noncontent_height = Au(0);
-        self.box.map(|&box| {
+        for box in self.box.mut_iter() {
             do box.with_mut_base |base| {
                 //The associated box is the border box of this flow
                 base.position.origin.y = base.model.margin.top;
@@ -269,8 +269,7 @@ impl FloatFlowData {
                 base.position.size.height = height + noncontent_height;
 
             }
-        });
-
+        }
         
         //TODO(eatkinson): compute heights properly using the 'height' property.
         for &box in self.box.iter() {
@@ -305,10 +304,9 @@ impl FloatFlowData {
 
         let offset = self.common.abs_position + self.rel_pos;
         // add box that starts block context
-        self.box.map(|&box| {
+        for box in self.box.iter() {
             box.build_display_list(builder, dirty, &offset, list)
-        });
-
+        }
 
         // TODO: handle any out-of-flow elements
 

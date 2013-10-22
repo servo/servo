@@ -56,6 +56,7 @@ check-test:
 	@$(call E, check:)
 	@$(call E, "    $(DEPS_CHECK_TARGETS_ALL)")
 
+ifeq ($(CFG_OSTYPE),apple-darwin)
 .PHONY: check
 check: $(DEPS_CHECK_TARGETS_FAST) check-servo check-content tidy
 	@$(call E, check: all)
@@ -63,6 +64,15 @@ check: $(DEPS_CHECK_TARGETS_FAST) check-servo check-content tidy
 .PHONY: check-all
 check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo check-content tidy
 	@$(call E, check: all)
+else
+.PHONY: check
+check: $(DEPS_CHECK_TARGETS_FAST) check-servo tidy
+	@$(call E, check: all)
+
+.PHONY: check-all
+check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo tidy
+	@$(call E, check: all)
+endif
 
 .PHONY: check-servo
 check-servo: $(foreach lib_crate,$(SERVO_LIB_CRATES),check-servo-$(lib_crate)) servo-test

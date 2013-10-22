@@ -95,7 +95,7 @@ impl<'self> RenderContext<'self>  {
                                Size2D(image.width as AzFloat, image.height as AzFloat));
         let dest_rect = bounds.to_azure_rect();
         let draw_surface_options = DrawSurfaceOptions(Linear, true);
-        let draw_options = DrawOptions(1.0f as AzFloat, 0);
+        let draw_options = DrawOptions(1.0f64 as AzFloat, 0);
         draw_target_ref.draw_surface(azure_surface,
                                      dest_rect,
                                      source_rect,
@@ -171,12 +171,12 @@ impl<'self> RenderContext<'self>  {
 }
 
 trait to_float {
-    fn to_float(&self) -> float;
+    fn to_float(&self) -> f64;
 }
 
 impl to_float for u8 {
-    fn to_float(&self) -> float {
-        (*self as float) / 255f
+    fn to_float(&self) -> f64 {
+        (*self as f64) / 255f64
     }
 }
 

@@ -425,7 +425,7 @@ impl<'self> FlowContext {
     pub fn foldl_all_boxes<B:Clone>(&mut self, seed: B, cb: &fn(a: B, b: RenderBox) -> B) -> B {
         match *self {
             BlockFlow(ref mut block) => {
-                do block.box.map_default(seed.clone()) |box| {
+                do block.box.as_ref().map_default(seed.clone()) |box| {
                     cb(seed.clone(), *box)
                 }
             }
@@ -455,7 +455,7 @@ impl<'self> FlowContext {
     pub fn iter_all_boxes(&mut self) -> BoxIterator {
         BoxIterator {
             boxes: match *self {
-                BlockFlow (ref mut block)  => block.box.map_default(~[], |&x| ~[x]),
+                BlockFlow(ref mut block) => block.box.as_ref().map_default(~[], |&x| ~[x]),
                 InlineFlow(ref mut inline) => inline.boxes.clone(),
                 _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self))
             },

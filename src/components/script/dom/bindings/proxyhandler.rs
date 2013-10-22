@@ -16,7 +16,7 @@ use std::cast;
 use std::libc;
 use std::ptr;
 use std::str;
-use std::sys::size_of;
+use std::mem::size_of;
 
 type c_bool = libc::c_int;
 

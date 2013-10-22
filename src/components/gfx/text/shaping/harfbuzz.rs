@@ -145,7 +145,7 @@ pub struct Shaper {
 #[unsafe_destructor]
 impl Drop for Shaper {
     #[fixed_stack_segment]
-    fn drop(&self) {
+    fn drop(&mut self) {
         unsafe {
             assert!(self.hb_face.is_not_null());
             hb_face_destroy(self.hb_face);
@@ -198,11 +198,11 @@ impl Shaper {
         }
     }
 
-    fn float_to_fixed(f: float) -> i32 {
+    fn float_to_fixed(f: f64) -> i32 {
         float_to_fixed(16, f)
     }
 
-    fn fixed_to_float(i: hb_position_t) -> float {
+    fn fixed_to_float(i: hb_position_t) -> f64 {
         fixed_to_float(16, i)
     }
 
@@ -350,7 +350,7 @@ impl Shaper {
                 if glyph_span.length() == 1 { break; }
 
                 // if no glyphs were found yet, extend the char byte range more.
-                if glyph_span.length() == 0 { loop; }
+                if glyph_span.length() == 0 { continue; }
 
                 debug!("Complex (multi-glyph to multi-char) association found. This case \
                         probably doesn't work.");

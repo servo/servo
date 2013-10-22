@@ -27,7 +27,6 @@ use std::io;
 use std::ptr;
 use std::int;
 use std::libc;
-use std::rt::rtio::RtioTimer;
 use std::rt::io::timer::Timer;
 use std::task::spawn_with;
 use js::jsapi::JSVal;
@@ -58,7 +57,7 @@ impl Window {
 
 #[unsafe_destructor]
 impl Drop for Window {
-    fn drop(&self) {
+    fn drop(&mut self) {
         self.timer_chan.send(TimerMessage_Close);
     }
 }

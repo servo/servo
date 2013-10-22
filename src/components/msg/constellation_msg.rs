@@ -39,7 +39,7 @@ pub enum Msg {
 
 /// Represents the two different ways to which a page can be navigated
 #[deriving(Clone, Eq, IterBytes)]
-enum NavigationType {
+pub enum NavigationType {
     Load,               // entered or clicked on a url
     Navigate,           // browser forward/back buttons
 }

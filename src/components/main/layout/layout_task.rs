@@ -391,7 +391,7 @@ impl LayoutTask {
                                 for child in node.children() {
                                     let rect = box_for_node(child);
                                     match rect {
-                                        None => loop,
+                                        None => continue,
                                         Some(rect) => acc = match acc {
                                             Some(acc) =>  Some(acc.union(&rect)),
                                             None => Some(rect)
@@ -404,8 +404,8 @@ impl LayoutTask {
                     }
                 }
 
-                let rect = box_for_node(node).unwrap_or_default(Rect(Point2D(Au(0), Au(0)),
-                                                                     Size2D(Au(0), Au(0))));
+                let rect = box_for_node(node).unwrap_or(Rect(Point2D(Au(0), Au(0)),
+                                                             Size2D(Au(0), Au(0))));
                 reply_chan.send(ContentBoxResponse(rect))
             }
             ContentBoxesQuery(node, reply_chan) => {
@@ -444,8 +444,8 @@ impl LayoutTask {
                     match self.display_list {
                         Some(ref list) => {
                             let display_list = list.get();
-                            let (x, y) = (Au::from_frac_px(point.x as float),
-                                    Au::from_frac_px(point.y as float));
+                            let (x, y) = (Au::from_frac_px(point.x as f64),
+                                    Au::from_frac_px(point.y as f64));
                             let mut resp = Err(());
                             // iterate in reverse to ensure we have the most recently painted render box
                             for display_item in display_list.list.rev_iter() {
@@ -482,13 +482,13 @@ impl LayoutTask {
     // re-requested. We probably don't need to go all the way back to
     // the script task for this.
     fn make_on_image_available_cb(&self, script_chan: ScriptChan)
-                                  -> @fn() -> ~fn(ImageResponseMsg) {
+                                  -> ~fn() -> ~fn(ImageResponseMsg) {
         // This has a crazy signature because the image cache needs to
         // make multiple copies of the callback, and the dom event
         // channel is not a copyable type, so this is actually a
         // little factory to produce callbacks
         let id = self.id.clone();
-        let f: @fn() -> ~fn(ImageResponseMsg) = || {
+        let f: ~fn() -> ~fn(ImageResponseMsg) = || {
             let script_chan = script_chan.clone();
             let f: ~fn(ImageResponseMsg) = |_| {
                 script_chan.send(SendEventMsg(id.clone(), ReflowEvent))

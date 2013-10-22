@@ -48,7 +48,7 @@ use servo_net::resource_task::ResourceTask;
 use servo_util::tree::{TreeNodeRef, ElementLike};
 use servo_util::url::make_url;
 use extra::url::Url;
-use extra::future::{from_value, Future};
+use extra::future::Future;
 
 /// Messages used to control the script task.
 pub enum ScriptMsg {
@@ -178,7 +178,7 @@ impl PageTree {
             self.inner.mut_iter()
                 .enumerate()
                 .find(|&(_idx, ref page_tree)| page_tree.page.id == id)
-                .map(|&(idx, _)| idx)
+                .map(|(idx, _)| idx)
         };
         match remove_idx {
             Some(idx) => return Some(self.inner.remove(idx)),
@@ -608,7 +608,7 @@ impl ScriptTask {
     fn handle_resize_inactive_msg(&mut self, id: PipelineId, new_size: Size2D<uint>) {
         let page = self.page_tree.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.").page;
-        page.window_size = from_value(new_size);
+        page.window_size = Future::from_value(new_size);
         let last_loaded_url = replace(&mut page.url, None);
         for url in last_loaded_url.iter() {
             page.url = Some((url.first(), true));
@@ -780,7 +780,7 @@ impl ScriptTask {
             ResizeEvent(new_width, new_height) => {
                 debug!("script got resize event: %u, %u", new_width, new_height);
 
-                page.window_size = from_value(Size2D(new_width, new_height));
+                page.window_size = Future::from_value(Size2D(new_width, new_height));
 
                 if page.frame.is_some() {
                     page.damage(ReflowDocumentDamage);
@@ -845,12 +845,12 @@ impl ScriptTask {
         let attr = element.get_attr("href");
         for href in attr.iter() {
             debug!("ScriptTask: clicked on link to %s", *href);
-            let current_url = do page.url.map |&(ref url, _)| {
+            let current_url = do page.url.as_ref().map |&(ref url, _)| {
                 url.clone()
             };
             debug!("ScriptTask: current url is %?", current_url);
             let url = make_url(href.to_owned(), current_url);
-            self.constellation_chan.send(LoadUrlMsg(page.id, url, from_value(page.window_size.get())));
+            self.constellation_chan.send(LoadUrlMsg(page.id, url, Future::from_value(page.window_size.get())));
         }
     }
 }

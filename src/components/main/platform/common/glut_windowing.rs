@@ -206,7 +206,7 @@ impl Window {
     /// Helper function to handle a click
     fn handle_mouse(&self, button: c_int, state: c_int, x: c_int, y: c_int) {
         // FIXME(tkuehn): max pixel dist should be based on pixel density
-        let max_pixel_dist = 10f;
+        let max_pixel_dist = 10f64;
         let event = match state {
             glut::MOUSE_DOWN => {
                 *self.mouse_down_point = Point2D(x, y);

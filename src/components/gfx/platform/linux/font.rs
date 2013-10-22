@@ -29,11 +29,11 @@ use std::cast;
 use std::ptr;
 use std::str;
 
-fn float_to_fixed_ft(f: float) -> i32 {
+fn float_to_fixed_ft(f: f64) -> i32 {
     float_to_fixed(6, f)
 }
 
-fn fixed_to_float_ft(f: i32) -> float {
+fn fixed_to_float_ft(f: i32) -> f64 {
     fixed_to_float(6, f)
 }
 
@@ -63,7 +63,7 @@ pub struct FontHandle {
 #[unsafe_destructor]
 impl Drop for FontHandle {
     #[fixed_stack_segment]
-    fn drop(&self) {
+    fn drop(&mut self) {
         assert!(self.face.is_not_null());
         unsafe {
             if !FT_Done_Face(self.face).succeeded() {
@@ -102,7 +102,7 @@ impl FontHandleMethods for FontHandle {
 
         #[fixed_stack_segment]
          fn create_face_from_buffer(lib: FT_Library,
-                                    cbuf: *u8, cbuflen: uint, pt_size: float) 
+                                    cbuf: *u8, cbuflen: uint, pt_size: f64)
              -> Result<FT_Face, ()> {
 
              unsafe {
@@ -224,12 +224,12 @@ impl FontHandleMethods for FontHandle {
         /* TODO(Issue #76): complete me */
         let face = self.get_face_rec();
 
-        let underline_size = self.font_units_to_au(face.underline_thickness as float);
-        let underline_offset = self.font_units_to_au(face.underline_position as float);
-        let em_size = self.font_units_to_au(face.units_per_EM as float);
-        let ascent = self.font_units_to_au(face.ascender as float);
-        let descent = self.font_units_to_au(face.descender as float);
-        let max_advance = self.font_units_to_au(face.max_advance_width as float);
+        let underline_size = self.font_units_to_au(face.underline_thickness as f64);
+        let underline_offset = self.font_units_to_au(face.underline_position as f64);
+        let em_size = self.font_units_to_au(face.units_per_EM as f64);
+        let ascent = self.font_units_to_au(face.ascender as f64);
+        let descent = self.font_units_to_au(face.descender as f64);
+        let max_advance = self.font_units_to_au(face.max_advance_width as f64);
 
         let mut strikeout_size = geometry::from_pt(0.0);
         let mut strikeout_offset = geometry::from_pt(0.0);
@@ -238,9 +238,9 @@ impl FontHandleMethods for FontHandle {
             let os2 = FT_Get_Sfnt_Table(face, ft_sfnt_os2) as *TT_OS2;
             let valid = os2.is_not_null() && (*os2).version != 0xffff;
             if valid {
-               strikeout_size = self.font_units_to_au((*os2).yStrikeoutSize as float);
-               strikeout_offset = self.font_units_to_au((*os2).yStrikeoutPosition as float);
-               x_height = self.font_units_to_au((*os2).sxHeight as float);
+               strikeout_size = self.font_units_to_au((*os2).yStrikeoutSize as f64);
+               strikeout_offset = self.font_units_to_au((*os2).yStrikeoutPosition as f64);
+               x_height = self.font_units_to_au((*os2).sxHeight as f64);
             }
         }
 
@@ -265,7 +265,7 @@ impl FontHandleMethods for FontHandle {
 
 impl<'self> FontHandle {
     #[fixed_stack_segment]
-    fn set_char_size(face: FT_Face, pt_size: float) -> Result<(), ()>{
+    fn set_char_size(face: FT_Face, pt_size: f64) -> Result<(), ()>{
         let char_width = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let char_height = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let h_dpi = 72;
@@ -336,7 +336,7 @@ impl<'self> FontHandle {
         }
     }
 
-    fn font_units_to_au(&self, value: float) -> Au {
+    fn font_units_to_au(&self, value: f64) -> Au {
         let face = self.get_face_rec();
 
         // face.size is a *c_void in the bindings, presumably to avoid
@@ -344,8 +344,8 @@ impl<'self> FontHandle {
         let size: &FT_SizeRec = unsafe { cast::transmute(&(*face.size)) };
         let metrics: &FT_Size_Metrics = &(*size).metrics;
 
-        let em_size = face.units_per_EM as float;
-        let x_scale = (metrics.x_ppem as float) / em_size as float;
+        let em_size = face.units_per_EM as f64;
+        let x_scale = (metrics.x_ppem as f64) / em_size as f64;
 
         // If this isn't true then we're scaling one of the axes wrong
         assert!(metrics.x_ppem == metrics.y_ppem);
