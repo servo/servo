@@ -91,11 +91,15 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
         };
         match iter.next() {
             None => {
-                mq.map_move(|mq| queries.push(mq));
+                for mq in mq.move_iter() {
+                    queries.push(mq);
+                }
                 return MediaQueryList{ media_queries: queries }
             },
             Some(&Comma) => {
-                mq.map_move(|mq| queries.push(mq));
+                for mq in mq.move_iter() {
+                    queries.push(mq);
+                }
             },
             // Ingnore this comma-separated part
             _ => loop {

@@ -82,7 +82,7 @@ impl<T: Send> GenericSmartChan<Msg<T>> for RenderChan<T> {
     }
 }
 
-struct RenderTask<C,T> {
+pub struct RenderTask<C,T> {
     id: PipelineId,
     port: Port<Msg<T>>,
     compositor: C,

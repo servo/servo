@@ -46,7 +46,7 @@ impl FormData {
     pub fn Append(&mut self, name: &DOMString, value: @mut Blob, filename: Option<DOMString>) {
         let blob = BlobData {
             blob: value,
-            name: filename.unwrap_or_default(Some(~"default"))
+            name: filename.unwrap_or(Some(~"default"))
         };
         self.data.insert(null_str_as_empty(name), blob);
     }

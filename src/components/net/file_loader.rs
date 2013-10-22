@@ -14,7 +14,7 @@ pub fn factory() -> LoaderTask {
         assert!("file" == url.scheme);
         let progress_chan = start_sending(start_chan, Metadata::default(url.clone()));
         do task::spawn {
-            match file_reader(&Path(url.path)) {
+            match file_reader(&from_str(url.path).unwrap()) {
                 Ok(reader) => {
                     while !reader.eof() {
                         let data = reader.read_bytes(READ_SIZE);

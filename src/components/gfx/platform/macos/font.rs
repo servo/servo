@@ -37,7 +37,7 @@ pub struct FontTable {
 
 // Noncopyable.
 impl Drop for FontTable {
-    fn drop(&self) {}
+    fn drop(&mut self) {}
 }
 
 impl FontTable {
@@ -158,39 +158,39 @@ impl FontHandleMethods for FontHandle {
 
     fn get_metrics(&self) -> FontMetrics {
         let bounding_rect: CGRect = self.ctfont.bounding_box();
-        let ascent = Au::from_pt(self.ctfont.ascent() as float);
-        let descent = Au::from_pt(self.ctfont.descent() as float);
-        let em_size = Au::from_frac_px(self.ctfont.pt_size() as float);
+        let ascent = Au::from_pt(self.ctfont.ascent() as f64);
+        let descent = Au::from_pt(self.ctfont.descent() as f64);
+        let em_size = Au::from_frac_px(self.ctfont.pt_size() as f64);
 
-        let scale = px_to_pt(self.ctfont.pt_size() as float) / (self.ctfont.ascent() as float + self.ctfont.descent() as float);
+        let scale = px_to_pt(self.ctfont.pt_size() as f64) / (self.ctfont.ascent() as f64 + self.ctfont.descent() as f64);
 
         let metrics =  FontMetrics {
-            underline_size:   Au::from_pt(self.ctfont.underline_thickness() as float),
+            underline_size:   Au::from_pt(self.ctfont.underline_thickness() as f64),
             // TODO(Issue #201): underline metrics are not reliable. Have to pull out of font table
             // directly.
             //
             // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
             // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
-            underline_offset: Au::from_pt(self.ctfont.underline_position() as float),
+            underline_offset: Au::from_pt(self.ctfont.underline_position() as f64),
             strikeout_size:   geometry::from_pt(0.0), // FIXME(Issue #942)
             strikeout_offset: geometry::from_pt(0.0), // FIXME(Issue #942)
-            leading:          Au::from_pt(self.ctfont.leading() as float),
-            x_height:         Au::from_pt(self.ctfont.x_height() as float),
+            leading:          Au::from_pt(self.ctfont.leading() as f64),
+            x_height:         Au::from_pt(self.ctfont.x_height() as f64),
             em_size:          em_size,
             ascent:           ascent.scale_by(scale),
             descent:          descent.scale_by(scale),
-            max_advance:      Au::from_pt(bounding_rect.size.width as float)
+            max_advance:      Au::from_pt(bounding_rect.size.width as f64)
         };
 
-        debug!("Font metrics (@%f pt): %?", self.ctfont.pt_size() as float, metrics);
+        debug!("Font metrics (@%f pt): %?", self.ctfont.pt_size() as f64, metrics);
         return metrics;
     }
 
     fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result: Option<CFData> = self.ctfont.get_font_table(tag);
-        result.chain(|data| {
+        do result.and_then |data| {
             Some(FontTable::wrap(data))
-        })
+        }
     }
 
     fn face_identifier(&self) -> ~str {

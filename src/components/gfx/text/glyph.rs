@@ -12,7 +12,7 @@ use std::num::NumCast;
 use std::u16;
 use std::vec;
 use std::util;
-use std::iterator;
+use std::iter;
 use geom::point::Point2D;
 use extra::sort;
 
@@ -157,7 +157,7 @@ fn is_simple_glyph_id(glyphId: GlyphIndex) -> bool {
 }
 
 fn is_simple_advance(advance: Au) -> bool {
-    let unsignedAu = advance.to_int() as u32;
+    let unsignedAu = advance.to_u32().unwrap();
     (unsignedAu & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT)) == unsignedAu
 }
 
@@ -169,7 +169,7 @@ impl GlyphEntry {
     // getter methods
     #[inline(always)]
     fn advance(&self) -> Au {
-        NumCast::from((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT)
+        NumCast::from((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT).unwrap()
     }
 
     fn index(&self) -> GlyphIndex {
@@ -678,8 +678,8 @@ impl<'self> GlyphStore {
 pub struct GlyphIterator<'self> {
     priv store:       &'self GlyphStore,
     priv char_index:  uint,
-    priv char_range:  iterator::Range<uint>,
-    priv glyph_range: Option<iterator::Range<uint>>,
+    priv char_range:  iter::Range<uint>,
+    priv glyph_range: Option<iter::Range<uint>>,
 }
 
 impl<'self> Iterator<(uint, GlyphInfo<'self>)> for GlyphIterator<'self> {

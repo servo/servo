@@ -63,7 +63,7 @@ pub trait ToGfxColor {
 
 impl ToGfxColor for newcss::color::Color {
     fn to_gfx_color(&self) -> gfx::color::Color {
-        gfx::color::rgba(self.red, self.green, self.blue, self.alpha)
+        gfx::color::rgba(self.red, self.green, self.blue, self.alpha as f64)
     }
 }
 

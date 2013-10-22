@@ -95,12 +95,12 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
     }
 }
 
-pub fn float_to_fixed(before: int, f: float) -> i32 {
+pub fn float_to_fixed(before: int, f: f64) -> i32 {
     (1i32 << before) * (f as i32)
 }
 
-pub fn fixed_to_float(before: int, f: i32) -> float {
-    f as float * 1.0f / ((1i32 << before) as float)
+pub fn fixed_to_float(before: int, f: i32) -> f64 {
+    f as f64 * 1.0f64 / ((1i32 << before) as f64)
 }
 
 pub fn fixed_to_rounded_int(before: int, f: i32) -> int {

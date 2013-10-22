@@ -10,7 +10,7 @@ use std::comm::Port;
 use std::task;
 use newcss::stylesheet::Stylesheet;
 use newcss::util::DataStream;
-use servo_net::resource_task::{Load, LoadResponse, Payload, Done, ResourceTask};
+use servo_net::resource_task::{Load, LoadResponse, Payload, Done, ResourceTask, ProgressMsg};
 use extra::url::Url;
 
 /// Where a style sheet comes from.
@@ -41,7 +41,7 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
     return result_port;
 }
 
-fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) -> DataStream {
+fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) -> @mut DataStream {
     match provenance {
         UrlProvenance(url) => {
             debug!("cssparse: loading style sheet at %s", url.to_str());
@@ -55,26 +55,44 @@ fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) ->
     }
 }
 
-fn resource_port_to_data_stream(input_port: Port<LoadResponse>) -> DataStream {
+fn resource_port_to_data_stream(input_port: Port<LoadResponse>) -> @mut DataStream {
     let progress_port = input_port.recv().progress_port;
-    return || {
-        match progress_port.recv() {
-            Payload(data) => Some(data),
-            Done(*) => None
+    struct ResourcePortDataStream {
+        progress_port: Port<ProgressMsg>,
+    };
+    impl DataStream for ResourcePortDataStream {
+        fn read(&mut self) -> Option<~[u8]> {
+            match self.progress_port.recv() {
+                Payload(data) => Some(data),
+                Done(*) => None
+            }
         }
     }
+    let stream = @mut ResourcePortDataStream {
+        progress_port: progress_port,
+    };
+    stream as @mut DataStream
 }
 
-fn data_to_data_stream(data: ~str) -> DataStream {
+fn data_to_data_stream(data: ~str) -> @mut DataStream {
     let data_cell = Cell::new(data);
-    return || {
-        if data_cell.is_empty() {
-            None
-        } else {
-            // FIXME: Blech, a copy.
-            let data = data_cell.take();
-            Some(data.as_bytes().to_owned())
+    struct DataDataStream {
+        data_cell: Cell<~str>,
+    };
+    impl DataStream for DataDataStream {
+        fn read(&mut self) -> Option<~[u8]> {
+            if self.data_cell.is_empty() {
+                None
+            } else {
+                // FIXME: Blech, a copy.
+                let data = self.data_cell.take();
+                Some(data.as_bytes().to_owned())
+            }
         }
     }
+    let stream = @mut DataDataStream {
+        data_cell: data_cell,
+    };
+    stream as @mut DataStream
 }
 

@@ -61,7 +61,7 @@ impl<'self> Iterator<(&'self GlyphStore, uint, Range)> for SliceIterator<'self> 
 
             let slice_range = Range::new(self.offset, slice_glyphs.char_len());
             let mut char_range = self.range.intersect(&slice_range);
-            char_range.shift_by(-(self.offset.to_int()));
+            char_range.shift_by(-(self.offset.to_int().unwrap()));
 
             let old_offset = self.offset;
             self.offset += slice_glyphs.char_len();
@@ -86,11 +86,11 @@ impl<'self> Iterator<Range> for LineIterator<'self> {
                 Some((glyphs, offset, slice_range)) => {
                     match (glyphs.is_whitespace(), self.clump) {
                         (false, Some(ref mut c))  => {
-                            c.extend_by(slice_range.length().to_int());
+                            c.extend_by(slice_range.length().to_int().unwrap());
                         }
                         (false, None) => {
                             let mut c = slice_range;
-                            c.shift_by(offset.to_int());
+                            c.shift_by(offset.to_int().unwrap());
                             self.clump = Some(c);
                         }
                         (true, None)    => { /* chomp whitespace */ }

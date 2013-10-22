@@ -455,7 +455,9 @@ impl<'self, View> AbstractNode<View> {
 impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
     fn next(&mut self) -> Option<AbstractNode<View>> {
         let node = self.current_node;
-        self.current_node = self.current_node.chain(|node| node.next_sibling());
+        self.current_node = do self.current_node.and_then |node| {
+            node.next_sibling()
+        };
         node
     }
 }

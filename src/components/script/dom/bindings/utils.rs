@@ -39,7 +39,7 @@ use js;
 static TOSTRING_CLASS_RESERVED_SLOT: libc::size_t = 0;
 static TOSTRING_NAME_RESERVED_SLOT: libc::size_t = 1;
 
-struct GlobalStaticData {
+pub struct GlobalStaticData {
     proxy_handlers: HashMap<uint, *libc::c_void>,
     attribute_ids: HashMap<uint, ~[jsid]>,
     method_ids: HashMap<uint, ~[jsid]>,
@@ -165,7 +165,7 @@ pub unsafe fn get_dom_class(obj: *JSObject) -> Result<DOMClass, ()> {
 
 pub fn unwrap_object<T>(obj: *JSObject, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
     unsafe {
-        do get_dom_class(obj).chain |dom_class| {
+        do get_dom_class(obj).and_then |dom_class| {
             if dom_class.interface_chain[proto_depth] == proto_id {
                 debug!("good prototype");
                 Ok(unwrap(obj))
@@ -671,7 +671,7 @@ pub fn XrayResolveProperty(cx: *JSContext,
             for &elem in attrs.iter() {
                 let (attr, attr_id) = elem;
                 if attr_id == JSID_VOID || attr_id != id {
-                    loop;
+                    continue;
                 }
 
                 (*desc).attrs = (attr.flags & !(JSPROP_NATIVE_ACCESSORS as u8)) as u32;
@@ -783,7 +783,7 @@ pub fn FindEnumStringIndex(cx: *JSContext,
         }
         for (i, value) in values.iter().enumerate() {
             if value.length != length as uint {
-                loop;
+                continue;
             }
             let mut equal = true;
             for j in range(0, length as int) {

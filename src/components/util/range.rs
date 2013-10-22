@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cmp::{max, min};
-use std::iterator;
+use std::iter;
 
 enum RangeRelation {
     OverlapsBegin(/* overlap */ uint),
@@ -36,7 +36,7 @@ impl Range {
     pub fn length(&self) -> uint { self.len }
     pub fn end(&self) -> uint { self.off + self.len }
 
-    pub fn eachi(&self) -> iterator::Range<uint> {
+    pub fn eachi(&self) -> iter::Range<uint> {
         range(self.off, self.off + self.len)
     }
 

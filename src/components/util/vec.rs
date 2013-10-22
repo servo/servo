@@ -11,7 +11,7 @@ pub trait BinarySearchMethods<'self, T: Ord + Eq> {
 
 impl<'self, T: Ord + Eq> BinarySearchMethods<'self, T> for &'self [T] {
     fn binary_search(&self, key: &T) -> Option<&'self T> {
-        self.binary_search_index(key).map(|i| &self[*i])
+        self.binary_search_index(key).map(|i| &self[i])
     }
 
     fn binary_search_index(&self, key: &T) -> Option<uint> {

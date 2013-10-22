@@ -31,7 +31,7 @@ impl FontContextHandleMethods for FontContextHandle {
                                    style: UsedFontStyle)
                                 -> Result<FontHandle, ()> {
         let ctfont_result = core_text::font::new_from_name(name, style.pt_size);
-        do ctfont_result.chain |ctfont| {
+        do ctfont_result.and_then |ctfont| {
             FontHandle::new_from_CTFont(self, ctfont)
         }
     }

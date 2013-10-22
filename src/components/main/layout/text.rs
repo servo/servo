@@ -231,7 +231,7 @@ impl TextRunScanner {
                         debug!("Elided an `UnscannedTextbox` because it was zero-length after \
                                 compression; %s",
                                in_boxes[i].debug_str());
-                        loop
+                        continue
                     }
 
                     do in_boxes[i].with_base |base| {

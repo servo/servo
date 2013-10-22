@@ -8,6 +8,8 @@
        url = "http://servo.org/")];
 #[crate_type = "lib"];
 
+#[feature(macro_rules)];
+
 extern mod extra;
 extern mod geom;
 

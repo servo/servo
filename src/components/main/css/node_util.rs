@@ -61,8 +61,8 @@ impl<'self> NodeUtil<'self> for AbstractNode<LayoutView> {
 
         do self.read_layout_data |layout_data| {
             layout_data.restyle_damage
-                .map(|&x| RestyleDamage::from_int(x))
-                .unwrap_or_default(default)
+                .map(|x| RestyleDamage::from_int(x))
+                .unwrap_or(default)
         }
     }
 

@@ -4,7 +4,7 @@
 
 // Timing functions.
 use std::comm::{Port, SharedChan};
-use std::iterator::AdditiveIterator;
+use std::iter::AdditiveIterator;
 use std::rt::io::timer::Timer;
 use std::task::spawn_with;
 
@@ -23,7 +23,7 @@ impl ProfilerChan {
 
 pub enum ProfilerMsg {
     // Normal message used for reporting time
-    TimeMsg(ProfilerCategory, float),
+    TimeMsg(ProfilerCategory, f64),
     // Message used to force print the profiling metrics
     PrintMsg,
 }
@@ -85,7 +85,7 @@ impl ProfilerCategory {
     }
 }
 
-type ProfilerBuckets = TreeMap<ProfilerCategory, ~[float]>;
+type ProfilerBuckets = TreeMap<ProfilerCategory, ~[f64]>;
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
@@ -95,10 +95,10 @@ pub struct Profiler {
 }
 
 impl Profiler {
-    pub fn create(port: Port<ProfilerMsg>, chan: ProfilerChan, period: Option<float>) {
+    pub fn create(port: Port<ProfilerMsg>, chan: ProfilerChan, period: Option<f64>) {
         match period {
             Some(period) => {
-                let period = (period * 1000f) as u64;
+                let period = (period * 1000f64) as u64;
                 do spawn {
                     let mut timer = Timer::new().unwrap();
                     loop {
@@ -164,7 +164,7 @@ impl Profiler {
             let data_len = data.len();
             if data_len > 0 {
                 let (mean, median, &min, &max) =
-                    (data.iter().map(|&x|x).sum() / (data_len as float),
+                    (data.iter().map(|&x|x).sum() / (data_len as f64),
                      data[data_len / 2],
                      data.iter().min().unwrap(),
                      data.iter().max().unwrap());
@@ -184,7 +184,7 @@ pub fn profile<T>(category: ProfilerCategory,
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
-    let ms = ((end_time - start_time) as float / 1000000f);
+    let ms = ((end_time - start_time) as f64 / 1000000f64);
     profiler_chan.send(TimeMsg(category, ms));
     return val;
 }
@@ -193,8 +193,8 @@ pub fn time<T>(msg: &str, callback: &fn() -> T) -> T{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
-    let ms = ((end_time - start_time) as float / 1000000f);
-    if ms >= 5f {
+    let ms = ((end_time - start_time) as f64 / 1000000f64);
+    if ms >= 5f64 {
         debug!("%s took %? ms", msg, ms);
     }
     return val;
