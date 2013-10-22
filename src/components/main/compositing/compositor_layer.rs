@@ -235,7 +235,7 @@ impl CompositorLayer {
                 self.pipeline.render_chan.send(UnusedBufferMsg(unused));
             }
             if !request.is_empty() { // ask for tiles
-                self.pipeline.render_chan.send(ReRenderMsg(request, scale, self.epoch));
+                self.pipeline.render_chan.try_send(ReRenderMsg(request, scale, self.epoch));
             }
         }
         if redisplay {
