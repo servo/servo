@@ -3,11 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use extra::url::Url;
-use std::cell::Cell;
 use style::Stylesheet;
 use style::Stylist;
 use style::selector_matching::UserAgentOrigin;
-use newcss::util::DataStream;
 
 pub fn new_stylist() -> Stylist {
     let mut stylist = Stylist::new();
@@ -26,26 +24,6 @@ fn servo_default_style() -> Stylesheet {
 
 fn default_url(name: &str) -> Url {
     FromStr::from_str(fmt!("http://%s", name)).unwrap()
-}
-
-fn style_stream(style: &str) -> @mut DataStream {
-    let style = Cell::new(style.as_bytes().to_owned());
-    struct StyleDataStream {
-        style: Cell<~[u8]>,
-    }
-    impl DataStream for StyleDataStream {
-        fn read(&mut self) -> Option<~[u8]> {
-            if !self.style.is_empty() {
-                Some(self.style.take())
-            } else {
-                None
-            }
-        }
-    }
-    let stream = @mut StyleDataStream {
-        style: style,
-    };
-    stream as @mut DataStream
 }
 
 fn html4_default_style_str() -> &'static str {

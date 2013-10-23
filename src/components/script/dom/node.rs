@@ -20,11 +20,9 @@ use dom::text::Text;
 
 use std::cast;
 use std::cast::transmute;
-use std::libc::c_void;
 use std::unstable::raw::Box;
 use extra::arc::Arc;
 use js::jsapi::{JSObject, JSContext};
-use netsurfcss::util::VoidPtrLike;
 use style::ComputedValues;
 use style::properties::PropertyDeclaration;
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement};
@@ -854,23 +852,6 @@ impl Node<ScriptView> {
 
     pub fn HasAttributes(&self) -> bool {
         false
-    }
-}
-
-/// The CSS library requires that DOM nodes be convertible to `*c_void` via the `VoidPtrLike`
-/// trait.
-impl VoidPtrLike for AbstractNode<LayoutView> {
-    fn from_void_ptr(node: *c_void) -> AbstractNode<LayoutView> {
-        assert!(node.is_not_null());
-        unsafe {
-            cast::transmute(node)
-        }
-    }
-
-    fn to_void_ptr(&self) -> *c_void {
-        unsafe {
-            cast::transmute(*self)
-        }
     }
 }
 
