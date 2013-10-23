@@ -287,24 +287,21 @@ impl Element {
         let node = abstract_self;
         assert!(node.is_element());
         let (port, chan) = comm::stream();
-        let (rects, cx, scope) =
+        let rects =
             match win.page.query_layout(ContentBoxesQuery(node, chan), port) {
                 ContentBoxesResponse(rects) => {
-                    let cx = win.get_cx();
-                    let scope = win.reflector().get_jsobject();
-                    let rects = do rects.map |r| {
+                    do rects.map |r| {
                         ClientRect::new(
                             win,
                             r.origin.y.to_f32().unwrap(),
                             (r.origin.y + r.size.height).to_f32().unwrap(),
                             r.origin.x.to_f32().unwrap(),
                             (r.origin.x + r.size.width).to_f32().unwrap())
-                    };
-                    (rects, cx, scope)
+                    }
                 },
             };
 
-        ClientRectList::new(rects, cx, scope)
+        ClientRectList::new(win, rects)
     }
 
     pub fn GetBoundingClientRect(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRect {
