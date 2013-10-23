@@ -48,10 +48,6 @@ impl MouseEvent {
         reflect_dom_object(ev, window, MouseEventBinding::Wrap)
     }
 
-    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
-        self.wrap_object_shared(cx, scope);
-    }
-
     pub fn Constructor(owner: @mut Window,
                        type_: &DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<@mut MouseEvent> {
