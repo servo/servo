@@ -2,21 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::codegen::ValidityStateBinding;
+use dom::window::Window;
 use js::jsapi::{JSContext, JSObject};
 
 pub struct ValidityState {
     reflector_: Reflector,
-    state: u8
+    window: @mut Window,
+    state: u8,
 }
 
 impl ValidityState {
-    pub fn valid() -> ValidityState {
+    pub fn new_inherited(window: @mut Window) -> ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
-            state: 0
+            window: window,
+            state: 0,
         }
+    }
+
+    pub fn new(window: @mut Window) -> @mut ValidityState {
+        reflect_dom_object(@mut ValidityState::new_inherited(window), window,
+                           ValidityStateBinding::Wrap)
     }
 }
 
@@ -67,11 +75,11 @@ impl Reflectable for ValidityState {
         &mut self.reflector_
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        ValidityStateBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!();
     }
 
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
-        None
+        Some(self.window as @mut Reflectable)
     }
 }
