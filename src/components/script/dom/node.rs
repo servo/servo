@@ -664,8 +664,8 @@ impl Node<ScriptView> {
     pub fn ChildNodes(&mut self, abstract_self: AbstractNode<ScriptView>) -> @mut NodeList {
         match self.child_list {
             None => {
-                let (scope, cx) = self.get_scope_and_cx();
-                let list = NodeList::new_child_list(abstract_self, cx, scope);
+                let window = self.owner_doc().document().window;
+                let list = NodeList::new_child_list(window, abstract_self);
                 self.child_list = Some(list);
                 list
             }
