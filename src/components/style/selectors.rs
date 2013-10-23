@@ -8,7 +8,7 @@ use cssparser::*;
 use namespaces::NamespaceMap;
 
 
-#[deriving(Clone)]
+#[deriving(Eq, Clone)]
 pub struct Selector {
     compound_selectors: CompoundSelector,
     pseudo_element: Option<PseudoElement>,
@@ -27,7 +27,7 @@ pub enum PseudoElement {
 }
 
 
-#[deriving(Clone)]
+#[deriving(Eq, Clone)]
 pub struct CompoundSelector {
     simple_selectors: ~[SimpleSelector],
     next: Option<(~CompoundSelector, Combinator)>,  // c.next is left of c
@@ -41,7 +41,7 @@ pub enum Combinator {
     LaterSibling,  // ~
 }
 
-#[deriving(Clone)]
+#[deriving(Eq, Clone)]
 pub enum SimpleSelector {
     IDSelector(~str),
     ClassSelector(~str),
@@ -66,7 +66,7 @@ pub enum SimpleSelector {
     // ...
 }
 
-#[deriving(Clone)]
+#[deriving(Eq, Clone)]
 pub struct AttrSelector {
     name: ~str,
     namespace: Option<~str>,
@@ -192,7 +192,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
     static MAX_10BIT: u32 = (1u32 << 10) - 1;
     specificity.id_selectors.min(&MAX_10BIT) << 20
     | specificity.class_like_selectors.min(&MAX_10BIT) << 10
-    | specificity.id_selectors.min(&MAX_10BIT)
+    | specificity.element_selectors.min(&MAX_10BIT)
 }
 
 
@@ -211,7 +211,7 @@ fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
         match parse_one_simple_selector(iter, namespaces, /* inside_negation = */ false) {
             None => return None, // invalid selector
             Some(None) => break,
-            Some(Some(Left(s))) => simple_selectors.push(s),
+            Some(Some(Left(s))) => { simple_selectors.push(s); empty = false },
             Some(Some(Right(p))) => { pseudo_element = Some(p); break },
         }
     }
@@ -359,8 +359,7 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
             }
         },
         Some(&Delim('|')) => explicit_namespace(iter, allow_universal, Some(~"")),
-        Some(&IDHash(*)) => default_namespace(namespaces, None),
-        _ => return None,
+        _ => Some(None),
     }
 }
 
@@ -490,5 +489,74 @@ fn skip_whitespace(iter: &mut Iter) -> bool {
         if iter.peek() != Some(&WhiteSpace) { return any_whitespace }
         any_whitespace = true;
         iter.next();
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use cssparser;
+    use namespaces::NamespaceMap;
+    use super::*;
+
+    fn parse(input: &str) -> Option<~[Selector]> {
+        parse_selector_list(
+            cssparser::tokenize(input).map(|(v, _)| v).to_owned_vec(),
+            &NamespaceMap::new())
+    }
+
+    fn specificity(a: u32, b: u32, c: u32) -> u32 {
+        a << 20 | b << 10 | c
+    }
+
+    #[test]
+    fn test_parsing() {
+        assert_eq!(parse(""), None)
+        assert_eq!(parse("e"), Some(~[Selector{
+            compound_selectors: CompoundSelector {
+                simple_selectors: ~[LocalNameSelector(~"e")],
+                next: None,
+            },
+            pseudo_element: None,
+            specificity: specificity(0, 0, 1),
+        }]))
+        assert_eq!(parse(".foo"), Some(~[Selector{
+            compound_selectors: CompoundSelector {
+                simple_selectors: ~[ClassSelector(~"foo")],
+                next: None,
+            },
+            pseudo_element: None,
+            specificity: specificity(0, 1, 0),
+        }]))
+        assert_eq!(parse("#bar"), Some(~[Selector{
+            compound_selectors: CompoundSelector {
+                simple_selectors: ~[IDSelector(~"bar")],
+                next: None,
+            },
+            pseudo_element: None,
+            specificity: specificity(1, 0, 0),
+        }]))
+        assert_eq!(parse("e.foo#bar"), Some(~[Selector{
+            compound_selectors: CompoundSelector {
+                simple_selectors: ~[LocalNameSelector(~"e"),
+                                    ClassSelector(~"foo"),
+                                    IDSelector(~"bar")],
+                next: None,
+            },
+            pseudo_element: None,
+            specificity: specificity(1, 1, 1),
+        }]))
+        assert_eq!(parse("e.foo #bar"), Some(~[Selector{
+            compound_selectors: CompoundSelector {
+                simple_selectors: ~[IDSelector(~"bar")],
+                next: Some((~CompoundSelector {
+                    simple_selectors: ~[LocalNameSelector(~"e"),
+                                        ClassSelector(~"foo")],
+                    next: None,
+                }, Descendant)),
+            },
+            pseudo_element: None,
+            specificity: specificity(1, 1, 1),
+        }]))
     }
 }
