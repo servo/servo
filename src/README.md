@@ -19,8 +19,7 @@ they are designed to be useful in other Rust projects.
 
 * `support/azure`: A cross-platform 2D drawing library from the Mozilla project. Azure can render
   with Direct2D, Core Graphics (Quartz), Skia, and Cairo.
-* `support/css`: A general CSS parsing and selector matching library. This abstraction layer
-  exists to prevent `libcss` internals from leaking into Servo.
+* `support/css`: A low-level CSS parsing library for Rust.
 * `support/geom`: A simple Euclidean geometry and linear algebra library.
 * `support/glut`: Bindings to the GLUT windowing framework. This bare-bones windowing framework is
   useful for testing the engine without browser chrome.
@@ -32,8 +31,6 @@ they are designed to be useful in other Rust projects.
 * `support/layers`: A simple GPU-accelerated 2D scene graph library, somewhat similar to libraries
   like Clutter.
 * `support/libparserutils`: A parsing library used by `hubbub` and `netsurfcss`.
-* `support/netsurfcss`: The CSS library from the NetSurf project. This is a temporary stopgap for
-  CSS parsing until a pure-Rust solution is available.
 * `support/opengles`: Bindings to OpenGL ES 2.0.
 * `support/png`: Bindings to libpng.
 * `support/sharegl`: A library for sharing OpenGL or Direct3D textures between processes.
@@ -41,7 +38,6 @@ they are designed to be useful in other Rust projects.
 * `support/spidermonkey`: Mozilla's JavaScript engine.
 * `support/stb-image`: A minimalist image decoding library. This is a temporary stopgap for image
   decoding until a higher-performance solution is available.
-* `support/wapcaplet`: A string storage library used by `hubbub` and `netsurfcss`.
 
 ## Platform-specfic bindings
 

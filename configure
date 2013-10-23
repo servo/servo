@@ -480,7 +480,6 @@ fi
 CFG_SUBMODULES="\
     support/alert/rust-alert \
     support/azure/rust-azure \
-    support/css/rust-css \
     support/css/rust-cssparser \
     support/geom/rust-geom \
     support/harfbuzz/rust-harfbuzz \
@@ -489,8 +488,6 @@ CFG_SUBMODULES="\
     support/hubbub/rust-hubbub \
     support/layers/rust-layers \
     support/libparserutils/libparserutils \
-    support/netsurfcss/libcss \
-    support/netsurfcss/rust-netsurfcss \
     support/nss/nspr \
     support/nss/nss \
     support/opengles/rust-opengles \
@@ -500,9 +497,7 @@ CFG_SUBMODULES="\
     support/spidermonkey/rust-mozjs \
     support/stb-image/rust-stb-image \
     support/png/libpng \
-    support/png/rust-png \
-    support/wapcaplet/libwapcaplet \
-    support/wapcaplet/rust-wapcaplet"
+    support/png/rust-png"
 
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then

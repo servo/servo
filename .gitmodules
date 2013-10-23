@@ -46,18 +46,6 @@
 [submodule "src/support/sharegl/sharegl"]
 	path = src/support/sharegl/sharegl
 	url = https://github.com/mozilla-servo/sharegl.git
-[submodule "src/support/wapcaplet/libwapcaplet"]
-    path = src/support/wapcaplet/libwapcaplet
-    url = https://github.com/mozilla-servo/libwapcaplet.git
-[submodule "src/support/netsurfcss/libcss"]
-    path = src/support/netsurfcss/libcss
-    url = https://github.com/mozilla-servo/libcss.git
-[submodule "src/support/netsurfcss/rust-netsurfcss"]
-	path = src/support/netsurfcss/rust-netsurfcss
-	url = https://github.com/mozilla-servo/rust-netsurfcss.git
-[submodule "src/support/wapcaplet/rust-wapcaplet"]
-	path = src/support/wapcaplet/rust-wapcaplet
-	url = https://github.com/mozilla-servo/rust-wapcaplet.git
 [submodule "src/platform/macos/rust-core-graphics"]
 	path = src/platform/macos/rust-core-graphics
 	url = https://github.com/mozilla-servo/rust-core-graphics.git
@@ -73,9 +61,6 @@
 [submodule "src/platform/linux/rust-xlib"]
 	path = src/platform/linux/rust-xlib
 	url = https://github.com/mozilla-servo/rust-xlib.git
-[submodule "src/support/css/rust-css"]
-	path = src/support/css/rust-css
-	url = https://github.com/mozilla-servo/rust-css.git
 [submodule "src/support/skia/skia"]
 	path = src/support/skia/skia
 	url = https://github.com/mozilla-servo/skia.git
