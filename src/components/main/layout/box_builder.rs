@@ -17,13 +17,8 @@ use layout::inline::{InlineFlowData, InlineLayout};
 use layout::text::TextRunScanner;
 use css::node_style::StyledNode;
 
-use newcss::values::{CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
-use newcss::values::{CSSDisplayTable, CSSDisplayInlineTable, CSSDisplayListItem};
-use newcss::values::{CSSDisplayTableRowGroup, CSSDisplayTableHeaderGroup, CSSDisplayTableFooterGroup};
-use newcss::values::{CSSDisplayTableRow, CSSDisplayTableColumnGroup, CSSDisplayTableColumn};
-use newcss::values::{CSSDisplayTableCell, CSSDisplayTableCaption};
-use newcss::values::{CSSDisplayNone};
-use newcss::values::{CSSFloatNone, CSSFloatLeft, CSSFloatRight};
+use style::computed_values::display;
+use style::computed_values::float;
 use layout::float_context::{FloatLeft, FloatRight};
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
@@ -374,31 +369,26 @@ impl LayoutTreeBuilder {
                                       parent_generator: &mut BoxGenerator<'a>,
                                       mut sibling_generator: Option<&mut BoxGenerator<'a>>)
                                       -> BoxGenResult<'a> {
-
         let display = if node.is_element() {
-            match node.style().display(node.is_root()) {
-                CSSDisplayNone => return NoGenerator, // tree ends here if 'display: none'
-                // TODO(eatkinson) these are hacks so that the code doesn't crash
-                // when unsupported display values are used. They should be deleted
-                // as they are implemented.
-                CSSDisplayListItem => CSSDisplayBlock,
-                CSSDisplayTable => CSSDisplayBlock,
-                CSSDisplayInlineTable => CSSDisplayInlineBlock,
-                CSSDisplayTableRowGroup => CSSDisplayBlock,
-                CSSDisplayTableHeaderGroup => CSSDisplayBlock,
-                CSSDisplayTableFooterGroup => CSSDisplayBlock,
-                CSSDisplayTableRow => CSSDisplayBlock,
-                CSSDisplayTableColumnGroup => return NoGenerator,
-                CSSDisplayTableColumn => return NoGenerator,
-                CSSDisplayTableCell => CSSDisplayBlock,
-                CSSDisplayTableCaption => CSSDisplayBlock,
-                v => v
+            let display = node.style().Box.display;
+            if node.is_root() {
+                match display {
+                    display::none => return NoGenerator,
+                    display::inline => display::block,
+                    display::list_item => display::block,
+                    v => v
+                }
+            } else {
+                match display {
+                    display::none => return NoGenerator,
+                    display::list_item => display::block,
+                    v => v
+                }
             }
         } else {
             match node.type_id() {
-
-                ElementNodeTypeId(_) => CSSDisplayInline,
-                TextNodeTypeId => CSSDisplayInline,
+                ElementNodeTypeId(_) => display::inline,
+                TextNodeTypeId => display::inline,
                 DoctypeNodeTypeId |
                 DocumentFragmentNodeTypeId |
                 CommentNodeTypeId => return NoGenerator,
@@ -407,13 +397,11 @@ impl LayoutTreeBuilder {
 
         let sibling_flow: Option<&mut FlowContext> = sibling_generator.as_mut().map(|gen| &mut *gen.flow);
 
-        // TODO(eatkinson): use the value of the float property to
-        // determine whether to float left or right.
         let is_float = if (node.is_element()) {
-            match node.style().float() {
-                CSSFloatNone => None,
-                CSSFloatLeft => Some(FloatLeft),
-                CSSFloatRight => Some(FloatRight)
+            match node.style().Box.float {
+                float::none => None,
+                float::left => Some(FloatLeft),
+                float::right => Some(FloatRight)
             }
         } else {
             None
@@ -422,14 +410,14 @@ impl LayoutTreeBuilder {
 
         let new_generator = match (display, &mut parent_generator.flow, sibling_flow) { 
             // Floats
-            (CSSDisplayBlock, & &BlockFlow(_), _) |
-            (CSSDisplayBlock, & &FloatFlow(_), _) if is_float.is_some() => {
+            (display::block, & &BlockFlow(_), _) |
+            (display::block, & &FloatFlow(_), _) if is_float.is_some() => {
                 self.create_child_generator(node, parent_generator, Flow_Float(is_float.unwrap()))
             }
             // If we're placing a float after an inline, append the float to the inline flow,
             // then continue building from the inline flow in case there are more inlines
             // afterward.
-            (CSSDisplayBlock, _, Some(&InlineFlow(_))) if is_float.is_some() => {
+            (display::block, _, Some(&InlineFlow(_))) if is_float.is_some() => {
                 let float_generator = self.create_child_generator(node, 
                                                                   sibling_generator.unwrap(), 
                                                                   Flow_Float(is_float.unwrap()));
@@ -438,11 +426,11 @@ impl LayoutTreeBuilder {
             // This is a catch-all case for when:
             // a) sibling_flow is None
             // b) sibling_flow is a BlockFlow
-            (CSSDisplayBlock, & &InlineFlow(_), _) if is_float.is_some() => {
+            (display::block, & &InlineFlow(_), _) if is_float.is_some() => {
                 self.create_child_generator(node, parent_generator, Flow_Float(is_float.unwrap()))
             }
 
-            (CSSDisplayBlock, & &BlockFlow(ref info), _) => match (info.is_root, node.parent_node().is_some()) {
+            (display::block, & &BlockFlow(ref info), _) => match (info.is_root, node.parent_node().is_some()) {
                 // If this is the root node, then use the root flow's
                 // context. Otherwise, make a child block context.
                 (true, true) => self.create_child_generator(node, parent_generator, Flow_Block),
@@ -452,34 +440,34 @@ impl LayoutTreeBuilder {
                 }
             },
 
-            (CSSDisplayBlock, & &FloatFlow(*), _) => {
+            (display::block, & &FloatFlow(*), _) => {
                 self.create_child_generator(node, parent_generator, Flow_Block)
             }
 
             // Inlines that are children of inlines are part of the same flow
-            (CSSDisplayInline, & &InlineFlow(*), _) => return ParentGenerator,
-            (CSSDisplayInlineBlock, & &InlineFlow(*), _) => return ParentGenerator,
+            (display::inline, & &InlineFlow(*), _) => return ParentGenerator,
+            (display::inline_block, & &InlineFlow(*), _) => return ParentGenerator,
 
             // Inlines that are children of blocks create new flows if their
             // previous sibling was a block.
-            (CSSDisplayInline, & &BlockFlow(*), Some(&BlockFlow(*))) |
-            (CSSDisplayInlineBlock, & &BlockFlow(*), Some(&BlockFlow(*))) => {
+            (display::inline, & &BlockFlow(*), Some(&BlockFlow(*))) |
+            (display::inline_block, & &BlockFlow(*), Some(&BlockFlow(*))) => {
                 self.create_child_generator(node, parent_generator, Flow_Inline)
             }
 
             // The first two cases should only be hit when a FloatFlow
             // is the first child of a BlockFlow. Other times, we will
-            (CSSDisplayInline, _, Some(&FloatFlow(*))) |
-            (CSSDisplayInlineBlock, _, Some(&FloatFlow(*))) |
-            (CSSDisplayInline, & &FloatFlow(*), _) |
-            (CSSDisplayInlineBlock, & &FloatFlow(*), _) => {
+            (display::inline, _, Some(&FloatFlow(*))) |
+            (display::inline_block, _, Some(&FloatFlow(*))) |
+            (display::inline, & &FloatFlow(*), _) |
+            (display::inline_block, & &FloatFlow(*), _) => {
                 self.create_child_generator(node, parent_generator, Flow_Inline)
             }
 
             // Inlines whose previous sibling was not a block try to use their
             // sibling's flow context.
-            (CSSDisplayInline, & &BlockFlow(*), _) |
-            (CSSDisplayInlineBlock, & &BlockFlow(*), _) => {
+            (display::inline, & &BlockFlow(*), _) |
+            (display::inline_block, & &BlockFlow(*), _) => {
                 return match sibling_generator {
                     None => NewGenerator(self.create_child_generator(node, 
                                                                      parent_generator, 
@@ -490,7 +478,7 @@ impl LayoutTreeBuilder {
 
             // blocks that are children of inlines need to split their parent
             // flows.
-            (CSSDisplayBlock, & &InlineFlow(*), _) => {
+            (display::block, & &InlineFlow(*), _) => {
                 match grandparent_generator {
                     None => fail!("expected to have a grandparent block flow"),
                     Some(grandparent_gen) => {

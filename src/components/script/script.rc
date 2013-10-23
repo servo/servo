@@ -21,6 +21,7 @@ extern mod netsurfcss;
 extern mod newcss (name = "css");
 extern mod servo_net (name = "net");
 extern mod servo_util (name = "util");
+extern mod style;
 extern mod servo_msg (name = "msg");
 extern mod extra;
 

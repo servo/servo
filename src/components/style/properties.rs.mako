@@ -371,7 +371,7 @@ pub mod longhands {
     <%self:longhand name="font-family" inherited="True">
         pub use to_computed_value = super::computed_as_specified;
         #[deriving(Eq, Clone)]
-        enum FontFamily {
+        pub enum FontFamily {
             FamilyName(~str),
             // Generic
 //            Serif,
@@ -563,9 +563,10 @@ pub mod longhands {
         }
         pub mod computed_value {
             pub type T = super::SpecifiedValue;
+            pub static none: T = super::SpecifiedValue { underline: false, overline: false, line_through: false };
         }
         #[inline] pub fn get_initial_value() -> computed_value::T {
-            SpecifiedValue { underline: false, overline: false, line_through: false }  // none
+            none
         }
         /// none | [ underline || overline || line-through || blink ]
         pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
@@ -978,7 +979,7 @@ fn get_initial_values() -> ComputedValues {
 
 
 // Most specific/important declarations last
-pub fn cascade(applicable_declarations: &[~[PropertyDeclaration]],
+pub fn cascade(applicable_declarations: &[@[PropertyDeclaration]],
                parent_style: Option< &ComputedValues>)
             -> ComputedValues {
     let initial_keep_alive;

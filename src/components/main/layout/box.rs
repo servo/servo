@@ -23,17 +23,18 @@ use gfx::display_list::{TextDisplayItemClass};
 use gfx::font::{FontStyle, FontWeight300};
 use servo_util::geometry::Au;
 use gfx::text::text_run::TextRun;
-use newcss::color::rgb;
-use newcss::complete::CompleteStyle;
-use newcss::units::{Em, Px};
-use newcss::units::{Cursive, Fantasy, Monospace, SansSerif, Serif};
-use newcss::values::{CSSBorderStyleDashed, CSSBorderStyleSolid};
-use newcss::values::{CSSClearNone, CSSClearLeft, CSSClearRight, CSSClearBoth};
-use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
-use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
-use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration, CSSLineHeight, CSSVerticalAlign};
-use newcss::values::{CSSTextDecorationNone, CSSFloatNone, CSSPositionStatic};
-use newcss::values::{CSSDisplayInlineBlock, CSSDisplayInlineTable};
+use gfx::color::rgb;
+use style::ComputedValues;
+use style::computed_values::border_style;
+use style::computed_values::clear;
+use style::computed_values::float;
+use style::properties::longhands::font_family::FamilyName;
+use style::computed_values::font_style;
+use style::computed_values::line_height;
+use style::computed_values::position;
+use style::computed_values::text_align;
+use style::computed_values::text_decoration;
+use style::computed_values::vertical_align;
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
@@ -119,7 +120,7 @@ pub struct UnscannedTextRenderBox {
     // Cache font-style and text-decoration to check whether
     // this box can merge with another render box.
     font_style: Option<FontStyle>,
-    text_decoration: Option<CSSTextDecoration>,
+    text_decoration: Option<text_decoration::T>,
 }
 
 impl UnscannedTextRenderBox {
@@ -394,26 +395,18 @@ impl RenderBox {
                 Au(0)
             } else {
                 let style = self.style();
-                let font_size = style.font_size();
-                let width = MaybeAuto::from_width(style.width(),
-                                                  Au(0),
-                                                  font_size).specified_or_zero();
-                let margin_left = MaybeAuto::from_margin(style.margin_left(),
-                                                         Au(0),
-                                                         font_size).specified_or_zero();
-                let margin_right = MaybeAuto::from_margin(style.margin_right(),
-                                                          Au(0),
-                                                          font_size).specified_or_zero();
-                let padding_left = base.model.compute_padding_length(style.padding_left(),
-                                                                     Au(0),
-                                                                     font_size);
-                let padding_right = base.model.compute_padding_length(style.padding_right(),
-                                                                      Au(0),
-                                                                      font_size);
-                let border_left = base.model.compute_border_width(style.border_left_width(),
-                                                                  font_size);
-                let border_right = base.model.compute_border_width(style.border_right_width(),
-                                                                   font_size);
+                let width = MaybeAuto::from_style(style.Box.width,
+                                                  Au(0)).specified_or_zero();
+                let margin_left = MaybeAuto::from_style(style.Margin.margin_left,
+                                                        Au(0)).specified_or_zero();
+                let margin_right = MaybeAuto::from_style(style.Margin.margin_right,
+                                                         Au(0)).specified_or_zero();
+                let padding_left = base.model.compute_padding_length(style.Padding.padding_left,
+                                                                     Au(0));
+                let padding_right = base.model.compute_padding_length(style.Padding.padding_right,
+                                                                      Au(0));
+                let border_left = style.Border.border_left_width;
+                let border_right = style.Border.border_right_width;
 
                 width + margin_left + margin_right + padding_left + padding_right +
                     border_left + border_right
@@ -593,7 +586,7 @@ impl RenderBox {
 
     /// A convenience function to access the computed style of the DOM node that this render box
     /// represents.
-    pub fn style(&self) -> CompleteStyle {
+    pub fn style(&self) -> &ComputedValues {
         self.with_base(|base| base.node.style())
     }
 
@@ -663,7 +656,7 @@ impl RenderBox {
                 self.paint_background_if_applicable(list, &absolute_box_bounds);
 
                 let nearest_ancestor_element = self.nearest_ancestor_element();
-                let color = nearest_ancestor_element.style().color().to_gfx_color();
+                let color = nearest_ancestor_element.style().Color.color.to_gfx_color();
 
                 // Create the text box.
                 do list.with_mut_ref |list| {
@@ -696,8 +689,8 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200).to_gfx_color()),
-                            style: SideOffsets2D::new_all_same(CSSBorderStyleSolid)
+                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
+                            style: SideOffsets2D::new_all_same(border_style::solid)
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
@@ -718,8 +711,8 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: SideOffsets2D::new_all_same(rgb(0, 200, 0).to_gfx_color()),
-                            style: SideOffsets2D::new_all_same(CSSBorderStyleDashed)
+                            color: SideOffsets2D::new_all_same(rgb(0, 200, 0)),
+                            style: SideOffsets2D::new_all_same(border_style::dashed)
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
@@ -745,8 +738,8 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200).to_gfx_color()),
-                            style: SideOffsets2D::new_all_same(CSSBorderStyleSolid)
+                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
+                            style: SideOffsets2D::new_all_same(border_style::solid)
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
@@ -804,7 +797,8 @@ impl RenderBox {
         // doesn't have a render box".
         let nearest_ancestor_element = self.nearest_ancestor_element();
 
-        let background_color = nearest_ancestor_element.style().background_color();
+        let style = nearest_ancestor_element.style();
+        let background_color = style.resolve_color(style.Background.background_color);
         if !background_color.alpha.approx_eq(&0.0) {
             do list.with_mut_ref |list| {
                 let solid_color_display_item = ~SolidColorDisplayItem {
@@ -822,11 +816,11 @@ impl RenderBox {
 
     pub fn clear(&self) -> Option<ClearType> {
         let style = self.style();
-        match style.clear() {
-            CSSClearNone => None,
-            CSSClearLeft => Some(ClearLeft),
-            CSSClearRight => Some(ClearRight),
-            CSSClearBoth => Some(ClearBoth)
+        match style.Box.clear {
+            clear::none => None,
+            clear::left => Some(ClearLeft),
+            clear::right => Some(ClearRight),
+            clear::both => Some(ClearBoth)
         }
     }
 
@@ -838,31 +832,21 @@ impl RenderBox {
             debug!("(font style) start: %?", element.type_id());
 
             // FIXME: Too much allocation here.
-            let font_families = do my_style.font_family().map |family| {
+            let font_families = do my_style.Font.font_family.map |family| {
                 match *family {
-                    CSSFontFamilyFamilyName(ref family_str) => (*family_str).clone(),
-                    CSSFontFamilyGenericFamily(Serif)       => ~"serif",
-                    CSSFontFamilyGenericFamily(SansSerif)   => ~"sans-serif",
-                    CSSFontFamilyGenericFamily(Cursive)     => ~"cursive",
-                    CSSFontFamilyGenericFamily(Fantasy)     => ~"fantasy",
-                    CSSFontFamilyGenericFamily(Monospace)   => ~"monospace",
+                    FamilyName(ref name) => (*name).clone()
                 }
             };
             let font_families = font_families.connect(", ");
             debug!("(font style) font families: `%s`", font_families);
 
-            let font_size = match my_style.font_size() {
-                CSSFontSizeLength(Px(length)) => length as f64,
-                // todo: this is based on a hard coded font size, should be the parent element's font size
-                CSSFontSizeLength(Em(length)) => (length as f64) * 16f64,
-                _ => 16f64 // px units
-            };
+            let font_size = my_style.Font.font_size.to_f64().unwrap() / 60.0;
             debug!("(font style) font size: `%fpx`", font_size);
 
-            let (italic, oblique) = match my_style.font_style() {
-                CSSFontStyleNormal => (false, false),
-                CSSFontStyleItalic => (true, false),
-                CSSFontStyleOblique => (false, true),
+            let (italic, oblique) = match my_style.Font.font_style {
+                font_style::normal => (false, false),
+                font_style::italic => (true, false),
+                font_style::oblique => (false, true),
             };
 
             FontStyle {
@@ -900,48 +884,45 @@ impl RenderBox {
 
     /// Returns the text alignment of the computed style of the nearest ancestor-or-self `Element`
     /// node.
-    pub fn text_align(&self) -> CSSTextAlign {
-        self.nearest_ancestor_element().style().text_align()
+    pub fn text_align(&self) -> text_align::T {
+        self.nearest_ancestor_element().style().Text.text_align
     }
 
-    pub fn line_height(&self) -> CSSLineHeight {
-        self.nearest_ancestor_element().style().line_height()
+    pub fn line_height(&self) -> line_height::T {
+        self.nearest_ancestor_element().style().Box.line_height
     }
 
-    pub fn vertical_align(&self) -> CSSVerticalAlign {
-        self.nearest_ancestor_element().style().vertical_align()
+    pub fn vertical_align(&self) -> vertical_align::T {
+        self.nearest_ancestor_element().style().Box.vertical_align
     }
 
     /// Returns the text decoration of the computed style of the nearest `Element` node
-    pub fn text_decoration(&self) -> CSSTextDecoration {
+    pub fn text_decoration(&self) -> text_decoration::T {
         /// Computes the propagated value of text-decoration, as specified in CSS 2.1 § 16.3.1
         /// TODO: make sure this works with anonymous box generation.
-        fn get_propagated_text_decoration(element: AbstractNode<LayoutView>) -> CSSTextDecoration {
+        fn get_propagated_text_decoration(element: AbstractNode<LayoutView>) -> text_decoration::T {
             //Skip over non-element nodes in the DOM
             if(!element.is_element()){
                 return match element.parent_node() {
-                    None => CSSTextDecorationNone,
+                    None => text_decoration::none,
                     Some(parent) => get_propagated_text_decoration(parent),
                 };
             }
 
-            //FIXME: is the root param on display() important?
-            let display_in_flow = match element.style().display(false) {
-                CSSDisplayInlineTable | CSSDisplayInlineBlock => false,
-                _ => true,
-            };
+            //FIXME: Implement correctly
+            let display_in_flow = true;
 
-            let position = element.style().position();
-            let float = element.style().float();
+            let position = element.style().Box.position;
+            let float = element.style().Box.float;
 
-            let in_flow = (position == CSSPositionStatic) && (float == CSSFloatNone) &&
+            let in_flow = (position == position::static_) && (float == float::none) &&
                 display_in_flow;
 
-            let text_decoration = element.style().text_decoration();
+            let text_decoration = element.style().Text.text_decoration;
 
-            if(text_decoration == CSSTextDecorationNone && in_flow){
+            if text_decoration == text_decoration::none && in_flow {
                 match element.parent_node() {
-                    None => CSSTextDecorationNone,
+                    None => text_decoration::none,
                     Some(parent) => get_propagated_text_decoration(parent),
                 }
             }
@@ -1024,8 +1005,15 @@ impl RenderBox {
             return
         }
 
-        let (top_color, right_color, bottom_color, left_color) = (self.style().border_top_color(), self.style().border_right_color(), self.style().border_bottom_color(), self.style().border_left_color());
-        let (top_style, right_style, bottom_style, left_style) = (self.style().border_top_style(), self.style().border_right_style(), self.style().border_bottom_style(), self.style().border_left_style());
+        let style = self.style();
+        let top_color = style.resolve_color(style.Border.border_top_color);
+        let right_color = style.resolve_color(style.Border.border_right_color);
+        let bottom_color = style.resolve_color(style.Border.border_bottom_color);
+        let left_color = style.resolve_color(style.Border.border_left_color);
+        let top_style = style.Border.border_top_style;
+        let right_style = style.Border.border_right_style;
+        let bottom_style = style.Border.border_bottom_style;
+        let left_style = style.Border.border_left_style;
         // Append the border to the display list.
         do list.with_mut_ref |list| {
             let border_display_item = ~BorderDisplayItem {

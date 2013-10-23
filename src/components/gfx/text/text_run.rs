@@ -10,13 +10,13 @@ use text::glyph::GlyphStore;
 use font::{Font, FontDescriptor, RunMetrics};
 use servo_util::range::Range;
 use extra::arc::Arc;
-use newcss::values::CSSTextDecoration;
+use style::computed_values::text_decoration;
 
 /// A text run.
 pub struct TextRun {
     text: ~str,
     font: @mut Font,
-    decoration: CSSTextDecoration,
+    decoration: text_decoration::T,
     glyphs: ~[Arc<GlyphStore>],
 }
 
@@ -24,7 +24,7 @@ pub struct TextRun {
 pub struct SendableTextRun {
     text: ~str,
     font: FontDescriptor,
-    decoration: CSSTextDecoration,
+    decoration: text_decoration::T,
     priv glyphs: ~[Arc<GlyphStore>],
 }
 
@@ -117,7 +117,7 @@ impl<'self> Iterator<Range> for LineIterator<'self> {
 }
 
 impl<'self> TextRun {
-    pub fn new(font: @mut Font, text: ~str, decoration: CSSTextDecoration) -> TextRun {
+    pub fn new(font: @mut Font, text: ~str, decoration: text_decoration::T) -> TextRun {
         let glyphs = TextRun::break_and_shape(font, text);
 
         let run = TextRun {

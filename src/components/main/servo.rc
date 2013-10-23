@@ -31,6 +31,7 @@ extern mod script;
 extern mod servo_net (name = "net");
 extern mod servo_msg (name = "msg");
 extern mod servo_util (name = "util");
+extern mod style;
 extern mod sharegl;
 extern mod stb_image;
 extern mod extra;
