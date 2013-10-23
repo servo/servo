@@ -8,9 +8,8 @@ use std::cell::Cell;
 use std::comm;
 use std::comm::Port;
 use std::task;
-use newcss::stylesheet::Stylesheet;
-use newcss::util::DataStream;
-use servo_net::resource_task::{Load, LoadResponse, Payload, Done, ResourceTask, ProgressMsg};
+use style::Stylesheet;
+use servo_net::resource_task::{Load, ProgressMsg, Payload, Done, ResourceTask};
 use extra::url::Url;
 
 /// Where a style sheet comes from.
@@ -26,73 +25,42 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
 
     let provenance_cell = Cell::new(provenance);
     do task::spawn {
-        let url = do provenance_cell.with_ref |p| {
+        // TODO: CSS parsing should take a base URL.
+        let _url = do provenance_cell.with_ref |p| {
             match *p {
                 UrlProvenance(ref the_url) => (*the_url).clone(),
                 InlineProvenance(ref the_url, _) => (*the_url).clone()
             }
         };
 
-        let sheet = Stylesheet::new(url, data_stream(provenance_cell.take(),
-                                                     resource_task.clone()));
+        let sheet = match provenance_cell.take() {
+            UrlProvenance(url) => {
+                debug!("cssparse: loading style sheet at %s", url.to_str());
+                let (input_port, input_chan) = comm::stream();
+                resource_task.send(Load(url, input_chan));
+                Stylesheet::from_iter(ProgressMsgPortIterator {
+                    progress_port: input_port.recv().progress_port
+                })
+            }
+            InlineProvenance(_, data) => {
+                Stylesheet::from_str(data)
+            }
+        };
         result_chan.send(sheet);
     }
 
     return result_port;
 }
 
-fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) -> @mut DataStream {
-    match provenance {
-        UrlProvenance(url) => {
-            debug!("cssparse: loading style sheet at %s", url.to_str());
-            let (input_port, input_chan) = comm::stream();
-            resource_task.send(Load(url, input_chan));
-            resource_port_to_data_stream(input_port)
-        }
-        InlineProvenance(_, data) => {
-            data_to_data_stream(data)
+struct ProgressMsgPortIterator {
+    progress_port: Port<ProgressMsg>
+}
+
+impl Iterator<~[u8]> for ProgressMsgPortIterator {
+    fn next(&mut self) -> Option<~[u8]> {
+        match self.progress_port.recv() {
+            Payload(data) => Some(data),
+            Done(*) => None
         }
     }
 }
-
-fn resource_port_to_data_stream(input_port: Port<LoadResponse>) -> @mut DataStream {
-    let progress_port = input_port.recv().progress_port;
-    struct ResourcePortDataStream {
-        progress_port: Port<ProgressMsg>,
-    };
-    impl DataStream for ResourcePortDataStream {
-        fn read(&mut self) -> Option<~[u8]> {
-            match self.progress_port.recv() {
-                Payload(data) => Some(data),
-                Done(*) => None
-            }
-        }
-    }
-    let stream = @mut ResourcePortDataStream {
-        progress_port: progress_port,
-    };
-    stream as @mut DataStream
-}
-
-fn data_to_data_stream(data: ~str) -> @mut DataStream {
-    let data_cell = Cell::new(data);
-    struct DataDataStream {
-        data_cell: Cell<~str>,
-    };
-    impl DataStream for DataDataStream {
-        fn read(&mut self) -> Option<~[u8]> {
-            if self.data_cell.is_empty() {
-                None
-            } else {
-                // FIXME: Blech, a copy.
-                let data = self.data_cell.take();
-                Some(data.as_bytes().to_owned())
-            }
-        }
-    }
-    let stream = @mut DataDataStream {
-        data_cell: data_cell,
-    };
-    stream as @mut DataStream
-}
-

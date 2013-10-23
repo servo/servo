@@ -13,7 +13,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::point::Point2D;
 use servo_util::geometry::Au;
-use newcss::stylesheet::Stylesheet;
+use style::Stylesheet;
 use extra::url::Url;
 
 /// Asynchronous messages that script can send to layout.

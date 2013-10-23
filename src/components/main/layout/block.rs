@@ -199,17 +199,15 @@ impl BlockFlowData {
                 let available_width = remaining_width - model.noncontent_width();
 
                 // Top and bottom margins for blocks are 0 if auto.
-                let margin_top = MaybeAuto::from_margin(style.margin_top(),
-                                                        remaining_width,
-                                                        style.font_size()).specified_or_zero();
-                let margin_bottom = MaybeAuto::from_margin(style.margin_bottom(),
-                                                           remaining_width,
-                                                           style.font_size()).specified_or_zero();
+                let margin_top = MaybeAuto::from_style(style.Margin.margin_top,
+                                                       remaining_width).specified_or_zero();
+                let margin_bottom = MaybeAuto::from_style(style.Margin.margin_bottom,
+                                                          remaining_width).specified_or_zero();
 
                 let (width, margin_left, margin_right) =
-                    (MaybeAuto::from_width(style.width(), remaining_width, style.font_size()),
-                     MaybeAuto::from_margin(style.margin_left(), remaining_width, style.font_size()),
-                     MaybeAuto::from_margin(style.margin_right(), remaining_width, style.font_size()));
+                    (MaybeAuto::from_style(style.Box.width, remaining_width),
+                     MaybeAuto::from_style(style.Margin.margin_left, remaining_width),
+                     MaybeAuto::from_style(style.Margin.margin_right, remaining_width));
 
                 let (width, margin_left, margin_right) = self.compute_horiz(width,
                                                                             margin_left,
@@ -403,7 +401,7 @@ impl BlockFlowData {
 
         for &box in self.box.iter() {
             let style = box.style();
-            let maybe_height = MaybeAuto::from_height(style.height(), Au(0), style.font_size());
+            let maybe_height = MaybeAuto::from_style(style.Box.height, Au(0));
             let maybe_height = maybe_height.specified_or_zero();
             height = geometry::max(height, maybe_height);
         }

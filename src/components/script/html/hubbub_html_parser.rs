@@ -12,7 +12,7 @@ use dom::node::{AbstractNode, ElementNodeTypeId, Node, ScriptView};
 use dom::types::*;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use js::jsapi::JSContext;
-use newcss::stylesheet::Stylesheet;
+use style::Stylesheet;
 use script_task::page_from_context;
 
 use std::cast;

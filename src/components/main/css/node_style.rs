@@ -7,22 +7,22 @@
 use css::node_util::NodeUtil;
 use layout::incremental::RestyleDamage;
 
-use newcss::complete::CompleteStyle;
+use style::ComputedValues;
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::tree::TreeNodeRef;
 
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
-    fn style(&self) -> CompleteStyle;
+    fn style(&self) -> &ComputedValues;
     fn restyle_damage(&self) -> RestyleDamage;
 }
 
 impl StyledNode for AbstractNode<LayoutView> {
-    fn style(&self) -> CompleteStyle {
+    fn style(&self) -> &ComputedValues {
         assert!(self.is_element()); // Only elements can have styles
         let results = self.get_css_select_results();
-        results.computed_style()
+        results
     }
 
     fn restyle_damage(&self) -> RestyleDamage {

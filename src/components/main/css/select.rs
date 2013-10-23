@@ -4,26 +4,24 @@
 
 use extra::url::Url;
 use std::cell::Cell;
-use newcss::stylesheet::Stylesheet;
-use newcss::select::SelectCtx;
-use newcss::types::OriginUA;
+use style::Stylesheet;
+use style::Stylist;
+use style::selector_matching::UserAgentOrigin;
 use newcss::util::DataStream;
 
-pub fn new_css_select_ctx() -> SelectCtx {
-    let mut ctx = SelectCtx::new();
-    ctx.append_sheet(html4_default_style(), OriginUA);
-    ctx.append_sheet(servo_default_style(), OriginUA);
-    return ctx;
+pub fn new_stylist() -> Stylist {
+    let mut stylist = Stylist::new();
+    stylist.add_stylesheet(html4_default_style(), UserAgentOrigin);
+    stylist.add_stylesheet(servo_default_style(), UserAgentOrigin);
+    stylist
 }
 
 fn html4_default_style() -> Stylesheet {
-    Stylesheet::new(default_url("html4_style"),
-                    style_stream(html4_default_style_str()))
+    Stylesheet::from_str(html4_default_style_str())
 }
 
 fn servo_default_style() -> Stylesheet {
-    Stylesheet::new(default_url("servo_style"),
-                    style_stream(servo_default_style_str()))
+    Stylesheet::from_str(servo_default_style_str())
 }
 
 fn default_url(name: &str) -> Url {

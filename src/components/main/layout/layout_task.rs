@@ -6,7 +6,7 @@
 /// rendered.
 
 use css::matching::MatchMethods;
-use css::select::new_css_select_ctx;
+use css::select::new_stylist;
 use layout::aux::LayoutAuxMethods;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
@@ -28,9 +28,9 @@ use servo_util::geometry::Au;
 use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::render_task;
-use newcss::select::SelectCtx;
-use newcss::stylesheet::Stylesheet;
-use newcss::types::OriginAuthor;
+use style::Stylist;
+use style::Stylesheet;
+use style::selector_matching::AuthorOrigin;
 use script::dom::event::ReflowEvent;
 use script::dom::node::{AbstractNode, LayoutView};
 use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
@@ -63,7 +63,7 @@ struct LayoutTask {
 
     display_list: Option<Arc<DisplayList<AbstractNode<()>>>>,
 
-    css_select_ctx: @mut SelectCtx,
+    stylist: Stylist,
     profiler_chan: ProfilerChan,
 }
 
@@ -115,7 +115,7 @@ impl LayoutTask {
 
             display_list: None,
             
-            css_select_ctx: @mut new_css_select_ctx(),
+            stylist: new_stylist(),
             profiler_chan: profiler_chan,
         }
     }
@@ -167,9 +167,8 @@ impl LayoutTask {
         true
     }
 
-    fn handle_add_stylesheet(&self, sheet: Stylesheet) {
-        let sheet = Cell::new(sheet);
-        self.css_select_ctx.append_sheet(sheet.take(), OriginAuthor);
+    fn handle_add_stylesheet(&mut self, sheet: Stylesheet) {
+        self.stylist.add_stylesheet(sheet, AuthorOrigin);
     }
 
     /// The high-level routine that performs layout tasks.
@@ -212,7 +211,8 @@ impl LayoutTask {
             ReflowDocumentDamage => {}
             MatchSelectorsDocumentDamage => {
                 do profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone()) {
-                    node.restyle_subtree(self.css_select_ctx);
+                    node.match_subtree(&self.stylist);
+                    node.cascade_subtree(None);
                 }
             }
         }

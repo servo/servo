@@ -13,7 +13,7 @@ use dom::document::AbstractDocument;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
-use newcss::stylesheet::Stylesheet;
+use style;
 use servo_util::tree::{TreeNodeRef, ElementLike};
 
 use js::jsapi::{JSContext, JSObject};
@@ -27,7 +27,7 @@ pub struct Element {
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     attrs: HashMap<~str, ~str>,
     attrs_list: ~[~str], // store an order of attributes.
-    style_attribute: Option<Stylesheet>,
+    style_attribute: Option<style::PropertyDeclarationBlock>,
 }
 
 impl Reflectable for Element {
@@ -173,10 +173,8 @@ impl<'self> Element {
                           });
 
         if "style" == name {
-            self.style_attribute = Some(
-                Stylesheet::from_attribute(
-                    FromStr::from_str("http://www.example.com/").unwrap(),
-                    null_str_as_empty_ref(raw_value)));
+            self.style_attribute = Some(style::parse_style_attribute(
+                null_str_as_empty_ref(raw_value)));
         }
 
         // TODO: update owner document's id hashmap for `document.getElementById()`

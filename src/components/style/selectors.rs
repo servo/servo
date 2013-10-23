@@ -90,7 +90,9 @@ pub fn parse_selector_list(input: ~[ComponentValue], namespaces: &NamespaceMap)
         skip_whitespace(iter);
         match iter.peek() {
             None => break,  // EOF
-            Some(&Comma) => (),
+            Some(&Comma) => {
+                iter.next();
+            }
             _ => return None,
         }
         match parse_selector(iter, namespaces) {
@@ -116,6 +118,7 @@ fn parse_selector(iter: &mut Iter, namespaces: &NamespaceMap)
         let any_whitespace = skip_whitespace(iter);
         let combinator = match iter.peek() {
             None => break,  // EOF
+            Some(&Comma) => break,
             Some(&Delim('>')) => { iter.next(); Child },
             Some(&Delim('+')) => { iter.next(); NextSibling },
             Some(&Delim('~')) => { iter.next(); LaterSibling },
@@ -356,6 +359,7 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
             }
         },
         Some(&Delim('|')) => explicit_namespace(iter, allow_universal, Some(~"")),
+        Some(&IDHash(*)) => default_namespace(namespaces, None),
         _ => return None,
     }
 }
