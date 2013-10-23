@@ -15,7 +15,6 @@ NO_TESTS += \
 SLOW_BUILDS += \
 	libcss \
 	libparserutils \
-	libwapcaplet \
 	mozjs \
 	sharegl \
 	skia \
@@ -26,7 +25,6 @@ NATIVE_BUILDS += \
 	libcss \
 	libhubbub \
 	libparserutils \
-	libwapcaplet \
 	mozjs \
 	skia \
 	nss \
@@ -72,27 +70,6 @@ DEPS_rust-hubbub += \
 	rust \
 	$(NULL)
 
-DEPS_rust-netsurfcss += \
-	libcss \
-	rust-wapcaplet \
-	rust \
-	$(NULL)
-
-DEPS_rust-wapcaplet += \
-	libwapcaplet \
-	rust \
-	$(NULL)
-
-CFLAGS_rust-wapcaplet += \
-	"-I$(S)src/libwapcaplet/include" \
-	$(NULL)
-
-DEPS_rust-css += \
-	rust-netsurfcss \
-	rust-wapcaplet \
-	rust \
-	$(NULL)
-
 DEPS_rust-mozjs += \
 	mozjs \
 	rust \
@@ -100,11 +77,6 @@ DEPS_rust-mozjs += \
 
 CFLAGS_rust-mozjs += \
 	"-I../mozjs/dist/include" \
-	$(NULL)
-
-DEPS_libcss += \
-	libwapcaplet \
-	libparserutils \
 	$(NULL)
 
 DEPS_rust-png += \

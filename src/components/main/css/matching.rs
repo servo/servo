@@ -6,6 +6,8 @@
 
 use std::cell::Cell;
 use css::node_style::StyledNode;
+use css::node_util::NodeUtil;
+use layout::incremental;
 
 use script::dom::node::{AbstractNode, LayoutView};
 use style::Stylist;
@@ -39,7 +41,7 @@ impl MatchMethods for AbstractNode<LayoutView> {
 
         for kid in self.children() {
             if kid.is_element() {
-                kid.match_subtree(stylist); 
+                kid.match_subtree(stylist);
             }
         }
     }
@@ -54,7 +56,15 @@ impl MatchMethods for AbstractNode<LayoutView> {
         };
         let cell = Cell::new(computed_values);
         do self.write_layout_data |data| {
-            data.style = Some(cell.take());
+            let style = cell.take();
+            // If there was an existing style, compute the damage that
+            // incremental layout will need to fix.
+            match data.style {
+                None => (),
+                Some(ref previous_style) => self.set_restyle_damage(
+                    incremental::compute_damage(previous_style, &style))
+            }
+            data.style = Some(style);
         }
     }
     fn cascade_subtree(&self, parent: Option<AbstractNode<LayoutView>>) {

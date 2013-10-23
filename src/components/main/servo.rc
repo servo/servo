@@ -24,7 +24,6 @@ extern mod glfw;
 extern mod glut;
 extern mod js;
 extern mod layers;
-extern mod newcss (name = "css");
 extern mod opengles;
 extern mod png;
 extern mod script;
@@ -66,7 +65,6 @@ pub mod compositing;
 pub mod macros;
 
 pub mod css {
-    mod select_handler;
     mod node_util;
 
     pub mod select;
