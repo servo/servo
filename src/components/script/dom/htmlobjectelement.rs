@@ -79,7 +79,8 @@ impl HTMLObjectElement {
     }
 
     pub fn Validity(&self) -> @mut ValidityState {
-        @mut ValidityState::valid()
+        let global = self.htmlelement.element.node.owner_doc().document().window;
+        ValidityState::new(global)
     }
 
     pub fn ValidationMessage(&self) -> DOMString {

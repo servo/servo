@@ -113,7 +113,7 @@ impl HTMLSelectElement {
     pub fn SetValue(&mut self, _value: &DOMString) {
     }
 
-        pub fn WillValidate(&self) -> bool {
+    pub fn WillValidate(&self) -> bool {
         false
     }
 
@@ -121,7 +121,8 @@ impl HTMLSelectElement {
     }
 
     pub fn Validity(&self) -> @mut ValidityState {
-        @mut ValidityState::valid()
+        let global = self.htmlelement.element.node.owner_doc().document().window;
+        ValidityState::new(global)
     }
 
     pub fn SetValidity(&mut self, _validity: @mut ValidityState) {
