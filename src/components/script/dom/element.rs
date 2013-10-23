@@ -294,12 +294,11 @@ impl Element {
                     let scope = win.reflector().get_jsobject();
                     let rects = do rects.map |r| {
                         ClientRect::new(
-                             r.origin.y.to_f32().unwrap(),
-                             (r.origin.y + r.size.height).to_f32().unwrap(),
-                             r.origin.x.to_f32().unwrap(),
-                             (r.origin.x + r.size.width).to_f32().unwrap(),
-                             cx,
-                             scope)
+                            win,
+                            r.origin.y.to_f32().unwrap(),
+                            (r.origin.y + r.size.height).to_f32().unwrap(),
+                            r.origin.x.to_f32().unwrap(),
+                            (r.origin.x + r.size.width).to_f32().unwrap())
                     };
                     (rects, cx, scope)
                 },
@@ -315,15 +314,12 @@ impl Element {
         let (port, chan) = comm::stream();
         match win.page.query_layout(ContentBoxQuery(node, chan), port) {
             ContentBoxResponse(rect) => {
-                let cx = win.get_cx();
-                let scope = win.reflector().get_jsobject();
                 ClientRect::new(
+                    win,
                     rect.origin.y.to_f32().unwrap(),
                     (rect.origin.y + rect.size.height).to_f32().unwrap(),
                     rect.origin.x.to_f32().unwrap(),
-                    (rect.origin.x + rect.size.width).to_f32().unwrap(),
-                    cx,
-                    scope)
+                    (rect.origin.x + rect.size.width).to_f32().unwrap())
             }
         }
     }

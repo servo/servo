@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::codegen::ClientRectBinding;
-use script_task::page_from_context;
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::window::Window;
 
 use js::jsapi::{JSObject, JSContext};
 
@@ -14,23 +14,28 @@ pub struct ClientRect {
     bottom: f32,
     left: f32,
     right: f32,
+    window: @mut Window,
 }
 
 impl ClientRect {
-    pub fn new(top: f32, bottom: f32, left: f32, right: f32, cx: *JSContext, scope: *JSObject) -> @mut ClientRect {
-        let rect = @mut ClientRect {
+    pub fn new_inherited(window: @mut Window,
+                         top: f32, bottom: f32,
+                         left: f32, right: f32) -> ClientRect {
+        ClientRect {
             top: top,
             bottom: bottom,
             left: left,
             right: right,
-            reflector_: Reflector::new()
-        };
-        rect.init_wrapper(cx, scope);
-        rect
+            reflector_: Reflector::new(),
+            window: window,
+        }
     }
 
-    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
-        self.wrap_object_shared(cx, scope);
+    pub fn new(window: @mut Window,
+               top: f32, bottom: f32,
+               left: f32, right: f32) -> @mut ClientRect {
+        let rect = ClientRect::new_inherited(window, top, bottom, left, right);
+        reflect_dom_object(@mut rect, window, ClientRectBinding::Wrap)
     }
 
     pub fn Top(&self) -> f32 {
@@ -67,14 +72,11 @@ impl Reflectable for ClientRect {
         &mut self.reflector_
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        ClientRectBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!();
     }
 
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
+        Some(self.window as @mut Reflectable)
     }
 }
