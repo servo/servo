@@ -592,11 +592,11 @@ impl Node<ScriptView> {
     }
 
     pub fn GetParentNode(&self) -> Option<AbstractNode<ScriptView>> {
-        None
+        self.parent_node
     }
 
     pub fn GetParentElement(&self) -> Option<AbstractNode<ScriptView>> {
-        None
+        self.parent_node.filtered(|parent| parent.is_element())
     }
 
     pub fn HasChildNodes(&self) -> bool {
