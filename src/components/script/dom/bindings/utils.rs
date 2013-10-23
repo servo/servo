@@ -18,6 +18,7 @@ use std::unstable::raw::Box;
 use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
+use js::glue::{ReportError};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
@@ -30,6 +31,7 @@ use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsapi::{JSString, JS_CallTracer, JSTRACE_OBJECT};
+use js::jsapi::{JS_IsExceptionPending};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
@@ -251,6 +253,7 @@ pub fn jsval_to_str(cx: *JSContext, v: JSVal,
     } else {
         let jsstr = unsafe { JS_ValueToString(cx, v) };
         if jsstr.is_null() {
+            debug!("JS_ValueToString failed");
             Err(())
         } else {
             Ok(jsstring_to_str(cx, jsstr))
@@ -265,6 +268,7 @@ pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<Option<DOMString>,
     } else {
         let jsstr = unsafe { JS_ValueToString(cx, v) };
         if jsstr.is_null() {
+            debug!("JS_ValueToString failed");
             Err(())
         } else {
             Ok(Some(jsstring_to_str(cx, jsstr)))
@@ -915,6 +919,20 @@ pub fn global_object_for_dom_object<T: Reflectable>(obj: &mut T) -> *Box<window:
 
 pub fn cx_for_dom_object<T: Reflectable>(obj: &mut T) -> *JSContext {
     cx_for_dom_reflector(obj.reflector().get_jsobject())
+}
+
+#[fixed_stack_segment]
+pub fn throw_method_failed_with_details<T>(cx: *JSContext,
+                                           result: Result<T, Error>,
+                                           interface: &'static str,
+                                           member: &'static str) -> JSBool {
+    assert!(result.is_err());
+    assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
+    let message = format!("Method failed: {}.{}", interface, member);
+    do message.with_c_str |string| {
+        unsafe { ReportError(cx, string) };
+    }
+    return 0;
 }
 
 /// Check if an element name is valid. See http://www.w3.org/TR/xml/#NT-Name
