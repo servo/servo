@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use newcss::complete::CompleteSelectResults;
-
-use script::dom::node::{AbstractNode, LayoutView};
+use style::ComputedValues;
 
 /// Individual layout actions that may be necessary after restyling.
 ///
@@ -113,18 +111,14 @@ impl RestyleDamage {
 // breakage on modifications.
 macro_rules! add_if_not_equal(
     ($old:ident, $new:ident, $damage:ident,
-     [ $($effect:ident),* ], [ $($getter:ident),* ]) => ({
-        if $( ($old.$getter() != $new.$getter()) )||* {
+     [ $($effect:ident),* ], [ $($style_struct:ident.$name:ident),* ]) => ({
+        if $( ($old.$style_struct.$name != $new.$style_struct.$name) )||* {
             $damage.union_in_place( restyle_damage!( $($effect),* ) );
         }
     })
 )
 
-pub fn compute_damage(node: &AbstractNode<LayoutView>,
-                      old_results: &CompleteSelectResults, new_results: &CompleteSelectResults)
-                      -> RestyleDamage {
-    let old = old_results.computed_style();
-    let new = new_results.computed_style();
+pub fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> RestyleDamage {
     let mut damage = RestyleDamage::none();
 
     // This checks every CSS property, as enumerated in
@@ -134,21 +128,18 @@ pub fn compute_damage(node: &AbstractNode<LayoutView>,
     // FIXME: We can short-circuit more of this.
 
     add_if_not_equal!(old, new, damage, [ Repaint ],
-        [ color, background_color, border_top_color, border_right_color,
-          border_bottom_color, border_left_color ]);
+        [ Color.color, Background.background_color,
+          Border.border_top_color, Border.border_right_color,
+          Border.border_bottom_color, Border.border_left_color ]);
 
     add_if_not_equal!(old, new, damage, [ Repaint, BubbleWidths, Reflow ],
-        [ border_top_width, border_right_width, border_bottom_width,
-          border_left_width, margin_top, margin_right, margin_bottom, margin_left,
-          padding_top, padding_right, padding_bottom, padding_left, position,
-          width, height, float, font_family, font_size, font_style, font_weight,
-          text_align, text_decoration, line_height ]);
-
-    // Handle 'display' specially because it has this 'is_root' parameter.
-    let is_root = node.is_root();
-    if old.display(is_root) != new.display(is_root) {
-        damage.union_in_place(restyle_damage!(Repaint, BubbleWidths, Reflow));
-    }
+        [ Border.border_top_width, Border.border_right_width,
+          Border.border_bottom_width, Border.border_left_width,
+          Margin.margin_top, Margin.margin_right, Margin.margin_bottom, Margin.margin_left,
+          Padding.padding_top, Padding.padding_right, Padding.padding_bottom, Padding.padding_left,
+          Box.position, Box.width, Box.height, Box.float, Box.display,
+          Font.font_family, Font.font_size, Font.font_style, Font.font_weight,
+          Text.text_align, Text.text_decoration, Box.line_height ]);
 
     // FIXME: test somehow that we checked every CSS property
 
