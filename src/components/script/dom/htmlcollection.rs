@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLCollectionBinding;
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::node::{AbstractNode, ScriptView};
-use script_task::page_from_context;
+use dom::window::Window;
 
 use js::jsapi::{JSObject, JSContext};
 
@@ -14,21 +14,24 @@ use std::ptr;
 
 pub struct HTMLCollection {
     elements: ~[AbstractNode<ScriptView>],
-    reflector_: Reflector
+    reflector_: Reflector,
+    window: @mut Window,
 }
 
 impl HTMLCollection {
-    pub fn new(elements: ~[AbstractNode<ScriptView>], cx: *JSContext, scope: *JSObject) -> @mut HTMLCollection {
-        let collection = @mut HTMLCollection {
+    pub fn new_inherited(window: @mut Window,
+                         elements: ~[AbstractNode<ScriptView>]) -> HTMLCollection {
+        HTMLCollection {
             elements: elements,
-            reflector_: Reflector::new()
-        };
-        collection.init_wrapper(cx, scope);
-        collection
+            reflector_: Reflector::new(),
+            window: window,
+        }
     }
 
-    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
-        self.wrap_object_shared(cx, scope);
+    pub fn new(window: @mut Window,
+               elements: ~[AbstractNode<ScriptView>]) -> @mut HTMLCollection {
+        reflect_dom_object(@mut HTMLCollection::new_inherited(window, elements),
+                           window, HTMLCollectionBinding::Wrap)
     }
     
     pub fn Length(&self) -> u32 {
@@ -66,15 +69,11 @@ impl Reflectable for HTMLCollection {
         &mut self.reflector_
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        HTMLCollectionBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!();
     }
 
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        // TODO(tkuehn): This only handles the top-level frame. Need to grab subframes.
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
+        Some(self.window as @mut Reflectable)
     }
 }

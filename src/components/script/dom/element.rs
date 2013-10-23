@@ -252,18 +252,15 @@ impl Element {
     }
 
     pub fn GetElementsByTagName(&self, _localname: &DOMString) -> @mut HTMLCollection {
-        let (scope, cx) = self.node.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        HTMLCollection::new(self.node.owner_doc().document().window, ~[])
     }
 
     pub fn GetElementsByTagNameNS(&self, _namespace: &DOMString, _localname: &DOMString) -> Fallible<@mut HTMLCollection> {
-        let (scope, cx) = self.node.get_scope_and_cx();
-        Ok(HTMLCollection::new(~[], cx, scope))
+        Ok(HTMLCollection::new(self.node.owner_doc().document().window, ~[]))
     }
 
     pub fn GetElementsByClassName(&self, _names: &DOMString) -> @mut HTMLCollection {
-        let (scope, cx) = self.node.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        HTMLCollection::new(self.node.owner_doc().document().window, ~[])
     }
 
     pub fn MozMatchesSelector(&self, _selector: &DOMString) -> Fallible<bool> {

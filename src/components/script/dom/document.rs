@@ -241,13 +241,11 @@ impl Document {
     }
 
     pub fn GetElementsByTagNameNS(&self, _ns: &DOMString, _tag: &DOMString) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        HTMLCollection::new(self.window, ~[])
     }
 
     pub fn GetElementsByClassName(&self, _class: &DOMString) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        HTMLCollection::new(self.window, ~[])
     }
 
     pub fn GetElementById(&self, id: &DOMString) -> Option<AbstractNode<ScriptView>> {
@@ -495,8 +493,7 @@ impl Document {
                 }
             }
         }
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(elements, cx, scope)
+        HTMLCollection::new(self.window, elements)
     }
 
     pub fn content_changed(&self) {
