@@ -6,9 +6,10 @@
 
 use std::ascii::StrAsciiExt;
 pub use extra::arc::Arc;
-pub use std::iter;
 pub use cssparser::*;
-pub use errors::{ErrorLoggerIterator, log_css_error};
+pub use cssparser::ast::*;
+
+use errors::{ErrorLoggerIterator, log_css_error};
 pub use parsing_utils::*;
 pub use self::common_types::*;
 
