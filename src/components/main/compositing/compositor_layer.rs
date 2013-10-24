@@ -19,7 +19,8 @@ use script::script_task::SendEventMsg;
 use servo_msg::compositor_msg::{LayerBuffer, LayerBufferSet, Epoch, Tile};
 use servo_msg::constellation_msg::PipelineId;
 use std::cell::Cell;
-use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
+use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
+use windowing::{MouseWindowMouseUpEvent};
 
 #[cfg(not(target_os="macos"))]
 use layers::texturegl::TextureTarget2D;
@@ -372,7 +373,7 @@ impl CompositorLayer {
         }
     }
 
-    // Returns whether the layer should be vertically flipped. and
+    // Returns whether the layer should be vertically flipped.
     #[cfg(target_os="macos")]
     fn texture_flip_and_target(cpu_painting: bool, size: Size2D<uint>) -> (Flip, TextureTarget) {
         let flip = if cpu_painting {

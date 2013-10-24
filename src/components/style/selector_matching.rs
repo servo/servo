@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::at_vec;
 use std::ascii::StrAsciiExt;
+use extra::arc::Arc;
 use extra::sort::tim_sort;
 
 use selectors::*;
@@ -54,7 +54,7 @@ impl Stylist {
                         // TODO: avoid copying?
                         rules.$priority.push(Rule {
                             selector: @(*selector).clone(),
-                            declarations:at_vec::to_managed(style_rule.declarations.$priority),
+                            declarations: Arc::new(style_rule.declarations.$priority.clone()),
                         })
                     }
                 }
@@ -79,7 +79,7 @@ impl Stylist {
 
     pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
             &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>,
-            pseudo_element: Option<PseudoElement>) -> ~[@[PropertyDeclaration]] {
+            pseudo_element: Option<PseudoElement>) -> ~[Arc<~[PropertyDeclaration]>] {
         assert!(element.is_element())
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements")
@@ -89,7 +89,7 @@ impl Stylist {
             ($rules: expr) => {
                 for rule in $rules.iter() {
                     if matches_selector::<N, T, E>(rule.selector, element, pseudo_element) {
-                        applicable_declarations.push(rule.declarations)
+                        applicable_declarations.push(rule.declarations.clone())
                     }
                 }
             };
@@ -102,11 +102,11 @@ impl Stylist {
         // Style attributes have author origin but higher specificity than style rules.
         append!(self.author_rules.normal);
         // TODO: avoid copying?
-        style_attribute.map(|sa| applicable_declarations.push(at_vec::to_managed(sa.normal)));
+        style_attribute.map(|sa| applicable_declarations.push(Arc::new(sa.normal.clone())));
 
         append!(self.author_rules.important);
         // TODO: avoid copying?
-        style_attribute.map(|sa| applicable_declarations.push(at_vec::to_managed(sa.important)));
+        style_attribute.map(|sa| applicable_declarations.push(Arc::new(sa.important.clone())));
 
         append!(self.user_rules.important);
         append!(self.ua_rules.important);
@@ -131,7 +131,7 @@ impl PerOriginRules {
 #[deriving(Clone)]
 struct Rule {
     selector: @Selector,
-    declarations: @[PropertyDeclaration],
+    declarations: Arc<~[PropertyDeclaration]>,
 }
 
 

@@ -22,58 +22,76 @@ pub struct Range {
 }
 
 impl Range {
+    #[inline]
     pub fn new(off: uint, len: uint) -> Range {
-        Range { off: off, len: len }
+        Range {
+            off: off,
+            len: len,
+        }
     }
 
+    #[inline]
     pub fn empty() -> Range {
         Range::new(0, 0)
     }
 }
 
 impl Range {
+    #[inline]
     pub fn begin(&self) -> uint { self.off  }
+    #[inline]
     pub fn length(&self) -> uint { self.len }
+    #[inline]
     pub fn end(&self) -> uint { self.off + self.len }
 
+    #[inline]
     pub fn eachi(&self) -> iter::Range<uint> {
         range(self.off, self.off + self.len)
     }
 
+    #[inline]
     pub fn contains(&self, i: uint) -> bool {
         i >= self.begin() && i < self.end()
     }
 
+    #[inline]
     pub fn is_valid_for_string(&self, s: &str) -> bool {
         self.begin() < s.len() && self.end() <= s.len() && self.length() <= s.len()
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
 
+    #[inline]
     pub fn shift_by(&mut self, i: int) { 
         self.off = ((self.off as int) + i) as uint;
     }
 
+    #[inline]
     pub fn extend_by(&mut self, i: int) { 
         self.len = ((self.len as int) + i) as uint;
     }
 
+    #[inline]
     pub fn extend_to(&mut self, i: uint) { 
         self.len = i - self.off;
     }
 
+    #[inline]
     pub fn adjust_by(&mut self, off_i: int, len_i: int) {
         self.off = ((self.off as int) + off_i) as uint;
         self.len = ((self.len as int) + len_i) as uint;
     }
 
+    #[inline]
     pub fn reset(&mut self, off_i: uint, len_i: uint) {
         self.off = off_i;
         self.len = len_i;
     }
 
+    #[inline]
     pub fn intersect(&self, other: &Range) -> Range {
         let begin = max(self.begin(), other.begin());
         let end = min(self.end(), other.end());
@@ -88,6 +106,7 @@ impl Range {
     /// Computes the relationship between two ranges (`self` and `other`),
     /// from the point of view of `self`. So, 'EntirelyBefore' means
     /// that the `self` range is entirely before `other` range.
+    #[inline]
     pub fn relation_to_range(&self, other: &Range) -> RangeRelation {
         if other.begin() > self.end() {
             return EntirelyBefore;
@@ -116,6 +135,7 @@ impl Range {
                   self, other));
     }
 
+    #[inline]
     pub fn repair_after_coalesced_range(&mut self, other: &Range) {
         let relation = self.relation_to_range(other);
         debug!("repair_after_coalesced_range: possibly repairing range %?", self);

@@ -276,7 +276,7 @@ impl<'self> FontHandle {
     }
 
     #[fixed_stack_segment]
-    pub fn new_from_file(fctx: &FontContextHandle, file: ~str,
+    pub fn new_from_file(fctx: &FontContextHandle, file: &str,
                          style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
         unsafe {
             let ft_ctx: FT_Library = fctx.ctx.ctx;
@@ -293,7 +293,7 @@ impl<'self> FontHandle {
             }
             if FontHandle::set_char_size(face, style.pt_size).is_ok() {
                 Ok(FontHandle {
-                    source: FontSourceFile(file),
+                    source: FontSourceFile(file.to_str()),
                     face: face,
                     handle: *fctx
                 })

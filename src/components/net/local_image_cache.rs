@@ -17,6 +17,10 @@ use std::task;
 use servo_util::url::{UrlMap, url_map};
 use extra::url::Url;
 
+pub trait ImageResponder {
+    fn respond(&self) -> ~fn(ImageResponseMsg);
+}
+
 pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
     LocalImageCache {
         image_cache_task: image_cache_task,
@@ -29,7 +33,7 @@ pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
 pub struct LocalImageCache {
     priv image_cache_task: ImageCacheTask,
     priv round_number: uint,
-    priv on_image_available: Option<~fn() -> ~fn(ImageResponseMsg)>,
+    priv on_image_available: Option<@ImageResponder>,
     priv state_map: UrlMap<@mut ImageState>
 }
 
@@ -43,7 +47,7 @@ struct ImageState {
 impl LocalImageCache {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
-    pub fn next_round(&mut self, on_image_available: ~fn() -> ~fn(ImageResponseMsg)) {
+    pub fn next_round(&mut self, on_image_available: @ImageResponder) {
         self.round_number += 1;
         self.on_image_available = Some(on_image_available);
     }
@@ -109,7 +113,7 @@ impl LocalImageCache {
                 // on the image to load and triggering layout
                 let image_cache_task = self.image_cache_task.clone();
                 assert!(self.on_image_available.is_some());
-                let on_image_available = (*self.on_image_available.get_ref())();
+                let on_image_available = self.on_image_available.unwrap().respond();
                 let url = (*url).clone();
                 do task::spawn {
                     let (response_port, response_chan) = comm::stream();

@@ -2,33 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use azure::{AzFloat, AzScaledFontRef};
+use azure::azure_hl::{BackendType, ColorPattern};
+use azure::scaled_font::ScaledFont;
+use extra::arc::Arc;
+use geom::{Point2D, Rect, Size2D};
+use std::cast;
+use std::ptr;
+use std::str;
+use std::vec;
+use servo_util::cache::{Cache, HashCache};
+use servo_util::range::Range;
+use servo_util::time::ProfilerChan;
+use style::computed_values::text_decoration;
+
 use color::Color;
 use font_context::FontContext;
 use servo_util::geometry::Au;
 use platform::font_context::FontContextHandle;
 use platform::font::{FontHandle, FontTable};
 use render_context::RenderContext;
-use servo_util::range::Range;
-use std::cast;
-use std::ptr;
-use std::str;
-use std::vec;
-use servo_util::cache::{Cache, HashCache};
 use text::glyph::{GlyphStore, GlyphIndex};
 use text::shaping::ShaperMethods;
 use text::{Shaper, TextRun};
-use extra::arc::Arc;
-
-use azure::{AzFloat, AzScaledFontRef};
-use azure::scaled_font::ScaledFont;
-use azure::azure_hl::{BackendType, ColorPattern};
-use geom::{Point2D, Rect, Size2D};
-
-use servo_util::time;
-use servo_util::time::profile;
-use servo_util::time::ProfilerChan;
-
-use style::computed_values::text_decoration;
 
 // FontHandle encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables
@@ -459,13 +455,11 @@ impl Font {
     }
 
     pub fn shape_text(@mut self, text: ~str, is_whitespace: bool) -> Arc<GlyphStore> {
-        do profile(time::LayoutShapingCategory, self.profiler_chan.clone()) {
-            let shaper = self.get_shaper();
-            do self.shape_cache.find_or_create(&text) |txt| {
-                let mut glyphs = GlyphStore::new(text.char_len(), is_whitespace);
-                shaper.shape_text(*txt, &mut glyphs);
-                Arc::new(glyphs)
-            }
+        let shaper = self.get_shaper();
+        do self.shape_cache.find_or_create(&text) |txt| {
+            let mut glyphs = GlyphStore::new(text.char_len(), is_whitespace);
+            shaper.shape_text(*txt, &mut glyphs);
+            Arc::new(glyphs)
         }
     }
 
