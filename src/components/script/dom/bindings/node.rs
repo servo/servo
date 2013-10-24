@@ -3,11 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
-use dom::document::{PlainDocumentTypeId, HTMLDocumentTypeId};
 use dom::element::*;
 use dom::types::*;
 use dom::node::{AbstractNode, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
-use dom::node::{DoctypeNodeTypeId, DocumentFragmentNodeTypeId, ScriptView, DocumentNodeTypeId};
+use dom::node::{DoctypeNodeTypeId, DocumentFragmentNodeTypeId, ScriptView};
 
 use std::cast;
 use std::libc;
@@ -96,8 +95,6 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         CommentNodeTypeId => generate_element!(Comment),
         DoctypeNodeTypeId => generate_element!(DocumentType),
         DocumentFragmentNodeTypeId => generate_element!(DocumentFragment),
-        DocumentNodeTypeId(PlainDocumentTypeId) => generate_element!(Document),
-        DocumentNodeTypeId(HTMLDocumentTypeId) => generate_element!(HTMLDocument),
         TextNodeTypeId => generate_element!(Text),
     }
 }

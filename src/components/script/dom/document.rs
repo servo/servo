@@ -13,12 +13,14 @@ use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElemen
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId, DocumentNodeTypeId};
+use dom::htmlhtmlelement::HTMLHtmlElement;
+use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId};
 use dom::text::Text;
 use dom::window::Window;
 use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
-use js::jsapi::{JSObject, JSContext, JSVal, JSTracer};
+use js::jsapi::{JSObject, JSContext, JSVal};
+use js::jsapi::{JSTRACE_OBJECT, JSTracer, JS_CallTracer};
 use js::glue::RUST_OBJECT_TO_JSVAL;
 use servo_util::tree::{TreeNodeRef, ElementLike};
 
@@ -27,18 +29,12 @@ use std::hashmap::HashMap;
 use std::cast;
 use std::ptr;
 use std::str::eq_slice;
+use std::libc;
 use std::ascii::StrAsciiExt;
 use std::unstable::raw::Box;
 
-#[deriving(Eq)]
-pub enum DocumentTypeId {
-    PlainDocumentTypeId,
-    HTMLDocumentTypeId
-}
-
 pub trait ReflectableDocument {
     fn init_reflector(@mut self, cx: *JSContext);
-    fn init_node(@mut self, doc: AbstractDocument);
 }
 
 #[deriving(Eq)]
@@ -49,11 +45,9 @@ pub struct AbstractDocument {
 impl AbstractDocument {
     pub fn as_abstract<T: ReflectableDocument>(cx: *JSContext, doc: @mut T) -> AbstractDocument {
         doc.init_reflector(cx);
-        let abstract = AbstractDocument {
+        AbstractDocument {
             document: unsafe { cast::transmute(doc) }
-        };
-        doc.init_node(abstract);
-        abstract
+        }
     }
 
     pub fn document<'a>(&'a self) -> &'a Document {
@@ -97,7 +91,7 @@ impl AbstractDocument {
         });
 
         let document = self.mut_document();
-        document.node.AppendChild(AbstractNode::from_document(*self), root);
+        document.root = Some(root);
         // Register elements having "id" attribute to the owner doc.
         document.register_nodes_with_id(&root);
         document.content_changed();
@@ -111,7 +105,7 @@ pub enum DocumentType {
 }
 
 pub struct Document {
-    node: Node<ScriptView>,
+    priv root: Option<AbstractNode<ScriptView>>,
     reflector_: Reflector,
     window: @mut Window,
     doctype: DocumentType,
@@ -122,12 +116,8 @@ pub struct Document {
 impl Document {
     #[fixed_stack_segment]
     pub fn new(window: @mut Window, doctype: DocumentType) -> Document {
-        let node_type = match doctype {
-            HTML => HTMLDocumentTypeId,
-            SVG | XML => PlainDocumentTypeId
-        };
         Document {
-            node: Node::new_without_doc(DocumentNodeTypeId(node_type)),
+            root: None,
             reflector_: Reflector::new(),
             window: window,
             doctype: doctype,
@@ -138,18 +128,22 @@ impl Document {
 
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
         let cx = owner.get_cx();
-        Ok(AbstractDocument::as_abstract(cx, @mut Document::new(owner, XML)))
+
+        let document = AbstractDocument::as_abstract(cx, @mut Document::new(owner, XML));
+
+        let root = @HTMLHtmlElement {
+            htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html", document)
+        };
+        let root = unsafe { Node::as_abstract_node(cx, root) };
+        document.set_root(root);
+
+        Ok(document)
     }
 }
 
 impl ReflectableDocument for Document {
     fn init_reflector(@mut self, cx: *JSContext) {
         self.wrap_object_shared(cx, ptr::null()); //XXXjdm a proper scope would be nice
-    }
-
-    fn init_node(@mut self, doc: AbstractDocument) {
-        self.node.set_owner_doc(doc);
-        self.node.add_to_doc(AbstractNode::from_document(doc), doc);
     }
 }
 
@@ -190,11 +184,11 @@ impl DerivedWrapper for AbstractDocument {
 
 impl Reflectable for Document {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
+        &self.reflector_
     }
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.node.mut_reflector()
+        &mut self.reflector_
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -208,7 +202,7 @@ impl Reflectable for Document {
 
 impl Document {
     pub fn GetDocumentElement(&self) -> Option<AbstractNode<ScriptView>> {
-        self.node.first_child
+        self.root
     }
 
     fn get_cx(&self) -> *JSContext {
@@ -414,6 +408,21 @@ fn foreach_ided_elements(root: &AbstractNode<ScriptView>,
 impl Traceable for Document {
     #[fixed_stack_segment]
     fn trace(&self, tracer: *mut JSTracer) {
-        self.node.trace(tracer);
+        match self.root {
+            None => {},
+            Some(root) => {
+                unsafe {
+                    (*tracer).debugPrinter = ptr::null();
+                    (*tracer).debugPrintIndex = -1;
+                    do "root".to_c_str().with_ref |name| {
+                        (*tracer).debugPrintArg = name as *libc::c_void;
+                        debug!("tracing root node");
+                        JS_CallTracer(tracer as *JSTracer,
+                                      root.reflector().get_jsobject(),
+                                      JSTRACE_OBJECT as u32);
+                    }
+                }
+            }
+        }
     }
 }
