@@ -39,10 +39,6 @@ impl UIEvent {
                            UIEventBinding::Wrap)
     }
 
-    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
-        self.wrap_object_shared(cx, scope);
-    }
-
     pub fn Constructor(owner: @mut Window,
                        type_: &DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<@mut UIEvent> {

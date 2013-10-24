@@ -46,10 +46,6 @@ impl Event {
         reflect_dom_object(@mut Event::new_inherited(type_), window, EventBinding::Wrap)
     }
 
-    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
-        self.wrap_object_shared(cx, scope);
-    }
-
     pub fn EventPhase(&self) -> u16 {
         0
     }
