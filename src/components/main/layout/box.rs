@@ -26,16 +26,9 @@ use std::cmp::ApproxEq;
 use std::num::Zero;
 use std::unstable::raw::Box;
 use style::ComputedValues;
-use style::computed_values::border_style;
-use style::computed_values::clear;
-use style::computed_values::float;
-use style::properties::longhands::font_family::FamilyName;
-use style::computed_values::font_style;
-use style::computed_values::line_height;
-use style::computed_values::position;
-use style::computed_values::text_align;
-use style::computed_values::text_decoration;
-use style::computed_values::vertical_align;
+use style::computed_values::{
+    border_style, clear, float, font_family, font_style, line_height,
+    position, text_align, text_decoration, vertical_align};
 
 use css::node_style::StyledNode;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
@@ -733,7 +726,7 @@ impl RenderBoxBase {
         // FIXME: Too much allocation here.
         let font_families = do my_style.Font.font_family.map |family| {
             match *family {
-                FamilyName(ref name) => (*name).clone(),
+                font_family::FamilyName(ref name) => (*name).clone(),
             }
         };
         let font_families = font_families.connect(", ");
