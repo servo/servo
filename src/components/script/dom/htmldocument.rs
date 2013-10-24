@@ -35,11 +35,6 @@ impl ReflectableDocument for HTMLDocument {
     fn init_reflector(@mut self, cx: *JSContext) {
         self.wrap_object_shared(cx, ptr::null()); //XXXjdm a proper scope would be nice
     }
-
-    fn init_node(@mut self, doc: AbstractDocument) {
-        self.parent.node.set_owner_doc(doc);
-        self.parent.node.add_to_doc(AbstractNode::from_document(doc), doc);
-    }
 }
 
 impl HTMLDocument {
