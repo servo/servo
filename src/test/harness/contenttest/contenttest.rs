@@ -27,7 +27,9 @@ fn main() {
     let config = parse_config(args);
     let opts = test_options(config.clone());
     let tests = find_tests(config);
-    run_tests_console(&opts, tests);
+    if !run_tests_console(&opts, tests) {
+        os::set_exit_status(1);
+    }
 }
 
 fn parse_config(args: ~[~str]) -> Config {
