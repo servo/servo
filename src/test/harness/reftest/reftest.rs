@@ -79,7 +79,8 @@ fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
                 _ => fail!(fmt!("reftest line: '%s' has invalid kind '%s'",
                                 line, parts[0]))
             };
-            let src_dir = file_path.dirname().to_str();
+            let src_path = file_path.dir_path();
+            let src_dir = src_path.display().to_str();
             let file_left =  src_dir + "/" + parts[1];
             let file_right = src_dir + "/" + parts[2];
             
