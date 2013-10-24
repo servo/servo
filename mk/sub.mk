@@ -38,6 +38,10 @@ NATIVE_BUILDS += \
 
 # NB. This should not be a problem once a real package system exists.
 
+DEPS_hubbub += \
+	libparserutils \
+	$(NULL)
+
 DEPS_rust-azure += \
 	rust-opengles \
 	rust-layers \
