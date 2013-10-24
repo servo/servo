@@ -209,11 +209,6 @@ impl Document {
         self.window.get_cx()
     }
 
-    fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let win = self.window;
-        (win.reflector().get_jsobject(), win.get_cx())
-    }
-
     pub fn GetElementsByTagName(&self, tag: &DOMString) -> @mut HTMLCollection {
         self.createHTMLCollection(|elem| eq_slice(elem.tag_name, null_str_as_empty(tag)))
     }
@@ -304,7 +299,6 @@ impl Document {
                 fail!("no SVG document yet")
             },
             _ => {
-                let (_scope, cx) = self.get_scope_and_cx();
                 match self.GetDocumentElement() {
                     None => {},
                     Some(root) => {
@@ -329,7 +323,7 @@ impl Document {
                                     htmlelement: HTMLElement::new(HTMLTitleElementTypeId, ~"title", abstract_self)
                                 };
                                 let new_title = unsafe { 
-                                    Node::as_abstract_node(cx, new_title) 
+                                    Node::as_abstract_node(self.get_cx(), new_title)
                                 };
                                 new_title.add_child(self.CreateTextNode(abstract_self, title));
                                 node.add_child(new_title);
