@@ -27,11 +27,11 @@ enum VisibilityState { "hidden", "visible" };
 interface Document /*: Node*/ { //XXXjdm Requires servo/#623
   /*[Throws]
     readonly attribute DOMImplementation implementation;*/
-  readonly attribute DOMString URL;
-  readonly attribute DOMString documentURI;
-  readonly attribute DOMString compatMode;
-  readonly attribute DOMString characterSet;
-  readonly attribute DOMString contentType;
+  // readonly attribute DOMString URL;
+  // readonly attribute DOMString documentURI;
+  // readonly attribute DOMString compatMode;
+  // readonly attribute DOMString characterSet;
+  // readonly attribute DOMString contentType;
 
   //readonly attribute DocumentType? doctype;
   readonly attribute Element? documentElement;
@@ -42,8 +42,8 @@ interface Document /*: Node*/ { //XXXjdm Requires servo/#623
 
   [Creator, Throws]
   Element createElement(DOMString localName);
-  [Creator, Throws]
-  Element createElementNS(DOMString? namespace, DOMString qualifiedName);
+  // [Creator, Throws]
+  // Element createElementNS(DOMString? namespace, DOMString qualifiedName);
   [Creator]
   DocumentFragment createDocumentFragment();
   [Creator]
@@ -58,8 +58,8 @@ interface Document /*: Node*/ { //XXXjdm Requires servo/#623
   [Throws]
   Node adoptNode(Node node);*/
 
-  [Creator, Throws]
-  Event createEvent(DOMString interface_);
+  // [Creator, Throws]
+  // Event createEvent(DOMString interface_);
 
   /*[Creator, Throws]
     Range createRange();*/
@@ -83,23 +83,23 @@ interface Document /*: Node*/ { //XXXjdm Requires servo/#623
   Attr createAttribute(DOMString name);
   [Creator, Throws]
   Attr createAttributeNS(DOMString? namespace, DOMString name);*/
-  readonly attribute DOMString? inputEncoding;
+  // readonly attribute DOMString? inputEncoding;
 };
 
 // http://www.whatwg.org/specs/web-apps/current-work/#the-document-object
 partial interface Document {
   //[PutForwards=href, Unforgeable] readonly attribute Location? location;
   //(HTML only)         attribute DOMString domain;
-  readonly attribute DOMString referrer;
+  // readonly attribute DOMString referrer;
   //(HTML only)         attribute DOMString cookie;
-  readonly attribute DOMString lastModified;
-  readonly attribute DOMString readyState;
+  // readonly attribute DOMString lastModified;
+  // readonly attribute DOMString readyState;
 
   // DOM tree accessors
   //(Not proxy yet)getter object (DOMString name);
            [SetterThrows]
            attribute DOMString title;
-           attribute DOMString dir;
+  //          attribute DOMString dir;
   //(HTML only)         attribute HTMLElement? body;
   //(HTML only)readonly attribute HTMLHeadElement? head;
   //(HTML only)readonly attribute HTMLCollection images;
@@ -120,10 +120,10 @@ partial interface Document {
   //(HTML only)void writeln(DOMString... text);
 
   // user interaction
-  readonly attribute WindowProxy? defaultView;
-  readonly attribute Element? activeElement;
-  [Throws]
-  boolean hasFocus();
+  // readonly attribute WindowProxy? defaultView;
+  // readonly attribute Element? activeElement;
+  // [Throws]
+  // boolean hasFocus();
   //(HTML only)         attribute DOMString designMode;
   //(HTML only)boolean execCommand(DOMString commandId);
   //(HTML only)boolean execCommand(DOMString commandId, boolean showUI);
@@ -157,14 +157,14 @@ partial interface Document {
    *
    * @see <https://developer.mozilla.org/en/DOM/document.currentScript>
    */
-  readonly attribute Element? currentScript;
+  // readonly attribute Element? currentScript;
   /**
    * Release the current mouse capture if it is on an element within this
    * document.
    *
    * @see <https://developer.mozilla.org/en/DOM/document.releaseCapture>
    */
-  void releaseCapture();
+  // void releaseCapture();
   /**
    * Use the given DOM element as the source image of target |-moz-element()|.
    *
@@ -206,9 +206,9 @@ partial interface Document {
 partial interface Document {
   // Note: Per spec the 'S' in these two is lowercase, but the "Moz"
   // versions hve it uppercase.
-  readonly attribute boolean mozFullScreenEnabled;
-  [Throws]
-  readonly attribute Element? mozFullScreenElement;
+  // readonly attribute boolean mozFullScreenEnabled;
+  // [Throws]
+  // readonly attribute Element? mozFullScreenElement;
 
   //(Renamed?)void exitFullscreen();
 
@@ -219,8 +219,8 @@ partial interface Document {
 
 // http://dvcs.w3.org/hg/pointerlock/raw-file/default/index.html#extensions-to-the-document-interface
 partial interface Document {
-    readonly attribute Element? mozPointerLockElement;
-    void mozExitPointerLock ();
+    // readonly attribute Element? mozPointerLockElement;
+    // void mozExitPointerLock ();
 };
 
 //http://dvcs.w3.org/hg/webcomponents/raw-file/tip/spec/custom/index.html#dfn-document-register
@@ -231,27 +231,27 @@ partial interface Document {
 
 // http://dvcs.w3.org/hg/webperf/raw-file/tip/specs/PageVisibility/Overview.html#sec-document-interface
 partial interface Document {
-  readonly attribute boolean hidden;
-  readonly attribute boolean mozHidden;
-  readonly attribute VisibilityState visibilityState;
-  readonly attribute VisibilityState mozVisibilityState;
+  // readonly attribute boolean hidden;
+  // readonly attribute boolean mozHidden;
+  // readonly attribute VisibilityState visibilityState;
+  // readonly attribute VisibilityState mozVisibilityState;
 };
 
 // http://dev.w3.org/csswg/cssom/#extensions-to-the-document-interface
 partial interface Document {
   /*[Constant]
     readonly attribute StyleSheetList styleSheets;*/
-    attribute DOMString? selectedStyleSheetSet;
-    readonly attribute DOMString? lastStyleSheetSet;
-    readonly attribute DOMString? preferredStyleSheetSet;
+    // attribute DOMString? selectedStyleSheetSet;
+    // readonly attribute DOMString? lastStyleSheetSet;
+    // readonly attribute DOMString? preferredStyleSheetSet;
   /*[Constant]
     readonly attribute DOMStringList styleSheetSets;*/
-    void enableStyleSheetsForSet (DOMString? name);
+    // void enableStyleSheetsForSet (DOMString? name);
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-document-interface
 partial interface Document {
-    Element? elementFromPoint (float x, float y);
+    // Element? elementFromPoint (float x, float y);
 
   //CaretPosition? caretPositionFromPoint (float x, float y);
 };
@@ -264,8 +264,8 @@ partial interface Document {
 
 // http://dev.w3.org/2006/webapi/selectors-api2/#interface-definitions
 partial interface Document {
-  [Throws]
-  Element?  querySelector(DOMString selectors);
+  // [Throws]
+  // Element?  querySelector(DOMString selectors);
   /*[Throws]
     NodeList  querySelectorAll(DOMString selectors);*/
 
