@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::NodeListBinding;
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{AbstractNode, ScriptView};
-use script_task::page_from_context;
+use dom::window::Window;
 
 use js::jsapi::{JSObject, JSContext};
 
@@ -16,32 +16,32 @@ enum NodeListType {
 
 pub struct NodeList {
     list_type: NodeListType,
-    reflector_: Reflector
+    reflector_: Reflector,
+    window: @mut Window,
 }
 
 impl NodeList {
-    pub fn new_simple_list(elements: ~[AbstractNode<ScriptView>], cx: *JSContext, scope: *JSObject) -> @mut NodeList {
-        let list = @mut NodeList {
-            list_type: Simple(elements),
-            reflector_: Reflector::new()
-        };
-
-        list.init_wrapper(cx, scope);
-        list
+    pub fn new_inherited(window: @mut Window,
+                         list_type: NodeListType) -> NodeList {
+        NodeList {
+            list_type: list_type,
+            reflector_: Reflector::new(),
+            window: window,
+        }
     }
 
-    pub fn new_child_list(node: AbstractNode<ScriptView>, cx: *JSContext, scope: *JSObject) -> @mut NodeList {
-        let list = @mut NodeList {
-            list_type: Children(node),
-            reflector_: Reflector::new()
-        };
-
-        list.init_wrapper(cx, scope);
-        list
+    pub fn new(window: @mut Window,
+               list_type: NodeListType) -> @mut NodeList {
+        reflect_dom_object(@mut NodeList::new_inherited(window, list_type),
+                           window, NodeListBinding::Wrap)
     }
 
-    fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
-        self.wrap_object_shared(cx, scope);
+    pub fn new_simple_list(window: @mut Window, elements: ~[AbstractNode<ScriptView>]) -> @mut NodeList {
+        NodeList::new(window, Simple(elements))
+    }
+
+    pub fn new_child_list(window: @mut Window, node: AbstractNode<ScriptView>) -> @mut NodeList {
+        NodeList::new(window, Children(node))
     }
 
     pub fn Length(&self) -> u32 {
@@ -75,14 +75,11 @@ impl Reflectable for NodeList {
         &mut self.reflector_
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        NodeListBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!();
     }
 
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
+        Some(self.window as @mut Reflectable)
     }
 }
