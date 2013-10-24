@@ -21,7 +21,7 @@ use style::computed_values::display;
 use style::computed_values::float;
 use layout::float_context::{FloatLeft, FloatRight};
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
-use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
+use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId, DocumentNodeTypeId};
 use script::dom::node::DocumentFragmentNodeTypeId;
 use servo_util::range::Range;
 use servo_util::tree::{TreeNodeRef, TreeNode};
@@ -390,6 +390,7 @@ impl LayoutTreeBuilder {
                 ElementNodeTypeId(_) => display::inline,
                 TextNodeTypeId => display::inline,
                 DoctypeNodeTypeId |
+                DocumentNodeTypeId(_) |
                 DocumentFragmentNodeTypeId |
                 CommentNodeTypeId => return NoGenerator,
             }
@@ -430,11 +431,12 @@ impl LayoutTreeBuilder {
                 self.create_child_generator(node, parent_generator, Flow_Float(is_float.unwrap()))
             }
 
-            (display::block, & &BlockFlow(ref info), _) => match (info.is_root, node.parent_node().is_some()) {
+            (display::block, & &BlockFlow(ref info), _) => match (info.is_root, node.parent_node()) {
                 // If this is the root node, then use the root flow's
                 // context. Otherwise, make a child block context.
-                (true, true) => self.create_child_generator(node, parent_generator, Flow_Block),
-                (true, false) => { return ParentGenerator }
+                (true, Some(parent)) if !parent.is_document() =>
+                    self.create_child_generator(node, parent_generator, Flow_Block),
+                (true, None) | (true, Some(_)) => { return ParentGenerator }
                 (false, _)   => {
                     self.create_child_generator(node, parent_generator, Flow_Block)
                 }

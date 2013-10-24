@@ -4,13 +4,9 @@
 
 use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::utils::{DOMString, Fallible, Reflector, Reflectable};
+use dom::bindings::utils::{DOMString, Fallible, Reflector, Reflectable, FailureUnknown};
 use dom::document::{AbstractDocument, Document, XML};
-use dom::element::HTMLHtmlElementTypeId;
 use dom::htmldocument::HTMLDocument;
-use dom::htmlelement::HTMLElement;
-use dom::htmlhtmlelement::HTMLHtmlElement;
-use dom::node::Node;
 use dom::window::Window;
 
 pub struct DOMParser {
@@ -41,25 +37,17 @@ impl DOMParser {
                            ty: DOMParserBinding::SupportedType)
                            -> Fallible<AbstractDocument> {
         let cx = self.owner.get_cx();
-        let document = match ty {
+        match ty {
             Text_html => {
-                HTMLDocument::new(self.owner)
+                Ok(HTMLDocument::new(self.owner))
             }
             Text_xml => {
-                AbstractDocument::as_abstract(cx, @mut Document::new(self.owner, XML))
+                Ok(AbstractDocument::as_abstract(cx, @mut Document::new(self.owner, XML)))
             }
             _ => {
-                fail!("unsupported document type")
+                Err(FailureUnknown)
             }
-        };
-
-        let root = @HTMLHtmlElement {
-            htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html", document)
-        };
-        let root = unsafe { Node::as_abstract_node(cx, root) };
-        document.set_root(root);
-
-        Ok(document)
+        }
     }
 }
 

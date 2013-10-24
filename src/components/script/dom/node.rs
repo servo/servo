@@ -9,7 +9,7 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{DOMString, null_str_as_empty};
 use dom::bindings::utils::{ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::characterdata::CharacterData;
-use dom::document::AbstractDocument;
+use dom::document::{AbstractDocument, DocumentTypeId};
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
@@ -88,7 +88,7 @@ pub struct Node<View> {
     prev_sibling: Option<AbstractNode<View>>,
 
     /// The document that this node belongs to.
-    priv owner_doc: AbstractDocument,
+    priv owner_doc: Option<AbstractDocument>,
 
     /// The live list of children return by .childNodes.
     child_list: Option<@mut NodeList>,
@@ -103,6 +103,7 @@ pub enum NodeTypeId {
     DoctypeNodeTypeId,
     DocumentFragmentNodeTypeId,
     CommentNodeTypeId,
+    DocumentNodeTypeId(DocumentTypeId),
     ElementNodeTypeId(ElementTypeId),
     TextNodeTypeId,
 }
@@ -197,6 +198,13 @@ impl<'self, View> AbstractNode<View> {
     pub fn from_box<T>(ptr: *mut Box<T>) -> AbstractNode<View> {
         AbstractNode {
             obj: ptr as *mut Box<Node<View>>
+        }
+    }
+
+    /// Allow consumers to upcast from derived classes.
+    pub fn from_document(doc: AbstractDocument) -> AbstractNode<View> {
+        unsafe {
+            cast::transmute(doc)
         }
     }
 
@@ -325,6 +333,13 @@ impl<'self, View> AbstractNode<View> {
             fail!(~"node is not text");
         }
         self.transmute_mut(f)
+    }
+
+    pub fn is_document(self) -> bool {
+        match self.type_id() {
+            DocumentNodeTypeId(*) => true,
+            _ => false
+        }
     }
 
     // FIXME: This should be doing dynamic borrow checking for safety.
@@ -463,11 +478,11 @@ impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
 
 impl<View> Node<View> {
     pub fn owner_doc(&self) -> AbstractDocument {
-        self.owner_doc
+        self.owner_doc.unwrap()
     }
 
     pub fn set_owner_doc(&mut self, document: AbstractDocument) {
-        self.owner_doc = document;
+        self.owner_doc = Some(document);
     }
 }
 
@@ -508,6 +523,14 @@ impl Node<ScriptView> {
     }
 
     pub fn new(type_id: NodeTypeId, doc: AbstractDocument) -> Node<ScriptView> {
+        Node::new_(type_id, Some(doc))
+    }
+
+    pub fn new_without_doc(type_id: NodeTypeId) -> Node<ScriptView> {
+        Node::new_(type_id, None)
+    }
+
+    fn new_(type_id: NodeTypeId, doc: Option<AbstractDocument>) -> Node<ScriptView> {
         Node {
             reflector_: Reflector::new(),
             type_id: type_id,
@@ -526,24 +549,6 @@ impl Node<ScriptView> {
             layout_data: LayoutData::new(),
         }
     }
-
-    pub fn getNextSibling(&mut self) -> Option<&mut AbstractNode<ScriptView>> {
-        match self.next_sibling {
-            // transmute because the compiler can't deduce that the reference
-            // is safe outside of with_mut_base blocks.
-            Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
-            None => None
-        }
-    }
-
-    pub fn getFirstChild(&mut self) -> Option<&mut AbstractNode<ScriptView>> {
-        match self.first_child {
-            // transmute because the compiler can't deduce that the reference
-            // is safe outside of with_mut_base blocks.
-            Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
-            None => None
-        }
-    }
 }
 
 impl Node<ScriptView> {
@@ -552,6 +557,7 @@ impl Node<ScriptView> {
             ElementNodeTypeId(_) => 1,
             TextNodeTypeId       => 3,
             CommentNodeTypeId    => 8,
+            DocumentNodeTypeId(_)=> 9,
             DoctypeNodeTypeId    => 10,
             DocumentFragmentNodeTypeId => 11,
         }
@@ -572,6 +578,7 @@ impl Node<ScriptView> {
                 }
             },
             DocumentFragmentNodeTypeId => ~"#document-fragment",
+            DocumentNodeTypeId(_) => ~"#document"
         })
     }
 
@@ -586,7 +593,7 @@ impl Node<ScriptView> {
             TextNodeTypeId |
             DoctypeNodeTypeId |
             DocumentFragmentNodeTypeId => Some(self.owner_doc()),
-            // DocumentNodeTypeId => None
+            DocumentNodeTypeId(_) => None
         }
     }
 
@@ -655,7 +662,7 @@ impl Node<ScriptView> {
                 characterdata.Data()
             }
           }
-          DoctypeNodeTypeId => {
+          DoctypeNodeTypeId | DocumentNodeTypeId(_) => {
             None
           }
         }
@@ -717,7 +724,7 @@ impl Node<ScriptView> {
                 document.document().content_changed();
             }
           }
-          DoctypeNodeTypeId => {}
+          DoctypeNodeTypeId | DocumentNodeTypeId(_) => {}
         }
         Ok(())
     }
@@ -739,10 +746,9 @@ impl Node<ScriptView> {
             if new_child.is_doctype() {
                 return true;
             }
-            if !this_node.is_element() {
-                // FIXME: This should also work for Document and DocumentFragments when they inherit from node.
-                // per jgraham
-                return true;
+            match this_node.type_id() {
+                DocumentNodeTypeId(*) | ElementNodeTypeId(*) => (),
+                _ => return true
             }
             if this_node == new_child {
                 return true;
@@ -793,7 +799,8 @@ impl Node<ScriptView> {
 
         // Unregister elements having "id' from the owner doc.
         // This need be called before target nodes are removed from tree.
-        self.owner_doc.mut_document().unregister_nodes_with_id(&abstract_self);
+        let owner_doc = self.owner_doc();
+        owner_doc.mut_document().unregister_nodes_with_id(&abstract_self);
 
         abstract_self.remove_child(node);
         // Signal the document that it needs to update its display.
