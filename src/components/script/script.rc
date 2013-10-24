@@ -30,7 +30,6 @@ pub mod dom {
         pub mod utils;
         pub mod conversions;
         pub mod proxyhandler;
-        pub mod domparser;
         pub mod codegen {
             pub use self::BindingDeclarations::*;
             pub mod InterfaceTypes;
