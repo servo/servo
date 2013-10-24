@@ -11,7 +11,7 @@ pub struct HTMLDataListElement {
 
 impl HTMLDataListElement {
     pub fn Options(&self) -> @mut HTMLCollection {
-        let (scope, cx) = self.htmlelement.element.node.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        let window = self.htmlelement.element.node.owner_doc().document().window;
+        HTMLCollection::new(window, ~[])
     }
 }
