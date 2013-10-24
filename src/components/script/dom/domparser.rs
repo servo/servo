@@ -4,10 +4,12 @@
 
 use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::utils::{DOMString, Fallible, Reflector, Reflectable, FailureUnknown};
+use dom::bindings::utils::{DOMString, Fallible, Reflector, Reflectable, FailureUnknown, reflect_dom_object};
 use dom::document::{AbstractDocument, Document, XML};
 use dom::htmldocument::HTMLDocument;
 use dom::window::Window;
+
+use js::jsapi::{JSContext, JSObject};
 
 pub struct DOMParser {
     owner: @mut Window, //XXXjdm Document instead?
@@ -15,17 +17,16 @@ pub struct DOMParser {
 }
 
 impl DOMParser {
-    pub fn new(owner: @mut Window) -> @mut DOMParser {
-        let parser = @mut DOMParser {
+    pub fn new_inherited(owner: @mut Window) -> DOMParser {
+        DOMParser {
             owner: owner,
             reflector_: Reflector::new()
-        };
+        }
+    }
 
-        // TODO(tkuehn): This just handles the top-level page. Need to handle subframes.
-        let cx = owner.get_cx();
-        let scope = owner.reflector().get_jsobject();
-        parser.wrap_object_shared(cx, scope);
-        parser
+    pub fn new(owner: @mut Window) -> @mut DOMParser {
+        reflect_dom_object(@mut DOMParser::new_inherited(owner), owner,
+                           DOMParserBinding::Wrap)
     }
 
     pub fn Constructor(owner: @mut Window) -> Fallible<@mut DOMParser> {
@@ -51,3 +52,20 @@ impl DOMParser {
     }
 }
 
+impl Reflectable for DOMParser {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        &self.reflector_
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        &mut self.reflector_
+    }
+
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!();
+    }
+
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
+        Some(self.owner as @mut Reflectable)
+    }
+}
