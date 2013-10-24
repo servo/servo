@@ -673,11 +673,6 @@ impl Node<ScriptView> {
         }
     }
 
-    pub fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let win = self.owner_doc().document().window;
-        (win.reflector().get_jsobject(), win.get_cx())
-    }
-
     // http://dom.spec.whatwg.org/#concept-node-replace-all
     pub fn replace_all(&mut self,
                        abstract_self: AbstractNode<ScriptView>,
