@@ -861,8 +861,12 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I) -> PropertyD
             Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
                 let list = if i { &mut important } else { &mut normal };
-                if !PropertyDeclaration::parse(n, v, list) {
-                    log_css_error(l, "Invalid property declaration")
+                match PropertyDeclaration::parse(n, v, list) {
+                    UnknownProperty => log_css_error(l, format!(
+                        "Unsupported property: {}:{}", n, v.iter().to_css())),
+                    InvalidValue => log_css_error(l, format!(
+                        "Invalid value: {}:{}", n, v.iter().to_css())),
+                    ValidDeclaration => (),
                 }
             }
         }
@@ -909,15 +913,22 @@ pub enum PropertyDeclaration {
     % endfor
 }
 
+
+enum PropertyDeclarationParseResult {
+    UnknownProperty,
+    InvalidValue,
+    ValidDeclaration,
+}
+
 impl PropertyDeclaration {
     pub fn parse(name: &str, value: &[ComponentValue],
-                 result_list: &mut ~[PropertyDeclaration]) -> bool {
+                 result_list: &mut ~[PropertyDeclaration]) -> PropertyDeclarationParseResult {
         match name.to_ascii_lower().as_slice() {
             % for property in LONGHANDS:
                 "${property.name}" => result_list.push(${property.ident}_declaration(
                     match longhands::${property.ident}::parse_declared(value) {
                         Some(value) => value,
-                        None => return false,
+                        None => return InvalidValue,
                     }
                 )),
             % endfor
@@ -949,13 +960,13 @@ impl PropertyDeclaration {
                                 ));
                             % endfor
                         },
-                        None => return false,
+                        None => return InvalidValue,
                     }
                 },
             % endfor
-            _ => return false,  // Unknown property
+            _ => return UnknownProperty,
         }
-        true
+        ValidDeclaration
     }
 }
 
