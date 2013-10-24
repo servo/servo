@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLDocumentBinding;
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible, Traceable};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::document::{AbstractDocument, Document, ReflectableDocument, HTML};
 use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
@@ -15,7 +14,6 @@ use js::jsapi::{JSObject, JSContext, JSTracer};
 
 use servo_util::tree::{TreeNodeRef, ElementLike};
 
-use std::libc;
 use std::ptr;
 use std::str::eq_slice;
 
@@ -40,26 +38,6 @@ impl ReflectableDocument for HTMLDocument {
 }
 
 impl HTMLDocument {
-    pub fn NamedGetter(&self, _cx: *JSContext, _name: &DOMString, _found: &mut bool) -> Fallible<*JSObject> {
-        Ok(ptr::null())
-    }
-
-    pub fn GetDomain(&self) -> Fallible<DOMString> {
-        Ok(None)
-    }
-
-    pub fn SetDomain(&self, _domain: &DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    pub fn GetCookie(&self) -> Fallible<DOMString> {
-        Ok(None)
-    }
-
-    pub fn SetCookie(&self, _cookie: &DOMString) -> ErrorResult {
-        Ok(())
-    }
-
     pub fn GetHead(&self) -> Option<AbstractNode<ScriptView>> {
         match self.parent.GetDocumentElement() {
             None => None,
@@ -95,77 +73,6 @@ impl HTMLDocument {
         self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "script"))
     }
 
-    pub fn Close(&self) -> ErrorResult {
-        Ok(())
-    }
-
-    pub fn DesignMode(&self) -> DOMString {
-        None
-    }
-
-    pub fn SetDesignMode(&self, _mode: &DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    pub fn ExecCommand(&self, _command_id: &DOMString, _show_ui: bool, _value: &DOMString) -> Fallible<bool> {
-        Ok(false)
-    }
-
-    pub fn QueryCommandEnabled(&self, _command_id: &DOMString) -> Fallible<bool> {
-        Ok(false)
-    }
-
-    pub fn QueryCommandIndeterm(&self, _command_id: &DOMString) -> Fallible<bool> {
-        Ok(false)
-    }
-
-    pub fn QueryCommandState(&self, _command_id: &DOMString) -> Fallible<bool> {
-        Ok(false)
-    }
-
-    pub fn QueryCommandSupported(&self, _command_id: &DOMString) -> bool {
-        false
-    }
-
-    pub fn QueryCommandValue(&self, _command_id: &DOMString) -> Fallible<DOMString> {
-        Ok(None)
-    }
-
-    pub fn FgColor(&self) -> DOMString {
-        None
-    }
-
-    pub fn SetFgColor(&self, _color: &DOMString) {
-    }
-
-    pub fn LinkColor(&self) -> DOMString {
-        None
-    }
-
-    pub fn SetLinkColor(&self, _color: &DOMString) {
-    }
-
-    pub fn VlinkColor(&self) -> DOMString {
-        None
-    }
-
-    pub fn SetVlinkColor(&self, _color: &DOMString) {
-    }
-
-    pub fn AlinkColor(&self) -> DOMString {
-        None
-    }
-
-    pub fn SetAlinkColor(&self, _color: &DOMString) {
-    }
-
-    pub fn BgColor(&self) -> DOMString {
-        None
-    }
-
-    pub fn SetBgColor(&self, _color: &DOMString) {
-    }
-
     pub fn Anchors(&self) -> @mut HTMLCollection {
         self.parent.createHTMLCollection(|elem|
             eq_slice(elem.tag_name, "a") && elem.get_attr("name").is_some())
@@ -174,13 +81,6 @@ impl HTMLDocument {
     pub fn Applets(&self) -> @mut HTMLCollection {
         // FIXME: This should be return OBJECT elements containing applets.
         self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "applet"))
-    }
-
-    pub fn Clear(&self) {
-    }
-
-    pub fn GetAll(&self, _cx: *JSContext) -> Fallible<*libc::c_void> {
-        Ok(ptr::null())
     }
 }
 

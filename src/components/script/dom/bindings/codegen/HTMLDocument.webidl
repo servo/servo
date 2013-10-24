@@ -8,13 +8,13 @@ interface Selection;
 
 [OverrideBuiltins]
 interface HTMLDocument : Document {
-           [Throws]
-           attribute DOMString? domain;
-           [Throws]
-           attribute DOMString cookie;
+  //          [Throws]
+  //          attribute DOMString? domain;
+  //          [Throws]
+  //          attribute DOMString cookie;
   // DOM tree accessors
-  [Throws]
-  getter object (DOMString name);
+  // [Throws]
+  // getter object (DOMString name);
   /*[SetterThrows]
     attribute HTMLElement? body;*/
   readonly attribute HTMLHeadElement? head;
@@ -32,41 +32,41 @@ interface HTMLDocument : Document {
   Document open(optional DOMString type = "text/html", optional DOMString replace = "");
   [Throws]
   WindowProxy open(DOMString url, DOMString name, DOMString features, optional boolean replace = false);*/
-  [Throws]
-  void close();
+  // [Throws]
+  // void close();
   /*[Throws]
   void write(DOMString... text);
   [Throws]
   void writeln(DOMString... text);*/
 
-           [SetterThrows]
-           attribute DOMString designMode;
-  [Throws]
-  boolean execCommand(DOMString commandId, optional boolean showUI = false,
-                      optional DOMString value = "");
-  [Throws]
-  boolean queryCommandEnabled(DOMString commandId);
-  [Throws]
-  boolean queryCommandIndeterm(DOMString commandId);
-  [Throws]
-  boolean queryCommandState(DOMString commandId);
-  boolean queryCommandSupported(DOMString commandId);
-  [Throws]
-  DOMString queryCommandValue(DOMString commandId);
+  //          [SetterThrows]
+  //          attribute DOMString designMode;
+  // [Throws]
+  // boolean execCommand(DOMString commandId, optional boolean showUI = false,
+  //                     optional DOMString value = "");
+  // [Throws]
+  // boolean queryCommandEnabled(DOMString commandId);
+  // [Throws]
+  // boolean queryCommandIndeterm(DOMString commandId);
+  // [Throws]
+  // boolean queryCommandState(DOMString commandId);
+  // boolean queryCommandSupported(DOMString commandId);
+  // [Throws]
+  // DOMString queryCommandValue(DOMString commandId);
 
-  [TreatNullAs=EmptyString] attribute DOMString fgColor;
-  [TreatNullAs=EmptyString] attribute DOMString linkColor;
-  [TreatNullAs=EmptyString] attribute DOMString vlinkColor;
-  [TreatNullAs=EmptyString] attribute DOMString alinkColor;
-  [TreatNullAs=EmptyString] attribute DOMString bgColor;
+  // [TreatNullAs=EmptyString] attribute DOMString fgColor;
+  // [TreatNullAs=EmptyString] attribute DOMString linkColor;
+  // [TreatNullAs=EmptyString] attribute DOMString vlinkColor;
+  // [TreatNullAs=EmptyString] attribute DOMString alinkColor;
+  // [TreatNullAs=EmptyString] attribute DOMString bgColor;
 
   readonly attribute HTMLCollection anchors;
   readonly attribute HTMLCollection applets;
 
-  void clear();
+  // void clear();
 
-  [Throws]
-  readonly attribute object all;
+  // [Throws]
+  // readonly attribute object all;
 
   // https://dvcs.w3.org/hg/editing/raw-file/tip/editing.html#selections
   /*[Throws]
