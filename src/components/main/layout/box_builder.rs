@@ -361,38 +361,21 @@ impl LayoutTreeBuilder {
         }
     }
 
-    
-
     pub fn box_generator_for_node<'a>(&mut self,
                                       node: AbstractNode<LayoutView>,
                                       grandparent_generator: Option<&mut BoxGenerator<'a>>,
                                       parent_generator: &mut BoxGenerator<'a>,
                                       mut sibling_generator: Option<&mut BoxGenerator<'a>>)
                                       -> BoxGenResult<'a> {
-        let display = if node.is_element() {
-            let display = node.style().Box.display;
-            if node.is_root() {
-                match display {
-                    display::none => return NoGenerator,
-                    display::inline => display::block,
-                    display::list_item => display::block,
-                    v => v
-                }
-            } else {
-                match display {
-                    display::none => return NoGenerator,
-                    display::list_item => display::block,
-                    v => v
-                }
-            }
-        } else {
-            match node.type_id() {
-                ElementNodeTypeId(_) => display::inline,
-                TextNodeTypeId => display::inline,
-                DoctypeNodeTypeId |
-                DocumentFragmentNodeTypeId |
-                CommentNodeTypeId => return NoGenerator,
-            }
+        let display = match node.type_id() {
+            ElementNodeTypeId(_) => match node.style().Box.display {
+                display::none => return NoGenerator,
+                display => display,
+            },
+            TextNodeTypeId => display::inline,
+            DoctypeNodeTypeId |
+            DocumentFragmentNodeTypeId |
+            CommentNodeTypeId => return NoGenerator,
         };
 
         let sibling_flow: Option<&mut FlowContext> = sibling_generator.as_mut().map(|gen| &mut *gen.flow);
@@ -406,9 +389,8 @@ impl LayoutTreeBuilder {
         } else {
             None
         };
-        
 
-        let new_generator = match (display, &mut parent_generator.flow, sibling_flow) { 
+        let new_generator = match (display, &mut parent_generator.flow, sibling_flow) {
             // Floats
             (display::block, & &BlockFlow(_), _) |
             (display::block, & &FloatFlow(_), _) if is_float.is_some() => {
@@ -418,8 +400,8 @@ impl LayoutTreeBuilder {
             // then continue building from the inline flow in case there are more inlines
             // afterward.
             (display::block, _, Some(&InlineFlow(_))) if is_float.is_some() => {
-                let float_generator = self.create_child_generator(node, 
-                                                                  sibling_generator.unwrap(), 
+                let float_generator = self.create_child_generator(node,
+                                                                  sibling_generator.unwrap(),
                                                                   Flow_Float(is_float.unwrap()));
                 return Mixed(float_generator, ~SiblingGenerator);
             }
