@@ -276,8 +276,16 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
             iter.next();
             match iter.next() {
                 Some(Ident(name)) => match parse_simple_pseudo_class(name) {
-                    None => None,
-                    Some(result) => Some(Some(result)),
+                    None => match name.to_ascii_lower().as_slice() {
+                        // Supported CSS 2.1 pseudo-elements only.
+                        // ** Do not add to this list! **
+                        "before" => Some(Some(Right(Before))),
+                        "after" => Some(Some(Right(After))),
+                        "first-line" => Some(Some(Right(FirstLine))),
+                        "first-letter" => Some(Some(Right(FirstLetter))),
+                        _ => None
+                    },
+                    Some(result) => Some(Some(Left(result))),
                 },
                 Some(Function(name, arguments)) => match parse_functional_pseudo_class(
                         name, arguments, namespaces, inside_negation) {
@@ -404,16 +412,10 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
 }
 
 
-fn parse_simple_pseudo_class(name: ~str) -> Option<Either<SimpleSelector, PseudoElement>> {
+fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
     match name.to_ascii_lower().as_slice() {
-//        "root" => Some(Left(Root)),
-//        "empty" => Some(Left(Empty)),
-
-        // Supported CSS 2.1 pseudo-elements only.
-        "before" => Some(Right(Before)),
-        "after" => Some(Right(After)),
-        "first-line" => Some(Right(FirstLine)),
-        "first-letter" => Some(Right(FirstLetter)),
+//        "root" => Some(Root),
+//        "empty" => Some(Empty),
         _ => None
     }
 }
