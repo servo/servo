@@ -8,11 +8,15 @@
 use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
+use gfx::render_task::BufferRequest;
 use std::uint::{div_ceil, next_power_of_two};
 use std::vec;
 use std::util::replace;
-use gfx::render_task::BufferRequest;
+use std::vec::build;
 use servo_msg::compositor_msg::Tile;
+
+#[cfg(test)]
+use layers::platform::surface::NativePaintingGraphicsContext;
 
 static HEADER: &'static str = "<!DOCTYPE html><html>";
 
@@ -75,9 +79,9 @@ impl<T: Tile> Quadtree<T> {
     /// Takes in the initial width and height of the space, a maximum tile size, and
     /// a maximum amount of memory. Tiles will be deleted if this memory is exceeded.
     /// Set max_mem to None to turn off automatic tile removal.
-    pub fn new(width: uint, height: uint, tile_size: uint, max_mem: Option<uint>) -> Quadtree<T> {
+    pub fn new(clip_size: Size2D<uint>, tile_size: uint, max_mem: Option<uint>) -> Quadtree<T> {
         // Spaces must be squares and powers of 2, so expand the space until it is
-        let longer = width.max(&height);
+        let longer = clip_size.width.max(&clip_size.height);
         let num_tiles = div_ceil(longer, tile_size);
         let power_of_two = next_power_of_two(num_tiles);
         let size = power_of_two * tile_size;
@@ -91,7 +95,7 @@ impl<T: Tile> Quadtree<T> {
                 tile_mem: 0,
                 status: Normal,
             },
-            clip_size: Size2D(width, height),
+            clip_size: clip_size,
             max_tile_size: tile_size,
             max_mem: max_mem,
         }
@@ -111,7 +115,7 @@ impl<T: Tile> Quadtree<T> {
         self.root.get_tile(x, y)
     }
 
-    /// Add a tile associtated with a given pixel position and scale.
+    /// Add a tile associated with a given pixel position and scale.
     /// If the tile pushes the total memory over its maximum, tiles will be removed
     /// until total memory is below the maximum again. These tiles are returned.
     pub fn add_tile_pixel(&mut self, x: uint, y: uint, scale: f32, tile: T) -> ~[T] {
@@ -133,7 +137,7 @@ impl<T: Tile> Quadtree<T> {
         tiles
     }
 
-    /// Add a tile associtated with a given page position.
+    /// Add a tile associated with a given page position.
     /// If the tile pushes the total memory over its maximum, tiles will be removed
     /// until total memory is below the maximum again. These tiles are returned.
     pub fn add_tile_page(&mut self, x: f32, y: f32, scale: f32, tile: T) -> ~[T] {
@@ -302,7 +306,6 @@ impl<T: Tile> Quadtree<T> {
     pub fn get_html(&self) -> ~str {
         fmt!("%s<body>%s</body></html>", HEADER, self.root.get_html())
     }
-
 }
 
 impl<T: Tile> QuadtreeNode<T> {
@@ -769,7 +772,6 @@ impl<T: Tile> QuadtreeNode<T> {
         }
         return ret;
     }
-
 }
 
 #[test]
@@ -789,9 +791,11 @@ pub fn test_resize() {
         fn get_size_2d(&self) -> Size2D<uint> {
             Size2D(0u, 0u)
         }
+        fn mark_wont_leak(&mut self) {}
+        fn destroy(self, _: &NativePaintingGraphicsContext) {}
     }
     
-    let mut q = Quadtree::new(6, 6, 1, None);
+    let mut q = Quadtree::new(Size2D(6u, 6), 1, None);
     q.add_tile_pixel(0, 0, 1f32, T{a: 0});
     q.add_tile_pixel(5, 5, 1f32, T{a: 1});
     q.bad_resize(8, 1);
@@ -822,9 +826,11 @@ pub fn test() {
         fn get_size_2d(&self) -> Size2D<uint> {
             Size2D(0u, 0u)
         }
+        fn mark_wont_leak(&mut self) {}
+        fn destroy(self, _: &NativePaintingGraphicsContext) {}
     }
     
-    let mut q = Quadtree::new(8, 8, 2, Some(4));
+    let mut q = Quadtree::new(Size2D(8u, 8), 2, Some(4));
     q.add_tile_pixel(0, 0, 1f32, T{a: 0});  
     q.add_tile_pixel(0, 0, 2f32, T{a: 1});
     q.add_tile_pixel(0, 0, 2f32, T{a: 2});

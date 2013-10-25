@@ -39,6 +39,8 @@ extern mod extra;
 extern mod core_graphics;
 #[cfg(target_os="macos")]
 extern mod core_text;
+#[cfg(target_os="macos")]
+extern mod io_surface;
 
 use compositing::{CompositorChan, CompositorTask};
 use constellation::Constellation;

@@ -8,11 +8,33 @@
        url = "http://servo.org/")];
 #[crate_type = "lib"];
 
-
 extern mod azure;
-extern mod std;
-extern mod geom;
 extern mod extra;
+extern mod geom;
+extern mod layers;
+extern mod std;
+
+#[cfg(target_os="macos")]
+extern mod core_foundation;
+#[cfg(target_os="macos")]
+extern mod io_surface;
 
 pub mod compositor_msg;
 pub mod constellation_msg;
+
+pub mod platform {
+    #[cfg(target_os="macos")]
+    pub mod macos {
+        #[cfg(target_os="macos")]
+        pub mod surface;
+    }
+
+    #[cfg(target_os="linux")]
+    pub mod linux {
+        #[cfg(target_os="linux")]
+        pub mod surface;
+    }
+
+    pub mod surface;
+}
+
