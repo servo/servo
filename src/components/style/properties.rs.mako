@@ -228,6 +228,9 @@ pub mod longhands {
 //        "table-row table-column-group table-column table-cell table-caption"
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                               -> computed_value::T {
+            if context.is_root_element && value == inline_block {
+                return block
+            }
             let positioned = match context.position {
                 position::absolute | position::fixed => true,
                 _ => false
