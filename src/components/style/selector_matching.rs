@@ -150,13 +150,10 @@ fn matches_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLik
     matches_compound_selector::<N, T, E>(&selector.compound_selectors, element)
 }
 
-
 fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         selector: &CompoundSelector, element: &T) -> bool {
-    if do element.with_imm_element_like |element: &E| {
-        !do selector.simple_selectors.iter().all |simple_selector| {
+    if !do selector.simple_selectors.iter().all |simple_selector| {
             matches_simple_selector(simple_selector, element)
-        }
     } {
         return false
     }
@@ -193,25 +190,37 @@ fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
 }
 
 #[inline]
-fn matches_simple_selector<E: ElementLike>(selector: &SimpleSelector, element: &E) -> bool {
+fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+        selector: &SimpleSelector, element: &T) -> bool {
     static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
 
     match *selector {
         // TODO: case-sensitivity depends on the document type
         // TODO: intern element names
-        LocalNameSelector(ref name)
-        => element.get_local_name().eq_ignore_ascii_case(name.as_slice()),
+        LocalNameSelector(ref name) => {
+            do element.with_imm_element_like |element: &E| {
+                element.get_local_name().eq_ignore_ascii_case(name.as_slice())
+            }
+        }
         NamespaceSelector(_) => false,  // TODO, when the DOM supports namespaces on elements.
         // TODO: case-sensitivity depends on the document type and quirks mode
         // TODO: cache and intern IDs on elements.
-        IDSelector(ref id) => element.get_attr("id") == Some(id.as_slice()),
+        IDSelector(ref id) => {
+            do element.with_imm_element_like |element: &E| {
+                element.get_attr("id") == Some(id.as_slice())
+            }
+        }
         // TODO: cache and intern classe names on elements.
-        ClassSelector(ref class) => match element.get_attr("class") {
-            None => false,
-            // TODO: case-sensitivity depends on the document type and quirks mode
-            Some(ref class_attr)
-            => class_attr.split_iter(WHITESPACE).any(|c| c == class.as_slice()),
-        },
+        ClassSelector(ref class) => {
+            do element.with_imm_element_like |element: &E| {
+                match element.get_attr("class") {
+                    None => false,
+                    // TODO: case-sensitivity depends on the document type and quirks mode
+                    Some(ref class_attr)
+                    => class_attr.split_iter(WHITESPACE).any(|c| c == class.as_slice()),
+                }
+            }
+        }
 
         AttrExists(ref attr) => match_attribute(attr, element, |_| true),
         AttrEqual(ref attr, ref value) => match_attribute(attr, element, |v| v == value.as_slice()),
@@ -232,20 +241,41 @@ fn matches_simple_selector<E: ElementLike>(selector: &SimpleSelector, element: &
             attr_value.ends_with(value.as_slice())
         },
 
+        FirstChild => matches_first_child(element),
+
         Negation(ref negated) => {
             !negated.iter().all(|s| matches_simple_selector(s, element))
         },
     }
 }
 
+#[inline]
+fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+        element: &T) -> bool {
+    let mut node = element.clone();
+    loop {
+        match node.node().prev_sibling() {
+            Some(prev_sibling) => {
+                node = prev_sibling;
+                if node.is_element() {
+                    return false
+                }
+            }
+            None => return !element.is_root(),
+        }
+    }
+}
 
 #[inline]
-fn match_attribute<E: ElementLike>(attr: &AttrSelector, element: &E, f: &fn(&str)-> bool) -> bool {
-    match attr.namespace {
-        Some(_) => false,  // TODO, when the DOM supports namespaces on attributes
-        None => match element.get_attr(attr.name) {
-            None => false,
-            Some(ref value) => f(value.as_slice())
+fn match_attribute<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+        attr: &AttrSelector, element: &T, f: &fn(&str)-> bool) -> bool {
+    do element.with_imm_element_like |element: &E| {
+        match attr.namespace {
+            Some(_) => false,  // TODO, when the DOM supports namespaces on attributes
+            None => match element.get_attr(attr.name) {
+                None => false,
+                Some(ref value) => f(value.as_slice())
+            }
         }
     }
 }
