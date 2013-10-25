@@ -58,6 +58,7 @@ pub enum SimpleSelector {
     AttrSuffixMatch(AttrSelector, ~str),  // [foo$=bar]
 
     // Pseudo-classes
+    FirstChild,
 //    Empty,
 //    Root,
 //    Lang(~str),
@@ -180,6 +181,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
                 &ClassSelector(*)
                 | &AttrExists(*) | &AttrEqual(*) | &AttrIncludes(*) | &AttrDashMatch(*)
                 | &AttrPrefixMatch(*) | &AttrSubstringMatch(*) | &AttrSuffixMatch(*)
+                | &FirstChild
 //                | &Empty | &Root | &Lang(*) | &NthChild(*)
                 => specificity.class_like_selectors += 1,
                 &NamespaceSelector(*) => (),
@@ -272,7 +274,7 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
             },
             _ => fail!("Implementation error, this should not happen."),
         },
-        Some(&Delim(':')) => {
+        Some(&Colon) => {
             iter.next();
             match iter.next() {
                 Some(Ident(name)) => match parse_simple_pseudo_class(name) {
@@ -292,7 +294,7 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
                     None => None,
                     Some(simple_selector) => Some(Some(Left(simple_selector))),
                 },
-                Some(Delim(':')) => {
+                Some(Colon) => {
                     match iter.next() {
                         Some(Ident(name)) => match parse_pseudo_element(name) {
                             Some(pseudo_element) => Some(Some(Right(pseudo_element))),
@@ -414,6 +416,7 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
 
 fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
     match name.to_ascii_lower().as_slice() {
+        "first-child" => Some(FirstChild),
 //        "root" => Some(Root),
 //        "empty" => Some(Empty),
         _ => None
