@@ -6,7 +6,7 @@ use std::{vec, iter};
 use std::ascii::StrAsciiExt;
 use cssparser::*;
 use namespaces::NamespaceMap;
-
+use servo_util::interning::{intern_string, IntString};
 
 #[deriving(Clone)]
 pub struct Selector {
@@ -43,16 +43,16 @@ pub enum Combinator {
 
 #[deriving(Clone)]
 pub enum SimpleSelector {
-    IDSelector(~str),
-    ClassSelector(~str),
-    LocalNameSelector(~str),
+    IDSelector(IntString),
+    ClassSelector(IntString),
+    LocalNameSelector(IntString),
     NamespaceSelector(~str),
 
     // Attribute selectors
     AttrExists(AttrSelector),  // [foo]
-    AttrEqual(AttrSelector, ~str),  // [foo=bar]
+    AttrEqual(AttrSelector, IntString),  // [foo=bar]
     AttrIncludes(AttrSelector, ~str),  // [foo~=bar]
-    AttrDashMatch(AttrSelector, ~str, ~str),  // [foo|=bar]  Second string is the first + "-"
+    AttrDashMatch(AttrSelector, IntString, IntString),  // [foo|=bar]  Second string is the first + "-"
     AttrPrefixMatch(AttrSelector, ~str),  // [foo^=bar]
     AttrSubstringMatch(AttrSelector, ~str),  // [foo*=bar]
     AttrSuffixMatch(AttrSelector, ~str),  // [foo$=bar]
@@ -68,7 +68,7 @@ pub enum SimpleSelector {
 
 #[deriving(Clone)]
 pub struct AttrSelector {
-    name: ~str,
+    name: IntString,
     namespace: Option<~str>,
 }
 
@@ -236,7 +236,7 @@ fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
                 None => (),
             }
             match local_name {
-                Some(name) => simple_selectors.push(LocalNameSelector(name)),
+                Some(name) => simple_selectors.push(LocalNameSelector(intern_string(name))),
                 None => (),
             }
             Some(Some(simple_selectors))
@@ -254,13 +254,13 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
                          -> Option<Option<Either<SimpleSelector, PseudoElement>>> {
     match iter.peek() {
         Some(&IDHash(_)) => match iter.next() {
-            Some(IDHash(id)) => Some(Some(Left(IDSelector(id)))),
+            Some(IDHash(id)) => Some(Some(Left(IDSelector(intern_string(id))))),
             _ => fail!("Implementation error, this should not happen."),
         },
         Some(&Delim('.')) => {
             iter.next();
             match iter.next() {
-                Some(Ident(class)) => Some(Some(Left(ClassSelector(class)))),
+                Some(Ident(class)) => Some(Some(Left(ClassSelector(intern_string(class))))),
                 _ => None,  // invalid selector
             }
         }
@@ -374,7 +374,7 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
         Some(Some((_, None))) => fail!("Implementation error, this should not happen."),
         Some(Some((namespace, Some(local_name)))) => AttrSelector {
             namespace: namespace,
-            name: local_name,
+            name: intern_string(local_name),
         },
     };
     skip_whitespace(iter);
@@ -388,12 +388,12 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
     }};)
     let result = match iter.next() {
         None => AttrExists(attr),  // [foo]
-        Some(Delim('=')) => AttrEqual(attr, get_value!()),  // [foo=bar]
+        Some(Delim('=')) => AttrEqual(attr, intern_string(get_value!())),  // [foo=bar]
         Some(IncludeMatch) => AttrIncludes(attr, get_value!()),  // [foo~=bar]
         Some(DashMatch) => {
             let value = get_value!();
             let dashing_value = value + "-";
-            AttrDashMatch(attr, value, dashing_value)  // [foo|=bar]
+            AttrDashMatch(attr, intern_string(value), intern_string(dashing_value))  // [foo|=bar]
         },
         Some(PrefixMatch) => AttrPrefixMatch(attr, get_value!()),  // [foo^=bar]
         Some(SubstringMatch) => AttrSubstringMatch(attr, get_value!()),  // [foo*=bar]

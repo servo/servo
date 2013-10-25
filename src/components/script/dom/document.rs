@@ -28,10 +28,10 @@ use std::hashmap::HashMap;
 
 use std::cast;
 use std::ptr;
-use std::str::eq_slice;
 use std::libc;
 use std::ascii::StrAsciiExt;
 use std::unstable::raw::Box;
+use servo_util::interning::intern_string;
 
 pub trait ReflectableDocument {
     fn init_reflector(@mut self, cx: *JSContext);
@@ -210,7 +210,7 @@ impl Document {
     }
 
     pub fn GetElementsByTagName(&self, tag: &DOMString) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, null_str_as_empty(tag)))
+        self.createHTMLCollection(|elem| elem.tag_name.eq(&intern_string(null_str_as_empty(tag))))
     }
 
     pub fn GetElementsByTagNameNS(&self, _ns: &DOMString, _tag: &DOMString) -> @mut HTMLCollection {
@@ -322,7 +322,7 @@ impl Document {
                                 let new_title = @HTMLTitleElement {
                                     htmlelement: HTMLElement::new(HTMLTitleElementTypeId, ~"title", abstract_self)
                                 };
-                                let new_title = unsafe { 
+                                let new_title = unsafe {
                                     Node::as_abstract_node(self.get_cx(), new_title)
                                 };
                                 new_title.add_child(self.CreateTextNode(abstract_self, title));
@@ -338,8 +338,13 @@ impl Document {
     }
 
     pub fn GetElementsByName(&self, name: &DOMString) -> @mut HTMLCollection {
+        let name_interned = intern_string("name");
         self.createHTMLCollection(|elem|
-            elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), null_str_as_empty(name)))
+            match elem.get_attr(&name_interned) {
+                None => false,
+                Some(ref name_attr) => (*name_attr).eq(&intern_string(null_str_as_empty(name))),
+            }
+        )
     }
 
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
@@ -395,7 +400,7 @@ fn foreach_ided_elements(root: &AbstractNode<ScriptView>,
         }
 
         do node.with_imm_element |element| {
-            match element.get_attr("id") {
+            match element.get_attr(&intern_string("id")) {
                 Some(id) => {
                     callback(&id.to_str(), &node);
                 }

@@ -49,6 +49,8 @@ use servo_util::tree::{TreeNodeRef, ElementLike};
 use servo_util::url::make_url;
 use extra::url::Url;
 use extra::future::Future;
+use servo_util::interning;
+use servo_util::interning::intern_string;
 
 /// Messages used to control the script task.
 pub enum ScriptMsg {
@@ -438,6 +440,7 @@ impl ScriptTask {
 
             js_runtime: js_runtime,
         };
+        interning::init();
 
         script_task
     }
@@ -650,7 +653,7 @@ impl ScriptTask {
             // needs to be smarter about exiting pipelines.
             None => false,
         }
-        
+
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
@@ -823,7 +826,7 @@ impl ScriptTask {
                             }
                             if node.is_element() {
                                 do node.with_imm_element |element| {
-                                    if "a" == element.tag_name {
+                                    if "a" == element.tag_name.to_str_slice() {
                                         self.load_url_from_element(page, element)
                                     }
                                 }
@@ -842,14 +845,14 @@ impl ScriptTask {
 
     fn load_url_from_element(&self, page: @mut Page, element: &Element) {
         // if the node's element is "a," load url from href attr
-        let attr = element.get_attr("href");
+        let attr = element.get_attr(&intern_string("href"));
         for href in attr.iter() {
-            debug!("ScriptTask: clicked on link to %s", *href);
+            debug!("ScriptTask: clicked on link to %s", href.to_str_slice());
             let current_url = do page.url.as_ref().map |&(ref url, _)| {
                 url.clone()
             };
             debug!("ScriptTask: current url is %?", current_url);
-            let url = make_url(href.to_owned(), current_url);
+            let url = make_url(href.to_str(), current_url);
             self.constellation_chan.send(LoadUrlMsg(page.id, url, Future::from_value(page.window_size.get())));
         }
     }

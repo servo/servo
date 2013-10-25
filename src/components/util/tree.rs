@@ -4,6 +4,8 @@
 
 //! Helper functions for garbage collected doubly-linked trees.
 
+use interning::IntString;
+
 // Macros to make add_child etc. less painful to write.
 // Code outside this module should instead implement TreeNode
 // and use its default methods.
@@ -322,6 +324,8 @@ pub trait TreeNode<Ref: TreeNodeRef<Self>> {
 
 
 pub trait ElementLike {
-    fn get_local_name<'a>(&'a self) -> &'a str;
-    fn get_attr<'a>(&'a self, name: &str) -> Option<&'a str>;
+    fn get_local_name<'a>(&'a self) -> &'a IntString;
+    fn get_attr<'a>(&'a self, name: &IntString) -> Option<&'a IntString>;
+    fn get_id<'a>(&'a self) -> Option<&'a IntString>;
+    fn get_classes<'a>(&'a self) -> &'a [IntString];
 }

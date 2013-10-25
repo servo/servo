@@ -5,6 +5,7 @@
 use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 use servo_util::tree::ElementLike;
+use servo_util::interning::intern_string;
 
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
@@ -12,7 +13,7 @@ pub struct HTMLScriptElement {
 
 impl HTMLScriptElement {
     pub fn Src(&self) -> DOMString {
-        self.htmlelement.element.get_attr("src").map(|s| s.to_str())
+        self.htmlelement.element.get_attr(&intern_string("src")).map(|s| s.to_str())
     }
 
     pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {

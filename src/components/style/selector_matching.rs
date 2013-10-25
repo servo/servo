@@ -11,7 +11,7 @@ use stylesheets::Stylesheet;
 use media_queries::{Device, Screen};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use servo_util::tree::{TreeNodeRefAsElement, TreeNode, ElementLike};
-
+use servo_util::interning::IntString;
 
 pub enum StylesheetOrigin {
     UserAgentOrigin,
@@ -198,38 +198,41 @@ fn matches_simple_selector<E: ElementLike>(selector: &SimpleSelector, element: &
 
     match *selector {
         // TODO: case-sensitivity depends on the document type
-        // TODO: intern element names
         LocalNameSelector(ref name)
-        => element.get_local_name().eq_ignore_ascii_case(name.as_slice()),
+        => name.eq_ignore_ascii_case(element.get_local_name()),
         NamespaceSelector(_) => false,  // TODO, when the DOM supports namespaces on elements.
         // TODO: case-sensitivity depends on the document type and quirks mode
-        // TODO: cache and intern IDs on elements.
-        IDSelector(ref id) => element.get_attr("id") == Some(id.as_slice()),
-        // TODO: cache and intern classe names on elements.
-        ClassSelector(ref class) => match element.get_attr("class") {
+        IDSelector(ref id) => match element.get_id() {
             None => false,
-            // TODO: case-sensitivity depends on the document type and quirks mode
-            Some(ref class_attr)
-            => class_attr.split_iter(WHITESPACE).any(|c| c == class.as_slice()),
+            Some(ref id_attr) => id.eq_ignore_ascii_case(*id_attr),
+        },
+        // TODO: case-sensitivity depends on the document type and quirks mode
+        ClassSelector(ref class) => {
+            for c in element.get_classes().iter() {
+                if class.eq_ignore_ascii_case(c) {
+                    return true;
+                }
+            }
+            false
         },
 
         AttrExists(ref attr) => match_attribute(attr, element, |_| true),
-        AttrEqual(ref attr, ref value) => match_attribute(attr, element, |v| v == value.as_slice()),
+        AttrEqual(ref attr, ref value) => match_attribute(attr, element, |v| v.eq(value)),
         AttrIncludes(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
-            attr_value.split_iter(WHITESPACE).any(|v| v == value.as_slice())
+            attr_value.to_str_slice().split_iter(WHITESPACE).any(|v| v == value.as_slice())
         },
         AttrDashMatch(ref attr, ref value, ref dashing_value)
         => do match_attribute(attr, element) |attr_value| {
-            attr_value == value.as_slice() || attr_value.starts_with(dashing_value.as_slice())
+            attr_value.eq(value) || attr_value.to_str_slice().starts_with(dashing_value.to_str_slice())
         },
         AttrPrefixMatch(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
-            attr_value.starts_with(value.as_slice())
+            attr_value.to_str_slice().starts_with(value.as_slice())
         },
         AttrSubstringMatch(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
-            attr_value.contains(value.as_slice())
+            attr_value.to_str_slice().contains(value.as_slice())
         },
         AttrSuffixMatch(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
-            attr_value.ends_with(value.as_slice())
+            attr_value.to_str_slice().ends_with(value.as_slice())
         },
 
         Negation(ref negated) => {
@@ -240,12 +243,12 @@ fn matches_simple_selector<E: ElementLike>(selector: &SimpleSelector, element: &
 
 
 #[inline]
-fn match_attribute<E: ElementLike>(attr: &AttrSelector, element: &E, f: &fn(&str)-> bool) -> bool {
+fn match_attribute<E: ElementLike>(attr: &AttrSelector, element: &E, f: &fn(&IntString)-> bool) -> bool {
     match attr.namespace {
         Some(_) => false,  // TODO, when the DOM supports namespaces on attributes
-        None => match element.get_attr(attr.name) {
+        None => match element.get_attr(&attr.name) {
             None => false,
-            Some(ref value) => f(value.as_slice())
+            Some(ref value) => f(*value)
         }
     }
 }

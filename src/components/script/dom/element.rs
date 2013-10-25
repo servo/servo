@@ -21,12 +21,16 @@ use js::jsapi::{JSContext, JSObject};
 use std::comm;
 use std::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
+use servo_util::interning::{intern_string, IntString};
+use std::str::eq_slice;
 
 pub struct Element {
     node: Node<ScriptView>,
-    tag_name: ~str,     // TODO: This should be an atom, not a ~str.
-    attrs: HashMap<~str, ~str>,
-    attrs_list: ~[~str], // store an order of attributes.
+    tag_name: IntString,     // TODO: This should be an atom, not a ~str.
+    id: Option<IntString>,
+    classes: ~[IntString],
+    attrs: HashMap<IntString, IntString>,
+    attrs_list: ~[IntString], // store an order of attributes.
     style_attribute: Option<style::PropertyDeclarationBlock>,
 }
 
@@ -126,19 +130,28 @@ pub enum ElementTypeId {
 //
 
 impl ElementLike for Element {
-    fn get_local_name<'a>(&'a self) -> &'a str {
-        self.tag_name.as_slice()
+    fn get_local_name<'a>(&'a self) -> &'a IntString {
+        &self.tag_name
     }
 
-    fn get_attr<'a>(&'a self, name: &str) -> Option<&'a str> {
+    fn get_attr<'a>(&'a self, name: &IntString) -> Option<&'a IntString> {
         // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
-        let name = name.to_ascii_lower();
-        let value: Option<&str> = self.attrs.find_equiv(&name).map(|value| {
-            let value: &str = *value;
+        let value: Option<&IntString> = self.attrs.find_equiv(name).map(|value| {
             value
         });
-
         return value;
+    }
+
+    fn get_id<'a>(&'a self) -> Option<&'a IntString> {
+        match self.id {
+            None => None,
+            Some(ref id) => Some(id),
+        }
+    }
+
+    fn get_classes<'a>(&'a self) -> &'a [IntString] {
+        let c: &'a [IntString] = self.classes;
+        c
     }
 }
 
@@ -146,7 +159,9 @@ impl<'self> Element {
     pub fn new(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> Element {
         Element {
             node: Node::new(ElementNodeTypeId(type_id), document),
-            tag_name: tag_name,
+            tag_name: intern_string(tag_name),
+            id: None,
+            classes: ~[],
             attrs: HashMap::new(),
             attrs_list: ~[],
             style_attribute: None,
@@ -157,24 +172,33 @@ impl<'self> Element {
                     abstract_self: AbstractNode<ScriptView>,
                     raw_name: &DOMString,
                     raw_value: &DOMString) {
-        let name = null_str_as_empty(raw_name).to_ascii_lower();
-        let value = null_str_as_empty(raw_value);
+        static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
 
-        // FIXME: reduce the time of `value.clone()`.
+        let name = intern_string(null_str_as_empty(raw_name));
+        let value = intern_string(null_str_as_empty(raw_value));
+
+        // FIXME: reduce the time of `value.clone()`
         self.attrs.mangle(name.clone(), value.clone(),
-                          |new_name: &~str, new_value: ~str| {
+                          |new_name: &IntString, new_value: IntString| {
                               // register to the ordered list.
                               self.attrs_list.push(new_name.clone());
                               new_value
                           },
-                          |_, old_value: &mut ~str, new_value: ~str| {
+                          |_, old_value: &mut IntString, new_value: IntString| {
                               // update value.
                               *old_value = new_value;
                           });
 
-        if "style" == name {
-            self.style_attribute = Some(style::parse_style_attribute(
-                null_str_as_empty_ref(raw_value)));
+        if eq_slice(name.to_ascii_lower(), "id") {
+            self.id = Some(value);
+        } else if eq_slice(name.to_ascii_lower(), "class") {
+            for class in value.to_str_slice().split_iter(WHITESPACE) {
+                self.classes.push(intern_string(class));
+            }
+        }
+
+        if eq_slice("style", name.to_ascii_lower()) {
+            self.style_attribute = Some(style::parse_style_attribute(value.to_str_slice()));
         }
 
         // TODO: update owner document's id hashmap for `document.getElementById()`
@@ -205,7 +229,7 @@ impl<'self> Element {
 
 impl Element {
     pub fn TagName(&self) -> DOMString {
-        Some(self.tag_name.to_owned().to_ascii_upper())
+        Some(self.tag_name.to_str_slice().to_ascii_upper())
     }
 
     pub fn Id(&self) -> DOMString {
@@ -216,7 +240,7 @@ impl Element {
     }
 
     pub fn GetAttribute(&self, name: &DOMString) -> DOMString {
-        self.get_attr(null_str_as_empty_ref(name)).map(|s| s.to_owned())
+        self.get_attr(&intern_string(null_str_as_empty_ref(name))).map(|s| s.to_str())
     }
 
     pub fn GetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString) -> DOMString {
@@ -385,15 +409,15 @@ impl Element {
 }
 
 pub struct Attr {
-    name: ~str,
-    value: ~str,
+    name: IntString,
+    value: IntString,
 }
 
 impl Attr {
     pub fn new(name: ~str, value: ~str) -> Attr {
         Attr {
-            name: name,
-            value: value
+            name: intern_string(name),
+            value: intern_string(value)
         }
     }
 }
