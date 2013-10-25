@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use geom::size::Size2D;
-use std::ptr;
-
 use compositing::*;
+
+use geom::size::Size2D;
+use std::unstable::intrinsics;
 
 /// Starts the compositor, which listens for messages on the specified port.
 ///
@@ -20,8 +20,10 @@ pub fn run_compositor(compositor: &CompositorTask) {
                 chan.send(Size2D(500, 500));
             }
 
-            GetGLContext(chan) => {
-                chan.send(ptr::null());
+            GetGraphicsMetadata(chan) => {
+                unsafe {
+                    chan.send(intrinsics::uninit());
+                }
             }
 
             SetIds(_, response_chan, _) => {

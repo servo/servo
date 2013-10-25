@@ -12,7 +12,8 @@ use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEven
 use servo_msg::constellation_msg::{ConstellationChan, NavigateMsg, ResizedWindowMsg, LoadUrlMsg};
 use servo_msg::constellation_msg;
 
-use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
+use azure::azure_hl::SourceSurfaceMethods;
+use azure::azure_hl;
 use std::comm::Port;
 use std::num::Orderable;
 use std::vec;
@@ -22,8 +23,7 @@ use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
-use layers::layers::{ARGB32Format, ContainerLayer, ContainerLayerKind, Format};
-use layers::layers::{ImageData, WithDataFn};
+use layers::layers::{ContainerLayer, ContainerLayerKind};
 use layers::rendergl;
 use layers::scene::Scene;
 use opengles::gl2;
@@ -37,31 +37,6 @@ use extra::time::precise_time_s;
 use compositing::compositor_layer::CompositorLayer;
 
 use compositing::*;
-
-/// Azure surface wrapping to work with the layers infrastructure.
-struct AzureDrawTargetImageData {
-    draw_target: DrawTarget,
-    data_source_surface: DataSourceSurface,
-    size: Size2D<uint>,
-}
-
-impl ImageData for AzureDrawTargetImageData {
-    fn size(&self) -> Size2D<uint> {
-        self.size
-    }
-    fn stride(&self) -> uint {
-        self.data_source_surface.stride() as uint
-    }
-    fn format(&self) -> Format {
-        // FIXME: This is not always correct. We should query the Azure draw target for the format.
-        ARGB32Format
-    }
-    fn with_data(&self, f: WithDataFn) {
-        do self.data_source_surface.with_data |data| {
-            f(data);
-        }
-    }
-}
 
 /// Starts the compositor, which listens for messages on the specified port.
 pub fn run_compositor(compositor: &CompositorTask) {
@@ -79,6 +54,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
     let mut window_size = Size2D(window_size.width as uint, window_size.height as uint);
     let mut done = false;
     let mut recomposite = false;
+    let graphics_context = CompositorTask::create_graphics_context();
 
     // Keeps track of the current zoom factor
     let mut world_zoom = 1f32;
@@ -95,8 +71,9 @@ pub fn run_compositor(compositor: &CompositorTask) {
                                       window_size.height as f32 / world_zoom);
         for layer in compositor_layer.mut_iter() {
             if !layer.hidden {
-                recomposite = layer.get_buffer_request(Rect(Point2D(0f32, 0f32), window_size_page),
-                                                       world_zoom) || recomposite;
+                let rect = Rect(Point2D(0f32, 0f32), window_size_page);
+                recomposite = layer.get_buffer_request(&graphics_context, rect, world_zoom) ||
+                    recomposite;
             } else {
                 debug!("Compositor: root layer is hidden!");
             }
@@ -123,10 +100,17 @@ pub fn run_compositor(compositor: &CompositorTask) {
 
                     let layer = CompositorLayer::from_frame_tree(frame_tree,
                                                                  compositor.opts.tile_size,
-                                                                 Some(10000000u));
+                                                                 Some(10000000u),
+                                                                 compositor.opts.cpu_painting);
                     root_layer.add_child_start(ContainerLayerKind(layer.root_layer));
-                    compositor_layer = Some(layer);
 
+                    // If there's already a root layer, destroy it cleanly.
+                    match compositor_layer {
+                        None => {}
+                        Some(ref mut compositor_layer) => compositor_layer.clear_all(),
+                    }
+
+                    compositor_layer = Some(layer);
                     constellation_chan = Some(new_constellation_chan);
                 }
 
@@ -135,7 +119,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
                     chan.send(Size2D(size.width as int, size.height as int));
                 }
 
-                GetGLContext(chan) => chan.send(current_gl_context()),
+                GetGraphicsMetadata(chan) => chan.send(azure_hl::current_graphics_metadata()),
 
                 NewLayer(_id, new_size) => {
                     // FIXME: This should create an additional layer instead of replacing the current one.
@@ -146,8 +130,11 @@ pub fn run_compositor(compositor: &CompositorTask) {
                         None => fail!("Compositor: Received new layer without initialized pipeline"),
                     };
                     let page_size = Size2D(new_size.width as f32, new_size.height as f32);
-                    let new_layer = CompositorLayer::new(p, Some(page_size),
-                                                         compositor.opts.tile_size, Some(10000000u));
+                    let new_layer = CompositorLayer::new(p,
+                                                         Some(page_size),
+                                                         compositor.opts.tile_size,
+                                                         Some(10000000u),
+                                                         compositor.opts.cpu_painting);
 
                     let current_child = root_layer.first_child;
                     // This assumes there is at most one child, which should be the case.
@@ -186,7 +173,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
                 DeleteLayer(id) => {
                     match compositor_layer {
                         Some(ref mut layer) => {
-                            assert!(layer.delete(id));
+                            assert!(layer.delete(&graphics_context, id));
                             ask_for_tiles();
                         }
                         None => {}
@@ -196,9 +183,16 @@ pub fn run_compositor(compositor: &CompositorTask) {
                 Paint(id, new_layer_buffer_set, epoch) => {
                     debug!("osmain: received new frame");
 
+                    // From now on, if we destroy the buffers, they will leak.
+                    let mut new_layer_buffer_set = new_layer_buffer_set;
+                    new_layer_buffer_set.mark_will_leak();
+
                     match compositor_layer {
                         Some(ref mut layer) => {
-                            assert!(layer.add_buffers(id, new_layer_buffer_set, epoch));
+                            assert!(layer.add_buffers(&graphics_context,
+                                                      id,
+                                                      new_layer_buffer_set,
+                                                      epoch).is_none());
                             recomposite = true;
                         }
                         None => {
@@ -401,5 +395,11 @@ pub fn run_compositor(compositor: &CompositorTask) {
 
     }
 
-    compositor.shutdown_chan.send(())
+    compositor.shutdown_chan.send(());
+
+    // Clear out the compositor layers so that painting tasks can destroy the buffers.
+    match compositor_layer {
+        None => {}
+        Some(ref mut layer) => layer.forget_all_tiles(),
+    }
 }

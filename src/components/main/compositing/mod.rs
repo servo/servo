@@ -4,21 +4,25 @@
 
 pub use windowing;
 
-use servo_msg::compositor_msg::{RenderListener, LayerBufferSet, RenderState};
-use servo_msg::compositor_msg::{ReadyState, ScriptListener, Epoch};
-use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
-use gfx::opts::Opts;
-
-use azure::azure::AzGLContext;
-use std::comm;
-use std::comm::{Chan, SharedChan, Port};
-use std::num::Orderable;
-use geom::point::Point2D;
-use geom::size::Size2D;
-use geom::rect::Rect;
-use servo_util::time::ProfilerChan;
-
 use constellation::SendableFrameTree;
+use windowing::WindowMethods;
+
+use azure::azure_hl::SourceSurfaceMethods;
+use geom::point::Point2D;
+use geom::rect::Rect;
+use geom::size::Size2D;
+use gfx::opts::Opts;
+use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
+use servo_msg::compositor_msg::{Epoch, RenderListener, LayerBufferSet, RenderState, ReadyState};
+use servo_msg::compositor_msg::{ScriptListener, Tile};
+use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
+use servo_util::time::ProfilerChan;
+use std::comm::{Chan, SharedChan, Port};
+use std::comm;
+use std::num::Orderable;
+
+#[cfg(target_os="linux")]
+use azure::azure_hl;
 
 mod quadtree;
 mod compositor_layer;
@@ -36,7 +40,6 @@ pub struct CompositorChan {
 
 /// Implementation of the abstract `ScriptListener` interface.
 impl ScriptListener for CompositorChan {
-
     fn set_ready_state(&self, ready_state: ReadyState) {
         let msg = ChangeReadyState(ready_state);
         self.chan.send(msg);
@@ -54,10 +57,9 @@ impl ScriptListener for CompositorChan {
 
 /// Implementation of the abstract `RenderListener` interface.
 impl RenderListener for CompositorChan {
-
-    fn get_gl_context(&self) -> AzGLContext {
+    fn get_graphics_metadata(&self) -> NativeGraphicsMetadata {
         let (port, chan) = comm::stream();
-        self.chan.send(GetGLContext(chan));
+        self.chan.send(GetGraphicsMetadata(chan));
         port.recv()
     }
 
@@ -115,8 +117,10 @@ pub enum Msg {
     Exit,
     /// Requests the window size
     GetSize(Chan<Size2D<int>>),
-    /// Requests the compositors GL context.
-    GetGLContext(Chan<AzGLContext>),
+    /// Requests the compositor's graphics metadata. Graphics metadata is what the renderer needs
+    /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
+    /// is the pixel format.
+    GetGraphicsMetadata(Chan<NativeGraphicsMetadata>),
 
     /// Alerts the compositor that there is a new layer to be rendered.
     NewLayer(PipelineId, Size2D<f32>),
@@ -158,6 +162,18 @@ impl CompositorTask {
             profiler_chan: profiler_chan,
             shutdown_chan: SharedChan::new(shutdown_chan),
         }
+    }
+
+    /// Creates a graphics context. Platform-specific.
+    ///
+    /// FIXME(pcwalton): Probably could be less platform-specific, using the metadata abstraction.
+    #[cfg(target_os="linux")]
+    fn create_graphics_context() -> NativeCompositingGraphicsContext {
+        NativeCompositingGraphicsContext::from_display(azure_hl::current_display())
+    }
+    #[cfg(not(target_os="linux"))]
+    fn create_graphics_context() -> NativeCompositingGraphicsContext {
+        NativeCompositingGraphicsContext::new()
     }
 
     pub fn run(&self) {
