@@ -372,7 +372,27 @@ pub mod longhands {
     // CSS 2.1, Section 11 - Visual effects
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
+    ${new_style_struct("Content")}
 
+    <%self:raw_longhand name="content" inherited="False">
+            pub use to_computed_value = super::computed_as_specified;
+            pub type SpecifiedValue = ~str;
+            pub mod computed_value {
+                pub type T = super::SpecifiedValue;
+            }
+            #[inline] pub fn get_initial_value() -> computed_value::T  { ~"" }
+            pub fn parse_specified(input: &[ComponentValue]) -> Option<DeclaredValue<SpecifiedValue>> {
+                let mut iter = input.skip_whitespace();
+                match iter.next() {
+                    Some(&String(ref value)) => Some(SpecifiedValue(value.to_owned())),
+                    Some(_) => { 
+                        // TODO impl other properties
+                        None
+                    },
+                    None => None
+                }
+            }
+    </%self:raw_longhand>
     // CSS 2.1, Section 13 - Paged media
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
