@@ -71,6 +71,7 @@ DEPS_sharegl += \
 
 DEPS_rust-hubbub += \
 	libhubbub \
+	libparserutils \
 	rust \
 	$(NULL)
 
@@ -94,11 +95,14 @@ DEPS_rust-azure += \
 	rust-core-text \
 	rust-core-foundation \
 	rust-cocoa \
+	rust-io-surface \
 	rust \
 	$(NULL)
 
 DEPS_rust-io-surface += \
 	rust-core-foundation \
+	rust-geom \
+	rust-opengles \
 	rust \
 	$(NULL)
 
@@ -129,6 +133,7 @@ DEPS_rust-layers += \
 	rust-core-foundation \
 	rust-core-graphics \
 	rust-core-text \
+	rust-io-surface \
 	rust-cocoa \
 	rust \
 	$(NULL)
@@ -171,6 +176,7 @@ DEPS_rust-azure += \
 DEPS_rust-layers += \
 	rust-freetype \
 	rust-fontconfig \
+	rust-xlib \
 	rust \
 	$(NULL)
 
