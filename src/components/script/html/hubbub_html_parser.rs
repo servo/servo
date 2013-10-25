@@ -477,7 +477,7 @@ pub fn parse_html(cx: *JSContext,
                 debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
                 let parent: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(parent);
                 let child: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(child);
-                parent.add_child(child);
+                parent.AppendChild(child);
             }
             child
         },

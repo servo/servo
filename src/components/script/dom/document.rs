@@ -315,7 +315,7 @@ impl Document {
                                 for title_child in child.children() {
                                     child.remove_child(title_child);
                                 }
-                                child.add_child(self.CreateTextNode(abstract_self, title));
+                                child.AppendChild(self.CreateTextNode(abstract_self, title));
                                 break;
                             }
                             if !has_title {
@@ -325,8 +325,8 @@ impl Document {
                                 let new_title = unsafe { 
                                     Node::as_abstract_node(self.get_cx(), new_title)
                                 };
-                                new_title.add_child(self.CreateTextNode(abstract_self, title));
-                                node.add_child(new_title);
+                                new_title.AppendChild(self.CreateTextNode(abstract_self, title));
+                                node.AppendChild(new_title);
                             }
                             break;
                         }
