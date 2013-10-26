@@ -304,10 +304,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_htmltablecellelement!(cx, document, tag, "td", HTMLTableDataCellElementTypeId, HTMLTableDataCellElement);
     handle_htmltablecellelement!(cx, document, tag, "th", HTMLTableHeaderCellElementTypeId, HTMLTableHeaderCellElement);
 
-    let element = @HTMLUnknownElement {
-       htmlelement: HTMLElement::new(HTMLUnknownElementTypeId, tag.to_str(), document)
-    };
-    return unsafe { Node::as_abstract_node(cx, element) };
+    return HTMLUnknownElement::new(tag.to_str(), document);
 }
 
 pub fn parse_html(cx: *JSContext,
