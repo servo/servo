@@ -101,10 +101,8 @@ impl FontHandleMethods for FontHandle {
         };
 
         #[fixed_stack_segment]
-         fn create_face_from_buffer(lib: FT_Library,
-                                    cbuf: *u8, cbuflen: uint, pt_size: f64)
-             -> Result<FT_Face, ()> {
-
+         fn create_face_from_buffer(lib: FT_Library, cbuf: *u8, cbuflen: uint, pt_size: f64)
+                                    -> Result<FT_Face, ()> {
              unsafe {
                  let mut face: FT_Face = ptr::null();
                  let face_index = 0 as FT_Long;
