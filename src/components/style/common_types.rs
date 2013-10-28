@@ -146,16 +146,13 @@ pub mod computed {
         // TODO, as needed: root font size, viewport size, etc.
     }
 
-    #[inline]
-    fn mul(a: Au, b: CSSFloat) -> Au { Au(((*a as CSSFloat) * b) as i32) }
-
     pub fn compute_Au(value: specified::Length, context: &Context) -> Au {
         match value {
             specified::Au_(value) => value,
-            specified::Em(value) => mul(context.font_size, value),
+            specified::Em(value) => context.font_size.scale_by(value),
             specified::Ex(value) => {
                 let x_height = 0.5;  // TODO: find that from the font
-                mul(context.font_size, value * x_height)
+                context.font_size.scale_by(value * x_height)
             },
         }
     }
