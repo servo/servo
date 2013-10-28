@@ -8,7 +8,7 @@ use cssparser::*;
 use namespaces::NamespaceMap;
 
 
-#[deriving(Clone)]
+#[deriving(Eq, Clone)]
 pub struct Selector {
     compound_selectors: CompoundSelector,
     pseudo_element: Option<PseudoElement>,
@@ -27,7 +27,7 @@ pub enum PseudoElement {
 }
 
 
-#[deriving(Clone)]
+#[deriving(Eq, Clone)]
 pub struct CompoundSelector {
     simple_selectors: ~[SimpleSelector],
     next: Option<(~CompoundSelector, Combinator)>,  // c.next is left of c
@@ -41,7 +41,7 @@ pub enum Combinator {
     LaterSibling,  // ~
 }
 
-#[deriving(Clone)]
+#[deriving(Eq, Clone)]
 pub enum SimpleSelector {
     IDSelector(~str),
     ClassSelector(~str),
@@ -58,6 +58,7 @@ pub enum SimpleSelector {
     AttrSuffixMatch(AttrSelector, ~str),  // [foo$=bar]
 
     // Pseudo-classes
+    FirstChild,
 //    Empty,
 //    Root,
 //    Lang(~str),
@@ -66,7 +67,7 @@ pub enum SimpleSelector {
     // ...
 }
 
-#[deriving(Clone)]
+#[deriving(Eq, Clone)]
 pub struct AttrSelector {
     name: ~str,
     namespace: Option<~str>,
@@ -180,6 +181,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
                 &ClassSelector(*)
                 | &AttrExists(*) | &AttrEqual(*) | &AttrIncludes(*) | &AttrDashMatch(*)
                 | &AttrPrefixMatch(*) | &AttrSubstringMatch(*) | &AttrSuffixMatch(*)
+                | &FirstChild
 //                | &Empty | &Root | &Lang(*) | &NthChild(*)
                 => specificity.class_like_selectors += 1,
                 &NamespaceSelector(*) => (),
@@ -192,7 +194,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
     static MAX_10BIT: u32 = (1u32 << 10) - 1;
     specificity.id_selectors.min(&MAX_10BIT) << 20
     | specificity.class_like_selectors.min(&MAX_10BIT) << 10
-    | specificity.id_selectors.min(&MAX_10BIT)
+    | specificity.element_selectors.min(&MAX_10BIT)
 }
 
 
@@ -211,7 +213,7 @@ fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
         match parse_one_simple_selector(iter, namespaces, /* inside_negation = */ false) {
             None => return None, // invalid selector
             Some(None) => break,
-            Some(Some(Left(s))) => simple_selectors.push(s),
+            Some(Some(Left(s))) => { simple_selectors.push(s); empty = false },
             Some(Some(Right(p))) => { pseudo_element = Some(p); break },
         }
     }
@@ -272,19 +274,27 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
             },
             _ => fail!("Implementation error, this should not happen."),
         },
-        Some(&Delim(':')) => {
+        Some(&Colon) => {
             iter.next();
             match iter.next() {
                 Some(Ident(name)) => match parse_simple_pseudo_class(name) {
-                    None => None,
-                    Some(result) => Some(Some(result)),
+                    None => match name.to_ascii_lower().as_slice() {
+                        // Supported CSS 2.1 pseudo-elements only.
+                        // ** Do not add to this list! **
+                        "before" => Some(Some(Right(Before))),
+                        "after" => Some(Some(Right(After))),
+                        "first-line" => Some(Some(Right(FirstLine))),
+                        "first-letter" => Some(Some(Right(FirstLetter))),
+                        _ => None
+                    },
+                    Some(result) => Some(Some(Left(result))),
                 },
                 Some(Function(name, arguments)) => match parse_functional_pseudo_class(
                         name, arguments, namespaces, inside_negation) {
                     None => None,
                     Some(simple_selector) => Some(Some(Left(simple_selector))),
                 },
-                Some(Delim(':')) => {
+                Some(Colon) => {
                     match iter.next() {
                         Some(Ident(name)) => match parse_pseudo_element(name) {
                             Some(pseudo_element) => Some(Some(Right(pseudo_element))),
@@ -359,8 +369,7 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
             }
         },
         Some(&Delim('|')) => explicit_namespace(iter, allow_universal, Some(~"")),
-        Some(&IDHash(*)) => default_namespace(namespaces, None),
-        _ => return None,
+        _ => Some(None),
     }
 }
 
@@ -405,16 +414,11 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
 }
 
 
-fn parse_simple_pseudo_class(name: ~str) -> Option<Either<SimpleSelector, PseudoElement>> {
+fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
     match name.to_ascii_lower().as_slice() {
-//        "root" => Some(Left(Root)),
-//        "empty" => Some(Left(Empty)),
-
-        // Supported CSS 2.1 pseudo-elements only.
-        "before" => Some(Right(Before)),
-        "after" => Some(Right(After)),
-        "first-line" => Some(Right(FirstLine)),
-        "first-letter" => Some(Right(FirstLetter)),
+        "first-child" => Some(FirstChild),
+//        "root" => Some(Root),
+//        "empty" => Some(Empty),
         _ => None
     }
 }
@@ -490,5 +494,74 @@ fn skip_whitespace(iter: &mut Iter) -> bool {
         if iter.peek() != Some(&WhiteSpace) { return any_whitespace }
         any_whitespace = true;
         iter.next();
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use cssparser;
+    use namespaces::NamespaceMap;
+    use super::*;
+
+    fn parse(input: &str) -> Option<~[Selector]> {
+        parse_selector_list(
+            cssparser::tokenize(input).map(|(v, _)| v).to_owned_vec(),
+            &NamespaceMap::new())
+    }
+
+    fn specificity(a: u32, b: u32, c: u32) -> u32 {
+        a << 20 | b << 10 | c
+    }
+
+    #[test]
+    fn test_parsing() {
+        assert_eq!(parse(""), None)
+        assert_eq!(parse("e"), Some(~[Selector{
+            compound_selectors: CompoundSelector {
+                simple_selectors: ~[LocalNameSelector(~"e")],
+                next: None,
+            },
+            pseudo_element: None,
+            specificity: specificity(0, 0, 1),
+        }]))
+        assert_eq!(parse(".foo"), Some(~[Selector{
+            compound_selectors: CompoundSelector {
+                simple_selectors: ~[ClassSelector(~"foo")],
+                next: None,
+            },
+            pseudo_element: None,
+            specificity: specificity(0, 1, 0),
+        }]))
+        assert_eq!(parse("#bar"), Some(~[Selector{
+            compound_selectors: CompoundSelector {
+                simple_selectors: ~[IDSelector(~"bar")],
+                next: None,
+            },
+            pseudo_element: None,
+            specificity: specificity(1, 0, 0),
+        }]))
+        assert_eq!(parse("e.foo#bar"), Some(~[Selector{
+            compound_selectors: CompoundSelector {
+                simple_selectors: ~[LocalNameSelector(~"e"),
+                                    ClassSelector(~"foo"),
+                                    IDSelector(~"bar")],
+                next: None,
+            },
+            pseudo_element: None,
+            specificity: specificity(1, 1, 1),
+        }]))
+        assert_eq!(parse("e.foo #bar"), Some(~[Selector{
+            compound_selectors: CompoundSelector {
+                simple_selectors: ~[IDSelector(~"bar")],
+                next: Some((~CompoundSelector {
+                    simple_selectors: ~[LocalNameSelector(~"e"),
+                                        ClassSelector(~"foo")],
+                    next: None,
+                }, Descendant)),
+            },
+            pseudo_element: None,
+            specificity: specificity(1, 1, 1),
+        }]))
     }
 }

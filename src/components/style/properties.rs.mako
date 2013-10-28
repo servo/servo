@@ -100,10 +100,9 @@ pub mod longhands {
         </%self:longhand>
     </%def>
 
-    <%def name="single_keyword(name, values, inherited=False)">
+    <%def name="single_keyword_computed(name, values, inherited=False)">
         <%self:single_component_value name="${name}" inherited="${inherited}">
-            // The computed value is the same as the specified value.
-            pub use to_computed_value = super::computed_as_specified;
+            ${caller.body()}
             pub mod computed_value {
                 #[deriving(Eq, Clone)]
                 pub enum T {
@@ -127,6 +126,13 @@ pub mod longhands {
                 }
             }
         </%self:single_component_value>
+    </%def>
+
+    <%def name="single_keyword(name, values, inherited=False)">
+        <%self:single_keyword_computed name="${name}" values="${values}" inherited="${inherited}">
+            // The computed value is the same as the specified value.
+            pub use to_computed_value = super::computed_as_specified;
+        </%self:single_keyword_computed>
     </%def>
 
     <%def name="predefined_type(name, type, initial_value, parse_method='parse', inherited=False)">
@@ -216,11 +222,34 @@ pub mod longhands {
     ${new_style_struct("Box")}
 
     // TODO: don't parse values we don't support
-    ${single_keyword("display",
-        "inline block list-item inline-block none "
-    )}
+    <%self:single_keyword_computed name="display"
+            values="inline block list-item inline-block none">
 //        "table inline-table table-row-group table-header-group table-footer-group "
 //        "table-row table-column-group table-column table-cell table-caption"
+        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                              -> computed_value::T {
+            if context.is_root_element && value == inline_block {
+                return block
+            }
+            let positioned = match context.position {
+                position::absolute | position::fixed => true,
+                _ => false
+            };
+            if positioned || context.float != float::none || context.is_root_element {
+                match value {
+//                    inline_table => table,
+                    inline | inline_block
+//                    | table_row_group | table_column | table_column_group
+//                    | table_header_group | table_footer_group | table_row
+//                    | table_cell | table_caption
+                    => block,
+                    _ => value,
+                }
+            } else {
+                value
+            }
+        }
+    </%self:single_keyword_computed>
 
     ${single_keyword("position", "static absolute relative fixed")}
     ${single_keyword("float", "none left right")}
