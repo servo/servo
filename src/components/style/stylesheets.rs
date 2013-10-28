@@ -132,37 +132,13 @@ pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
 }
 
 
-impl Stylesheet {
-    pub fn iter_style_rules<'a>(&'a self, device: &'a media_queries::Device)
-                                -> StyleRuleIterator<'a> {
-        StyleRuleIterator { device: device, stack: ~[(self.rules.as_slice(), 0)] }
-    }
-}
-
-struct StyleRuleIterator<'self> {
-    device: &'self media_queries::Device,
-    // FIXME: I couldn't get this to borrow-check with a stack of VecIterator
-    stack: ~[(&'self [CSSRule], uint)],
-}
-
-impl<'self> Iterator<&'self StyleRule> for StyleRuleIterator<'self> {
-    fn next(&mut self) -> Option<&'self StyleRule> {
-        loop {
-            match self.stack.pop_opt() {
-                None => return None,
-                Some((rule_list, i)) => {
-                    if i + 1 < rule_list.len() {
-                        self.stack.push((rule_list, i + 1))
-                    }
-                    match rule_list[i] {
-                        CSSStyleRule(ref rule) => return Some(rule),
-                        CSSMediaRule(ref rule) => {
-                            if rule.media_queries.evaluate(self.device) {
-                                self.stack.push((rule.rules.as_slice(), 0))
-                            }
-                        }
-                    }
-                }
+pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
+                            callback: &fn(&StyleRule)) {
+    for rule in rules.iter() {
+        match *rule {
+            CSSStyleRule(ref rule) => callback(rule),
+            CSSMediaRule(ref rule) => if rule.media_queries.evaluate(device) {
+                iter_style_rules(rule.rules.as_slice(), device, |s| callback(s))
             }
         }
     }

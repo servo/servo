@@ -7,7 +7,7 @@ use std::ascii::StrAsciiExt;
 use extra::sort::tim_sort;
 
 use selectors::*;
-use stylesheets::Stylesheet;
+use stylesheets::{Stylesheet, iter_style_rules};
 use media_queries::{Device, Screen};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use servo_util::tree::{TreeNodeRefAsElement, TreeNode, ElementLike};
@@ -62,7 +62,7 @@ impl Stylist {
         )
 
         let device = &Device { media_type: Screen };  // TODO, use Print when printing
-        for style_rule in stylesheet.iter_style_rules(device) {
+        do iter_style_rules(stylesheet.rules.as_slice(), device) |style_rule| {
             append!(normal, added_normal_declarations);
             append!(important, added_important_declarations);
         }
