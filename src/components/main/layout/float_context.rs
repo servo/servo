@@ -11,7 +11,7 @@ use std::vec;
 use std::i32::max_value;
 
 #[deriving(Clone)]
-pub enum FloatType{
+pub enum FloatType {
     FloatLeft,
     FloatRight
 }
@@ -22,11 +22,12 @@ pub enum ClearType {
     ClearBoth
 }
 
-struct FloatContextBase{
-    float_data: ~[Option<FloatData>],
+struct FloatContextBase {
+    /// This is an option of a vector to avoid allocation in the fast path (no floats).
+    float_data: Option<~[Option<FloatData>]>,
     floats_used: uint,
-    max_y : Au,
-    offset: Point2D<Au>
+    max_y: Au,
+    offset: Point2D<Au>,
 }
 
 #[deriving(Clone)]
@@ -48,12 +49,12 @@ pub struct PlacementInfo{
 /// destroy the context on modification.
 pub enum FloatContext {
     Invalid,
-    Valid(~FloatContextBase)
+    Valid(FloatContextBase)
 }
 
 impl FloatContext {
     pub fn new(num_floats: uint) -> FloatContext {
-        Valid(~FloatContextBase::new(num_floats))
+        Valid(FloatContextBase::new(num_floats))
     }
 
     #[inline(always)]
@@ -68,7 +69,7 @@ impl FloatContext {
     fn with_mut_base<R>(&mut self, callback: &fn(&mut FloatContextBase) -> R) -> R {
         match *self {
             Invalid => fail!("Float context no longer available"),
-            Valid(ref mut base) => callback(&mut **base)
+            Valid(ref mut base) => callback(&mut *base)
         }
     }
 
@@ -76,7 +77,7 @@ impl FloatContext {
     pub fn with_base<R>(&self, callback: &fn(&FloatContextBase) -> R) -> R {
         match *self {
             Invalid => fail!("Float context no longer available"),
-            Valid(ref base) => callback(& **base)
+            Valid(ref base) => callback(&*base)
         }
     }
 
@@ -128,9 +129,12 @@ impl FloatContext {
 impl FloatContextBase{
     fn new(num_floats: uint) -> FloatContextBase {
         debug!("Creating float context of size %?", num_floats);
-        let new_data = vec::from_elem(num_floats, None);
         FloatContextBase {
-            float_data: new_data,
+            float_data: if num_floats == 0 {
+                None
+            } else {
+                Some(vec::from_elem(num_floats, None))
+            },
             floats_used: 0,
             max_y: Au(0),
             offset: Point2D(Au(0), Au(0))
@@ -144,7 +148,7 @@ impl FloatContextBase{
     fn last_float_pos(&self) -> Point2D<Au> {
         assert!(self.floats_used > 0, "Error: tried to access FloatContext with no floats in it");
 
-        match self.float_data[self.floats_used - 1] {
+        match self.float_data.get_ref()[self.floats_used - 1] {
             None => fail!("FloatContext error: floats should never be None here"),
             Some(float) => {
                 debug!("Returning float position: %?", float.bounds.origin + self.offset);
@@ -176,36 +180,38 @@ impl FloatContextBase{
         let mut r_bottom = None;
 
         // Find the float collisions for the given vertical range.
-        for float in self.float_data.iter() {
-            debug!("available_rect: Checking for collision against float");
-            match *float{
-                None => (),
-                Some(data) => {
-                    let float_pos = data.bounds.origin;
-                    let float_size = data.bounds.size;
-                    debug!("float_pos: %?, float_size: %?", float_pos, float_size);
-                    match data.f_type {
-                        FloatLeft => {
-                            if(float_pos.x + float_size.width > max_left && 
-                               float_pos.y + float_size.height > top && float_pos.y < top + height) {
-                                max_left = float_pos.x + float_size.width;
-                            
-                                l_top = Some(float_pos.y);
-                                l_bottom = Some(float_pos.y + float_size.height);
+        for floats in self.float_data.iter() {
+            for float in floats.iter() {
+                debug!("available_rect: Checking for collision against float");
+                match *float {
+                    None => (),
+                    Some(data) => {
+                        let float_pos = data.bounds.origin;
+                        let float_size = data.bounds.size;
+                        debug!("float_pos: %?, float_size: %?", float_pos, float_size);
+                        match data.f_type {
+                            FloatLeft => {
+                                if(float_pos.x + float_size.width > max_left && 
+                                   float_pos.y + float_size.height > top && float_pos.y < top + height) {
+                                    max_left = float_pos.x + float_size.width;
+                                
+                                    l_top = Some(float_pos.y);
+                                    l_bottom = Some(float_pos.y + float_size.height);
 
-                                debug!("available_rect: collision with left float: new max_left is %?",
-                                        max_left);
+                                    debug!("available_rect: collision with left float: new max_left is %?",
+                                            max_left);
+                                }
                             }
-                        }
-                        FloatRight => {
-                            if(float_pos.x < min_right && 
-                               float_pos.y + float_size.height > top && float_pos.y < top + height) {
-                                min_right = float_pos.x;
+                            FloatRight => {
+                                if(float_pos.x < min_right && 
+                                   float_pos.y + float_size.height > top && float_pos.y < top + height) {
+                                    min_right = float_pos.x;
 
-                                r_top = Some(float_pos.y);
-                                r_bottom = Some(float_pos.y + float_size.height);
-                                debug!("available_rect: collision with right float: new min_right is %?",
-                                        min_right);
+                                    r_top = Some(float_pos.y);
+                                    r_bottom = Some(float_pos.y + float_size.height);
+                                    debug!("available_rect: collision with right float: new min_right is %?",
+                                            min_right);
+                                }
                             }
                         }
                     }
@@ -242,9 +248,12 @@ impl FloatContextBase{
     }
 
     fn add_float(&mut self, info: &PlacementInfo) {
-        debug!("Floats_used: %?, Floats available: %?", self.floats_used, self.float_data.len());
-        assert!(self.floats_used < self.float_data.len() && 
-                self.float_data[self.floats_used].is_none());
+        assert!(self.float_data.is_some());
+        debug!("Floats_used: %?, Floats available: %?",
+               self.floats_used,
+               self.float_data.get_ref().len());
+        assert!(self.floats_used < self.float_data.get_ref().len() && 
+                self.float_data.get_ref()[self.floats_used].is_none());
 
         let new_info = PlacementInfo {
             width: info.width,
@@ -263,22 +272,24 @@ impl FloatContextBase{
             },
             f_type: info.f_type
         };
-        self.float_data[self.floats_used] = Some(new_float);
+        self.float_data.get_mut_ref()[self.floats_used] = Some(new_float);
         self.max_y = max(self.max_y, new_float.bounds.origin.y);
         self.floats_used += 1;
     }
 
     /// Returns true if the given rect overlaps with any floats.
     fn collides_with_float(&self, bounds: &Rect<Au>) -> bool {
-        for float in self.float_data.iter() {
-            match *float{
-                None => (),
-                Some(data) => {
-                    if data.bounds.translate(&self.offset).intersects(bounds) {
-                        return true;
+        for floats in self.float_data.iter() {
+            for float in floats.iter() {
+                match *float {
+                    None => (),
+                    Some(data) => {
+                        if data.bounds.translate(&self.offset).intersects(bounds) {
+                            return true;
+                        }
                     }
-                }
-            };
+                };
+            }
         }
 
         return false;
@@ -292,16 +303,18 @@ impl FloatContextBase{
         let left = left - self.offset.x;
         let mut max_height = None;
 
-        for float in self.float_data.iter() {
-            match *float {
-                None => (),
-                Some(f_data) => {
-                    if f_data.bounds.origin.y + f_data.bounds.size.height > top &&
-                       f_data.bounds.origin.x + f_data.bounds.size.width > left &&
-                       f_data.bounds.origin.x < left + width {
-                           let new_y = f_data.bounds.origin.y;
-                           max_height = Some(min(max_height.unwrap_or(new_y), new_y));
-                       }
+        for floats in self.float_data.iter() {
+            for float in floats.iter() {
+                match *float {
+                    None => (),
+                    Some(f_data) => {
+                        if f_data.bounds.origin.y + f_data.bounds.size.height > top &&
+                           f_data.bounds.origin.x + f_data.bounds.size.width > left &&
+                           f_data.bounds.origin.x < left + width {
+                               let new_y = f_data.bounds.origin.y;
+                               max_height = Some(min(max_height.unwrap_or(new_y), new_y));
+                           }
+                    }
                 }
             }
         }
@@ -361,19 +374,21 @@ impl FloatContextBase{
 
     fn clearance(&self, clear: ClearType) -> Au {
         let mut clearance = Au(0);
-        for float in self.float_data.iter() {
-            match *float {
-                None => (),
-                Some(f_data) => {
-                    match (clear, f_data.f_type) {
-                        (ClearLeft, FloatLeft) |
-                        (ClearRight, FloatRight) |
-                        (ClearBoth, _) => {
-                            clearance = max(
-                                clearance,
-                                self.offset.y + f_data.bounds.origin.y + f_data.bounds.size.height);
+        for floats in self.float_data.iter() {
+            for float in floats.iter() {
+                match *float {
+                    None => (),
+                    Some(f_data) => {
+                        match (clear, f_data.f_type) {
+                            (ClearLeft, FloatLeft) |
+                            (ClearRight, FloatRight) |
+                            (ClearBoth, _) => {
+                                clearance = max(
+                                    clearance,
+                                    self.offset.y + f_data.bounds.origin.y + f_data.bounds.size.height);
+                            }
+                            _ => ()
                         }
-                        _ => ()
                     }
                 }
             }

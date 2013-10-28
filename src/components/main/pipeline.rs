@@ -44,7 +44,6 @@ impl Pipeline {
                        opts: Opts,
                        script_pipeline: &Pipeline,
                        size_future: Future<Size2D<uint>>) -> Pipeline {
-        
         let (layout_port, layout_chan) = special_stream!(LayoutChan);
         let (render_port, render_chan) = special_stream!(RenderChan);
 
@@ -78,7 +77,6 @@ impl Pipeline {
                       script_pipeline.script_chan.clone(),
                       layout_chan,
                       render_chan)
-
     }
 
     pub fn create(id: PipelineId,

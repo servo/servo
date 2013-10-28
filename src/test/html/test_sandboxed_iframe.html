@@ -37,11 +37,11 @@ function run() {
   var now = new Date();
   var div = document.getElementsByTagName('div')[0];
   var elems = [];
-  for (var i = 0; i < 900; i++) {
+  for (var i = 0; i < 600; i++) {
     elems.push(i);
   }
   var outer = [];
-  for (var i = 0; i < 900; i++) {
+  for (var i = 0; i < 600; i++) {
     outer.push(elems);
   }
   var a = new Matrix(outer);
@@ -56,10 +56,10 @@ function run() {
 
 setTimeout(function forever() {
   run();
-  setTimeout(forever, 3000);
+  setTimeout(forever, 1000);
 }, 0);
   </script>
-<p>Time required to multiply two 900x900 matrices:</p>
+<p>Time required to multiply two 600x600 matrices:</p>
 <div></div>
 </body>
 </html>

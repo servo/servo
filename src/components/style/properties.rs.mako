@@ -5,6 +5,7 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 use std::ascii::StrAsciiExt;
+pub use extra::arc::Arc;
 pub use std::iter;
 pub use cssparser::*;
 pub use errors::{ErrorLoggerIterator, log_css_error};
@@ -979,7 +980,7 @@ fn get_initial_values() -> ComputedValues {
 
 
 // Most specific/important declarations last
-pub fn cascade(applicable_declarations: &[@[PropertyDeclaration]],
+pub fn cascade(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
                parent_style: Option< &ComputedValues>)
             -> ComputedValues {
     let initial_keep_alive;
@@ -1002,7 +1003,7 @@ pub fn cascade(applicable_declarations: &[@[PropertyDeclaration]],
         % endfor
     };
     for sub_list in applicable_declarations.iter() {
-        for declaration in sub_list.iter() {
+        for declaration in sub_list.get().iter() {
             match declaration {
                 % for property in LONGHANDS:
                     &${property.ident}_declaration(ref value) => {

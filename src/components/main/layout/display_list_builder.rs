@@ -4,7 +4,7 @@
 
 //! Constructs display lists from render boxes.
 
-use layout::box::RenderBox;
+use layout::box::{RenderBox, RenderBoxUtils};
 use layout::context::LayoutContext;
 use std::cast::transmute;
 use script::dom::node::AbstractNode;
@@ -16,28 +16,28 @@ use style;
 /// that nodes in this view shoud not really be touched. The idea is to
 /// store the nodes in the display list and have layout transmute them.
 pub trait ExtraDisplayListData {
-    fn new(box: RenderBox) -> Self;
+    fn new(box: &@RenderBox) -> Self;
 }
 
 pub type Nothing = ();
 
 impl ExtraDisplayListData for AbstractNode<()> {
-    fn new (box: RenderBox) -> AbstractNode<()> {
+    fn new(box: &@RenderBox) -> AbstractNode<()> {
         unsafe { 
-            transmute(box.node())
+            transmute(box.base().node)
         }
     }
 }
 
 impl ExtraDisplayListData for Nothing {
-    fn new(_: RenderBox) -> Nothing {
+    fn new(_: &@RenderBox) -> Nothing {
         ()
     }
 }
 
-impl ExtraDisplayListData for RenderBox {
-    fn new(box: RenderBox) -> RenderBox {
-        box
+impl ExtraDisplayListData for @RenderBox {
+    fn new(box: &@RenderBox) -> @RenderBox {
+        *box
     }
 }
 

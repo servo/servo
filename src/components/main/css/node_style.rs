@@ -9,8 +9,6 @@ use layout::incremental::RestyleDamage;
 
 use style::ComputedValues;
 use script::dom::node::{AbstractNode, LayoutView};
-use servo_util::tree::TreeNodeRef;
-
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
@@ -20,7 +18,8 @@ pub trait StyledNode {
 
 impl StyledNode for AbstractNode<LayoutView> {
     fn style(&self) -> &ComputedValues {
-        assert!(self.is_element()); // Only elements can have styles
+        // FIXME(pcwalton): Is this assertion needed for memory safety? It's slow.
+        //assert!(self.is_element()); // Only elements can have styles
         let results = self.get_css_select_results();
         results
     }
