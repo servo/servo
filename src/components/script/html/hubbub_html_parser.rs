@@ -31,6 +31,7 @@ use servo_util::url::make_url;
 use extra::url::Url;
 use extra::future::Future;
 use geom::size::Size2D;
+use servo_util::interning::{intern_string};
 
 macro_rules! handle_element(
     ($cx: expr,
@@ -110,7 +111,7 @@ type JSResult = ~[JSFile];
 
 enum CSSMessage {
     CSSTaskNewFile(StylesheetProvenance),
-    CSSTaskExit   
+    CSSTaskExit
 }
 
 enum JSMessage {
@@ -365,7 +366,7 @@ pub fn parse_html(cx: *JSContext,
 
     let (css_chan2, css_chan3, js_chan2) = (css_chan.clone(), css_chan.clone(), js_chan.clone());
     let next_subpage_id = Cell::new(next_subpage_id);
-    
+
     parser.set_tree_handler(~hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
@@ -405,10 +406,10 @@ pub fn parse_html(cx: *JSContext,
                 // Handle CSS style sheets from <link> elements
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
                     do node.with_imm_element |element| {
-                        match (element.get_attr("rel"), element.get_attr("href")) {
+                        match (element.get_attr(&intern_string("rel")), element.get_attr(&intern_string("href"))) {
                             (Some(rel), Some(href)) => {
-                                if rel == "stylesheet" {
-                                    debug!("found CSS stylesheet: %s", href);
+                                if eq_slice(rel.to_ascii_lower(), "stylesheet") {
+                                    debug!("found CSS stylesheet: %s", href.to_str_slice());
                                     let url = make_url(href.to_str(), Some(url2.clone()));
                                     css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
                                 }
@@ -424,11 +425,11 @@ pub fn parse_html(cx: *JSContext,
                         let iframe_chan = iframe_chan.take();
                         let sandboxed = iframe_element.is_sandboxed();
                         let elem = &mut iframe_element.htmlelement.element;
-                        let src_opt = elem.get_attr("src").map(|x| x.to_str());
+                        let src_opt = elem.get_attr(&intern_string("src")).map(|x| x.to_str());
                         for src in src_opt.iter() {
                             let iframe_url = make_url(src.clone(), Some(url2.clone()));
                             iframe_element.frame = Some(iframe_url.clone());
-                            
+
                             // Size future
                             let (port, chan) = comm::oneshot();
                             let size_future = Future::from_port(port);
@@ -525,9 +526,9 @@ pub fn parse_html(cx: *JSContext,
             unsafe {
                 let scriptnode: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(script);
                 do scriptnode.with_imm_element |script| {
-                    match script.get_attr("src") {
+                    match script.get_attr(&intern_string("src")) {
                         Some(src) => {
-                            debug!("found script: %s", src);
+                            debug!("found script: %s", src.to_str_slice());
                             let new_url = make_url(src.to_str(), Some(url3.clone()));
                             js_chan2.send(JSTaskNewFile(new_url));
                         }

@@ -41,6 +41,7 @@ use servo_net::local_image_cache::LocalImageCache;
 use servo_util::range::*;
 use servo_util::tree::{TreeNodeRef, ElementLike};
 use extra::url::Url;
+use servo_util::interning::intern_string;
 
 /// Render boxes (`struct RenderBox`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, render boxes do not have a simple correspondence with CSS boxes as in
@@ -476,9 +477,9 @@ impl RenderBox {
     pub fn image_width(&self, image_box: @mut ImageRenderBox) -> Au {
         let attr_width: Option<int> = do self.with_base |base| {
             do base.node.with_imm_element |elt| {
-                match elt.get_attr("width") {
+                match elt.get_attr(&intern_string("width")) {
                     Some(width) => {
-                        FromStr::from_str(width)
+                        FromStr::from_str(width.to_str_slice())
                     }
                     None => {
                         None
@@ -502,9 +503,9 @@ impl RenderBox {
     pub fn image_height(&self, image_box: @mut ImageRenderBox) -> Au {
         let attr_height: Option<int> = do self.with_base |base| {
             do base.node.with_imm_element |elt| {
-                match elt.get_attr("height") {
+                match elt.get_attr(&intern_string("height")) {
                     Some(height) => {
-                        FromStr::from_str(height)
+                        FromStr::from_str(height.to_str_slice())
                     }
                     None => {
                         None

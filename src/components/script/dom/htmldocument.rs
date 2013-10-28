@@ -16,6 +16,7 @@ use servo_util::tree::{TreeNodeRef, ElementLike};
 
 use std::ptr;
 use std::str::eq_slice;
+use servo_util::interning::intern_string;
 
 pub struct HTMLDocument {
     parent: Document
@@ -48,11 +49,11 @@ impl HTMLDocument {
     }
 
     pub fn Images(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "img"))
+        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name.to_str_slice(), "img"))
     }
 
     pub fn Embeds(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "embed"))
+        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name.to_str_slice(), "embed"))
     }
 
     pub fn Plugins(&self) -> @mut HTMLCollection {
@@ -61,26 +62,26 @@ impl HTMLDocument {
 
     pub fn Links(&self) -> @mut HTMLCollection {
         self.parent.createHTMLCollection(|elem|
-            (eq_slice(elem.tag_name, "a") || eq_slice(elem.tag_name, "area"))
-            && elem.get_attr("href").is_some())
+            (eq_slice(elem.tag_name.to_str_slice(), "a") || eq_slice(elem.tag_name.to_str_slice(), "area"))
+            && elem.get_attr(&intern_string("href")).is_some())
     }
 
     pub fn Forms(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "form"))
+        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name.to_str_slice(), "form"))
     }
 
     pub fn Scripts(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "script"))
+        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name.to_str_slice(), "script"))
     }
 
     pub fn Anchors(&self) -> @mut HTMLCollection {
         self.parent.createHTMLCollection(|elem|
-            eq_slice(elem.tag_name, "a") && elem.get_attr("name").is_some())
+            eq_slice(elem.tag_name.to_str_slice(), "a") && elem.get_attr(&intern_string("name")).is_some())
     }
 
     pub fn Applets(&self) -> @mut HTMLCollection {
         // FIXME: This should be return OBJECT elements containing applets.
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "applet"))
+        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name.to_str_slice(), "applet"))
     }
 }
 

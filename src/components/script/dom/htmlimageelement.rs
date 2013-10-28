@@ -12,6 +12,7 @@ use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::url::make_url;
 use servo_util::tree::ElementLike;
+use servo_util::interning::intern_string;
 
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
@@ -23,7 +24,7 @@ impl HTMLImageElement {
     /// prefetching the image. This method must be called after `src` is changed.
     pub fn update_image(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
         let elem = &mut self.htmlelement.element;
-        let src_opt = elem.get_attr("src").map(|x| x.to_str());
+        let src_opt = elem.get_attr(&intern_string("src")).map(|x| x.to_str());
         match src_opt {
             None => {}
             Some(src) => {
