@@ -32,7 +32,7 @@ MKFILE_DEPS := config.stamp $(call rwildcard,$(S)mk/,*)
 # Enable debug!() etc even without configure --enable-debug
 # The evaluation of these prints & their arguments is controlled
 # at runtime by the environment variable RUST_LOG.
-CFG_RUSTC_FLAGS += --cfg debug -Z debug-info
+CFG_RUSTC_FLAGS += -Z debug-info -Z no-debug-borrows
 
 ifdef CFG_DISABLE_OPTIMIZE
   $(info cfg: disabling rustc optimization (CFG_DISABLE_OPTIMIZE))

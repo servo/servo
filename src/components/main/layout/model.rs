@@ -11,6 +11,7 @@ use style::ComputedValues;
 use style::properties::common_types::computed;
 
 /// Encapsulates the borders, padding, and margins, which we collectively call the "box model".
+#[deriving(Clone)]
 pub struct BoxModel {
     border: SideOffsets2D<Au>,
     padding: SideOffsets2D<Au>,
@@ -26,7 +27,9 @@ pub enum MaybeAuto {
 }
 
 impl MaybeAuto {
-    pub fn from_style(length: computed::LengthOrPercentageOrAuto, containing_length: Au) -> MaybeAuto {
+    #[inline]
+    pub fn from_style(length: computed::LengthOrPercentageOrAuto, containing_length: Au)
+                      -> MaybeAuto {
         match length {
             computed::LPA_Auto => Auto,
             computed::LPA_Percentage(percent) => Specified(containing_length.scale_by(percent)),
@@ -34,6 +37,7 @@ impl MaybeAuto {
         }
     }
 
+    #[inline]
     pub fn specified_or_default(&self, default: Au) -> Au {
         match *self {
             Auto => default,
@@ -41,8 +45,9 @@ impl MaybeAuto {
         }
     }
 
+    #[inline]
     pub fn specified_or_zero(&self) -> Au {
-        self.specified_or_default(Au(0))
+        self.specified_or_default(Au::new(0))
     }
 }
 
@@ -62,20 +67,24 @@ impl Zero for BoxModel {
 }
 
 impl BoxModel {
-    /// Populates the box model parameters from the given computed style.
+    /// Populates the box model border parameters from the given computed style.
     pub fn compute_borders(&mut self, style: &ComputedValues) {
-        // Compute the borders.
         self.border.top = style.Border.border_top_width;
         self.border.right = style.Border.border_right_width;
         self.border.bottom = style.Border.border_bottom_width;
         self.border.left = style.Border.border_left_width;
     }
 
+    /// Populates the box model padding parameters from the given computed style.
     pub fn compute_padding(&mut self, style: &ComputedValues, containing_width: Au) {
-        self.padding.top = self.compute_padding_length(style.Padding.padding_top, containing_width);
-        self.padding.right = self.compute_padding_length(style.Padding.padding_right, containing_width);
-        self.padding.bottom = self.compute_padding_length(style.Padding.padding_bottom, containing_width);
-        self.padding.left = self.compute_padding_length(style.Padding.padding_left, containing_width);
+        self.padding.top = self.compute_padding_length(style.Padding.padding_top,
+                                                       containing_width);
+        self.padding.right = self.compute_padding_length(style.Padding.padding_right,
+                                                         containing_width);
+        self.padding.bottom = self.compute_padding_length(style.Padding.padding_bottom,
+                                                          containing_width);
+        self.padding.left = self.compute_padding_length(style.Padding.padding_left,
+                                                        containing_width);
     }
 
     pub fn noncontent_width(&self) -> Au {

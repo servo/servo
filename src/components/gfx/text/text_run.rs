@@ -14,18 +14,19 @@ use style::computed_values::text_decoration;
 
 /// A text run.
 pub struct TextRun {
-    text: ~str,
+    text: Arc<~str>,
     font: @mut Font,
     decoration: text_decoration::T,
-    glyphs: ~[Arc<GlyphStore>],
+    glyphs: Arc<~[Arc<GlyphStore>]>,
 }
 
-/// This is a hack until TextRuns are normally sendable, or we instead use Arc<TextRun> everywhere.
+/// The same as a text run, but with a font descriptor instead of a font. This makes them thread
+/// safe.
 pub struct SendableTextRun {
-    text: ~str,
+    text: Arc<~str>,
     font: FontDescriptor,
     decoration: text_decoration::T,
-    priv glyphs: ~[Arc<GlyphStore>],
+    priv glyphs: Arc<~[Arc<GlyphStore>]>,
 }
 
 impl SendableTextRun {
@@ -51,6 +52,8 @@ pub struct SliceIterator<'self> {
 }
 
 impl<'self> Iterator<(&'self GlyphStore, uint, Range)> for SliceIterator<'self> {
+    // inline(always) due to the inefficient rt failures messing up inline heuristics, I think.
+    #[inline(always)]
     fn next(&mut self) -> Option<(&'self GlyphStore, uint, Range)> {
         loop {
             let slice_glyphs = self.glyph_iter.next();
@@ -121,10 +124,10 @@ impl<'self> TextRun {
         let glyphs = TextRun::break_and_shape(font, text);
 
         let run = TextRun {
-            text: text,
+            text: Arc::new(text),
             font: font,
             decoration: decoration,
-            glyphs: glyphs,
+            glyphs: Arc::new(glyphs),
         };
         return run;
     }
@@ -198,12 +201,14 @@ impl<'self> TextRun {
     }
 
     pub fn char_len(&self) -> uint {
-        do self.glyphs.iter().fold(0u) |len, slice_glyphs| {
+        do self.glyphs.get().iter().fold(0u) |len, slice_glyphs| {
             len + slice_glyphs.get().char_len()
         }
     }
 
-    pub fn glyphs(&'self self) -> &'self ~[Arc<GlyphStore>] { &self.glyphs }
+    pub fn glyphs(&'self self) -> &'self ~[Arc<GlyphStore>] {
+        self.glyphs.get()
+    }
 
     pub fn range_is_trimmable_whitespace(&self, range: &Range) -> bool {
         for (slice_glyphs, _, _) in self.iter_slices_for_range(range) {
@@ -233,7 +238,7 @@ impl<'self> TextRun {
 
     pub fn iter_slices_for_range(&'self self, range: &Range) -> SliceIterator<'self> {
         SliceIterator {
-            glyph_iter: self.glyphs.iter(),
+            glyph_iter: self.glyphs.get().iter(),
             range:      *range,
             offset:     0,
         }

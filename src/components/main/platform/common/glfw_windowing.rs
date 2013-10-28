@@ -11,6 +11,8 @@ use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEven
 use windowing::{Forward, Back};
 
 use alert::{Alert, AlertMethods};
+use extra::time::Timespec;
+use extra::time;
 use std::libc::c_int;
 use std::local_data;
 use geom::point::Point2D;
@@ -19,8 +21,6 @@ use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderSta
 use servo_msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
 
 use glfw;
-
-static THROBBER: [char, ..8] = [ '⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷' ];
 
 /// A structure responsible for setting up and tearing down the entire windowing system.
 pub struct Application;
@@ -57,7 +57,8 @@ pub struct Window {
 
     ready_state: ReadyState,
     render_state: RenderState,
-    throbber_frame: u8,
+
+    last_title_set_time: Timespec,
 }
 
 impl WindowMethods<Application> for Window {
@@ -81,7 +82,8 @@ impl WindowMethods<Application> for Window {
 
             ready_state: Blank,
             render_state: IdleRenderState,
-            throbber_frame: 0,
+
+            last_title_set_time: Timespec::new(0, 0),
         };
 
         install_local_window(window);
@@ -141,8 +143,7 @@ impl WindowMethods<Application> for Window {
             return self.event_queue.shift()
         }
         glfw::poll_events();
-        self.throbber_frame = (self.throbber_frame + 1) % (THROBBER.len() as u8);
-        self.update_window_title(false);
+
         if self.glfw_window.should_close() {
             QuitWindowEvent
         } else if !self.event_queue.is_empty() {
@@ -155,7 +156,7 @@ impl WindowMethods<Application> for Window {
     /// Sets the ready state.
     fn set_ready_state(@mut self, ready_state: ReadyState) {
         self.ready_state = ready_state;
-        self.update_window_title(true)
+        self.update_window_title()
     }
 
     /// Sets the render state.
@@ -168,7 +169,7 @@ impl WindowMethods<Application> for Window {
         }
 
         self.render_state = render_state;
-        self.update_window_title(true)
+        self.update_window_title()
     }
 
     fn hidpi_factor(@mut self) -> f32 {
@@ -180,25 +181,30 @@ impl WindowMethods<Application> for Window {
 
 impl Window {
     /// Helper function to set the window title in accordance with the ready state.
-    fn update_window_title(&self, state_change: bool) {
-        let throbber = THROBBER[self.throbber_frame];
+    fn update_window_title(&mut self) {
+        let now = time::get_time();
+        if now.sec == self.last_title_set_time.sec {
+            return
+        }
+        self.last_title_set_time = now;
+
         match self.ready_state {
             Blank => {
-                if state_change { self.glfw_window.set_title(fmt!("blank — Servo")) }
+                self.glfw_window.set_title(fmt!("blank — Servo"))
             }
             Loading => {
-                self.glfw_window.set_title(fmt!("%c Loading — Servo", throbber))
+                self.glfw_window.set_title(fmt!("Loading — Servo"))
             }
             PerformingLayout => {
-                self.glfw_window.set_title(fmt!("%c Performing Layout — Servo", throbber))
+                self.glfw_window.set_title(fmt!("Performing Layout — Servo"))
             }
             FinishedLoading => {
                 match self.render_state {
                     RenderingRenderState => {
-                        self.glfw_window.set_title(fmt!("%c Rendering — Servo", throbber))
+                        self.glfw_window.set_title(fmt!("Rendering — Servo"))
                     }
                     IdleRenderState => {
-                        if state_change { self.glfw_window.set_title("Servo") }
+                        self.glfw_window.set_title("Servo")
                     }
                 }
             }

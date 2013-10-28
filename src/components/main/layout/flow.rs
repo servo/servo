@@ -25,207 +25,275 @@
 ///   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 ///   similar methods.
 
-use layout::block::BlockFlowData;
-use layout::float::FloatFlowData;
+use css::node_style::StyledNode;
+use layout::block::BlockFlow;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
+use layout::float::FloatFlow;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::inline::{InlineFlowData};
-use layout::float_context::{FloatContext, Invalid, FloatType};
+use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
-use css::node_style::StyledNode;
+use layout::inline::InlineFlow;
+
 use extra::dlist::{DList,MutDListIterator};
 use extra::container::Deque;
-
-use std::cell::Cell;
-use std::io::stderr;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
 use script::dom::node::{AbstractNode, LayoutView};
+use std::cast;
+use std::cell::Cell;
 
-/// The type of the formatting context and data specific to each context, such as line box
-/// structures or float lists.
-pub enum FlowContext {
-    AbsoluteFlow(~FlowData), 
-    BlockFlow(~BlockFlowData),
-    FloatFlow(~FloatFlowData),
-    InlineBlockFlow(~FlowData),
-    InlineFlow(~InlineFlowData),
-    TableFlow(~FlowData),
-}
+/// Virtual methods that make up a float context.
+///
+/// Note that virtual methods have a cost; we should not overuse them in Servo. Consider adding
+/// methods to `ImmutableFlowUtils` or `MutableFlowUtils` before adding more methods here.
+pub trait FlowContext {
+    // RTTI
+    //
+    // TODO(pcwalton): Use Rust's RTTI, once that works.
 
-pub enum FlowContextType {
-    Flow_Absolute, 
-    Flow_Block,
-    Flow_Float(FloatType),
-    Flow_InlineBlock,
-    Flow_Inline,
-    Flow_Root,
-    Flow_Table
-}
+    /// Returns the class of flow that this is.
+    fn class(&self) -> FlowClass;
 
-impl FlowContext {
-    pub fn each_bu_sub_inorder (&mut self, callback: &fn(&mut FlowContext) -> bool) -> bool {
-        for kid in self.child_iter() {
-            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
-            if !kid.each_bu_sub_inorder(|a| callback(a)) {
-                return false;
-            }
-        }
-
-        if !self.is_inorder() {
-            callback(self)
-        } else {
-            true
-        }
+    /// If this is a block flow, returns the underlying object. Fails otherwise.
+    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+        fail!("called as_block() on a non-block flow")
     }
 
-    pub fn each_preorder_prune(&mut self, prune: &fn(&mut FlowContext) -> bool, 
-                               callback: &fn(&mut FlowContext) -> bool) 
-                               -> bool {
-        if prune(self) {
-            return true;
-        }
+    /// If this is an inline flow, returns the underlying object, borrowed immutably. Fails
+    /// otherwise.
+    fn as_immutable_inline<'a>(&'a self) -> &'a InlineFlow {
+        fail!("called as_immutable_inline() on a non-inline flow")
+    }
 
-        if !callback(self) {
-            return false;
-        }
+    /// If this is an inline flow, returns the underlying object. Fails otherwise.
+    fn as_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
+        fail!("called as_inline() on a non-inline flow")
+    }
 
-        for kid in self.child_iter() {
-            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
-            if !kid.each_preorder_prune(|a| prune(a), |a| callback(a)) {
-                return false;
-            }
-        }
+    /// If this is a float flow, returns the underlying object. Fails otherwise.
+    fn as_float<'a>(&'a mut self) -> &'a mut FloatFlow {
+        fail!("called as_float() on a non-float flow")
+    }
 
+    // Main methods
+
+    /// Pass 1 of reflow: computes minimum and preferred widths.
+    fn bubble_widths(&mut self, _ctx: &mut LayoutContext) {
+        fail!("bubble_widths not yet implemented")
+    }
+
+    /// Pass 2 of reflow: computes width.
+    fn assign_widths(&mut self, _ctx: &mut LayoutContext) {
+        fail!("assign_widths not yet implemented")
+    }
+
+    /// Pass 3 of reflow: computes height.
+    fn assign_height(&mut self, _ctx: &mut LayoutContext) {
+        fail!("assign_height not yet implemented")
+    }
+
+    /// In-order version of pass 3 of reflow: computes heights with floats present.
+    fn assign_height_inorder(&mut self, _ctx: &mut LayoutContext) {
+        fail!("assign_height_inorder not yet implemented")
+    }
+
+    /// Collapses margins with the parent flow. This runs as part of assign-heights.
+    fn collapse_margins(&mut self,
+                        _top_margin_collapsible: bool,
+                        _first_in_flow: &mut bool,
+                        _margin_top: &mut Au,
+                        _top_offset: &mut Au,
+                        _collapsing: &mut Au,
+                        _collapsible: &mut Au) {
+        fail!("collapse_margins not yet implemented")
+    }
+
+    /// Returns a debugging string describing this flow.
+    fn debug_str(&self) -> ~str {
+        ~"???"
+    }
+}
+
+// Base access
+
+#[inline(always)]
+pub fn base<'a>(this: &'a FlowContext) -> &'a FlowData {
+    unsafe {
+        let (_, ptr): (uint, &FlowData) = cast::transmute(this);
+        ptr
+    }
+}
+
+#[inline(always)]
+pub fn mut_base<'a>(this: &'a mut FlowContext) -> &'a mut FlowData {
+    unsafe {
+        let (_, ptr): (uint, &mut FlowData) = cast::transmute(this);
+        ptr
+    }
+}
+
+/// Returns the last child of this flow.
+pub fn last_child<'a>(flow: &'a mut FlowContext) -> Option<&'a mut ~FlowContext:> {
+    mut_base(flow).children.back_mut()
+}
+
+/// Iterates over the children of this flow.
+pub fn child_iter<'a>(flow: &'a mut FlowContext) -> MutDListIterator<'a,~FlowContext:> {
+    mut_base(flow).children.mut_iter()
+}
+
+pub trait ImmutableFlowUtils {
+    // Convenience functions
+
+    /// Returns true if this flow is a block or a float flow.
+    fn is_block_like(self) -> bool;
+
+    /// Returns true if this flow has no children.
+    fn is_leaf(self) -> bool;
+
+    /// Returns true if this flow is a block flow, an inline flow, or a float flow.
+    fn starts_block_flow(self) -> bool;
+
+    /// Returns true if this flow is an inline flow.
+    fn starts_inline_flow(self) -> bool;
+
+    /// Dumps the flow tree for debugging.
+    fn dump(self);
+}
+
+pub trait MutableFlowUtils {
+    // Traversals
+
+    /// Traverses the tree in preorder.
+    fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &mut T) -> bool;
+
+    /// Traverses the tree in postorder.
+    fn traverse_postorder<T:PostorderFlowTraversal>(self, traversal: &mut T) -> bool;
+
+    // Mutators
+
+    /// Adds a new flow as a child of this flow.
+    fn add_new_child(self, new_child: ~FlowContext:);
+
+    /// Invokes a closure with the first child of this flow.
+    fn with_first_child<R>(self, f: &fn(Option<&mut ~FlowContext:>) -> R) -> R;
+
+    /// Invokes a closure with the last child of this flow.
+    fn with_last_child<R>(self, f: &fn(Option<&mut ~FlowContext:>) -> R) -> R;
+
+    /// Removes the first child of this flow and destroys it.
+    fn remove_first(self);
+
+    /// Removes the last child of this flow and destroys it.
+    fn remove_last(self);
+
+    /// Builds a display list for this flow and its children.
+    fn build_display_list<E:ExtraDisplayListData>(
+                          self,
+                          builder: &DisplayListBuilder,
+                          dirty: &Rect<Au>,
+                          list: &Cell<DisplayList<E>>)
+                          -> bool;
+}
+
+pub enum FlowClass {
+    AbsoluteFlowClass,
+    BlockFlowClass,
+    FloatFlowClass,
+    InlineBlockFlowClass,
+    InlineFlowClass,
+    TableFlowClass,
+}
+
+// Miscellaneous flows that are not yet implemented.
+
+pub struct AbsoluteFlow {
+    base: FlowData,
+}
+
+impl AbsoluteFlow {
+    pub fn new(base: FlowData) -> AbsoluteFlow {
+        AbsoluteFlow {
+            base: base,
+        }
+    }
+}
+
+impl FlowContext for AbsoluteFlow {
+    fn class(&self) -> FlowClass {
+        AbsoluteFlowClass
+    }
+}
+
+pub struct InlineBlockFlow {
+    base: FlowData,
+}
+
+impl InlineBlockFlow {
+    pub fn new(base: FlowData) -> InlineBlockFlow {
+        InlineBlockFlow {
+            base: base,
+        }
+    }
+}
+
+impl FlowContext for InlineBlockFlow {
+    fn class(&self) -> FlowClass {
+        InlineBlockFlowClass
+    }
+}
+
+pub struct TableFlow {
+    base: FlowData,
+}
+
+impl TableFlow {
+    pub fn new(base: FlowData) -> TableFlow {
+        TableFlow {
+            base: base,
+        }
+    }
+}
+
+impl FlowContext for TableFlow {
+    fn class(&self) -> FlowClass {
+        TableFlowClass
+    }
+}
+
+/// A top-down traversal.
+pub trait PreorderFlowTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&mut self, flow: &mut FlowContext) -> bool;
+
+    /// Returns true if this node should be pruned. If this returns true, we skip the operation
+    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
+    /// visited. The default implementation never prunes any nodes.
+    fn should_prune(&mut self, _flow: &mut FlowContext) -> bool {
+        false
+    }
+}
+
+/// A bottom-up traversal, with a optional in-order pass.
+pub trait PostorderFlowTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&mut self, flow: &mut FlowContext) -> bool;
+
+    /// Returns false if this node must be processed in-order. If this returns false, we skip the
+    /// operation for this node, but continue processing the descendants. This is called *after*
+    /// child nodes are visited.
+    fn should_process(&mut self, _flow: &mut FlowContext) -> bool {
         true
     }
 
-    pub fn each_postorder_prune(&mut self, prune: &fn(&mut FlowContext) -> bool, 
-                                callback: &fn(&mut FlowContext) -> bool) 
-                                -> bool {
-        if prune(self) {
-            return true;
-        }
-
-        for kid in self.child_iter() {
-            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
-            if !kid.each_postorder_prune(|a| prune(a), |a| callback(a)) {
-                return false;
-            }
-        }
-
-        callback(self)
-    }
-
-    pub fn each_preorder(&mut self, callback: &fn(&mut FlowContext) -> bool) -> bool {
-        self.each_preorder_prune(|_| false, callback)
-    }
-
-    pub fn each_postorder(&mut self, callback: &fn(&mut FlowContext) -> bool) -> bool {
-        self.each_postorder_prune(|_| false, callback)
-    }
-}
-
-impl<'self> FlowContext {
-    pub fn is_block_like(&self) -> bool {
-        match *self {
-            BlockFlow(*) | FloatFlow(*) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_leaf(&self) -> bool {
-        do self.with_base |base| {
-            base.children.len() == 0
-        }
-    }
-
-    pub fn add_new_child(&mut self, new_child: FlowContext) {
-        let cell = Cell::new(new_child);
-        do self.with_mut_base |base| {
-            base.children.push_back(cell.take());
-        }
-    }
-
-    pub fn with_first_child<R>(&mut self, cb: &fn(Option<&mut FlowContext>) -> R) -> R {
-        do self.with_mut_base |base| {
-            cb(base.children.front_mut())
-        }
-    }
-
-    pub fn with_last_child<R>(&mut self, cb: &fn(Option<&mut FlowContext>) -> R) -> R {
-        do self.with_mut_base |base| {
-            cb(base.children.back_mut())
-        }
-    }
-
-    pub fn last_child(&'self mut self) -> Option<&'self mut FlowContext> {
-        self.mut_base().children.back_mut()
-    }
-
-    pub fn remove_first(&mut self) {
-        do self.with_mut_base |base| {
-            base.children.pop_front();
-        }
-    }
-
-    pub fn remove_last(&mut self) {
-        do self.with_mut_base |base| {
-            base.children.pop_back();
-        }
-    }
-
-    pub fn child_iter<'a>(&'a mut self) -> MutDListIterator<'a, FlowContext> {
-        self.mut_base().children.mut_iter()
-    }
-
-}
-
-impl<'self> FlowContext {
-    pub fn with_base<R>(&self, callback: &fn(&FlowData) -> R) -> R {
-        match *self {
-            AbsoluteFlow(ref info) => callback(&**info),
-            BlockFlow(ref info) => {
-                callback(&info.common)
-            }
-            FloatFlow(ref info) => callback(&info.common),
-            InlineBlockFlow(ref info) => callback(&**info),
-            InlineFlow(ref info) => {
-                callback(&info.common)
-            }
-            TableFlow(ref info) => callback(&**info)
-        }
-    }
-    pub fn with_mut_base<R>(&mut self, callback: &fn(&mut FlowData) -> R) -> R {
-        match *self {
-            AbsoluteFlow(ref mut info) => callback(&mut **info),
-            BlockFlow(ref mut info) => {
-                callback(&mut info.common)
-            }
-            FloatFlow(ref mut info) => callback(&mut info.common),
-            InlineBlockFlow(ref mut info) => callback(&mut **info),
-            InlineFlow(ref mut info) => {
-                callback(&mut info.common)
-            }
-            TableFlow(ref mut info) => callback(&mut **info),
-        }
-    }
-    pub fn mut_base(&'self mut self) -> &'self mut FlowData {
-        match *self {
-            AbsoluteFlow(ref mut info) => &mut(**info),
-            BlockFlow(ref mut info) => {
-                &mut info.common
-            }
-            FloatFlow(ref mut info) => &mut info.common,
-            InlineBlockFlow(ref mut info) => &mut(**info),
-            InlineFlow(ref mut info) => {
-                &mut info.common
-            }
-            TableFlow(ref mut info) => &mut(**info),
-        }
+    /// Returns true if this node should be pruned. If this returns true, we skip the operation
+    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
+    /// visited. The default implementation never prunes any nodes.
+    fn should_prune(&mut self, _flow: &mut FlowContext) -> bool {
+        false
     }
 }
 
@@ -237,7 +305,7 @@ pub struct FlowData {
     node: AbstractNode<LayoutView>,
     restyle_damage: RestyleDamage,
 
-    children: DList<FlowContext>,
+    children: DList<~FlowContext:>,
 
     /* TODO (Issue #87): debug only */
     id: int,
@@ -256,11 +324,12 @@ pub struct FlowData {
 }
 
 pub struct BoxIterator {
-    priv boxes: ~[RenderBox],
+    priv boxes: ~[@RenderBox],
     priv index: uint,
 }
-impl Iterator<RenderBox> for BoxIterator {
-    fn next(&mut self) -> Option<RenderBox> {
+
+impl Iterator<@RenderBox> for BoxIterator {
+    fn next(&mut self) -> Option<@RenderBox> {
         if self.index >= self.boxes.len() {
             None
         } else {
@@ -270,6 +339,7 @@ impl Iterator<RenderBox> for BoxIterator {
         }
     }
 }
+
 impl FlowData {
     pub fn new(id: int, node: AbstractNode<LayoutView>) -> FlowData {
         FlowData {
@@ -280,237 +350,135 @@ impl FlowData {
 
             id: id,
 
-            min_width: Au(0),
-            pref_width: Au(0),
+            min_width: Au::new(0),
+            pref_width: Au::new(0),
             position: Au::zero_rect(),
             floats_in: Invalid,
             floats_out: Invalid,
             num_floats: 0,
-            abs_position: Point2D(Au(0), Au(0)),
+            abs_position: Point2D(Au::new(0), Au::new(0)),
             is_inorder: false
         }
     }
 
-    pub fn child_iter<'a>(&'a mut self) -> MutDListIterator<'a, FlowContext> {
+    pub fn child_iter<'a>(&'a mut self) -> MutDListIterator<'a,~FlowContext:> {
         self.children.mut_iter()
     }
-
 }
 
-impl<'self> FlowContext {
-    /// A convenience method to return the position of this flow. Fails if the flow is currently
-    /// being borrowed mutably.
-    #[inline(always)]
-    pub fn position(&self) -> Rect<Au> {
-        do self.with_base |common_info| {
-            common_info.position
+impl<'self> ImmutableFlowUtils for &'self FlowContext {
+    /// Returns true if this flow is a block or a float flow.
+    fn is_block_like(self) -> bool {
+        match self.class() {
+            BlockFlowClass | FloatFlowClass => true,
+            AbsoluteFlowClass | InlineBlockFlowClass | InlineFlowClass | TableFlowClass => false,
         }
     }
 
-    #[inline(always)]
-    pub fn is_inorder(&self) -> bool {
-        do self.with_base |common_info| {
-            common_info.is_inorder
+    /// Returns true if this flow has no children.
+    fn is_leaf(self) -> bool {
+        base(self).children.len() == 0
+    }
+
+    /// Returns true if this flow is a block flow, an inline-block flow, or a float flow.
+    fn starts_block_flow(self) -> bool {
+        match self.class() {
+            BlockFlowClass | InlineBlockFlowClass | FloatFlowClass => true,
+            AbsoluteFlowClass | InlineFlowClass | TableFlowClass => false,
         }
     }
 
-    /// A convenience method to return the ID of this flow. Fails if the flow is currently being
-    /// borrowed mutably.
-    #[inline(always)]
-    pub fn id(&self) -> int {
-        do self.with_base |info| {
-            info.id
-        }
-    }
-
-    pub fn inline(&'self mut self) -> &'self mut InlineFlowData {
-        match *self {
-            InlineFlow(ref mut info) => &mut (**info),
-            _ => fail!(fmt!("Tried to access inline data of non-inline: f%d", self.id()))
-        }
-    }
-
-    pub fn imm_inline(&'self self) -> &'self InlineFlowData {
-        match *self {
-            InlineFlow(ref info) => &**info,
-            _ => fail!(fmt!("Tried to access inline data of non-inline: f%d", self.id()))
-        }
-    }
-
-    pub fn block(&'self mut self) -> &'self mut BlockFlowData {
-        match *self {
-            BlockFlow(ref mut info) => &mut (**info),
-            _ => fail!(fmt!("Tried to access block data of non-block: f%d", self.id()))
-        }
-    }
-
-    pub fn root(&'self mut self) -> &'self mut BlockFlowData {
-        match *self {
-            BlockFlow(ref mut info) if info.is_root => &mut (**info),
-            _ => fail!(fmt!("Tried to access root block data of non-root: f%d", self.id()))
-        }
-    }
-
-    pub fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
-
-        debug!("FlowContext: bubbling widths for f%?", self.id());
-        match *self {
-            BlockFlow(ref mut info)  => info.bubble_widths_block(ctx),
-            InlineFlow(ref mut info) => info.bubble_widths_inline(ctx),
-            FloatFlow(ref mut info)  => info.bubble_widths_float(ctx),
-            _ => fail!(fmt!("Tried to bubble_widths of flow: f%d", self.id()))
-        }
-    }
-
-    pub fn assign_widths(&mut self, ctx: &mut LayoutContext) {
-
-        debug!("FlowContext: assigning widths for f%?", self.id());
-        match *self {
-            BlockFlow(ref mut info)  => info.assign_widths_block(ctx),
-            InlineFlow(ref mut info) => info.assign_widths_inline(ctx),
-            FloatFlow(ref mut info)  => info.assign_widths_float(),
-            _ => fail!(fmt!("Tried to assign_widths of flow: f%d", self.id()))
-        }
-    }
-
-    pub fn assign_height(&mut self, ctx: &mut LayoutContext) {
-
-        debug!("FlowContext: assigning height for f%?", self.id());
-        match *self {
-            BlockFlow(ref mut info)  => info.assign_height_block(ctx),
-            InlineFlow(ref mut info) => info.assign_height_inline(ctx),
-            FloatFlow(ref mut info)  => info.assign_height_float(ctx),
-            _ => fail!(fmt!("Tried to assign_height of flow: f%d", self.id()))
-        }
-    }
-
-    pub fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
-        match *self {
-            BlockFlow(ref mut info)  => info.assign_height_inorder_block(ctx),
-            InlineFlow(ref mut info) => info.assign_height_inorder_inline(ctx),
-            FloatFlow(ref mut info)  => info.assign_height_inorder_float(),
-            _ => fail!(fmt!("Tried to assign_height of flow: f%d", self.id()))
-        }
-    }
-
-    pub fn build_display_list<E:ExtraDisplayListData>(&mut self,
-                                                     builder: &DisplayListBuilder,
-                                                     dirty: &Rect<Au>,
-                                                     list: &Cell<DisplayList<E>>)
-                                                     -> bool {
-
-        
-        debug!("FlowContext: building display list for f%?", self.id());
-        match *self {
-            BlockFlow(ref mut info)  => info.build_display_list_block(builder, dirty, list),
-            InlineFlow(ref mut info) => info.build_display_list_inline(builder, dirty, list),
-            FloatFlow(ref mut info)  => info.build_display_list_float(builder, dirty, list),
-            _ => {
-                fail!("Tried to build_display_list_recurse of flow: %?", self)
-            }
-        }
-
-    }
-    /// A convenience method to return the restyle damage of this flow. Fails if the flow is
-    /// currently being borrowed mutably.
-    #[inline(always)]
-    pub fn restyle_damage(&self) -> RestyleDamage {
-        do self.with_base |info| {
-            info.restyle_damage
-        }
-    }
-
-
-    // Actual methods that do not require much flow-specific logic
-    pub fn foldl_all_boxes<B:Clone>(&mut self, seed: B, cb: &fn(a: B, b: RenderBox) -> B) -> B {
-        match *self {
-            BlockFlow(ref mut block) => {
-                do block.box.as_ref().map_default(seed.clone()) |box| {
-                    cb(seed.clone(), *box)
-                }
-            }
-            InlineFlow(ref mut inline) => {
-                do inline.boxes.iter().fold(seed) |acc, box| {
-                    cb(acc.clone(), *box)
-                }
-            }
-            _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self)),
-        }
-    }
-
-    pub fn foldl_boxes_for_node<B:Clone>(&mut self,
-                                        node: AbstractNode<LayoutView>,
-                                        seed: B,
-                                        callback: &fn(a: B, RenderBox) -> B)
-                                        -> B {
-        do self.foldl_all_boxes(seed) |acc, box| {
-            if box.node() == node {
-                callback(acc, box)
-            } else {
-                acc
-            }
-        }
-    }
-
-    pub fn iter_all_boxes(&mut self) -> BoxIterator {
-        BoxIterator {
-            boxes: match *self {
-                BlockFlow(ref mut block) => block.box.as_ref().map_default(~[], |&x| ~[x]),
-                InlineFlow(ref mut inline) => inline.boxes.clone(),
-                _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self))
-            },
-            index: 0,
+    /// Returns true if this flow is a block flow, an inline flow, or a float flow.
+    fn starts_inline_flow(self) -> bool {
+        match self.class() {
+            InlineFlowClass => true,
+            AbsoluteFlowClass | BlockFlowClass | FloatFlowClass | InlineBlockFlowClass |
+            TableFlowClass => false,
         }
     }
 
     /// Dumps the flow tree for debugging.
-    pub fn dump(&mut self) {
-        self.dump_indent(0);
+    fn dump(self) {
+        // TODO(pcwalton): Fill this in.
     }
+}
 
-    /// Dumps the flow tree, for debugging, with indentation.
-    pub fn dump_indent(&mut self, indent: uint) {
-        let mut s = ~"|";
-        for _ in range(0, indent) {
-            s.push_str("---- ");
+impl<'self> MutableFlowUtils for &'self mut FlowContext {
+    /// Traverses the tree in preorder.
+    fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &mut T) -> bool {
+        if traversal.should_prune(self) {
+            return true
         }
 
-        s.push_str(self.debug_str());
-        stderr().write_line(s);
-
-        // FIXME: this should have a pure/const version?
-        for child in self.child_iter() {
-            child.dump_indent(indent + 1)
+        if !traversal.process(self) {
+            return false
         }
-    }
-    
-    pub fn debug_str(&self) -> ~str {
-        let repr = match *self {
-            InlineFlow(ref inline) => {
-                let mut s = inline.boxes.iter().fold(~"InlineFlow(children=", |s, box| {
-                    fmt!("%s b%d", s, box.id())
-                });
-                s.push_str(")");
-                s
-            },
-            BlockFlow(ref block) => {
-                match block.box {
-                    Some(box) => fmt!("BlockFlow(box=b%d)", box.id()),
-                    None => ~"BlockFlow",
-                }
-            },
-            FloatFlow(ref float) => {
-                match float.box {
-                    Some(box) => fmt!("FloatFlow(box=b%d)", box.id()),
-                    None => ~"FloatFlow",
-                }
-            },
-            _ => ~"(Unknown flow)"
-        };
 
-        do self.with_base |base| {
-            fmt!("f%? %? floats %? size %? damage %?", base.id, repr, base.num_floats,
-                 base.position, base.restyle_damage)
+        for kid in child_iter(self) {
+            if !kid.traverse_preorder(traversal) {
+                return false
+            }
+        }
+
+        true
+    }
+
+    /// Traverses the tree in postorder.
+    fn traverse_postorder<T:PostorderFlowTraversal>(self, traversal: &mut T) -> bool {
+        if traversal.should_prune(self) {
+            return true
+        }
+
+        for kid in child_iter(self) {
+            if !kid.traverse_postorder(traversal) {
+                return false
+            }
+        }
+
+        if !traversal.should_process(self) {
+            return true
+        }
+
+        traversal.process(self)
+    }
+
+    /// Adds a new flow as a child of this flow.
+    fn add_new_child(self, new_child: ~FlowContext:) {
+        mut_base(self).children.push_back(new_child)
+    }
+
+    /// Invokes a closure with the first child of this flow.
+    fn with_first_child<R>(self, f: &fn(Option<&mut ~FlowContext:>) -> R) -> R {
+        f(mut_base(self).children.front_mut())
+    }
+
+    /// Invokes a closure with the last child of this flow.
+    fn with_last_child<R>(self, f: &fn(Option<&mut ~FlowContext:>) -> R) -> R {
+        f(mut_base(self).children.back_mut())
+    }
+
+    /// Removes the first child of this flow and destroys it.
+    fn remove_first(self) {
+        let _ = mut_base(self).children.pop_front();
+    }
+
+    /// Removes the last child of this flow and destroys it.
+    fn remove_last(self) {
+        let _ = mut_base(self).children.pop_back();
+    }
+
+    fn build_display_list<E:ExtraDisplayListData>(
+                          self,
+                          builder: &DisplayListBuilder,
+                          dirty: &Rect<Au>,
+                          list: &Cell<DisplayList<E>>)
+                          -> bool {
+        debug!("FlowContext: building display list for f%?", base(self).id);
+        match self.class() {
+            BlockFlowClass => self.as_block().build_display_list_block(builder, dirty, list),
+            InlineFlowClass => self.as_inline().build_display_list_inline(builder, dirty, list),
+            FloatFlowClass => self.as_float().build_display_list_float(builder, dirty, list),
+            _ => fail!("Tried to build_display_list_recurse of flow: %?", self),
         }
     }
 }

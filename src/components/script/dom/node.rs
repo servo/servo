@@ -882,7 +882,7 @@ pub struct DisplayBoxes {
 /// Data that layout associates with a node.
 pub struct LayoutData {
     /// The results of CSS matching for this node.
-    applicable_declarations: ~[@[PropertyDeclaration]],
+    applicable_declarations: ~[Arc<~[PropertyDeclaration]>],
 
     /// The results of CSS styling for this node.
     style: Option<ComputedValues>,
@@ -902,9 +902,19 @@ impl LayoutData {
             applicable_declarations: ~[],
             style: None,
             restyle_damage: None,
-            boxes: DisplayBoxes { display_list: None, range: None },
+            boxes: DisplayBoxes {
+                display_list: None,
+                range: None,
+            },
         }
     }
+}
+
+// This serves as a static assertion that layout data remains sendable. If this is not done, then
+// we can have memory unsafety, which usually manifests as shutdown crashes.
+fn assert_is_sendable<T:Send>(_: T) {}
+fn assert_layout_data_is_sendable() {
+    assert_is_sendable(LayoutData::new())
 }
 
 impl AbstractNode<LayoutView> {

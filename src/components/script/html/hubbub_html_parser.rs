@@ -28,8 +28,8 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
 use servo_util::tree::{TreeNodeRef, ElementLike};
 use servo_util::url::make_url;
-use extra::url::Url;
 use extra::future::Future;
+use extra::url::Url;
 use geom::size::Size2D;
 
 macro_rules! handle_element(
