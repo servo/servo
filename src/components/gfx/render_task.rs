@@ -21,7 +21,6 @@ use servo_util::time;
 
 use std::comm::{Chan, Port, SharedChan};
 use std::task::spawn_with;
-use std::util;
 use extra::arc::Arc;
 
 use buffer_map::BufferMap;
