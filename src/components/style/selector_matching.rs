@@ -53,7 +53,7 @@ impl Stylist {
                     for selector in style_rule.selectors.iter() {
                         // TODO: avoid copying?
                         rules.$priority.push(Rule {
-                            selector: @(*selector).clone(),
+                            selector: selector.clone(),
                             declarations: Arc::new(style_rule.declarations.$priority.clone()),
                         })
                     }
@@ -88,7 +88,7 @@ impl Stylist {
         macro_rules! append(
             ($rules: expr) => {
                 for rule in $rules.iter() {
-                    if matches_selector::<N, T, E>(rule.selector, element, pseudo_element) {
+                    if matches_selector::<N, T, E>(&rule.selector, element, pseudo_element) {
                         applicable_declarations.push(rule.declarations.clone())
                     }
                 }
@@ -130,7 +130,7 @@ impl PerOriginRules {
 
 #[deriving(Clone)]
 struct Rule {
-    selector: @Selector,
+    selector: Selector,
     declarations: Arc<~[PropertyDeclaration]>,
 }
 
