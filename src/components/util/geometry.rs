@@ -7,6 +7,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 
 use std::num::{NumCast, One, Zero};
+use std::fmt;
 
 pub struct Au(i32);
 
@@ -15,6 +16,12 @@ impl Clone for Au {
     #[inline]
     fn clone(&self) -> Au {
         Au(**self)
+    }
+}
+
+impl fmt::Default for Au {
+    fn fmt(obj: &Au, f: &mut fmt::Formatter) {
+        write!(f.buf, "Au({})", *obj);
     }
 }
 

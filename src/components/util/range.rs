@@ -4,6 +4,7 @@
 
 use std::cmp::{max, min};
 use std::iter;
+use std::fmt;
 
 enum RangeRelation {
     OverlapsBegin(/* overlap */ uint),
@@ -19,6 +20,12 @@ enum RangeRelation {
 pub struct Range {
     priv off: uint,
     priv len: uint
+}
+
+impl fmt::Default for Range {
+    fn fmt(obj: &Range, f: &mut fmt::Formatter) {
+        write!(f.buf, "[{} .. {})", obj.begin(), obj.end());
+    }
 }
 
 impl Range {
