@@ -267,6 +267,13 @@ pub mod longhands {
                       "computed::LPA_Auto",
                       "parse_non_negative")}
 
+    ${predefined_type("min-width", "LengthOrPercentage",
+                      "computed::LP_Length(Au(0))",
+                      "parse_non_negative")}
+    ${predefined_type("max-width", "LengthOrPercentageOrNone",
+                      "computed::LPN_None",
+                      "parse_non_negative")}
+
     <%self:single_component_value name="line-height">
         #[deriving(Clone)]
         pub enum SpecifiedValue {
@@ -1123,5 +1130,6 @@ pub mod computed_values {
     pub use cssparser::RGBA;
     pub use super::common_types::computed::{
         LengthOrPercentage, LP_Length, LP_Percentage,
-        LengthOrPercentageOrAuto, LPA_Length, LPA_Percentage, LPA_Auto};
+        LengthOrPercentageOrAuto, LPA_Length, LPA_Percentage, LPA_Auto,
+        LengthOrPercentageOrNone, LPN_Length, LPN_Percentage, LPN_None};
 }
