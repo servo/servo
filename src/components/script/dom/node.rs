@@ -164,6 +164,10 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
             _ => false
         }
     }
+
+    fn is_root(&self) -> bool {
+        self.parent_node().is_none()
+    }
 }
 
 impl<View> TreeNodeRefAsElement<Node<View>, Element> for AbstractNode<View> {
@@ -611,7 +615,7 @@ impl Node<ScriptView> {
     }
 
     pub fn GetPreviousSibling(&self) -> Option<AbstractNode<ScriptView>> {
-        self.prev_sibling 
+        self.prev_sibling
     }
 
     pub fn GetNextSibling(&self) -> Option<AbstractNode<ScriptView>> {
@@ -621,7 +625,7 @@ impl Node<ScriptView> {
     pub fn GetNodeValue(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
         match self.type_id {
             // ProcessingInstruction
-            CommentNodeTypeId | TextNodeTypeId => { 
+            CommentNodeTypeId | TextNodeTypeId => {
                 do abstract_self.with_imm_characterdata() |characterdata| {
                     characterdata.Data()
                 }

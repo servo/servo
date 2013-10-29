@@ -227,7 +227,7 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
                 match_attribute(attr, element, |_| true)
             }
         }
-        AttrEqual(ref attr, ref value) => { 
+        AttrEqual(ref attr, ref value) => {
             do element.with_imm_element_like |element: &E| {
                 match_attribute(attr, element, |v| v == value.as_slice())
             }
@@ -260,7 +260,7 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
                 }
             }
         }
-        AttrSuffixMatch(ref attr, ref value) => { 
+        AttrSuffixMatch(ref attr, ref value) => {
             do element.with_imm_element_like |element: &E| {
                 do match_attribute(attr, element) |attr_value| {
                     attr_value.ends_with(value.as_slice())
@@ -279,27 +279,24 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
 #[inline]
 fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         element: &T) -> bool {
-    let mut r = false;
     let mut node = element.clone();
     loop {
-        match node.node().prev_sibling() { 
-            Some(prev_sibling) => { 
+        match node.node().prev_sibling() {
+            Some(prev_sibling) => {
                 node = prev_sibling;
                 if node.is_element() {
                     return false
-                }   
-            }   
-            None => {
-                do element.with_imm_element_like |element: &E| {
-                    if element.get_local_name() == ~"html" || element.get_local_name() == ~"body" {
-                        r = false;
-                    } else { r = true }
                 }
-                break
             }
-        }   
-    }   
-    r
+            None => {
+                if element.is_root() {
+                    return false
+                } else {
+                    return true
+                }
+            }
+        }
+    }
 }
 
 #[inline]
