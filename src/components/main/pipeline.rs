@@ -101,9 +101,8 @@ impl Pipeline {
         // Wrap task creation within a supervised task so that failure will
         // only tear down those tasks instead of ours.
         let failure_chan = constellation_chan.clone();
-        let (task_port, task_chan) = stream::<task::TaskResult>();
         let mut supervised_task = task::task();
-        supervised_task.opts.notify_chan = Some(task_chan);
+        let task_port = supervised_task.future_result();
         supervised_task.supervised();
 
         spawn_with!(supervised_task, [script_port, resource_task, size, render_port,
@@ -138,8 +137,8 @@ impl Pipeline {
 
         spawn_with!(task::task(), [failure_chan], {
             match task_port.recv() {
-                task::Success => (),
-                task::Failure => {
+                Ok(*) => (),
+                Err(*) => {
                     failure_chan.send(FailureMsg(id, subpage_id));
                 }
             }

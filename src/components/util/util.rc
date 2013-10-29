@@ -8,7 +8,7 @@
        url = "http://servo.org/")];
 #[crate_type = "lib"];
 
-#[feature(macro_rules)];
+#[feature(macro_rules, managed_boxes)];
 
 extern mod extra;
 extern mod geom;

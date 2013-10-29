@@ -530,24 +530,20 @@ impl FlowContext for InlineFlow {
             child_base.floats_in = FloatContext::new(child_base.num_floats);
         }
 
-        {
-            let this = &mut *self;
+        let mut min_width = Au::new(0);
+        let mut pref_width = Au::new(0);
 
-            let mut min_width = Au::new(0);
-            let mut pref_width = Au::new(0);
-
-            for box in this.boxes.iter() {
-                debug!("FlowContext[{:d}]: measuring {:s}", self.base.id, box.debug_str());
-                let (this_minimum_width, this_preferred_width) =
-                    box.minimum_and_preferred_widths();
-                min_width = Au::max(min_width, this_minimum_width);
-                pref_width = Au::max(pref_width, this_preferred_width);
-            }
-
-            this.base.min_width = min_width;
-            this.base.pref_width = pref_width;
-            this.base.num_floats = num_floats;
+        for box in self.boxes.iter() {
+            debug!("FlowContext[{:d}]: measuring {:s}", self.base.id, box.debug_str());
+            let (this_minimum_width, this_preferred_width) =
+                box.minimum_and_preferred_widths();
+            min_width = Au::max(min_width, this_minimum_width);
+            pref_width = Au::max(pref_width, this_preferred_width);
         }
+
+        self.base.min_width = min_width;
+        self.base.pref_width = pref_width;
+        self.base.num_floats = num_floats;
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called

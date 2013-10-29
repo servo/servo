@@ -2,24 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::io;
+use std::rt::io;
+use std::rt::io::Writer;
 use std::vec::raw::buf_as_slice;
 use std::cast::transmute;
 use std::mem::size_of;
 
 fn hexdump_slice(buf: &[u8]) {
-    let stderr = io::stderr();
-    stderr.write_str("    ");
+    let mut stderr = io::stderr();
+    stderr.write(bytes!("    "));
     for (i, &v) in buf.iter().enumerate() {
-        stderr.write_str(format!("{:02X} ", v as uint));
+        let output = format!("{:02X} ", v as uint);
+        stderr.write(output.as_bytes());
         match i % 16 {
-            15 => stderr.write_str("\n    "),
-             7 => stderr.write_str("   "),
+            15 => stderr.write(bytes!("\n    ")),
+             7 => stderr.write(bytes!("   ")),
              _ => ()
         }
         stderr.flush();
     }
-    stderr.write_char('\n');
+    stderr.write(bytes!("\n"));
 }
 
 pub fn hexdump<T>(obj: &T) {
