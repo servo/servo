@@ -5,7 +5,7 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::bindings::node;
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, null_str_as_empty};
 use dom::bindings::utils::{ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::characterdata::CharacterData;
@@ -483,6 +483,20 @@ impl Node<ScriptView> {
         };
         node::create(cx, &mut node);
         node
+    }
+
+    pub fn reflect_node<N: Reflectable>
+            (node:      @mut N,
+             document:  AbstractDocument,
+             wrap_fn:   extern "Rust" fn(*JSContext, *JSObject, @mut N) -> *JSObject)
+             -> AbstractNode<ScriptView> {
+        assert!(node.reflector().get_jsobject().is_null());
+        let node = reflect_dom_object(node, document.document().window, wrap_fn);
+        assert!(node.reflector().get_jsobject().is_not_null());
+        // This surrenders memory management of the node!
+        AbstractNode {
+            obj: unsafe { transmute(node) },
+        }
     }
 
     pub fn add_to_doc(&mut self, abstract_self: AbstractNode<ScriptView>, doc: AbstractDocument) {
