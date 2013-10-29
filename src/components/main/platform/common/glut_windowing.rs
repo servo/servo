@@ -162,7 +162,7 @@ impl Window {
         let throbber = THROBBER[self.throbber_frame];
         match self.ready_state {
             Blank => {
-                glut::set_window_title(self.glut_window, format!("Blank"))
+                glut::set_window_title(self.glut_window, "Blank")
             }
             Loading => {
                 glut::set_window_title(self.glut_window, format!("{:c} Loading . Servo", throbber))

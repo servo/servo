@@ -190,18 +190,18 @@ impl Window {
 
         match self.ready_state {
             Blank => {
-                self.glfw_window.set_title(format!("blank — Servo"))
+                self.glfw_window.set_title("blank — Servo")
             }
             Loading => {
-                self.glfw_window.set_title(format!("Loading — Servo"))
+                self.glfw_window.set_title("Loading — Servo")
             }
             PerformingLayout => {
-                self.glfw_window.set_title(format!("Performing Layout — Servo"))
+                self.glfw_window.set_title("Performing Layout — Servo")
             }
             FinishedLoading => {
                 match self.render_state {
                     RenderingRenderState => {
-                        self.glfw_window.set_title(format!("Rendering — Servo"))
+                        self.glfw_window.set_title("Rendering — Servo")
                     }
                     IdleRenderState => {
                         self.glfw_window.set_title("Servo")
