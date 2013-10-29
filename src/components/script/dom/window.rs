@@ -74,7 +74,7 @@ pub struct TimerData {
 impl Window {
     pub fn Alert(&self, s: &DOMString) {
         // Right now, just print to the console
-        io::println(fmt!("ALERT: %s", null_str_as_empty(s)));
+        io::println(format!("ALERT: {:s}", null_str_as_empty(s)));
     }
 
     pub fn Close(&self) {

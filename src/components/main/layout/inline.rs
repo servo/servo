@@ -103,7 +103,7 @@ impl LineboxScanner {
     }
 
     fn reset_scanner(&mut self, flow: &mut InlineFlow) {
-        debug!("Resetting line box scanner's state for flow f%d.", flow.base.id);
+        debug!("Resetting line box scanner's state for flow f{:d}.", flow.base.id);
         self.lines = ~[];
         self.new_boxes = ~[];
         self.cur_y = Au::new(0);
@@ -128,26 +128,26 @@ impl LineboxScanner {
                     break
                 }
                 let box = flow.boxes[i]; i += 1;
-                debug!("LineboxScanner: Working with box from box list: b%d", box.base().id());
+                debug!("LineboxScanner: Working with box from box list: b{:d}", box.base().id());
                 box
             } else {
                 let box = self.work_list.pop_front().unwrap();
-                debug!("LineboxScanner: Working with box from work list: b%d", box.base().id());
+                debug!("LineboxScanner: Working with box from work list: b{:d}", box.base().id());
                 box
             };
 
             let box_was_appended = self.try_append_to_line(cur_box, flow);
             if !box_was_appended {
-                debug!("LineboxScanner: Box wasn't appended, because line %u was full.",
+                debug!("LineboxScanner: Box wasn't appended, because line {:u} was full.",
                         self.lines.len());
                 self.flush_current_line();
             } else {
-                debug!("LineboxScanner: appended a box to line %u", self.lines.len());
+                debug!("LineboxScanner: appended a box to line {:u}", self.lines.len());
             }
         }
 
         if self.pending_line.range.length() > 0 {
-            debug!("LineboxScanner: Partially full linebox %u left at end of scanning.",
+            debug!("LineboxScanner: Partially full linebox {:u} left at end of scanning.",
                     self.lines.len());
             self.flush_current_line();
         }
@@ -158,7 +158,7 @@ impl LineboxScanner {
     }
 
     fn swap_out_results(&mut self, flow: &mut InlineFlow) {
-        debug!("LineboxScanner: Propagating scanned lines[n=%u] to inline flow f%d",
+        debug!("LineboxScanner: Propagating scanned lines[n={:u}] to inline flow f{:d}",
                self.lines.len(),
                flow.base.id);
 
@@ -167,11 +167,11 @@ impl LineboxScanner {
     }
 
     fn flush_current_line(&mut self) {
-        debug!("LineboxScanner: Flushing line %u: %?",
+        debug!("LineboxScanner: Flushing line {:u}: {:?}",
                self.lines.len(), self.pending_line);
 
         // clear line and add line mapping
-        debug!("LineboxScanner: Saving information for flushed line %u.", self.lines.len());
+        debug!("LineboxScanner: Saving information for flushed line {:u}.", self.lines.len());
         self.lines.push(self.pending_line);
         self.cur_y = self.pending_line.bounds.origin.y + self.pending_line.bounds.size.height;
         self.reset_linebox();
@@ -193,10 +193,10 @@ impl LineboxScanner {
     /// with the line's origin) and the actual width of the first box after splitting.
     fn initial_line_placement(&self, first_box: @RenderBox, ceiling: Au, flow: &mut InlineFlow)
                               -> (Rect<Au>, Au) {
-        debug!("LineboxScanner: Trying to place first box of line %?", self.lines.len());
+        debug!("LineboxScanner: Trying to place first box of line {}", self.lines.len());
 
         let first_box_size = first_box.base().position.get().size;
-        debug!("LineboxScanner: box size: %?", first_box_size);
+        debug!("LineboxScanner: box size: {}", first_box_size);
         let splitable = first_box.can_split();
         let line_is_empty: bool = self.pending_line.range.length() == 0;
 
@@ -219,7 +219,7 @@ impl LineboxScanner {
 
         let line_bounds = self.floats.place_between_floats(&info);
 
-        debug!("LineboxScanner: found position for line: %? using placement_info: %?",
+        debug!("LineboxScanner: found position for line: {} using placement_info: {:?}",
                line_bounds,
                info);
         
@@ -242,7 +242,7 @@ impl LineboxScanner {
         // try_append_to_line.
         match first_box.split_to_width(line_bounds.size.width, line_is_empty) {
             CannotSplit(_) => {
-                error!("LineboxScanner: Tried to split unsplittable render box! %s",
+                error!("LineboxScanner: Tried to split unsplittable render box! {:s}",
                         first_box.debug_str());
                 return (line_bounds, first_box_size.width);
             }
@@ -273,7 +273,7 @@ impl LineboxScanner {
                 info.width = actual_box_width;
                 let new_bounds = self.floats.place_between_floats(&info);
 
-                debug!("LineboxScanner: case=new line position: %?", new_bounds);
+                debug!("LineboxScanner: case=new line position: {}", new_bounds);
                 return (new_bounds, actual_box_width);
             }
         }
@@ -290,8 +290,8 @@ impl LineboxScanner {
             self.pending_line.green_zone = line_bounds.size;
         }
 
-        debug!("LineboxScanner: Trying to append box to line %u (box size: %?, green zone: \
-                %?): %s",
+        debug!("LineboxScanner: Trying to append box to line {:u} (box size: {}, green zone: \
+                {}): {:s}",
                self.lines.len(),
                in_box.base().position.get().size,
                self.pending_line.green_zone,
@@ -361,7 +361,7 @@ impl LineboxScanner {
         if !in_box.can_split() {
             // TODO(Issue #224): signal that horizontal overflow happened?
             if line_is_empty {
-                debug!("LineboxScanner: case=box can't split and line %u is empty, so \
+                debug!("LineboxScanner: case=box can't split and line {:u} is empty, so \
                         overflowing.",
                         self.lines.len());
                 self.push_box_to_line(in_box);
@@ -375,7 +375,7 @@ impl LineboxScanner {
 
             match in_box.split_to_width(available_width, line_is_empty) {
                 CannotSplit(_) => {
-                    error!("LineboxScanner: Tried to split unsplittable render box! %s",
+                    error!("LineboxScanner: Tried to split unsplittable render box! {:s}",
                             in_box.debug_str());
                     return false;
                 }
@@ -394,7 +394,7 @@ impl LineboxScanner {
                 }
                 SplitDidNotFit(left, right) => {
                     if line_is_empty {
-                        debug!("LineboxScanner: case=split box didn't fit and line %u is empty, so overflowing and deferring remainder box.",
+                        debug!("LineboxScanner: case=split box didn't fit and line {:u} is empty, so overflowing and deferring remainder box.",
                                 self.lines.len());
                         // TODO(Issue #224): signal that horizontal overflow happened?
                         match (left, right) {
@@ -425,7 +425,7 @@ impl LineboxScanner {
 
     // unconditional push
     fn push_box_to_line(&mut self, box: @RenderBox) {
-        debug!("LineboxScanner: Pushing box b%d to line %u", box.base().id(), self.lines.len());
+        debug!("LineboxScanner: Pushing box b{:d} to line {:u}", box.base().id(), self.lines.len());
 
         if self.pending_line.range.length() == 0 {
             assert!(self.new_boxes.len() <= (u16::max_value as uint));
@@ -492,7 +492,7 @@ impl InlineFlow {
 
         // TODO(#228): Once we form line boxes and have their cached bounds, we can be smarter and
         // not recurse on a line if nothing in it can intersect the dirty region.
-        debug!("FlowContext[%d]: building display list for %u inline boxes",
+        debug!("FlowContext[{:d}]: building display list for {:u} inline boxes",
                self.base.id,
                self.boxes.len());
 
@@ -537,7 +537,7 @@ impl FlowContext for InlineFlow {
             let mut pref_width = Au::new(0);
 
             for box in this.boxes.iter() {
-                debug!("FlowContext[%d]: measuring %s", self.base.id, box.debug_str());
+                debug!("FlowContext[{:d}]: measuring {:s}", self.base.id, box.debug_str());
                 let (this_minimum_width, this_preferred_width) =
                     box.minimum_and_preferred_widths();
                 min_width = Au::max(min_width, this_minimum_width);
@@ -558,7 +558,7 @@ impl FlowContext for InlineFlow {
         // TODO: Combine this with `LineboxScanner`'s walk in the box list, or put this into
         // `RenderBox`.
 
-        debug!("assign_widths_inline: floats_in: %?", self.base.floats_in);
+        debug!("assign_widths_inline: floats_in: {:?}", self.base.floats_in);
         {
             let this = &mut *self;
             for &box in this.boxes.iter() {
@@ -588,7 +588,7 @@ impl FlowContext for InlineFlow {
     }
 
     fn assign_height(&mut self, _: &mut LayoutContext) {
-        debug!("assign_height_inline: assigning height for flow %?", self.base.id);
+        debug!("assign_height_inline: assigning height for flow {}", self.base.id);
 
         // Divide the boxes into lines
         // TODO(#226): Get the CSS `line-height` property from the containing block's style to
@@ -598,7 +598,7 @@ impl FlowContext for InlineFlow {
         // determine its height for computing linebox height.
         //
         // TODO(pcwalton): Cache the linebox scanner?
-        debug!("assign_height_inline: floats_in: %?", self.base.floats_in);
+        debug!("assign_height_inline: floats_in: {:?}", self.base.floats_in);
 
         let scanner_floats = self.base.floats_in.clone();
         let mut scanner = LineboxScanner::new(scanner_floats);
@@ -729,8 +729,8 @@ impl FlowContext for InlineFlow {
                     },
                     // FIXME(pcwalton): This isn't very type safe!
                     _ => {
-                        fail!(fmt!("Tried to assign height to unknown Box variant: %s",
-                                   cur_box.debug_str()))
+                        fail!("Tried to assign height to unknown Box variant: {:s}",
+                              cur_box.debug_str())
                     }
                 };
                 let mut top_from_base = top_from_base;

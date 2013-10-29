@@ -137,7 +137,7 @@ impl FlowContext for FloatFlow {
     }
 
     fn assign_widths(&mut self, _: &mut LayoutContext) {
-        debug!("assign_widths_float: assigning width for flow %?",  self.base.id);
+        debug!("assign_widths_float: assigning width for flow {}",  self.base.id);
         // position.size.width is set by parent even though we don't know
         // position.origin yet.
         let mut remaining_width = self.base.position.size.width;
@@ -174,7 +174,7 @@ impl FlowContext for FloatFlow {
 
             let width = MaybeAuto::from_style(style.Box.width, 
                                               remaining_width).specified_or_default(shrink_to_fit);
-            debug!("assign_widths_float -- width: %?", width);
+            debug!("assign_widths_float -- width: {}", width);
 
             model.margin.top = margin_top;
             model.margin.right = margin_right;
@@ -210,7 +210,7 @@ impl FlowContext for FloatFlow {
     }
 
     fn assign_height_inorder(&mut self, _: &mut LayoutContext) {
-        debug!("assign_height_inorder_float: assigning height for float %?", self.base.id);
+        debug!("assign_height_inorder_float: assigning height for float {}", self.base.id);
         // assign_height_float was already called by the traversal function
         // so this is well-defined
 
@@ -250,7 +250,7 @@ impl FlowContext for FloatFlow {
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height_float: assigning height for float %?", self.base.id);
+        debug!("assign_height_float: assigning height for float {}", self.base.id);
         let has_inorder_children = self.base.num_floats > 0;
         if has_inorder_children {
             let mut float_ctx = FloatContext::new(self.floated_children);
@@ -298,7 +298,7 @@ impl FlowContext for FloatFlow {
                                                     Au::new(0)).specified_or_zero();
 
             height = geometry::max(height, height_prop) + noncontent_height;
-            debug!("assign_height_float -- height: %?", height);
+            debug!("assign_height_float -- height: {}", height);
 
             position.size.height = height;
         }

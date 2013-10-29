@@ -212,7 +212,7 @@ impl NavigationContext {
 
     /// Loads a new set of page frames, returning all evicted frame trees
     pub fn load(&mut self, frame_tree: @mut FrameTree) -> ~[@mut FrameTree] {
-        debug!("navigating to %?", frame_tree.pipeline.id);
+        debug!("navigating to {:?}", frame_tree.pipeline.id);
         let evicted = replace(&mut self.next, ~[]);
         if self.current.is_some() {
             self.previous.push(self.current.take_unwrap());
@@ -419,7 +419,7 @@ impl Constellation {
     }
     
     fn handle_frame_rect_msg(&mut self, pipeline_id: PipelineId, subpage_id: SubpageId, rect: Rect<f32>) {
-        debug!("Received frame rect %? from %?, %?", rect, pipeline_id, subpage_id);
+        debug!("Received frame rect {} from {:?}, {:?}", rect, pipeline_id, subpage_id);
         let mut already_sent = HashSet::new();
 
         // Returns true if a child frame tree's subpage id matches the given subpage id
@@ -520,7 +520,7 @@ impl Constellation {
                            source_url.port == url.port) && sandbox == IFrameUnsandboxed;
         // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
         let pipeline = @mut if same_script {
-            debug!("Constellation: loading same-origin iframe at %?", url);
+            debug!("Constellation: loading same-origin iframe at {:?}", url);
             // Reuse the script task if same-origin url's
             Pipeline::with_script(next_pipeline_id,
                                   Some(subpage_id),
@@ -532,7 +532,7 @@ impl Constellation {
                                   source_pipeline,
                                   size_future)
         } else {
-            debug!("Constellation: loading cross-origin iframe at %?", url);
+            debug!("Constellation: loading cross-origin iframe at {:?}", url);
             // Create a new script task if not same-origin url's
             Pipeline::create(next_pipeline_id,
                              Some(subpage_id),
@@ -545,7 +545,7 @@ impl Constellation {
                              size_future)
         };
 
-        debug!("Constellation: sending load msg to pipeline %?", pipeline.id);
+        debug!("Constellation: sending load msg to pipeline {:?}", pipeline.id);
         pipeline.load(url);
         let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
         for frame_tree in frame_trees.iter() {
@@ -562,7 +562,7 @@ impl Constellation {
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, url: Url, size_future: Future<Size2D<uint>>) {
-        debug!("Constellation: received message to load %s", url.to_str());
+        debug!("Constellation: received message to load {:s}", url.to_str());
         // Make sure no pending page would be overridden.
         let source_frame = self.current_frame().get_ref().find(source_id).expect(
             "Constellation: received a LoadUrlMsg from a pipeline_id associated
@@ -613,7 +613,7 @@ impl Constellation {
     }
     
     fn handle_navigate_msg(&mut self, direction: constellation_msg::NavigationDirection) {
-        debug!("received message to navigate %?", direction);
+        debug!("received message to navigate {:?}", direction);
 
         // TODO(tkuehn): what is the "critical point" beyond which pending frames
         // should not be cleared? Currently, the behavior is that forward/back
@@ -655,7 +655,7 @@ impl Constellation {
     }
     
     fn handle_renderer_ready_msg(&mut self, pipeline_id: PipelineId) {
-        debug!("Renderer %? ready to send paint msg", pipeline_id);
+        debug!("Renderer {:?} ready to send paint msg", pipeline_id);
         // This message could originate from a pipeline in the navigation context or
         // from a pending frame. The only time that we will grant paint permission is
         // when the message originates from a pending frame or the current frame.
@@ -691,7 +691,7 @@ impl Constellation {
             // If there are frames to revoke permission from, do so now.
             match frame_change.before {
                 Some(revoke_id) => {
-                    debug!("Constellation: revoking permission from %?", revoke_id);
+                    debug!("Constellation: revoking permission from {:?}", revoke_id);
                     let current_frame = self.current_frame().unwrap();
 
                     let to_revoke = current_frame.find(revoke_id).expect(
@@ -705,7 +705,7 @@ impl Constellation {
                     // If to_add is not the root frame, then replace revoked_frame with it.
                     // This conveniently keeps scissor rect size intact.
                     if to_add.parent.is_some() {
-                        debug!("Constellation: replacing %? with %? in %?",
+                        debug!("Constellation: replacing {:?} with {:?} in {:?}",
                             revoke_id, to_add.pipeline.id, next_frame_tree.pipeline.id);
                         next_frame_tree.replace_child(revoke_id, to_add);
                     }

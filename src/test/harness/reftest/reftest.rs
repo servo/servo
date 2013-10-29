@@ -70,14 +70,14 @@ fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
             let parts: ~[&str] = line.split_iter(' ').filter(|p| !p.is_empty()).collect();
 
             if parts.len() != 3 {
-                fail!(fmt!("reftest line: '%s' doesn't match 'KIND LEFT RIGHT'", line));
+                fail!("reftest line: '{:s}' doesn't match 'KIND LEFT RIGHT'", line);
             }
 
             let kind = match parts[0] {
                 "==" => Same,
                 "!=" => Different,
-                _ => fail!(fmt!("reftest line: '%s' has invalid kind '%s'",
-                                line, parts[0]))
+                _ => fail!("reftest line: '{:s}' has invalid kind '{:s}'",
+                           line, parts[0])
             };
             let src_path = file_path.dir_path();
             let src_dir = src_path.display().to_str();
@@ -114,8 +114,8 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 
 fn check_reftest(reftest: Reftest) {
     let id = gen_id(&reftest);
-    let left_filename = fmt!("/tmp/%s-left.png", id);
-    let right_filename = fmt!("/tmp/%s-right.png", id);
+    let left_filename = format!("/tmp/{:s}-left.png", id);
+    let right_filename = format!("/tmp/{:s}-right.png", id);
     let left_path = Path::new(left_filename.clone());
     let right_path = Path::new(right_filename.clone());
 

@@ -86,7 +86,7 @@ impl ProfilerCategory {
             LayoutMainCategory | LayoutDispListBuildCategory | LayoutShapingCategory=> " - ",
             _ => ""
         };
-        fmt!("%s%?", padding, self)
+        format!("{:s}{:?}", padding, self)
     }
 }
 
@@ -159,7 +159,7 @@ impl Profiler {
     }
 
     fn print_buckets(&mut self) {
-        println(fmt!("%31s %15s %15s %15s %15s %15s",
+        println(format!("{:31s} {:15s} {:15s} {:15s} {:15s} {:15s}",
                          "_category_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
         for (category, data) in self.buckets.iter() {
@@ -173,7 +173,7 @@ impl Profiler {
                      data[data_len / 2],
                      data.iter().min().unwrap(),
                      data.iter().max().unwrap());
-                println(fmt!("%-30s: %15.4f %15.4f %15.4f %15.4f %15u",
+                println(format!("{:-30s}: {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
                              category.format(), mean, median, min, max, data_len));
             }
         }
@@ -200,7 +200,7 @@ pub fn time<T>(msg: &str, callback: &fn() -> T) -> T{
     let end_time = precise_time_ns();
     let ms = ((end_time - start_time) as f64 / 1000000f64);
     if ms >= 5f64 {
-        debug!("%s took %? ms", msg, ms);
+        debug!("{:s} took {} ms", msg, ms);
     }
     return val;
 }

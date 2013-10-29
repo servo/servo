@@ -30,7 +30,7 @@ impl ApplicationMethods for Application {
         // Per GLFW docs it's safe to set the error callback before calling
         // glfwInit(), and this way we notice errors from init too.
         do glfw::set_error_callback |_error_code, description| {
-            error!("GLFW error: %s", description);
+            error!("GLFW error: {:s}", description);
         };
         glfw::init();
         Application
@@ -190,18 +190,18 @@ impl Window {
 
         match self.ready_state {
             Blank => {
-                self.glfw_window.set_title(fmt!("blank — Servo"))
+                self.glfw_window.set_title(format!("blank — Servo"))
             }
             Loading => {
-                self.glfw_window.set_title(fmt!("Loading — Servo"))
+                self.glfw_window.set_title(format!("Loading — Servo"))
             }
             PerformingLayout => {
-                self.glfw_window.set_title(fmt!("Performing Layout — Servo"))
+                self.glfw_window.set_title(format!("Performing Layout — Servo"))
             }
             FinishedLoading => {
                 match self.render_state {
                     RenderingRenderState => {
-                        self.glfw_window.set_title(fmt!("Rendering — Servo"))
+                        self.glfw_window.set_title(format!("Rendering — Servo"))
                     }
                     IdleRenderState => {
                         self.glfw_window.set_title("Servo")

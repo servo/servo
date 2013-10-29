@@ -138,15 +138,15 @@ impl Range {
             let overlap = other.end() - self.begin();
             return OverlapsEnd(overlap);
         }
-        fail!(fmt!("relation_to_range(): didn't classify self=%?, other=%?",
-                  self, other));
+        fail!("relation_to_range(): didn't classify self={:?}, other={:?}",
+              self, other);
     }
 
     #[inline]
     pub fn repair_after_coalesced_range(&mut self, other: &Range) {
         let relation = self.relation_to_range(other);
-        debug!("repair_after_coalesced_range: possibly repairing range %?", self);
-        debug!("repair_after_coalesced_range: relation of original range and coalesced range(%?): %?",
+        debug!("repair_after_coalesced_range: possibly repairing range {:?}", self);
+        debug!("repair_after_coalesced_range: relation of original range and coalesced range({:?}): {:?}",
                other, relation);
         match relation {
             EntirelyBefore => { },
@@ -159,6 +159,6 @@ impl Range {
                 self.reset(other.begin(), len);
             }
         };
-        debug!("repair_after_coalesced_range: new range: ---- %?", self);
+        debug!("repair_after_coalesced_range: new range: ---- {:?}", self);
     }
 }

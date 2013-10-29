@@ -71,7 +71,7 @@ impl FontList {
             "Couldn't find"
         };
 
-        debug!("FontList: %s font face in family[%s] matching style", decision, family_name);
+        debug!("FontList: {:s} font face in family[{:s}] matching style", decision, family_name);
 
         result
     }
@@ -81,7 +81,7 @@ impl FontList {
         let family = self.family_map.find_equiv(&family_name);
 
         let decision = if family.is_some() { "Found" } else { "Couldn't find" };
-        debug!("FontList: %s font family with name=%s", decision, family_name);
+        debug!("FontList: {:s} font family with name={:s}", decision, family_name);
 
         // TODO(Issue #188): look up localized font family names if canonical name not found
         family.map(|f| *f)

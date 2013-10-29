@@ -162,18 +162,18 @@ impl Window {
         let throbber = THROBBER[self.throbber_frame];
         match self.ready_state {
             Blank => {
-                glut::set_window_title(self.glut_window, fmt!("Blank"))
+                glut::set_window_title(self.glut_window, format!("Blank"))
             }
             Loading => {
-                glut::set_window_title(self.glut_window, fmt!("%c Loading . Servo", throbber))
+                glut::set_window_title(self.glut_window, format!("{:c} Loading . Servo", throbber))
             }
             PerformingLayout => {
-                glut::set_window_title(self.glut_window, fmt!("%c Performing Layout . Servo", throbber))
+                glut::set_window_title(self.glut_window, format!("{:c} Performing Layout . Servo", throbber))
             }
             FinishedLoading => {
                 match self.render_state {
                     RenderingRenderState => {
-                        glut::set_window_title(self.glut_window, fmt!("%c Rendering . Servo", throbber))
+                        glut::set_window_title(self.glut_window, format!("{:c} Rendering . Servo", throbber))
                     }
                     IdleRenderState => glut::set_window_title(self.glut_window, "Servo"),
                 }
@@ -183,7 +183,7 @@ impl Window {
 
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: u8) {
-        debug!("got key: %?", key);
+        debug!("got key: {}", key);
         let modifiers = glut::get_modifiers();
         match key {
             42 => self.load_url(),

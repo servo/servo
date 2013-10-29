@@ -127,7 +127,7 @@ pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
                             parent_rules: &mut ~[CSSRule], namespaces: &NamespaceMap) {
     match lower_name {
         "media" => parse_media_rule(rule, parent_rules, namespaces),
-        _ => log_css_error(rule.location, fmt!("Unsupported at-rule: @%s", lower_name))
+        _ => log_css_error(rule.location, format!("Unsupported at-rule: @{:s}", lower_name))
     }
 }
 

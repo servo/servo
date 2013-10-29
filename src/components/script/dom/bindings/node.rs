@@ -124,7 +124,7 @@ impl Traceable for Node<ScriptView> {
             if node.is_none() {
                 return;
             }
-            debug!("tracing %s", name);
+            debug!("tracing {:s}", name);
             let node = node.unwrap();
             let obj = node.reflector().get_jsobject();
             assert!(obj.is_not_null());
@@ -137,7 +137,7 @@ impl Traceable for Node<ScriptView> {
                 }
             }
         }
-        debug!("tracing %p?:", self.reflector_.get_jsobject());
+        debug!("tracing {:p}?:", self.reflector_.get_jsobject());
         trace_node(tracer, self.parent_node, "parent");
         trace_node(tracer, self.first_child, "first child");
         trace_node(tracer, self.last_child, "last child");

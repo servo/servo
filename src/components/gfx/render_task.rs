@@ -188,7 +188,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     if self.epoch == epoch {
                         self.render(tiles, scale);
                     } else {
-                        debug!("renderer epoch mismatch: %? != %?", self.epoch, epoch);
+                        debug!("renderer epoch mismatch: {:?} != {:?}", self.epoch, epoch);
                     }
                 }
                 UnusedBufferMsg(unused_buffers) => {
@@ -329,7 +329,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
 
                             do draw_target.snapshot().get_data_surface().with_data |data| {
                                 buffer.native_surface.upload(&self.native_graphics_context, data);
-                                debug!("RENDERER uploading to native surface %d",
+                                debug!("RENDERER uploading to native surface {:d}",
                                        buffer.native_surface.get_id() as int);
                             }
 

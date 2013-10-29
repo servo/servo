@@ -31,13 +31,13 @@ impl TextRunScanner {
             // FIXME: this assertion fails on wikipedia, but doesn't seem
             // to cause problems.
             // assert!(inline.boxes.len() > 0);
-            debug!("TextRunScanner: scanning %u boxes for text runs...", inline.boxes.len());
+            debug!("TextRunScanner: scanning {:u} boxes for text runs...", inline.boxes.len());
         }
 
         let mut last_whitespace = true;
         let mut out_boxes = ~[];
         for box_i in range(0, flow.as_immutable_inline().boxes.len()) {
-            debug!("TextRunScanner: considering box: %u", box_i);
+            debug!("TextRunScanner: considering box: {:u}", box_i);
             if box_i > 0 && !can_coalesce_text_nodes(flow.as_immutable_inline().boxes,
                                                      box_i - 1,
                                                      box_i) {
@@ -92,7 +92,7 @@ impl TextRunScanner {
 
         assert!(self.clump.length() > 0);
 
-        debug!("TextRunScanner: flushing boxes in range=%?", self.clump);
+        debug!("TextRunScanner: flushing boxes in range={}", self.clump);
         let is_singleton = self.clump.length() == 1;
         let possible_text_clump = in_boxes[self.clump.begin()]; // FIXME(pcwalton): Rust bug
         let is_text_clump = possible_text_clump.class() == UnscannedTextRenderBoxClass;
@@ -104,7 +104,7 @@ impl TextRunScanner {
                 fail!(~"WAT: can't coalesce non-text nodes in flush_clump_to_list()!")
             }
             (true, false) => {
-                debug!("TextRunScanner: pushing single non-text box in range: %?", self.clump);
+                debug!("TextRunScanner: pushing single non-text box in range: {}", self.clump);
                 out_boxes.push(in_boxes[self.clump.begin()]);
             },
             (true, true)  => {
@@ -126,7 +126,7 @@ impl TextRunScanner {
                     let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
                     let run = @fontgroup.create_textrun(transformed_text, decoration);
 
-                    debug!("TextRunScanner: pushing single text box in range: %? (%?)", self.clump, text);
+                    debug!("TextRunScanner: pushing single text box in range: {} ({})", self.clump, text);
                     let range = Range::new(0, run.char_len());
                     let new_box = @TextRenderBox::new((*old_box.base()).clone(), run, range);
 
@@ -185,12 +185,12 @@ impl TextRunScanner {
                 };
 
                 // Make new boxes with the run and adjusted text indices.
-                debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
+                debug!("TextRunScanner: pushing box(es) in range: {}", self.clump);
                 for i in clump.eachi() {
                     let range = new_ranges[i - self.clump.begin()];
                     if range.length() == 0 {
                         debug!("Elided an `UnscannedTextbox` because it was zero-length after \
-                                compression; %s",
+                                compression; {:s}",
                                in_boxes[i].debug_str());
                         continue
                     }
@@ -205,19 +205,19 @@ impl TextRunScanner {
 
         debug!("--- In boxes: ---");
         for (i, box) in in_boxes.iter().enumerate() {
-            debug!("%u --> %s", i, box.debug_str());
+            debug!("{:u} --> {:s}", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- Out boxes: ---");
         for (i, box) in out_boxes.iter().enumerate() {
-            debug!("%u --> %s", i, box.debug_str());
+            debug!("{:u} --> {:s}", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- Elem ranges: ---");
         for (i, nr) in inline.elems.eachi() {
-            debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str()); ()
+            debug!("{:u}: {} --> {:s}", i, nr.range, nr.node.debug_str()); ()
         }
         debug!("--------------------");
 

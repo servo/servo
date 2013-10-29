@@ -282,7 +282,7 @@ impl Page {
         match root {
             None => {},
             Some(root) => {
-                debug!("script: performing reflow for goal %?", goal);
+                debug!("script: performing reflow for goal {:?}", goal);
 
                 // Now, join the layout so that they will see the latest changes we have made.
                 self.join_layout();
@@ -541,7 +541,7 @@ impl ScriptTask {
     }
 
     fn handle_new_layout(&mut self, new_layout_info: NewLayoutInfo) {
-        debug!("Script: new layout: %?", new_layout_info);
+        debug!("Script: new layout: {:?}", new_layout_info);
         let NewLayoutInfo {
             old_id,
             new_id,
@@ -588,7 +588,7 @@ impl ScriptTask {
 
     /// Handles a notification that reflow completed.
     fn handle_reflow_complete_msg(&mut self, pipeline_id: PipelineId, reflow_id: uint) {
-        debug!("Script: Reflow %? complete for %?", reflow_id, pipeline_id);
+        debug!("Script: Reflow {:?} complete for {:?}", reflow_id, pipeline_id);
         let page_tree = self.page_tree.find(pipeline_id).expect(
             "ScriptTask: received a load message for a layout channel that is not associated \
              with this script task. This is a bug.");
@@ -656,7 +656,7 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&mut self, pipeline_id: PipelineId, url: Url) {
-        debug!("ScriptTask: loading %? on page %?", url, pipeline_id);
+        debug!("ScriptTask: loading {:?} on page {:?}", url, pipeline_id);
 
         let page = self.page_tree.find(pipeline_id).expect("ScriptTask: received a load
             message for a layout channel that is not associated with this script task. This
@@ -752,7 +752,7 @@ impl ScriptTask {
         // Receive the JavaScript scripts.
         assert!(js_scripts.is_some());
         let js_scripts = js_scripts.take_unwrap();
-        debug!("js_scripts: %?", js_scripts);
+        debug!("js_scripts: {:?}", js_scripts);
 
         // Define debug functions.
         let compartment = page.js_info.get_ref().js_compartment;
@@ -778,7 +778,7 @@ impl ScriptTask {
 
         match event {
             ResizeEvent(new_width, new_height) => {
-                debug!("script got resize event: %u, %u", new_width, new_height);
+                debug!("script got resize event: {:u}, {:u}", new_width, new_height);
 
                 page.window_size = Future::from_value(Size2D(new_width, new_height));
 
@@ -799,7 +799,7 @@ impl ScriptTask {
             }
 
             ClickEvent(_button, point) => {
-                debug!("ClickEvent: clicked at %?", point);
+                debug!("ClickEvent: clicked at {:?}", point);
 
                 let document = page.frame.expect("root frame is None").document;
                 let root = document.document().GetDocumentElement();
@@ -810,7 +810,7 @@ impl ScriptTask {
                 match page.query_layout(HitTestQuery(root.unwrap(), point, chan), port) {
                     Ok(node) => match node {
                         HitTestResponse(node) => {
-                            debug!("clicked on %s", node.debug_str());
+                            debug!("clicked on {:s}", node.debug_str());
                             let mut node = node;
                             // traverse node generations until a node that is an element is found
                             while !node.is_element() {
@@ -831,7 +831,7 @@ impl ScriptTask {
                         }
                     },
                     Err(()) => {
-                        debug!(fmt!("layout query error"));
+                        debug!("layout query error");
                     }
                 }
             }
@@ -844,11 +844,11 @@ impl ScriptTask {
         // if the node's element is "a," load url from href attr
         let attr = element.get_attr("href");
         for href in attr.iter() {
-            debug!("ScriptTask: clicked on link to %s", *href);
+            debug!("ScriptTask: clicked on link to {:s}", *href);
             let current_url = do page.url.as_ref().map |&(ref url, _)| {
                 url.clone()
             };
-            debug!("ScriptTask: current url is %?", current_url);
+            debug!("ScriptTask: current url is {:?}", current_url);
             let url = make_url(href.to_owned(), current_url);
             self.constellation_chan.send(LoadUrlMsg(page.id, url, Future::from_value(page.window_size.get())));
         }

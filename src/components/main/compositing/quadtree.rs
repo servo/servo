@@ -304,7 +304,7 @@ impl<T: Tile> Quadtree<T> {
 
     /// Generate html to visualize the tree. For debugging purposes only.
     pub fn get_html(&self) -> ~str {
-        fmt!("%s<body>%s</body></html>", HEADER, self.root.get_html())
+        format!("{:s}<body>{:s}</body></html>", HEADER, self.root.get_html())
     }
 }
 
@@ -374,7 +374,7 @@ impl<T: Tile> QuadtreeNode<T> {
     /// Returns an the difference in tile memory between the new quadtree node and the old quadtree node,
     /// along with any deleted tiles.
     fn add_tile(&mut self, x: f32, y: f32, tile: T, tile_size: f32) -> (int, ~[T]) {
-        debug!("Quadtree: Adding: (%?, %?) size:%?px", self.origin.x, self.origin.y, self.size);
+        debug!("Quadtree: Adding: ({}, {}) size:{}px", self.origin.x, self.origin.y, self.size);
 
         if x >= self.origin.x + self.size || x < self.origin.x
             || y >= self.origin.y + self.size || y < self.origin.y {
@@ -741,33 +741,33 @@ impl<T: Tile> QuadtreeNode<T> {
         let mut ret = ~"";
         match self.tile {
             Some(ref tile) => {
-                ret = fmt!("%s%?", ret, tile);
+                ret = format!("{:s}{:?}", ret, tile);
             }
             None => {
-                ret = fmt!("%sNO TILE", ret);
+                ret = format!("{:s}NO TILE", ret);
             }
         }
         match self.quadrants {
             [None, None, None, None] => {}
             _ => {
-                ret = fmt!("%s<table border=1><tr>", ret);
+                ret = format!("{:s}<table border=1><tr>", ret);
                 // FIXME: This should be inline, but currently won't compile
                 let quads = [TL, TR, BL, BR];
                 for quad in quads.iter() {
                     match self.quadrants[*quad as int] {
                         Some(ref child) => {
-                            ret = fmt!("%s<td>%s</td>", ret, child.get_html());
+                            ret = format!("{:s}<td>{:s}</td>", ret, child.get_html());
                         }
                         None => {
-                            ret = fmt!("%s<td>EMPTY CHILD</td>", ret);
+                            ret = format!("{:s}<td>EMPTY CHILD</td>", ret);
                         }
                     }
                     match *quad {
-                        TR => ret = fmt!("%s</tr><tr>", ret),
+                        TR => ret = format!("{:s}</tr><tr>", ret),
                         _ => {}
                     }
                 }
-                ret = fmt!("%s</table>\n", ret);
+                ret = format!("{:s}</table>\n", ret);
             }
         }
         return ret;

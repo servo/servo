@@ -194,7 +194,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
             JSTaskNewFile(url) => {
                 match load_whole_resource(&resource_task, url.clone()) {
                     Err(_) => {
-                        error!("error loading script %s", url.to_str());
+                        error!("error loading script {:s}", url.to_str());
                     }
                     Ok((metadata, bytes)) => {
                         result_vec.push(JSFile {
@@ -314,7 +314,7 @@ pub fn parse_html(cx: *JSContext,
                   image_cache_task: ImageCacheTask,
                   next_subpage_id: SubpageId,
                   constellation_chan: ConstellationChan) -> HtmlParserResult {
-    debug!("Hubbub: parsing %?", url);
+    debug!("Hubbub: parsing {:?}", url);
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
 
@@ -345,7 +345,7 @@ pub fn parse_html(cx: *JSContext,
     resource_task.send(Load(url.clone(), input_chan));
     let load_response = input_port.recv();
 
-    debug!("Fetched page; metadata is %?", load_response.metadata);
+    debug!("Fetched page; metadata is {:?}", load_response.metadata);
 
     let url2 = load_response.metadata.final_url.clone();
     let url3 = url2.clone();
@@ -405,7 +405,7 @@ pub fn parse_html(cx: *JSContext,
                         match (element.get_attr("rel"), element.get_attr("href")) {
                             (Some(rel), Some(href)) => {
                                 if rel == "stylesheet" {
-                                    debug!("found CSS stylesheet: %s", href);
+                                    debug!("found CSS stylesheet: {:s}", href);
                                     let url = make_url(href.to_str(), Some(url2.clone()));
                                     css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
                                 }
@@ -474,7 +474,7 @@ pub fn parse_html(cx: *JSContext,
         unref_node: |_| {},
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
             unsafe {
-                debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
+                debug!("append child {:x} {:x}", parent, child);
                 let parent: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(parent);
                 let child: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(child);
                 // FIXME this needs to be AppendChild.
@@ -527,21 +527,21 @@ pub fn parse_html(cx: *JSContext,
                 do scriptnode.with_imm_element |script| {
                     match script.get_attr("src") {
                         Some(src) => {
-                            debug!("found script: %s", src);
+                            debug!("found script: {:s}", src);
                             let new_url = make_url(src.to_str(), Some(url3.clone()));
                             js_chan2.send(JSTaskNewFile(new_url));
                         }
                         None => {
                             let mut data = ~[];
-                            debug!("iterating over children %?", scriptnode.first_child());
+                            debug!("iterating over children {:?}", scriptnode.first_child());
                             for child in scriptnode.children() {
-                                debug!("child = %?", child);
+                                debug!("child = {:?}", child);
                                 do child.with_imm_text() |text| {
                                     data.push(text.element.data.to_str());  // FIXME: Bad copy.
                                 }
                             }
 
-                            debug!("script data = %?", data);
+                            debug!("script data = {:?}", data);
                             js_chan2.send(JSTaskNewInlineScript(data.concat(), url3.clone()));
                         }
                     }
@@ -557,15 +557,15 @@ pub fn parse_html(cx: *JSContext,
                 let url_cell = Cell::new(url);
 
                 let mut data = ~[];
-                debug!("iterating over children %?", style.first_child());
+                debug!("iterating over children {:?}", style.first_child());
                 for child in style.children() {
-                    debug!("child = %?", child);
+                    debug!("child = {:?}", child);
                     do child.with_imm_text() |text| {
                         data.push(text.element.data.to_str());  // FIXME: Bad copy.
                     }
                 }
 
-                debug!("style data = %?", data);
+                debug!("style data = {:?}", data);
                 let provenance = InlineProvenance(url_cell.take().unwrap(), data.concat());
                 css_chan3.send(CSSTaskNewFile(provenance));
             }
@@ -581,7 +581,7 @@ pub fn parse_html(cx: *JSContext,
                 parser.parse_chunk(data);
             }
             Done(Err(*)) => {
-                fail!("Failed to load page URL %s", url.to_str());
+                fail!("Failed to load page URL {:s}", url.to_str());
             }
             Done(*) => {
                 break;

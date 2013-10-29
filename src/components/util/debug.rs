@@ -11,7 +11,7 @@ fn hexdump_slice(buf: &[u8]) {
     let stderr = io::stderr();
     stderr.write_str("    ");
     for (i, &v) in buf.iter().enumerate() {
-        stderr.write_str(fmt!("%02X ", v as uint));
+        stderr.write_str(format!("{:02X} ", v as uint));
         match i % 16 {
             15 => stderr.write_str("\n    "),
              7 => stderr.write_str("   "),
@@ -25,7 +25,7 @@ fn hexdump_slice(buf: &[u8]) {
 pub fn hexdump<T>(obj: &T) {
     unsafe {
         let buf: *u8 = transmute(obj);
-        debug!("dumping at %p", buf);
+        debug!("dumping at {:p}", buf);
         buf_as_slice(buf, size_of::<T>(), hexdump_slice);
     }
 }

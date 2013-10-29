@@ -32,7 +32,7 @@ impl FontListHandle {
         let mut family_map: FontFamilyMap = HashMap::new();
         for strref in family_names.iter() {
             let family_name = CFString::wrap_shared(strref).to_str();
-            debug!("Creating new FontFamily for family: %s", family_name);
+            debug!("Creating new FontFamily for family: {:s}", family_name);
 
             let new_family = @mut FontFamily::new(family_name);
             family_map.insert(family_name, new_family);
@@ -41,7 +41,7 @@ impl FontListHandle {
     }
 
     pub fn load_variations_for_family(&self, family: @mut FontFamily) {
-        debug!("Looking for faces of family: %s", family.family_name);
+        debug!("Looking for faces of family: {:s}", family.family_name);
 
         let family_collection = core_text::font_collection::create_for_family(family.family_name);
         let family_descriptors = family_collection.get_descriptors();
@@ -50,7 +50,7 @@ impl FontListHandle {
             let font = core_text::font::new_from_descriptor(&desc, 0.0);
             let handle = FontHandle::new_from_CTFont(&self.fctx, font).unwrap();
 
-            debug!("Creating new FontEntry for face: %s", handle.face_name());
+            debug!("Creating new FontEntry for face: {:s}", handle.face_name());
             let entry = @FontEntry::new(handle);
             family.entries.push(entry)
         }
