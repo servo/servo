@@ -239,6 +239,8 @@ pub trait TreeNodeRef<Node>: Clone {
     }
 
     fn is_element(&self) -> bool;
+
+    fn is_root(&self) -> bool;
 }
 
 pub trait TreeNodeRefAsElement<Node, E: ElementLike>: TreeNodeRef<Node> {
