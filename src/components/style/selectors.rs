@@ -203,18 +203,18 @@ fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
                            -> Option<(~[SimpleSelector], Option<PseudoElement>)> {
     let mut empty = true;
     let mut simple_selectors = match parse_type_selector(iter, namespaces) {
-        None => return None,  // invalid selector
-        Some(None) => ~[],
-        Some(Some(s)) => { empty = false; s }
+        InvalidTypeSelector => return None,
+        NotATypeSelector => ~[],
+        TypeSelector(s) => { empty = false; s }
     };
 
     let mut pseudo_element = None;
     loop {
         match parse_one_simple_selector(iter, namespaces, /* inside_negation = */ false) {
-            None => return None, // invalid selector
-            Some(None) => break,
-            Some(Some(Left(s))) => { simple_selectors.push(s); empty = false },
-            Some(Some(Right(p))) => { pseudo_element = Some(p); break },
+            InvalidSimpleSelector => return None,
+            NotASimpleSelector => break,
+            SimpleSelectorResult(s) => { simple_selectors.push(s); empty = false },
+            PseudoElementResult(p) => { pseudo_element = Some(p); break },
         }
     }
     if empty { None }  // An empty selector is invalid
@@ -222,16 +222,19 @@ fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
 }
 
 
-// None means invalid selector
-// Some(None) means no type selector.
-// Some(Some(~[...])) is a type selector. Might be empty for *|*
+enum TypeSelectorParseResult {
+    InvalidTypeSelector,
+    NotATypeSelector,
+    TypeSelector(~[SimpleSelector]),  // Length 0 (*|*), 1 (*|E or ns|*) or 2 (|E or ns|E)
+}
+
 fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
-                       -> Option<Option<~[SimpleSelector]>> {
+                       -> TypeSelectorParseResult {
     skip_whitespace(iter);
     match parse_qualified_name(iter, /* allow_universal = */ true, namespaces) {
-        None => None,  // invalid selector
-        Some(None) => Some(None),
-        Some(Some((namespace, local_name))) => {
+        InvalidQualifiedName => InvalidTypeSelector,
+        NotAQualifiedName => NotATypeSelector,
+        QualifiedName(namespace, local_name) => {
             let mut simple_selectors = ~[];
             match namespace {
                 Some(url) => simple_selectors.push(NamespaceSelector(url)),
@@ -241,36 +244,39 @@ fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
                 Some(name) => simple_selectors.push(LocalNameSelector(name)),
                 None => (),
             }
-            Some(Some(simple_selectors))
+            TypeSelector(simple_selectors)
         }
     }
 }
 
 
+enum SimpleSelectorParseResult {
+    InvalidSimpleSelector,
+    NotASimpleSelector,
+    SimpleSelectorResult(SimpleSelector),
+    PseudoElementResult(PseudoElement),
+}
+
 // Parse a simple selector other than a type selector
-// None means invalid selector
-// Some(None) means not a simple name
-// Some(Some(Left(s)) is a simple selector
-// Some(Some(Right(p)) is a pseudo-element
 fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_negation: bool)
-                         -> Option<Option<Either<SimpleSelector, PseudoElement>>> {
+                         -> SimpleSelectorParseResult {
     match iter.peek() {
         Some(&IDHash(_)) => match iter.next() {
-            Some(IDHash(id)) => Some(Some(Left(IDSelector(id)))),
+            Some(IDHash(id)) => SimpleSelectorResult(IDSelector(id)),
             _ => fail!("Implementation error, this should not happen."),
         },
         Some(&Delim('.')) => {
             iter.next();
             match iter.next() {
-                Some(Ident(class)) => Some(Some(Left(ClassSelector(class)))),
-                _ => None,  // invalid selector
+                Some(Ident(class)) => SimpleSelectorResult(ClassSelector(class)),
+                _ => InvalidSimpleSelector,
             }
         }
         Some(&SquareBracketBlock(_)) => match iter.next() {
             Some(SquareBracketBlock(content))
             => match parse_attribute_selector(content, namespaces) {
-                None => None,
-                Some(simple_selector) => Some(Some(Left(simple_selector))),
+                None => InvalidSimpleSelector,
+                Some(simple_selector) => SimpleSelectorResult(simple_selector),
             },
             _ => fail!("Implementation error, this should not happen."),
         },
@@ -281,66 +287,65 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
                     None => match name.to_ascii_lower().as_slice() {
                         // Supported CSS 2.1 pseudo-elements only.
                         // ** Do not add to this list! **
-                        "before" => Some(Some(Right(Before))),
-                        "after" => Some(Some(Right(After))),
-                        "first-line" => Some(Some(Right(FirstLine))),
-                        "first-letter" => Some(Some(Right(FirstLetter))),
-                        _ => None
+                        "before" => PseudoElementResult(Before),
+                        "after" => PseudoElementResult(After),
+                        "first-line" => PseudoElementResult(FirstLine),
+                        "first-letter" => PseudoElementResult(FirstLetter),
+                        _ => InvalidSimpleSelector
                     },
-                    Some(result) => Some(Some(Left(result))),
+                    Some(result) => SimpleSelectorResult(result),
                 },
                 Some(Function(name, arguments)) => match parse_functional_pseudo_class(
                         name, arguments, namespaces, inside_negation) {
-                    None => None,
-                    Some(simple_selector) => Some(Some(Left(simple_selector))),
+                    None => InvalidSimpleSelector,
+                    Some(simple_selector) => SimpleSelectorResult(simple_selector),
                 },
                 Some(Colon) => {
                     match iter.next() {
                         Some(Ident(name)) => match parse_pseudo_element(name) {
-                            Some(pseudo_element) => Some(Some(Right(pseudo_element))),
-                            _ => None,
+                            Some(pseudo_element) => PseudoElementResult(pseudo_element),
+                            _ => InvalidSimpleSelector,
                         },
-                        _ => None,
+                        _ => InvalidSimpleSelector,
                     }
                 }
-                _ => None,
+                _ => InvalidSimpleSelector,
             }
         }
-        _ => Some(None),
+        _ => NotASimpleSelector,
     }
 }
 
 
-// None means invalid selector
-// Some(None) means not a qualified name
-// Some(Some((None, None)) means *|*
-// Some(Some((Some(url), None)) means prefix|*
-// Some(Some((None, Some(name)) means *|name
-// Some(Some((Some(url), Some(name))) means prefix|name
-// ... or equivalent
+enum QualifiedNameParseResult {
+    InvalidQualifiedName,
+    NotAQualifiedName,
+    QualifiedName(Option<~str>, Option<~str>)  // Namespace URL, local name. None means '*'
+}
+
 fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &NamespaceMap)
-                       -> Option<Option<(Option<~str>, Option<~str>)>> {
+                       -> QualifiedNameParseResult {
     #[inline]
     fn default_namespace(namespaces: &NamespaceMap, local_name: Option<~str>)
-                         -> Option<Option<(Option<~str>, Option<~str>)>> {
-        Some(Some((namespaces.default.as_ref().map(|url| url.to_owned()), local_name)))
+                         -> QualifiedNameParseResult {
+        QualifiedName(namespaces.default.as_ref().map(|url| url.to_owned()), local_name)
     }
 
     #[inline]
     fn explicit_namespace(iter: &mut Iter, allow_universal: bool, namespace_url: Option<~str>)
-                         -> Option<Option<(Option<~str>, Option<~str>)>> {
+                         -> QualifiedNameParseResult {
         assert!(iter.next() == Some(Delim('|')),
                 "Implementation error, this should not happen.");
         match iter.peek() {
             Some(&Delim('*')) if allow_universal => {
                 iter.next();
-                Some(Some((namespace_url, None)))
+                QualifiedName(namespace_url, None)
             },
             Some(&Ident(_)) => {
                 let local_name = get_next_ident(iter);
-                Some(Some((namespace_url, Some(local_name))))
+                QualifiedName(namespace_url, Some(local_name))
             },
-            _ => None,  // invalid selector
+            _ => InvalidQualifiedName,
         }
     }
 
@@ -350,7 +355,7 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
             match iter.peek() {
                 Some(&Delim('|')) => {
                     let namespace_url = match namespaces.prefix_map.find(&value) {
-                        None => return None,  // Undeclared namespace prefix: invalid selector
+                        None => return InvalidQualifiedName,  // Undeclared namespace prefix
                         Some(ref url) => url.to_owned(),
                     };
                     explicit_namespace(iter, allow_universal, Some(namespace_url))
@@ -364,12 +369,12 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
                 Some(&Delim('|')) => explicit_namespace(iter, allow_universal, None),
                 _ => {
                     if allow_universal { default_namespace(namespaces, None) }
-                    else { None }
+                    else { InvalidQualifiedName }
                 },
             }
         },
         Some(&Delim('|')) => explicit_namespace(iter, allow_universal, Some(~"")),
-        _ => Some(None),
+        _ => NotAQualifiedName,
     }
 }
 
@@ -378,10 +383,9 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
                             -> Option<SimpleSelector> {
     let iter = &mut content.move_iter().peekable();
     let attr = match parse_qualified_name(iter, /* allow_universal = */ false, namespaces) {
-        None => return None,  // invalid selector
-        Some(None) => return None,
-        Some(Some((_, None))) => fail!("Implementation error, this should not happen."),
-        Some(Some((namespace, Some(local_name)))) => AttrSelector {
+        InvalidQualifiedName | NotAQualifiedName => return None,
+        QualifiedName(_, None) => fail!("Implementation error, this should not happen."),
+        QualifiedName(namespace, Some(local_name)) => AttrSelector {
             namespace: namespace,
             name: local_name,
         },
@@ -465,11 +469,11 @@ fn parse_negation(arguments: ~[ComponentValue], namespaces: &NamespaceMap)
                   -> Option<SimpleSelector> {
     let iter = &mut arguments.move_iter().peekable();
     Some(Negation(match parse_type_selector(iter, namespaces) {
-        None => return None,  // invalid selector
-        Some(Some(s)) => s,
-        Some(None) => {
+        InvalidTypeSelector => return None,
+        TypeSelector(s) => s,
+        NotATypeSelector => {
             match parse_one_simple_selector(iter, namespaces, /* inside_negation = */ true) {
-                Some(Some(Left(s))) => ~[s],
+                SimpleSelectorResult(s) => ~[s],
                 _ => return None
             }
         },
