@@ -104,9 +104,21 @@ impl BoxModel {
     }
 
     pub fn compute_padding_length(&self, padding: computed::LengthOrPercentage, content_box_width: Au) -> Au {
-        match padding {
-            computed::LP_Length(length) => length,
-            computed::LP_Percentage(p) => content_box_width.scale_by(p)
-        }
+        specified(padding, content_box_width)
+    }
+}
+
+pub fn specified_or_none(length: computed::LengthOrPercentageOrNone, containing_length: Au) -> Option<Au> {
+    match length {
+        computed::LPN_None => None,
+        computed::LPN_Percentage(percent) => Some(containing_length.scale_by(percent)),
+        computed::LPN_Length(length) => Some(length),
+    }
+}
+
+pub fn specified(length: computed::LengthOrPercentage, containing_length: Au) -> Au {
+    match length {
+        computed::LP_Length(length) => length,
+        computed::LP_Percentage(p) => containing_length.scale_by(p)
     }
 }

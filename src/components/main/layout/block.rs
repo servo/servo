@@ -9,7 +9,7 @@ use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{BlockFlowClass, FlowClass, FlowContext, FlowData, ImmutableFlowUtils};
 use layout::flow;
-use layout::model::{MaybeAuto, Specified, Auto};
+use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
 use layout::float_context::{FloatContext, Invalid};
 
 use std::cell::Cell;
@@ -391,15 +391,40 @@ impl FlowContext for BlockFlow {
             let margin_bottom = MaybeAuto::from_style(style.Margin.margin_bottom,
                                                       remaining_width).specified_or_zero();
 
-            let (width, margin_left, margin_right) =
+            let (width, maybe_margin_left, maybe_margin_right) =
                 (MaybeAuto::from_style(style.Box.width, remaining_width),
                  MaybeAuto::from_style(style.Margin.margin_left, remaining_width),
                  MaybeAuto::from_style(style.Margin.margin_right, remaining_width));
 
             let (width, margin_left, margin_right) = self.compute_horiz(width,
-                                                                        margin_left,
-                                                                        margin_right,
+                                                                        maybe_margin_left,
+                                                                        maybe_margin_right,
                                                                         available_width);
+
+            // If the tentative used width is greater than 'max-width', width should be recalculated,
+            // but this time using the computed value of 'max-width' as the computed value for 'width'.
+            let (width, margin_left, margin_right) = {
+                match specified_or_none(style.Box.max_width, remaining_width) {
+                    Some(value) if value < width => self.compute_horiz(Specified(value),
+                                                                       maybe_margin_left,
+                                                                       maybe_margin_right,
+                                                                       available_width),
+                    _ => (width, margin_left, margin_right)
+                }
+            };
+            // If the resulting width is smaller than 'min-width', width should be recalculated,
+            // but this time using the value of 'min-width' as the computed value for 'width'.
+            let (width, margin_left, margin_right) = {
+                let computed_min_width = specified(style.Box.min_width, remaining_width);
+                if computed_min_width > width {
+                    self.compute_horiz(Specified(computed_min_width),
+                                       maybe_margin_left,
+                                       maybe_margin_right,
+                                       available_width)
+                } else {
+                    (width, margin_left, margin_right)
+                }
+            };
 
             model.margin.top = margin_top;
             model.margin.right = margin_right;
