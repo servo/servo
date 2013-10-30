@@ -90,12 +90,12 @@ pub trait FlowContext {
         fail!("assign_widths not yet implemented")
     }
 
-    /// Pass 3 of reflow: computes height.
+    /// Pass 3a of reflow: computes height.
     fn assign_height(&mut self, _ctx: &mut LayoutContext) {
         fail!("assign_height not yet implemented")
     }
 
-    /// In-order version of pass 3 of reflow: computes heights with floats present.
+    /// In-order version of pass 3a of reflow: computes heights with floats present.
     fn assign_height_inorder(&mut self, _ctx: &mut LayoutContext) {
         fail!("assign_height_inorder not yet implemented")
     }
@@ -189,6 +189,9 @@ pub trait MutableFlowUtils {
 
     /// Removes the last child of this flow and destroys it.
     fn remove_last(self);
+
+    /// Computes the overflow region for this flow.
+    fn store_overflow(self, _: &mut LayoutContext);
 
     /// Builds a display list for this flow and its children.
     fn build_display_list<E:ExtraDisplayListData>(
@@ -315,7 +318,15 @@ pub struct FlowData {
     // layout; maybe combine into a single enum to save space.
     min_width: Au,
     pref_width: Au,
+
+    /// The position of the upper left corner of the border box of this flow, relative to the
+    /// containing block.
     position: Rect<Au>,
+
+    /// The amount of overflow of this flow, relative to the containing block. Must include all the
+    /// pixels of all the display list items for correct invalidation.
+    overflow: Rect<Au>,
+
     floats_in: FloatContext,
     floats_out: FloatContext,
     num_floats: uint,
@@ -353,6 +364,7 @@ impl FlowData {
             min_width: Au::new(0),
             pref_width: Au::new(0),
             position: Au::zero_rect(),
+            overflow: Au::zero_rect(),
             floats_in: Invalid,
             floats_out: Invalid,
             num_floats: 0,
@@ -465,6 +477,17 @@ impl<'self> MutableFlowUtils for &'self mut FlowContext {
     /// Removes the last child of this flow and destroys it.
     fn remove_last(self) {
         let _ = mut_base(self).children.pop_back();
+    }
+
+    fn store_overflow(self, _: &mut LayoutContext) {
+        let my_position = mut_base(self).position;
+        let mut overflow = my_position;
+        for kid in mut_base(self).child_iter() {
+            let mut kid_overflow = base(*kid).overflow;
+            kid_overflow = kid_overflow.translate(&my_position.origin);
+            overflow = overflow.union(&kid_overflow)
+        }
+        mut_base(self).overflow = overflow
     }
 
     fn build_display_list<E:ExtraDisplayListData>(

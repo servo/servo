@@ -131,8 +131,9 @@ pub mod dom {
     pub mod navigator;
     pub mod node;
     pub mod nodelist;
-    pub mod uievent;
+    pub mod traverse;
     pub mod text;
+    pub mod uievent;
     pub mod validitystate;
     pub mod window;
     pub mod windowproxy;

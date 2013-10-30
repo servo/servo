@@ -86,7 +86,7 @@ impl AbstractDocument {
     }
 
     pub fn set_root(&self, root: AbstractNode<ScriptView>) {
-        assert!(do root.traverse_preorder().all |node| {
+        assert!(do root.descendants_and_self().all |node| {
             node.node().owner_doc() == *self
         });
 
@@ -269,7 +269,7 @@ impl Document {
                 match self.GetDocumentElement() {
                     None => {},
                     Some(root) => {
-                        for node in root.traverse_preorder() {
+                        for node in root.descendants_and_self() {
                             if node.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
                                 continue;
                             }
@@ -302,7 +302,7 @@ impl Document {
                 match self.GetDocumentElement() {
                     None => {},
                     Some(root) => {
-                        for node in root.traverse_preorder() {
+                        for node in root.descendants_and_self() {
                             if node.type_id() != ElementNodeTypeId(HTMLHeadElementTypeId) {
                                 continue;
                             }
@@ -347,7 +347,7 @@ impl Document {
         match self.GetDocumentElement() {
             None => {},
             Some(root) => {
-                for child in root.traverse_preorder() {
+                for child in root.descendants_and_self() {
                     if child.is_element() {
                         do child.with_imm_element |elem| {
                             if callback(elem) {
@@ -389,7 +389,7 @@ impl Document {
 #[inline(always)]
 fn foreach_ided_elements(root: &AbstractNode<ScriptView>,
                          callback: &fn(&~str, &AbstractNode<ScriptView>)) {
-    for node in root.traverse_preorder() {
+    for node in root.descendants_and_self() {
         if !node.is_element() {
             continue;
         }

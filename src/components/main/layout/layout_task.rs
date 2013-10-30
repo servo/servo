@@ -138,15 +138,16 @@ impl<'self> PreorderFlowTraversal for AssignWidthsTraversal<'self> {
     }
 }
 
-/// The assign-heights traversal, the last (and most expensive) part of layout computation.
-/// Determines the final heights for all layout objects. In Gecko this corresponds to
-/// `FinishAndStoreOverflow`.
-struct AssignHeightsTraversal<'self>(&'self mut LayoutContext);
+/// The assign-heights-and-store-overflow traversal, the last (and most expensive) part of layout
+/// computation. Determines the final heights for all layout objects, computes positions, and
+/// computes overflow regions. In Gecko this corresponds to `FinishAndStoreOverflow`.
+struct AssignHeightsAndStoreOverflowTraversal<'self>(&'self mut LayoutContext);
 
-impl<'self> PostorderFlowTraversal for AssignHeightsTraversal<'self> {
+impl<'self> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'self> {
     #[inline]
     fn process(&mut self, flow: &mut FlowContext) -> bool {
         flow.assign_height(**self);
+        flow.store_overflow(**self);
         true
     }
 
@@ -296,6 +297,29 @@ impl LayoutTask {
         self.stylist.add_stylesheet(sheet, AuthorOrigin);
     }
 
+    /// Performs layout constraint solving.
+    ///
+    /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
+    /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
+    #[inline(never)]
+    fn solve_constraints(&mut self,
+                         layout_root: &mut FlowContext,
+                         layout_context: &mut LayoutContext) {
+        let _ = layout_root.traverse_postorder(&mut BubbleWidthsTraversal(layout_context));
+
+        // FIXME(kmc): We want to do
+        //     for flow in layout_root.traverse_preorder_prune(|f|
+        //          f.restyle_damage().lacks(Reflow)) 
+        // but FloatContext values can't be reused, so we need to recompute them every time.
+        // NOTE: this currently computes borders, so any pruning should separate that operation out.
+        let _ = layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
+
+        // For now, this is an inorder traversal
+        // FIXME: prune this traversal as well
+        let _ = layout_root.traverse_postorder(&mut
+            AssignHeightsAndStoreOverflowTraversal(layout_context));
+    }
+
     /// The high-level routine that performs layout tasks.
     fn handle_reflow(&mut self, data: &Reflow) {
         // FIXME: Isolate this transmutation into a "bridge" module.
@@ -365,17 +389,7 @@ impl LayoutTask {
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         do profile(time::LayoutMainCategory, self.profiler_chan.clone()) {
-            let _ = layout_root.traverse_postorder(&mut BubbleWidthsTraversal(&mut layout_ctx));
-
-            // FIXME(kmc): We want to do
-            //     for flow in layout_root.traverse_preorder_prune(|f| f.restyle_damage().lacks(Reflow)) 
-            // but FloatContext values can't be reused, so we need to recompute them every time.
-            // NOTE: this currently computes borders, so any pruning should separate that operation out.
-            let _ = layout_root.traverse_preorder(&mut AssignWidthsTraversal(&mut layout_ctx));
-
-            // For now, this is an inorder traversal
-            // FIXME: prune this traversal as well
-            let _ = layout_root.traverse_postorder(&mut AssignHeightsTraversal(&mut layout_ctx));
+            self.solve_constraints(layout_root, &mut layout_ctx)
         }
 
         // Build the display list if necessary, and send it to the renderer.

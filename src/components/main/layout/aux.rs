@@ -24,7 +24,7 @@ impl LayoutAuxMethods for AbstractNode<LayoutView> {
 
     /// Resets layout data and styles for a Node tree.
     fn initialize_style_for_subtree(self) {
-        for n in self.traverse_preorder() {
+        for n in self.descendants_and_self() {
             n.initialize_layout_data();
         }
     }
