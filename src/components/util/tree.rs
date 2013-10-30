@@ -145,24 +145,47 @@ pub trait TreeNodeRef<Node>: Clone {
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
-    fn add_child(&self, new_child: Self) {
+    fn add_child(&self, new_child: Self, before: Option<Self>) {
         let this_node = self.mut_node();
         let new_child_node = new_child.mut_node();
         assert!((get!(new_child_node, parent_node)).is_none());
         assert!((get!(new_child_node, prev_sibling)).is_none());
         assert!((get!(new_child_node, next_sibling)).is_none());
+        match before {
+            Some(before) => {
+                let before_node = before.mut_node();
+                // XXX Should assert that parent is self.
+                assert!((get!(before_node, parent_node)).is_some());
+                set!(before_node, set_prev_sibling, Some(new_child.clone()));
+                set!(new_child_node, set_next_sibling, Some(before.clone()));
+                match get!(before_node, prev_sibling) {
+                    None => {
+                        // XXX Should assert that before is the first child of
+                        //     self.
+                        set!(this_node, set_first_child, Some(new_child.clone()));
+                    },
+                    Some(prev_sibling) => {
+                        let prev_sibling_node = prev_sibling.mut_node();
+                        set!(prev_sibling_node, set_next_sibling, Some(new_child.clone()));
+                        set!(new_child_node, set_prev_sibling, Some(prev_sibling.clone()));
+                    },
+                }
+            },
+            None => {
+                match get!(this_node, last_child) {
+                    None => set!(this_node, set_first_child, Some(new_child.clone())),
+                    Some(last_child) => {
+                        let last_child_node = last_child.mut_node();
+                        assert!((get!(last_child_node, next_sibling)).is_none());
+                        set!(last_child_node, set_next_sibling, Some(new_child.clone()));
+                        set!(new_child_node, set_prev_sibling, Some(last_child.clone()));
+                    }
+                }
 
-        match get!(this_node, last_child) {
-            None => set!(this_node, set_first_child, Some(new_child.clone())),
-            Some(last_child) => {
-                let last_child_node = last_child.mut_node();
-                assert!((get!(last_child_node, next_sibling)).is_none());
-                set!(last_child_node, set_next_sibling, Some(new_child.clone()));
-                set!(new_child_node, set_prev_sibling, Some(last_child.clone()));
-            }
+                set!(this_node, set_last_child, Some(new_child.clone()));
+            },
         }
 
-        set!(this_node, set_last_child, Some(new_child.clone()));
         set!(new_child_node, set_parent_node, Some((*self).clone()));
     }
 

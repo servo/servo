@@ -57,8 +57,8 @@ interface Node /*: EventTarget*/ {
            attribute DOMString? nodeValue;
   [SetterThrows, Pure]
            attribute DOMString? textContent;
-  /*[Throws]
-    Node insertBefore(Node node, Node? child);*/ //XXXjdm we don't deal well with Node? parameters
+  [Throws]
+  Node insertBefore(Node node, Node? child);
   [Throws]
   Node appendChild(Node node);
   [Throws]
