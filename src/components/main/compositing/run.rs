@@ -230,7 +230,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
                     window_size = new_size;
                     match constellation_chan {
                         Some(ref chan) => chan.send(ResizedWindowMsg(new_size)),
-                        None => error!("Compositor: Recieved resize event without initialized layout chan"),
+                        None => error!("Compositor: Received resize event without initialized layout chan"),
                     }
                 } else {
                     debug!("osmain: dropping window resize since size is still %ux%u", width, height);
@@ -247,7 +247,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
                     Some(ref chan) => chan.send(LoadUrlMsg(root_pipeline_id,
                                                            url::make_url(url_string.to_str(), None),
                                                            Future::from_value(window_size))),
-                    None => error!("Compositor: Recieved loadurl event without initialized layout chan"),
+                    None => error!("Compositor: Received loadurl event without initialized layout chan"),
                 }
             }
 
@@ -305,7 +305,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
                 };
                 match constellation_chan {
                     Some(ref chan) => chan.send(NavigateMsg(direction)),
-                    None => error!("Compositor: Recieved navigation event without initialized layout chan"),
+                    None => error!("Compositor: Received navigation event without initialized layout chan"),
                 }
             }
 
