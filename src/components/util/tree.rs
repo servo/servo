@@ -60,7 +60,7 @@ impl<Node, Ref: TreeNodeRef<Node>> Iterator<Ref> for AncestorIterator<Ref> {
 }
 
 // FIXME: Do this without precomputing a vector of refs.
-// Easy for preorder; harder for postorder.
+// Easy for preorder.
 pub struct TreeIterator<Ref> {
     priv nodes: ~[Ref],
     priv index: uint,
@@ -210,31 +210,9 @@ pub trait TreeNodeRef<Node>: Clone {
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    fn traverse_preorder(&self) -> TreeIterator<Self> {
-        self.traverse_preorder_prune(|_| false)
-    }
-
-    /// Iterates over this node and all its descendants, in postorder.
-    fn traverse_postorder(&self) -> TreeIterator<Self> {
-        self.traverse_postorder_prune(|_| false)
-    }
-
-    /// Like traverse_preorder but calls 'prune' first on each node.  If it returns true then we
-    /// skip the whole subtree but continue iterating.
-    fn traverse_preorder_prune(&self, prune: &fn(&Self) -> bool) -> TreeIterator<Self> {
+    fn descendants_and_self(&self) -> TreeIterator<Self> {
         let mut nodes = ~[];
-        gather(self, &mut nodes, false, prune);
-        TreeIterator::new(nodes)
-    }
-
-    /// Like traverse_postorder but calls 'prune' first on each node.  If it returns true then we
-    /// skip the whole subtree but continue iterating.
-    ///
-    /// NB: 'prune' is called *before* traversing children, even though this is a
-    /// postorder traversal.
-    fn traverse_postorder_prune(&self, prune: &fn(&Self) -> bool) -> TreeIterator<Self> {
-        let mut nodes = ~[];
-        gather(self, &mut nodes, true, prune);
+        gather(self, &mut nodes);
         TreeIterator::new(nodes)
     }
 
@@ -247,22 +225,10 @@ pub trait TreeNodeRefAsElement<Node, E: ElementLike>: TreeNodeRef<Node> {
     fn with_imm_element_like<R>(&self, f: &fn(&E) -> R) -> R;
 }
 
-fn gather<Node, Ref: TreeNodeRef<Node>>(cur: &Ref, refs: &mut ~[Ref],
-                                        postorder: bool, prune: &fn(&Ref) -> bool) {
-    // prune shouldn't mutate, so don't clone
-    if prune(cur) {
-        return;
-    }
-
-    if !postorder {
-        refs.push(cur.clone());
-    }
+fn gather<Node, Ref: TreeNodeRef<Node>>(cur: &Ref, refs: &mut ~[Ref]) {
+    refs.push(cur.clone());
     for kid in cur.children() {
-        // FIXME: Work around rust#2202. We should be able to pass the callback directly.
-        gather(&kid, refs, postorder, |a| prune(a))
-    }
-    if postorder {
-        refs.push(cur.clone());
+        gather(&kid, refs)
     }
 }
 

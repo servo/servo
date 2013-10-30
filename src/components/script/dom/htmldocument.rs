@@ -41,7 +41,7 @@ impl HTMLDocument {
     pub fn GetHead(&self) -> Option<AbstractNode<ScriptView>> {
         match self.parent.GetDocumentElement() {
             None => None,
-            Some(root) => root.traverse_preorder().find(|child| {
+            Some(root) => root.descendants_and_self().find(|child| {
                 child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
             })
         }

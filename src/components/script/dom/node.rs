@@ -504,7 +504,7 @@ impl Node<ScriptView> {
         self.set_owner_doc(doc);
         let mut cur_node = self.first_child;
         while cur_node.is_some() {
-            for node in cur_node.unwrap().traverse_preorder() {
+            for node in cur_node.unwrap().descendants_and_self() {
                 node.mut_node().set_owner_doc(doc);
             };
             cur_node = cur_node.unwrap().next_sibling();
@@ -658,7 +658,7 @@ impl Node<ScriptView> {
         match self.type_id {
           DocumentFragmentNodeTypeId | ElementNodeTypeId(*) => {
             let mut content = ~"";
-            for node in abstract_self.traverse_preorder() {
+            for node in abstract_self.descendants_and_self() {
                 if node.is_text() {
                     do node.with_imm_text() |text| {
                         let s = text.element.Data();
@@ -908,8 +908,7 @@ pub struct LayoutData {
     /// Description of how to account for recent style changes.
     restyle_damage: Option<int>,
 
-    /// The boxes assosiated with this flow.
-    /// Used for getBoundingClientRect and friends.
+    /// The boxes associated with this node. Used for `getBoundingClientRect()` and friends.
     boxes: DisplayBoxes,
 }
 
