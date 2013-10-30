@@ -8,8 +8,15 @@ use geom::size::Size2D;
 
 use std::num::{NumCast, One, Zero};
 
-#[deriving(Clone)]
 pub struct Au(i32);
+
+// We don't use #[deriving] here for inlining.
+impl Clone for Au {
+    #[inline]
+    fn clone(&self) -> Au {
+        Au(**self)
+    }
+}
 
 impl Eq for Au {
     #[inline]
