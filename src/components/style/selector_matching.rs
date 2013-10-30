@@ -77,19 +77,30 @@ impl Stylist {
         }
     }
 
-    pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-            &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>,
-            pseudo_element: Option<PseudoElement>) -> ~[Arc<~[PropertyDeclaration]>] {
+    pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
+            &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>) -> (~[Arc<~[PropertyDeclaration]>], ~[Arc<~[PropertyDeclaration]>]) {
         assert!(element.is_element())
-        assert!(style_attribute.is_none() || pseudo_element.is_none(),
-                "Style attributes do not apply to pseudo-elements")
+        assert!(style_attribute.is_none(), "Style attributes do not apply to pseudo-elements")
         let mut applicable_declarations = ~[];  // TODO: use an iterator?
+        let mut pseudo_applicable_declarations = ~[];
 
         macro_rules! append(
             ($rules: expr) => {
                 for rule in $rules.iter() {
-                    if matches_selector::<N, T, E>(&rule.selector, element, pseudo_element) {
-                        applicable_declarations.push(rule.declarations.clone())
+                    if matches_selector::<N, T, E>(&rule.selector, element) {
+                        match rule.selector.pseudo_element {
+                            Some(Before) => {
+                                match element.node().first_child() {
+                                    Some(ref mut node) => {
+                                        node.set_pseudo_element(rule.selector.pseudo_element);
+                                        pseudo_applicable_declarations.push(rule.declarations.clone());
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            None => applicable_declarations.push(rule.declarations.clone()),
+                            _ => {}
+                        }
                     }
                 }
             };
@@ -111,7 +122,7 @@ impl Stylist {
         append!(self.user_rules.important);
         append!(self.ua_rules.important);
 
-        applicable_declarations
+        (applicable_declarations, pseudo_applicable_declarations)
     }
 }
 
@@ -144,13 +155,12 @@ impl Ord for Rule {
 
 
 #[inline]
-fn matches_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        selector: &Selector, element: &T, pseudo_element: Option<PseudoElement>) -> bool {
-    selector.pseudo_element == pseudo_element &&
+fn matches_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
+        selector: &Selector, element: &T) -> bool {
     matches_compound_selector::<N, T, E>(&selector.compound_selectors, element)
 }
 
-fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
         selector: &CompoundSelector, element: &T) -> bool {
     if !do selector.simple_selectors.iter().all |simple_selector| {
             matches_simple_selector(simple_selector, element)
@@ -190,7 +200,7 @@ fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
 }
 
 #[inline]
-fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
         selector: &SimpleSelector, element: &T) -> bool {
     static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
 
@@ -279,7 +289,7 @@ fn url_is_visited(_url: &str) -> bool {
 }
 
 #[inline]
-fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
         element: &T) -> bool {
     let mut node = element.clone();
     loop {
@@ -296,7 +306,7 @@ fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Element
 }
 
 #[inline]
-fn match_attribute<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+fn match_attribute<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
         attr: &AttrSelector, element: &T, f: &fn(&str)-> bool) -> bool {
     do element.with_imm_element_like |element: &E| {
         match attr.namespace {
