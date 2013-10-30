@@ -5,6 +5,12 @@
 // High-level interface to CSS selector matching.
 
 use std::cell::Cell;
+use std::comm;
+use std::rt::default_sched_threads;
+use std::task;
+use std::vec;
+use extra::arc::RWArc;
+
 use css::node_style::StyledNode;
 use css::node_util::NodeUtil;
 use layout::incremental;
@@ -16,7 +22,7 @@ use servo_util::tree::TreeNodeRef;
 
 pub trait MatchMethods {
     fn match_node(&self, stylist: &Stylist);
-    fn match_subtree(&self, stylist: &Stylist);
+    fn match_subtree(&self, stylist: RWArc<Stylist>);
 
     fn cascade_node(&self, parent: Option<AbstractNode<LayoutView>>);
     fn cascade_subtree(&self, parent: Option<AbstractNode<LayoutView>>);
@@ -36,13 +42,40 @@ impl MatchMethods for AbstractNode<LayoutView> {
             data.applicable_declarations = cell.take();
         }
     }
-    fn match_subtree(&self, stylist: &Stylist) {
-        self.match_node(stylist);
+    fn match_subtree(&self, stylist: RWArc<Stylist>) {
+        let num_tasks = default_sched_threads() * 2;
+        let mut node_count = 0;
+        let mut nodes_per_task = vec::from_elem(num_tasks, ~[]);
 
-        for kid in self.children() {
-            if kid.is_element() {
-                kid.match_subtree(stylist);
+        for node in self.traverse_preorder() {
+            if node.is_element() {
+                nodes_per_task[node_count % num_tasks].push(node);
+                node_count += 1;
             }
+        }
+
+        let (port, chan) = comm::stream();
+        let chan = comm::SharedChan::new(chan);
+        let mut num_spawned = 0;
+
+        for nodes in nodes_per_task.move_iter() {
+            if nodes.len() > 0 {
+                let chan = chan.clone();
+                let stylist = stylist.clone();
+                do task::spawn_with((nodes, stylist)) |(nodes, stylist)| {
+                    let nodes = Cell::new(nodes);
+                    do stylist.read |stylist| {
+                        for node in nodes.take().move_iter() {
+                            node.match_node(stylist);
+                        }
+                    }
+                    chan.send(());
+                }
+                num_spawned += 1;
+            }
+        }
+        for _ in range(0, num_spawned) {
+            port.recv();
         }
     }
 
