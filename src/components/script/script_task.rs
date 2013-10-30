@@ -699,14 +699,13 @@ impl ScriptTask {
                                                                  self.constellation_chan.clone());
 
 
-        let HtmlParserResult {root, discovery_port, url: final_url} = html_parsing_result;
+        let HtmlParserResult {root, discovery_port} = html_parsing_result;
 
         // Create the root frame.
         page.frame = Some(Frame {
             document: document,
             window: window,
         });
-        page.url = Some((final_url, true));
 
         // Send style sheets over to layout.
         //

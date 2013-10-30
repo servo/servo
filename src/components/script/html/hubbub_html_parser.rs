@@ -129,7 +129,6 @@ pub enum HtmlDiscoveryMessage {
 pub struct HtmlParserResult {
     root: AbstractNode<ScriptView>,
     discovery_port: Port<HtmlDiscoveryMessage>,
-    url: Url,
 }
 
 trait NodeWrapping {
@@ -349,6 +348,17 @@ pub fn parse_html(cx: *JSContext,
 
     let url2 = load_response.metadata.final_url.clone();
     let url3 = url2.clone();
+
+    // Store the final URL before we start parsing, so that DOM routines
+    // (e.g. HTMLImageElement::update_image) can resolve relative URLs
+    // correctly.
+    //
+    // FIXME: is this safe? When we instead pass an &mut Page to parse_html,
+    // we crash with a dynamic borrow failure.
+    let page = page_from_context(cx);
+    unsafe {
+        (*page).url = Some((url2.clone(), true));
+    }
 
     // Build the root node.
     let root = @HTMLHtmlElement { htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html", document) };
@@ -595,7 +605,6 @@ pub fn parse_html(cx: *JSContext,
     HtmlParserResult {
         root: root,
         discovery_port: discovery_port,
-        url: load_response.metadata.final_url,
     }
 }
 
