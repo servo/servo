@@ -268,7 +268,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);
     handle_element!(cx, document, tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
     handle_element!(cx, document, tag, "track",   HTMLTrackElementTypeId, HTMLTrackElement, []);
-    handle_element!(cx, document, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -287,6 +286,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "img",       HTMLImageElement);
     handle_newable_element!(document, tag, "td",        HTMLTableDataCellElement);
     handle_newable_element!(document, tag, "th",        HTMLTableHeaderCellElement);
+    handle_newable_element!(document, tag, "ul",        HTMLUListElement);
     handle_newable_element!(document, tag, "video",     HTMLVideoElement);
 
     return HTMLUnknownElement::new(tag.to_str(), document);
