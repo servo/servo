@@ -56,15 +56,15 @@ macro_rules! handle_htmlelement(
                              $cx, $document, $tag, $string, $type_id, $ctor, []);
     )
 )
-macro_rules! handle_htmlmediaelement(
-    ($cx: expr,
-     $document: expr,
-     $tag: expr,
+macro_rules! handle_newable_element(
+    ($document: expr,
+     $localName: expr,
      $string: expr,
-     $type_id: expr,
-     $ctor: ident) => (
-        handle_element_base!(htmlmediaelement, HTMLMediaElement,
-                             $cx, $document, $tag, $string, $type_id, $ctor, []);
+     $ctor: ident
+     $(, $arg:expr )*) => (
+        if eq_slice($localName, $string) {
+            return $ctor::new(($localName).to_str(), $document $(, $arg)*);
+        }
     )
 )
 macro_rules! handle_htmltablecellelement(
@@ -298,8 +298,8 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_htmlelement!(cx, document, tag, "section", HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "small",   HTMLElementTypeId, HTMLElement);
 
-    handle_htmlmediaelement!(cx, document, tag, "audio", HTMLAudioElementTypeId, HTMLAudioElement);
-    handle_htmlmediaelement!(cx, document, tag, "video", HTMLVideoElementTypeId, HTMLVideoElement);
+    handle_newable_element!(document, tag, "audio",     HTMLAudioElement);
+    handle_newable_element!(document, tag, "video",     HTMLVideoElement);
 
     handle_htmltablecellelement!(cx, document, tag, "td", HTMLTableDataCellElementTypeId, HTMLTableDataCellElement);
     handle_htmltablecellelement!(cx, document, tag, "th", HTMLTableHeaderCellElementTypeId, HTMLTableHeaderCellElement);
