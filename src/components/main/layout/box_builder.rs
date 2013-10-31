@@ -145,14 +145,11 @@ impl<'self> BoxGenerator<'self> {
                                     let pseudo_node = unsafe { Node::as_abstract_node_layout(pseudo_text) };
                                     TreeNodeRef::<Node<LayoutView>>::set_parent_node(pseudo_node.mut_node(), Some(parent_node));
 
-                                    let parent_cell = Cell::new(pseudo_parent_element);
-                                    let pseudo_cell = Cell::new(pseudo_text);
+                                    // store pseudo_parent_element & pseudo_text
+                                    node.mut_node().pseudo_parent_element = Some(pseudo_parent_element);
+                                    node.mut_node().pseudo_text = Some(pseudo_text);
 
-                                    do p.write_layout_data |data| {
-                                        data.pseudo_parent_element = Some(parent_cell.take());
-                                        data.pseudo_text = Some(pseudo_cell.take());
-                                    }
-
+                                    // generate & push new box for pseudo element
                                     let before_box = BoxGenerator::make_box(ctx, box_type, pseudo_node, builder);
                                     inline.boxes.push(before_box);
                                 }

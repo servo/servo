@@ -95,6 +95,12 @@ pub struct Node<View> {
 
     /// Layout information. Only the layout task may touch this data.
     priv layout_data: LayoutData,
+
+    /// Text for pseudo element
+    pseudo_text: Option<@Text>,
+
+    /// Parent element to style text for pseudo element
+    pseudo_parent_element: Option<@Element>,
 }
 
 /// The different types of nodes.
@@ -572,6 +578,9 @@ impl Node<ScriptView> {
             child_list: None,
 
             layout_data: LayoutData::new(),
+
+            pseudo_text: None,
+            pseudo_parent_element: None,
         }
     }
 }
@@ -1111,12 +1120,6 @@ pub struct LayoutData {
     /// The enum value of pseudo element
     pseudo_element: Option<PseudoElement>,
 
-    /// Text for pseudo element
-    pseudo_text: Option<@Text>,
-
-    /// Parent element to style text for pseudo element
-    pseudo_parent_element: Option<@Element>,
-
     /// Description of how to account for recent style changes.
     restyle_damage: Option<int>,
 
@@ -1134,8 +1137,6 @@ impl LayoutData {
             style: None,
             pseudo_style: None,
             pseudo_element: Some(none),
-            pseudo_text: None,
-            pseudo_parent_element: None,
             restyle_damage: None,
             boxes: DisplayBoxes {
                 display_list: None,
@@ -1149,7 +1150,7 @@ impl LayoutData {
 // we can have memory unsafety, which usually manifests as shutdown crashes.
 fn assert_is_sendable<T:Send>(_: T) {}
 fn assert_layout_data_is_sendable() {
-    //assert_is_sendable(LayoutData::new())
+    assert_is_sendable(LayoutData::new())
 }
 
 impl AbstractNode<LayoutView> {
