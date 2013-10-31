@@ -6,8 +6,7 @@
 <body>
   <div id="div1"></div>
   <script>
-    // FIXME: This should be HTMLDocument.
-    //isnot(document.documentElement.parentNode, null);
+    is_a(document.documentElement.parentNode, HTMLDocument);
     is(document.documentElement.parentElement, null);
 
     var elem = document.createElement("p");
