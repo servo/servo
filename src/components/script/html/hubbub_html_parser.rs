@@ -477,7 +477,10 @@ pub fn parse_html(cx: *JSContext,
                 debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
                 let parent: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(parent);
                 let child: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(child);
-                parent.add_child(child);
+                // FIXME this needs to be AppendChild.
+                //       Probably blocked on #838, so that we can remove the
+                //       double root element.
+                parent.add_child(child, None);
             }
             child
         },

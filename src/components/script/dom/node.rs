@@ -455,6 +455,34 @@ impl<'self, View> AbstractNode<View> {
     }
 }
 
+impl AbstractNode<ScriptView> {
+    pub fn AppendChild(self, node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
+        self.node().AppendChild(self, node)
+    }
+
+    // http://dom.spec.whatwg.org/#node-is-inserted
+    fn node_inserted(self) {
+        assert!(self.parent_node().is_some());
+        let document = self.node().owner_doc();
+
+        // Register elements having "id" attribute to the owner doc.
+        document.mut_document().register_nodes_with_id(&self);
+
+        document.document().content_changed();
+    }
+
+    // http://dom.spec.whatwg.org/#node-is-removed
+    fn node_removed(self) {
+        assert!(self.parent_node().is_none());
+        let document = self.node().owner_doc();
+
+        // Unregister elements having "id".
+        document.mut_document().unregister_nodes_with_id(&self);
+
+        document.document().content_changed();
+    }
+}
+
 impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
     fn next(&mut self) -> Option<AbstractNode<View>> {
         let node = self.current_node;
@@ -497,32 +525,6 @@ impl Node<ScriptView> {
         AbstractNode {
             obj: unsafe { transmute(node) },
         }
-    }
-
-    pub fn add_to_doc(&mut self, abstract_self: AbstractNode<ScriptView>, doc: AbstractDocument) {
-        let old_doc = self.owner_doc();
-        self.set_owner_doc(doc);
-        let mut cur_node = self.first_child;
-        while cur_node.is_some() {
-            for node in cur_node.unwrap().traverse_preorder() {
-                node.mut_node().set_owner_doc(doc);
-            };
-            cur_node = cur_node.unwrap().next_sibling();
-        }
-
-        // Unregister elements having "id' from the old doc.
-        old_doc.mut_document().unregister_nodes_with_id(&abstract_self);
-
-        // Register elements having "id" attribute to the owner doc.
-        doc.mut_document().register_nodes_with_id(&abstract_self);
-
-        // Signal the old document that it needs to update its display
-        if old_doc != doc {
-            old_doc.document().content_changed();
-        }
-
-        // Signal the new document that it needs to update its display
-        doc.document().content_changed();
     }
 
     pub fn new(type_id: NodeTypeId, doc: AbstractDocument) -> Node<ScriptView> {
@@ -691,6 +693,136 @@ impl Node<ScriptView> {
         }
     }
 
+    // http://dom.spec.whatwg.org/#concept-node-adopt
+    fn adopt(node: AbstractNode<ScriptView>, document: AbstractDocument) {
+        // Step 1.
+        match node.parent_node() {
+            Some(parent) => Node::remove(node, parent, false),
+            None => (),
+        }
+
+        // Step 2.
+        if node.node().owner_doc() != document {
+            for descendant in node.traverse_preorder() {
+                descendant.mut_node().set_owner_doc(document);
+            }
+        }
+
+        // Step 3.
+        // If node is an element, it is _affected by a base URL change_.
+    }
+
+    // http://dom.spec.whatwg.org/#concept-node-pre-insert
+    fn pre_insert(node: AbstractNode<ScriptView>,
+                  parent: AbstractNode<ScriptView>,
+                  child: Option<AbstractNode<ScriptView>>) -> Fallible<AbstractNode<ScriptView>> {
+        fn is_inclusive_ancestor_of(node: AbstractNode<ScriptView>,
+                                    parent: AbstractNode<ScriptView>) -> bool {
+            node == parent || parent.ancestors().any(|ancestor| ancestor == node)
+        }
+
+        // Step 1.
+        match parent.type_id() {
+            // DocumentNodeTypeId |
+            DocumentFragmentNodeTypeId |
+            ElementNodeTypeId(*) => (),
+            _ => {
+                return Err(HierarchyRequest);
+            },
+        }
+
+        // Step 2.
+        if is_inclusive_ancestor_of(node, parent) {
+            return Err(HierarchyRequest);
+        }
+
+        // Step 3.
+        match child {
+            Some(child) => {
+                if child.parent_node() != Some(parent) {
+                    return Err(NotFound);
+                }
+            },
+            None => (),
+        }
+
+        // Step 4.
+        match node.type_id() {
+            DocumentFragmentNodeTypeId |
+            DoctypeNodeTypeId |
+            ElementNodeTypeId(_) |
+            TextNodeTypeId |
+            // ProcessingInstructionNodeTypeId |
+            CommentNodeTypeId => (),
+            /*_ => { XXX #838
+                return Err(HierarchyRequest);
+            },*/
+        }
+        
+        // Step 5.
+        match node.type_id() {
+            TextNodeTypeId => {
+                if false { // XXX #838
+                    return Err(HierarchyRequest);
+                }
+            },
+            DoctypeNodeTypeId => {
+                if true { // XXX #838
+                    return Err(HierarchyRequest);
+                }
+            },
+            _ => (),
+        }
+
+        // Step 6.
+        // XXX #838
+
+        // Step 7-8.
+        let referenceChild = if child != Some(node) {
+            child
+        } else {
+            node.next_sibling()
+        };
+
+        // Step 9.
+        Node::adopt(node, parent.node().owner_doc());
+
+        // Step 10.
+        Node::insert(node, parent, referenceChild, false);
+
+        // Step 11.
+        return Ok(node)
+    }
+
+    // http://dom.spec.whatwg.org/#concept-node-insert
+    fn insert(node: AbstractNode<ScriptView>,
+              parent: AbstractNode<ScriptView>,
+              child: Option<AbstractNode<ScriptView>>,
+              suppress_observers: bool) {
+        // XXX assert owner_doc
+        // Step 1-3: ranges.
+        // Step 4.
+        let nodes = match node.type_id() {
+            DocumentFragmentNodeTypeId => node.children().collect(),
+            _ => ~[node],
+        };
+
+        // Step 5: DocumentFragment, mutation records.
+        // Step 6: DocumentFragment.
+        // Step 7: mutation records.
+        // Step 8.
+        for node in nodes.iter() {
+            parent.add_child(*node, child);
+        }
+
+        // Step 9.
+        if !suppress_observers {
+            for node in nodes.iter() {
+                node.node_inserted();
+            }
+        }
+    }
+
     // http://dom.spec.whatwg.org/#concept-node-replace-all
     pub fn replace_all(&mut self,
                        abstract_self: AbstractNode<ScriptView>,
@@ -704,6 +836,38 @@ impl Node<ScriptView> {
             Some(node) => {
                 self.AppendChild(abstract_self, node);
             }
+        }
+    }
+
+    // http://dom.spec.whatwg.org/#concept-node-pre-remove
+    fn pre_remove(child: AbstractNode<ScriptView>,
+                  parent: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
+        // Step 1.
+        if child.parent_node() != Some(parent) {
+            return Err(NotFound);
+        }
+
+        // Step 2.
+        Node::remove(child, parent, false);
+
+        // Step 3.
+        Ok(child)
+    }
+
+    // http://dom.spec.whatwg.org/#concept-node-remove
+    fn remove(node: AbstractNode<ScriptView>,
+              parent: AbstractNode<ScriptView>,
+              suppress_observers: bool) {
+        assert!(node.parent_node() == Some(parent));
+
+        // Step 1-5: ranges.
+        // Step 6-7: mutation observers.
+        // Step 8.
+        parent.remove_child(node);
+
+        // Step 9.
+        if !suppress_observers {
+            node.node_removed();
         }
     }
 
@@ -740,8 +904,11 @@ impl Node<ScriptView> {
         Ok(())
     }
 
-    pub fn InsertBefore(&mut self, _node: AbstractNode<ScriptView>, _child: Option<AbstractNode<ScriptView>>) -> Fallible<AbstractNode<ScriptView>> {
-        fail!("stub")
+    pub fn InsertBefore(&self,
+                        node: AbstractNode<ScriptView>,
+                        child: Option<AbstractNode<ScriptView>>) -> Fallible<AbstractNode<ScriptView>> {
+        self.wait_until_safe_to_modify_dom();
+        Node::pre_insert(node, node, child)
     }
 
     fn wait_until_safe_to_modify_dom(&self) {
@@ -749,75 +916,22 @@ impl Node<ScriptView> {
         document.document().wait_until_safe_to_modify_dom();
     }
 
-    pub fn AppendChild(&mut self,
+    pub fn AppendChild(&self,
                        abstract_self: AbstractNode<ScriptView>,
                        node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
-        fn is_hierarchy_request_err(this_node: AbstractNode<ScriptView>,
-                                   new_child: AbstractNode<ScriptView>) -> bool {
-            if new_child.is_doctype() {
-                return true;
-            }
-            if !this_node.is_element() {
-                // FIXME: This should also work for Document and DocumentFragments when they inherit from node.
-                // per jgraham
-                return true;
-            }
-            if this_node == new_child {
-                return true;
-            }
-            for ancestor in this_node.ancestors() {
-                if ancestor == new_child {
-                    return true;
-                }
-            }
-            false
-        }
-
-        if is_hierarchy_request_err(abstract_self, node) {
-            return Err(HierarchyRequest);
-        }
-
-        // TODO: Should we handle WRONG_DOCUMENT_ERR here?
-
         self.wait_until_safe_to_modify_dom();
-
-        // If the node already exists it is removed from current parent node.
-        node.parent_node().map(|parent| parent.remove_child(node));
-        abstract_self.add_child(node);
-        node.mut_node().add_to_doc(node, self.owner_doc());
-        Ok(node)
+        Node::pre_insert(node, abstract_self, None)
     }
 
     pub fn ReplaceChild(&mut self, _node: AbstractNode<ScriptView>, _child: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
         fail!("stub")
     }
 
-    pub fn RemoveChild(&mut self,
+    pub fn RemoveChild(&self,
                        abstract_self: AbstractNode<ScriptView>,
                        node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
-        fn is_not_found_err(this_node: AbstractNode<ScriptView>,
-                            old_child: AbstractNode<ScriptView>) -> bool {
-            match old_child.parent_node() {
-                Some(parent) if parent == this_node => false,
-                _ => true
-            }
-        }
-
-        if is_not_found_err(abstract_self, node) {
-            return Err(NotFound);
-        }
-
         self.wait_until_safe_to_modify_dom();
-
-        // Unregister elements having "id' from the owner doc.
-        // This need be called before target nodes are removed from tree.
-        self.owner_doc.mut_document().unregister_nodes_with_id(&abstract_self);
-
-        abstract_self.remove_child(node);
-        // Signal the document that it needs to update its display.
-        let document = self.owner_doc();
-        document.document().content_changed();
-        Ok(node)
+        Node::pre_remove(node, abstract_self)
     }
 
     pub fn Normalize(&mut self) {
