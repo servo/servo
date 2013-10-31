@@ -67,17 +67,6 @@ macro_rules! handle_newable_element(
         }
     )
 )
-macro_rules! handle_htmltablecellelement(
-    ($cx: expr,
-     $document: expr,
-     $tag: expr,
-     $string: expr,
-     $type_id: expr,
-     $ctor: ident) => (
-        handle_element_base!(htmltablecellelement, HTMLTableCellElement,
-                             $cx, $document, $tag, $string, $type_id, $ctor, []);
-    )
-)
 macro_rules! handle_element_base(
     ($parent: ident,
      $parent_init: ident,
@@ -299,10 +288,9 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_htmlelement!(cx, document, tag, "small",   HTMLElementTypeId, HTMLElement);
 
     handle_newable_element!(document, tag, "audio",     HTMLAudioElement);
+    handle_newable_element!(document, tag, "td",        HTMLTableDataCellElement);
+    handle_newable_element!(document, tag, "th",        HTMLTableHeaderCellElement);
     handle_newable_element!(document, tag, "video",     HTMLVideoElement);
-
-    handle_htmltablecellelement!(cx, document, tag, "td", HTMLTableDataCellElementTypeId, HTMLTableDataCellElement);
-    handle_htmltablecellelement!(cx, document, tag, "th", HTMLTableHeaderCellElementTypeId, HTMLTableHeaderCellElement);
 
     return HTMLUnknownElement::new(tag.to_str(), document);
 }
