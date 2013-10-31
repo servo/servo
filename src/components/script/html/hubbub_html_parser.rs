@@ -231,7 +231,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
     handle_element!(cx, document, tag, "data",    HTMLDataElementTypeId, HTMLDataElement, []);
     handle_element!(cx, document, tag, "datalist",HTMLDataListElementTypeId, HTMLDataListElement, []);
-    handle_element!(cx, document, tag, "directory",HTMLDirectoryElementTypeId, HTMLDirectoryElement, []);
+    handle_element!(cx, document, tag, "dir",     HTMLDirectoryElementTypeId, HTMLDirectoryElement, []);
     handle_element!(cx, document, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
     handle_element!(cx, document, tag, "dl",      HTMLDListElementTypeId, HTMLDListElement, []);
     handle_element!(cx, document, tag, "embed",   HTMLEmbedElementTypeId, HTMLEmbedElement, []);
