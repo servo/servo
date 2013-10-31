@@ -56,26 +56,15 @@ macro_rules! handle_htmlelement(
                              $cx, $document, $tag, $string, $type_id, $ctor, []);
     )
 )
-macro_rules! handle_htmlmediaelement(
-    ($cx: expr,
-     $document: expr,
-     $tag: expr,
+macro_rules! handle_newable_element(
+    ($document: expr,
+     $localName: expr,
      $string: expr,
-     $type_id: expr,
-     $ctor: ident) => (
-        handle_element_base!(htmlmediaelement, HTMLMediaElement,
-                             $cx, $document, $tag, $string, $type_id, $ctor, []);
-    )
-)
-macro_rules! handle_htmltablecellelement(
-    ($cx: expr,
-     $document: expr,
-     $tag: expr,
-     $string: expr,
-     $type_id: expr,
-     $ctor: ident) => (
-        handle_element_base!(htmltablecellelement, HTMLTableCellElement,
-                             $cx, $document, $tag, $string, $type_id, $ctor, []);
+     $ctor: ident
+     $(, $arg:expr )*) => (
+        if eq_slice($localName, $string) {
+            return $ctor::new(($localName).to_str(), $document $(, $arg)*);
+        }
     )
 )
 macro_rules! handle_element_base(
@@ -258,39 +247,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
     handle_element!(cx, document, tag, "optgroup",HTMLOptGroupElementTypeId, HTMLOptGroupElement, []);
     handle_element!(cx, document, tag, "output",  HTMLOutputElementTypeId, HTMLOutputElement, []);
-    handle_element!(cx, document, tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
-    handle_element!(cx, document, tag, "param",   HTMLParamElementTypeId, HTMLParamElement, []);
-    handle_element!(cx, document, tag, "pre",     HTMLPreElementTypeId, HTMLPreElement, []);
-    handle_element!(cx, document, tag, "progress",HTMLProgressElementTypeId, HTMLProgressElement, []);
-    handle_element!(cx, document, tag, "q",       HTMLQuoteElementTypeId, HTMLQuoteElement, []);
-    handle_element!(cx, document, tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
-    handle_element!(cx, document, tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);
-    handle_element!(cx, document, tag, "source",  HTMLSourceElementTypeId, HTMLSourceElement, []);
-    handle_element!(cx, document, tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
-    handle_element!(cx, document, tag, "style",   HTMLStyleElementTypeId, HTMLStyleElement, []);
-    handle_element!(cx, document, tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
-    handle_element!(cx, document, tag, "caption", HTMLTableCaptionElementTypeId, HTMLTableCaptionElement, []);
-    handle_element!(cx, document, tag, "col",     HTMLTableColElementTypeId, HTMLTableColElement, []);
-    handle_element!(cx, document, tag, "colgroup",HTMLTableColElementTypeId, HTMLTableColElement, []);
-    handle_element!(cx, document, tag, "tbody",   HTMLTableSectionElementTypeId, HTMLTableSectionElement, []);
-    handle_element!(cx, document, tag, "template",HTMLTemplateElementTypeId, HTMLTemplateElement, []);
-    handle_element!(cx, document, tag, "textarea",HTMLTextAreaElementTypeId, HTMLTextAreaElement, []);
-    handle_element!(cx, document, tag, "time",    HTMLTimeElementTypeId, HTMLTimeElement, []);
-    handle_element!(cx, document, tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);
-    handle_element!(cx, document, tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
-    handle_element!(cx, document, tag, "track",   HTMLTrackElementTypeId, HTMLTrackElement, []);
-    handle_element!(cx, document, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
-
-    handle_element!(cx, document, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
-    handle_element!(cx, document, tag, "iframe",  HTMLIframeElementTypeId, HTMLIFrameElement, [(frame: None), (size: None), (sandbox: None)]);
-
-    handle_element!(cx, document, tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
-    handle_element!(cx, document, tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
-    handle_element!(cx, document, tag, "h3", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading3)]);
-    handle_element!(cx, document, tag, "h4", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading4)]);
-    handle_element!(cx, document, tag, "h5", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading5)]);
-    handle_element!(cx, document, tag, "h6", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading6)]);
-
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -298,11 +254,40 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_htmlelement!(cx, document, tag, "section", HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "small",   HTMLElementTypeId, HTMLElement);
 
-    handle_htmlmediaelement!(cx, document, tag, "audio", HTMLAudioElementTypeId, HTMLAudioElement);
-    handle_htmlmediaelement!(cx, document, tag, "video", HTMLVideoElementTypeId, HTMLVideoElement);
-
-    handle_htmltablecellelement!(cx, document, tag, "td", HTMLTableDataCellElementTypeId, HTMLTableDataCellElement);
-    handle_htmltablecellelement!(cx, document, tag, "th", HTMLTableHeaderCellElementTypeId, HTMLTableHeaderCellElement);
+    handle_newable_element!(document, tag, "audio",     HTMLAudioElement);
+    handle_newable_element!(document, tag, "caption",   HTMLTableCaptionElement);
+    handle_newable_element!(document, tag, "col",       HTMLTableColElement);
+    handle_newable_element!(document, tag, "colgroup",  HTMLTableColElement);
+    handle_newable_element!(document, tag, "h1",        HTMLHeadingElement, Heading1);
+    handle_newable_element!(document, tag, "h2",        HTMLHeadingElement, Heading2);
+    handle_newable_element!(document, tag, "h3",        HTMLHeadingElement, Heading3);
+    handle_newable_element!(document, tag, "h4",        HTMLHeadingElement, Heading4);
+    handle_newable_element!(document, tag, "h5",        HTMLHeadingElement, Heading5);
+    handle_newable_element!(document, tag, "h6",        HTMLHeadingElement, Heading6);
+    handle_newable_element!(document, tag, "iframe",    HTMLIFrameElement);
+    handle_newable_element!(document, tag, "img",       HTMLImageElement);
+    handle_newable_element!(document, tag, "p",         HTMLParagraphElement);
+    handle_newable_element!(document, tag, "param",     HTMLParamElement);
+    handle_newable_element!(document, tag, "pre",       HTMLPreElement);
+    handle_newable_element!(document, tag, "progress",  HTMLProgressElement);
+    handle_newable_element!(document, tag, "q",         HTMLQuoteElement);
+    handle_newable_element!(document, tag, "script",    HTMLScriptElement);
+    handle_newable_element!(document, tag, "select",    HTMLSelectElement);
+    handle_newable_element!(document, tag, "source",    HTMLSourceElement);
+    handle_newable_element!(document, tag, "span",      HTMLSpanElement);
+    handle_newable_element!(document, tag, "style",     HTMLStyleElement);
+    handle_newable_element!(document, tag, "table",     HTMLTableElement);
+    handle_newable_element!(document, tag, "tbody",     HTMLTableSectionElement);
+    handle_newable_element!(document, tag, "td",        HTMLTableDataCellElement);
+    handle_newable_element!(document, tag, "template",  HTMLTemplateElement);
+    handle_newable_element!(document, tag, "textarea",  HTMLTextAreaElement);
+    handle_newable_element!(document, tag, "th",        HTMLTableHeaderCellElement);
+    handle_newable_element!(document, tag, "time",      HTMLTimeElement);
+    handle_newable_element!(document, tag, "title",     HTMLTitleElement);
+    handle_newable_element!(document, tag, "tr",        HTMLTableRowElement);
+    handle_newable_element!(document, tag, "track",     HTMLTrackElement);
+    handle_newable_element!(document, tag, "ul",        HTMLUListElement);
+    handle_newable_element!(document, tag, "video",     HTMLVideoElement);
 
     return HTMLUnknownElement::new(tag.to_str(), document);
 }
