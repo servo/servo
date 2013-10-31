@@ -189,7 +189,7 @@ impl FontHandleMethods for FontHandle {
             return if idx != 0 as FT_UInt {
                 Some(idx as GlyphIndex)
             } else {
-                debug!("Invalid codepoint: %?", codepoint);
+                debug!("Invalid codepoint: {}", codepoint);
                 None
             };
         }
@@ -205,13 +205,13 @@ impl FontHandleMethods for FontHandle {
                 let void_glyph = (*self.face).glyph;
                 let slot: FT_GlyphSlot = cast::transmute(void_glyph);
                 assert!(slot.is_not_null());
-                debug!("metrics: %?", (*slot).metrics);
+                debug!("metrics: {:?}", (*slot).metrics);
                 let advance = (*slot).metrics.horiAdvance;
-                debug!("h_advance for %? is %?", glyph, advance);
+                debug!("h_advance for {} is {}", glyph, advance);
                 let advance = advance as i32;
                 return Some(fixed_to_float_ft(advance) as FractionalPixel);
             } else {
-                debug!("Unable to load glyph %?. reason: %?", glyph, res);
+                debug!("Unable to load glyph {}. reason: {}", glyph, res);
                 return None;
             }
         }

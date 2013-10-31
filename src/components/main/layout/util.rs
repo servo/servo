@@ -51,19 +51,19 @@ impl ElementMapping {
 
         debug!("--- Old boxes: ---");
         for (i, box) in old_boxes.iter().enumerate() {
-            debug!("%u --> %s", i, box.debug_str());
+            debug!("{:u} --> {:s}", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- New boxes: ---");
         for (i, box) in new_boxes.iter().enumerate() {
-            debug!("%u --> %s", i, box.debug_str());
+            debug!("{:u} --> {:s}", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- Elem ranges before repair: ---");
         for (i, nr) in entries.iter().enumerate() {
-            debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
+            debug!("{:u}: {} --> {:s}", i, nr.range, nr.node.debug_str());
         }
         debug!("----------------------------------");
 
@@ -80,17 +80,17 @@ impl ElementMapping {
             let mut entries_k = 0;
 
             while old_i < old_boxes.len() {
-                debug!("repair_for_box_changes: Considering old box %u", old_i);
+                debug!("repair_for_box_changes: Considering old box {:u}", old_i);
                 // possibly push several items
                 while entries_k < entries.len() && old_i == entries[entries_k].range.begin() {
                     let item = WorkItem {begin_idx: new_j, entry_idx: entries_k};
-                    debug!("repair_for_box_changes: Push work item for elem %u: %?", entries_k, item);
+                    debug!("repair_for_box_changes: Push work item for elem {:u}: {:?}", entries_k, item);
                     repair_stack.push(item);
                     entries_k += 1;
                 }
                 while new_j < new_boxes.len() &&
                         old_boxes[old_i].base().node != new_boxes[new_j].base().node {
-                    debug!("repair_for_box_changes: Slide through new box %u", new_j);
+                    debug!("repair_for_box_changes: Slide through new box {:u}", new_j);
                     new_j += 1;
                 }
 
@@ -99,14 +99,14 @@ impl ElementMapping {
                 // possibly pop several items
                 while repair_stack.len() > 0 && old_i == entries[repair_stack.last().entry_idx].range.end() {
                     let item = repair_stack.pop();
-                    debug!("repair_for_box_changes: Set range for %u to %?",
+                    debug!("repair_for_box_changes: Set range for {:u} to {}",
                            item.entry_idx, Range::new(item.begin_idx, new_j - item.begin_idx));
                     entries[item.entry_idx].range = Range::new(item.begin_idx, new_j - item.begin_idx);
                 }
             }
         debug!("--- Elem ranges after repair: ---");
         for (i, nr) in entries.iter().enumerate() {
-            debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
+            debug!("{:u}: {} --> {:s}", i, nr.range, nr.node.debug_str());
         }
         debug!("----------------------------------");
     }

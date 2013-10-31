@@ -56,8 +56,8 @@ impl GlyphEntry {
     fn complex(starts_cluster: bool, starts_ligature: bool, glyph_count: uint) -> GlyphEntry {
         assert!(glyph_count <= u16::max_value as uint);
 
-        debug!("creating complex glyph entry: starts_cluster=%?, starts_ligature=%?, \
-                glyph_count=%?",
+        debug!("creating complex glyph entry: starts_cluster={}, starts_ligature={}, \
+                glyph_count={}",
                starts_cluster,
                starts_ligature,
                glyph_count);
@@ -327,7 +327,7 @@ impl<'self> DetailedGlyphStore {
             detail_offset: self.detail_buffer.len()
         };
 
-        debug!("Adding entry[off=%u] for detailed glyphs: %?", entry_offset, glyphs);
+        debug!("Adding entry[off={:u}] for detailed glyphs: {:?}", entry_offset, glyphs);
 
         /* TODO: don't actually assert this until asserts are compiled
         in/out based on severity, debug/release, etc. This assertion
@@ -347,7 +347,7 @@ impl<'self> DetailedGlyphStore {
 
     fn get_detailed_glyphs_for_entry(&'self self, entry_offset: uint, count: u16)
                                   -> &'self [DetailedGlyph] {
-        debug!("Requesting detailed glyphs[n=%u] for entry[off=%u]", count as uint, entry_offset);
+        debug!("Requesting detailed glyphs[n={:u}] for entry[off={:u}]", count as uint, entry_offset);
 
         // FIXME: Is this right? --pcwalton
         // TODO: should fix this somewhere else
@@ -591,7 +591,7 @@ impl<'self> GlyphStore {
             }
         }.adapt_character_flags_of_entry(self.entry_buffer[i]);
 
-        debug!("Adding multiple glyphs[idx=%u, count=%u]: %?", i, glyph_count, entry);
+        debug!("Adding multiple glyphs[idx={:u}, count={:u}]: {:?}", i, glyph_count, entry);
 
         self.entry_buffer[i] = entry;
     }
@@ -601,7 +601,7 @@ impl<'self> GlyphStore {
         assert!(i < self.entry_buffer.len());
 
         let entry = GlyphEntry::complex(cluster_start, ligature_start, 0);
-        debug!("adding spacer for chracter without associated glyph[idx=%u]", i);
+        debug!("adding spacer for chracter without associated glyph[idx={:u}]", i);
 
         self.entry_buffer[i] = entry;
     }

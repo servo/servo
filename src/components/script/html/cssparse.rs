@@ -35,7 +35,7 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
 
         let sheet = match provenance_cell.take() {
             UrlProvenance(url) => {
-                debug!("cssparse: loading style sheet at %s", url.to_str());
+                debug!("cssparse: loading style sheet at {:s}", url.to_str());
                 let (input_port, input_chan) = comm::stream();
                 resource_task.send(Load(url, input_chan));
                 Stylesheet::from_iter(ProgressMsgPortIterator {

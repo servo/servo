@@ -496,12 +496,12 @@ impl<'self> MutableFlowUtils for &'self mut FlowContext {
                           dirty: &Rect<Au>,
                           list: &Cell<DisplayList<E>>)
                           -> bool {
-        debug!("FlowContext: building display list for f%?", base(self).id);
+        debug!("FlowContext: building display list for f{}", base(self).id);
         match self.class() {
             BlockFlowClass => self.as_block().build_display_list_block(builder, dirty, list),
             InlineFlowClass => self.as_inline().build_display_list_inline(builder, dirty, list),
             FloatFlowClass => self.as_float().build_display_list_float(builder, dirty, list),
-            _ => fail!("Tried to build_display_list_recurse of flow: %?", self),
+            _ => fail!("Tried to build_display_list_recurse of flow: {:?}", self),
         }
     }
 }

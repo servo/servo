@@ -425,7 +425,7 @@ impl<'self, View> AbstractNode<View> {
         }
 
         s.push_str(self.debug_str());
-        debug!("%s", s);
+        debug!("{:s}", s);
 
         // FIXME: this should have a pure version?
         for kid in self.children() {
@@ -435,7 +435,7 @@ impl<'self, View> AbstractNode<View> {
 
     /// Returns a string that describes this node.
     pub fn debug_str(&self) -> ~str {
-        fmt!("%?", self.type_id())
+        format!("{:?}", self.type_id())
     }
 
     pub fn children(&self) -> AbstractNodeChildrenIterator<View> {

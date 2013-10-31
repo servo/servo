@@ -33,7 +33,7 @@ impl SendableTextRun {
     pub fn deserialize(&self, fctx: @mut FontContext) -> TextRun {
         let font = match fctx.get_font_by_descriptor(&self.font) {
             Ok(f) => f,
-            Err(_) => fail!(fmt!("Font descriptor deserialization failed! desc=%?", self.font))
+            Err(_) => fail!("Font descriptor deserialization failed! desc={:?}", self.font)
         };
 
         TextRun {
@@ -171,7 +171,7 @@ impl<'self> TextRun {
             // Create a glyph store for this slice if it's nonempty.
             if can_break_before && byte_i > byte_last_boundary {
                 let slice = text.slice(byte_last_boundary, byte_i).to_owned();
-                debug!("creating glyph store for slice %? (ws? %?), %? - %? in run %?",
+                debug!("creating glyph store for slice {} (ws? {}), {} - {} in run {}",
                         slice, !cur_slice_is_whitespace, byte_last_boundary, byte_i, text);
                 glyphs.push(font.shape_text(slice, !cur_slice_is_whitespace));
                 byte_last_boundary = byte_i;
@@ -183,7 +183,7 @@ impl<'self> TextRun {
         // Create a glyph store for the final slice if it's nonempty.
         if byte_i > byte_last_boundary {
             let slice = text.slice_from(byte_last_boundary).to_owned();
-            debug!("creating glyph store for final slice %? (ws? %?), %? - %? in run %?",
+            debug!("creating glyph store for final slice {} (ws? {}), {} - {} in run {}",
                 slice, cur_slice_is_whitespace, byte_last_boundary, text.len(), text);
             glyphs.push(font.shape_text(slice, cur_slice_is_whitespace));
         }
@@ -227,9 +227,9 @@ impl<'self> TextRun {
 
     pub fn min_width_for_range(&self, range: &Range) -> Au {
         let mut max_piece_width = Au(0);
-        debug!("iterating outer range %?", range);
+        debug!("iterating outer range {:?}", range);
         for (glyphs, offset, slice_range) in self.iter_slices_for_range(range) {
-            debug!("iterated on %?[%?]", offset, slice_range);
+            debug!("iterated on {:?}[{:?}]", offset, slice_range);
             let metrics = self.font.measure_text_for_slice(glyphs, &slice_range);
             max_piece_width = Au::max(max_piece_width, metrics.advance_width);
         }

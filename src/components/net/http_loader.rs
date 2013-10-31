@@ -24,7 +24,7 @@ pub fn factory() -> LoaderTask {
 fn load(url: Url, start_chan: Chan<LoadResponse>) {
     assert!("http" == url.scheme);
 
-    info!("requesting %s", url.to_str());
+    info!("requesting {:s}", url.to_str());
 
     let request = ~RequestWriter::new(Get, url.clone());
     let mut response = match request.read_response() {
@@ -36,17 +36,17 @@ fn load(url: Url, start_chan: Chan<LoadResponse>) {
     };
 
     // Dump headers, but only do the iteration if info!() is enabled.
-    info!("got HTTP response %s, headers:", response.status.to_str());
-    info!("%?",
+    info!("got HTTP response {:s}, headers:", response.status.to_str());
+    info!("{:?}",
         for header in response.headers.iter() {
-            info!(" - %s: %s", header.header_name(), header.header_value());
+            info!(" - {:s}: {:s}", header.header_name(), header.header_value());
         });
 
     // FIXME: detect redirect loops
     if 3 == (response.status.code() / 100) {
         match response.headers.location {
             Some(url) => {
-                info!("redirecting to %s", url.to_str());
+                info!("redirecting to {:s}", url.to_str());
                 return load(url, start_chan);
             }
             None => ()

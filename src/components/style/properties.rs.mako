@@ -857,7 +857,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I) -> PropertyD
     for item in ErrorLoggerIterator(parse_declaration_list(input)) {
         match item {
             Decl_AtRule(rule) => log_css_error(
-                rule.location, fmt!("Unsupported at-rule in declaration list: @%s", rule.name)),
+                rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name)),
             Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
                 let list = if i { &mut important } else { &mut normal };

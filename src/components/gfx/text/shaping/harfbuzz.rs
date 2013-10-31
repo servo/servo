@@ -249,7 +249,7 @@ impl Shaper {
 
         assert!(glyph_count <= char_max);
 
-        debug!("Shaped text[char count=%u], got back %u glyph info records.",
+        debug!("Shaped text[char count={:u}], got back {:u} glyph info records.",
                char_max,
                glyph_count);
 
@@ -279,17 +279,17 @@ impl Shaper {
                 assert!(byteToGlyph[loc] != CONTINUATION_BYTE);
                 byteToGlyph[loc] = i as i32;
             } else {
-                debug!("ERROR: tried to set out of range byteToGlyph: idx=%u, glyph idx=%u",
+                debug!("ERROR: tried to set out of range byteToGlyph: idx={:u}, glyph idx={:u}",
                        loc,
                        i);
             }
-            debug!("%u -> %u", i, loc);
+            debug!("{:u} -> {:u}", i, loc);
         }
 
-        debug!("text: %s", text);
+        debug!("text: {:s}", text);
         debug!("(char idx): char->(glyph index):");
         for (i, ch) in text.char_offset_iter() {
-            debug!("%u: %? --> %d", i, ch, byteToGlyph[i] as int);
+            debug!("{:u}: {} --> {:d}", i, ch, byteToGlyph[i] as int);
         }
 
         // some helpers
@@ -305,7 +305,7 @@ impl Shaper {
         while glyph_span.begin() < glyph_count {
             // start by looking at just one glyph.
             glyph_span.extend_by(1);
-            debug!("Processing glyph at idx=%u", glyph_span.begin());
+            debug!("Processing glyph at idx={:u}", glyph_span.begin());
 
             let char_byte_start = glyph_data.byte_offset_of_glyph(glyph_span.begin());
             char_byte_span.reset(char_byte_start, 0);
@@ -317,12 +317,12 @@ impl Shaper {
                 ignore(range.ch);
                 char_byte_span.extend_to(range.next);
 
-                debug!("Processing char byte span: off=%u, len=%u for glyph idx=%u",
+                debug!("Processing char byte span: off={:u}, len={:u} for glyph idx={:u}",
                        char_byte_span.begin(), char_byte_span.length(), glyph_span.begin());
 
                 while char_byte_span.end() != byte_max &&
                         byteToGlyph[char_byte_span.end()] == NO_GLYPH {
-                    debug!("Extending char byte span to include byte offset=%u with no associated \
+                    debug!("Extending char byte span to include byte offset={:u} with no associated \
                             glyph", char_byte_span.end());
                     let range = text.char_range_at(char_byte_span.end());
                     ignore(range.ch);
@@ -340,7 +340,7 @@ impl Shaper {
 
                 if max_glyph_idx > glyph_span.end() {
                     glyph_span.extend_to(max_glyph_idx);
-                    debug!("Extended glyph span (off=%u, len=%u) to cover char byte span's max \
+                    debug!("Extended glyph span (off={:u}, len={:u}) to cover char byte span's max \
                             glyph index",
                            glyph_span.begin(), glyph_span.length());
                 }
@@ -364,7 +364,7 @@ impl Shaper {
                     }
                 }
 
-                debug!("All glyphs within char_byte_span cluster?: %?",
+                debug!("All glyphs within char_byte_span cluster?: {}",
                        all_glyphs_are_within_cluster);
 
                 // found a valid range; stop extending char_span.

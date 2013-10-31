@@ -259,7 +259,7 @@ impl CompositorLayer {
         let mut redisplay: bool;
         { // block here to prevent double mutable borrow of self
             let quadtree = match self.quadtree {
-                NoTree(*) => fail!("CompositorLayer: cannot get buffer request for %?,
+                NoTree(*) => fail!("CompositorLayer: cannot get buffer request for {:?},
                                    no quadtree initialized", self.pipeline.id),
                 Tree(ref mut quadtree) => quadtree,
             };
@@ -452,14 +452,14 @@ impl CompositorLayer {
 
         // Add new tiles.
         let quadtree = match self.quadtree {
-            NoTree(*) => fail!("CompositorLayer: cannot build layer tree for %?,
+            NoTree(*) => fail!("CompositorLayer: cannot build layer tree for {:?},
                                no quadtree initialized", self.pipeline.id),
             Tree(ref mut quadtree) => quadtree,
         };
 
         let all_tiles = quadtree.get_all_tiles();
         for buffer in all_tiles.iter() {
-            debug!("osmain: compositing buffer rect %?", &buffer.rect);
+            debug!("osmain: compositing buffer rect {}", buffer.rect);
 
             let size = Size2D(buffer.screen_pos.size.width as int,
                               buffer.screen_pos.size.height as int);
@@ -478,7 +478,7 @@ impl CompositorLayer {
 
                     // Make a new texture and bind the layer buffer's surface to it.
                     let texture = Texture::new(target);
-                    debug!("COMPOSITOR binding to native surface %d",
+                    debug!("COMPOSITOR binding to native surface {:d}",
                            buffer.native_surface.get_id() as int);
                     buffer.native_surface.bind_to_texture(graphics_context, &texture, size);
 
@@ -540,7 +540,7 @@ impl CompositorLayer {
         let cell = Cell::new(new_buffers);
         if self.pipeline.id == pipeline_id {
             if self.epoch != epoch {
-                debug!("compositor epoch mismatch: %? != %?, id: %?",
+                debug!("compositor epoch mismatch: {:?} != {:?}, id: {:?}",
                        self.epoch,
                        epoch,
                        self.pipeline.id);

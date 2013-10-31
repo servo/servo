@@ -23,7 +23,6 @@ use std::cell::Cell;
 use std::comm;
 use std::comm::SharedChan;
 use std::hashmap::HashSet;
-use std::io;
 use std::ptr;
 use std::int;
 use std::libc;
@@ -74,7 +73,7 @@ pub struct TimerData {
 impl Window {
     pub fn Alert(&self, s: &DOMString) {
         // Right now, just print to the console
-        io::println(fmt!("ALERT: %s", null_str_as_empty(s)));
+        println(format!("ALERT: {:s}", null_str_as_empty(s)));
     }
 
     pub fn Close(&self) {

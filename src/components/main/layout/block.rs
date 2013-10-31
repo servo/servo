@@ -360,7 +360,7 @@ impl FlowContext for BlockFlow {
     /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
     /// contexts.
     fn assign_widths(&mut self, ctx: &mut LayoutContext) { 
-        debug!("assign_widths_block: assigning width for flow %?",  self.base.id);
+        debug!("assign_widths_block: assigning width for flow {}",  self.base.id);
         if self.is_root {
             debug!("Setting root position");
             self.base.position.origin = Au::zero_point();
@@ -433,12 +433,12 @@ impl FlowContext for BlockFlow {
     }
 
     fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height_inorder: assigning height for block %?", self.base.id);
+        debug!("assign_height_inorder: assigning height for block {}", self.base.id);
         self.assign_height_block_base(ctx, true);
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height: assigning height for block %?", self.base.id);
+        debug!("assign_height: assigning height for block {}", self.base.id);
         // This is the only case in which a block flow can start an inorder
         // subtraversal.
         if self.is_root && self.base.num_floats > 0 {
