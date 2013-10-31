@@ -265,7 +265,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "template",HTMLTemplateElementTypeId, HTMLTemplateElement, []);
     handle_element!(cx, document, tag, "textarea",HTMLTextAreaElementTypeId, HTMLTextAreaElement, []);
     handle_element!(cx, document, tag, "time",    HTMLTimeElementTypeId, HTMLTimeElement, []);
-    handle_element!(cx, document, tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -284,6 +283,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "img",       HTMLImageElement);
     handle_newable_element!(document, tag, "td",        HTMLTableDataCellElement);
     handle_newable_element!(document, tag, "th",        HTMLTableHeaderCellElement);
+    handle_newable_element!(document, tag, "title",     HTMLTitleElement);
     handle_newable_element!(document, tag, "tr",        HTMLTableRowElement);
     handle_newable_element!(document, tag, "track",     HTMLTrackElement);
     handle_newable_element!(document, tag, "ul",        HTMLUListElement);
