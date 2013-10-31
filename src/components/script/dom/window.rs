@@ -6,6 +6,7 @@ use dom::bindings::codegen::WindowBinding;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{DOMString, null_str_as_empty, Traceable};
 use dom::document::AbstractDocument;
+use dom::eventtarget::{EventTarget, WindowTypeId};
 use dom::node::{AbstractNode, ScriptView};
 use dom::navigator::Navigator;
 
@@ -38,6 +39,7 @@ pub enum TimerControlMsg {
 }
 
 pub struct Window {
+    eventtarget: EventTarget,
     page: @mut Page,
     script_chan: ScriptChan,
     compositor: @ScriptListener,
@@ -141,11 +143,11 @@ impl Window {
 
 impl Reflectable for Window {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
+        self.eventtarget.reflector()
     }
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        &mut self.reflector_
+        self.eventtarget.mut_reflector()
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -205,6 +207,7 @@ impl Window {
                image_cache_task: ImageCacheTask)
                -> @mut Window {
         let win = @mut Window {
+            eventtarget: EventTarget::new_inherited(WindowTypeId),
             page: page,
             script_chan: script_chan.clone(),
             compositor: compositor,

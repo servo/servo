@@ -5,17 +5,21 @@
 use dom::comment::Comment;
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
-use dom::bindings::utils::{Reflectable, Reflector, DerivedWrapper};
-use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty, null_str_as_word_null};
+use dom::bindings::utils::{Reflectable, Reflector, DerivedWrapper, NotSupported};
+use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable};
+use dom::bindings::utils::{null_str_as_empty_ref, null_str_as_empty, null_str_as_word_null};
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
+use dom::event::{AbstractEvent, Event, HTMLEventTypeId, UIEventTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::htmlelement::HTMLElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
+use dom::mouseevent::MouseEvent;
 use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId};
 use dom::text::Text;
+use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
@@ -257,6 +261,15 @@ impl Document {
         let cx = self.get_cx();
         let comment = @Comment::new(null_str_as_word_null(data), abstract_self);
         unsafe { Node::as_abstract_node(cx, comment) }
+    }
+
+    pub fn CreateEvent(&self, interface: &DOMString) -> Fallible<AbstractEvent> {
+        match null_str_as_empty_ref(interface) {
+            "UIEvents" => Ok(UIEvent::new(self.window, UIEventTypeId)),
+            "MouseEvents" => Ok(MouseEvent::new(self.window)),
+            "HTMLEvents" => Ok(Event::new(self.window, HTMLEventTypeId)),
+            _ => Err(NotSupported)
+        }
     }
 
     pub fn Title(&self, _: AbstractDocument) -> DOMString {
