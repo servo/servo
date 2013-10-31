@@ -274,7 +274,7 @@ impl Page {
     /// This function fails if there is no root frame.
     fn reflow(&mut self, goal: ReflowGoal, script_chan: ScriptChan, compositor: @ScriptListener) {
         let root = match self.frame {
-            None => fail!(~"Tried to relayout with no root frame!"),
+            None => return,
             Some(ref frame) => {
                 frame.document.document().GetDocumentElement()
             }
