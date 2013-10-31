@@ -273,14 +273,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
     handle_element!(cx, document, tag, "iframe",  HTMLIframeElementTypeId, HTMLIFrameElement, [(frame: None), (size: None), (sandbox: None)]);
 
-    handle_element!(cx, document, tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
-    handle_element!(cx, document, tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
-    handle_element!(cx, document, tag, "h3", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading3)]);
-    handle_element!(cx, document, tag, "h4", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading4)]);
-    handle_element!(cx, document, tag, "h5", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading5)]);
-    handle_element!(cx, document, tag, "h6", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading6)]);
-
-
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "i",       HTMLElementTypeId, HTMLElement);
@@ -288,6 +280,12 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_htmlelement!(cx, document, tag, "small",   HTMLElementTypeId, HTMLElement);
 
     handle_newable_element!(document, tag, "audio",     HTMLAudioElement);
+    handle_newable_element!(document, tag, "h1",        HTMLHeadingElement, Heading1);
+    handle_newable_element!(document, tag, "h2",        HTMLHeadingElement, Heading2);
+    handle_newable_element!(document, tag, "h3",        HTMLHeadingElement, Heading3);
+    handle_newable_element!(document, tag, "h4",        HTMLHeadingElement, Heading4);
+    handle_newable_element!(document, tag, "h5",        HTMLHeadingElement, Heading5);
+    handle_newable_element!(document, tag, "h6",        HTMLHeadingElement, Heading6);
     handle_newable_element!(document, tag, "td",        HTMLTableDataCellElement);
     handle_newable_element!(document, tag, "th",        HTMLTableHeaderCellElement);
     handle_newable_element!(document, tag, "video",     HTMLVideoElement);
