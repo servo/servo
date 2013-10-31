@@ -13,6 +13,7 @@ use script::dom::node::{AbstractNode, LayoutView};
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
     fn style(&self) -> &ComputedValues;
+    fn pseudo_style(&self) -> &ComputedValues;
     fn restyle_damage(&self) -> RestyleDamage;
 }
 
@@ -21,6 +22,11 @@ impl StyledNode for AbstractNode<LayoutView> {
         // FIXME(pcwalton): Is this assertion needed for memory safety? It's slow.
         //assert!(self.is_element()); // Only elements can have styles
         let results = self.get_css_select_results();
+        results
+    }
+
+    fn pseudo_style(&self) -> &ComputedValues {
+        let results = self.get_css_select_pseudo_results();
         results
     }
 

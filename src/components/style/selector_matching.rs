@@ -80,7 +80,8 @@ impl Stylist {
     pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
             &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>) -> (~[Arc<~[PropertyDeclaration]>], ~[Arc<~[PropertyDeclaration]>]) {
         assert!(element.is_element())
-        assert!(style_attribute.is_none(), "Style attributes do not apply to pseudo-elements")
+        //assert!(style_attribute.is_none() || pseudo_element.is_none(), 
+        //        "Style attributes do not apply to pseudo-elements")
         let mut applicable_declarations = ~[];  // TODO: use an iterator?
         let mut pseudo_applicable_declarations = ~[];
 

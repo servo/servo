@@ -13,6 +13,7 @@ use servo_util::tree::TreeNodeRef;
 
 pub trait NodeUtil<'self> {
     fn get_css_select_results(self) -> &'self ComputedValues;
+    fn get_css_select_pseudo_results(self) -> &'self ComputedValues;
     fn set_css_select_results(self, decl: ComputedValues);
     fn have_css_select_results(self) -> bool;
 
@@ -32,6 +33,15 @@ impl<'self> NodeUtil<'self> for AbstractNode<LayoutView> {
         do self.read_layout_data |layout_data| {
             match layout_data.style {
                 None => fail!(~"style() called on node without a style!"),
+                Some(ref style) => unsafe { cast::transmute_region(style) }
+            }
+        }
+    }
+
+    fn get_css_select_pseudo_results(self) -> &'self ComputedValues {
+        do self.read_layout_data |layout_data| {
+            match layout_data.pseudo_style {
+                None => fail!(~"pseudo_style() called on node without a style!"),
                 Some(ref style) => unsafe { cast::transmute_region(style) }
             }
         }

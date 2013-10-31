@@ -24,6 +24,7 @@ pub enum PseudoElement {
     After,
     FirstLine,
     FirstLetter,
+    none,
 }
 
 
