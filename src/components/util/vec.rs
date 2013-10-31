@@ -51,7 +51,7 @@ fn test_miss_all_elems<T: Eq + Ord>(arr: &[T], misses: &[T]) {
     let mut i = 0;
     while i < misses.len() {
         let res = arr.binary_search(&misses[i]);
-        debug!("%? == %? ?", misses[i], res);
+        debug!("{:?} == {:?} ?", misses[i], res);
         assert!(!test_match(&misses[i], arr.binary_search(&misses[i])));
         i += 1;
     }

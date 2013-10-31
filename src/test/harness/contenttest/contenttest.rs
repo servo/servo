@@ -12,7 +12,7 @@ extern mod extra;
 
 use extra::test::{TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
 use extra::getopts::{getopts, reqopt};
-use std::{os, run, io, str};
+use std::{os, run, str};
 use std::cell::Cell;
 use std::os::list_dir_path;
 
@@ -89,7 +89,7 @@ fn run_test(file: ~str) {
     let infile = ~"file://" + path.display().to_str();
     let res = run::process_output("./servo", [~"-z", infile]);
     let out = str::from_utf8(res.output);
-    io::print(out);
+    print(out);
     let lines: ~[&str] = out.split_iter('\n').collect();
     for &line in lines.iter() {
         if line.contains("TEST-UNEXPECTED-FAIL") {

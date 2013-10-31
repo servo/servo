@@ -310,7 +310,7 @@ impl RenderBox for ImageRenderBox {
         let size = self.image.mutate().ptr.get_size();
         let height = Au::from_px(size.unwrap_or(Size2D(0, 0)).height);
         self.base.position.mutate().ptr.size.height = height;
-        debug!("box_height: found image height: %?", height);
+        debug!("box_height: found image height: {}", height);
         height
     }
 
@@ -343,7 +343,7 @@ impl TextRenderBox {
     ///
     /// FIXME(pcwalton): This API is confusing.
     pub fn new(base: RenderBoxBase, run: @TextRun, range: Range) -> TextRenderBox {
-        debug!("Creating textbox with span: (strlen=%u, off=%u, len=%u) of textrun (%s) (len=%u)",
+        debug!("Creating textbox with span: (strlen={:u}, off={:u}, len={:u}) of textrun ({:s}) (len={:u})",
                run.char_len(),
                range.begin(),
                range.length(),
@@ -422,13 +422,13 @@ impl RenderBox for TextRenderBox {
         let mut left_range = Range::new(self.range.begin(), 0);
         let mut right_range: Option<Range> = None;
 
-        debug!("split_to_width: splitting text box (strlen=%u, range=%?, avail_width=%?)",
+        debug!("split_to_width: splitting text box (strlen={:u}, range={}, avail_width={})",
                self.run.text.get().len(),
                self.range,
                max_width);
 
         for (glyphs, offset, slice_range) in self.run.iter_slices_for_range(&self.range) {
-            debug!("split_to_width: considering slice (offset=%?, range=%?, remain_width=%?)",
+            debug!("split_to_width: considering slice (offset={}, range={}, remain_width={})",
                    offset,
                    slice_range,
                    remaining_width);
@@ -470,7 +470,7 @@ impl RenderBox for TextRenderBox {
                     // the right chunk.
                     let right_range_end = self.range.end() - slice_begin;
                     right_range = Some(Range::new(slice_begin, right_range_end));
-                    debug!("split_to_width: case=splitting remainder with right range=%?",
+                    debug!("split_to_width: case=splitting remainder with right range={:?}",
                            right_range);
                 }
             }
@@ -728,7 +728,7 @@ impl RenderBoxBase {
     pub fn font_style(&self) -> FontStyle {
         let my_style = self.nearest_ancestor_element().style();
 
-        debug!("(font style) start: %?", self.nearest_ancestor_element().type_id());
+        debug!("(font style) start: {:?}", self.nearest_ancestor_element().type_id());
 
         // FIXME: Too much allocation here.
         let font_families = do my_style.Font.font_family.map |family| {
@@ -737,10 +737,10 @@ impl RenderBoxBase {
             }
         };
         let font_families = font_families.connect(", ");
-        debug!("(font style) font families: `%s`", font_families);
+        debug!("(font style) font families: `{:s}`", font_families);
 
         let font_size = my_style.Font.font_size.to_f64().unwrap() / 60.0;
-        debug!("(font style) font size: `%fpx`", font_size);
+        debug!("(font style) font size: `{:f}px`", font_size);
 
         let (italic, oblique) = match my_style.Font.font_style {
             font_style::normal => (false, false),
@@ -948,9 +948,9 @@ impl RenderBoxUtils for @RenderBox {
         let base = self.base();
         let box_bounds = base.position.get();
         let absolute_box_bounds = box_bounds.translate(offset);
-        debug!("RenderBox::build_display_list at rel=%?, abs=%?: %s",
+        debug!("RenderBox::build_display_list at rel={}, abs={}: {:s}",
                box_bounds, absolute_box_bounds, self.debug_str());
-        debug!("RenderBox::build_display_list: dirty=%?, offset=%?", dirty, offset);
+        debug!("RenderBox::build_display_list: dirty={}, offset={}", *dirty, *offset);
 
         if absolute_box_bounds.intersects(dirty) {
             debug!("RenderBox::build_display_list: intersected. Adding display item...");
@@ -990,7 +990,7 @@ impl RenderBoxUtils for @RenderBox {
                 //
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
-                debug!("%?", {
+                debug!("{:?}", {
                     // Compute the text box bounds and draw a border surrounding them.
                     let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
@@ -1039,7 +1039,7 @@ impl RenderBoxUtils for @RenderBox {
 
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
-                debug!("%?", {
+                debug!("{:?}", {
                     let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
                     do list.with_mut_ref |list| {

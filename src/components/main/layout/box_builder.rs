@@ -70,7 +70,7 @@ impl<'self> BoxGenerator<'self> {
     /* Debug ids only */
 
     fn new(flow: &'self mut FlowContext) -> BoxGenerator<'self> {
-        debug!("Creating box generator for flow: %s", flow.debug_str());
+        debug!("Creating box generator for flow: {:s}", flow.debug_str());
         BoxGenerator {
             flow: flow,
             range_stack: @mut ~[]
@@ -105,12 +105,12 @@ impl<'self> BoxGenerator<'self> {
                      ctx: &LayoutContext,
                      node: AbstractNode<LayoutView>,
                      builder: &mut LayoutTreeBuilder) {
-        debug!("BoxGenerator[f%d]: pushing node: %s", flow::base(self.flow).id, node.debug_str());
+        debug!("BoxGenerator[f{:d}]: pushing node: {:s}", flow::base(self.flow).id, node.debug_str());
 
         // TODO: remove this once UA styles work
         let box_type = self.decide_box_type(node);
 
-        debug!("BoxGenerator[f%d]: point a", flow::base(self.flow).id);
+        debug!("BoxGenerator[f{:d}]: point a", flow::base(self.flow).id);
 
         let range_stack = &mut self.range_stack;
         // depending on flow, make a box for this node.
@@ -135,10 +135,10 @@ impl<'self> BoxGenerator<'self> {
             },
             BlockFlowClass => {
                 let block = self.flow.as_block();
-                debug!("BoxGenerator[f%d]: point b", block.base.id);
+                debug!("BoxGenerator[f{:d}]: point b", block.base.id);
                 let new_box = BoxGenerator::make_box(ctx, box_type, node, builder);
 
-                debug!("BoxGenerator[f%d]: attaching box[b%d] to block flow (node: %s)",
+                debug!("BoxGenerator[f{:d}]: attaching box[b{:d}] to block flow (node: {:s})",
                        block.base.id,
                        new_box.base().id(),
                        node.debug_str());
@@ -148,11 +148,11 @@ impl<'self> BoxGenerator<'self> {
             }
             FloatFlowClass => {
                 let float = self.flow.as_float();
-                debug!("BoxGenerator[f%d]: point b", float.base.id);
+                debug!("BoxGenerator[f{:d}]: point b", float.base.id);
 
                 let new_box = BoxGenerator::make_box(ctx, box_type, node, builder);
 
-                debug!("BoxGenerator[f%d]: attaching box[b%d] to float flow (node: %s)",
+                debug!("BoxGenerator[f{:d}]: attaching box[b{:d}] to float flow (node: {:s})",
                         float.base.id,
                         new_box.base().id(),
                         node.debug_str());
@@ -160,12 +160,12 @@ impl<'self> BoxGenerator<'self> {
                 assert!(float.box.is_none() && float.index.is_none());
                 float.box = Some(new_box);
             }
-            _ => warn!("push_node() not implemented for flow f%d", flow::base(self.flow).id),
+            _ => warn!("push_node() not implemented for flow f{:d}", flow::base(self.flow).id),
         }
     }
 
     pub fn pop_node(&mut self, ctx: &LayoutContext, node: AbstractNode<LayoutView>) {
-        debug!("BoxGenerator[f%d]: popping node: %s", flow::base(self.flow).id, node.debug_str());
+        debug!("BoxGenerator[f{:d}]: popping node: {:s}", flow::base(self.flow).id, node.debug_str());
 
         match self.flow.class() {
             InlineFlowClass => {
@@ -188,12 +188,12 @@ impl<'self> BoxGenerator<'self> {
                     warn!("node range length is zero?!")
                 }
 
-                debug!("BoxGenerator: adding element range=%?", node_range);
+                debug!("BoxGenerator: adding element range={}", node_range);
                 inline.elems.add_mapping(node, &node_range);
             },
             BlockFlowClass => assert!(self.range_stack.len() == 0),
             FloatFlowClass => assert!(self.range_stack.len() == 0),
-            _ => warn!("pop_node() not implemented for flow %?", flow::base(self.flow).id),
+            _ => warn!("pop_node() not implemented for flow {:?}", flow::base(self.flow).id),
         }
     }
 
@@ -212,7 +212,7 @@ impl<'self> BoxGenerator<'self> {
             }
             ImageRenderBoxClass => BoxGenerator::make_image_box(layout_ctx, node, base),
         };
-        debug!("BoxGenerator: created box: %s", result.debug_str());
+        debug!("BoxGenerator: created box: {:s}", result.debug_str());
         result
     }
 
@@ -289,7 +289,7 @@ impl LayoutTreeBuilder {
                                  mut parent_generator: BoxGenerator<'a>,
                                  mut prev_sibling_generator: Option<BoxGenerator<'a>>)
                                  -> BoxConstructResult<'a> {
-        debug!("Considering node: %s", cur_node.debug_str());
+        debug!("Considering node: {:s}", cur_node.debug_str());
         let box_gen_result = {
             let grandparent_gen_ref = match grandparent_generator {
                 Some(ref mut generator) => Some(generator),
@@ -304,7 +304,7 @@ impl LayoutTreeBuilder {
 
         let mut reparent = false;
 
-        debug!("result from generator_for_node: %?", &box_gen_result);
+        debug!("result from generator_for_node: {:?}", &box_gen_result);
         // Skip over nodes that don't belong in the flow tree
         let (this_generator, next_generator) = match box_gen_result {
             NoGenerator => return Normal(prev_sibling_generator),
@@ -332,9 +332,9 @@ impl LayoutTreeBuilder {
 
         let mut this_generator = this_generator;
 
-        debug!("point a: %s", cur_node.debug_str());
+        debug!("point a: {:s}", cur_node.debug_str());
         this_generator.push_node(layout_ctx, cur_node, self);
-        debug!("point b: %s", cur_node.debug_str());
+        debug!("point b: {:s}", cur_node.debug_str());
 
         // recurse on child nodes.
         let prev_gen_cell = Cell::new(Normal(None));
@@ -571,7 +571,7 @@ impl LayoutTreeBuilder {
                                     let first_box = boxes[0];   // FIXME(pcwalton): Rust bug
                                     if first_box.is_whitespace_only() {
                                         debug!("LayoutTreeBuilder: pruning whitespace-only first \
-                                                child flow f%d from parent f%d", 
+                                                child flow f{:d} from parent f{:d}",
                                                first_inline_flow.base.id,
                                                p_id);
                                         do_remove = true;
@@ -599,7 +599,7 @@ impl LayoutTreeBuilder {
                                     let last_box = boxes.last();    // FIXME(pcwalton): Rust bug
                                     if last_box.is_whitespace_only() {
                                         debug!("LayoutTreeBuilder: pruning whitespace-only last \
-                                                child flow f%d from parent f%d", 
+                                                child flow f{:d} from parent f{:d}",
                                                last_inline_flow.base.id,
                                                p_id);
                                         do_remove = true;
@@ -638,7 +638,7 @@ impl LayoutTreeBuilder {
     pub fn construct_trees(&mut self, layout_ctx: &LayoutContext, root: AbstractNode<LayoutView>)
                        -> Result<~FlowContext:, ()> {
         debug!("Constructing flow tree for DOM: ");
-        debug!("%?", root.dump());
+        debug!("{:?}", root.dump());
 
         let mut new_flow = self.make_flow(RootFlowType, root);
         {
@@ -661,7 +661,7 @@ impl LayoutTreeBuilder {
             RootFlowType            => ~BlockFlow::new_root(info) as ~FlowContext:,
             TableFlowType           => ~TableFlow::new(info) as ~FlowContext:,
         };
-        debug!("LayoutTreeBuilder: created flow: %s", result.debug_str());
+        debug!("LayoutTreeBuilder: created flow: {:s}", result.debug_str());
         result
     }
 }

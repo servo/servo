@@ -320,7 +320,7 @@ impl Font {
         let result = self.handle.get_table_for_tag(tag);
         let status = if result.is_some() { "Found" } else { "Didn't find" };
 
-        debug!("%s font table[%s] with family=%s, face=%s",
+        debug!("{:s} font table[{:s}] with family={:s}, face={:s}",
                status, tag.tag_to_str(),
                self.handle.family_name(), self.handle.face_name());
 

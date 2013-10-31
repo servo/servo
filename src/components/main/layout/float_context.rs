@@ -128,7 +128,7 @@ impl FloatContext {
 
 impl FloatContextBase{
     fn new(num_floats: uint) -> FloatContextBase {
-        debug!("Creating float context of size %?", num_floats);
+        debug!("Creating float context of size {}", num_floats);
         FloatContextBase {
             float_data: if num_floats == 0 {
                 None
@@ -151,7 +151,7 @@ impl FloatContextBase{
         match self.float_data.get_ref()[self.floats_used - 1] {
             None => fail!("FloatContext error: floats should never be None here"),
             Some(float) => {
-                debug!("Returning float position: %?", float.bounds.origin + self.offset);
+                debug!("Returning float position: {}", float.bounds.origin + self.offset);
                 float.bounds.origin + self.offset
             }
         }
@@ -168,7 +168,7 @@ impl FloatContextBase{
 
         let top = top - self.offset.y;
 
-        debug!("available_rect: trying to find space at %?", top);
+        debug!("available_rect: trying to find space at {}", top);
 
         // Relevant dimensions for the right-most left float
         let mut max_left = Au(0) - self.offset.x;
@@ -188,7 +188,7 @@ impl FloatContextBase{
                     Some(data) => {
                         let float_pos = data.bounds.origin;
                         let float_size = data.bounds.size;
-                        debug!("float_pos: %?, float_size: %?", float_pos, float_size);
+                        debug!("float_pos: {}, float_size: {}", float_pos, float_size);
                         match data.f_type {
                             FloatLeft => {
                                 if(float_pos.x + float_size.width > max_left && 
@@ -198,7 +198,7 @@ impl FloatContextBase{
                                     l_top = Some(float_pos.y);
                                     l_bottom = Some(float_pos.y + float_size.height);
 
-                                    debug!("available_rect: collision with left float: new max_left is %?",
+                                    debug!("available_rect: collision with left float: new max_left is {}",
                                             max_left);
                                 }
                             }
@@ -209,7 +209,7 @@ impl FloatContextBase{
 
                                     r_top = Some(float_pos.y);
                                     r_bottom = Some(float_pos.y + float_size.height);
-                                    debug!("available_rect: collision with right float: new min_right is %?",
+                                    debug!("available_rect: collision with right float: new min_right is {}",
                                             min_right);
                                 }
                             }
@@ -249,7 +249,7 @@ impl FloatContextBase{
 
     fn add_float(&mut self, info: &PlacementInfo) {
         assert!(self.float_data.is_some());
-        debug!("Floats_used: %?, Floats available: %?",
+        debug!("Floats_used: {}, Floats available: {}",
                self.floats_used,
                self.float_data.get_ref().len());
         assert!(self.floats_used < self.float_data.get_ref().len() && 
@@ -263,7 +263,7 @@ impl FloatContextBase{
             f_type: info.f_type
         };
 
-        debug!("add_float: added float with info %?", new_info);
+        debug!("add_float: added float with info {:?}", new_info);
 
         let new_float = FloatData {    
             bounds: Rect {
@@ -325,13 +325,13 @@ impl FloatContextBase{
     /// Given necessary info, finds the closest place a box can be positioned
     /// without colliding with any floats.
     fn place_between_floats(&self, info: &PlacementInfo) -> Rect<Au>{
-        debug!("place_float: Placing float with width %? and height %?", info.width, info.height);
+        debug!("place_float: Placing float with width {} and height {}", info.width, info.height);
         // Can't go any higher than previous floats or
         // previous elements in the document.
         let mut float_y = info.ceiling;
         loop {
             let maybe_location = self.available_rect(float_y, info.height, info.max_width);
-            debug!("place_float: Got available rect: %? for y-pos: %?", maybe_location, float_y);
+            debug!("place_float: Got available rect: {:?} for y-pos: {}", maybe_location, float_y);
             match maybe_location {
 
                 // If there are no floats blocking us, return the current location

@@ -330,10 +330,10 @@ impl LayoutTask {
         // FIXME: Bad copy!
         let doc_url = data.url.clone();
 
-        debug!("layout: received layout request for: %s", doc_url.to_str());
-        debug!("layout: damage is %?", data.damage);
+        debug!("layout: received layout request for: {:s}", doc_url.to_str());
+        debug!("layout: damage is {:?}", data.damage);
         debug!("layout: parsed Node tree");
-        debug!("%?", node.dump());
+        debug!("{:?}", node.dump());
         // Reset the image cache.
         self.local_image_cache.next_round(self.make_on_image_available_cb());
 
@@ -341,7 +341,7 @@ impl LayoutTask {
         let screen_size = Size2D(Au::from_px(data.window_size.width as int),
                                  Au::from_px(data.window_size.height as int));
         let resized = self.screen_size != Some(screen_size);
-        debug!("resized: %?", resized);
+        debug!("resized: {}", resized);
         self.screen_size = Some(screen_size);
 
         // Create a layout context for use throughout the following passes.
@@ -384,7 +384,7 @@ impl LayoutTask {
         layout_root.traverse_postorder(&mut ComputeDamageTraversal.clone());
 
         debug!("layout: constructed Flow tree");
-        debug!("%?", layout_root.dump());
+        debug!("{:?}", layout_root.dump());
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.

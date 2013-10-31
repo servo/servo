@@ -188,7 +188,7 @@ impl ImageCache {
                 (*handler)(&msg)
             }
 
-            debug!("image_cache_task: received: %?", msg);
+            debug!("image_cache_task: received: {:?}", msg);
 
             match msg {
                 Prefetch(url) => self.prefetch(url),
@@ -256,7 +256,7 @@ impl ImageCache {
 
                 do spawn {
                     let url = url_cell.take();
-                    debug!("image_cache_task: started fetch for %s", url.to_str());
+                    debug!("image_cache_task: started fetch for {:s}", url.to_str());
 
                     let image = load_image_data(url.clone(), resource_task.clone());
 
@@ -266,7 +266,7 @@ impl ImageCache {
                         Err(())
                     };
                     to_cache.send(StorePrefetchedImageData(url.clone(), result));
-                    debug!("image_cache_task: ended fetch for %s", (url.clone()).to_str());
+                    debug!("image_cache_task: ended fetch for {:s}", (url.clone()).to_str());
                 }
 
                 self.set_state(url, Prefetching(DoNotDecode));
@@ -330,7 +330,7 @@ impl ImageCache {
 
                 do spawn {
                     let url = url_cell.take();
-                    debug!("image_cache_task: started image decode for %s", url.to_str());
+                    debug!("image_cache_task: started image decode for {:s}", url.to_str());
                     let image = decode(data);
                     let image = if image.is_some() {
                         Some(Arc::new(~image.unwrap()))
@@ -338,7 +338,7 @@ impl ImageCache {
                         None
                     };
                     to_cache.send(StoreImage(url.clone(), image));
-                    debug!("image_cache_task: ended image decode for %s", url.to_str());
+                    debug!("image_cache_task: ended image decode for {:s}", url.to_str());
                 }
 
                 self.set_state(url, Decoding);

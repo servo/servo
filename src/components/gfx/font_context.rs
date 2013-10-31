@@ -113,7 +113,7 @@ impl<'self> FontContext {
     fn transform_family(&self, family: &str) -> ~str {
         // FIXME: Need a find_like() in HashMap.
         let family = family.to_str();
-        debug!("(transform family) searching for `%s`", family);
+        debug!("(transform family) searching for `{:s}`", family);
         match self.generic_fonts.find(&family) {
             None => family,
             Some(mapped_family) => (*mapped_family).clone()
@@ -129,7 +129,7 @@ impl<'self> FontContext {
         for family in style.families.split_iter(',') {
             let family_name = family.trim();
             let transformed_family_name = self.transform_family(family_name);
-            debug!("(create font group) transformed family is `%s`", transformed_family_name);
+            debug!("(create font group) transformed family is `{:s}`", transformed_family_name);
 
             let result = match self.font_list {
                 Some(ref fl) => fl.find_font_in_family(transformed_family_name, style),
@@ -150,7 +150,7 @@ impl<'self> FontContext {
             };
 
             if !found {
-                debug!("(create font group) didn't find `%s`", transformed_family_name);
+                debug!("(create font group) didn't find `{:s}`", transformed_family_name);
             }
         }
 

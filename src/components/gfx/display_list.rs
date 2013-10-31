@@ -42,7 +42,7 @@ impl<E> DisplayList<E> {
     /// Appends the given item to the display list.
     pub fn append_item(&mut self, item: DisplayItem<E>) {
         // FIXME(Issue #150): crashes
-        //debug!("Adding display item %u: %?", self.len(), item);
+        //debug!("Adding display item {:u}: {}", self.len(), item);
         self.list.push(item)
     }
 
@@ -51,7 +51,7 @@ impl<E> DisplayList<E> {
         debug!("Beginning display list.");
         for item in self.list.iter() {
             // FIXME(Issue #150): crashes
-            //debug!("drawing %?", *item);
+            //debug!("drawing {}", *item);
             item.draw_into_context(render_context)
         }
         debug!("Ending display list.")
@@ -120,7 +120,7 @@ impl<E> DisplayItem<E> {
             }
 
             TextDisplayItemClass(ref text) => {
-                debug!("Drawing text at %?.", text.base.bounds);
+                debug!("Drawing text at {:?}.", text.base.bounds);
 
                 // FIXME(pcwalton): Allocating? Why?
                 let new_run = @text.text_run.deserialize(render_context.font_ctx);
@@ -161,7 +161,7 @@ impl<E> DisplayItem<E> {
             }
 
             ImageDisplayItemClass(ref image_item) => {
-                debug!("Drawing image at %?.", image_item.base.bounds);
+                debug!("Drawing image at {:?}.", image_item.base.bounds);
 
                 render_context.draw_image(image_item.base.bounds, image_item.image.clone())
             }

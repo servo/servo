@@ -178,11 +178,11 @@ impl ResourceManager {
     fn load(&self, url: Url, start_chan: Chan<LoadResponse>) {
         match self.get_loader_factory(&url) {
             Some(loader_factory) => {
-                debug!("resource_task: loading url: %s", url.to_str());
+                debug!("resource_task: loading url: {:s}", url.to_str());
                 loader_factory(url, start_chan);
             }
             None => {
-                debug!("resource_task: no loader for scheme %s", url.scheme);
+                debug!("resource_task: no loader for scheme {:s}", url.scheme);
                 start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
             }
         }

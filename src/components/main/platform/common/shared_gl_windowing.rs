@@ -33,7 +33,7 @@ impl WindowingMethods<Application> for Window {
     /// Creates a new window.
     pub fn new(_: &Application) -> @mut Window {
         let share_context: Context = ShareContext::new(Size2D(800, 600));
-        println(fmt!("Sharing ID is %d", share_context.id()));
+        println(format!("Sharing ID is {:d}", share_context.id()));
         @mut Window(share_context)
     }
 

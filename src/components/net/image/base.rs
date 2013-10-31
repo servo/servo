@@ -14,10 +14,10 @@ pub fn Image(width: uint, height: uint, depth: uint, data: ~[u8]) -> Image {
     stb_image::new_image(width, height, depth, data)
 }
 
-static TEST_IMAGE: [u8, ..4962] = include_bin!("test.jpeg");
+static TEST_IMAGE: &'static [u8] = include_bin!("test.jpeg");
 
 pub fn test_image_bin() -> ~[u8] {
-    return vec::from_fn(4962, |i| TEST_IMAGE[i]);
+    TEST_IMAGE.into_owned()
 }
 
 pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {

@@ -11,7 +11,7 @@
 #[license = "MPL"];
 #[crate_type = "lib"];
 
-#[feature(globs, macro_rules, struct_variant)];
+#[feature(globs, macro_rules, struct_variant, managed_boxes)];
 
 extern mod geom;
 extern mod gfx (name = "gfx");

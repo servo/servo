@@ -226,19 +226,19 @@ pub fn run_compositor(compositor: &CompositorTask) {
             ResizeWindowEvent(width, height) => {
                 let new_size = Size2D(width, height);
                 if window_size != new_size {
-                    debug!("osmain: window resized to %ux%u", width, height);
+                    debug!("osmain: window resized to {:u}x{:u}", width, height);
                     window_size = new_size;
                     match constellation_chan {
                         Some(ref chan) => chan.send(ResizedWindowMsg(new_size)),
                         None => error!("Compositor: Received resize event without initialized layout chan"),
                     }
                 } else {
-                    debug!("osmain: dropping window resize since size is still %ux%u", width, height);
+                    debug!("osmain: dropping window resize since size is still {:u}x{:u}", width, height);
                 }
             }
 
             LoadUrlWindowEvent(url_string) => {
-                debug!("osmain: loading URL `%s`", url_string);
+                debug!("osmain: loading URL `{:s}`", url_string);
                 let root_pipeline_id = match compositor_layer {
                     Some(ref layer) => layer.pipeline.id.clone(),
                     None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor layers"),
