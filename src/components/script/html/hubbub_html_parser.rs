@@ -271,7 +271,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
     handle_element!(cx, document, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
-    handle_element!(cx, document, tag, "iframe",  HTMLIframeElementTypeId, HTMLIFrameElement, [(frame: None), (size: None), (sandbox: None)]);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -286,6 +285,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "h4",        HTMLHeadingElement, Heading4);
     handle_newable_element!(document, tag, "h5",        HTMLHeadingElement, Heading5);
     handle_newable_element!(document, tag, "h6",        HTMLHeadingElement, Heading6);
+    handle_newable_element!(document, tag, "iframe",    HTMLIFrameElement);
     handle_newable_element!(document, tag, "td",        HTMLTableDataCellElement);
     handle_newable_element!(document, tag, "th",        HTMLTableHeaderCellElement);
     handle_newable_element!(document, tag, "video",     HTMLVideoElement);
