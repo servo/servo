@@ -255,7 +255,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
     handle_element!(cx, document, tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);
     handle_element!(cx, document, tag, "source",  HTMLSourceElementTypeId, HTMLSourceElement, []);
-    handle_element!(cx, document, tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -275,6 +274,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "h6",        HTMLHeadingElement, Heading6);
     handle_newable_element!(document, tag, "iframe",    HTMLIFrameElement);
     handle_newable_element!(document, tag, "img",       HTMLImageElement);
+    handle_newable_element!(document, tag, "span",      HTMLSpanElement);
     handle_newable_element!(document, tag, "style",     HTMLStyleElement);
     handle_newable_element!(document, tag, "table",     HTMLTableElement);
     handle_newable_element!(document, tag, "tbody",     HTMLTableSectionElement);
