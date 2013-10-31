@@ -248,7 +248,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "optgroup",HTMLOptGroupElementTypeId, HTMLOptGroupElement, []);
     handle_element!(cx, document, tag, "output",  HTMLOutputElementTypeId, HTMLOutputElement, []);
     handle_element!(cx, document, tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
-    handle_element!(cx, document, tag, "param",   HTMLParamElementTypeId, HTMLParamElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -268,6 +267,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "h6",        HTMLHeadingElement, Heading6);
     handle_newable_element!(document, tag, "iframe",    HTMLIFrameElement);
     handle_newable_element!(document, tag, "img",       HTMLImageElement);
+    handle_newable_element!(document, tag, "param",     HTMLParamElement);
     handle_newable_element!(document, tag, "pre",       HTMLPreElement);
     handle_newable_element!(document, tag, "progress",  HTMLProgressElement);
     handle_newable_element!(document, tag, "q",         HTMLQuoteElement);
