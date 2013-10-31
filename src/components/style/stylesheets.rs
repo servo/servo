@@ -15,6 +15,8 @@ use media_queries;
 
 
 pub struct Stylesheet {
+    /// List of rules in the order they were found (important for
+    /// cascading order)
     rules: ~[CSSRule],
     namespaces: NamespaceMap,
 }
