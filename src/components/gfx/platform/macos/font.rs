@@ -182,7 +182,7 @@ impl FontHandleMethods for FontHandle {
             max_advance:      Au::from_pt(bounding_rect.size.width as f64)
         };
 
-        debug!("Font metrics (@{:f} pt): {}", self.ctfont.pt_size() as f64, metrics);
+        debug!("Font metrics (@{:f} pt): {:?}", self.ctfont.pt_size() as f64, metrics);
         return metrics;
     }
 
