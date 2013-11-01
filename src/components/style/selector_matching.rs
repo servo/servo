@@ -10,7 +10,7 @@ use selectors::*;
 use stylesheets::{Stylesheet, iter_style_rules};
 use media_queries::{Device, Screen};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use servo_util::tree::{TreeNodeRefAsElement, TreeNode, ElementLike};
+use servo_util::tree::{TreeNodeRefAsElement, TreeNode, ElementLike, Before};
 
 
 pub enum StylesheetOrigin {
@@ -77,7 +77,7 @@ impl Stylist {
         }
     }
 
-    pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
+    pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
             &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>) -> (~[Arc<~[PropertyDeclaration]>], ~[Arc<~[PropertyDeclaration]>]) {
         assert!(element.is_element())
         //assert!(style_attribute.is_none() || pseudo_element.is_none(), 
@@ -156,12 +156,12 @@ impl Ord for Rule {
 
 
 #[inline]
-fn matches_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
+fn matches_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         selector: &Selector, element: &T) -> bool {
     matches_compound_selector::<N, T, E>(&selector.compound_selectors, element)
 }
 
-fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
+fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         selector: &CompoundSelector, element: &T) -> bool {
     if !do selector.simple_selectors.iter().all |simple_selector| {
             matches_simple_selector(simple_selector, element)
@@ -201,7 +201,7 @@ fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, Pseud
 }
 
 #[inline]
-fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
+fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         selector: &SimpleSelector, element: &T) -> bool {
     static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
 
@@ -290,7 +290,7 @@ fn url_is_visited(_url: &str) -> bool {
 }
 
 #[inline]
-fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
+fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         element: &T) -> bool {
     let mut node = element.clone();
     loop {
@@ -307,7 +307,7 @@ fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoEleme
 }
 
 #[inline]
-fn match_attribute<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E, PseudoElement>, E: ElementLike>(
+fn match_attribute<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         attr: &AttrSelector, element: &T, f: &fn(&str)-> bool) -> bool {
     do element.with_imm_element_like |element: &E| {
         match attr.namespace {

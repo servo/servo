@@ -5,6 +5,14 @@
 
 //! Helper functions for garbage collected doubly-linked trees.
 
+#[deriving(Eq, Clone)]
+pub enum PseudoElement {
+    Before,
+    After,
+    FirstLine,
+    FirstLetter,
+}
+
 // Macros to make add_child etc. less painful to write.
 // Code outside this module should instead implement TreeNode
 // and use its default methods.
@@ -267,7 +275,7 @@ pub trait TreeNodeRef<Node>: Clone {
     fn is_root(&self) -> bool;
 }
 
-pub trait TreeNodeRefAsElement<Node, E: ElementLike, PseudoElement>: TreeNodeRef<Node> {
+pub trait TreeNodeRefAsElement<Node, E: ElementLike>: TreeNodeRef<Node> {
     fn with_imm_element_like<R>(&self, f: &fn(&E) -> R) -> R;
 
     fn set_pseudo_element(&mut self, pseudo_element: Option<PseudoElement>);

@@ -25,7 +25,7 @@ use extra::arc::Arc;
 use js::jsapi::{JSObject, JSContext};
 use style::{ComputedValues, PropertyDeclaration};
 use style::selectors::{PseudoElement, none};
-use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement};
+use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement, PseudoElement};
 use servo_util::range::Range;
 use gfx::display_list::DisplayList;
 
@@ -177,7 +177,7 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
     }
 }
 
-impl<View> TreeNodeRefAsElement<Node<View>, Element, PseudoElement> for AbstractNode<View> {
+impl<View> TreeNodeRefAsElement<Node<View>, Element> for AbstractNode<View> {
     #[inline]
     fn with_imm_element_like<R>(&self, f: &fn(&Element) -> R) -> R {
         self.with_imm_element(f)
@@ -1136,7 +1136,7 @@ impl LayoutData {
             pseudo_applicable_declarations: ~[],
             style: None,
             pseudo_style: None,
-            pseudo_element: Some(none),
+            pseudo_element: None,
             restyle_damage: None,
             boxes: DisplayBoxes {
                 display_list: None,
@@ -1166,11 +1166,13 @@ impl AbstractNode<LayoutView> {
         blk(&mut self.mut_node().layout_data)
     }
 
-    pub fn pseudo_element(self) -> &PseudoElement {
+    pub fn pseudo_element(self) -> Option<&PseudoElement> {
         do self.read_layout_data |layout_data| {
             match layout_data.pseudo_element {
-                None => fail!(~"pseudo_element() called on node without a pseudo_element"),
-                Some(ref s) => unsafe { cast::transmute_region(s)}
+                Some(ref s) => {
+                    unsafe { Some(cast::transmute_region(s)) }
+                }
+                None => None,
             }
         }
     }
