@@ -112,12 +112,15 @@ impl Stylesheet {
 pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut ~[CSSRule],
                         namespaces: &NamespaceMap) {
     let QualifiedRule{location: location, prelude: prelude, block: block} = rule;
+    // FIXME: avoid doing this for valid selectors
+    let serialized = prelude.iter().to_css();
     match selectors::parse_selector_list(prelude, namespaces) {
         Some(selectors) => parent_rules.push(CSSStyleRule(StyleRule{
             selectors: selectors,
             declarations: properties::parse_property_declaration_list(block.move_iter())
         })),
-        None => log_css_error(location, "Unsupported CSS selector."),
+        None => log_css_error(location, format!(
+            "Invalid/unsupported selector: {}", serialized)),
     }
 }
 
