@@ -4,7 +4,7 @@
 
 use style::Stylesheet;
 use style::Stylist;
-use style::selector_matching::UserAgentOrigin;
+use style::UserAgentOrigin;
 
 pub fn new_stylist() -> Stylist {
     let mut stylist = Stylist::new();
