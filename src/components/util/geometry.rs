@@ -21,7 +21,8 @@ impl Clone for Au {
 
 impl fmt::Default for Au {
     fn fmt(obj: &Au, f: &mut fmt::Formatter) {
-        write!(f.buf, "Au({})", *obj);
+        let Au(n) = *obj;
+        write!(f.buf, "Au({})", n);
     }
 }
 
