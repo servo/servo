@@ -236,7 +236,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "legend",  HTMLLegendElementTypeId, HTMLLegendElement, []);
     handle_element!(cx, document, tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
     handle_element!(cx, document, tag, "li",      HTMLLIElementTypeId, HTMLLIElement, []);
-    handle_element!(cx, document, tag, "map",     HTMLMapElementTypeId, HTMLMapElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -259,6 +258,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "img",       HTMLImageElement);
     handle_newable_element!(document, tag, "ins",       HTMLModElement);
     handle_newable_element!(document, tag, "main",      HTMLMainElement);
+    handle_newable_element!(document, tag, "map",       HTMLMapElement);
     handle_newable_element!(document, tag, "meta",      HTMLMetaElement);
     handle_newable_element!(document, tag, "meter",     HTMLMeterElement);
     handle_newable_element!(document, tag, "object",    HTMLObjectElement);
