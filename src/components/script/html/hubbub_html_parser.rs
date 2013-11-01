@@ -240,7 +240,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "main",    HTMLMainElementTypeId, HTMLMainElement, []);
     handle_element!(cx, document, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
     handle_element!(cx, document, tag, "meter",   HTMLMeterElementTypeId, HTMLMeterElement, []);
-    handle_element!(cx, document, tag, "mod",     HTMLModElementTypeId, HTMLModElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -252,6 +251,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "caption",   HTMLTableCaptionElement);
     handle_newable_element!(document, tag, "col",       HTMLTableColElement);
     handle_newable_element!(document, tag, "colgroup",  HTMLTableColElement);
+    handle_newable_element!(document, tag, "del",       HTMLModElement);
     handle_newable_element!(document, tag, "h1",        HTMLHeadingElement, Heading1);
     handle_newable_element!(document, tag, "h2",        HTMLHeadingElement, Heading2);
     handle_newable_element!(document, tag, "h3",        HTMLHeadingElement, Heading3);
@@ -260,6 +260,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "h6",        HTMLHeadingElement, Heading6);
     handle_newable_element!(document, tag, "iframe",    HTMLIFrameElement);
     handle_newable_element!(document, tag, "img",       HTMLImageElement);
+    handle_newable_element!(document, tag, "ins",       HTMLModElement);
     handle_newable_element!(document, tag, "object",    HTMLObjectElement);
     handle_newable_element!(document, tag, "ol",        HTMLOListElement);
     handle_newable_element!(document, tag, "optgroup",  HTMLOptGroupElement);
