@@ -1,0 +1,670 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#[link(name="embedding",
+       vers="0.1",
+       uuid="ed351626-2cec-49fe-819e-fd3ef791cc27",
+       url="http://servo.org")];
+#[crate_type="lib"];
+
+use std::cast::transmute;
+use std::libc::{c_char, c_double, c_int, c_uint, c_void, write};
+
+pub mod platform {
+    pub mod macos {
+        use super::super::{WKContextRef, WKPageRef, WKPageGroupRef};
+
+        use std::cast::transmute;
+        use std::libc::{c_char, c_double, c_int, c_uint, c_void, size_t};
+        use std::libc;
+        use std::mem;
+        use std::ptr;
+
+        type Class = *c_void;
+        type IMP = *c_void;
+        type Method = *c_void;
+        type SEL = *c_void;
+        type id = *c_void;
+        type objc_AssociationPolicy = c_int;
+
+        static nil: id = 0 as id;
+
+        static SERVO_VIEW_DATA_KEY: &'static str = "ServoViewDataKey";
+
+        struct ServoViewData {
+            // NSOpenGLContext *
+            gl_context: id,
+        }
+
+        impl ServoViewData {
+            #[fixed_stack_segment]
+            fn from_view(view: id) -> ServoViewData {
+                unsafe {
+                    let NSOpenGLView = objc_getClass(transmute(&"NSOpenGLView\0"[0]));
+                    let default_pixel_format = objc_msgSend(NSOpenGLView,
+                                                            selector("defaultPixelFormat"));
+
+                    let NSOpenGLContext = objc_getClass(transmute(&"NSOpenGLContext\0"[0]));
+                    let gl_context = objc_msgSend(NSOpenGLContext, selector("alloc"));
+                    let gl_context = objc_msgSend_id_id(gl_context,
+                                                        selector("initWithFormat:shareContext:"),
+                                                        default_pixel_format,
+                                                        nil);
+
+                    ServoViewData {
+                        gl_context: gl_context,
+                    }
+                }
+            }
+        }
+
+        extern {
+            fn class_addIvar(cls: Class,
+                             name: *c_char,
+                             size: size_t,
+                             alignment: u8,
+                             types: *c_char)
+                             -> bool;
+            fn class_copyMethodList(cls: Class, count: *mut c_uint) -> *Method;
+            fn class_getMethodImplementation(cls: Class, name: SEL) -> IMP;
+            fn class_replaceMethod(cls: Class, name: SEL, imp: IMP, types: *c_char) -> IMP;
+            fn class_respondsToSelector(cls: Class, name: SEL) -> bool;
+            fn method_getName(method: Method) -> SEL;
+            fn method_setImplementation(method: Method, imp: IMP);
+            fn objc_allocateClassPair(superclass: Class, name: *c_char, extraBytes: size_t)
+                                      -> Class;
+            fn objc_getAssociatedObject(object: id, key: *c_void) -> id;
+            fn objc_getClass(name: *c_char) -> id;
+            fn objc_lookUpClass(name: *c_char) -> id;
+            fn objc_registerClassPair(cls: Class);
+            fn objc_setAssociatedObject(object: id,
+                                        key: *c_void,
+                                        value: id,
+                                        policy: objc_AssociationPolicy);
+            fn sel_registerName(string: *c_char) -> SEL;
+
+            fn objc_msgSend_NSRect(this: id, op: SEL, rect: NSRect) -> id;
+            fn objc_msgSend(this: id, op: SEL) -> id;
+            fn objc_msgSend_id(this: id, op: SEL, arg0: id) -> id;
+            fn objc_msgSend_id_id(this: id, op: SEL, arg0: id, arg1: id) -> id;
+        }
+
+        static GL_COLOR_BUFFER_BIT: c_int = 0x4000;
+
+        extern {
+            fn glClearColor(r: f32, g: f32, b: f32, a: f32);
+            fn glClear(what: c_int);
+            fn glFlush();
+            fn glViewport(x: c_int, y: c_int, width: size_t, height: size_t);
+        }
+
+        struct NSRect {
+            origin: NSPoint,
+            size: NSSize,
+        }
+
+        struct NSPoint {
+            x: c_double,
+            y: c_double,
+        }
+
+        struct NSSize {
+            width: c_double,
+            height: c_double,
+        }
+
+        #[fixed_stack_segment]
+        fn selector(name: &str) -> SEL {
+            unsafe {
+                name.with_c_str(|c_name| sel_registerName(c_name))
+            }
+        }
+
+        #[fixed_stack_segment]
+        pub unsafe fn hijack_webkit_view_class() {
+            // Danger: Black magic ahead.
+            // 
+            // What we are doing here is to register a Servo view class under the name `WKView`. If
+            // there already a class `WKView` (most likely because genuine WebKit2 is loaded into
+            // the process), we nuke it and replace it with our own. If there are any extant
+            // WebKit2 instances at the time this function is called, then bad things will happen!
+
+            // Get or create the WKView class.
+            let NSView: id = objc_getClass(transmute(&"NSView\0"[0]));
+            let mut WKView: id = objc_lookUpClass(transmute(&"WKView\0"[0]));
+            if WKView == nil {
+                WKView = objc_allocateClassPair(NSView,
+                                                transmute(&"WKView"[0]),
+                                                mem::size_of::<WKPageRef>() as size_t);
+                let _ = class_addIvar(WKView,
+                                      transmute(&"_pageRef"[0]),
+                                      mem::size_of::<WKPageRef>() as size_t,
+                                      mem::size_of::<WKPageRef>() as u8,
+                                      transmute(&"WKPageRef"[0]));
+
+                objc_registerClassPair(WKView);
+            } else {
+                // Nuke all the WKView methods.
+                let mut count = 0;
+                let methods = class_copyMethodList(WKView, &mut count);
+                for i in range(0, count) {
+                    let method = *ptr::offset(methods, i as int);
+                    let sel = method_getName(method);
+                    if class_respondsToSelector(NSView, sel) {
+                        let imp = class_getMethodImplementation(NSView, sel);
+                        let _ = method_setImplementation(method, imp);
+                    }
+                }
+                libc::free(transmute(methods));
+            }
+
+            // Add our methods.
+            let _ = class_replaceMethod(WKView,
+                                        selector("initWithFrame:contextRef:pageGroupRef:"),
+                                        transmute(WKView_initWithFrame_contextRef_pageGroupRef),
+                                        transmute(&"@:{CGRect={CGPoint=dd}{CGSize=dd}}??"[0]));
+            let _ = class_replaceMethod(WKView,
+                                        selector("drawRect:"),
+                                        transmute(WKView_drawRect),
+                                        transmute(&"@:{CGRect={CGPoint=dd}{CGSize=dd}}"[0]));
+            let _ = class_replaceMethod(WKView,
+                                        selector("pageRef"),
+                                        transmute(WKView_pageRef),
+                                        transmute(&"@:"[0]));
+        }
+
+        #[fixed_stack_segment]
+        extern fn WKView_initWithFrame_contextRef_pageGroupRef(this: id,
+                                                               _: SEL,
+                                                               frame: NSRect,
+                                                               _: WKContextRef,
+                                                               _: WKPageGroupRef)
+                                                               -> id {
+            unsafe {
+                let _ = objc_msgSend_NSRect(this, selector("initWithFrame:"), frame);
+                let data = ~ServoViewData::from_view(this);
+                objc_setAssociatedObject(this,
+                                         transmute(&SERVO_VIEW_DATA_KEY[0]),
+                                         transmute(data),
+                                         0);
+                this
+            }
+        }
+
+        #[fixed_stack_segment]
+        extern fn WKView_drawRect(this: id, _: SEL, rect: NSRect) {
+            unsafe {
+                let _ = ::std::libc::write(1, transmute(&"drawing rect\n"[0]), 14);
+
+                let key: *c_void = transmute(&SERVO_VIEW_DATA_KEY[0]);
+                let data: &ServoViewData = transmute(objc_getAssociatedObject(this, key));
+                let _ = objc_msgSend_id(data.gl_context, selector("setView:"), this);
+                let _ = objc_msgSend(data.gl_context, selector("makeCurrentContext"));
+                glViewport(0, 0, 1, 1);
+                glClearColor(0.0, 0.0, 1.0, 1.0);
+                glClear(GL_COLOR_BUFFER_BIT);
+                glFlush();
+                let _ = objc_msgSend(data.gl_context, selector("flushBuffer"));
+            }
+        }
+
+        #[fixed_stack_segment]
+        extern fn WKView_pageRef(this: id, _: SEL) -> WKPageRef {
+            unsafe {
+                transmute(0)
+            }
+        }
+    }
+}
+
+// WKBase.h
+
+pub type WKTypeID = u32;
+pub type WKTypeRef = *c_void;
+
+pub struct OpaqueWKArray {
+    priv private: (),
+}
+pub type WKArrayRef = *OpaqueWKArray;
+pub type WKMutableArrayRef = *OpaqueWKArray;
+
+pub struct OpaqueWKString {
+    priv private: (),
+}
+pub type WKStringRef = *OpaqueWKString;
+
+pub struct OpaqueWKURL;
+pub type WKURLRef = *OpaqueWKURL;
+
+pub struct OpaqueWKContext {
+    priv private: (),
+}
+pub type WKContextRef = *OpaqueWKContext;
+
+pub struct OpaqueWKFrame {
+    priv private: (),
+}
+pub type WKFrameRef = *OpaqueWKFrame;
+
+pub struct OpaqueWKFramePolicyListener {
+    priv private: (),
+}
+pub type WKFramePolicyListenerRef = *OpaqueWKFramePolicyListener;
+
+pub struct OpaqueWKNavigationData {
+    priv private: (),
+}
+pub type WKNavigationDataRef = *OpaqueWKNavigationData;
+
+pub struct OpaqueWKOpenPanelParameters {
+    priv private: (),
+}
+pub type WKOpenPanelParametersRef = *OpaqueWKOpenPanelParameters;
+
+pub struct OpaqueWKOpenPanelResultListener {
+    priv private: (),
+}
+pub type WKOpenPanelResultListenerRef = *OpaqueWKOpenPanelResultListener;
+
+pub struct OpaqueWKPageRef {
+    priv private: (),
+}
+pub type WKPageRef = *OpaqueWKPageRef;
+
+pub struct OpaqueWKPageGroupRef {
+    priv private: (),
+}
+pub type WKPageGroupRef = *OpaqueWKPageGroupRef;
+
+// WKContext.h
+
+pub type WKCacheModel = u32;
+
+pub struct WKContextInjectedBundleClient {
+    version: c_int,
+    // TODO(pcwalton): Finish.
+}
+
+pub struct WKContextHistoryClient {
+    version: c_int,
+    // TODO(pcwalton): Finish.
+}
+
+#[no_mangle]
+pub extern fn WKContextCreateWithInjectedBundlePath(_path: WKStringRef) -> WKContextRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        let _ = write(1, transmute(&"Hi there!\n"[0]), 10);
+        platform::macos::hijack_webkit_view_class();
+        transmute(0)
+    }
+}
+
+#[no_mangle]
+pub extern fn WKContextSetInjectedBundleClient(_context: WKContextRef,
+                                            _client: *WKContextInjectedBundleClient) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKContextSetHistoryClient(_context: WKContextRef, _client: *WKContextHistoryClient) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKContextPostMessageToInjectedBundle(_context: WKContextRef,
+                                                   _messageName: WKStringRef,
+                                                   _messageBody: WKTypeRef) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKContextSetCacheModel(_context: WKContextRef, _cacheModel: WKCacheModel) {
+    // FIXME(pcwalton): Stub.
+}
+
+// WKFindOptions.h
+
+pub type WKFindOptions = u32;
+
+// WKFrame.h
+
+#[no_mangle]
+pub extern fn WKFrameCopyProvisionalURL(_frame: WKFrameRef) -> WKURLRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+#[no_mangle]
+pub extern fn WKFrameCopyURL(_frame: WKFrameRef) -> WKURLRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+#[no_mangle]
+pub extern fn WKFrameIsMainFrame(_frame: WKFrameRef) -> bool {
+    // FIXME(pcwalton): Stub.
+    true
+}
+
+// WKFramePolicyListener.h
+
+#[no_mangle]
+pub extern fn WKFramePolicyListenerUse(_policyListener: WKFramePolicyListenerRef) {
+    // FIXME(pcwalton): Stub.
+}
+
+// WKMutableArray.h
+
+#[no_mangle]
+pub extern fn WKMutableArrayCreate() -> WKMutableArrayRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+#[no_mangle]
+pub extern fn WKArrayAppendItem(_array: WKMutableArrayRef, _item: WKTypeRef) {
+    // FIXME(pcwalton): Stub.
+}
+
+// WKNavigationData.h
+
+#[no_mangle]
+pub extern fn WKNavigationDataCopyTitle(_navigationData: WKNavigationDataRef) -> WKStringRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+#[no_mangle]
+pub extern fn WKNavigationDataCopyURL(_navigationData: WKNavigationDataRef) -> WKURLRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+// WKOpenPanelParameters.h
+
+#[no_mangle]
+pub extern fn WKOpenPanelParametersGetAllowsMultipleFiles(_parameters: WKOpenPanelParametersRef)
+                                                          -> bool {
+    // FIXME(pcwalton): Stub.
+    false
+}
+
+// WKOpenPanelResultListener.h
+
+#[no_mangle]
+pub extern fn WKOpenPanelResultListenerChooseFiles(_listener: WKOpenPanelResultListenerRef,
+                                                   _files: WKArrayRef) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKOpenPanelResultListenerCancel(_listener: WKOpenPanelResultListenerRef) {
+    // FIXME(pcwalton): Stub.
+}
+
+// WKPage.h
+
+pub struct WKPageLoaderClient {
+    version: c_int,
+    // TODO(pcwalton): Fill this in.
+}
+
+pub struct WKPagePolicyClient {
+    version: c_int,
+    // TODO(pcwalton): Fill this in.
+}
+
+pub struct WKPageUIClient {
+    version: c_int,
+    // TODO(pcwalton): Fill this in.
+}
+
+pub type WKPageGetSourceForFrameBlock = *c_void;
+
+#[no_mangle]
+pub extern fn WKPageGetContext(_page: WKPageRef) -> WKContextRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+#[no_mangle]
+pub extern fn WKPageGetPageGroup(_page: WKPageRef) -> WKPageGroupRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+#[no_mangle]
+pub extern fn WKPageLoadURL(_page: WKPageRef, _url: WKURLRef) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageReload(_page: WKPageRef) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageTryClose(_page: WKPageRef) -> bool {
+    // FIXME(pcwalton): Stub.
+    true
+}
+
+#[no_mangle]
+pub extern fn WKPageClose(_page: WKPageRef) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageGoForward(_page: WKPageRef) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageCanGoForward(_page: WKPageRef) -> bool {
+    // FIXME(pcwalton): Stub.
+    false
+}
+
+#[no_mangle]
+pub extern fn WKPageGoBack(_page: WKPageRef) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageCanGoBack(_page: WKPageRef) -> bool {
+    // FIXME(pcwalton): Stub.
+    false
+}
+
+#[no_mangle]
+pub extern fn WKPageGetMainFrame(_page: WKPageRef) -> WKFrameRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+#[no_mangle]
+pub extern fn WKPageGetEstimatedProgress(_page: WKPageRef) -> c_double {
+    // FIXME(pcwalton): Stub.
+    1.0
+}
+
+#[no_mangle]
+pub extern fn WKPageGetPageZoomFactor(_page: WKPageRef) -> c_double {
+    // FIXME(pcwalton): Stub.
+    1.0
+}
+
+#[no_mangle]
+pub extern fn WKPageSetPageZoomFactor(_page: WKPageRef, _zoomFactor: c_double) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageGetTextZoomFactor(_page: WKPageRef) -> c_double {
+    // FIXME(pcwalton): Stub.
+    1.0
+}
+
+#[no_mangle]
+pub extern fn WKPageSetPageAndTextZoomFactors(_page: WKPageRef,
+                                              _pageZoomFactor: c_double,
+                                              _textZoomFactor: c_double) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageFindString(_page: WKPageRef,
+                               _string: WKStringRef,
+                               _findOptions: WKFindOptions,
+                               _maxMatchCount: c_uint) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageSetPageLoaderClient(_page: WKPageRef, _client: *WKPageLoaderClient) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageSetPagePolicyClient(_page: WKPageRef, _client: *WKPagePolicyClient) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageSetPageUIClient(_page: WKPageRef, _client: *WKPageUIClient) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageGetSourceForFrame_b(_page: WKPageRef,
+                                        _frame: WKFrameRef,
+                                        _block: WKPageGetSourceForFrameBlock) {
+    // FIXME(pcwalton): Stub.
+}
+
+// WKPageGroup.h
+
+#[no_mangle]
+pub extern fn WKPageGroupCreateWithIdentifier(_identifier: WKStringRef) -> WKPageGroupRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+// WKPagePrivate.h
+
+pub type WKPaginationMode = u32;
+
+#[no_mangle]
+pub extern fn WKPageSetPaginationMode(_page: WKPageRef, _paginationMode: WKPaginationMode) {
+    // FIXME(pcwalton): Stub.
+}
+
+#[no_mangle]
+pub extern fn WKPageGetPaginationMode(_page: WKPageRef) -> WKPaginationMode {
+    // FIXME(pcwalton): Stub.
+    0
+}
+
+#[no_mangle]
+pub extern fn WKPageSetGapBetweenPages(_page: WKPageRef, _gap: c_double) {
+    // FIXME(pcwalton): Stub.
+}
+
+// WKStringCF.h
+
+// FIXME(pcwalton): Link against Core Foundation.
+type CFAllocatorRef = *c_void;
+type CFStringRef = *c_void;
+
+#[no_mangle]
+pub extern fn WKStringCreateWithCFString(_string: CFStringRef) -> WKStringRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+#[no_mangle]
+pub extern fn WKStringCopyCFString(_alloc: CFAllocatorRef, _string: WKStringRef) -> CFStringRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+// WKType.h
+
+#[no_mangle]
+pub extern fn WKGetTypeID(_type: WKTypeRef) -> WKTypeID {
+    // FIXME(pcwalton): Stub.
+    0
+}
+
+#[no_mangle]
+pub extern fn WKRetain(Type: WKTypeRef) -> WKTypeRef {
+    // FIXME(pcwalton): Stub.
+    Type
+}
+
+#[no_mangle]
+pub extern fn WKRelease(_type: WKTypeRef) {
+    // FIXME(pcwalton): Stub.
+}
+
+// WKURL.h
+
+#[no_mangle]
+pub extern fn WKURLCreateWithUTF8CString(_string: *c_char) -> WKURLRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+#[no_mangle]
+pub extern fn WKURLIsEqual(_a: WKURLRef, _b: WKURLRef) -> bool {
+    // FIXME(pcwalton): Stub.
+    false
+}
+
+// WKURLCF.h
+
+// FIXME(pcwalton): Link against Core Foundation.
+type CFURLRef = *c_void;
+
+#[no_mangle]
+pub extern fn WKURLCreateWithCFURL(_URL: CFURLRef) -> WKURLRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
+#[no_mangle]
+pub extern fn WKURLCopyCFURL(_alloc: CFAllocatorRef, _URL: WKURLRef) -> CFURLRef {
+    // FIXME(pcwalton): Stub.
+    unsafe {
+        transmute(0)
+    }
+}
+
