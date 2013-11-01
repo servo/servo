@@ -243,7 +243,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "mod",     HTMLModElementTypeId, HTMLModElement, []);
     handle_element!(cx, document, tag, "object",  HTMLObjectElementTypeId, HTMLObjectElement, []);
     handle_element!(cx, document, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
-    handle_element!(cx, document, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -264,6 +263,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "iframe",    HTMLIFrameElement);
     handle_newable_element!(document, tag, "img",       HTMLImageElement);
     handle_newable_element!(document, tag, "optgroup",  HTMLOptGroupElement);
+    handle_newable_element!(document, tag, "option",    HTMLOptionElement);
     handle_newable_element!(document, tag, "output",    HTMLOutputElement);
     handle_newable_element!(document, tag, "p",         HTMLParagraphElement);
     handle_newable_element!(document, tag, "param",     HTMLParamElement);
