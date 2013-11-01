@@ -20,7 +20,7 @@ use std::cast::transmute;
 use std::cell::Cell;
 use std::comm::{Port};
 use std::task;
-use extra::arc::Arc;
+use extra::arc::{Arc, RWArc};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -65,7 +65,7 @@ struct LayoutTask {
 
     display_list: Option<Arc<DisplayList<AbstractNode<()>>>>,
 
-    stylist: Stylist,
+    stylist: RWArc<Stylist>,
     profiler_chan: ProfilerChan,
 }
 
@@ -241,7 +241,7 @@ impl LayoutTask {
 
             display_list: None,
             
-            stylist: new_stylist(),
+            stylist: RWArc::new(new_stylist()),
             profiler_chan: profiler_chan,
         }
     }
@@ -294,7 +294,10 @@ impl LayoutTask {
     }
 
     fn handle_add_stylesheet(&mut self, sheet: Stylesheet) {
-        self.stylist.add_stylesheet(sheet, AuthorOrigin);
+        let sheet = Cell::new(sheet);
+        do self.stylist.write |stylist| {
+            stylist.add_stylesheet(sheet.take(), AuthorOrigin)
+        }
     }
 
     /// Performs layout constraint solving.
@@ -359,7 +362,7 @@ impl LayoutTask {
             ReflowDocumentDamage => {}
             MatchSelectorsDocumentDamage => {
                 do profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone()) {
-                    node.match_subtree(&self.stylist);
+                    node.match_subtree(self.stylist.clone());
                     node.cascade_subtree(None);
                 }
             }
