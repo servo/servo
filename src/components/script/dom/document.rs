@@ -10,6 +10,7 @@ use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, n
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
 use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
+use dom::event::Event;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId, DocumentNodeTypeId};
@@ -253,6 +254,11 @@ impl Document {
 
     pub fn CreateComment(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
         Comment::new(null_str_as_word_null(data), abstract_self)
+    }
+
+    pub fn CreateEvent(&self, interface: &DOMString) -> Fallible<@mut Event> {
+        //FIXME: We need to do a proper Event inheritance simulation
+        Ok(Event::new(self.window, interface))
     }
 
     pub fn Title(&self, _: AbstractDocument) -> DOMString {

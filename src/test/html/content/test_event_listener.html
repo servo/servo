@@ -1,0 +1,17 @@
+<html>
+<head>
+<script src="harness.js"></script>
+</head>
+<body>
+<script>
+  function onFoopy() {
+    window.removeEventListener('foopy', onFoopy);
+    finish();
+  }
+  window.addEventListener('foopy', onFoopy);
+  var ev = document.createEvent('Event');
+  ev.initEvent('foopy', true, true);
+  window.dispatchEvent(ev);
+</script>
+</body>
+</html>
