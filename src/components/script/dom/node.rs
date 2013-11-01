@@ -763,7 +763,88 @@ impl Node<ScriptView> {
         }
 
         // Step 6.
-        // XXX #838
+        match parent.type_id() {
+            DocumentNodeTypeId(_) => {
+                fn inclusively_followed_by_doctype(child: Option<AbstractNode<ScriptView>>) -> bool{
+                    match child {
+                        Some(child) if child.is_doctype() => true,
+                        Some(child) => {
+                            let mut iter = child;
+                            loop {
+                                match iter.next_sibling() {
+                                    Some(sibling) => {
+                                        if sibling.is_doctype() {
+                                            return true;
+                                        }
+                                        iter = sibling;
+                                    },
+                                    None => return false,
+                                }
+                            }
+                        },
+                        None => false,
+                    }
+                }
+
+                match node.type_id() {
+                    // Step 6.1
+                    DocumentFragmentNodeTypeId => {
+                        // Step 6.1.1(b)
+                        if node.children().any(|c| c.is_text()) {
+                            return Err(HierarchyRequest);
+                        }
+                        match node.children().count(|c| c.is_element()) {
+                            0 => (),
+                            // Step 6.1.2
+                            1 => {
+                                if parent.children().any(|c| c.is_element()) {
+                                    return Err(HierarchyRequest);
+                                }
+                                if inclusively_followed_by_doctype(child) {
+                                    return Err(HierarchyRequest);
+                                }
+                            },
+                            // Step 6.1.1(a)
+                            _ => return Err(HierarchyRequest),
+                        }
+                    },
+                    // Step 6.2
+                    ElementNodeTypeId(_) => {
+                        if parent.children().any(|c| c.is_element()) {
+                            return Err(HierarchyRequest);
+                        }
+                        if inclusively_followed_by_doctype(child) {
+                            return Err(HierarchyRequest);
+                        }
+                    },
+                    // Step 6.3
+                    DoctypeNodeTypeId => {
+                        if parent.children().any(|c| c.is_doctype()) {
+                            return Err(HierarchyRequest);
+                        }
+                        match child {
+                            Some(child) => {
+                                if parent.children()
+                                    .take_while(|&c| c != child)
+                                    .any(|c| c.is_element()) {
+                                    return Err(HierarchyRequest);
+                                }
+                            },
+                            None => {
+                                if parent.children().any(|c| c.is_element()) {
+                                    return Err(HierarchyRequest);
+                                }
+                            },
+                        }
+                    },
+                    TextNodeTypeId |
+                    // ProcessingInstructionNodeTypeId |
+                    CommentNodeTypeId => (),
+                    DocumentNodeTypeId(_) => unreachable!(),
+                }
+            },
+            _ => (),
+        }
 
         // Step 7-8.
         let referenceChild = if child != Some(node) {
