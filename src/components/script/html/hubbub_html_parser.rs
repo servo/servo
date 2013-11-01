@@ -231,7 +231,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "hr",      HTMLHRElementTypeId, HTMLHRElement, []);
     handle_element!(cx, document, tag, "head",    HTMLHeadElementTypeId, HTMLHeadElement, []);
     handle_element!(cx, document, tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
-    handle_element!(cx, document, tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -252,6 +251,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "h6",        HTMLHeadingElement, Heading6);
     handle_newable_element!(document, tag, "iframe",    HTMLIFrameElement);
     handle_newable_element!(document, tag, "img",       HTMLImageElement);
+    handle_newable_element!(document, tag, "input",     HTMLInputElement);
     handle_newable_element!(document, tag, "ins",       HTMLModElement);
     handle_newable_element!(document, tag, "label",     HTMLLabelElement);
     handle_newable_element!(document, tag, "legend",    HTMLLegendElement);
