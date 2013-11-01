@@ -5,7 +5,8 @@
 use std::str;
 use std::iter::Iterator;
 use std::ascii::StrAsciiExt;
-use cssparser::*;
+use cssparser::{tokenize, parse_stylesheet_rules, ToCss};
+use cssparser::ast::*;
 use selectors;
 use properties;
 use errors::{ErrorLoggerIterator, log_css_error};

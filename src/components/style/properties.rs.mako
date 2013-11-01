@@ -6,9 +6,10 @@
 
 use std::ascii::StrAsciiExt;
 pub use extra::arc::Arc;
-pub use std::iter;
 pub use cssparser::*;
-pub use errors::{ErrorLoggerIterator, log_css_error};
+pub use cssparser::ast::*;
+
+use errors::{ErrorLoggerIterator, log_css_error};
 pub use parsing_utils::*;
 pub use self::common_types::*;
 
@@ -401,20 +402,20 @@ pub mod longhands {
 
     <%self:longhand name="font-family" inherited="True">
         pub use to_computed_value = super::computed_as_specified;
-        #[deriving(Eq, Clone)]
-        pub enum FontFamily {
-            FamilyName(~str),
-            // Generic
-//            Serif,
-//            SansSerif,
-//            Cursive,
-//            Fantasy,
-//            Monospace,
-        }
-        pub type SpecifiedValue = ~[FontFamily];
         pub mod computed_value {
-            pub type T = super::SpecifiedValue;
+            #[deriving(Eq, Clone)]
+            pub enum FontFamily {
+                FamilyName(~str),
+                // Generic
+//                Serif,
+//                SansSerif,
+//                Cursive,
+//                Fantasy,
+//                Monospace,
+            }
+            pub type T = ~[FontFamily];
         }
+        pub type SpecifiedValue = computed_value::T;
         #[inline] pub fn get_initial_value() -> computed_value::T { ~[FamilyName(~"serif")] }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
@@ -1118,4 +1119,9 @@ pub mod computed_values {
     % endfor
     // Don't use a side-specific name needlessly:
     pub use border_style = super::longhands::border_top_style::computed_value;
+
+    pub use cssparser::RGBA;
+    pub use super::common_types::computed::{
+        LengthOrPercentage, LP_Length, LP_Percentage,
+        LengthOrPercentageOrAuto, LPA_Length, LPA_Percentage, LPA_Auto};
 }

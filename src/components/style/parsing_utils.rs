@@ -4,7 +4,7 @@
 
 
 use std::ascii::StrAsciiExt;
-use cssparser::*;
+use cssparser::ast::{ComponentValue, Ident, SkipWhitespaceIterable};
 
 
 pub fn one_component_value<'a>(input: &'a [ComponentValue]) -> Option<&'a ComponentValue> {

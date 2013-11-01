@@ -4,7 +4,7 @@
 
 use std::{vec, iter};
 use std::ascii::StrAsciiExt;
-use cssparser::*;
+use cssparser::ast::*;
 use namespaces::NamespaceMap;
 
 

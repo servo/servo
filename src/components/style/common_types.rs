@@ -9,7 +9,8 @@ pub type CSSFloat = f64;
 
 pub mod specified {
     use std::ascii::StrAsciiExt;
-    use cssparser::*;
+    use cssparser::ast;
+    use cssparser::ast::*;
     use super::{Au, CSSFloat};
     pub use CSSColor = cssparser::Color;
 

@@ -23,7 +23,7 @@ pub type Nothing = ();
 
 impl ExtraDisplayListData for AbstractNode<()> {
     fn new(box: &@RenderBox) -> AbstractNode<()> {
-        unsafe { 
+        unsafe {
             transmute(box.base().node)
         }
     }
@@ -61,7 +61,7 @@ pub trait ToGfxColor {
     fn to_gfx_color(&self) -> gfx::color::Color;
 }
 
-impl ToGfxColor for style::properties::RGBA {
+impl ToGfxColor for style::computed_values::RGBA {
     fn to_gfx_color(&self) -> gfx::color::Color {
         gfx::color::rgba(self.red, self.green, self.blue, self.alpha)
     }

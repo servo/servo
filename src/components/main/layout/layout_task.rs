@@ -32,7 +32,7 @@ use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::render_task;
 use style::Stylist;
 use style::Stylesheet;
-use style::selector_matching::AuthorOrigin;
+use style::AuthorOrigin;
 use script::dom::event::ReflowEvent;
 use script::dom::node::{AbstractNode, LayoutView};
 use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
@@ -240,7 +240,7 @@ impl LayoutTask {
             screen_size: None,
 
             display_list: None,
-            
+
             stylist: RWArc::new(new_stylist()),
             profiler_chan: profiler_chan,
         }

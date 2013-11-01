@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::ascii::StrAsciiExt;
-use cssparser::*;
+use cssparser::parse_rule_list;
+use cssparser::ast::*;
+
 use errors::{ErrorLoggerIterator, log_css_error};
 use stylesheets::{CSSRule, CSSMediaRule, parse_style_rule, parse_nested_at_rule};
 use namespaces::NamespaceMap;
