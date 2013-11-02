@@ -218,7 +218,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "button",  HTMLButtonElementTypeId, HTMLButtonElement, []);
     handle_element!(cx, document, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
     handle_element!(cx, document, tag, "data",    HTMLDataElementTypeId, HTMLDataElement, []);
-    handle_element!(cx, document, tag, "datalist",HTMLDataListElementTypeId, HTMLDataListElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -230,6 +229,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "caption",   HTMLTableCaptionElement);
     handle_newable_element!(document, tag, "col",       HTMLTableColElement);
     handle_newable_element!(document, tag, "colgroup",  HTMLTableColElement);
+    handle_newable_element!(document, tag, "datalist",  HTMLDataListElement);
     handle_newable_element!(document, tag, "del",       HTMLModElement);
     handle_newable_element!(document, tag, "dir",       HTMLDirectoryElement);
     handle_newable_element!(document, tag, "div",       HTMLDivElement);
