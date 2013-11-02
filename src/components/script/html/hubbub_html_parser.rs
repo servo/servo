@@ -333,8 +333,7 @@ pub fn parse_html(cx: *JSContext,
     }
 
     // Build the root node.
-    let root = @HTMLHtmlElement { htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html", document) };
-    let root = unsafe { Node::as_abstract_node(cx, root) };
+    let root = HTMLHtmlElement::new(~"html", document);
     debug!("created new node");
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
