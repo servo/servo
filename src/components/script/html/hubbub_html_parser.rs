@@ -39,7 +39,7 @@ macro_rules! handle_newable_element(
      $ctor: ident
      $(, $arg:expr )*) => (
         if eq_slice($localName, $string) {
-            return $ctor::new(($localName).to_str(), $document $(, $arg)*);
+            return $ctor::new($localName, $document $(, $arg)*);
         }
     )
 )
@@ -162,7 +162,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-pub fn build_element_from_tag(_cx: *JSContext, tag: &str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+pub fn build_element_from_tag(tag: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
     // TODO (Issue #85): use atoms
     handle_newable_element!(document, tag, "a",         HTMLAnchorElement);
     handle_newable_element!(document, tag, "applet",    HTMLAppletElement);
@@ -242,7 +242,7 @@ pub fn build_element_from_tag(_cx: *JSContext, tag: &str, document: AbstractDocu
     handle_newable_element!(document, tag, "ul",        HTMLUListElement);
     handle_newable_element!(document, tag, "video",     HTMLVideoElement);
 
-    return HTMLUnknownElement::new(tag.to_str(), document);
+    return HTMLUnknownElement::new(tag, document);
 }
 
 pub fn parse_html(cx: *JSContext,
@@ -336,7 +336,7 @@ pub fn parse_html(cx: *JSContext,
         },
         create_element: |tag: ~hubbub::Tag| {
             debug!("create element");
-            let node = build_element_from_tag(cx, tag.name, document);
+            let node = build_element_from_tag(tag.name.clone(), document);
 
             debug!("-- attach attrs");
             do node.as_mut_element |element| {
