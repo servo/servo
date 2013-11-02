@@ -228,7 +228,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
     handle_element!(cx, document, tag, "frame",   HTMLFrameElementTypeId, HTMLFrameElement, []);
     handle_element!(cx, document, tag, "frameset",HTMLFrameSetElementTypeId, HTMLFrameSetElement, []);
-    handle_element!(cx, document, tag, "hr",      HTMLHRElementTypeId, HTMLHRElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -248,6 +247,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "h5",        HTMLHeadingElement, Heading5);
     handle_newable_element!(document, tag, "h6",        HTMLHeadingElement, Heading6);
     handle_newable_element!(document, tag, "head",      HTMLHeadElement);
+    handle_newable_element!(document, tag, "hr",        HTMLHRElement);
     handle_newable_element!(document, tag, "html",      HTMLHtmlElement);
     handle_newable_element!(document, tag, "iframe",    HTMLIFrameElement);
     handle_newable_element!(document, tag, "img",       HTMLImageElement);
