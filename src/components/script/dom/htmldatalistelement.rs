@@ -16,7 +16,7 @@ pub struct HTMLDataListElement {
 impl HTMLDataListElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLDataListElement {
         HTMLDataListElement {
-            htmlelement: HTMLElement::new(HTMLDataListElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLDataListElementTypeId, localName, document)
         }
     }
 

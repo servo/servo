@@ -18,7 +18,7 @@ pub struct HTMLFieldSetElement {
 impl HTMLFieldSetElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
-            htmlelement: HTMLElement::new(HTMLFieldSetElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLFieldSetElementTypeId, localName, document)
         }
     }
 

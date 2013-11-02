@@ -16,7 +16,7 @@ pub struct HTMLModElement {
 impl HTMLModElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLModElement {
         HTMLModElement {
-            htmlelement: HTMLElement::new(HTMLModElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLModElementTypeId, localName, document)
         }
     }
 

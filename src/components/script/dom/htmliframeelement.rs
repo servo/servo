@@ -63,7 +63,7 @@ impl HTMLIFrameElement {
 impl HTMLIFrameElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement: HTMLElement::new(HTMLIframeElementTypeId, localName, document),
+            htmlelement: HTMLElement::new_inherited(HTMLIframeElementTypeId, localName, document),
             frame: None,
             size: None,
             sandbox: None,

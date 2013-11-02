@@ -16,7 +16,7 @@ pub struct HTMLMetaElement {
 impl HTMLMetaElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLMetaElement {
         HTMLMetaElement {
-            htmlelement: HTMLElement::new(HTMLMetaElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLMetaElementTypeId, localName, document)
         }
     }
 

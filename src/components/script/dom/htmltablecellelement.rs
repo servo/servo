@@ -14,7 +14,7 @@ pub struct HTMLTableCellElement {
 impl HTMLTableCellElement {
     pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> HTMLTableCellElement {
         HTMLTableCellElement {
-            htmlelement: HTMLElement::new(type_id, tag_name, document)
+            htmlelement: HTMLElement::new_inherited(type_id, tag_name, document)
         }
     }
 }

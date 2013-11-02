@@ -16,7 +16,7 @@ pub struct HTMLAnchorElement {
 impl HTMLAnchorElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLAnchorElement {
         HTMLAnchorElement {
-            htmlelement: HTMLElement::new(HTMLAnchorElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLAnchorElementTypeId, localName, document)
         }
     }
 

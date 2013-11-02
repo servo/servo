@@ -16,7 +16,7 @@ pub struct HTMLInputElement {
 impl HTMLInputElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLInputElement {
         HTMLInputElement {
-            htmlelement: HTMLElement::new(HTMLInputElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, document)
         }
     }
 

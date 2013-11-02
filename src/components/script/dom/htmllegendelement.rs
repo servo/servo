@@ -16,7 +16,7 @@ pub struct HTMLLegendElement {
 impl HTMLLegendElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLLegendElement {
         HTMLLegendElement {
-            htmlelement: HTMLElement::new(HTMLLegendElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLLegendElementTypeId, localName, document)
         }
     }
 

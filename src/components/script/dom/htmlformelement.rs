@@ -17,7 +17,7 @@ pub struct HTMLFormElement {
 impl HTMLFormElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLFormElement {
         HTMLFormElement {
-            htmlelement: HTMLElement::new(HTMLFormElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLFormElementTypeId, localName, document)
         }
     }
 

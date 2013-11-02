@@ -16,7 +16,7 @@ pub struct HTMLDirectoryElement {
 impl HTMLDirectoryElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLDirectoryElement {
         HTMLDirectoryElement {
-            htmlelement: HTMLElement::new(HTMLDirectoryElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLDirectoryElementTypeId, localName, document)
         }
     }
 

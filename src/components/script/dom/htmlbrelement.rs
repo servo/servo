@@ -16,7 +16,7 @@ pub struct HTMLBRElement {
 impl HTMLBRElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLBRElement {
         HTMLBRElement {
-            htmlelement: HTMLElement::new(HTMLBRElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLBRElementTypeId, localName, document)
         }
     }
 

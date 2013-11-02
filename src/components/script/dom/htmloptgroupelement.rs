@@ -16,7 +16,7 @@ pub struct HTMLOptGroupElement {
 impl HTMLOptGroupElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
-            htmlelement: HTMLElement::new(HTMLOptGroupElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLOptGroupElementTypeId, localName, document)
         }
     }
 

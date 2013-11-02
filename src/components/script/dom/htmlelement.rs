@@ -14,7 +14,7 @@ pub struct HTMLElement {
 }
 
 impl HTMLElement {
-    pub fn new(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> HTMLElement {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> HTMLElement {
         HTMLElement {
             element: Element::new(type_id, tag_name, document)
         }

@@ -16,7 +16,7 @@ pub struct HTMLParamElement {
 impl HTMLParamElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLParamElement {
         HTMLParamElement {
-            htmlelement: HTMLElement::new(HTMLParamElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLParamElementTypeId, localName, document)
         }
     }
 

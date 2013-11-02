@@ -16,7 +16,7 @@ pub struct HTMLParagraphElement {
 impl HTMLParagraphElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLParagraphElement {
         HTMLParagraphElement {
-            htmlelement: HTMLElement::new(HTMLParagraphElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLParagraphElementTypeId, localName, document)
         }
     }
 

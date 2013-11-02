@@ -16,7 +16,7 @@ pub struct HTMLCanvasElement {
 impl HTMLCanvasElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLCanvasElement {
         HTMLCanvasElement {
-            htmlelement: HTMLElement::new(HTMLCanvasElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, document)
         }
     }
 

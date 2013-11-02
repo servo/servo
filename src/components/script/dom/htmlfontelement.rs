@@ -16,7 +16,7 @@ pub struct HTMLFontElement {
 impl HTMLFontElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLFontElement {
         HTMLFontElement {
-            htmlelement: HTMLElement::new(HTMLFontElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLFontElementTypeId, localName, document)
         }
     }
 

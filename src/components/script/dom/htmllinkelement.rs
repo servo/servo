@@ -16,7 +16,7 @@ pub struct HTMLLinkElement {
 impl HTMLLinkElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLLinkElement {
         HTMLLinkElement {
-            htmlelement: HTMLElement::new(HTMLLinkElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLLinkElementTypeId, localName, document)
         }
     }
 

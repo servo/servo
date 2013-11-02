@@ -17,7 +17,7 @@ pub struct HTMLMapElement {
 impl HTMLMapElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLMapElement {
         HTMLMapElement {
-            htmlelement: HTMLElement::new(HTMLMapElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLMapElementTypeId, localName, document)
         }
     }
 

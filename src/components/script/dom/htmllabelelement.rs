@@ -16,7 +16,7 @@ pub struct HTMLLabelElement {
 impl HTMLLabelElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLLabelElement {
         HTMLLabelElement {
-            htmlelement: HTMLElement::new(HTMLLabelElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLLabelElementTypeId, localName, document)
         }
     }
 

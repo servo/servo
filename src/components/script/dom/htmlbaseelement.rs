@@ -16,7 +16,7 @@ pub struct HTMLBaseElement {
 impl HTMLBaseElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLBaseElement {
         HTMLBaseElement {
-            htmlelement: HTMLElement::new(HTMLBaseElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLBaseElementTypeId, localName, document)
         }
     }
 

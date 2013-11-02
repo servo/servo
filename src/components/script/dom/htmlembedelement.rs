@@ -16,7 +16,7 @@ pub struct HTMLEmbedElement {
 impl HTMLEmbedElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLEmbedElement {
         HTMLEmbedElement {
-            htmlelement: HTMLElement::new(HTMLEmbedElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLEmbedElementTypeId, localName, document)
         }
     }
 

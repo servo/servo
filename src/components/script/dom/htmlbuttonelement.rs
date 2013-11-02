@@ -17,7 +17,7 @@ pub struct HTMLButtonElement {
 impl HTMLButtonElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLButtonElement {
         HTMLButtonElement {
-            htmlelement: HTMLElement::new(HTMLButtonElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLButtonElementTypeId, localName, document)
         }
     }
 

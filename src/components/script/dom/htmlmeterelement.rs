@@ -16,7 +16,7 @@ pub struct HTMLMeterElement {
 impl HTMLMeterElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLMeterElement {
         HTMLMeterElement {
-            htmlelement: HTMLElement::new(HTMLMeterElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLMeterElementTypeId, localName, document)
         }
     }
 

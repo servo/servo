@@ -16,7 +16,7 @@ pub struct HTMLOListElement {
 impl HTMLOListElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLOListElement {
         HTMLOListElement {
-            htmlelement: HTMLElement::new(HTMLOListElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLOListElementTypeId, localName, document)
         }
     }
 

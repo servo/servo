@@ -16,7 +16,7 @@ pub struct HTMLOptionElement {
 impl HTMLOptionElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLOptionElement {
         HTMLOptionElement {
-            htmlelement: HTMLElement::new(HTMLOptionElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLOptionElementTypeId, localName, document)
         }
     }
 
