@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::CommentBinding;
 use dom::bindings::utils::{DOMString, Fallible, null_str_as_empty};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
@@ -14,17 +15,18 @@ pub struct Comment {
 }
 
 impl Comment {
-    /// Creates a new HTML comment.
-    pub fn new(text: ~str, document: AbstractDocument) -> Comment {
+    pub fn new_inherited(text: ~str, document: AbstractDocument) -> Comment {
         Comment {
             element: CharacterData::new(CommentNodeTypeId, text, document)
         }
     }
 
+    pub fn new(text: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+        let node = Comment::new_inherited(text, document);
+        Node::reflect_node(@mut node, document, CommentBinding::Wrap)
+    }
+
     pub fn Constructor(owner: @mut Window, data: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
-        let s = null_str_as_empty(data);
-        let cx = owner.get_cx();
-        let comment = @Comment::new(s, owner.Document());
-        Ok(unsafe { Node::as_abstract_node(cx, comment) })
+        Ok(Comment::new(null_str_as_empty(data), owner.Document()))
     }
 }

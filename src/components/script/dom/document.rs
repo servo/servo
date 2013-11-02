@@ -254,9 +254,7 @@ impl Document {
     }
 
     pub fn CreateComment(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
-        let cx = self.get_cx();
-        let comment = @Comment::new(null_str_as_word_null(data), abstract_self);
-        unsafe { Node::as_abstract_node(cx, comment) }
+        Comment::new(null_str_as_word_null(data), abstract_self)
     }
 
     pub fn Title(&self, _: AbstractDocument) -> DOMString {

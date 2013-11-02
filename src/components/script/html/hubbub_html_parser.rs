@@ -8,7 +8,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmliframeelement::IFrameSize;
 use dom::htmlformelement::HTMLFormElement;
-use dom::node::{AbstractNode, ElementNodeTypeId, Node, ScriptView};
+use dom::node::{AbstractNode, ElementNodeTypeId, ScriptView};
 use dom::types::*;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use js::jsapi::JSContext;
@@ -314,10 +314,8 @@ pub fn parse_html(cx: *JSContext,
     parser.set_tree_handler(~hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
-            let comment = @Comment::new(data, document);
-            unsafe {
-                Node::as_abstract_node(cx, comment).to_hubbub_node()
-            }
+            let comment = Comment::new(data, document);
+            unsafe { comment.to_hubbub_node() }
         },
         create_doctype: |doctype: ~hubbub::Doctype| {
             debug!("create doctype");
