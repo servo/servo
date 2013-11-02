@@ -215,7 +215,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "base",    HTMLBaseElementTypeId, HTMLBaseElement, []);
     handle_element!(cx, document, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
     handle_element!(cx, document, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
-    handle_element!(cx, document, tag, "button",  HTMLButtonElementTypeId, HTMLButtonElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -224,6 +223,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_htmlelement!(cx, document, tag, "small",   HTMLElementTypeId, HTMLElement);
 
     handle_newable_element!(document, tag, "audio",     HTMLAudioElement);
+    handle_newable_element!(document, tag, "button",    HTMLButtonElement);
     handle_newable_element!(document, tag, "canvas",    HTMLCanvasElement);
     handle_newable_element!(document, tag, "caption",   HTMLTableCaptionElement);
     handle_newable_element!(document, tag, "col",       HTMLTableColElement);
