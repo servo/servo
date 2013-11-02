@@ -250,9 +250,7 @@ impl Document {
     }
 
     pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
-        let cx = self.get_cx();
-        let text = @Text::new(null_str_as_empty(data), abstract_self);
-        unsafe { Node::as_abstract_node(cx, text) }
+        Text::new(null_str_as_empty(data), abstract_self)
     }
 
     pub fn CreateComment(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {

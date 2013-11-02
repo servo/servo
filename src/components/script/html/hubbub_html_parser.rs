@@ -415,8 +415,8 @@ pub fn parse_html(cx: *JSContext,
         },
         create_text: |data: ~str| {
             debug!("create text");
-            let text = @Text::new(data, document);
-            unsafe { Node::as_abstract_node(cx, text).to_hubbub_node() }
+            let text = Text::new(data, document);
+            unsafe { text.to_hubbub_node() }
         },
         ref_node: |_| {},
         unref_node: |_| {},
