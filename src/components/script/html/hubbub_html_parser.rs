@@ -213,7 +213,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_element!(cx, document, tag, "applet",  HTMLAppletElementTypeId, HTMLAppletElement, []);
     handle_element!(cx, document, tag, "area",    HTMLAreaElementTypeId, HTMLAreaElement, []);
     handle_element!(cx, document, tag, "base",    HTMLBaseElementTypeId, HTMLBaseElement, []);
-    handle_element!(cx, document, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -223,6 +222,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
 
     handle_newable_element!(document, tag, "audio",     HTMLAudioElement);
     handle_newable_element!(document, tag, "body",      HTMLBodyElement);
+    handle_newable_element!(document, tag, "br",        HTMLBRElement);
     handle_newable_element!(document, tag, "button",    HTMLButtonElement);
     handle_newable_element!(document, tag, "canvas",    HTMLCanvasElement);
     handle_newable_element!(document, tag, "caption",   HTMLTableCaptionElement);
