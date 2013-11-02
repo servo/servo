@@ -210,7 +210,6 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocument) -> AbstractNode<ScriptView> {
     // TODO (Issue #85): use atoms
     handle_element!(cx, document, tag, "a",       HTMLAnchorElementTypeId, HTMLAnchorElement, []);
-    handle_element!(cx, document, tag, "applet",  HTMLAppletElementTypeId, HTMLAppletElement, []);
 
     handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
@@ -218,6 +217,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_htmlelement!(cx, document, tag, "section", HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, document, tag, "small",   HTMLElementTypeId, HTMLElement);
 
+    handle_newable_element!(document, tag, "applet",    HTMLAppletElement);
     handle_newable_element!(document, tag, "area",      HTMLAreaElement);
     handle_newable_element!(document, tag, "audio",     HTMLAudioElement);
     handle_newable_element!(document, tag, "base",      HTMLBaseElement);
