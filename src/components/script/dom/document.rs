@@ -12,7 +12,6 @@ use dom::element::{Element};
 use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
-use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId, DocumentNodeTypeId};
 use dom::text::Text;
 use dom::window::Window;
@@ -323,12 +322,7 @@ impl Document {
                                 break;
                             }
                             if !has_title {
-                                let new_title = @HTMLTitleElement {
-                                    htmlelement: HTMLElement::new(HTMLTitleElementTypeId, ~"title", abstract_self)
-                                };
-                                let new_title = unsafe { 
-                                    Node::as_abstract_node(self.get_cx(), new_title)
-                                };
+                                let new_title = HTMLTitleElement::new(~"title", abstract_self);
                                 new_title.AppendChild(self.CreateTextNode(abstract_self, title));
                                 node.AppendChild(new_title);
                             }
