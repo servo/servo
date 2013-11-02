@@ -325,13 +325,13 @@ pub fn parse_html(cx: *JSContext,
                                 public_id: public_id,
                                 system_id: system_id,
                                 force_quirks: force_quirks } = doctype;
-            let node = @DocumentType::new(name,
-                                          public_id,
-                                          system_id,
-                                          force_quirks,
-                                          document);
+            let node = DocumentType::new(name,
+                                         public_id,
+                                         system_id,
+                                         force_quirks,
+                                         document);
             unsafe {
-                Node::as_abstract_node(cx, node).to_hubbub_node()
+                node.to_hubbub_node()
             }
         },
         create_element: |tag: ~hubbub::Tag| {
