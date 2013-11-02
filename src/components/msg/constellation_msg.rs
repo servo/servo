@@ -8,6 +8,7 @@
 use std::comm::{Chan, SharedChan};
 use extra::url::Url;
 use extra::future::Future;
+use azure::azure_hl::Color;
 use geom::size::Size2D;
 use geom::rect::Rect;
 

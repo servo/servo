@@ -23,6 +23,8 @@ use servo_msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use windowing::{MouseWindowMouseUpEvent};
+use azure::azure_hl::Color;
+use gfx;
 
 #[cfg(not(target_os="macos"))]
 use layers::texturegl::TextureTarget2D;
@@ -69,6 +71,9 @@ pub struct CompositorLayer {
 
     /// True if CPU rendering is enabled, false if we're using GPU rendering.
     cpu_painting: bool,
+
+    /// The color to use for the unrendered-content void
+    unrendered_color: Color
 }
 
 /// Helper struct for keeping CompositorLayer children organized.
@@ -122,6 +127,7 @@ impl CompositorLayer {
             epoch: Epoch(0),
             scroll_behavior: Scroll,
             cpu_painting: cpu_painting,
+            unrendered_color: gfx::color::rgba(0.0, 0.0, 0.0, 0.0),
         }
     }
     

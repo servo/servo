@@ -4,6 +4,7 @@
 
 use geom::rect::Rect;
 use geom::size::Size2D;
+use azure::azure_hl::Color;
 use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsContext};
 use layers::platform::surface::{NativeSurface, NativeSurfaceMethods};
 
@@ -76,7 +77,7 @@ impl Epoch {
 pub trait RenderListener {
     fn get_graphics_metadata(&self) -> NativeGraphicsMetadata;
     fn new_layer(&self, PipelineId, Size2D<uint>);
-    fn set_layer_page_size(&self, PipelineId, Size2D<uint>, Epoch);
+    fn set_layer_page_size_and_color(&self, PipelineId, Size2D<uint>, Epoch, Color);
     fn set_layer_clip_rect(&self, PipelineId, Rect<uint>);
     fn delete_layer(&self, PipelineId);
     fn paint(&self, id: PipelineId, layer_buffer_set: ~LayerBufferSet, Epoch);

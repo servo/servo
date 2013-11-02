@@ -7,7 +7,7 @@ pub use windowing;
 use constellation::SendableFrameTree;
 use windowing::WindowMethods;
 
-use azure::azure_hl::SourceSurfaceMethods;
+use azure::azure_hl::{SourceSurfaceMethods, Color};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -71,10 +71,12 @@ impl RenderListener for CompositorChan {
         let Size2D { width, height } = page_size;
         self.chan.send(NewLayer(id, Size2D(width as f32, height as f32)))
     }
-    fn set_layer_page_size(&self, id: PipelineId, page_size: Size2D<uint>, epoch: Epoch) {
+    fn set_layer_page_size_and_color(&self, id: PipelineId, page_size: Size2D<uint>, epoch: Epoch, color: Color) {
         let Size2D { width, height } = page_size;
+        self.chan.send(SetUnRenderedColor(id, color));
         self.chan.send(SetLayerPageSize(id, Size2D(width as f32, height as f32), epoch))
     }
+
     fn set_layer_clip_rect(&self, id: PipelineId, new_rect: Rect<uint>) {
         let new_rect = Rect(Point2D(new_rect.origin.x as f32,
                                     new_rect.origin.y as f32),
@@ -132,6 +134,8 @@ pub enum Msg {
     ChangeRenderState(RenderState),
     /// Sets the channel to the current layout and render tasks, along with their id
     SetIds(SendableFrameTree, Chan<()>, ConstellationChan),
+
+    SetUnRenderedColor(PipelineId, Color),
 }
 
 pub struct CompositorTask {

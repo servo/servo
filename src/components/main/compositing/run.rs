@@ -89,6 +89,16 @@ pub fn run_compositor(compositor: &CompositorTask) {
                 ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
                 ChangeRenderState(render_state) => window.set_render_state(render_state),
 
+                SetUnRenderedColor(id, color) => {
+                  match compositor_layer {
+                      Some(ref mut layer) => {
+                          layer.unrendered_color = color;
+                      }
+                      None => {}
+                  }
+                }
+
+
                 SetIds(frame_tree, response_chan, new_constellation_chan) => {
                     response_chan.send(());
 
@@ -332,8 +342,16 @@ pub fn run_compositor(compositor: &CompositorTask) {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             scene.size = window.size();
-
             // Render the scene.
+            match compositor_layer {
+                Some(ref mut layer) => {
+                    scene.background_color.r = layer.unrendered_color.r;
+                    scene.background_color.g = layer.unrendered_color.g;
+                    scene.background_color.b = layer.unrendered_color.b;
+                    scene.background_color.a = layer.unrendered_color.a;
+                }
+                None => {}
+            }
             rendergl::render_scene(context, &scene);
         }
 

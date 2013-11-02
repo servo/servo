@@ -4,7 +4,7 @@
 
 // The task that handles all rendering/painting.
 
-use azure::azure_hl::{B8G8R8A8, DrawTarget, StolenGLResources};
+use azure::azure_hl::{B8G8R8A8, Color, DrawTarget, StolenGLResources};
 use azure::AzFloat;
 use geom::matrix2d::Matrix2D;
 use geom::rect::Rect;
@@ -31,7 +31,8 @@ use render_context::RenderContext;
 
 pub struct RenderLayer<T> {
     display_list: Arc<DisplayList<T>>,
-    size: Size2D<uint>
+    size: Size2D<uint>,
+    color: Color
 }
 
 pub enum Msg<T> {
@@ -178,7 +179,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                 RenderMsg(render_layer) => {
                     if self.paint_permission {
                         self.epoch.next();
-                        self.compositor.set_layer_page_size(self.id, render_layer.size, self.epoch);
+                        self.compositor.set_layer_page_size_and_color(self.id, render_layer.size, self.epoch, render_layer.color);
                     } else {
                         self.constellation_chan.send(RendererReadyMsg(self.id));
                     }
@@ -202,7 +203,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     match self.render_layer {
                         Some(ref render_layer) => {
                             self.epoch.next();
-                            self.compositor.set_layer_page_size(self.id, render_layer.size, self.epoch);
+                            self.compositor.set_layer_page_size_and_color(self.id, render_layer.size, self.epoch, render_layer.color);
                         }
                         None => {}
                     }
