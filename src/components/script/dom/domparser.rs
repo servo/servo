@@ -38,13 +38,12 @@ impl DOMParser {
                            _s: &DOMString,
                            ty: DOMParserBinding::SupportedType)
                            -> Fallible<AbstractDocument> {
-        let cx = self.owner.get_cx();
         match ty {
             Text_html => {
                 Ok(HTMLDocument::new(self.owner))
             }
             Text_xml => {
-                Ok(AbstractDocument::as_abstract(cx, @mut Document::new(self.owner, XML)))
+                Ok(Document::new(self.owner, XML))
             }
             _ => {
                 Err(FailureUnknown)
