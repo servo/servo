@@ -125,38 +125,6 @@ impl<'self> BoxGenerator<'self> {
 
                 // if a leaf, make a box.
                 if node.is_leaf() {
-                    match node.pseudo_element() {
-                        Some(&Before) => {
-                            match node.parent_node() {
-                                Some(p) => {
-                                    // Create TextNode
-                                    let document = node.node().owner_doc();
-                                    let pseudo_parent_element = @Element::new(HTMLUnknownElementTypeId,~"pseudo", document);
-                                    let pseudo_text = @Text::new(p.pseudo_style().Content.content.clone(), document);
-
-                                    // parent_node
-                                    let parent_node = unsafe { Node::as_abstract_node_layout(pseudo_parent_element) };
-                                    do parent_node.write_layout_data |data| {
-                                        data.style = Some(p.pseudo_style().clone());
-                                    }
-
-                                    // pseudo_node
-                                    let pseudo_node = unsafe { Node::as_abstract_node_layout(pseudo_text) };
-                                    TreeNodeRef::<Node<LayoutView>>::set_parent_node(pseudo_node.mut_node(), Some(parent_node));
-
-                                    // store pseudo_parent_element & pseudo_text
-                                    node.mut_node().pseudo_parent_element = Some(pseudo_parent_element);
-                                    node.mut_node().pseudo_text = Some(pseudo_text);
-
-                                    // generate & push new box for pseudo element
-                                    let before_box = BoxGenerator::make_box(ctx, box_type, pseudo_node, builder);
-                                    inline.boxes.push(before_box);
-                                }
-                                _ => {}
-                            }
-                        }
-                        _ => {}
-                    }
                     let new_box = BoxGenerator::make_box(ctx, box_type, node, builder);
                     inline.boxes.push(new_box);
                 } else if BoxGenerator::inline_spacers_needed_for_node(node) {
@@ -374,6 +342,28 @@ impl LayoutTreeBuilder {
         // recurse on child nodes.
         let prev_gen_cell = Cell::new(Normal(None));
         for child_node in cur_node.children() {
+            match child_node.pseudo_element() {
+                Some(&Before) => {
+                    let pseudo_element = self.make_pseudo_element(child_node);
+                    do parent_generator.with_clone |grandparent_clone| {
+                        let grandparent_clone_cell = Cell::new(Some(grandparent_clone));
+                        do this_generator.with_clone |parent_clone| {
+                            match prev_gen_cell.take() {
+                                Normal(prev_gen) => {
+                                    let prev_generator = self.construct_recursively(layout_ctx,
+                                                                                    pseudo_element,
+                                                                                    grandparent_clone_cell.take(),
+                                                                                    parent_clone,
+                                                                                    prev_gen);
+                                    prev_gen_cell.put_back(prev_generator);
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
             do parent_generator.with_clone |grandparent_clone| {
                 let grandparent_clone_cell = Cell::new(Some(grandparent_clone));
                 do this_generator.with_clone |parent_clone| {
@@ -411,6 +401,45 @@ impl LayoutTreeBuilder {
                     Normal(Some(this_generator))
                 }
             }
+        }
+    }
+
+    fn make_pseudo_element(&self, node: AbstractNode<LayoutView>) -> AbstractNode<LayoutView> {
+        match node.parent_node() {
+            Some(p) => {
+                // Create parent element & pseudo text
+                let document = node.node().owner_doc();
+                let pseudo_parent_element = match p.type_id() {
+                    ElementNodeTypeId(element_type_id) => {
+                        do p.with_imm_element |element| {
+                            @Element::new(element_type_id, element.tag_name.clone(), document)
+                        }
+                    }
+                    _ => { fail!("p should be element") }
+                };
+                let pseudo_text = @Text::new(p.pseudo_style().Content.content.clone(), document);
+
+                // create parent abstract node for pseudo abstract node
+                let pseudo_parent_ab_node = unsafe { Node::as_abstract_node_layout(pseudo_parent_element) };
+                do pseudo_parent_ab_node.write_layout_data |data| {
+                    data.style = Some(p.pseudo_style().clone());
+                }
+
+                // create pseudo abstract node
+                let pseudo_ab_node = unsafe { Node::as_abstract_node_layout(pseudo_text) };
+                TreeNodeRef::<Node<LayoutView>>::set_parent_node(pseudo_ab_node.mut_node(), Some(pseudo_parent_ab_node));
+
+                // store pseudo_parent_element & pseudo_text
+                node.mut_node().pseudo_parent_element = Some(pseudo_parent_element);
+                node.mut_node().pseudo_text = Some(pseudo_text);
+                if pseudo_parent_ab_node.style().Box.display == display::block {
+                    TreeNodeRef::<Node<LayoutView>>::set_first_child(pseudo_parent_ab_node.mut_node(), Some(pseudo_ab_node));
+                    pseudo_parent_ab_node
+                } else {
+                    pseudo_ab_node
+                }
+            }
+            None => { fail!("Target node for pseudo element should have its parent") }
         }
     }
 
