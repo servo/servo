@@ -32,19 +32,6 @@ use extra::future::Future;
 use extra::url::Url;
 use geom::size::Size2D;
 
-macro_rules! handle_element(
-    ($cx: expr,
-     $document: expr,
-     $tag: expr,
-     $string: expr,
-     $type_id: expr,
-     $ctor: ident,
-     [ $(($field:ident : $field_init:expr)),* ]) => (
-        handle_element_base!(htmlelement, HTMLElement,
-                             $cx, $document, $tag, $string, $type_id, $ctor,
-                             [$(($field:$field_init)),*]);
-    )
-)
 macro_rules! handle_htmlelement(
     ($cx: expr,
      $document: expr,
