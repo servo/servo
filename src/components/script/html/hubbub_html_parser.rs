@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::document::AbstractDocument;
-use dom::element::*;
+use dom::element::{HTMLLinkElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmliframeelement::IFrameSize;
@@ -32,17 +32,6 @@ use extra::future::Future;
 use extra::url::Url;
 use geom::size::Size2D;
 
-macro_rules! handle_htmlelement(
-    ($cx: expr,
-     $document: expr,
-     $tag: expr,
-     $string: expr,
-     $type_id: expr,
-     $ctor: ident) => (
-        handle_element_base!(element, Element,
-                             $cx, $document, $tag, $string, $type_id, $ctor, []);
-    )
-)
 macro_rules! handle_newable_element(
     ($document: expr,
      $localName: expr,
@@ -51,27 +40,6 @@ macro_rules! handle_newable_element(
      $(, $arg:expr )*) => (
         if eq_slice($localName, $string) {
             return $ctor::new(($localName).to_str(), $document $(, $arg)*);
-        }
-    )
-)
-macro_rules! handle_element_base(
-    ($parent: ident,
-     $parent_init: ident,
-     $cx: expr,
-     $document: expr,
-     $tag: expr,
-     $string: expr,
-     $type_id: expr,
-     $ctor: ident,
-     [ $(($field:ident : $field_init:expr)),* ]) => (
-        if eq_slice($tag, $string) {
-            let _element = @$ctor {
-                $parent: $parent_init::new($type_id, ($tag).to_str(), $document),
-                $(
-                    $field: $field_init,
-                )*
-            };
-            return unsafe { Node::as_abstract_node($cx, _element) };
         }
     )
 )
@@ -194,18 +162,14 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+pub fn build_element_from_tag(_cx: *JSContext, tag: &str, document: AbstractDocument) -> AbstractNode<ScriptView> {
     // TODO (Issue #85): use atoms
-    handle_htmlelement!(cx, document, tag, "aside",   HTMLElementTypeId, HTMLElement);
-    handle_htmlelement!(cx, document, tag, "b",       HTMLElementTypeId, HTMLElement);
-    handle_htmlelement!(cx, document, tag, "i",       HTMLElementTypeId, HTMLElement);
-    handle_htmlelement!(cx, document, tag, "section", HTMLElementTypeId, HTMLElement);
-    handle_htmlelement!(cx, document, tag, "small",   HTMLElementTypeId, HTMLElement);
-
     handle_newable_element!(document, tag, "a",         HTMLAnchorElement);
     handle_newable_element!(document, tag, "applet",    HTMLAppletElement);
     handle_newable_element!(document, tag, "area",      HTMLAreaElement);
+    handle_newable_element!(document, tag, "aside",     HTMLElement);
     handle_newable_element!(document, tag, "audio",     HTMLAudioElement);
+    handle_newable_element!(document, tag, "b",         HTMLElement);
     handle_newable_element!(document, tag, "base",      HTMLBaseElement);
     handle_newable_element!(document, tag, "body",      HTMLBodyElement);
     handle_newable_element!(document, tag, "br",        HTMLBRElement);
@@ -235,6 +199,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "head",      HTMLHeadElement);
     handle_newable_element!(document, tag, "hr",        HTMLHRElement);
     handle_newable_element!(document, tag, "html",      HTMLHtmlElement);
+    handle_newable_element!(document, tag, "i",         HTMLElement);
     handle_newable_element!(document, tag, "iframe",    HTMLIFrameElement);
     handle_newable_element!(document, tag, "img",       HTMLImageElement);
     handle_newable_element!(document, tag, "input",     HTMLInputElement);
@@ -258,7 +223,9 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocum
     handle_newable_element!(document, tag, "progress",  HTMLProgressElement);
     handle_newable_element!(document, tag, "q",         HTMLQuoteElement);
     handle_newable_element!(document, tag, "script",    HTMLScriptElement);
+    handle_newable_element!(document, tag, "section",   HTMLElement);
     handle_newable_element!(document, tag, "select",    HTMLSelectElement);
+    handle_newable_element!(document, tag, "small",     HTMLElement);
     handle_newable_element!(document, tag, "source",    HTMLSourceElement);
     handle_newable_element!(document, tag, "span",      HTMLSpanElement);
     handle_newable_element!(document, tag, "style",     HTMLStyleElement);

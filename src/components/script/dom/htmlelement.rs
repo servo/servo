@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::HTMLElementBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::document::AbstractDocument;
-use dom::element::{Element, ElementTypeId};
-use dom::node::{AbstractNode, ScriptView};
+use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
+use dom::node::{AbstractNode, Node, ScriptView};
 use js::jsapi::{JSContext, JSVal};
 use js::JSVAL_NULL;
 
@@ -18,6 +19,11 @@ impl HTMLElement {
         HTMLElement {
             element: Element::new(type_id, tag_name, document)
         }
+    }
+
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+        let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document);
+        Node::reflect_node(@mut element, document, HTMLElementBinding::Wrap)
     }
 }
 
