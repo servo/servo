@@ -4,7 +4,6 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use dom::bindings::node;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, null_str_as_empty};
 use dom::bindings::utils::{ErrorResult, Fallible, NotFound, HierarchyRequest};
@@ -498,15 +497,6 @@ impl<View> Node<View> {
 }
 
 impl Node<ScriptView> {
-    pub unsafe fn as_abstract_node<N>(cx: *JSContext, node: @N) -> AbstractNode<ScriptView> {
-        // This surrenders memory management of the node!
-        let mut node = AbstractNode {
-            obj: transmute(node),
-        };
-        node::create(cx, &mut node);
-        node
-    }
-
     pub fn reflect_node<N: Reflectable>
             (node:      @mut N,
              document:  AbstractDocument,
