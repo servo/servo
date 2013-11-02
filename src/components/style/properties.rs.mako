@@ -376,21 +376,34 @@ pub mod longhands {
 
     <%self:raw_longhand name="content" inherited="False">
             pub use to_computed_value = super::computed_as_specified;
-            pub type SpecifiedValue = ~str;
             pub mod computed_value {
-                pub type T = super::SpecifiedValue;
+                #[deriving(Eq, Clone)]
+                pub enum Content {
+                    StringContent(~str),
+                }
+                #[deriving(Eq, Clone)]
+                pub enum T {
+		    SpecifiedNormal,
+		    SpecifiedNone,
+		    SpecifiedContentList(~[Content]),
+		}
             }
-            #[inline] pub fn get_initial_value() -> computed_value::T  { ~"" }
+            pub type SpecifiedValue = computed_value::T;
+            #[inline] pub fn get_initial_value() -> computed_value::T  { SpecifiedNormal }
             pub fn parse_specified(input: &[ComponentValue]) -> Option<DeclaredValue<SpecifiedValue>> {
                 let mut iter = input.skip_whitespace();
-                match iter.next() {
-                    Some(&String(ref value)) => Some(SpecifiedValue(value.to_owned())),
-                    Some(_) => { 
-                        // TODO impl other properties
-                        None
-                    },
-                    None => None
+                let mut content_list = ~[];
+                loop {
+                    match iter.next() {
+                        Some(&String(ref value)) => content_list.push(StringContent(value.to_owned())),
+                        Some(_) => {
+                            // TODO impl other properties
+                            break
+                        }
+                        None => break,
+                    }
                 }
+                Some(SpecifiedValue(SpecifiedContentList(content_list)))
             }
     </%self:raw_longhand>
     // CSS 2.1, Section 13 - Paged media

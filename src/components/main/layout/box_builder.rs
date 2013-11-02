@@ -21,6 +21,7 @@ use css::node_style::StyledNode;
 
 use style::computed_values::display;
 use style::computed_values::float;
+use style::computed_values::content;
 use layout::float_context::{FloatLeft, FloatRight};
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId, DocumentNodeTypeId};
@@ -417,7 +418,17 @@ impl LayoutTreeBuilder {
                     }
                     _ => { fail!("p should be element") }
                 };
-                let pseudo_text = @Text::new(p.pseudo_style().Content.content.clone(), document);
+                let content = match p.pseudo_style().Content.content {
+                    content::SpecifiedContentList(ref value) => {
+                        let iter = &mut value.clone().move_iter().peekable();
+                        match iter.next() {
+                            Some(content::StringContent(str)) => str,
+                            _ => ~"",
+                        }
+                    }
+                    _ => ~"",
+                };
+                let pseudo_text = @Text::new_inherited(content, document);
 
                 // create parent abstract node for pseudo abstract node
                 let pseudo_parent_ab_node = unsafe { Node::as_abstract_node_layout(pseudo_parent_element) };

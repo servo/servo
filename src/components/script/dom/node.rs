@@ -24,7 +24,6 @@ use std::unstable::raw::Box;
 use extra::arc::Arc;
 use js::jsapi::{JSObject, JSContext};
 use style::{ComputedValues, PropertyDeclaration};
-use style::selectors::{PseudoElement, none};
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement, PseudoElement};
 use servo_util::range::Range;
 use gfx::display_list::DisplayList;
@@ -182,14 +181,12 @@ impl<View> TreeNodeRefAsElement<Node<View>, Element> for AbstractNode<View> {
     fn with_imm_element_like<R>(&self, f: &fn(&Element) -> R) -> R {
         self.with_imm_element(f)
     }
-
     fn set_pseudo_element(&mut self, pseudo_element: Option<PseudoElement>) {
         do self.write_layout_data_view |data| {
             data.pseudo_element = pseudo_element
         }
     }
 }
-
 
 impl<View> TreeNode<AbstractNode<View>> for Node<View> { }
 
@@ -495,7 +492,9 @@ impl AbstractNode<ScriptView> {
 
         document.document().content_changed();
     }
+}
 
+impl<View> AbstractNode<View> {
     pub fn write_layout_data_view<R>(self, blk: &fn(data: &mut LayoutData) -> R) -> R {
         blk(&mut self.mut_node().layout_data)
     }
@@ -522,15 +521,6 @@ impl<View> Node<View> {
 }
 
 impl Node<ScriptView> {
-    pub unsafe fn as_abstract_node<N>(cx: *JSContext, node: @N) -> AbstractNode<ScriptView> {
-        // This surrenders memory management of the node!
-        let mut node = AbstractNode {
-            obj: transmute(node),
-        };
-        node::create(cx, &mut node);
-        node
-    }
-
     pub unsafe fn as_abstract_node_layout<N>(node: @N) -> AbstractNode<LayoutView> {
         // This surrenders memory management of the node!
         let node = AbstractNode {
