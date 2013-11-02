@@ -244,9 +244,7 @@ impl Document {
     }
 
     pub fn CreateDocumentFragment(&self, abstract_self: AbstractDocument) -> AbstractNode<ScriptView> {
-        let cx = self.get_cx();
-        let fragment = @DocumentFragment::new(abstract_self);
-        unsafe { Node::as_abstract_node(cx, fragment) }
+        DocumentFragment::new(abstract_self)
     }
 
     pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
