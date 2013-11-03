@@ -16,8 +16,6 @@ use layout_interface::{ContentBoxesResponse};
 use style;
 use servo_util::tree::{TreeNodeRef, ElementLike};
 
-use js::jsapi::JSContext;
-
 use std::comm;
 use std::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
@@ -37,10 +35,6 @@ impl Reflectable for Element {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.node.mut_reflector()
-    }
-
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        self.node.GetParentObject(cx)
     }
 }
 

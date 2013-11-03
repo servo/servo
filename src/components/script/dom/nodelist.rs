@@ -7,8 +7,6 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{AbstractNode, ScriptView};
 use dom::window::Window;
 
-use js::jsapi::JSContext;
-
 enum NodeListType {
     Simple(~[AbstractNode<ScriptView>]),
     Children(AbstractNode<ScriptView>)
@@ -73,9 +71,5 @@ impl Reflectable for NodeList {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
-        Some(self.window as @mut Reflectable)
     }
 }

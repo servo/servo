@@ -6,8 +6,6 @@ use dom::bindings::codegen::ClientRectBinding;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 
-use js::jsapi::JSContext;
-
 pub struct ClientRect {
     reflector_: Reflector,
     top: f32,
@@ -70,9 +68,5 @@ impl Reflectable for ClientRect {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
-        Some(self.window as @mut Reflectable)
     }
 }

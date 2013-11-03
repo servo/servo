@@ -8,8 +8,6 @@ use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
 use dom::window::Window;
 
-use js::jsapi::JSContext;
-
 use std::hashmap::HashMap;
 
 enum FormDatum {
@@ -56,9 +54,5 @@ impl Reflectable for FormData {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
-        Some(self.window as @mut Reflectable)
     }
 }

@@ -158,10 +158,6 @@ impl Reflectable for AbstractDocument {
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.mut_document().mut_reflector()
     }
-
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        self.document().GetParentObject(cx)
-    }
 }
 
 impl Reflectable for Document {
@@ -171,10 +167,6 @@ impl Reflectable for Document {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.node.mut_reflector()
-    }
-
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
-        Some(self.window as @mut Reflectable)
     }
 }
 

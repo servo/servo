@@ -9,8 +9,6 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::AbstractDocument;
 use dom::node::{Node, NodeTypeId, ScriptView};
 
-use js::jsapi::JSContext;
-
 pub struct CharacterData {
     node: Node<ScriptView>,
     data: ~str
@@ -66,9 +64,5 @@ impl Reflectable for CharacterData {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.node.mut_reflector()
-    }
-
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        self.node.GetParentObject(cx)
     }
 }
