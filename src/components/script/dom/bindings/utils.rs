@@ -583,16 +583,14 @@ impl Reflector {
 }
 
 #[fixed_stack_segment]
-pub fn WrapNewBindingObject(cx: *JSContext, _scope: *JSObject,
-                            value: @mut Reflectable,
-                            vp: *mut JSVal) -> JSBool {
-  unsafe {
-    let reflector = value.mut_reflector();
+pub fn GetReflector(cx: *JSContext, reflector: &Reflector,
+                    vp: *mut JSVal) -> JSBool {
     let obj = reflector.get_jsobject();
     assert!(obj.is_not_null());
-    *vp = RUST_OBJECT_TO_JSVAL(obj);
-    return JS_WrapValue(cx, cast::transmute(vp));
-  }
+    unsafe {
+        *vp = RUST_OBJECT_TO_JSVAL(obj);
+        return JS_WrapValue(cx, cast::transmute(vp));
+    }
 }
 
 #[fixed_stack_segment]
