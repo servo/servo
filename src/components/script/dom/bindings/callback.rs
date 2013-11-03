@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{WrapNativeParent, Reflectable};
+use dom::bindings::utils::Reflectable;
 use js::jsapi::{JSContext, JSObject, JS_WrapObject, JSVal, JS_ObjectIsCallable};
 use js::jsapi::JS_GetProperty;
 use js::{JSVAL_IS_OBJECT, JSVAL_TO_OBJECT};
@@ -67,15 +67,10 @@ pub fn GetJSObjectFromCallback<T: CallbackContainer>(callback: &T) -> *JSObject 
 
 #[fixed_stack_segment]
 pub fn WrapCallThisObject<T: 'static + CallbackContainer + Reflectable>(cx: *JSContext,
-                                                                        scope: *JSObject,
+                                                                        _scope: *JSObject,
                                                                         p: @mut T) -> *JSObject {
-    let mut obj = GetJSObjectFromCallback(p);
-    if obj.is_null() {
-        obj = WrapNativeParent(cx, scope, Some(p as @mut Reflectable));
-        if obj.is_null() {
-            return ptr::null();
-        }
-    }
+    let obj = GetJSObjectFromCallback(p);
+    assert!(obj.is_not_null());
 
     unsafe {
         if JS_WrapObject(cx, &obj) == 0 {
