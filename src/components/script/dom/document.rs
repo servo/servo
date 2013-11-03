@@ -4,7 +4,7 @@
 
 use dom::comment::Comment;
 use dom::bindings::codegen::DocumentBinding;
-use dom::bindings::utils::{Reflectable, Reflector, DerivedWrapper, Traceable, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, Traceable, reflect_dom_object};
 use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
 use dom::bindings::utils::{DOMString, null_str_as_empty_ref, null_str_as_empty, null_str_as_word_null};
 use dom::bindings::utils::is_valid_element_name;
@@ -21,8 +21,7 @@ use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
-use js::jsapi::{JSObject, JSContext, JSVal, JSTracer};
-use js::glue::RUST_OBJECT_TO_JSVAL;
+use js::jsapi::{JSObject, JSContext, JSTracer};
 use servo_util::tree::{TreeNodeRef, ElementLike};
 
 use std::hashmap::HashMap;
@@ -164,15 +163,6 @@ impl Reflectable for AbstractDocument {
         self.document().GetParentObject(cx)
     }
 }
-
-impl DerivedWrapper for AbstractDocument {
-    #[fixed_stack_segment]
-    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
-        unsafe { *vp = RUST_OBJECT_TO_JSVAL(self.reflector().get_jsobject()) };
-        return 1;
-    }
-}
-
 
 impl Reflectable for Document {
     fn reflector<'a>(&'a self) -> &'a Reflector {

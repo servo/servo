@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::node::{AbstractNode, ScriptView};
 use dom::window;
 
 use std::libc::c_uint;
@@ -728,20 +727,6 @@ pub fn InitIds(cx: *JSContext, specs: &[JSPropertySpec], ids: &mut [jsid]) -> bo
         }
     }
     true
-}
-
-pub trait DerivedWrapper {
-    fn wrap(&mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32;
-}
-
-impl DerivedWrapper for AbstractNode<ScriptView> {
-    #[fixed_stack_segment]
-    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
-        let obj = self.reflector().get_jsobject();
-        assert!(obj.is_not_null());
-        unsafe { *vp = RUST_OBJECT_TO_JSVAL(obj) };
-        return true as i32;
-    }
 }
 
 #[deriving(ToStr)]
