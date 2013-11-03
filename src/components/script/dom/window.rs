@@ -148,10 +148,6 @@ impl Reflectable for Window {
         self.eventtarget.mut_reflector()
     }
 
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        unreachable!()
-    }
-
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         None
     }

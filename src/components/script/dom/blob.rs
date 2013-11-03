@@ -7,7 +7,7 @@ use dom::bindings::utils::Fallible;
 use dom::bindings::codegen::BlobBinding;
 use dom::window::Window;
 
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSContext;
 
 pub struct Blob {
     reflector_: Reflector,
@@ -40,10 +40,6 @@ impl Reflectable for Blob {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        unreachable!();
     }
 
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {

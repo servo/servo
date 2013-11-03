@@ -541,7 +541,6 @@ pub fn initialize_global(global: *JSObject) {
 pub trait Reflectable {
     fn reflector<'a>(&'a self) -> &'a Reflector;
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector;
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject;
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable>;
 }
 

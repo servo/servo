@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::EventTargetBinding;
 use dom::bindings::utils::{Reflectable, Reflector, DOMString, Fallible, DerivedWrapper};
 use dom::bindings::utils::{null_str_as_word_null, InvalidState};
 use dom::bindings::codegen::EventListenerBinding::EventListener;
@@ -119,10 +118,6 @@ impl Reflectable for AbstractEventTarget {
         self.mut_eventtarget().mut_reflector()
     }
 
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        unreachable!()
-    }
-
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.eventtarget().GetParentObject(cx)
     }
@@ -203,10 +198,6 @@ impl Reflectable for EventTarget {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        EventTargetBinding::Wrap(cx, scope, self)
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
