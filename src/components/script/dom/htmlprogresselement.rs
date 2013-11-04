@@ -16,7 +16,7 @@ pub struct HTMLProgressElement {
 impl HTMLProgressElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLProgressElement {
         HTMLProgressElement {
-            htmlelement: HTMLElement::new(HTMLProgressElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLProgressElementTypeId, localName, document)
         }
     }
 

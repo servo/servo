@@ -15,7 +15,7 @@ pub struct HTMLUnknownElement {
 impl HTMLUnknownElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLUnknownElement {
         HTMLUnknownElement {
-            htmlelement: HTMLElement::new(HTMLUnknownElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLUnknownElementTypeId, localName, document)
         }
     }
 

@@ -16,7 +16,7 @@ pub struct HTMLPreElement {
 impl HTMLPreElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLPreElement {
         HTMLPreElement {
-            htmlelement: HTMLElement::new(HTMLPreElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLPreElementTypeId, localName, document)
         }
     }
 

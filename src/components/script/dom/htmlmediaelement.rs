@@ -14,7 +14,7 @@ pub struct HTMLMediaElement {
 impl HTMLMediaElement {
     pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> HTMLMediaElement {
         HTMLMediaElement {
-            htmlelement: HTMLElement::new(type_id, tag_name, document)
+            htmlelement: HTMLElement::new_inherited(type_id, tag_name, document)
         }
     }
 }

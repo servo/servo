@@ -16,7 +16,7 @@ pub struct HTMLTitleElement {
 impl HTMLTitleElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTitleElement {
         HTMLTitleElement {
-            htmlelement: HTMLElement::new(HTMLTitleElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTitleElementTypeId, localName, document)
         }
     }
 

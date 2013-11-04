@@ -16,7 +16,7 @@ pub struct HTMLTimeElement {
 impl HTMLTimeElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTimeElement {
         HTMLTimeElement {
-            htmlelement: HTMLElement::new(HTMLTimeElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTimeElementTypeId, localName, document)
         }
     }
 

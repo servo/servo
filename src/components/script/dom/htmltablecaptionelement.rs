@@ -16,7 +16,7 @@ pub struct HTMLTableCaptionElement {
 impl HTMLTableCaptionElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTableCaptionElement {
         HTMLTableCaptionElement {
-            htmlelement: HTMLElement::new(HTMLTableCaptionElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTableCaptionElementTypeId, localName, document)
         }
     }
 

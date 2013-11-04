@@ -15,7 +15,7 @@ pub struct HTMLSpanElement {
 impl HTMLSpanElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLSpanElement {
         HTMLSpanElement {
-            htmlelement: HTMLElement::new(HTMLSpanElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLSpanElementTypeId, localName, document)
         }
     }
 

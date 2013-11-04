@@ -16,7 +16,7 @@ pub struct HTMLTableRowElement {
 impl HTMLTableRowElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTableRowElement {
         HTMLTableRowElement {
-            htmlelement: HTMLElement::new(HTMLTableRowElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTableRowElementTypeId, localName, document)
         }
     }
 

@@ -26,7 +26,7 @@ pub struct HTMLHeadingElement {
 impl HTMLHeadingElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument, level: HeadingLevel) -> HTMLHeadingElement {
         HTMLHeadingElement {
-            htmlelement: HTMLElement::new(HTMLHeadingElementTypeId, localName, document),
+            htmlelement: HTMLElement::new_inherited(HTMLHeadingElementTypeId, localName, document),
             level: level,
         }
     }
