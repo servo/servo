@@ -12,9 +12,11 @@ extern mod extra;
 
 use extra::test::{TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
 use extra::getopts::{getopts, reqopt};
-use std::{os, run, str};
+use std::{os, str};
 use std::cell::Cell;
 use std::os::list_dir_path;
+use std::rt::io::Reader;
+use std::rt::io::process::{Process, ProcessConfig, Ignored, CreatePipe};
 
 #[deriving(Clone)]
 struct Config {
@@ -87,9 +89,31 @@ fn run_test(file: ~str) {
     let path = os::make_absolute(&Path::new(file));
     // FIXME (#1094): not the right way to transform a path
     let infile = ~"file://" + path.display().to_str();
-    let res = run::process_output("./servo", [~"-z", infile]);
-    let out = str::from_utf8(res.output);
-    print(out);
+    let create_pipe = CreatePipe(true, false); // rustc #10228
+
+    let config = ProcessConfig {
+        program: "./servo",
+        args: [~"-z", infile.clone()],
+        env: None,
+        cwd: None,
+        io: [Ignored, create_pipe, Ignored]
+    };
+
+    let mut prc = Process::new(config).unwrap();
+    let stdout = prc.io[1].get_mut_ref();
+    let mut output = ~[];
+    loop {
+        let byte = stdout.read_byte();
+        match byte {
+            Some(byte) => {
+                print!("{}", byte as char);
+                output.push(byte);
+            }
+            None => break
+        }
+    }
+
+    let out = str::from_utf8(output);
     let lines: ~[&str] = out.split_iter('\n').collect();
     for &line in lines.iter() {
         if line.contains("TEST-UNEXPECTED-FAIL") {
