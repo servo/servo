@@ -93,7 +93,6 @@ impl RenderListener for CompositorChan {
 }
 
 impl CompositorChan {
-
     pub fn new(chan: Chan<Msg>) -> CompositorChan {
         CompositorChan {
             chan: SharedChan::new(chan),
@@ -103,20 +102,12 @@ impl CompositorChan {
     pub fn send(&self, msg: Msg) {
         self.chan.send(msg);
     }
-
-    pub fn get_size(&self) -> Size2D<int> {
-        let (port, chan) = comm::stream();
-        self.chan.send(GetSize(chan));
-        port.recv()
-    }
 }
 
-/// Messages to the compositor.
+/// Messages from the painting task and the constellation task to the compositor task.
 pub enum Msg {
     /// Requests that the compositor shut down.
     Exit,
-    /// Requests the window size
-    GetSize(Chan<Size2D<int>>),
     /// Requests the compositor's graphics metadata. Graphics metadata is what the renderer needs
     /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
     /// is the pixel format.

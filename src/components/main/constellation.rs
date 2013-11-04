@@ -40,6 +40,7 @@ pub struct Constellation {
     pending_frames: ~[FrameChange],
     pending_sizes: HashMap<(PipelineId, SubpageId), Rect<f32>>,
     profiler_chan: ProfilerChan,
+    window_size: Size2D<uint>,
     opts: Opts,
 }
 
@@ -254,7 +255,6 @@ impl Constellation {
                  image_cache_task: ImageCacheTask,
                  profiler_chan: ProfilerChan)
                  -> ConstellationChan {
-            
         let (constellation_port, constellation_chan) = special_stream!(ConstellationChan);
         do spawn_with((constellation_port, constellation_chan.clone(),
                        compositor_chan, resource_task, image_cache_task,
@@ -273,6 +273,7 @@ impl Constellation {
                 pending_frames: ~[],
                 pending_sizes: HashMap::new(),
                 profiler_chan: profiler_chan,
+                window_size: Size2D(500u, 500u),
                 opts: opts
             };
             constellation.run();
@@ -375,10 +376,7 @@ impl Constellation {
                                              self.resource_task.clone(),
                                              self.profiler_chan.clone(),
                                              self.opts.clone(),
-                                             {
-                                                let size = self.compositor_chan.get_size();
-                                                Future::from_value(Size2D(size.width as uint, size.height as uint))
-                                             });
+                                             Future::from_value(self.window_size));
         let failure = ~"about:failure";
         let url = make_url(failure, None);
         pipeline.load(url);
@@ -400,10 +398,7 @@ impl Constellation {
                                              self.resource_task.clone(),
                                              self.profiler_chan.clone(),
                                              self.opts.clone(),
-                                             {
-                                                 let size = self.compositor_chan.get_size();
-                                                 Future::from_value(Size2D(size.width as uint, size.height as uint))
-                                             });
+                                             Future::from_value(self.window_size));
         pipeline.load(url);
 
         self.pending_frames.push(FrameChange{
@@ -746,6 +741,7 @@ impl Constellation {
                 already_seen.insert(pipeline.id);
             }
         }
+        self.window_size = new_size;
     }
 
     // Close all pipelines at and beneath a given frame
