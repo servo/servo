@@ -6,7 +6,7 @@ use dom::bindings::codegen::UIEventBinding;
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{AbstractNode, ScriptView};
-use dom::event::Event;
+use dom::event::{AbstractEvent, Event, EventTypeId, UIEventTypeId};
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 
@@ -14,36 +14,33 @@ use js::jsapi::{JSObject, JSContext};
 
 pub struct UIEvent {
     parent: Event,
-    can_bubble: bool,
-    cancelable: bool,
     view: Option<@mut WindowProxy>,
     detail: i32
 }
 
 impl UIEvent {
-    pub fn new_inherited(type_: &DOMString, can_bubble: bool, cancelable: bool,
-                         view: Option<@mut WindowProxy>, detail: i32) -> UIEvent {
+    pub fn new_inherited(type_id: EventTypeId) -> UIEvent {
         UIEvent {
-            parent: Event::new_inherited(type_),
-            can_bubble: can_bubble,
-            cancelable: cancelable,
-            view: view,
-            detail: detail
+            parent: Event::new_inherited(type_id),
+            view: None,
+            detail: 0
         }
     }
 
-    pub fn new(window: @mut Window, type_: &DOMString, can_bubble: bool, cancelable: bool,
-               view: Option<@mut WindowProxy>, detail: i32) -> @mut UIEvent {
-        reflect_dom_object(@mut UIEvent::new_inherited(type_, can_bubble, cancelable, view, detail),
-                           window,
-                           UIEventBinding::Wrap)
+    pub fn new(window: @mut Window, type_id: EventTypeId) -> AbstractEvent {
+        let ev = reflect_dom_object(@mut UIEvent::new_inherited(type_id),
+                                    window,
+                                    UIEventBinding::Wrap);
+        Event::as_abstract(ev)
     }
 
     pub fn Constructor(owner: @mut Window,
                        type_: &DOMString,
-                       init: &UIEventBinding::UIEventInit) -> Fallible<@mut UIEvent> {
-        Ok(UIEvent::new(owner, type_, init.parent.bubbles, init.parent.cancelable,
-                        init.view, init.detail))
+                       init: &UIEventBinding::UIEventInit) -> Fallible<AbstractEvent> {
+        let ev = UIEvent::new(owner, UIEventTypeId);
+        ev.mut_uievent().InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
+                                     init.view, init.detail);
+        Ok(ev)
     }
 
     pub fn GetView(&self) -> Option<@mut WindowProxy> {
@@ -61,8 +58,6 @@ impl UIEvent {
                        view: Option<@mut WindowProxy>,
                        detail: i32) {
         self.parent.InitEvent(type_, can_bubble, cancelable);
-        self.can_bubble = can_bubble;
-        self.cancelable = cancelable;
         self.view = view;
         self.detail = detail;
     }

@@ -4,7 +4,7 @@
 <script>
 is_function(Event, "Event");
 
-let ev = new Event("foopy");
+let ev = new Event("foopy", {cancelable: true});
 is_a(ev, Event);
 
 is(ev.type, 'foopy');

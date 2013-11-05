@@ -42,6 +42,8 @@ class Configuration:
 
         self.enums = [e for e in parseData if e.isEnum()]
         self.dictionaries = [d for d in parseData if d.isDictionary()]
+        self.callbacks = [c for c in parseData if
+                          c.isCallback() and not c.isInterface()]
 
         # Keep the descriptor list sorted for determinism.
         self.descriptors.sort(lambda x,y: cmp(x.name, y.name))
@@ -66,14 +68,34 @@ class Configuration:
                 getter = lambda x: x.interface.isCallback()
             elif key == 'isExternal':
                 getter = lambda x: x.interface.isExternal()
+            elif key == 'isJSImplemented':
+                getter = lambda x: x.interface.isJSImplemented()
             else:
                 getter = lambda x: getattr(x, key)
             curr = filter(lambda x: getter(x) == val, curr)
         return curr
     def getEnums(self, webIDLFile):
         return filter(lambda e: e.filename() == webIDLFile, self.enums)
-    def getDictionaries(self, webIDLFile):
-        return filter(lambda d: d.filename() == webIDLFile, self.dictionaries)
+
+    @staticmethod
+    def _filterForFileAndWorkers(items, filters):
+        """Gets the items that match the given filters."""
+        for key, val in filters.iteritems():
+            if key == 'webIDLFile':
+                items = filter(lambda x: x.filename() == val, items)
+            elif key == 'workers':
+                if val:
+                    items = filter(lambda x: x.getUserData("workers", False), items)
+                else:
+                    items = filter(lambda x: x.getUserData("mainThread", False), items)
+            else:
+                assert(0) # Unknown key
+        return items
+    def getDictionaries(self, **filters):
+        return self._filterForFileAndWorkers(self.dictionaries, filters)
+    def getCallbacks(self, **filters):
+        return self._filterForFileAndWorkers(self.callbacks, filters)
+
     def getDescriptor(self, interfaceName, workers):
         """
         Gets the appropriate descriptor for the given interface name

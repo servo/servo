@@ -28,6 +28,7 @@ pub mod dom {
         pub mod element;
         pub mod node;
         pub mod utils;
+        pub mod callback;
         pub mod conversions;
         pub mod proxyhandler;
         pub mod codegen {
@@ -54,6 +55,7 @@ pub mod dom {
     pub mod domparser;
     pub mod element;
     pub mod event;
+    pub mod eventdispatcher;
     pub mod eventtarget;
     pub mod formdata;
     pub mod htmlanchorelement;

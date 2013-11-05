@@ -8,7 +8,7 @@
  */
 
 [NamedPropertiesObject]
-/*sealed*/ interface Window /*: EventTarget*/ {
+/*sealed*/ interface Window : EventTarget {
   // the current browsing context
   /*[Unforgeable] readonly attribute WindowProxy window;
     [Replaceable] readonly attribute WindowProxy self;*/
