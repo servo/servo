@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::node;
 use dom::window;
 use dom::node::{AbstractNode, ScriptView};
 
@@ -754,14 +753,11 @@ pub trait DerivedWrapper {
 
 impl DerivedWrapper for AbstractNode<ScriptView> {
     #[fixed_stack_segment]
-    fn wrap(&mut self, cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
+    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
         let obj = self.reflector().get_jsobject();
-        if obj.is_not_null() {
-            unsafe { *vp = RUST_OBJECT_TO_JSVAL(obj) };
-            return 1;
-        }
-        unsafe { *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, self)) };
-        return 1;
+        assert!(obj.is_not_null());
+        unsafe { *vp = RUST_OBJECT_TO_JSVAL(obj) };
+        return true as i32;
     }
 }
 

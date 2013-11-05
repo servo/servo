@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::DocumentFragmentBinding;
 use dom::bindings::utils::Fallible;
 use dom::document::AbstractDocument;
 use dom::node::{ScriptView, Node, DocumentFragmentNodeTypeId};
@@ -14,15 +15,20 @@ pub struct DocumentFragment {
 
 impl DocumentFragment {
     /// Creates a new DocumentFragment.
-    pub fn new(document: AbstractDocument) -> DocumentFragment {
+    pub fn new_inherited(document: AbstractDocument) -> DocumentFragment {
         DocumentFragment {
             node: Node::new(DocumentFragmentNodeTypeId, document),
         }
     }
 
+    pub fn new(document: AbstractDocument) -> AbstractNode<ScriptView> {
+        let node = DocumentFragment::new_inherited(document);
+        Node::reflect_node(@mut node, document, DocumentFragmentBinding::Wrap)
+    }
+}
+
+impl DocumentFragment {
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractNode<ScriptView>> {
-        let cx = owner.get_cx();
-        let fragment = @DocumentFragment::new(owner.Document());
-        Ok(unsafe { Node::as_abstract_node(cx, fragment) })
+        Ok(DocumentFragment::new(owner.Document()))
     }
 }
