@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
-use dom::document::{AbstractDocument, Document, ReflectableDocument, HTML};
+use dom::document::{AbstractDocument, Document, HTML};
 use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
@@ -14,7 +14,6 @@ use js::jsapi::{JSObject, JSContext, JSTracer};
 
 use servo_util::tree::{TreeNodeRef, ElementLike};
 
-use std::ptr;
 use std::str::eq_slice;
 
 pub struct HTMLDocument {
@@ -22,22 +21,15 @@ pub struct HTMLDocument {
 }
 
 impl HTMLDocument {
+    pub fn new_inherited(window: @mut Window) -> HTMLDocument {
+        HTMLDocument {
+            parent: Document::new_inherited(window, HTML)
+        }
+    }
+
     pub fn new(window: @mut Window) -> AbstractDocument {
-        let doc = @mut HTMLDocument {
-            parent: Document::new(window, HTML)
-        };
-
-        AbstractDocument::as_abstract(window.get_cx(), doc)
-    }
-}
-
-impl ReflectableDocument for HTMLDocument {
-    fn init_reflector(@mut self, cx: *JSContext) {
-        self.wrap_object_shared(cx, ptr::null()); //XXXjdm a proper scope would be nice
-    }
-
-    fn init_node(@mut self, doc: AbstractDocument) {
-        self.parent.node.set_owner_doc(doc);
+        let document = HTMLDocument::new_inherited(window);
+        Document::reflect_document(@mut document, window, HTMLDocumentBinding::Wrap)
     }
 }
 
@@ -97,8 +89,8 @@ impl Reflectable for HTMLDocument {
         self.parent.mut_reflector()
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        HTMLDocumentBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!()
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
