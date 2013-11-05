@@ -16,7 +16,7 @@ pub struct HTMLQuoteElement {
 impl HTMLQuoteElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLQuoteElement {
         HTMLQuoteElement {
-            htmlelement: HTMLElement::new(HTMLQuoteElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLQuoteElementTypeId, localName, document)
         }
     }
 

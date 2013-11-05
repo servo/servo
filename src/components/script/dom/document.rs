@@ -12,7 +12,6 @@ use dom::element::{Element};
 use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
-use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId, DocumentNodeTypeId};
 use dom::text::Text;
 use dom::window::Window;
@@ -236,13 +235,12 @@ impl Document {
     }
 
     pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
-        let cx = self.get_cx();
         let local_name = null_str_as_empty(local_name);
         if !is_valid_element_name(local_name) {
             return Err(InvalidCharacter);
         }
         let local_name = local_name.to_ascii_lower();
-        Ok(build_element_from_tag(cx, local_name, abstract_self))
+        Ok(build_element_from_tag(local_name, abstract_self))
     }
 
     pub fn CreateDocumentFragment(&self, abstract_self: AbstractDocument) -> AbstractNode<ScriptView> {
@@ -323,12 +321,7 @@ impl Document {
                                 break;
                             }
                             if !has_title {
-                                let new_title = @HTMLTitleElement {
-                                    htmlelement: HTMLElement::new(HTMLTitleElementTypeId, ~"title", abstract_self)
-                                };
-                                let new_title = unsafe { 
-                                    Node::as_abstract_node(self.get_cx(), new_title)
-                                };
+                                let new_title = HTMLTitleElement::new(~"title", abstract_self);
                                 new_title.AppendChild(self.CreateTextNode(abstract_self, title));
                                 node.AppendChild(new_title);
                             }

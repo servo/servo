@@ -24,7 +24,7 @@ pub struct HTMLImageElement {
 impl HTMLImageElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLImageElement {
         HTMLImageElement {
-            htmlelement: HTMLElement::new(HTMLImageElementTypeId, localName, document),
+            htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, document),
             image: None,
         }
     }

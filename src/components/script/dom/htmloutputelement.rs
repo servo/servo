@@ -2,13 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::HTMLOutputElementBinding;
 use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::document::AbstractDocument;
+use dom::element::HTMLOutputElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::{AbstractNode, Node, ScriptView};
 use dom::validitystate::ValidityState;
 
 pub struct HTMLOutputElement {
     htmlelement: HTMLElement
+}
+
+impl HTMLOutputElement {
+    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLOutputElement {
+        HTMLOutputElement {
+            htmlelement: HTMLElement::new_inherited(HTMLOutputElementTypeId, localName, document)
+        }
+    }
+
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+        let element = HTMLOutputElement::new_inherited(localName, document);
+        Node::reflect_node(@mut element, document, HTMLOutputElementBinding::Wrap)
+    }
 }
 
 impl HTMLOutputElement {

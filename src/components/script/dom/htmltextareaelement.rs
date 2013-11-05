@@ -16,7 +16,7 @@ pub struct HTMLTextAreaElement {
 impl HTMLTextAreaElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
-            htmlelement: HTMLElement::new(HTMLTextAreaElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, document)
         }
     }
 

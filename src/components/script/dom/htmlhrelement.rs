@@ -2,11 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::HTMLHRElementBinding;
 use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::document::AbstractDocument;
+use dom::element::HTMLHRElementTypeId;
 use dom::htmlelement::HTMLElement;
+use dom::node::{AbstractNode, Node, ScriptView};
 
 pub struct HTMLHRElement {
     htmlelement: HTMLElement,
+}
+
+impl HTMLHRElement {
+    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLHRElement {
+        HTMLHRElement {
+            htmlelement: HTMLElement::new_inherited(HTMLHRElementTypeId, localName, document)
+        }
+    }
+
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+        let element = HTMLHRElement::new_inherited(localName, document);
+        Node::reflect_node(@mut element, document, HTMLHRElementBinding::Wrap)
+    }
 }
 
 impl HTMLHRElement {

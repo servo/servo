@@ -17,7 +17,7 @@ pub struct HTMLSelectElement {
 impl HTMLSelectElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLSelectElement {
         HTMLSelectElement {
-            htmlelement: HTMLElement::new(HTMLSelectElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLSelectElementTypeId, localName, document)
         }
     }
 

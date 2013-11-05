@@ -16,7 +16,7 @@ pub struct HTMLTrackElement {
 impl HTMLTrackElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTrackElement {
         HTMLTrackElement {
-            htmlelement: HTMLElement::new(HTMLTrackElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTrackElementTypeId, localName, document)
         }
     }
 

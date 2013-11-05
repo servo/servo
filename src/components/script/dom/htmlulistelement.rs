@@ -16,7 +16,7 @@ pub struct HTMLUListElement {
 impl HTMLUListElement {
     pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLUListElement {
         HTMLUListElement {
-            htmlelement: HTMLElement::new(HTMLUListElementTypeId, localName, document)
+            htmlelement: HTMLElement::new_inherited(HTMLUListElementTypeId, localName, document)
         }
     }
 
