@@ -4,17 +4,16 @@
 
 use dom::comment::Comment;
 use dom::bindings::codegen::DocumentBinding;
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
-use dom::bindings::utils::{Reflectable, Reflector, DerivedWrapper, NotSupported};
-use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable};
-use dom::bindings::utils::{null_str_as_empty_ref, null_str_as_empty, null_str_as_word_null};
+use dom::bindings::utils::{Reflectable, Reflector, DerivedWrapper, Traceable, reflect_dom_object};
+use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
+use dom::bindings::utils::{DOMString, null_str_as_empty_ref, null_str_as_empty, null_str_as_word_null};
+use dom::bindings::utils::is_valid_element_name;
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
 use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::{AbstractEvent, Event, HTMLEventTypeId, UIEventTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
-use dom::htmlelement::HTMLElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId, DocumentNodeTypeId};
 use dom::text::Text;
@@ -29,7 +28,6 @@ use servo_util::tree::{TreeNodeRef, ElementLike};
 use std::hashmap::HashMap;
 
 use std::cast;
-use std::ptr;
 use std::str::eq_slice;
 use std::ascii::StrAsciiExt;
 use std::unstable::raw::Box;
@@ -40,26 +38,12 @@ pub enum DocumentTypeId {
     HTMLDocumentTypeId
 }
 
-pub trait ReflectableDocument {
-    fn init_reflector(@mut self, cx: *JSContext);
-    fn init_node(@mut self, doc: AbstractDocument);
-}
-
 #[deriving(Eq)]
 pub struct AbstractDocument {
     document: *mut Box<Document>
 }
 
 impl AbstractDocument {
-    pub fn as_abstract<T: ReflectableDocument>(cx: *JSContext, doc: @mut T) -> AbstractDocument {
-        doc.init_reflector(cx);
-        let abstract = AbstractDocument {
-            document: unsafe { cast::transmute(doc) }
-        };
-        doc.init_node(abstract);
-        abstract
-    }
-
     pub fn document<'a>(&'a self) -> &'a Document {
         unsafe {
             &(*self.document).data
@@ -123,8 +107,24 @@ pub struct Document {
 }
 
 impl Document {
-    #[fixed_stack_segment]
-    pub fn new(window: @mut Window, doctype: DocumentType) -> Document {
+    pub fn reflect_document<D: Reflectable>
+            (document:  @mut D,
+             window:    @mut Window,
+             wrap_fn:   extern "Rust" fn(*JSContext, *JSObject, @mut D) -> *JSObject)
+             -> AbstractDocument {
+        assert!(document.reflector().get_jsobject().is_null());
+        let document = reflect_dom_object(document, window, wrap_fn);
+        assert!(document.reflector().get_jsobject().is_not_null());
+
+        // This surrenders memory management of the document!
+        let abstract = AbstractDocument {
+            document: unsafe { cast::transmute(document) }
+        };
+        abstract.mut_document().node.set_owner_doc(abstract);
+        abstract
+    }
+
+    pub fn new_inherited(window: @mut Window, doctype: DocumentType) -> Document {
         let node_type = match doctype {
             HTML => HTMLDocumentTypeId,
             SVG | XML => PlainDocumentTypeId
@@ -139,19 +139,15 @@ impl Document {
         }
     }
 
-    pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
-        let cx = owner.get_cx();
-        Ok(AbstractDocument::as_abstract(cx, @mut Document::new(owner, XML)))
+    pub fn new(window: @mut Window, doctype: DocumentType) -> AbstractDocument {
+        let document = Document::new_inherited(window, doctype);
+        Document::reflect_document(@mut document, window, DocumentBinding::Wrap)
     }
 }
 
-impl ReflectableDocument for Document {
-    fn init_reflector(@mut self, cx: *JSContext) {
-        self.wrap_object_shared(cx, ptr::null()); //XXXjdm a proper scope would be nice
-    }
-
-    fn init_node(@mut self, doc: AbstractDocument) {
-        self.node.set_owner_doc(doc);
+impl Document {
+    pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
+        Ok(Document::new(owner, XML))
     }
 }
 
@@ -164,16 +160,8 @@ impl Reflectable for AbstractDocument {
         self.mut_document().mut_reflector()
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        match self.document().doctype {
-            HTML => {
-                let doc: @mut HTMLDocument = unsafe { cast::transmute(self.document) };
-                doc.wrap_object_shared(cx, scope)
-            }
-            XML | SVG => {
-                fail!("no wrapping for documents that don't exist")
-            }
-        }
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!()
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
@@ -199,8 +187,8 @@ impl Reflectable for Document {
         self.node.mut_reflector()
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        DocumentBinding::Wrap(cx, scope, self)
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!()
     }
 
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
