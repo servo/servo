@@ -244,21 +244,15 @@ impl Document {
     }
 
     pub fn CreateDocumentFragment(&self, abstract_self: AbstractDocument) -> AbstractNode<ScriptView> {
-        let cx = self.get_cx();
-        let fragment = @DocumentFragment::new(abstract_self);
-        unsafe { Node::as_abstract_node(cx, fragment) }
+        DocumentFragment::new(abstract_self)
     }
 
     pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
-        let cx = self.get_cx();
-        let text = @Text::new(null_str_as_empty(data), abstract_self);
-        unsafe { Node::as_abstract_node(cx, text) }
+        Text::new(null_str_as_empty(data), abstract_self)
     }
 
     pub fn CreateComment(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
-        let cx = self.get_cx();
-        let comment = @Comment::new(null_str_as_word_null(data), abstract_self);
-        unsafe { Node::as_abstract_node(cx, comment) }
+        Comment::new(null_str_as_word_null(data), abstract_self)
     }
 
     pub fn Title(&self, _: AbstractDocument) -> DOMString {
