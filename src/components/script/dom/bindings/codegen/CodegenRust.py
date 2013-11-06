@@ -1569,16 +1569,7 @@ for (uint32_t i = 0; i < length; ++i) {
             wrappingCode = ""
         if (not descriptor.interface.isExternal() and
             not descriptor.interface.isCallback()):
-            if descriptor.wrapperCache:
-                wrapMethod = "WrapNewBindingObject"
-            else:
-                if not isCreator:
-                    raise MethodNotCreatorError(descriptor.interface.identifier.name)
-                wrapMethod = "WrapNewBindingNonWrapperCachedObject"
-            if descriptor.pointerType == '':
-                wrap = "%s.wrap(cx, ${obj}, ${jsvalPtr} as *mut JSVal)" % result
-            else:
-                wrap = "%s(cx, ${obj}, %s as @mut Reflectable, ${jsvalPtr} as *mut JSVal)" % (wrapMethod, result)
+            wrap = "GetReflector(cx, (%s).reflector(), ${jsvalPtr} as *mut JSVal)" % result
             # We don't support prefable stuff in workers.
             assert(not descriptor.prefable or not descriptor.workers)
             if not descriptor.prefable:
@@ -1596,11 +1587,7 @@ for (uint32_t i = 0; i < length; ++i) {
                 failed = wrapAndSetPtr("HandleNewBindingWrappingFailure(cx, ${obj}, %s, ${jsvalPtr})" % result)
             wrappingCode += wrapAndSetPtr(wrap, failed)
         else:
-            #wrap = "WrapObject(cx, ${obj}, %s, %s${jsvalPtr})" % (result, getIID)
-            if descriptor.pointerType == '':
-                wrap = "(%s.wrap(cx, ${obj}, ${jsvalPtr}) != 0)" % result
-            else:
-                wrap = "if WrapNewBindingObject(cx, ${obj}, %s as @mut Reflectable, ${jsvalPtr}) { 1 } else { 0 };" % result
+            wrap = "GetReflector(cx, (%s).reflector(), ${jsvalPtr} as *mut JSVal)" % result
             wrappingCode += wrapAndSetPtr(wrap)
         return (wrappingCode, False)
 

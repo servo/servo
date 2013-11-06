@@ -5,14 +5,13 @@
 use dom::eventtarget::AbstractEventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible, null_str_as_word_null};
 use dom::mouseevent::MouseEvent;
 use dom::uievent::UIEvent;
 
 use geom::point::Point2D;
-use js::jsapi::{JSObject, JSContext, JSVal};
-use js::glue::RUST_OBJECT_TO_JSVAL;
+use js::jsapi::JSContext;
 
 use script_task::page_from_context;
 
@@ -109,18 +108,6 @@ impl AbstractEvent {
 
     pub fn bubbles(&self) -> bool {
         self.event().bubbles
-    }
-}
-
-impl DerivedWrapper for AbstractEvent {
-    #[fixed_stack_segment]
-    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
-        let wrapper = self.reflector().get_jsobject();
-        if wrapper.is_not_null() {
-            unsafe { *vp = RUST_OBJECT_TO_JSVAL(wrapper) };
-            return 1;
-        }
-        unreachable!()
     }
 }
 
