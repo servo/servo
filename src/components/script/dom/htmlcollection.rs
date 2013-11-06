@@ -68,8 +68,4 @@ impl Reflectable for HTMLCollection {
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
     }
-
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
-        Some(self.window as @mut Reflectable)
-    }
 }

@@ -8,9 +8,6 @@ use dom::bindings::codegen::EventListenerBinding::EventListener;
 use dom::event::AbstractEvent;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::{AbstractNode, ScriptView};
-use script_task::page_from_context;
-
-use js::jsapi::JSContext;
 
 use std::cast;
 use std::hashmap::HashMap;
@@ -104,10 +101,6 @@ impl Reflectable for AbstractEventTarget {
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.mut_eventtarget().mut_reflector()
     }
-
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        self.eventtarget().GetParentObject(cx)
-    }
 }
 
 impl EventTarget {
@@ -185,13 +178,5 @@ impl Reflectable for EventTarget {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        // TODO(tkuehn): This only handles top-level pages. Needs to handle subframes.
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
     }
 }

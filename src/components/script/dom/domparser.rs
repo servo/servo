@@ -10,8 +10,6 @@ use dom::document::{AbstractDocument, Document, XML};
 use dom::htmldocument::HTMLDocument;
 use dom::window::Window;
 
-use js::jsapi::JSContext;
-
 pub struct DOMParser {
     owner: @mut Window, //XXXjdm Document instead?
     reflector_: Reflector
@@ -59,9 +57,5 @@ impl Reflectable for DOMParser {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
-        Some(self.owner as @mut Reflectable)
     }
 }

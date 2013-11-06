@@ -1056,13 +1056,6 @@ impl Reflectable for Node<ScriptView> {
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.eventtarget.mut_reflector()
     }
-
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
-        match self.parent_node {
-            Some(node) => Some(unsafe {node.as_cacheable_wrapper()}),
-            None => None
-        }
-    }
 }
 
 // This stuff is notionally private to layout, but we put it here because it needs

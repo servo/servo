@@ -6,9 +6,6 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::codegen::NavigatorBinding;
 use dom::window::Window;
-use script_task::{page_from_context};
-
-use js::jsapi::JSContext;
 
 pub struct Navigator {
     reflector_: Reflector //XXXjdm cycle: window->navigator->window
@@ -97,12 +94,5 @@ impl Reflectable for Navigator {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
     }
 }
