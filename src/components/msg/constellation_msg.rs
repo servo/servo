@@ -13,6 +13,7 @@ use geom::rect::Rect;
 
 #[deriving(Clone)]
 pub struct ConstellationChan(SharedChan<Msg>);
+
 impl ConstellationChan {
     pub fn new(chan: Chan<Msg>) -> ConstellationChan {
         ConstellationChan(SharedChan::new(chan))
@@ -25,6 +26,7 @@ pub enum IFrameSandboxState {
     IFrameUnsandboxed
 }
 
+/// Messages from the compositor to the constellation.
 pub enum Msg {
     ExitMsg(Chan<()>),
     FailureMsg(PipelineId, Option<SubpageId>),

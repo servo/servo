@@ -4,7 +4,6 @@
 
 use compositing::*;
 
-use geom::size::Size2D;
 use std::unstable::intrinsics;
 
 /// Starts the compositor, which listens for messages on the specified port.
@@ -15,10 +14,6 @@ pub fn run_compositor(compositor: &CompositorTask) {
     loop {
         match compositor.port.recv() {
             Exit => break,
-
-            GetSize(chan) => {
-                chan.send(Size2D(500, 500));
-            }
 
             GetGraphicsMetadata(chan) => {
                 unsafe {
