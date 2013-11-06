@@ -41,6 +41,7 @@ pub enum StylesheetOrigin {
 /// element name, etc. will contain the Rules that actually match that
 /// node.
 pub struct SelectorMap {
+    // TODO: Tune the initial capacity of the HashMap
     // FIXME: Use interned strings
     priv id_hash: HashMap<~str, ~[Rule]>,
     priv class_hash: HashMap<~str, ~[Rule]>,
@@ -87,7 +88,10 @@ impl SelectorMap {
             }
 
             rules_list.push_all_move(SelectorMap::get_matching_rules_from_hash(
-                    node, pseudo_element, &self.element_hash, element.get_local_name()));
+                    node, pseudo_element, &self.element_hash,
+                    // HTML elements in HTML documents must be matched case-insensitively
+                    // TODO: case-sensitivity depends on the document type
+                    element.get_local_name().to_ascii_lower()));
             rules_list.push_all_move(SelectorMap::get_matching_rules(node, pseudo_element,
                                                                      self.universal_rules));
         }
@@ -165,6 +169,7 @@ impl SelectorMap {
         let simple_selector_sequence = &selector.compound_selectors.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
+                // TODO: Implement case-sensitivity based on the document type and quirks mode
                 IDSelector(ref id) => return Some(id.clone()),
                 _ => {}
             }
@@ -177,6 +182,7 @@ impl SelectorMap {
         let simple_selector_sequence = &rule.selector.compound_selectors.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
+                // TODO: Implement case-sensitivity based on the document type and quirks mode
                 ClassSelector(ref class) => return Some(class.clone()),
                 _ => {}
             }
@@ -189,7 +195,9 @@ impl SelectorMap {
         let simple_selector_sequence = &rule.selector.compound_selectors.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
-                LocalNameSelector(ref name) => return Some(name.clone()),
+                // HTML elements in HTML documents must be matched case-insensitively
+                // TODO: case-sensitivity depends on the document type
+                LocalNameSelector(ref name) => return Some(name.to_ascii_lower()),
                 _ => {}
             }
         }
@@ -520,9 +528,11 @@ fn test_get_class_name(){
 
 #[test]
 fn test_get_element_name(){
-    let rules_list = get_mock_rules(["img.foo", "#top"]);
+    let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
     assert_eq!(SelectorMap::get_element_name(rules_list[0][0].clone()), Some(~"img"));
     assert_eq!(SelectorMap::get_element_name(rules_list[1][0].clone()), None);
+    assert_eq!(SelectorMap::get_element_name(rules_list[2][0].clone()), Some(~"img"));
+    assert_eq!(SelectorMap::get_element_name(rules_list[3][0].clone()), Some(~"img"));
 }
 
 #[test]
