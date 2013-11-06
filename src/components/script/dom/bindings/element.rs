@@ -5,7 +5,7 @@
 use dom::types::*;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 
-use js::jsapi::{JSContext, JSTracer};
+use js::jsapi::JSTracer;
 
 // generate_cacheable_wrapper
 macro_rules! generate_cacheable_wrapper(
@@ -47,10 +47,6 @@ macro_rules! generate_cacheable_wrapper_base(
 
             fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
                 self.$parent.mut_reflector()
-            }
-
-            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-                self.$parent.GetParentObject(cx)
             }
         }
     )

@@ -2506,8 +2506,8 @@ class CGAbstractMethod(CGThing):
 
 def CreateBindingJSObject(descriptor, parent=None):
     if descriptor.proxy:
-        handler = """  //let reflector = aObject.mut_reflector();
-
+        assert not descriptor.createGlobal
+        handler = """
   let page = page_from_context(aCx);
   let handler = (*page).js_info.get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
@@ -2546,33 +2546,29 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
             return """return aObject->GetJSObject();"""
 
         if not self.descriptor.createGlobal:
-            return """let mut parent = aObject.GetParentObject(aCx);
-  let parent = WrapNativeParent(aCx, aScope, parent);
-  if parent.is_null() {
-    return ptr::null();
-  }
+            return """
+  assert!(aScope.is_not_null());
+  assert!(((*JS_GetClass(aScope)).flags & JSCLASS_IS_GLOBAL) != 0);
 
-  //JSAutoCompartment ac(aCx, parent);
-  let global = JS_GetGlobalForObject(aCx, parent);
-  let proto = GetProtoObject(aCx, global, global);
+  //JSAutoCompartment ac(aCx, aScope);
+  let proto = GetProtoObject(aCx, aScope, aScope);
   if proto.is_null() {
     return ptr::null();
   }
-
-  let reflector = aObject.mut_reflector();
 %s
 
   //NS_ADDREF(aObject);
 
-  (*reflector).set_jsobject(obj);
+  aObject.mut_reflector().set_jsobject(obj);
 
-  return obj;""" % (CreateBindingJSObject(self.descriptor, "parent"))
+  return obj;""" % (CreateBindingJSObject(self.descriptor, "aScope"))
         else:
-            return """    let reflector = aObject.mut_reflector();
+            return """
+  assert!(aScope.is_null());
 %s
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);
-  (*reflector).set_jsobject(obj);
+  aObject.mut_reflector().set_jsobject(obj);
   return obj;""" % CreateBindingJSObject(self.descriptor)
 
 class CGWrapMethod(CGAbstractMethod):

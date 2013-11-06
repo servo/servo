@@ -10,7 +10,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
 use dom::window::Window;
 
-use js::jsapi::{JSContext, JSTracer};
+use js::jsapi::JSTracer;
 
 use servo_util::tree::{TreeNodeRef, ElementLike};
 
@@ -87,10 +87,6 @@ impl Reflectable for HTMLDocument {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.parent.mut_reflector()
-    }
-
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        self.parent.GetParentObject(cx)
     }
 }
 

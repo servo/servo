@@ -3,9 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Reflectable, Reflector};
-use script_task::page_from_context;
-
-use js::jsapi::JSContext;
 
 pub struct WindowProxy {
     reflector_: Reflector
@@ -26,12 +23,5 @@ impl Reflectable for WindowProxy {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
     }
 }

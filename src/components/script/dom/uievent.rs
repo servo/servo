@@ -10,8 +10,6 @@ use dom::event::{AbstractEvent, Event, EventTypeId, UIEventTypeId};
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 
-use js::jsapi::JSContext;
-
 pub struct UIEvent {
     parent: Event,
     view: Option<@mut WindowProxy>,
@@ -119,9 +117,5 @@ impl Reflectable for UIEvent {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.parent.mut_reflector()
-    }
-
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        self.parent.GetParentObject(cx)
     }
 }

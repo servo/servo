@@ -18,7 +18,7 @@ use std::unstable::raw::Box;
 use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
-use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction, JS_GetGlobalObject};
+use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
 use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate};
@@ -540,7 +540,6 @@ pub fn initialize_global(global: *JSObject) {
 pub trait Reflectable {
     fn reflector<'a>(&'a self) -> &'a Reflector;
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector;
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable>;
 }
 
 pub fn reflect_dom_object<T: Reflectable>
@@ -567,6 +566,8 @@ impl Reflector {
     }
 
     pub fn set_jsobject(&mut self, object: *JSObject) {
+        assert!(self.object.is_null());
+        assert!(object.is_not_null());
         self.object = object;
     }
 
@@ -589,18 +590,6 @@ pub fn GetReflector(cx: *JSContext, reflector: &Reflector,
     unsafe {
         *vp = RUST_OBJECT_TO_JSVAL(obj);
         return JS_WrapValue(cx, cast::transmute(vp));
-    }
-}
-
-#[fixed_stack_segment]
-pub fn WrapNativeParent(cx: *JSContext, _scope: *JSObject, mut p: Option<@mut Reflectable>) -> *JSObject {
-    match p {
-        Some(ref mut p) => {
-            let obj = p.reflector().get_jsobject();
-            assert!(obj.is_not_null());
-            obj
-        }
-        None => unsafe { JS_GetGlobalObject(cx) }
     }
 }
 

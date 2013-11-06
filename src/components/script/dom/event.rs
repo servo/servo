@@ -11,9 +11,6 @@ use dom::mouseevent::MouseEvent;
 use dom::uievent::UIEvent;
 
 use geom::point::Point2D;
-use js::jsapi::JSContext;
-
-use script_task::page_from_context;
 
 use std::cast;
 use std::unstable::raw::Box;
@@ -118,10 +115,6 @@ impl Reflectable for AbstractEvent {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.mut_event().mut_reflector()
-    }
-
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        self.event().GetParentObject(cx)
     }
 }
 
@@ -262,12 +255,5 @@ impl Reflectable for Event {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
-        let page = page_from_context(cx);
-        unsafe {
-            Some((*page).frame.get_ref().window as @mut Reflectable)
-        }
     }
 }

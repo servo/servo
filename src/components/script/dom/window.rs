@@ -147,10 +147,6 @@ impl Reflectable for Window {
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.eventtarget.mut_reflector()
     }
-
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
-        None
-    }
 }
 
 impl Window {
