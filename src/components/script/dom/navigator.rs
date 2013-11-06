@@ -8,7 +8,7 @@ use dom::bindings::codegen::NavigatorBinding;
 use dom::window::Window;
 use script_task::{page_from_context};
 
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSContext;
 
 pub struct Navigator {
     reflector_: Reflector //XXXjdm cycle: window->navigator->window
@@ -97,10 +97,6 @@ impl Reflectable for Navigator {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        unreachable!();
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {

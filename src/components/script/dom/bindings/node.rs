@@ -9,7 +9,7 @@ use dom::node::{AbstractNode, ScriptView};
 use std::cast;
 use std::libc;
 use std::ptr;
-use js::jsapi::{JSContext, JSObject, JSTracer, JSTRACE_OBJECT, JS_CallTracer};
+use js::jsapi::{JSContext, JSTracer, JSTRACE_OBJECT, JS_CallTracer};
 use servo_util::tree::TreeNodeRef;
 
 impl Reflectable for AbstractNode<ScriptView> {
@@ -19,10 +19,6 @@ impl Reflectable for AbstractNode<ScriptView> {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.mut_node().mut_reflector()
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"need to implement wrapping");
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {

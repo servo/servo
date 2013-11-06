@@ -16,7 +16,7 @@ use layout_interface::{ContentBoxesResponse};
 use style;
 use servo_util::tree::{TreeNodeRef, ElementLike};
 
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSContext;
 
 use std::comm;
 use std::hashmap::HashMap;
@@ -37,10 +37,6 @@ impl Reflectable for Element {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.node.mut_reflector()
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!("no wrapping")
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {

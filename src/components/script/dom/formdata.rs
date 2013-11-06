@@ -8,7 +8,7 @@ use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
 use dom::window::Window;
 
-use js::jsapi::{JSObject, JSContext};
+use js::jsapi::JSContext;
 
 use std::hashmap::HashMap;
 
@@ -56,10 +56,6 @@ impl Reflectable for FormData {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        unreachable!();
     }
 
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {

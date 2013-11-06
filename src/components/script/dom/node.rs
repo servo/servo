@@ -1057,10 +1057,6 @@ impl Reflectable for Node<ScriptView> {
         self.eventtarget.mut_reflector()
     }
 
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"need to implement wrapping");
-    }
-
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         match self.parent_node {
             Some(node) => Some(unsafe {node.as_cacheable_wrapper()}),

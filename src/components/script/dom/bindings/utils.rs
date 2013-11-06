@@ -541,7 +541,6 @@ pub fn initialize_global(global: *JSObject) {
 pub trait Reflectable {
     fn reflector<'a>(&'a self) -> &'a Reflector;
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector;
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject;
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable>;
 }
 
@@ -584,39 +583,24 @@ impl Reflector {
 }
 
 #[fixed_stack_segment]
-pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
+pub fn WrapNewBindingObject(cx: *JSContext, _scope: *JSObject,
                             value: @mut Reflectable,
                             vp: *mut JSVal) -> JSBool {
   unsafe {
     let reflector = value.mut_reflector();
     let obj = reflector.get_jsobject();
-    if obj.is_not_null() /*&& js::GetObjectCompartment(obj) == js::GetObjectCompartment(scope)*/ {
-        *vp = RUST_OBJECT_TO_JSVAL(obj);
-        return 1; // JS_TRUE
-    }
-
-    let obj = value.wrap_object_shared(cx, scope);
-    if obj.is_null() {
-        return 0; // JS_FALSE
-    }
-
-    //  MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
-    reflector.set_jsobject(obj);
+    assert!(obj.is_not_null());
     *vp = RUST_OBJECT_TO_JSVAL(obj);
     return JS_WrapValue(cx, cast::transmute(vp));
   }
 }
 
 #[fixed_stack_segment]
-pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: Option<@mut Reflectable>) -> *JSObject {
+pub fn WrapNativeParent(cx: *JSContext, _scope: *JSObject, mut p: Option<@mut Reflectable>) -> *JSObject {
     match p {
         Some(ref mut p) => {
             let obj = p.reflector().get_jsobject();
-            if obj.is_not_null() {
-                return obj;
-            }
-            let obj = p.wrap_object_shared(cx, scope);
-            p.mut_reflector().set_jsobject(obj);
+            assert!(obj.is_not_null());
             obj
         }
         None => unsafe { JS_GetGlobalObject(cx) }
