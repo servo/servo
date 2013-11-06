@@ -160,10 +160,6 @@ impl Reflectable for AbstractDocument {
         self.mut_document().mut_reflector()
     }
 
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        unreachable!()
-    }
-
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.document().GetParentObject(cx)
     }
@@ -185,10 +181,6 @@ impl Reflectable for Document {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.node.mut_reflector()
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        unreachable!()
     }
 
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {

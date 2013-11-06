@@ -148,10 +148,6 @@ impl Reflectable for Window {
         self.eventtarget.mut_reflector()
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        WindowBinding::Wrap(cx, scope, self)
-    }
-
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         None
     }
@@ -229,10 +225,8 @@ impl Window {
             next_timer_handle: 0
         };
 
+        let global = WindowBinding::Wrap(cx, ptr::null(), win);
         unsafe {
-            let reflector = ptr::to_unsafe_ptr(win.reflector());
-            win.wrap_object_shared(cx, ptr::null()); //XXXjdm proper scope
-            let global = (*reflector).object;
             do "window".to_c_str().with_ref |name| {
                 JS_DefineProperty(cx, global,  name,
                                   RUST_OBJECT_TO_JSVAL(global),

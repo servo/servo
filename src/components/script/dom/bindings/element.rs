@@ -3,10 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::types::*;
-use dom::bindings::codegen::*;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 
-use js::jsapi::{JSContext, JSObject, JSTracer};
+use js::jsapi::{JSContext, JSTracer};
 
 // generate_cacheable_wrapper
 macro_rules! generate_cacheable_wrapper(
@@ -48,10 +47,6 @@ macro_rules! generate_cacheable_wrapper_base(
 
             fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
                 self.$parent.mut_reflector()
-            }
-
-            fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-                $wrap(cx, scope, self)
             }
 
             fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {

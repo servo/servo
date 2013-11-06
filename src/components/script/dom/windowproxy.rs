@@ -5,7 +5,7 @@
 use dom::bindings::utils::{Reflectable, Reflector};
 use script_task::page_from_context;
 
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSContext;
 
 pub struct WindowProxy {
     reflector_: Reflector
@@ -17,10 +17,6 @@ impl WindowProxy {
             reflector_: Reflector::new()
         }
     }
-
-    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
-        self.wrap_object_shared(cx, scope);
-    }
 }
 
 impl Reflectable for WindowProxy {
@@ -30,10 +26,6 @@ impl Reflectable for WindowProxy {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!("not yet implemented")
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {

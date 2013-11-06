@@ -5,7 +5,8 @@
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::codegen::ValidityStateBinding;
 use dom::window::Window;
-use js::jsapi::{JSContext, JSObject};
+
+use js::jsapi::JSContext;
 
 pub struct ValidityState {
     reflector_: Reflector,
@@ -73,10 +74,6 @@ impl Reflectable for ValidityState {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        unreachable!();
     }
 
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {

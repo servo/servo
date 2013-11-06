@@ -8,7 +8,8 @@ use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::AbstractDocument;
 use dom::node::{Node, NodeTypeId, ScriptView};
-use js::jsapi::{JSObject, JSContext};
+
+use js::jsapi::JSContext;
 
 pub struct CharacterData {
     node: Node<ScriptView>,
@@ -65,10 +66,6 @@ impl Reflectable for CharacterData {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         self.node.mut_reflector()
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"need to implement wrapping");
     }
 
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {

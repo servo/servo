@@ -6,7 +6,7 @@ use dom::bindings::codegen::ClientRectBinding;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 
-use js::jsapi::{JSObject, JSContext};
+use js::jsapi::JSContext;
 
 pub struct ClientRect {
     reflector_: Reflector,
@@ -70,10 +70,6 @@ impl Reflectable for ClientRect {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        unreachable!();
     }
 
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {

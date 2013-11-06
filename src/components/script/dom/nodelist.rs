@@ -7,7 +7,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{AbstractNode, ScriptView};
 use dom::window::Window;
 
-use js::jsapi::{JSObject, JSContext};
+use js::jsapi::JSContext;
 
 enum NodeListType {
     Simple(~[AbstractNode<ScriptView>]),
@@ -73,10 +73,6 @@ impl Reflectable for NodeList {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        unreachable!();
     }
 
     fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
