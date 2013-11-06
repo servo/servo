@@ -111,12 +111,14 @@ pub fn run_compositor(compositor: &CompositorTask) {
                     }
 
                     compositor_layer = Some(layer);
-                    constellation_chan = Some(new_constellation_chan);
-                }
 
-                GetSize(chan) => {
-                    let size = window.size();
-                    chan.send(Size2D(size.width as int, size.height as int));
+                    // Initialize the new constellation channel by sending it the root window size.
+                    let window_size = window.size();
+                    let window_size = Size2D(window_size.width as uint,
+                                             window_size.height as uint);
+                    new_constellation_chan.send(ResizedWindowMsg(window_size));
+
+                    constellation_chan = Some(new_constellation_chan);
                 }
 
                 GetGraphicsMetadata(chan) => chan.send(azure_hl::current_graphics_metadata()),
