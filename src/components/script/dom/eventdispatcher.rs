@@ -34,8 +34,7 @@ pub fn dispatch_event(target: AbstractEventTarget, event: AbstractEvent) -> bool
 
     /* capturing */
     for &cur_target in chain.rev_iter() {
-        //XXX bad clone
-        let stopped = match cur_target.eventtarget().get_listeners_for(type_.clone(), Capturing) {
+        let stopped = match cur_target.eventtarget().get_listeners_for(type_, Capturing) {
             Some(listeners) => {
                 event.mut_event().current_target = Some(cur_target);
                 for listener in listeners.iter() {
@@ -64,7 +63,7 @@ pub fn dispatch_event(target: AbstractEventTarget, event: AbstractEvent) -> bool
             event.current_target = Some(target);
         }
 
-        let opt_listeners = target.eventtarget().get_listeners(type_.clone());
+        let opt_listeners = target.eventtarget().get_listeners(type_);
         for listeners in opt_listeners.iter() {
             for listener in listeners.iter() {
                 listener.HandleEvent__(event, eReportExceptions);
@@ -80,8 +79,7 @@ pub fn dispatch_event(target: AbstractEventTarget, event: AbstractEvent) -> bool
         event.mut_event().phase = Phase_Bubbling;
 
         for &cur_target in chain.iter() {
-            //XXX bad clone
-            let stopped = match cur_target.eventtarget().get_listeners_for(type_.clone(), Bubbling) {
+            let stopped = match cur_target.eventtarget().get_listeners_for(type_, Bubbling) {
                 Some(listeners) => {
                     event.mut_event().current_target = Some(cur_target);
                     for listener in listeners.iter() {

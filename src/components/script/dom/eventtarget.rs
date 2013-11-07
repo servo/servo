@@ -112,13 +112,13 @@ impl EventTarget {
         }
     }
 
-    pub fn get_listeners(&self, type_: ~str) -> Option<~[EventListener]> {
+    pub fn get_listeners(&self, type_: &str) -> Option<~[EventListener]> {
         do self.handlers.find_equiv(&type_).map |listeners| {
             listeners.iter().map(|entry| entry.listener).collect()
         }
     }
 
-    pub fn get_listeners_for(&self, type_: ~str, desired_phase: ListenerPhase)
+    pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
         -> Option<~[EventListener]> {
         do self.handlers.find_equiv(&type_).map |listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
