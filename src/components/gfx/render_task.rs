@@ -219,13 +219,6 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
     }
 
     fn render(&mut self, tiles: ~[BufferRequest], scale: f32) {
-        // In headless mode, disable the renderer, because it makes OpenGL
-        // calls.  Once we have CPU rendering we should render in CPU mode and
-        // just disable texture upload.
-        if self.opts.headless {
-            return;
-        }
-
         let render_layer;
         match self.render_layer {
             Some(ref r_layer) => {
