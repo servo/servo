@@ -58,12 +58,15 @@ pub enum SimpleSelector {
     AttrSuffixMatch(AttrSelector, ~str),  // [foo$=bar]
 
     // Pseudo-classes
+    Negation(~[SimpleSelector]),
+    AnyLink,
+    Link,
+    Visited,
     FirstChild,
 //    Empty,
 //    Root,
 //    Lang(~str),
 //    NthChild(i32, i32),
-    Negation(~[SimpleSelector]),
     // ...
 }
 
@@ -181,7 +184,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
                 &ClassSelector(*)
                 | &AttrExists(*) | &AttrEqual(*) | &AttrIncludes(*) | &AttrDashMatch(*)
                 | &AttrPrefixMatch(*) | &AttrSubstringMatch(*) | &AttrSuffixMatch(*)
-                | &FirstChild
+                | &AnyLink | &Link | &Visited | &FirstChild
 //                | &Empty | &Root | &Lang(*) | &NthChild(*)
                 => specificity.class_like_selectors += 1,
                 &NamespaceSelector(*) => (),
@@ -420,6 +423,9 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
 
 fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
     match name.to_ascii_lower().as_slice() {
+        "any-link" => Some(AnyLink),
+        "link" => Some(Link),
+        "visited" => Some(Visited),
         "first-child" => Some(FirstChild),
 //        "root" => Some(Root),
 //        "empty" => Some(Empty),
