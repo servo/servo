@@ -130,6 +130,18 @@ impl ElementLike for Element {
 
         return value;
     }
+
+    fn get_link<'a>(&'a self) -> Option<&'a str> {
+        // FIXME: This is HTML only.
+        match self.node.type_id {
+            // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#selector-link
+            ElementNodeTypeId(HTMLAnchorElementTypeId) |
+            ElementNodeTypeId(HTMLAreaElementTypeId) |
+            ElementNodeTypeId(HTMLLinkElementTypeId)
+            => self.get_attr("href"),
+            _ => None,
+        }
+    }
 }
 
 impl<'self> Element {
