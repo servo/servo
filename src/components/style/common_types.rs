@@ -123,6 +123,35 @@ pub mod specified {
             LengthOrPercentageOrAuto::parse_internal(input, /* negative_ok = */ false)
         }
     }
+
+    #[deriving(Clone)]
+    pub enum LengthOrPercentageOrNone {
+        LPN_Length(Length),
+        LPN_Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
+        LPN_None,
+    }
+    impl LengthOrPercentageOrNone {
+        fn parse_internal(input: &ComponentValue, negative_ok: bool)
+                     -> Option<LengthOrPercentageOrNone> {
+            match input {
+                &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
+                => Length::parse_dimension(value.value, unit.as_slice()).map(LPN_Length),
+                &ast::Percentage(ref value) if negative_ok || value.value >= 0.
+                => Some(LPN_Percentage(value.value / 100.)),
+                &Number(ref value) if value.value == 0. => Some(LPN_Length(Au_(Au(0)))),
+                &Ident(ref value) if value.eq_ignore_ascii_case("none") => Some(LPN_None),
+                _ => None
+            }
+        }
+        #[inline]
+        pub fn parse(input: &ComponentValue) -> Option<LengthOrPercentageOrNone> {
+            LengthOrPercentageOrNone::parse_internal(input, /* negative_ok = */ true)
+        }
+        #[inline]
+        pub fn parse_non_negative(input: &ComponentValue) -> Option<LengthOrPercentageOrNone> {
+            LengthOrPercentageOrNone::parse_internal(input, /* negative_ok = */ false)
+        }
+    }
 }
 
 pub mod computed {
@@ -183,6 +212,21 @@ pub mod computed {
             specified::LPA_Length(value) => LPA_Length(compute_Au(value, context)),
             specified::LPA_Percentage(value) => LPA_Percentage(value),
             specified::LPA_Auto => LPA_Auto,
+        }
+    }
+
+    #[deriving(Eq, Clone)]
+    pub enum LengthOrPercentageOrNone {
+        LPN_Length(Au),
+        LPN_Percentage(CSSFloat),
+        LPN_None,
+    }
+    pub fn compute_LengthOrPercentageOrNone(value: specified::LengthOrPercentageOrNone,
+                                            context: &Context) -> LengthOrPercentageOrNone {
+        match value {
+            specified::LPN_Length(value) => LPN_Length(compute_Au(value, context)),
+            specified::LPN_Percentage(value) => LPN_Percentage(value),
+            specified::LPN_None => LPN_None,
         }
     }
 }
