@@ -63,7 +63,7 @@ impl HTMLTextAreaElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -71,7 +71,7 @@ impl HTMLTextAreaElement {
         ~""
     }
 
-    pub fn SetPlaceholder(&mut self, _placeholder: &DOMString) -> ErrorResult {
+    pub fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -103,7 +103,7 @@ impl HTMLTextAreaElement {
         ~""
     }
 
-    pub fn SetWrap(&mut self, _wrap: &DOMString) -> ErrorResult {
+    pub fn SetWrap(&mut self, _wrap: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -111,14 +111,14 @@ impl HTMLTextAreaElement {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) {
+    pub fn SetType(&mut self, _type: DOMString) {
     }
 
     pub fn DefaultValue(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetDefaultValue(&mut self, _default_value: &DOMString) -> ErrorResult {
+    pub fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -126,7 +126,7 @@ impl HTMLTextAreaElement {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString) {
+    pub fn SetValue(&mut self, _value: DOMString) {
     }
 
     pub fn TextLength(&self) -> u32 {
@@ -153,7 +153,7 @@ impl HTMLTextAreaElement {
         false
     }
 
-    pub fn SetCustomValidity(&self, _error: &DOMString) {
+    pub fn SetCustomValidity(&self, _error: DOMString) {
     }
 
     pub fn Select(&self) {
@@ -179,10 +179,10 @@ impl HTMLTextAreaElement {
         Ok(~"")
     }
 
-    pub fn SetSelectionDirection(&self, _selection_direction: &DOMString) -> ErrorResult {
+    pub fn SetSelectionDirection(&self, _selection_direction: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn SetRangeText(&self, _replacement: &DOMString) {
+    pub fn SetRangeText(&self, _replacement: DOMString) {
     }
 }

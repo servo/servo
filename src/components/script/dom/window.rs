@@ -72,9 +72,9 @@ pub struct TimerData {
 }
 
 impl Window {
-    pub fn Alert(&self, s: &DOMString) {
+    pub fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
-        println(format!("ALERT: {:s}", *s));
+        println(format!("ALERT: {:s}", s));
     }
 
     pub fn Close(&self) {
@@ -89,14 +89,14 @@ impl Window {
         ~""
     }
 
-    pub fn SetName(&self, _name: &DOMString) {
+    pub fn SetName(&self, _name: DOMString) {
     }
 
     pub fn Status(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetStatus(&self, _status: &DOMString) {
+    pub fn SetStatus(&self, _status: DOMString) {
     }
 
     pub fn Closed(&self) -> bool {
@@ -123,18 +123,18 @@ impl Window {
         self.navigator.unwrap()
     }
 
-    pub fn Confirm(&self, _message: &DOMString) -> bool {
+    pub fn Confirm(&self, _message: DOMString) -> bool {
         false
     }
 
-    pub fn Prompt(&self, _message: &DOMString, _default: &DOMString) -> Option<DOMString> {
+    pub fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString> {
         None
     }
 
     pub fn Print(&self) {
     }
 
-    pub fn ShowModalDialog(&self, _cx: *JSContext, _url: &DOMString, _argument: JSVal) -> JSVal {
+    pub fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: JSVal) -> JSVal {
         JSVAL_NULL
     }
 }

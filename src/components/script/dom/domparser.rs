@@ -33,7 +33,7 @@ impl DOMParser {
     }
 
     pub fn ParseFromString(&self,
-                           _s: &DOMString,
+                           _s: DOMString,
                            ty: DOMParserBinding::SupportedType)
                            -> Fallible<AbstractDocument> {
         match ty {

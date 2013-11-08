@@ -51,7 +51,7 @@ impl HTMLTableRowElement {
         ~""
     }
 
-    pub fn SetAlign(&self, _align: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -59,7 +59,7 @@ impl HTMLTableRowElement {
         ~""
     }
 
-    pub fn SetCh(&self, _ch: &DOMString) -> ErrorResult {
+    pub fn SetCh(&self, _ch: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -67,7 +67,7 @@ impl HTMLTableRowElement {
         ~""
     }
 
-    pub fn SetChOff(&self, _ch_off: &DOMString) -> ErrorResult {
+    pub fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -75,7 +75,7 @@ impl HTMLTableRowElement {
         ~""
     }
 
-    pub fn SetVAlign(&self, _v_align: &DOMString) -> ErrorResult {
+    pub fn SetVAlign(&self, _v_align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -83,7 +83,7 @@ impl HTMLTableRowElement {
         ~""
     }
 
-    pub fn SetBgColor(&self, _bg_color: &DOMString) -> ErrorResult {
+    pub fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
         Ok(())
     }
 }

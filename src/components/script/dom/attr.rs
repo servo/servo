@@ -66,8 +66,8 @@ impl Attr {
         self.value.clone()
     }
 
-    pub fn SetValue(&mut self, value: &DOMString) {
-        self.value = value.clone();
+    pub fn SetValue(&mut self, value: DOMString) {
+        self.value = value;
     }
 
     pub fn Name(&self) -> DOMString {

@@ -39,7 +39,7 @@ impl HTMLOptGroupElement {
         ~""
     }
 
-    pub fn SetLabel(&mut self, _label: &DOMString) -> ErrorResult {
+    pub fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
         Ok(())
     }
 }

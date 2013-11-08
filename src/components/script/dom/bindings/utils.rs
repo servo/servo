@@ -111,7 +111,7 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
     assert!(jsval::is_string(v));
     let name = jsstring_to_str(cx, jsval::to_string(v));
     let retval = Some(~"function " + name + "() {\n    [native code]\n}");
-    *vp = domstring_to_jsval(cx, &retval);
+    *vp = domstring_to_jsval(cx, retval);
     return 1;
   }
 }
@@ -273,7 +273,7 @@ pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<Option<DOMString>,
 }
 
 #[fixed_stack_segment]
-pub unsafe fn str_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
+pub unsafe fn str_to_jsval(cx: *JSContext, string: DOMString) -> JSVal {
     do string.to_utf16().as_imm_buf |buf, len| {
         let jsstr = JS_NewUCStringCopyN(cx, buf, len as libc::size_t);
         if jsstr.is_null() {
@@ -286,10 +286,10 @@ pub unsafe fn str_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
 }
 
 #[fixed_stack_segment]
-pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &Option<DOMString>) -> JSVal {
+pub unsafe fn domstring_to_jsval(cx: *JSContext, string: Option<DOMString>) -> JSVal {
     match string {
-        &None => JSVAL_NULL,
-        &Some(ref s) => str_to_jsval(cx, s),
+        None => JSVAL_NULL,
+        Some(s) => str_to_jsval(cx, s),
     }
 }
 

@@ -32,7 +32,7 @@ impl HTMLMapElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 

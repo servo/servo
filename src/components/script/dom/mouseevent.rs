@@ -49,7 +49,7 @@ impl MouseEvent {
     }
 
     pub fn Constructor(owner: @mut Window,
-                       type_: &DOMString,
+                       type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<AbstractEvent> {
         let ev = MouseEvent::new(owner);
         ev.mut_mouseevent().InitMouseEvent(type_, init.bubbles, init.cancelable, init.view,
@@ -105,13 +105,13 @@ impl MouseEvent {
         self.related_target
     }
 
-    pub fn GetModifierState(&self, _keyArg: &DOMString) -> bool {
+    pub fn GetModifierState(&self, _keyArg: DOMString) -> bool {
         //TODO
         false
     }
 
     pub fn InitMouseEvent(&mut self,
-                          typeArg: &DOMString,
+                          typeArg: DOMString,
                           canBubbleArg: bool,
                           cancelableArg: bool,
                           viewArg: Option<@mut WindowProxy>,

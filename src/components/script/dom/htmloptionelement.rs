@@ -43,7 +43,7 @@ impl HTMLOptionElement {
         ~""
     }
 
-    pub fn SetLabel(&mut self, _label: &DOMString) -> ErrorResult {
+    pub fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -67,7 +67,7 @@ impl HTMLOptionElement {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -75,7 +75,7 @@ impl HTMLOptionElement {
         ~""
     }
 
-    pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
+    pub fn SetText(&mut self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 

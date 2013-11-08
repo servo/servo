@@ -31,7 +31,7 @@ impl HTMLFrameSetElement {
         ~""
     }
 
-    pub fn SetCols(&mut self, _cols: &DOMString) -> ErrorResult {
+    pub fn SetCols(&mut self, _cols: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -39,7 +39,7 @@ impl HTMLFrameSetElement {
         ~""
     }
 
-    pub fn SetRows(&mut self, _rows: &DOMString) -> ErrorResult {
+    pub fn SetRows(&mut self, _rows: DOMString) -> ErrorResult {
         Ok(())
     }
 }

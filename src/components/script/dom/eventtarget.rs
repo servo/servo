@@ -141,7 +141,7 @@ impl EventTarget {
     }
 
     pub fn AddEventListener(&mut self,
-                            ty: &DOMString,
+                            ty: DOMString,
                             listener: Option<EventListener>,
                             capture: bool) {
         for &listener in listener.iter() {
@@ -158,11 +158,11 @@ impl EventTarget {
     }
 
     pub fn RemoveEventListener(&mut self,
-                               ty: &DOMString,
+                               ty: DOMString,
                                listener: Option<EventListener>,
                                capture: bool) {
         for &listener in listener.iter() {
-            let mut entry = self.handlers.find_mut(ty);
+            let mut entry = self.handlers.find_mut(&ty);
             for entry in entry.mut_iter() {
                 let phase = if capture { Capturing } else { Bubbling };
                 let old_entry = EventListenerEntry {

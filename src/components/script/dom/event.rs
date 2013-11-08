@@ -225,10 +225,10 @@ impl Event {
     }
 
     pub fn InitEvent(&mut self,
-                     type_: &DOMString,
+                     type_: DOMString,
                      bubbles: bool,
                      cancelable: bool) -> ErrorResult {
-        self.type_ = type_.clone();
+        self.type_ = type_;
         self.cancelable = cancelable;
         self.bubbles = bubbles;
         self.initialized = true;
@@ -240,7 +240,7 @@ impl Event {
     }
 
     pub fn Constructor(global: @mut Window,
-                       type_: &DOMString,
+                       type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<AbstractEvent> {
         let ev = Event::new(global, HTMLEventTypeId);
         ev.mut_event().InitEvent(type_, init.bubbles, init.cancelable);

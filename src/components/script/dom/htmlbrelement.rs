@@ -31,7 +31,7 @@ impl HTMLBRElement {
         ~""
     }
 
-    pub fn SetClear(&mut self, _text: &DOMString) -> ErrorResult {
+    pub fn SetClear(&mut self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 }
