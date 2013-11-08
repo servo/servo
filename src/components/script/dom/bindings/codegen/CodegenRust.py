@@ -4231,16 +4231,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             # properties that shadow prototype properties.
             namedGet = ("\n" +
                         "if set == 0 && RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
-                        "  let nameVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
-                        "  //FakeDependentString name;\n"
-                        "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
-                        "  //                            eStringify, eStringify, name)) {\n" +
-                        "  let strval = jsval_to_str(cx, nameVal);\n" +
-                        "  if strval.is_err() {\n" +
-                        "    return 0;\n" +
-                        "  }\n" +
-                        "  let name = Some(strval.unwrap());\n" +
-                        "\n" +
+                        "  let name = Some(jsid_to_str(cx, id));\n" +
                         "  let this: *%s = UnwrapProxy(proxy);\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() + "\n" +
                         "}\n") % (self.descriptor.concreteType)
@@ -4298,33 +4289,14 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         if namedSetter:
             if not self.descriptor.operations['NamedCreator'] is namedSetter:
                 raise TypeError("Can't handle creator that's different from the setter")
-            #XXXjdm need to properly support eStringify
             set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
-                    "  let nameVal: JSVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
-                    "  let strval = jsval_to_str(cx, nameVal);\n" +
-                    "  //FakeDependentString name;\n" +
-                    "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
-                    "  //                            eStringify, eStringify, name)) {\n" +
-                    "  if strval.is_err() {\n" +
-                    "    return 0;\n" +
-                    "  }\n" +
-                    "  let name = Some(strval.unwrap());\n" +
-                    "\n" +
+                    "  let name = Some(jsid_to_str(cx, id));\n" +
                     "  let this: *%s = UnwrapProxy(proxy);\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() + "\n" +
                     "}\n") % (self.descriptor.concreteType)
         elif self.descriptor.operations['NamedGetter']:
             set += ("if RUST_JSID_IS_STRING(id) {\n" +
-                    "  let nameVal: JSVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
-                    "  let strval = jsval_to_str(cx, nameVal);\n" +
-                    "  //FakeDependentString name;\n"
-                    "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
-                    "  //                            eStringify, eStringify, name)) {\n" +
-                    "  let strval = jsval_to_str(cx, nameVal);\n" +
-                    "  if strval.is_err() {\n" +
-                    "    return 0;\n" +
-                    "  }\n" +
-                    "  let name = Some(strval.unwrap());\n" +
+                    "  let name = Some(jsid_to_str(cx, id));\n" +
                     "  let this: %%s = UnwrapProxy(proxy);\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "  if (found) {\n"
@@ -4360,18 +4332,8 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            #XXXjdm support eStringify
             named = ("if RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
-                     "  let nameVal: JSVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
-                     "  let strval = jsval_to_str(cx, nameVal);\n" +
-                     "  //FakeDependentString name;\n"
-                     "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
-                     "  //                            eStringify, eStringify, name)) {\n" +
-                     "  if strval.is_err() {\n" +
-                     "    return 0;\n" +
-                     "  }\n" +
-                     "  let name = Some(strval.unwrap());\n" +
-                     "\n" +
+                     "  let name = Some(jsid_to_str(cx, id));\n" +
                      "  let this: *%s = UnwrapProxy(proxy);\n" +
                      CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +
                      "  *bp = found as JSBool;\n"
@@ -4439,13 +4401,7 @@ if expando.is_not_null() {
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter and False: #XXXjdm unfinished
             getNamed = ("if (JSID_IS_STRING(id)) {\n" +
-                        "  JS::Value nameVal = STRING_TO_JSVAL(JSID_TO_STRING(id));\n" +
-                        "  FakeDependentString name;\n"
-                        "  if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
-                        "                              eStringify, eStringify, name)) {\n" +
-                        "    return false;\n" +
-                        "  }\n" +
-                        "\n" +
+                        "  let name = Some(jsid_to_str(cx, id));\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
                         "}\n") % (self.descriptor.concreteType)

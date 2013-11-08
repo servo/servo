@@ -29,6 +29,7 @@ use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JS_NewGlobalObject, JS_InitStandardClasses};
+use js::jsapi::{JSString};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
@@ -189,6 +190,25 @@ pub unsafe fn squirrel_away<T>(x: @mut T) -> *Box<T> {
     let y: *Box<T> = cast::transmute(x);
     cast::forget(x);
     y
+}
+
+#[fixed_stack_segment]
+pub fn jsstring_to_str(cx: *JSContext, s: *JSString) -> ~str {
+    unsafe {
+        let length = 0;
+        let chars = JS_GetStringCharsAndLength(cx, s, &length);
+        do vec::raw::buf_as_slice(chars, length as uint) |char_vec| {
+            str::from_utf16(char_vec)
+        }
+    }
+}
+
+#[fixed_stack_segment]
+pub fn jsid_to_str(cx: *JSContext, id: jsid) -> ~str {
+    unsafe {
+        assert!(RUST_JSID_IS_STRING(id) != 0);
+        jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
+    }
 }
 
 //XXX very incomplete
