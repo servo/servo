@@ -41,8 +41,19 @@ static TOSTRING_CLASS_RESERVED_SLOT: libc::size_t = 0;
 static TOSTRING_NAME_RESERVED_SLOT: libc::size_t = 1;
 
 mod jsval {
+    use js::glue::{RUST_JSVAL_IS_NULL, RUST_JSVAL_IS_VOID};
     use js::glue::{RUST_JSVAL_IS_STRING, RUST_JSVAL_TO_STRING};
     use js::jsapi::{JSVal, JSString};
+
+    #[fixed_stack_segment]
+    pub fn is_null(v: JSVal) -> bool {
+        unsafe { RUST_JSVAL_IS_NULL(v) == 1 }
+    }
+
+    #[fixed_stack_segment]
+    pub fn is_undefined(v: JSVal) -> bool {
+        unsafe { RUST_JSVAL_IS_VOID(v) == 1 }
+    }
 
     #[fixed_stack_segment]
     pub fn is_string(v: JSVal) -> bool {
@@ -226,24 +237,37 @@ pub fn jsid_to_str(cx: *JSContext, id: jsid) -> ~str {
     }
 }
 
-//XXX very incomplete
-#[fixed_stack_segment]
-pub fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
-    unsafe {
-        let jsstr;
-        if RUST_JSVAL_IS_STRING(v) == 1 {
-            jsstr = RUST_JSVAL_TO_STRING(v)
-        } else {
-            jsstr = JS_ValueToString(cx, v);
-            if jsstr.is_null() {
-                return Err(());
-            }
-        }
+#[deriving(Eq)]
+pub enum StringificationBehavior {
+    Default,
+    Empty,
+}
 
-        let length = 0;
-        let chars = JS_GetStringCharsAndLength(cx, jsstr, &length);
-        do vec::raw::buf_as_slice(chars, length as uint) |char_vec| {
-            Ok(str::from_utf16(char_vec))
+#[fixed_stack_segment]
+pub fn jsval_to_str(cx: *JSContext, v: JSVal,
+                    nullBehavior: StringificationBehavior) -> Result<~str, ()> {
+    if jsval::is_null(v) && nullBehavior == Empty {
+        Ok(~"")
+    } else {
+        let jsstr = unsafe { JS_ValueToString(cx, v) };
+        if jsstr.is_null() {
+            Err(())
+        } else {
+            Ok(jsstring_to_str(cx, jsstr))
+        }
+    }
+}
+
+#[fixed_stack_segment]
+pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<DOMString, ()> {
+    if jsval::is_null(v) || jsval::is_undefined(v) {
+        Ok(None)
+    } else {
+        let jsstr = unsafe { JS_ValueToString(cx, v) };
+        if jsstr.is_null() {
+            Err(())
+        } else {
+            Ok(Some(jsstring_to_str(cx, jsstr)))
         }
     }
 }
