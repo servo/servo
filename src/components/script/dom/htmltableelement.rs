@@ -50,75 +50,75 @@ impl HTMLTableElement {
     pub fn StopSorting(&self) {
     }
 
-    pub fn Align(&self) -> DOMString {
+    pub fn Align(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetAlign(&self, _align: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&self, _align: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Border(&self) -> DOMString {
+    pub fn Border(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetBorder(&self, _border: &DOMString) -> ErrorResult {
+    pub fn SetBorder(&self, _border: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Frame(&self) -> DOMString {
+    pub fn Frame(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetFrame(&self, _frame: &DOMString) -> ErrorResult {
+    pub fn SetFrame(&self, _frame: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Rules(&self) -> DOMString {
+    pub fn Rules(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetRules(&self, _rules: &DOMString) -> ErrorResult {
+    pub fn SetRules(&self, _rules: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Summary(&self) -> DOMString {
+    pub fn Summary(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetSummary(&self, _summary: &DOMString) -> ErrorResult {
+    pub fn SetSummary(&self, _summary: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> DOMString {
+    pub fn Width(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetWidth(&self, _width: &DOMString) -> ErrorResult {
+    pub fn SetWidth(&self, _width: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn BgColor(&self) -> DOMString {
+    pub fn BgColor(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetBgColor(&self, _bg_color: &DOMString) -> ErrorResult {
+    pub fn SetBgColor(&self, _bg_color: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CellPadding(&self) -> DOMString {
+    pub fn CellPadding(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCellPadding(&self, _cell_padding: &DOMString) -> ErrorResult {
+    pub fn SetCellPadding(&self, _cell_padding: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CellSpacing(&self) -> DOMString {
+    pub fn CellSpacing(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCellSpacing(&self, _cell_spacing: &DOMString) -> ErrorResult {
+    pub fn SetCellSpacing(&self, _cell_spacing: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

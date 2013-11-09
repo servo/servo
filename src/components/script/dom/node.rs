@@ -561,7 +561,7 @@ impl Node<ScriptView> {
         }
     }
 
-    pub fn NodeName(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn NodeName(&self, abstract_self: AbstractNode<ScriptView>) -> Option<DOMString> {
         Some(match self.type_id {
             ElementNodeTypeId(*) => {
                 do abstract_self.with_imm_element |element| {
@@ -580,7 +580,7 @@ impl Node<ScriptView> {
         })
     }
 
-    pub fn GetBaseURI(&self) -> DOMString {
+    pub fn GetBaseURI(&self) -> Option<DOMString> {
         None
     }
 
@@ -623,7 +623,7 @@ impl Node<ScriptView> {
         self.next_sibling
     }
 
-    pub fn GetNodeValue(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn GetNodeValue(&self, abstract_self: AbstractNode<ScriptView>) -> Option<DOMString> {
         match self.type_id {
             // ProcessingInstruction
             CommentNodeTypeId | TextNodeTypeId => {
@@ -637,11 +637,11 @@ impl Node<ScriptView> {
         }
     }
 
-    pub fn SetNodeValue(&mut self, _abstract_self: AbstractNode<ScriptView>, _val: &DOMString) -> ErrorResult {
+    pub fn SetNodeValue(&mut self, _abstract_self: AbstractNode<ScriptView>, _val: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetTextContent(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn GetTextContent(&self, abstract_self: AbstractNode<ScriptView>) -> Option<DOMString> {
         match self.type_id {
           DocumentFragmentNodeTypeId | ElementNodeTypeId(*) => {
             let mut content = ~"";
@@ -939,7 +939,7 @@ impl Node<ScriptView> {
 
     pub fn SetTextContent(&mut self,
                           abstract_self: AbstractNode<ScriptView>,
-                          value: &DOMString) -> ErrorResult {
+                          value: &Option<DOMString>) -> ErrorResult {
         let is_empty = match value {
             &Some(~"") | &None => true,
             _ => false
@@ -1019,27 +1019,27 @@ impl Node<ScriptView> {
         false
     }
 
-    pub fn LookupPrefix(&self, _prefix: &DOMString) -> DOMString {
+    pub fn LookupPrefix(&self, _prefix: &Option<DOMString>) -> Option<DOMString> {
         None
     }
 
-    pub fn LookupNamespaceURI(&self, _namespace: &DOMString) -> DOMString {
+    pub fn LookupNamespaceURI(&self, _namespace: &Option<DOMString>) -> Option<DOMString> {
         None
     }
 
-    pub fn IsDefaultNamespace(&self, _namespace: &DOMString) -> bool {
+    pub fn IsDefaultNamespace(&self, _namespace: &Option<DOMString>) -> bool {
         false
     }
 
-    pub fn GetNamespaceURI(&self) -> DOMString {
+    pub fn GetNamespaceURI(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn GetPrefix(&self) -> DOMString {
+    pub fn GetPrefix(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn GetLocalName(&self) -> DOMString {
+    pub fn GetLocalName(&self) -> Option<DOMString> {
         None
     }
 

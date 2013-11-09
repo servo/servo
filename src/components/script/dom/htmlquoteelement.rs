@@ -27,11 +27,11 @@ impl HTMLQuoteElement {
 }
 
 impl HTMLQuoteElement {
-    pub fn Cite(&self) -> DOMString {
+    pub fn Cite(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCite(&self, _cite: &DOMString) -> ErrorResult {
+    pub fn SetCite(&self, _cite: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

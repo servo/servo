@@ -34,75 +34,75 @@ impl HTMLLinkElement {
     pub fn SetDisabled(&mut self, _disable: bool) {
     }
 
-    pub fn Href(&self) -> DOMString {
+    pub fn Href(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetHref(&mut self, _href: &DOMString) -> ErrorResult {
+    pub fn SetHref(&mut self, _href: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CrossOrigin(&self) -> DOMString {
+    pub fn CrossOrigin(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
+    pub fn SetCrossOrigin(&mut self, _cross_origin: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Rel(&self) -> DOMString {
+    pub fn Rel(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetRel(&mut self, _rel: &DOMString) -> ErrorResult {
+    pub fn SetRel(&mut self, _rel: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Media(&self) -> DOMString {
+    pub fn Media(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetMedia(&mut self, _media: &DOMString) -> ErrorResult {
+    pub fn SetMedia(&mut self, _media: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Hreflang(&self) -> DOMString {
+    pub fn Hreflang(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetHreflang(&mut self, _href: &DOMString) -> ErrorResult {
+    pub fn SetHreflang(&mut self, _href: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    pub fn Type(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Charset(&self) -> DOMString {
+    pub fn Charset(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCharset(&mut self, _charset: &DOMString) -> ErrorResult {
+    pub fn SetCharset(&mut self, _charset: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Rev(&self) -> DOMString {
+    pub fn Rev(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetRev(&mut self, _rev: &DOMString) -> ErrorResult {
+    pub fn SetRev(&mut self, _rev: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Target(&self) -> DOMString {
+    pub fn Target(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetTarget(&mut self, _target: &DOMString) -> ErrorResult {
+    pub fn SetTarget(&mut self, _target: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

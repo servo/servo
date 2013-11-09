@@ -32,31 +32,31 @@ impl HTMLOutputElement {
         None
     }
 
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    pub fn Type(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn DefaultValue(&self) -> DOMString {
+    pub fn DefaultValue(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetDefaultValue(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetDefaultValue(&mut self, _value: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Value(&self) -> DOMString {
+    pub fn Value(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetValue(&mut self, _value: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -75,11 +75,11 @@ impl HTMLOutputElement {
     pub fn SetValidity(&mut self, _validity: @mut ValidityState) {
     }
 
-    pub fn ValidationMessage(&self) -> DOMString {
+    pub fn ValidationMessage(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetValidationMessage(&mut self, _message: &DOMString) -> ErrorResult {
+    pub fn SetValidationMessage(&mut self, _message: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -87,6 +87,6 @@ impl HTMLOutputElement {
         true
     }
 
-    pub fn SetCustomValidity(&mut self, _error: &DOMString) {
+    pub fn SetCustomValidity(&mut self, _error: &Option<DOMString>) {
     }
 }

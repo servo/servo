@@ -181,7 +181,7 @@ impl Event {
         self.phase as u16
     }
 
-    pub fn Type(&self) -> DOMString {
+    pub fn Type(&self) -> Option<DOMString> {
         Some(self.type_.clone())
     }
 
@@ -225,7 +225,7 @@ impl Event {
     }
 
     pub fn InitEvent(&mut self,
-                     type_: &DOMString,
+                     type_: &Option<DOMString>,
                      bubbles: bool,
                      cancelable: bool) -> ErrorResult {
         self.type_ = null_str_as_word_null(type_);
@@ -240,7 +240,7 @@ impl Event {
     }
 
     pub fn Constructor(global: @mut Window,
-                       type_: &DOMString,
+                       type_: &Option<DOMString>,
                        init: &EventBinding::EventInit) -> Fallible<AbstractEvent> {
         let ev = Event::new(global, HTMLEventTypeId);
         ev.mut_event().InitEvent(type_, init.bubbles, init.cancelable);

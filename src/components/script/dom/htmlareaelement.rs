@@ -27,59 +27,59 @@ impl HTMLAreaElement {
 }
 
 impl HTMLAreaElement {
-    pub fn Alt(&self) -> DOMString {
+    pub fn Alt(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetAlt(&self, _alt: &DOMString) -> ErrorResult {
+    pub fn SetAlt(&self, _alt: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Coords(&self) -> DOMString {
+    pub fn Coords(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCoords(&self, _coords: &DOMString) -> ErrorResult {
+    pub fn SetCoords(&self, _coords: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Shape(&self) -> DOMString {
+    pub fn Shape(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetShape(&self, _shape: &DOMString) -> ErrorResult {
+    pub fn SetShape(&self, _shape: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Href(&self) -> DOMString {
+    pub fn Href(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetHref(&self, _href: &DOMString) -> ErrorResult {
+    pub fn SetHref(&self, _href: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Target(&self) -> DOMString {
+    pub fn Target(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetTarget(&self, _target: &DOMString) -> ErrorResult {
+    pub fn SetTarget(&self, _target: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Download(&self) -> DOMString {
+    pub fn Download(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetDownload(&self, _download: &DOMString) -> ErrorResult {
+    pub fn SetDownload(&self, _download: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Ping(&self) -> DOMString {
+    pub fn Ping(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetPing(&self, _ping: &DOMString) -> ErrorResult {
+    pub fn SetPing(&self, _ping: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 

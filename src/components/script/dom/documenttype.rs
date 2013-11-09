@@ -47,15 +47,15 @@ impl DocumentType {
 }
 
 impl DocumentType {
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         Some(self.name.clone())
     }
 
-    pub fn PublicId(&self) -> DOMString {
+    pub fn PublicId(&self) -> Option<DOMString> {
         self.public_id.clone()
     }
 
-    pub fn SystemId(&self) -> DOMString {
+    pub fn SystemId(&self) -> Option<DOMString> {
         self.system_id.clone()
     }
 }

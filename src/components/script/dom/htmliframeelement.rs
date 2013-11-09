@@ -77,39 +77,39 @@ impl HTMLIFrameElement {
 }
 
 impl HTMLIFrameElement {
-    pub fn Src(&self) -> DOMString {
+    pub fn Src(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Srcdoc(&self) -> DOMString {
+    pub fn Srcdoc(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetSrcdoc(&mut self, _srcdoc: &DOMString) -> ErrorResult {
+    pub fn SetSrcdoc(&mut self, _srcdoc: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> Option<DOMString> {
         self.htmlelement.element.GetAttribute(&Some(~"sandbox"))
     }
 
-    pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: &DOMString) {
+    pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: &Option<DOMString>) {
         self.htmlelement.element.SetAttribute(abstract_self, &Some(~"sandbox"), sandbox);
     }
 
-    pub fn AfterSetAttr(&mut self, name: &DOMString, value: &DOMString) {
+    pub fn AfterSetAttr(&mut self, name: &Option<DOMString>, value: &Option<DOMString>) {
         let name = null_str_as_empty(name);
         if "sandbox" == name {
             let mut modes = AllowNothing as u8;
@@ -137,19 +137,19 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn Width(&self) -> DOMString {
+    pub fn Width(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
+    pub fn SetWidth(&mut self, _width: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> DOMString {
+    pub fn Height(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
+    pub fn SetHeight(&mut self, _height: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -161,51 +161,51 @@ impl HTMLIFrameElement {
         None
     }
 
-    pub fn Align(&self) -> DOMString {
+    pub fn Align(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&mut self, _align: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Scrolling(&self) -> DOMString {
+    pub fn Scrolling(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetScrolling(&mut self, _scrolling: &DOMString) -> ErrorResult {
+    pub fn SetScrolling(&mut self, _scrolling: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FrameBorder(&self) -> DOMString {
+    pub fn FrameBorder(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString) -> ErrorResult {
+    pub fn SetFrameBorder(&mut self, _frameborder: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn LongDesc(&self) -> DOMString {
+    pub fn LongDesc(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
+    pub fn SetLongDesc(&mut self, _longdesc: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn MarginHeight(&self) -> DOMString {
+    pub fn MarginHeight(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetMarginHeight(&mut self, _marginheight: &DOMString) -> ErrorResult {
+    pub fn SetMarginHeight(&mut self, _marginheight: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn MarginWidth(&self) -> DOMString {
+    pub fn MarginWidth(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetMarginWidth(&mut self, _marginwidth: &DOMString) -> ErrorResult {
+    pub fn SetMarginWidth(&mut self, _marginwidth: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 

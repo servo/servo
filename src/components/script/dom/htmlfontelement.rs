@@ -27,27 +27,27 @@ impl HTMLFontElement {
 }
 
 impl HTMLFontElement {
-    pub fn Color(&self) -> DOMString {
+    pub fn Color(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetColor(&mut self, _color: &DOMString) -> ErrorResult {
+    pub fn SetColor(&mut self, _color: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Face(&self) -> DOMString {
+    pub fn Face(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetFace(&mut self, _face: &DOMString) -> ErrorResult {
+    pub fn SetFace(&mut self, _face: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
     
-    pub fn Size(&self) -> DOMString {
+    pub fn Size(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetSize(&mut self, _size: &DOMString) -> ErrorResult {
+    pub fn SetSize(&mut self, _size: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

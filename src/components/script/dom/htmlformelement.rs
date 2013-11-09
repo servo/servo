@@ -28,59 +28,59 @@ impl HTMLFormElement {
 }
 
 impl HTMLFormElement {
-    pub fn AcceptCharset(&self) -> DOMString {
+    pub fn AcceptCharset(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetAcceptCharset(&mut self, _accept_charset: &DOMString) -> ErrorResult {
+    pub fn SetAcceptCharset(&mut self, _accept_charset: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Action(&self) -> DOMString {
+    pub fn Action(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetAction(&mut self, _action: &DOMString) -> ErrorResult {
+    pub fn SetAction(&mut self, _action: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Autocomplete(&self) -> DOMString {
+    pub fn Autocomplete(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetAutocomplete(&mut self, _autocomplete: &DOMString) -> ErrorResult {
+    pub fn SetAutocomplete(&mut self, _autocomplete: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Enctype(&self) -> DOMString {
+    pub fn Enctype(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetEnctype(&mut self, _enctype: &DOMString) -> ErrorResult {
+    pub fn SetEnctype(&mut self, _enctype: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Encoding(&self) -> DOMString {
+    pub fn Encoding(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetEncoding(&mut self, _encoding: &DOMString) -> ErrorResult {
+    pub fn SetEncoding(&mut self, _encoding: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Method(&self) -> DOMString {
+    pub fn Method(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetMethod(&mut self, _method: &DOMString) -> ErrorResult {
+    pub fn SetMethod(&mut self, _method: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -92,11 +92,11 @@ impl HTMLFormElement {
         Ok(())
     }
 
-    pub fn Target(&self) -> DOMString {
+    pub fn Target(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetTarget(&mut self, _target: &DOMString) -> ErrorResult {
+    pub fn SetTarget(&mut self, _target: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 

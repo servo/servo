@@ -41,15 +41,15 @@ impl HTMLFieldSetElement {
         None
     }
 
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    pub fn Type(&self) -> Option<DOMString> {
         None
     }
 
@@ -67,7 +67,7 @@ impl HTMLFieldSetElement {
         ValidityState::new(global)
     }
 
-    pub fn ValidationMessage(&self) -> DOMString {
+    pub fn ValidationMessage(&self) -> Option<DOMString> {
         None
     }
 
@@ -75,6 +75,6 @@ impl HTMLFieldSetElement {
         false
     }
 
-    pub fn SetCustomValidity(&mut self, _error: &DOMString) {
+    pub fn SetCustomValidity(&mut self, _error: &Option<DOMString>) {
     }
 }

@@ -11,8 +11,8 @@ use dom::window::Window;
 use std::hashmap::HashMap;
 
 enum FormDatum {
-    StringData(DOMString),
-    BlobData { blob: @mut Blob, name: DOMString }
+    StringData(Option<DOMString>),
+    BlobData { blob: @mut Blob, name: Option<DOMString> }
 }
 
 pub struct FormData {
@@ -34,7 +34,7 @@ impl FormData {
         reflect_dom_object(@mut FormData::new_inherited(window), window, FormDataBinding::Wrap)
     }
 
-    pub fn Append(&mut self, name: &DOMString, value: @mut Blob, filename: Option<DOMString>) {
+    pub fn Append(&mut self, name: &Option<DOMString>, value: @mut Blob, filename: Option<Option<DOMString>>) {
         let blob = BlobData {
             blob: value,
             name: filename.unwrap_or(Some(~"default"))
@@ -42,7 +42,7 @@ impl FormData {
         self.data.insert(null_str_as_empty(name), blob);
     }
 
-    pub fn Append_(&mut self, name: &DOMString, value: &DOMString) {
+    pub fn Append_(&mut self, name: &Option<DOMString>, value: &Option<DOMString>) {
         self.data.insert(null_str_as_empty(name), StringData((*value).clone()));
     }
 }

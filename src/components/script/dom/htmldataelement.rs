@@ -27,11 +27,11 @@ impl HTMLDataElement {
 }
 
 impl HTMLDataElement {
-    pub fn Value(&self) -> DOMString {
+    pub fn Value(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetValue(&mut self, _value: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

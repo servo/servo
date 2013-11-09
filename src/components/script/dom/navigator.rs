@@ -22,23 +22,23 @@ impl Navigator {
         reflect_dom_object(@mut Navigator::new_inherited(), window, NavigatorBinding::Wrap)
     }
 
-    pub fn DoNotTrack(&self) -> DOMString {
+    pub fn DoNotTrack(&self) -> Option<DOMString> {
         Some(~"unspecified")
     }
 
-    pub fn Vendor(&self) -> DOMString {
+    pub fn Vendor(&self) -> Option<DOMString> {
         Some(~"") // Like Gecko
     }
 
-    pub fn VendorSub(&self) -> DOMString {
+    pub fn VendorSub(&self) -> Option<DOMString> {
         Some(~"") // Like Gecko
     }
 
-    pub fn Product(&self) -> DOMString {
+    pub fn Product(&self) -> Option<DOMString> {
         Some(~"Gecko") // This is supposed to be constant, see webidl.
     }
 
-    pub fn ProductSub(&self) -> DOMString {
+    pub fn ProductSub(&self) -> Option<DOMString> {
         None
     }
 
@@ -46,7 +46,7 @@ impl Navigator {
         false
     }
 
-    pub fn GetBuildID(&self) -> Fallible<DOMString> {
+    pub fn GetBuildID(&self) -> Fallible<Option<DOMString>> {
         Ok(None)
     }
 
@@ -58,27 +58,27 @@ impl Navigator {
         false
     }
 
-    pub fn AppName(&self) -> DOMString {
+    pub fn AppName(&self) -> Option<DOMString> {
         Some(~"Netscape") // Like Gecko/Webkit
     }
 
-    pub fn GetAppCodeName(&self) -> Fallible<DOMString> {
+    pub fn GetAppCodeName(&self) -> Fallible<Option<DOMString>> {
         Ok(Some(~"Mozilla")) // Like Gecko/Webkit
     }
 
-    pub fn GetAppVersion(&self) -> Fallible<DOMString> {
+    pub fn GetAppVersion(&self) -> Fallible<Option<DOMString>> {
         Ok(None)
     }
 
-    pub fn GetPlatform(&self) -> Fallible<DOMString> {
+    pub fn GetPlatform(&self) -> Fallible<Option<DOMString>> {
         Ok(None)
     }
 
-    pub fn GetUserAgent(&self) -> Fallible<DOMString> {
+    pub fn GetUserAgent(&self) -> Fallible<Option<DOMString>> {
         Ok(None)
     }
 
-    pub fn GetLanguage(&self) -> DOMString {
+    pub fn GetLanguage(&self) -> Option<DOMString> {
         None
     }
 

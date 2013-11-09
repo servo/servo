@@ -27,19 +27,19 @@ impl HTMLFrameSetElement {
 }
 
 impl HTMLFrameSetElement {
-    pub fn Cols(&self) -> DOMString {
+    pub fn Cols(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCols(&mut self, _cols: &DOMString) -> ErrorResult {
+    pub fn SetCols(&mut self, _cols: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Rows(&self) -> DOMString {
+    pub fn Rows(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetRows(&mut self, _rows: &DOMString) -> ErrorResult {
+    pub fn SetRows(&mut self, _rows: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

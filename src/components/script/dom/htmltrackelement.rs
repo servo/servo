@@ -27,35 +27,35 @@ impl HTMLTrackElement {
 }
 
 impl HTMLTrackElement {
-    pub fn Kind(&self) -> DOMString {
+    pub fn Kind(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetKind(&mut self, _kind: &DOMString) -> ErrorResult {
+    pub fn SetKind(&mut self, _kind: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Src(&self) -> DOMString {
+    pub fn Src(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Srclang(&self) -> DOMString {
+    pub fn Srclang(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetSrclang(&mut self, _srclang: &DOMString) -> ErrorResult {
+    pub fn SetSrclang(&mut self, _srclang: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Label(&self) -> DOMString {
+    pub fn Label(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetLabel(&mut self, _label: &DOMString) -> ErrorResult {
+    pub fn SetLabel(&mut self, _label: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 

@@ -26,7 +26,7 @@ impl Text {
         Node::reflect_node(@mut node, document, TextBinding::Wrap)
     }
 
-    pub fn Constructor(owner: @mut Window, text: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
+    pub fn Constructor(owner: @mut Window, text: &Option<DOMString>) -> Fallible<AbstractNode<ScriptView>> {
         Ok(Text::new(null_str_as_empty(text), owner.Document()))
     }
 
@@ -34,7 +34,7 @@ impl Text {
         fail!("unimplemented")
     }
 
-    pub fn GetWholeText(&self) -> Fallible<DOMString> {
+    pub fn GetWholeText(&self) -> Fallible<Option<DOMString>> {
         Ok(None)
     }
 }

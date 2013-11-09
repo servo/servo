@@ -180,19 +180,19 @@ impl Document {
         self.window.get_cx()
     }
 
-    pub fn GetElementsByTagName(&self, tag: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByTagName(&self, tag: &Option<DOMString>) -> @mut HTMLCollection {
         self.createHTMLCollection(|elem| eq_slice(elem.tag_name, null_str_as_empty(tag)))
     }
 
-    pub fn GetElementsByTagNameNS(&self, _ns: &DOMString, _tag: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByTagNameNS(&self, _ns: &Option<DOMString>, _tag: &Option<DOMString>) -> @mut HTMLCollection {
         HTMLCollection::new(self.window, ~[])
     }
 
-    pub fn GetElementsByClassName(&self, _class: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByClassName(&self, _class: &Option<DOMString>) -> @mut HTMLCollection {
         HTMLCollection::new(self.window, ~[])
     }
 
-    pub fn GetElementById(&self, id: &DOMString) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetElementById(&self, id: &Option<DOMString>) -> Option<AbstractNode<ScriptView>> {
         let key: &~str = &null_str_as_empty(id);
         // TODO: "in tree order, within the context object's tree"
         // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
@@ -202,7 +202,7 @@ impl Document {
         }
     }
 
-    pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
+    pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: &Option<DOMString>) -> Fallible<AbstractNode<ScriptView>> {
         let local_name = null_str_as_empty(local_name);
         if xml_name_type(local_name) == InvalidXMLName {
             return Err(InvalidCharacter);
@@ -215,15 +215,15 @@ impl Document {
         DocumentFragment::new(abstract_self)
     }
 
-    pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
+    pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: &Option<DOMString>) -> AbstractNode<ScriptView> {
         Text::new(null_str_as_empty(data), abstract_self)
     }
 
-    pub fn CreateComment(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
+    pub fn CreateComment(&self, abstract_self: AbstractDocument, data: &Option<DOMString>) -> AbstractNode<ScriptView> {
         Comment::new(null_str_as_word_null(data), abstract_self)
     }
 
-    pub fn CreateEvent(&self, interface: &DOMString) -> Fallible<AbstractEvent> {
+    pub fn CreateEvent(&self, interface: &Option<DOMString>) -> Fallible<AbstractEvent> {
         match null_str_as_empty_ref(interface) {
             "UIEvents" => Ok(UIEvent::new(self.window, UIEventTypeId)),
             "MouseEvents" => Ok(MouseEvent::new(self.window)),
@@ -232,7 +232,7 @@ impl Document {
         }
     }
 
-    pub fn Title(&self, _: AbstractDocument) -> DOMString {
+    pub fn Title(&self, _: AbstractDocument) -> Option<DOMString> {
         let mut title = ~"";
         match self.doctype {
             SVG => {
@@ -266,7 +266,7 @@ impl Document {
         Some(title)
     }
 
-    pub fn SetTitle(&self, abstract_self: AbstractDocument, title: &DOMString) -> ErrorResult {
+    pub fn SetTitle(&self, abstract_self: AbstractDocument, title: &Option<DOMString>) -> ErrorResult {
         match self.doctype {
             SVG => {
                 fail!("no SVG document yet")
@@ -305,7 +305,7 @@ impl Document {
         Ok(())
     }
 
-    pub fn GetElementsByName(&self, name: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByName(&self, name: &Option<DOMString>) -> @mut HTMLCollection {
         self.createHTMLCollection(|elem|
             elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), null_str_as_empty(name)))
     }

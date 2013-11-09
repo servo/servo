@@ -27,51 +27,51 @@ impl HTMLBodyElement {
 }
 
 impl HTMLBodyElement {
-    pub fn Text(&self) -> DOMString {
+    pub fn Text(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
+    pub fn SetText(&mut self, _text: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Link(&self) -> DOMString {
+    pub fn Link(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetLink(&self, _link: &DOMString) -> ErrorResult {
+    pub fn SetLink(&self, _link: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn VLink(&self) -> DOMString {
+    pub fn VLink(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetVLink(&self, _v_link: &DOMString) -> ErrorResult {
+    pub fn SetVLink(&self, _v_link: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ALink(&self) -> DOMString {
+    pub fn ALink(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetALink(&self, _a_link: &DOMString) -> ErrorResult {
+    pub fn SetALink(&self, _a_link: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn BgColor(&self) -> DOMString {
+    pub fn BgColor(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetBgColor(&self, _bg_color: &DOMString) -> ErrorResult {
+    pub fn SetBgColor(&self, _bg_color: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Background(&self) -> DOMString {
+    pub fn Background(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetBackground(&self, _background: &DOMString) -> ErrorResult {
+    pub fn SetBackground(&self, _background: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

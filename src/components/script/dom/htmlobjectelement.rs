@@ -29,35 +29,35 @@ impl HTMLObjectElement {
 }
 
 impl HTMLObjectElement {
-    pub fn Data(&self) -> DOMString {
+    pub fn Data(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetData(&mut self, _data: &DOMString) -> ErrorResult {
+    pub fn SetData(&mut self, _data: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    pub fn Type(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn UseMap(&self) -> DOMString {
+    pub fn UseMap(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetUseMap(&mut self, _use_map: &DOMString) -> ErrorResult {
+    pub fn SetUseMap(&mut self, _use_map: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -65,19 +65,19 @@ impl HTMLObjectElement {
         None
     }
 
-    pub fn Width(&self) -> DOMString {
+    pub fn Width(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
+    pub fn SetWidth(&mut self, _width: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> DOMString {
+    pub fn Height(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
+    pub fn SetHeight(&mut self, _height: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -98,7 +98,7 @@ impl HTMLObjectElement {
         ValidityState::new(global)
     }
 
-    pub fn ValidationMessage(&self) -> DOMString {
+    pub fn ValidationMessage(&self) -> Option<DOMString> {
         None
     }
 
@@ -106,30 +106,30 @@ impl HTMLObjectElement {
         false
     }
 
-    pub fn SetCustomValidity(&mut self, _error: &DOMString) {
+    pub fn SetCustomValidity(&mut self, _error: &Option<DOMString>) {
     }
 
-    pub fn Align(&self) -> DOMString {
+    pub fn Align(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&mut self, _align: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Archive(&self) -> DOMString {
+    pub fn Archive(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetArchive(&mut self, _archive: &DOMString) -> ErrorResult {
+    pub fn SetArchive(&mut self, _archive: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Code(&self) -> DOMString {
+    pub fn Code(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCode(&mut self, _code: &DOMString) -> ErrorResult {
+    pub fn SetCode(&mut self, _code: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -149,11 +149,11 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn Standby(&self) -> DOMString {
+    pub fn Standby(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetStandby(&mut self, _standby: &DOMString) -> ErrorResult {
+    pub fn SetStandby(&mut self, _standby: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -165,27 +165,27 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn CodeBase(&self) -> DOMString {
+    pub fn CodeBase(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCodeBase(&mut self, _codebase: &DOMString) -> ErrorResult {
+    pub fn SetCodeBase(&mut self, _codebase: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CodeType(&self) -> DOMString {
+    pub fn CodeType(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCodeType(&mut self, _codetype: &DOMString) -> ErrorResult {
+    pub fn SetCodeType(&mut self, _codetype: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Border(&self) -> DOMString {
+    pub fn Border(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetBorder(&mut self, _border: &DOMString) -> ErrorResult {
+    pub fn SetBorder(&mut self, _border: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 

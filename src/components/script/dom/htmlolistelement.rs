@@ -43,11 +43,11 @@ impl HTMLOListElement {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    pub fn Type(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 

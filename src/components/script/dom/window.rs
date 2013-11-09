@@ -72,7 +72,7 @@ pub struct TimerData {
 }
 
 impl Window {
-    pub fn Alert(&self, s: &DOMString) {
+    pub fn Alert(&self, s: &Option<DOMString>) {
         // Right now, just print to the console
         println(format!("ALERT: {:s}", null_str_as_empty(s)));
     }
@@ -85,18 +85,18 @@ impl Window {
         self.page.frame.unwrap().document
     }
 
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetName(&self, _name: &DOMString) {
+    pub fn SetName(&self, _name: &Option<DOMString>) {
     }
 
-    pub fn Status(&self) -> DOMString {
+    pub fn Status(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetStatus(&self, _status: &DOMString) {
+    pub fn SetStatus(&self, _status: &Option<DOMString>) {
     }
 
     pub fn Closed(&self) -> bool {
@@ -123,18 +123,18 @@ impl Window {
         self.navigator.unwrap()
     }
 
-    pub fn Confirm(&self, _message: &DOMString) -> bool {
+    pub fn Confirm(&self, _message: &Option<DOMString>) -> bool {
         false
     }
 
-    pub fn Prompt(&self, _message: &DOMString, _default: &DOMString) -> DOMString {
+    pub fn Prompt(&self, _message: &Option<DOMString>, _default: &Option<DOMString>) -> Option<DOMString> {
         None
     }
 
     pub fn Print(&self) {
     }
 
-    pub fn ShowModalDialog(&self, _cx: *JSContext, _url: &DOMString, _argument: JSVal) -> JSVal {
+    pub fn ShowModalDialog(&self, _cx: *JSContext, _url: &Option<DOMString>, _argument: JSVal) -> JSVal {
         JSVAL_NULL
     }
 }

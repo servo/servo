@@ -154,7 +154,7 @@ impl<'self> Element {
         }
     }
 
-    pub fn normalize_attr_name(&self, name: &DOMString) -> ~str {
+    pub fn normalize_attr_name(&self, name: &Option<DOMString>) -> ~str {
         //FIXME: Throw for XML-invalid names
         let owner = self.node.owner_doc();
         if owner.document().doctype == document::HTML { // && self.namespace == Namespace::HTML
@@ -165,7 +165,7 @@ impl<'self> Element {
     }
 
     pub fn get_attribute<'a>(&'a self,
-                         namespace_url: &DOMString,
+                         namespace_url: &Option<DOMString>,
                          name: &str) -> Option<@mut Attr> {
         let namespace = Namespace::from_str(namespace_url);
         // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
@@ -179,16 +179,16 @@ impl<'self> Element {
 
     pub fn set_attr(&mut self,
                     abstract_self: AbstractNode<ScriptView>,
-                    raw_name: &DOMString,
-                    raw_value: &DOMString) -> ErrorResult {
+                    raw_name: &Option<DOMString>,
+                    raw_value: &Option<DOMString>) -> ErrorResult {
         self.set_attribute(abstract_self, namespace::Null, raw_name, raw_value)
     }
 
     pub fn set_attribute(&mut self,
                          abstract_self: AbstractNode<ScriptView>,
                          namespace: Namespace,
-                         raw_name: &DOMString,
-                         raw_value: &DOMString) -> ErrorResult {
+                         raw_name: &Option<DOMString>,
+                         raw_value: &Option<DOMString>) -> ErrorResult {
         //FIXME: Throw for XML-invalid names
         //FIXME: Throw for XMLNS-invalid names
         let name = null_str_as_empty(raw_name).to_ascii_lower();
@@ -246,7 +246,7 @@ impl<'self> Element {
                       abstract_self: AbstractNode<ScriptView>,
                       namespace: &Namespace,
                       local_name: ~str,
-                      value: &DOMString) {
+                      value: &Option<DOMString>) {
 
         if "style" == local_name && *namespace == namespace::Null {
              self.style_attribute = Some(style::parse_style_attribute(
@@ -280,43 +280,43 @@ impl<'self> Element {
 }
 
 impl Element {
-    pub fn TagName(&self) -> DOMString {
+    pub fn TagName(&self) -> Option<DOMString> {
         Some(self.tag_name.to_owned().to_ascii_upper())
     }
 
-    pub fn Id(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn Id(&self, _abstract_self: AbstractNode<ScriptView>) -> Option<DOMString> {
         match self.get_attr(&"id") {
             Some(x) => Some(x),
             None => Some(~"")
         }
     }
 
-    pub fn SetId(&mut self, abstract_self: AbstractNode<ScriptView>, id: &DOMString) {
+    pub fn SetId(&mut self, abstract_self: AbstractNode<ScriptView>, id: &Option<DOMString>) {
         self.set_attribute(abstract_self, namespace::Null, &Some(~"id"), id);
     }
 
-    pub fn GetAttribute(&self, name: &DOMString) -> DOMString {
+    pub fn GetAttribute(&self, name: &Option<DOMString>) -> Option<DOMString> {
         self.get_attr(null_str_as_empty_ref(name))
     }
 
-    pub fn GetAttributeNS(&self, namespace: &DOMString, local_name: &DOMString) -> DOMString {
+    pub fn GetAttributeNS(&self, namespace: &Option<DOMString>, local_name: &Option<DOMString>) -> Option<DOMString> {
         self.get_attribute(namespace, null_str_as_empty_ref(local_name))
             .map(|attr| attr.value.clone())
     }
 
     pub fn SetAttribute(&mut self,
                         abstract_self: AbstractNode<ScriptView>,
-                        name: &DOMString,
-                        value: &DOMString) -> ErrorResult {
+                        name: &Option<DOMString>,
+                        value: &Option<DOMString>) -> ErrorResult {
         self.set_attr(abstract_self, name, value);
         Ok(())
     }
 
     pub fn SetAttributeNS(&mut self,
                           abstract_self: AbstractNode<ScriptView>,
-                          namespace_url: &DOMString,
-                          name: &DOMString,
-                          value: &DOMString) -> ErrorResult {
+                          namespace_url: &Option<DOMString>,
+                          name: &Option<DOMString>,
+                          value: &Option<DOMString>) -> ErrorResult {
         let name_type = xml_name_type(name.to_str());
         match name_type {
             InvalidXMLName => return Err(InvalidCharacter),
@@ -328,35 +328,35 @@ impl Element {
         self.set_attribute(abstract_self, namespace, name, value)
     }
 
-    pub fn RemoveAttribute(&self, _name: &DOMString) -> ErrorResult {
+    pub fn RemoveAttribute(&self, _name: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn RemoveAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString) -> ErrorResult {
+    pub fn RemoveAttributeNS(&self, _namespace: &Option<DOMString>, _localname: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn HasAttribute(&self, name: &DOMString) -> bool {
+    pub fn HasAttribute(&self, name: &Option<DOMString>) -> bool {
         self.GetAttribute(name).is_some()
     }
 
-    pub fn HasAttributeNS(&self, namespace: &DOMString, local_name: &DOMString) -> bool {
+    pub fn HasAttributeNS(&self, namespace: &Option<DOMString>, local_name: &Option<DOMString>) -> bool {
         self.GetAttributeNS(namespace, local_name).is_some()
     }
 
-    pub fn GetElementsByTagName(&self, _localname: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByTagName(&self, _localname: &Option<DOMString>) -> @mut HTMLCollection {
         HTMLCollection::new(self.node.owner_doc().document().window, ~[])
     }
 
-    pub fn GetElementsByTagNameNS(&self, _namespace: &DOMString, _localname: &DOMString) -> Fallible<@mut HTMLCollection> {
+    pub fn GetElementsByTagNameNS(&self, _namespace: &Option<DOMString>, _localname: &Option<DOMString>) -> Fallible<@mut HTMLCollection> {
         Ok(HTMLCollection::new(self.node.owner_doc().document().window, ~[]))
     }
 
-    pub fn GetElementsByClassName(&self, _names: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByClassName(&self, _names: &Option<DOMString>) -> @mut HTMLCollection {
         HTMLCollection::new(self.node.owner_doc().document().window, ~[])
     }
 
-    pub fn MozMatchesSelector(&self, _selector: &DOMString) -> Fallible<bool> {
+    pub fn MozMatchesSelector(&self, _selector: &Option<DOMString>) -> Fallible<bool> {
         Ok(false)
     }
 
@@ -452,27 +452,27 @@ impl Element {
         0
     }
 
-    pub fn GetInnerHTML(&self) -> Fallible<DOMString> {
+    pub fn GetInnerHTML(&self) -> Fallible<Option<DOMString>> {
         Ok(None)
     }
 
-    pub fn SetInnerHTML(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetInnerHTML(&mut self, _value: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetOuterHTML(&self) -> Fallible<DOMString> {
+    pub fn GetOuterHTML(&self) -> Fallible<Option<DOMString>> {
         Ok(None)
     }
 
-    pub fn SetOuterHTML(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetOuterHTML(&mut self, _value: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn InsertAdjacentHTML(&mut self, _position: &DOMString, _text: &DOMString) -> ErrorResult {
+    pub fn InsertAdjacentHTML(&mut self, _position: &Option<DOMString>, _text: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn QuerySelector(&self, _selectors: &DOMString) -> Fallible<Option<AbstractNode<ScriptView>>> {
+    pub fn QuerySelector(&self, _selectors: &Option<DOMString>) -> Fallible<Option<AbstractNode<ScriptView>>> {
         Ok(None)
     }
 }

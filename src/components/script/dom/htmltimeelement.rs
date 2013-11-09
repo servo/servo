@@ -27,11 +27,11 @@ impl HTMLTimeElement {
 }
 
 impl HTMLTimeElement {
-    pub fn DateTime(&self) -> DOMString {
+    pub fn DateTime(&self) -> Option<DOMString> {
         None
     }
     
-    pub fn SetDateTime(&mut self, _dateTime: &DOMString) -> ErrorResult {
+    pub fn SetDateTime(&mut self, _dateTime: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

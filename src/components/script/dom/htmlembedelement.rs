@@ -27,51 +27,51 @@ impl HTMLEmbedElement {
 }
 
 impl HTMLEmbedElement {
-    pub fn Src(&self) -> DOMString {
+    pub fn Src(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    pub fn Type(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> DOMString {
+    pub fn Width(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
+    pub fn SetWidth(&mut self, _width: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> DOMString {
+    pub fn Height(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
+    pub fn SetHeight(&mut self, _height: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Align(&self) -> DOMString {
+    pub fn Align(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetAlign(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&mut self, _type: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetName(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _type: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 

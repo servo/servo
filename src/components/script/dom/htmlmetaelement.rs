@@ -27,35 +27,35 @@ impl HTMLMetaElement {
 }
 
 impl HTMLMetaElement {
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn HttpEquiv(&self) -> DOMString {
+    pub fn HttpEquiv(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetHttpEquiv(&mut self, _http_equiv: &DOMString) -> ErrorResult {
+    pub fn SetHttpEquiv(&mut self, _http_equiv: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Content(&self) -> DOMString {
+    pub fn Content(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetContent(&mut self, _content: &DOMString) -> ErrorResult {
+    pub fn SetContent(&mut self, _content: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Scheme(&self) -> DOMString {
+    pub fn Scheme(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetScheme(&mut self, _scheme: &DOMString) -> ErrorResult {
+    pub fn SetScheme(&mut self, _scheme: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

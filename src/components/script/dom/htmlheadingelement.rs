@@ -38,10 +38,10 @@ impl HTMLHeadingElement {
 }
 
 impl HTMLHeadingElement {
-    pub fn Align(&self) -> DOMString {
+    pub fn Align(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString) {
+    pub fn SetAlign(&mut self, _align: &Option<DOMString>) {
     }
 }

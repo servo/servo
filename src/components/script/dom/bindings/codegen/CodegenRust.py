@@ -1110,10 +1110,10 @@ for (uint32_t i = 0; i < length; ++i) {
                 declType, None, isOptional, None)
 
         if isOptional:
-            declType = "Option<DOMString>"
+            declType = "Option<Option<DOMString>>"
             initialValue = "None"
         else:
-            declType = "DOMString"
+            declType = "Option<DOMString>"
             initialValue = None
 
         return (
@@ -1722,7 +1722,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
             result = CGWrapper(result, pre="Nullable<", post=">")
         return result, False
     if returnType.isString():
-        return CGGeneric("DOMString"), False
+        return CGGeneric("Option<DOMString>"), False
     if returnType.isEnum():
         if returnType.nullable():
             raise TypeError("We don't support nullable enum return values")
@@ -2960,8 +2960,8 @@ class CGCallGenerator(CGThing):
             if a.type.isObject() and not a.type.nullable() and not a.optional:
                 name = "(JSObject&)" + name
             #XXXjdm Perhaps we should pass all nontrivial types by borrowed pointer
-            # Aoid passing Option<DOMString> by reference. If only one of optional or
-            # defaultValue are truthy we pass an Option, otherwise it's a concrete DOMString.
+            # Aoid passing Option<Option<DOMString>> by reference. If only one of optional or
+            # defaultValue are truthy we pass an Option, otherwise it's a concrete Option<DOMString>.
             if a.type.isDictionary() or (a.type.isString() and not (bool(a.defaultValue) ^ a.optional)):
                 name = "&" + name
             args.append(CGGeneric(name))

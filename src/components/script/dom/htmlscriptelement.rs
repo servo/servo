@@ -28,27 +28,27 @@ impl HTMLScriptElement {
 }
 
 impl HTMLScriptElement {
-    pub fn Src(&self) -> DOMString {
+    pub fn Src(&self) -> Option<DOMString> {
         self.htmlelement.element.get_attr("src").map(|s| s.to_str())
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    pub fn Type(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Charset(&self) -> DOMString {
+    pub fn Charset(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCharset(&mut self, _charset: &DOMString) -> ErrorResult {
+    pub fn SetCharset(&mut self, _charset: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -68,35 +68,35 @@ impl HTMLScriptElement {
         Ok(())
     }
 
-    pub fn CrossOrigin(&self) -> DOMString {
+    pub fn CrossOrigin(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
+    pub fn SetCrossOrigin(&mut self, _cross_origin: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Text(&self) -> DOMString {
+    pub fn Text(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
+    pub fn SetText(&mut self, _text: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Event(&self) -> DOMString {
+    pub fn Event(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetEvent(&mut self, _event: &DOMString) -> ErrorResult {
+    pub fn SetEvent(&mut self, _event: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn HtmlFor(&self) -> DOMString {
+    pub fn HtmlFor(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetHtmlFor(&mut self, _html_for: &DOMString) -> ErrorResult {
+    pub fn SetHtmlFor(&mut self, _html_for: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

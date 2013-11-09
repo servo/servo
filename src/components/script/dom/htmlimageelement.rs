@@ -57,7 +57,7 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn AfterSetAttr(&mut self, name: &DOMString, _value: &DOMString) {
+    pub fn AfterSetAttr(&mut self, name: &Option<DOMString>, _value: &Option<DOMString>) {
         let name = null_str_as_empty(name);
         if "src" == name {
             let document = self.htmlelement.element.node.owner_doc();
@@ -67,21 +67,21 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn Alt(&self) -> DOMString {
+    pub fn Alt(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetAlt(&mut self, _alt: &DOMString) -> ErrorResult {
+    pub fn SetAlt(&mut self, _alt: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Src(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn Src(&self, _abstract_self: AbstractNode<ScriptView>) -> Option<DOMString> {
         None
     }
 
     pub fn SetSrc(&mut self,
                   abstract_self: AbstractNode<ScriptView>,
-                  src: &DOMString) -> ErrorResult {
+                  src: &Option<DOMString>) -> ErrorResult {
         let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self,
                       &Some(~"src"),
@@ -89,19 +89,19 @@ impl HTMLImageElement {
         Ok(())
     }
 
-    pub fn CrossOrigin(&self) -> DOMString {
+    pub fn CrossOrigin(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
+    pub fn SetCrossOrigin(&mut self, _cross_origin: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn UseMap(&self) -> DOMString {
+    pub fn UseMap(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetUseMap(&mut self, _use_map: &DOMString) -> ErrorResult {
+    pub fn SetUseMap(&mut self, _use_map: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -167,19 +167,19 @@ impl HTMLImageElement {
         false
     }
 
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Align(&self) -> DOMString {
+    pub fn Align(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&mut self, _align: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -199,19 +199,19 @@ impl HTMLImageElement {
         Ok(())
     }
 
-    pub fn LongDesc(&self) -> DOMString {
+    pub fn LongDesc(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
+    pub fn SetLongDesc(&mut self, _longdesc: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Border(&self) -> DOMString {
+    pub fn Border(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetBorder(&mut self, _border: &DOMString) -> ErrorResult {
+    pub fn SetBorder(&mut self, _border: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

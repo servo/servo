@@ -141,7 +141,7 @@ impl EventTarget {
     }
 
     pub fn AddEventListener(&mut self,
-                            ty: &DOMString,
+                            ty: &Option<DOMString>,
                             listener: Option<EventListener>,
                             capture: bool) {
         for &listener in listener.iter() {
@@ -158,7 +158,7 @@ impl EventTarget {
     }
 
     pub fn RemoveEventListener(&mut self,
-                               ty: &DOMString,
+                               ty: &Option<DOMString>,
                                listener: Option<EventListener>,
                                capture: bool) {
         for &listener in listener.iter() {

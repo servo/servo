@@ -16,7 +16,7 @@ pub struct Attr {
     value: ~str,
     name: ~str,
     namespace: Namespace,
-    prefix: DOMString
+    prefix: Option<DOMString>
 }
 
 impl Reflectable for Attr {
@@ -69,27 +69,27 @@ impl Attr {
         }
     }
 
-    pub fn LocalName(&self) -> DOMString {
+    pub fn LocalName(&self) -> Option<DOMString> {
         Some(self.local_name().to_owned())
     }
 
-    pub fn Value(&self) -> DOMString {
+    pub fn Value(&self) -> Option<DOMString> {
         Some(self.value.clone())
     }
 
-    pub fn SetValue(&mut self, value: &DOMString) {
+    pub fn SetValue(&mut self, value: &Option<DOMString>) {
         self.value = null_str_as_empty(value);
     }
 
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         Some(self.name.clone())
     }
 
-    pub fn GetNamespaceURI(&self) -> DOMString {
+    pub fn GetNamespaceURI(&self) -> Option<DOMString> {
         self.namespace.to_str()
     }
 
-    pub fn GetPrefix(&self) -> DOMString {
+    pub fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix.clone()
     }
 }

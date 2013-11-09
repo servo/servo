@@ -27,27 +27,27 @@ impl HTMLSourceElement {
 }
 
 impl HTMLSourceElement {
-    pub fn Src(&self) -> DOMString {
+    pub fn Src(&self) -> Option<DOMString> {
         None
     }
     
-    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    pub fn Type(&self) -> Option<DOMString> {
         None
     }
     
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Media(&self) -> DOMString {
+    pub fn Media(&self) -> Option<DOMString> {
         None
     }
     
-    pub fn SetMedia(&mut self, _media: &DOMString) -> ErrorResult {
+    pub fn SetMedia(&mut self, _media: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

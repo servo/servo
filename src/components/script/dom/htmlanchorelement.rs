@@ -27,107 +27,107 @@ impl HTMLAnchorElement {
 }
 
 impl HTMLAnchorElement {
-    pub fn Href(&self) -> DOMString {
+    pub fn Href(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetHref(&mut self, _href: &DOMString) -> ErrorResult {
+    pub fn SetHref(&mut self, _href: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Target(&self) -> DOMString {
+    pub fn Target(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetTarget(&self, _target: &DOMString) -> ErrorResult {
+    pub fn SetTarget(&self, _target: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Download(&self) -> DOMString {
+    pub fn Download(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetDownload(&self, _download: &DOMString) -> ErrorResult {
+    pub fn SetDownload(&self, _download: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Ping(&self) -> DOMString {
+    pub fn Ping(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetPing(&self, _ping: &DOMString) -> ErrorResult {
+    pub fn SetPing(&self, _ping: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Rel(&self) -> DOMString {
+    pub fn Rel(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetRel(&self, _rel: &DOMString) -> ErrorResult {
+    pub fn SetRel(&self, _rel: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Hreflang(&self) -> DOMString {
+    pub fn Hreflang(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetHreflang(&self, _href_lang: &DOMString) -> ErrorResult {
+    pub fn SetHreflang(&self, _href_lang: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    pub fn Type(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Text(&self) -> DOMString {
+    pub fn Text(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
+    pub fn SetText(&mut self, _text: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Coords(&self) -> DOMString {
+    pub fn Coords(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCoords(&mut self, _coords: &DOMString) -> ErrorResult {
+    pub fn SetCoords(&mut self, _coords: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Charset(&self) -> DOMString {
+    pub fn Charset(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetCharset(&mut self, _charset: &DOMString) -> ErrorResult {
+    pub fn SetCharset(&mut self, _charset: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Rev(&self) -> DOMString {
+    pub fn Rev(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetRev(&mut self, _rev: &DOMString) -> ErrorResult {
+    pub fn SetRev(&mut self, _rev: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Shape(&self) -> DOMString {
+    pub fn Shape(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetShape(&mut self, _shape: &DOMString) -> ErrorResult {
+    pub fn SetShape(&mut self, _shape: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }

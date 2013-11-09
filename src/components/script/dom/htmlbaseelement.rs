@@ -27,19 +27,19 @@ impl HTMLBaseElement {
 }
 
 impl HTMLBaseElement {
-    pub fn Href(&self) -> DOMString {
+    pub fn Href(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetHref(&self, _href: &DOMString) -> ErrorResult {
+    pub fn SetHref(&self, _href: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Target(&self) -> DOMString {
+    pub fn Target(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn SetTarget(&self, _target: &DOMString) -> ErrorResult {
+    pub fn SetTarget(&self, _target: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 }
