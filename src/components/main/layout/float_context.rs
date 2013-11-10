@@ -3,17 +3,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use geom::point::Point2D;
-use geom::size::Size2D;
 use geom::rect::Rect;
+use geom::size::Size2D;
 use servo_util::geometry::{Au, max, min};
+use std::i32::max_value;
 use std::util::replace;
 use std::vec;
-use std::i32::max_value;
+use style::computed_values::float;
 
 #[deriving(Clone)]
 pub enum FloatType {
     FloatLeft,
     FloatRight
+}
+
+impl FloatType {
+    pub fn from_property(property: float::T) -> FloatType {
+        match property {
+            float::none => fail!("can't create a float type from an unfloated property"),
+            float::left => FloatLeft,
+            float::right => FloatRight,
+        }
+    }
 }
 
 pub enum ClearType {
@@ -31,13 +42,13 @@ struct FloatContextBase {
 }
 
 #[deriving(Clone)]
-struct FloatData{
+struct FloatData {
     bounds: Rect<Au>,
     f_type: FloatType
 }
 
 /// All information necessary to place a float
-pub struct PlacementInfo{
+pub struct PlacementInfo {
     width: Au,      // The dimensions of the float
     height: Au,
     ceiling: Au,    // The minimum top of the float, as determined by earlier elements
@@ -126,7 +137,7 @@ impl FloatContext {
     }
 }
 
-impl FloatContextBase{
+impl FloatContextBase {
     fn new(num_floats: uint) -> FloatContextBase {
         debug!("Creating float context of size {}", num_floats);
         FloatContextBase {
@@ -335,7 +346,7 @@ impl FloatContextBase{
             match maybe_location {
 
                 // If there are no floats blocking us, return the current location
-                // TODO(eatknson): integrate with overflow
+                // TODO(eatkinson): integrate with overflow
                 None => return match info.f_type { 
                     FloatLeft => Rect(Point2D(Au(0), float_y), 
                                       Size2D(info.max_width, Au(max_value))),

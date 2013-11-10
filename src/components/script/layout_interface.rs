@@ -6,15 +6,16 @@
 /// coupling between these two components, and enables the DOM to be placed in a separate crate
 /// from layout.
 
-use dom::node::{AbstractNode, ScriptView, LayoutView};
-use script_task::{ScriptChan};
-use std::comm::{Chan, SharedChan};
+use dom::node::{AbstractNode, LayoutDataRef, LayoutView, ScriptView};
+
+use extra::url::Url;
+use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use geom::point::Point2D;
+use script_task::{ScriptChan};
 use servo_util::geometry::Au;
+use std::comm::{Chan, SharedChan};
 use style::Stylesheet;
-use extra::url::Url;
 
 /// Asynchronous messages that script can send to layout.
 ///
@@ -31,8 +32,19 @@ pub enum Msg {
     /// FIXME(pcwalton): As noted below, this isn't very type safe.
     QueryMsg(LayoutQuery),
 
-    /// Requests that the layout task shut down and exit.
-    ExitMsg,
+    /// Destroys layout data associated with a DOM node.
+    ///
+    /// TODO(pcwalton): Maybe think about batching to avoid message traffic.
+    ReapLayoutDataMsg(LayoutDataRef),
+
+    /// Requests that the layout task enter a quiescent state in which no more messages are
+    /// accepted except `ExitMsg`. A response message will be sent on the supplied channel when
+    /// this happens.
+    PrepareToExitMsg(Chan<()>),
+
+    /// Requests that the layout task immediately shut down. There must be no more nodes left after
+    /// this, or layout will crash.
+    ExitNowMsg,
 }
 
 /// Synchronous messages that script can send to layout.

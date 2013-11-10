@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/// The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
-/// and layout tasks.
+//! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
+//! and layout tasks.
 
-use servo_msg::compositor_msg::{ScriptListener, Loading, PerformingLayout};
-use servo_msg::compositor_msg::FinishedLoading;
 use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::utils::{Reflectable, GlobalStaticData};
 use dom::document::AbstractDocument;
@@ -15,29 +13,20 @@ use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, M
 use dom::event::Event;
 use dom::eventtarget::AbstractEventTarget;
 use dom::htmldocument::HTMLDocument;
-use dom::window::Window;
-use layout_interface::{AddStylesheetMsg, DocumentDamage};
-use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery};
-use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg, Reflow};
-use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowGoal};
-use layout_interface::ReflowMsg;
-use layout_interface;
-use servo_msg::constellation_msg::{ConstellationChan, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{PipelineId, SubpageId};
-use servo_msg::constellation_msg::{LoadIframeUrlMsg, IFrameSandboxed, IFrameUnsandboxed};
-use servo_msg::constellation_msg;
-
-use std::cell::Cell;
-use std::comm;
-use std::comm::{Port, SharedChan};
-use std::ptr;
-use std::task::{spawn_sched, SingleThreaded};
-use std::util::replace;
-use dom::window::TimerData;
-use geom::size::Size2D;
+use dom::node::{AbstractNode, LayoutDataRef};
+use dom::window::{TimerData, Window};
 use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
+use layout_interface::{AddStylesheetMsg, DocumentDamage};
+use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery};
+use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg, ReapLayoutDataMsg};
+use layout_interface::{Reflow, ReflowDocumentDamage, ReflowForDisplay, ReflowGoal, ReflowMsg};
+use layout_interface;
+
+use extra::future::Future;
+use extra::url::Url;
+use geom::size::Size2D;
 use js::JSVAL_NULL;
 use js::global::debug_fns;
 use js::glue::RUST_JSVAL_TO_OBJECT;
@@ -45,12 +34,21 @@ use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_CallFunctionValue, JS_GetContextPrivate};
 use js::rust::{Compartment, Cx};
 use js;
+use servo_msg::compositor_msg::{FinishedLoading, Loading, PerformingLayout, ScriptListener};
+use servo_msg::constellation_msg::{ConstellationChan, IFrameSandboxed, IFrameUnsandboxed};
+use servo_msg::constellation_msg::{LoadIframeUrlMsg, LoadUrlMsg, NavigationDirection, PipelineId};
+use servo_msg::constellation_msg::{SubpageId};
+use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
-use servo_util::tree::{TreeNodeRef, ElementLike};
+use servo_util::tree::{TreeNode, TreeNodeRef, ElementLike};
 use servo_util::url::make_url;
-use extra::url::Url;
-use extra::future::Future;
+use std::cell::Cell;
+use std::comm::{Port, SharedChan};
+use std::comm;
+use std::ptr;
+use std::task::{spawn_sched, SingleThreaded};
+use std::util::replace;
 
 /// Messages used to control the script task.
 pub enum ScriptMsg {
@@ -86,6 +84,7 @@ pub struct NewLayoutInfo {
 /// Encapsulates external communication with the script task.
 #[deriving(Clone)]
 pub struct ScriptChan(SharedChan<ScriptMsg>);
+
 impl ScriptChan {
     /// Creates a new script chan.
     pub fn new(chan: Chan<ScriptMsg>) -> ScriptChan {
@@ -93,7 +92,7 @@ impl ScriptChan {
     }
 }
 
-/// Encapsulates a handle to a frame and its associate layout information
+/// Encapsulates a handle to a frame and its associated layout information.
 pub struct Page {
     /// Pipeline id associated with this page.
     id: PipelineId,
@@ -216,8 +215,7 @@ impl<'self> Iterator<@mut Page> for PageTreeIterator<'self> {
 impl Page {
     /// Adds the given damage.
     fn damage(&mut self, level: DocumentDamageLevel) {
-        let root = self.frame.get_ref().document.document().
-            GetDocumentElement();
+        let root = self.frame.get_ref().document.document().GetDocumentElement();
         match root {
             None => {},
             Some(root) => {
@@ -359,13 +357,18 @@ impl Page {
         });
     }
 
+    /// Sends the given layout data back to the layout task to be destroyed.
+    pub unsafe fn reap_dead_layout_data(&self, layout_data: LayoutDataRef) {
+        self.layout_chan.send(ReapLayoutDataMsg(layout_data))
+    }
 }
 
 /// Information for one frame in the browsing context.
 pub struct Frame {
+    /// The document for this frame.
     document: AbstractDocument,
+    /// The window object for this frame.
     window: @mut Window,
-
 }
 
 /// Encapsulation of the javascript information associated with each frame.
@@ -452,15 +455,16 @@ impl ScriptTask {
         }
     }
 
-    pub fn create<C: ScriptListener + Send>(id: PipelineId,
-                                            compositor: C,
-                                            layout_chan: LayoutChan,
-                                            port: Port<ScriptMsg>,
-                                            chan: ScriptChan,
-                                            constellation_chan: ConstellationChan,
-                                            resource_task: ResourceTask,
-                                            image_cache_task: ImageCacheTask,
-                                            initial_size: Future<Size2D<uint>>) {
+    pub fn create<C:ScriptListener + Send>(
+                  id: PipelineId,
+                  compositor: C,
+                  layout_chan: LayoutChan,
+                  port: Port<ScriptMsg>,
+                  chan: ScriptChan,
+                  constellation_chan: ConstellationChan,
+                  resource_task: ResourceTask,
+                  image_cache_task: ImageCacheTask,
+                  initial_size: Future<Size2D<uint>>) {
         let parms = Cell::new((compositor, layout_chan, port, chan, constellation_chan,
                                resource_task, image_cache_task, initial_size));
         // Since SpiderMonkey is blocking it needs to run in its own thread.
@@ -627,23 +631,23 @@ impl ScriptTask {
         true
     }
 
+
     /// Handles a request to exit the script task and shut down layout.
     /// Returns true if the script task should shut down and false otherwise.
     fn handle_exit_pipeline_msg(&mut self, id: PipelineId) -> bool {
         // If root is being exited, shut down all pages
         if self.page_tree.page.id == id {
             for page in self.page_tree.iter() {
-                page.join_layout();
-                page.layout_chan.send(layout_interface::ExitMsg);
+                shut_down_layout(page)
             }
             return true
         }
+
         // otherwise find just the matching page and exit all sub-pages
         match self.page_tree.remove(id) {
             Some(ref mut page_tree) => {
                 for page in page_tree.iter() {
-                    page.join_layout();
-                    page.layout_chan.send(layout_interface::ExitMsg);
+                    shut_down_layout(page)
                 }
                 false
             }
@@ -860,5 +864,36 @@ impl ScriptTask {
             self.constellation_chan.send(LoadUrlMsg(page.id, url, Future::from_value(page.window_size.get())));
         }
     }
+}
+
+/// Shuts down layout for the given page.
+fn shut_down_layout(page: @mut Page) {
+    page.join_layout();
+
+    // Tell the layout task to begin shutting down.
+    let (response_port, response_chan) = comm::stream();
+    page.layout_chan.send(layout_interface::PrepareToExitMsg(response_chan));
+    response_port.recv();
+
+    // Destroy all nodes.
+    //
+    // If there was a leak, the layout task will soon crash safely when it detects that local data
+    // is missing from its heap.
+    //
+    // FIXME(pcwalton): *But*, for now, because we use `@mut` boxes to hold onto Nodes, if this
+    // didn't destroy all the nodes there will be an *exploitable* security vulnerability as the
+    // nodes try to access the destroyed JS context. We need to change this so that the only actor
+    // who can judge a JS object dead (and thus run its drop glue) is the JS engine itself; thus it
+    // will be impossible (absent a serious flaw in the JS engine) for the JS context to be dead
+    // before nodes are.
+    unsafe {
+        let document_node = AbstractNode::from_document(page.frame.as_ref().unwrap().document);
+        for node in document_node.traverse_preorder() {
+            node.mut_node().reap_layout_data()
+        }
+    }
+
+    // Destroy the layout task. If there were node leaks, layout will now crash safely.
+    page.layout_chan.send(layout_interface::ExitNowMsg);
 }
 

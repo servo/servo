@@ -53,6 +53,18 @@ impl FloatFlow {
         }
     }
 
+    pub fn from_box(base: FlowData, float_type: FloatType, box: @RenderBox) -> FloatFlow {
+        FloatFlow {
+            base: base,
+            containing_width: Au(0),
+            box: Some(box),
+            index: None,
+            float_type: float_type,
+            rel_pos: Point2D(Au(0), Au(0)),
+            floated_children: 0,
+        }
+    }
+
     pub fn teardown(&mut self) {
         for box in self.box.iter() {
             box.teardown();
@@ -252,7 +264,7 @@ impl FlowContext for FloatFlow {
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height_float: assigning height for float {}", self.base.id);
+        // Now that we've determined our height, propagate that out.
         let has_inorder_children = self.base.num_floats > 0;
         if has_inorder_children {
             let mut float_ctx = FloatContext::new(self.floated_children);
@@ -262,7 +274,7 @@ impl FlowContext for FloatFlow {
                 float_ctx = flow::mut_base(*kid).floats_out.clone();
             }
         }
-
+        debug!("assign_height_float: assigning height for float {}", self.base.id);
         let mut cur_y = Au(0);
         let mut top_offset = Au(0);
 
@@ -281,26 +293,25 @@ impl FlowContext for FloatFlow {
         let mut height = cur_y - top_offset;
 
         let mut noncontent_height;
-        for box in self.box.iter() {
-            let base = box.base();
-            let mut position_ref = base.position.mutate();
-            let position = &mut position_ref.ptr;
+        let box = self.box.as_ref().unwrap();
+        let base = box.base();
+        let mut position_ref = base.position.mutate();
+        let position = &mut position_ref.ptr;
 
-            // The associated box is the border box of this flow.
-            position.origin.y = base.margin.top;
+        // The associated box is the border box of this flow.
+        position.origin.y = base.margin.top;
 
-            noncontent_height = base.padding.top + base.padding.bottom + base.border.top +
-                base.border.bottom;
-        
-            //TODO(eatkinson): compute heights properly using the 'height' property.
-            let height_prop = MaybeAuto::from_style(base.style().Box.height,
-                                                    Au::new(0)).specified_or_zero();
+        noncontent_height = base.padding.top + base.padding.bottom + base.border.top +
+            base.border.bottom;
+    
+        //TODO(eatkinson): compute heights properly using the 'height' property.
+        let height_prop = MaybeAuto::from_style(base.style().Box.height,
+                                                Au::new(0)).specified_or_zero();
 
-            height = geometry::max(height, height_prop) + noncontent_height;
-            debug!("assign_height_float -- height: {}", height);
+        height = geometry::max(height, height_prop) + noncontent_height;
+        debug!("assign_height_float -- height: {}", height);
 
-            position.size.height = height;
-        }
+        position.size.height = height;
 
     }
 
@@ -314,6 +325,7 @@ impl FlowContext for FloatFlow {
         // Margins between a floated box and any other box do not collapse.
         *collapsing = Au::new(0);
     }
+
     fn debug_str(&self) -> ~str {
         ~"FloatFlow"
     }

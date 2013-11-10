@@ -196,14 +196,14 @@ impl LineboxScanner {
         debug!("LineboxScanner: Trying to place first box of line {}", self.lines.len());
 
         let first_box_size = first_box.base().position.get().size;
-        debug!("LineboxScanner: box size: {}", first_box_size);
-        let splitable = first_box.can_split();
+        let splittable = first_box.can_split();
+        debug!("LineboxScanner: box size: {}, splittable: {}", first_box_size, splittable);
         let line_is_empty: bool = self.pending_line.range.length() == 0;
 
-        // Initally, pretend a splitable box has 0 width.
+        // Initally, pretend a splittable box has 0 width.
         // We will move it later if it has nonzero width
         // and that causes problems.
-        let placement_width = if splitable {
+        let placement_width = if splittable {
             Au::new(0)
         } else {
             first_box_size.width
@@ -231,7 +231,7 @@ impl LineboxScanner {
 
         // If not, but we can't split the box, then we'll place
         // the line here and it will overflow.
-        if !splitable {
+        if !splittable {
             debug!("LineboxScanner: case=line doesn't fit, but is unsplittable");
             return (line_bounds, first_box_size.width);
         }
@@ -462,6 +462,15 @@ impl InlineFlow {
         InlineFlow {
             base: base,
             boxes: ~[],
+            lines: ~[],
+            elems: ElementMapping::new(),
+        }
+    }
+
+    pub fn from_boxes(base: FlowData, boxes: ~[@RenderBox]) -> InlineFlow {
+        InlineFlow {
+            base: base,
+            boxes: boxes,
             lines: ~[],
             elems: ElementMapping::new(),
         }

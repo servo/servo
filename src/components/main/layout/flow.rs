@@ -111,6 +111,9 @@ pub trait FlowContext {
         fail!("collapse_margins not yet implemented")
     }
 
+    /// Marks this flow as the root flow. The default implementation is a no-op.
+    fn mark_as_root(&mut self) {}
+
     /// Returns a debugging string describing this flow.
     fn debug_str(&self) -> ~str {
         ~"???"
@@ -360,6 +363,7 @@ impl Iterator<@RenderBox> for BoxIterator {
 }
 
 impl FlowData {
+    #[inline]
     pub fn new(id: int, node: AbstractNode<LayoutView>) -> FlowData {
         FlowData {
             node: node,
