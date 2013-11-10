@@ -28,43 +28,43 @@ impl HTMLFrameElement {
 }
 
 impl HTMLFrameElement {
-    pub fn Name(&self) -> Option<DOMString> {
-        None
+    pub fn Name(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Scrolling(&self) -> Option<DOMString> {
-        None
+    pub fn Scrolling(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetScrolling(&mut self, _scrolling: &Option<DOMString>) -> ErrorResult {
+    pub fn SetScrolling(&mut self, _scrolling: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Src(&self) -> Option<DOMString> {
-        None
+    pub fn Src(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetSrc(&mut self, _src: &Option<DOMString>) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FrameBorder(&self) -> Option<DOMString> {
-        None
+    pub fn FrameBorder(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetFrameBorder(&mut self, _frameborder: &Option<DOMString>) -> ErrorResult {
+    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn LongDesc(&self) -> Option<DOMString> {
-        None
+    pub fn LongDesc(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &Option<DOMString>) -> ErrorResult {
+    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -84,19 +84,19 @@ impl HTMLFrameElement {
         None
     }
 
-    pub fn MarginHeight(&self) -> Option<DOMString> {
-        None
+    pub fn MarginHeight(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetMarginHeight(&mut self, _height: &Option<DOMString>) -> ErrorResult {
+    pub fn SetMarginHeight(&mut self, _height: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn MarginWidth(&self) -> Option<DOMString> {
-        None
+    pub fn MarginWidth(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetMarginWidth(&mut self, _height: &Option<DOMString>) -> ErrorResult {
+    pub fn SetMarginWidth(&mut self, _height: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

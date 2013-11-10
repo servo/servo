@@ -273,18 +273,23 @@ pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<Option<DOMString>,
 }
 
 #[fixed_stack_segment]
+pub unsafe fn str_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
+    do string.to_utf16().as_imm_buf |buf, len| {
+        let jsstr = JS_NewUCStringCopyN(cx, buf, len as libc::size_t);
+        if jsstr.is_null() {
+            // FIXME: is there something else we should do on failure?
+            JSVAL_NULL
+        } else {
+            RUST_STRING_TO_JSVAL(jsstr)
+        }
+    }
+}
+
+#[fixed_stack_segment]
 pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &Option<DOMString>) -> JSVal {
     match string {
         &None => JSVAL_NULL,
-        &Some(ref s) => do s.to_utf16().as_imm_buf |buf, len| {
-            let jsstr = JS_NewUCStringCopyN(cx, buf, len as libc::size_t);
-            if jsstr.is_null() {
-                // FIXME: is there something else we should do on failure?
-                JSVAL_NULL
-            } else {
-                RUST_STRING_TO_JSVAL(jsstr)
-            }
-        }
+        &Some(ref s) => str_to_jsval(cx, s),
     }
 }
 

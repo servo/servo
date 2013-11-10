@@ -46,7 +46,7 @@ impl HTMLCollection {
         }
     }
 
-    pub fn NamedItem(&self, _cx: *JSContext, _name: &Option<DOMString>) -> Fallible<*JSObject> {
+    pub fn NamedItem(&self, _cx: *JSContext, _name: &DOMString) -> Fallible<*JSObject> {
         Ok(ptr::null())
     }
 

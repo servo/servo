@@ -51,11 +51,11 @@ impl HTMLVideoElement {
         0
     }
 
-    pub fn Poster(&self) -> Option<DOMString> {
-        None
+    pub fn Poster(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetPoster(&mut self, _poster: &Option<DOMString>) -> ErrorResult {
+    pub fn SetPoster(&mut self, _poster: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

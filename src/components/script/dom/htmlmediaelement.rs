@@ -20,39 +20,39 @@ impl HTMLMediaElement {
 }
 
 impl HTMLMediaElement {
-    pub fn Src(&self) -> Option<DOMString> {
-        None
+    pub fn Src(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetSrc(&mut self, _src: &Option<DOMString>) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CurrentSrc(&self) -> Option<DOMString> {
-        None
+    pub fn CurrentSrc(&self) -> DOMString {
+        ~""
     }
 
-    pub fn CrossOrigin(&self) -> Option<DOMString> {
-        None
+    pub fn CrossOrigin(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: &Option<DOMString>) -> ErrorResult {
+    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Preload(&self) -> Option<DOMString> {
-        None
+    pub fn Preload(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetPreload(&mut self, _preload: &Option<DOMString>) -> ErrorResult {
+    pub fn SetPreload(&mut self, _preload: &DOMString) -> ErrorResult {
         Ok(())
     }
 
     pub fn Load(&self) {
     }
 
-    pub fn CanPlayType(&self, _type: &Option<DOMString>) -> Option<DOMString> {
-        None
+    pub fn CanPlayType(&self, _type: &DOMString) -> DOMString {
+        ~""
     }
 
     pub fn ReadyState(&self) -> u16 {

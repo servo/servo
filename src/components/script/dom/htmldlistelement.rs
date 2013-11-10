@@ -35,11 +35,11 @@ impl HTMLDListElement {
         Ok(())
     }
 
-    pub fn Type(&self) -> Option<DOMString> {
-        None
+    pub fn Type(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetType(&mut self, _type: &Option<DOMString>) -> ErrorResult {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

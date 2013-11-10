@@ -35,11 +35,11 @@ impl HTMLOptGroupElement {
         Ok(())
     }
 
-    pub fn Label(&self) -> Option<DOMString> {
-        None
+    pub fn Label(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetLabel(&mut self, _label: &Option<DOMString>) -> ErrorResult {
+    pub fn SetLabel(&mut self, _label: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

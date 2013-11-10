@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLIFrameElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult, null_str_as_empty};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLIframeElementTypeId;
 use dom::htmlelement::HTMLElement;
@@ -77,44 +77,45 @@ impl HTMLIFrameElement {
 }
 
 impl HTMLIFrameElement {
-    pub fn Src(&self) -> Option<DOMString> {
-        None
+    pub fn Src(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetSrc(&mut self, _src: &Option<DOMString>) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Srcdoc(&self) -> Option<DOMString> {
-        None
+    pub fn Srcdoc(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetSrcdoc(&mut self, _srcdoc: &Option<DOMString>) -> ErrorResult {
+    pub fn SetSrcdoc(&mut self, _srcdoc: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> Option<DOMString> {
-        None
+    pub fn Name(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> Option<DOMString> {
-        self.htmlelement.element.GetAttribute(&Some(~"sandbox"))
+    pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
+        match self.htmlelement.element.GetAttribute(&~"sandbox") {
+            Some(s) => s.to_owned(),
+            None => ~"",
+        }
     }
 
-    pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: &Option<DOMString>) {
-        self.htmlelement.element.SetAttribute(abstract_self, &Some(~"sandbox"), sandbox);
+    pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: &DOMString) {
+        self.htmlelement.element.SetAttribute(abstract_self, &~"sandbox", sandbox);
     }
 
-    pub fn AfterSetAttr(&mut self, name: &Option<DOMString>, value: &Option<DOMString>) {
-        let name = null_str_as_empty(name);
-        if "sandbox" == name {
+    pub fn AfterSetAttr(&mut self, name: &DOMString, value: &DOMString) {
+        if "sandbox" == *name {
             let mut modes = AllowNothing as u8;
-            let words = null_str_as_empty(value);
-            for word in words.split_iter(' ') {
+            for word in value.split_iter(' ') {
                 modes |= match word.to_ascii_lower().as_slice() {
                     "allow-same-origin" => AllowSameOrigin,
                     "allow-forms" => AllowForms,
@@ -137,19 +138,19 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn Width(&self) -> Option<DOMString> {
-        None
+    pub fn Width(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetWidth(&mut self, _width: &Option<DOMString>) -> ErrorResult {
+    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> Option<DOMString> {
-        None
+    pub fn Height(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetHeight(&mut self, _height: &Option<DOMString>) -> ErrorResult {
+    pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -161,51 +162,51 @@ impl HTMLIFrameElement {
         None
     }
 
-    pub fn Align(&self) -> Option<DOMString> {
-        None
+    pub fn Align(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetAlign(&mut self, _align: &Option<DOMString>) -> ErrorResult {
+    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Scrolling(&self) -> Option<DOMString> {
-        None
+    pub fn Scrolling(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetScrolling(&mut self, _scrolling: &Option<DOMString>) -> ErrorResult {
+    pub fn SetScrolling(&mut self, _scrolling: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FrameBorder(&self) -> Option<DOMString> {
-        None
+    pub fn FrameBorder(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetFrameBorder(&mut self, _frameborder: &Option<DOMString>) -> ErrorResult {
+    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn LongDesc(&self) -> Option<DOMString> {
-        None
+    pub fn LongDesc(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &Option<DOMString>) -> ErrorResult {
+    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn MarginHeight(&self) -> Option<DOMString> {
-        None
+    pub fn MarginHeight(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetMarginHeight(&mut self, _marginheight: &Option<DOMString>) -> ErrorResult {
+    pub fn SetMarginHeight(&mut self, _marginheight: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn MarginWidth(&self) -> Option<DOMString> {
-        None
+    pub fn MarginWidth(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetMarginWidth(&mut self, _marginwidth: &Option<DOMString>) -> ErrorResult {
+    pub fn SetMarginWidth(&mut self, _marginwidth: &DOMString) -> ErrorResult {
         Ok(())
     }
 

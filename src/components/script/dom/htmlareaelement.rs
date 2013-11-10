@@ -27,59 +27,59 @@ impl HTMLAreaElement {
 }
 
 impl HTMLAreaElement {
-    pub fn Alt(&self) -> Option<DOMString> {
-        None
+    pub fn Alt(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetAlt(&self, _alt: &Option<DOMString>) -> ErrorResult {
+    pub fn SetAlt(&self, _alt: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Coords(&self) -> Option<DOMString> {
-        None
+    pub fn Coords(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetCoords(&self, _coords: &Option<DOMString>) -> ErrorResult {
+    pub fn SetCoords(&self, _coords: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Shape(&self) -> Option<DOMString> {
-        None
+    pub fn Shape(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetShape(&self, _shape: &Option<DOMString>) -> ErrorResult {
+    pub fn SetShape(&self, _shape: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Href(&self) -> Option<DOMString> {
-        None
+    pub fn Href(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetHref(&self, _href: &Option<DOMString>) -> ErrorResult {
+    pub fn SetHref(&self, _href: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Target(&self) -> Option<DOMString> {
-        None
+    pub fn Target(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetTarget(&self, _target: &Option<DOMString>) -> ErrorResult {
+    pub fn SetTarget(&self, _target: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Download(&self) -> Option<DOMString> {
-        None
+    pub fn Download(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetDownload(&self, _download: &Option<DOMString>) -> ErrorResult {
+    pub fn SetDownload(&self, _download: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Ping(&self) -> Option<DOMString> {
-        None
+    pub fn Ping(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetPing(&self, _ping: &Option<DOMString>) -> ErrorResult {
+    pub fn SetPing(&self, _ping: &DOMString) -> ErrorResult {
         Ok(())
     }
 

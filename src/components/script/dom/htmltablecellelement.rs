@@ -36,11 +36,11 @@ impl HTMLTableCellElement {
         Ok(())
     }
 
-    pub fn Headers(&self) -> Option<DOMString> {
-        None
+    pub fn Headers(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetHeaders(&self, _headers: &Option<DOMString>) -> ErrorResult {
+    pub fn SetHeaders(&self, _headers: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -52,67 +52,67 @@ impl HTMLTableCellElement {
         Ok(())
     }
 
-    pub fn Abbr(&self) -> Option<DOMString> {
-        None
+    pub fn Abbr(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetAbbr(&self, _abbr: &Option<DOMString>) -> ErrorResult {
+    pub fn SetAbbr(&self, _abbr: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Scope(&self) -> Option<DOMString> {
-        None
+    pub fn Scope(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetScope(&self, _abbr: &Option<DOMString>) -> ErrorResult {
+    pub fn SetScope(&self, _abbr: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Align(&self) -> Option<DOMString> {
-        None
+    pub fn Align(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetAlign(&self, _align: &Option<DOMString>) -> ErrorResult {
+    pub fn SetAlign(&self, _align: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Axis(&self) -> Option<DOMString> {
-        None
+    pub fn Axis(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetAxis(&self, _axis: &Option<DOMString>) -> ErrorResult {
+    pub fn SetAxis(&self, _axis: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> Option<DOMString> {
-        None
+    pub fn Height(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetHeight(&self, _height: &Option<DOMString>) -> ErrorResult {
+    pub fn SetHeight(&self, _height: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> Option<DOMString> {
-        None
+    pub fn Width(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetWidth(&self, _width: &Option<DOMString>) -> ErrorResult {
+    pub fn SetWidth(&self, _width: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Ch(&self) -> Option<DOMString> {
-        None
+    pub fn Ch(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetCh(&self, _ch: &Option<DOMString>) -> ErrorResult {
+    pub fn SetCh(&self, _ch: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ChOff(&self) -> Option<DOMString> {
-        None
+    pub fn ChOff(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetChOff(&self, _ch_off: &Option<DOMString>) -> ErrorResult {
+    pub fn SetChOff(&self, _ch_off: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -124,19 +124,19 @@ impl HTMLTableCellElement {
         Ok(())
     }
 
-    pub fn VAlign(&self) -> Option<DOMString> {
-        None
+    pub fn VAlign(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetVAlign(&self, _valign: &Option<DOMString>) -> ErrorResult {
+    pub fn SetVAlign(&self, _valign: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn BgColor(&self) -> Option<DOMString> {
-        None
+    pub fn BgColor(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetBgColor(&self, _bg_color: &Option<DOMString>) -> ErrorResult {
+    pub fn SetBgColor(&self, _bg_color: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

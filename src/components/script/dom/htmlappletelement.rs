@@ -27,51 +27,51 @@ impl HTMLAppletElement {
 }
 
 impl HTMLAppletElement {
-    pub fn Align(&self) -> Option<DOMString> {
-        None
+    pub fn Align(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetAlign(&mut self, _align: &Option<DOMString>) -> ErrorResult {
+    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Alt(&self) -> Option<DOMString> {
-        None
+    pub fn Alt(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetAlt(&self, _alt: &Option<DOMString>) -> ErrorResult {
+    pub fn SetAlt(&self, _alt: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Archive(&self) -> Option<DOMString> {
-        None
+    pub fn Archive(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetArchive(&self, _archive: &Option<DOMString>) -> ErrorResult {
+    pub fn SetArchive(&self, _archive: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Code(&self) -> Option<DOMString> {
-        None
+    pub fn Code(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetCode(&self, _code: &Option<DOMString>) -> ErrorResult {
+    pub fn SetCode(&self, _code: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CodeBase(&self) -> Option<DOMString> {
-        None
+    pub fn CodeBase(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetCodeBase(&self, _code_base: &Option<DOMString>) -> ErrorResult {
+    pub fn SetCodeBase(&self, _code_base: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> Option<DOMString> {
-        None
+    pub fn Height(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetHeight(&self, _height: &Option<DOMString>) -> ErrorResult {
+    pub fn SetHeight(&self, _height: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -83,19 +83,19 @@ impl HTMLAppletElement {
         Ok(())
     }
 
-    pub fn Name(&self) -> Option<DOMString> {
-        None
+    pub fn Name(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Object(&self) -> Option<DOMString> {
-        None
+    pub fn Object(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetObject(&mut self, _object: &Option<DOMString>) -> ErrorResult {
+    pub fn SetObject(&mut self, _object: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -107,11 +107,11 @@ impl HTMLAppletElement {
         Ok(())
     }
 
-    pub fn Width(&self) -> Option<DOMString> {
-        None
+    pub fn Width(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetWidth(&mut self, _width: &Option<DOMString>) -> ErrorResult {
+    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

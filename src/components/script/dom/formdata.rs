@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::{DOMString, null_str_as_empty};
+use dom::bindings::utils::DOMString;
 use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
 use dom::window::Window;
@@ -11,8 +11,8 @@ use dom::window::Window;
 use std::hashmap::HashMap;
 
 enum FormDatum {
-    StringData(Option<DOMString>),
-    BlobData { blob: @mut Blob, name: Option<DOMString> }
+    StringData(DOMString),
+    BlobData { blob: @mut Blob, name: DOMString }
 }
 
 pub struct FormData {
@@ -34,16 +34,16 @@ impl FormData {
         reflect_dom_object(@mut FormData::new_inherited(window), window, FormDataBinding::Wrap)
     }
 
-    pub fn Append(&mut self, name: &Option<DOMString>, value: @mut Blob, filename: Option<Option<DOMString>>) {
+    pub fn Append(&mut self, name: &DOMString, value: @mut Blob, filename: Option<DOMString>) {
         let blob = BlobData {
             blob: value,
-            name: filename.unwrap_or(Some(~"default"))
+            name: filename.unwrap_or(~"default")
         };
-        self.data.insert(null_str_as_empty(name), blob);
+        self.data.insert(name.clone(), blob);
     }
 
-    pub fn Append_(&mut self, name: &Option<DOMString>, value: &Option<DOMString>) {
-        self.data.insert(null_str_as_empty(name), StringData((*value).clone()));
+    pub fn Append_(&mut self, name: &DOMString, value: &DOMString) {
+        self.data.insert(name.clone(), StringData((*value).clone()));
     }
 }
 

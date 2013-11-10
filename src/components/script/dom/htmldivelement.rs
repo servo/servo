@@ -27,11 +27,11 @@ impl HTMLDivElement {
 }
 
 impl HTMLDivElement {
-    pub fn Align(&self) -> Option<DOMString> {
-        None
+    pub fn Align(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetAlign(&mut self, _align: &Option<DOMString>) -> ErrorResult {
+    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

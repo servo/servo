@@ -6,7 +6,7 @@ use dom::eventtarget::AbstractEventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible, null_str_as_word_null};
+use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::mouseevent::MouseEvent;
 use dom::uievent::UIEvent;
 
@@ -181,8 +181,8 @@ impl Event {
         self.phase as u16
     }
 
-    pub fn Type(&self) -> Option<DOMString> {
-        Some(self.type_.clone())
+    pub fn Type(&self) -> DOMString {
+        self.type_.clone()
     }
 
     pub fn GetTarget(&self) -> Option<AbstractEventTarget> {
@@ -225,10 +225,10 @@ impl Event {
     }
 
     pub fn InitEvent(&mut self,
-                     type_: &Option<DOMString>,
+                     type_: &DOMString,
                      bubbles: bool,
                      cancelable: bool) -> ErrorResult {
-        self.type_ = null_str_as_word_null(type_);
+        self.type_ = type_.clone();
         self.cancelable = cancelable;
         self.bubbles = bubbles;
         self.initialized = true;
@@ -240,7 +240,7 @@ impl Event {
     }
 
     pub fn Constructor(global: @mut Window,
-                       type_: &Option<DOMString>,
+                       type_: &DOMString,
                        init: &EventBinding::EventInit) -> Fallible<AbstractEvent> {
         let ev = Event::new(global, HTMLEventTypeId);
         ev.mut_event().InitEvent(type_, init.bubbles, init.cancelable);

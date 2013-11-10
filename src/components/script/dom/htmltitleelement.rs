@@ -27,11 +27,11 @@ impl HTMLTitleElement {
 }
 
 impl HTMLTitleElement {
-    pub fn Text(&self) -> Option<DOMString> {
-        None
+    pub fn Text(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetText(&mut self, _text: &Option<DOMString>) -> ErrorResult {
+    pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

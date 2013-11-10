@@ -27,35 +27,35 @@ impl HTMLParamElement {
 }
 
 impl HTMLParamElement {
-    pub fn Name(&self) -> Option<DOMString> {
-        None
+    pub fn Name(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Value(&self) -> Option<DOMString> {
-        None
+    pub fn Value(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetValue(&mut self, _value: &Option<DOMString>) -> ErrorResult {
+    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> Option<DOMString> {
-        None
+    pub fn Type(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetType(&mut self, _type: &Option<DOMString>) -> ErrorResult {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ValueType(&self) -> Option<DOMString> {
-        None
+    pub fn ValueType(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetValueType(&mut self, _value_type: &Option<DOMString>) -> ErrorResult {
+    pub fn SetValueType(&mut self, _value_type: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

@@ -35,43 +35,43 @@ impl HTMLTableColElement {
         Ok(())
     }
 
-    pub fn Align(&self) -> Option<DOMString> {
-        None
+    pub fn Align(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetAlign(&mut self, _align: &Option<DOMString>) -> ErrorResult {
+    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Ch(&self) -> Option<DOMString> {
-        None
+    pub fn Ch(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetCh(&mut self, _ch: &Option<DOMString>) -> ErrorResult {
+    pub fn SetCh(&mut self, _ch: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ChOff(&self) -> Option<DOMString> {
-        None
+    pub fn ChOff(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetChOff(&mut self, _ch_off: &Option<DOMString>) -> ErrorResult {
+    pub fn SetChOff(&mut self, _ch_off: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn VAlign(&self) -> Option<DOMString> {
-        None
+    pub fn VAlign(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetVAlign(&mut self, _v_align: &Option<DOMString>) -> ErrorResult {
+    pub fn SetVAlign(&mut self, _v_align: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> Option<DOMString> {
-        None
+    pub fn Width(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetWidth(&mut self, _width: &Option<DOMString>) -> ErrorResult {
+    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

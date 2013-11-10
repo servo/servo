@@ -27,11 +27,11 @@ impl HTMLBRElement {
 }
 
 impl HTMLBRElement {
-    pub fn Clear(&self) -> Option<DOMString> {
-        None
+    pub fn Clear(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetClear(&mut self, _text: &Option<DOMString>) -> ErrorResult {
+    pub fn SetClear(&mut self, _text: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

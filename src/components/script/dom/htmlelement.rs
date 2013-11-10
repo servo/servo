@@ -28,25 +28,25 @@ impl HTMLElement {
 }
 
 impl HTMLElement {
-    pub fn Title(&self) -> Option<DOMString> {
-        None
+    pub fn Title(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetTitle(&mut self, _title: &Option<DOMString>) {
+    pub fn SetTitle(&mut self, _title: &DOMString) {
     }
 
-    pub fn Lang(&self) -> Option<DOMString> {
-        None
+    pub fn Lang(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetLang(&mut self, _lang: &Option<DOMString>) {
+    pub fn SetLang(&mut self, _lang: &DOMString) {
     }
 
-    pub fn Dir(&self) -> Option<DOMString> {
-        None
+    pub fn Dir(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetDir(&mut self, _dir: &Option<DOMString>) -> ErrorResult {
+    pub fn SetDir(&mut self, _dir: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -85,16 +85,16 @@ impl HTMLElement {
         Ok(())
     }
 
-    pub fn AccessKey(&self) -> Option<DOMString> {
-        None
+    pub fn AccessKey(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetAccessKey(&self, _key: &Option<DOMString>) -> ErrorResult {
+    pub fn SetAccessKey(&self, _key: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn AccessKeyLabel(&self) -> Option<DOMString> {
-        None
+    pub fn AccessKeyLabel(&self) -> DOMString {
+        ~""
     }
 
     pub fn Draggable(&self) -> bool {
@@ -105,11 +105,11 @@ impl HTMLElement {
         Ok(())
     }
 
-    pub fn ContentEditable(&self) -> Option<DOMString> {
-        None
+    pub fn ContentEditable(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetContentEditable(&mut self, _val: &Option<DOMString>) -> ErrorResult {
+    pub fn SetContentEditable(&mut self, _val: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -125,11 +125,11 @@ impl HTMLElement {
         Ok(())
     }
 
-    pub fn ClassName(&self) -> Option<DOMString> {
-        None
+    pub fn ClassName(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetClassName(&self, _class: &Option<DOMString>) {
+    pub fn SetClassName(&self, _class: &DOMString) {
     }
 
     pub fn GetOffsetParent(&self) -> Option<AbstractNode<ScriptView>> {

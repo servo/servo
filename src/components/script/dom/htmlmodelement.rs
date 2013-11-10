@@ -27,19 +27,19 @@ impl HTMLModElement {
 }
 
 impl HTMLModElement {
-    pub fn Cite(&self) -> Option<DOMString> {
-        None
+    pub fn Cite(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetCite(&mut self, _cite: &Option<DOMString>) -> ErrorResult {
+    pub fn SetCite(&mut self, _cite: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn DateTime(&self) -> Option<DOMString> {
-        None
+    pub fn DateTime(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetDateTime(&mut self, _datetime: &Option<DOMString>) -> ErrorResult {
+    pub fn SetDateTime(&mut self, _datetime: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

@@ -48,27 +48,27 @@ impl HTMLButtonElement {
         None
     }
 
-    pub fn FormAction(&self) -> Option<DOMString> {
-        None
+    pub fn FormAction(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetFormAction(&mut self, _formaction: &Option<DOMString>) -> ErrorResult {
+    pub fn SetFormAction(&mut self, _formaction: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FormEnctype(&self) -> Option<DOMString> {
-        None
+    pub fn FormEnctype(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetFormEnctype(&mut self, _formenctype: &Option<DOMString>) -> ErrorResult {
+    pub fn SetFormEnctype(&mut self, _formenctype: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FormMethod(&self) -> Option<DOMString> {
-        None
+    pub fn FormMethod(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetFormMethod(&mut self, _formmethod: &Option<DOMString>) -> ErrorResult {
+    pub fn SetFormMethod(&mut self, _formmethod: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -80,35 +80,35 @@ impl HTMLButtonElement {
         Ok(())
     }
 
-    pub fn FormTarget(&self) -> Option<DOMString> {
-        None
+    pub fn FormTarget(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetFormTarget(&mut self, _formtarget: &Option<DOMString>) -> ErrorResult {
+    pub fn SetFormTarget(&mut self, _formtarget: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> Option<DOMString> {
-        None
+    pub fn Name(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetName(&mut self, _name: &Option<DOMString>) -> ErrorResult {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
         Ok(())
     }
     
-    pub fn Type(&self) -> Option<DOMString> {
-        None
+    pub fn Type(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetType(&mut self, _type: &Option<DOMString>) -> ErrorResult {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Value(&self) -> Option<DOMString> {
-        None
+    pub fn Value(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetValue(&mut self, _value: &Option<DOMString>) -> ErrorResult {
+    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -127,11 +127,11 @@ impl HTMLButtonElement {
     pub fn SetValidity(&mut self, _validity: @mut ValidityState) {
     }
 
-    pub fn ValidationMessage(&self) -> Option<DOMString> {
-        None
+    pub fn ValidationMessage(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetValidationMessage(&mut self, _message: &Option<DOMString>) -> ErrorResult {
+    pub fn SetValidationMessage(&mut self, _message: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -139,6 +139,6 @@ impl HTMLButtonElement {
         true
     }
 
-    pub fn SetCustomValidity(&mut self, _error: &Option<DOMString>) {
+    pub fn SetCustomValidity(&mut self, _error: &DOMString) {
     }
 }

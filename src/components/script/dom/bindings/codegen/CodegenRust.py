@@ -1066,9 +1066,6 @@ for (uint32_t i = 0; i < length; ++i) {
 
         def getConversionCode(varName, isOptional=False):
             strval = "strval"
-            if not type.nullable():
-                # XXX #1207 Actually pass non-nullable strings to callees.
-                strval = "Some(%s)" % strval
             if isOptional:
                 strval = "Some(%s)" % strval
             if type.nullable():
@@ -1092,7 +1089,7 @@ for (uint32_t i = 0; i < length; ++i) {
             return handleDefault(
                 conversionCode,
                 ("static data: [u8, ..%s] = [ %s ];\n"
-                 "%s = Some(str::from_utf8(data));" %
+                 "%s = str::from_utf8(data)" %
                  (len(defaultValue.value) + 1,
                   ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
                   varName)))
@@ -1109,12 +1106,14 @@ for (uint32_t i = 0; i < length; ++i) {
                 "}\n" % CGIndenter(CGGeneric(getConversionCode("str"))).define(),
                 declType, None, isOptional, None)
 
+        declType = "DOMString"
+        initialValue = None
+        if type.nullable():
+            declType = "Option<%s>" % declType
+
         if isOptional:
-            declType = "Option<Option<DOMString>>"
+            declType = "Option<%s>" % declType
             initialValue = "None"
-        else:
-            declType = "Option<DOMString>"
-            initialValue = None
 
         return (
             "%s\n" %
@@ -1587,8 +1586,7 @@ for (uint32_t i = 0; i < length; ++i) {
         if type.nullable():
             return (wrapAndSetPtr("*${jsvalPtr} = domstring_to_jsval(cx, &%s)" % result), False)
         else:
-            #XXXjdm Can we be smarter when we know it's not nullable?
-            return (wrapAndSetPtr("*${jsvalPtr} = domstring_to_jsval(cx, &%s)" % result), False)
+            return (wrapAndSetPtr("*${jsvalPtr} = str_to_jsval(cx, &%s)" % result), False)
 
     if type.isEnum():
         if type.nullable():
@@ -1722,7 +1720,10 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
             result = CGWrapper(result, pre="Nullable<", post=">")
         return result, False
     if returnType.isString():
-        return CGGeneric("Option<DOMString>"), False
+        result = CGGeneric("DOMString")
+        if returnType.nullable():
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result, False
     if returnType.isEnum():
         if returnType.nullable():
             raise TypeError("We don't support nullable enum return values")

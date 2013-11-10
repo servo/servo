@@ -27,11 +27,11 @@ impl HTMLHtmlElement {
 }
 
 impl HTMLHtmlElement {
-    pub fn Version(&self) -> Option<DOMString> {
-        None
+    pub fn Version(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetVersion(&mut self, _version: &Option<DOMString>) -> ErrorResult {
+    pub fn SetVersion(&mut self, _version: &DOMString) -> ErrorResult {
         Ok(())
     }
 }

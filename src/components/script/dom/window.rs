@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::WindowBinding;
-use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::utils::{DOMString, null_str_as_empty, Traceable};
+use dom::bindings::utils::{Reflectable, Reflector, Traceable};
+use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::eventtarget::{EventTarget, WindowTypeId};
 use dom::node::{AbstractNode, ScriptView};
@@ -72,9 +72,9 @@ pub struct TimerData {
 }
 
 impl Window {
-    pub fn Alert(&self, s: &Option<DOMString>) {
+    pub fn Alert(&self, s: &DOMString) {
         // Right now, just print to the console
-        println(format!("ALERT: {:s}", null_str_as_empty(s)));
+        println(format!("ALERT: {:s}", *s));
     }
 
     pub fn Close(&self) {
@@ -85,18 +85,18 @@ impl Window {
         self.page.frame.unwrap().document
     }
 
-    pub fn Name(&self) -> Option<DOMString> {
-        None
+    pub fn Name(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetName(&self, _name: &Option<DOMString>) {
+    pub fn SetName(&self, _name: &DOMString) {
     }
 
-    pub fn Status(&self) -> Option<DOMString> {
-        None
+    pub fn Status(&self) -> DOMString {
+        ~""
     }
 
-    pub fn SetStatus(&self, _status: &Option<DOMString>) {
+    pub fn SetStatus(&self, _status: &DOMString) {
     }
 
     pub fn Closed(&self) -> bool {
@@ -123,18 +123,18 @@ impl Window {
         self.navigator.unwrap()
     }
 
-    pub fn Confirm(&self, _message: &Option<DOMString>) -> bool {
+    pub fn Confirm(&self, _message: &DOMString) -> bool {
         false
     }
 
-    pub fn Prompt(&self, _message: &Option<DOMString>, _default: &Option<DOMString>) -> Option<DOMString> {
+    pub fn Prompt(&self, _message: &DOMString, _default: &DOMString) -> Option<DOMString> {
         None
     }
 
     pub fn Print(&self) {
     }
 
-    pub fn ShowModalDialog(&self, _cx: *JSContext, _url: &Option<DOMString>, _argument: JSVal) -> JSVal {
+    pub fn ShowModalDialog(&self, _cx: *JSContext, _url: &DOMString, _argument: JSVal) -> JSVal {
         JSVAL_NULL
     }
 }

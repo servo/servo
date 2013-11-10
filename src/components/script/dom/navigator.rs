@@ -22,32 +22,32 @@ impl Navigator {
         reflect_dom_object(@mut Navigator::new_inherited(), window, NavigatorBinding::Wrap)
     }
 
-    pub fn DoNotTrack(&self) -> Option<DOMString> {
-        Some(~"unspecified")
+    pub fn DoNotTrack(&self) -> DOMString {
+        ~"unspecified"
     }
 
-    pub fn Vendor(&self) -> Option<DOMString> {
-        Some(~"") // Like Gecko
+    pub fn Vendor(&self) -> DOMString {
+        ~"" // Like Gecko
     }
 
-    pub fn VendorSub(&self) -> Option<DOMString> {
-        Some(~"") // Like Gecko
+    pub fn VendorSub(&self) -> DOMString {
+        ~"" // Like Gecko
     }
 
-    pub fn Product(&self) -> Option<DOMString> {
-        Some(~"Gecko") // This is supposed to be constant, see webidl.
+    pub fn Product(&self) -> DOMString {
+        ~"Gecko"
     }
 
-    pub fn ProductSub(&self) -> Option<DOMString> {
-        None
+    pub fn ProductSub(&self) -> DOMString {
+        ~""
     }
 
     pub fn CookieEnabled(&self) -> bool {
         false
     }
 
-    pub fn GetBuildID(&self) -> Fallible<Option<DOMString>> {
-        Ok(None)
+    pub fn GetBuildID(&self) -> Fallible<DOMString> {
+        Ok(~"")
     }
 
     pub fn JavaEnabled(&self) -> Fallible<bool> {
@@ -58,24 +58,24 @@ impl Navigator {
         false
     }
 
-    pub fn AppName(&self) -> Option<DOMString> {
-        Some(~"Netscape") // Like Gecko/Webkit
+    pub fn AppName(&self) -> DOMString {
+        ~"Netscape" // Like Gecko/Webkit
     }
 
-    pub fn GetAppCodeName(&self) -> Fallible<Option<DOMString>> {
-        Ok(Some(~"Mozilla")) // Like Gecko/Webkit
+    pub fn GetAppCodeName(&self) -> Fallible<DOMString> {
+        Ok(~"Mozilla") // Like Gecko/Webkit
     }
 
-    pub fn GetAppVersion(&self) -> Fallible<Option<DOMString>> {
-        Ok(None)
+    pub fn GetAppVersion(&self) -> Fallible<DOMString> {
+        Ok(~"")
     }
 
-    pub fn GetPlatform(&self) -> Fallible<Option<DOMString>> {
-        Ok(None)
+    pub fn GetPlatform(&self) -> Fallible<DOMString> {
+        Ok(~"")
     }
 
-    pub fn GetUserAgent(&self) -> Fallible<Option<DOMString>> {
-        Ok(None)
+    pub fn GetUserAgent(&self) -> Fallible<DOMString> {
+        Ok(~"")
     }
 
     pub fn GetLanguage(&self) -> Option<DOMString> {

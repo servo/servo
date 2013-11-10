@@ -22,12 +22,12 @@ impl CharacterData {
         }
     }
     
-    pub fn Data(&self) -> Option<DOMString> {
-        Some(self.data.clone())
+    pub fn Data(&self) -> DOMString {
+        self.data.clone()
     }
 
-    pub fn SetData(&mut self, arg: &Option<DOMString>) -> ErrorResult {
-        self.data = arg.get_ref().clone();
+    pub fn SetData(&mut self, arg: &DOMString) -> ErrorResult {
+        self.data = arg.clone();
         Ok(())
     }
 
@@ -35,16 +35,16 @@ impl CharacterData {
         self.data.len() as u32
     }
 
-    pub fn SubstringData(&self, offset: u32, count: u32) -> Fallible<Option<DOMString>> {
-        Ok(Some(self.data.slice(offset as uint, count as uint).to_str()))
+    pub fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
+        Ok(self.data.slice(offset as uint, count as uint).to_str())
     }
 
-    pub fn AppendData(&mut self, arg: &Option<DOMString>) -> ErrorResult {
-        self.data.push_str(arg.get_ref().clone());
+    pub fn AppendData(&mut self, arg: &DOMString) -> ErrorResult {
+        self.data.push_str(*arg);
         Ok(())
     }
 
-    pub fn InsertData(&mut self, _offset: u32, _arg: &Option<DOMString>) -> ErrorResult {
+    pub fn InsertData(&mut self, _offset: u32, _arg: &DOMString) -> ErrorResult {
         fail!("CharacterData::InsertData() is unimplemented")
     }
 
@@ -52,7 +52,7 @@ impl CharacterData {
         fail!("CharacterData::DeleteData() is unimplemented")
     }
 
-    pub fn ReplaceData(&mut self, _offset: u32, _count: u32, _arg: &Option<DOMString>) -> ErrorResult {
+    pub fn ReplaceData(&mut self, _offset: u32, _count: u32, _arg: &DOMString) -> ErrorResult {
         fail!("CharacterData::ReplaceData() is unimplemented")
     }
 }

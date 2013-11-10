@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::AttrBinding;
 use dom::bindings::utils::{Reflectable, Reflector, DOMString};
-use dom::bindings::utils::{reflect_dom_object, null_str_as_empty};
+use dom::bindings::utils::reflect_dom_object;
 use dom::namespace::{Namespace, Null};
 use dom::window::Window;
 
@@ -69,20 +69,20 @@ impl Attr {
         }
     }
 
-    pub fn LocalName(&self) -> Option<DOMString> {
-        Some(self.local_name().to_owned())
+    pub fn LocalName(&self) -> DOMString {
+        self.local_name().to_owned()
     }
 
-    pub fn Value(&self) -> Option<DOMString> {
-        Some(self.value.clone())
+    pub fn Value(&self) -> DOMString {
+        self.value.clone()
     }
 
-    pub fn SetValue(&mut self, value: &Option<DOMString>) {
-        self.value = null_str_as_empty(value);
+    pub fn SetValue(&mut self, value: &DOMString) {
+        self.value = value.clone();
     }
 
-    pub fn Name(&self) -> Option<DOMString> {
-        Some(self.name.clone())
+    pub fn Name(&self) -> DOMString {
+        self.name.clone()
     }
 
     pub fn GetNamespaceURI(&self) -> Option<DOMString> {
