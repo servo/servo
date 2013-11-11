@@ -9,12 +9,14 @@ use dom::node::AbstractNode;
 use servo_util::tree::{TreeNodeRef};
 
 // See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
-pub fn dispatch_event(target: AbstractEventTarget, event: AbstractEvent) -> bool {
+pub fn dispatch_event(target: AbstractEventTarget,
+                      pseudo_target: Option<AbstractEventTarget>,
+                      event: AbstractEvent) -> bool {
     assert!(!event.event().dispatching);
 
     {
         let event = event.mut_event();
-        event.target = Some(target);
+        event.target = Some(pseudo_target.unwrap_or(target));
         event.dispatching = true;
     }
 
