@@ -443,7 +443,6 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     invalidEnumValueFatal=True,
                                     defaultValue=None,
                                     treatNullAs="Default",
-                                    treatUndefinedAs="Default",
                                     isEnforceRange=False,
                                     isClamp=False,
                                     exceptionCode=None,
@@ -1058,37 +1057,31 @@ for (uint32_t i = 0; i < length; ++i) {
         assert not isEnforceRange and not isClamp
 
         treatAs = {
-            "Default": "eStringify",
-            "EmptyString": "eEmpty",
-            "Null": "eNull"
+            "Default": "Default",
+            "EmptyString": "Empty",
         }
-        if type.nullable():
-            # For nullable strings null becomes a null string.
-            treatNullAs = "Null"
-            # For nullable strings undefined becomes a null string unless
-            # specified otherwise.
-            if treatUndefinedAs == "Default":
-                treatUndefinedAs = "Null"
+        if treatNullAs not in treatAs:
+            raise TypeError("We don't support [TreatNullAs=%s]" % treatNullAs)
         nullBehavior = treatAs[treatNullAs]
-        if treatUndefinedAs == "Missing":
-            raise TypeError("We don't support [TreatUndefinedAs=Missing]")
-        undefinedBehavior = treatAs[treatUndefinedAs]
 
         def getConversionCode(varName, isOptional=False):
-            #XXXjdm support nullBehavior and undefinedBehavior
-            #conversionCode = (
-            #    "if (!ConvertJSValueToString(cx, ${val}, ${valPtr}, %s, %s, %s)) {\n"
-            #    "  return false;\n"
-            #    "}" % (nullBehavior, undefinedBehavior, varName))
-            strval = "Some(strval.unwrap())"
+            strval = "strval"
+            if not type.nullable():
+                # XXX #1207 Actually pass non-nullable strings to callees.
+                strval = "Some(%s)" % strval
             if isOptional:
                 strval = "Some(%s)" % strval
+            if type.nullable():
+                call = "jsval_to_domstring(cx, ${val})"
+            else:
+                call = "jsval_to_str(cx, ${val}, %s)" % nullBehavior
             conversionCode = (
-                "let strval = jsval_to_str(cx, ${val});\n"
+                "let strval = %s;\n"
                 "if strval.is_err() {\n"
                 "  return 0;\n"
                 "}\n"
-                "%s = %s;" % (varName, strval))
+                "let strval = strval.unwrap();\n"
+                "%s = %s;" % (call, varName, strval))
             if defaultValue is None:
                 return conversionCode
 
@@ -1456,7 +1449,6 @@ class CGArgumentConverter(CGThing):
                                             invalidEnumValueFatal=self.invalidEnumValueFatal,
                                             defaultValue=self.argument.defaultValue,
                                             treatNullAs=self.argument.treatNullAs,
-                                            treatUndefinedAs=self.argument.treatUndefinedAs,
                                             isEnforceRange=self.argument.enforceRange,
                                             isClamp=self.argument.clamp),
             self.replacementVariables,
@@ -3189,7 +3181,6 @@ class FakeArgument():
         self.variadic = False
         self.defaultValue = None
         self.treatNullAs = interfaceMember.treatNullAs
-        self.treatUndefinedAs = interfaceMember.treatUndefinedAs
         self.enforceRange = False
         self.clamp = False
 
@@ -4089,8 +4080,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             # arguments[0] is the index or name of the item that we're setting.
             argument = arguments[1]
             template = getJSToNativeConversionTemplate(argument.type, descriptor,
-                                                       treatNullAs=argument.treatNullAs,
-                                                       treatUndefinedAs=argument.treatUndefinedAs)
+                                                       treatNullAs=argument.treatNullAs)
             templateValues = {
                 "declName": argument.identifier.name,
                 "holderName": argument.identifier.name + "_holder",
@@ -4231,16 +4221,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             # properties that shadow prototype properties.
             namedGet = ("\n" +
                         "if set == 0 && RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
-                        "  let nameVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
-                        "  //FakeDependentString name;\n"
-                        "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
-                        "  //                            eStringify, eStringify, name)) {\n" +
-                        "  let strval = jsval_to_str(cx, nameVal);\n" +
-                        "  if strval.is_err() {\n" +
-                        "    return 0;\n" +
-                        "  }\n" +
-                        "  let name = Some(strval.unwrap());\n" +
-                        "\n" +
+                        "  let name = Some(jsid_to_str(cx, id));\n" +
                         "  let this: *%s = UnwrapProxy(proxy);\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() + "\n" +
                         "}\n") % (self.descriptor.concreteType)
@@ -4298,33 +4279,14 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         if namedSetter:
             if not self.descriptor.operations['NamedCreator'] is namedSetter:
                 raise TypeError("Can't handle creator that's different from the setter")
-            #XXXjdm need to properly support eStringify
             set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
-                    "  let nameVal: JSVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
-                    "  let strval = jsval_to_str(cx, nameVal);\n" +
-                    "  //FakeDependentString name;\n" +
-                    "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
-                    "  //                            eStringify, eStringify, name)) {\n" +
-                    "  if strval.is_err() {\n" +
-                    "    return 0;\n" +
-                    "  }\n" +
-                    "  let name = Some(strval.unwrap());\n" +
-                    "\n" +
+                    "  let name = Some(jsid_to_str(cx, id));\n" +
                     "  let this: *%s = UnwrapProxy(proxy);\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() + "\n" +
                     "}\n") % (self.descriptor.concreteType)
         elif self.descriptor.operations['NamedGetter']:
             set += ("if RUST_JSID_IS_STRING(id) {\n" +
-                    "  let nameVal: JSVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
-                    "  let strval = jsval_to_str(cx, nameVal);\n" +
-                    "  //FakeDependentString name;\n"
-                    "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
-                    "  //                            eStringify, eStringify, name)) {\n" +
-                    "  let strval = jsval_to_str(cx, nameVal);\n" +
-                    "  if strval.is_err() {\n" +
-                    "    return 0;\n" +
-                    "  }\n" +
-                    "  let name = Some(strval.unwrap());\n" +
+                    "  let name = Some(jsid_to_str(cx, id));\n" +
                     "  let this: %%s = UnwrapProxy(proxy);\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "  if (found) {\n"
@@ -4360,18 +4322,8 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            #XXXjdm support eStringify
             named = ("if RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
-                     "  let nameVal: JSVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
-                     "  let strval = jsval_to_str(cx, nameVal);\n" +
-                     "  //FakeDependentString name;\n"
-                     "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
-                     "  //                            eStringify, eStringify, name)) {\n" +
-                     "  if strval.is_err() {\n" +
-                     "    return 0;\n" +
-                     "  }\n" +
-                     "  let name = Some(strval.unwrap());\n" +
-                     "\n" +
+                     "  let name = Some(jsid_to_str(cx, id));\n" +
                      "  let this: *%s = UnwrapProxy(proxy);\n" +
                      CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +
                      "  *bp = found as JSBool;\n"
@@ -4439,13 +4391,7 @@ if expando.is_not_null() {
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter and False: #XXXjdm unfinished
             getNamed = ("if (JSID_IS_STRING(id)) {\n" +
-                        "  JS::Value nameVal = STRING_TO_JSVAL(JSID_TO_STRING(id));\n" +
-                        "  FakeDependentString name;\n"
-                        "  if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
-                        "                              eStringify, eStringify, name)) {\n" +
-                        "    return false;\n" +
-                        "  }\n" +
-                        "\n" +
+                        "  let name = Some(jsid_to_str(cx, id));\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
                         "}\n") % (self.descriptor.concreteType)
@@ -5736,7 +5682,7 @@ class CGCallbackInterface(CGCallback):
 
 class FakeMember():
     def __init__(self):
-        self.treatUndefinedAs = self.treatNullAs = "Default"
+        self.treatNullAs = "Default"
     def isStatic(self):
         return False
     def isAttr(self):

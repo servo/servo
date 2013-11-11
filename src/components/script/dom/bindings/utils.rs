@@ -29,6 +29,7 @@ use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JS_NewGlobalObject, JS_InitStandardClasses};
+use js::jsapi::{JSString};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
@@ -38,6 +39,32 @@ use js;
 
 static TOSTRING_CLASS_RESERVED_SLOT: libc::size_t = 0;
 static TOSTRING_NAME_RESERVED_SLOT: libc::size_t = 1;
+
+mod jsval {
+    use js::glue::{RUST_JSVAL_IS_NULL, RUST_JSVAL_IS_VOID};
+    use js::glue::{RUST_JSVAL_IS_STRING, RUST_JSVAL_TO_STRING};
+    use js::jsapi::{JSVal, JSString};
+
+    #[fixed_stack_segment]
+    pub fn is_null(v: JSVal) -> bool {
+        unsafe { RUST_JSVAL_IS_NULL(v) == 1 }
+    }
+
+    #[fixed_stack_segment]
+    pub fn is_undefined(v: JSVal) -> bool {
+        unsafe { RUST_JSVAL_IS_VOID(v) == 1 }
+    }
+
+    #[fixed_stack_segment]
+    pub fn is_string(v: JSVal) -> bool {
+        unsafe { RUST_JSVAL_IS_STRING(v) == 1 }
+    }
+
+    #[fixed_stack_segment]
+    pub unsafe fn to_string(v: JSVal) -> *JSString {
+        RUST_JSVAL_TO_STRING(v)
+    }
+}
 
 pub struct GlobalStaticData {
     proxy_handlers: HashMap<uint, *libc::c_void>,
@@ -69,8 +96,6 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
     let v = GetFunctionNativeReserved(callee, TOSTRING_CLASS_RESERVED_SLOT);
     let clasp: *JSClass = cast::transmute(RUST_JSVAL_TO_PRIVATE(*v));
 
-    let v = GetFunctionNativeReserved(callee, TOSTRING_NAME_RESERVED_SLOT);
-
     if GetObjectJSClass(obj) != clasp {
       /*let jsname: *JSString = RUST_JSVAL_TO_STRING(*v);
       let length = 0;
@@ -82,7 +107,9 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
         return 0;
     }
 
-    let name = jsval_to_str(cx, *v).unwrap();
+    let v = *GetFunctionNativeReserved(callee, TOSTRING_NAME_RESERVED_SLOT);
+    assert!(jsval::is_string(v));
+    let name = jsstring_to_str(cx, jsval::to_string(v));
     let retval = Some(~"function " + name + "() {\n    [native code]\n}");
     *vp = domstring_to_jsval(cx, &retval);
     return 1;
@@ -191,24 +218,56 @@ pub unsafe fn squirrel_away<T>(x: @mut T) -> *Box<T> {
     y
 }
 
-//XXX very incomplete
 #[fixed_stack_segment]
-pub fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
+pub fn jsstring_to_str(cx: *JSContext, s: *JSString) -> ~str {
     unsafe {
-        let jsstr;
-        if RUST_JSVAL_IS_STRING(v) == 1 {
-            jsstr = RUST_JSVAL_TO_STRING(v)
-        } else {
-            jsstr = JS_ValueToString(cx, v);
-            if jsstr.is_null() {
-                return Err(());
-            }
-        }
-
         let length = 0;
-        let chars = JS_GetStringCharsAndLength(cx, jsstr, &length);
+        let chars = JS_GetStringCharsAndLength(cx, s, &length);
         do vec::raw::buf_as_slice(chars, length as uint) |char_vec| {
-            Ok(str::from_utf16(char_vec))
+            str::from_utf16(char_vec)
+        }
+    }
+}
+
+#[fixed_stack_segment]
+pub fn jsid_to_str(cx: *JSContext, id: jsid) -> ~str {
+    unsafe {
+        assert!(RUST_JSID_IS_STRING(id) != 0);
+        jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
+    }
+}
+
+#[deriving(Eq)]
+pub enum StringificationBehavior {
+    Default,
+    Empty,
+}
+
+#[fixed_stack_segment]
+pub fn jsval_to_str(cx: *JSContext, v: JSVal,
+                    nullBehavior: StringificationBehavior) -> Result<~str, ()> {
+    if jsval::is_null(v) && nullBehavior == Empty {
+        Ok(~"")
+    } else {
+        let jsstr = unsafe { JS_ValueToString(cx, v) };
+        if jsstr.is_null() {
+            Err(())
+        } else {
+            Ok(jsstring_to_str(cx, jsstr))
+        }
+    }
+}
+
+#[fixed_stack_segment]
+pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<DOMString, ()> {
+    if jsval::is_null(v) || jsval::is_undefined(v) {
+        Ok(None)
+    } else {
+        let jsstr = unsafe { JS_ValueToString(cx, v) };
+        if jsstr.is_null() {
+            Err(())
+        } else {
+            Ok(Some(jsstring_to_str(cx, jsstr)))
         }
     }
 }
