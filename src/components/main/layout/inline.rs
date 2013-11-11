@@ -891,5 +891,9 @@ impl FlowContext for InlineFlow {
             *collapsible = Au::new(0);
         }
     }
+
+    fn debug_str(&self) -> ~str {
+        ~"InlineFlow"
+    }
 }
 
