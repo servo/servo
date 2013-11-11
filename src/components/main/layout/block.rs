@@ -506,5 +506,19 @@ impl FlowContext for BlockFlow {
 
         *first_in_flow = false;
     }
+
+    fn debug_str(&self) -> ~str {
+        if self.is_root {
+            ~"BlockFlow(root)"
+        } else {
+            let txt = ~"BlockFlow: ";
+            txt.append(match self.box {
+                Some(rb) => {
+                    rb.debug_str()
+                }
+                None => { ~"" }
+            })
+        }
+    }
 }
 
