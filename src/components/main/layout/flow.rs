@@ -35,7 +35,7 @@ use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
 
-use extra::dlist::{DList,MutDListIterator};
+use extra::dlist::{DList, DListIterator, MutDListIterator};
 use extra::container::Deque;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -127,6 +127,11 @@ pub fn base<'a>(this: &'a FlowContext) -> &'a FlowData {
     }
 }
 
+/// Iterates over the children of this immutable flow.
+pub fn imm_child_iter<'a>(flow: &'a FlowContext) -> DListIterator<'a,~FlowContext:> {
+    base(flow).children.iter()
+}
+
 #[inline(always)]
 pub fn mut_base<'a>(this: &'a mut FlowContext) -> &'a mut FlowData {
     unsafe {
@@ -162,6 +167,9 @@ pub trait ImmutableFlowUtils {
 
     /// Dumps the flow tree for debugging.
     fn dump(self);
+
+    /// Dumps the flow tree for debugging, with a prefix to indicate that we're at the given level.
+    fn dump_with_level(self, level: uint);
 }
 
 pub trait MutableFlowUtils {
@@ -411,7 +419,19 @@ impl<'self> ImmutableFlowUtils for &'self FlowContext {
 
     /// Dumps the flow tree for debugging.
     fn dump(self) {
-        // TODO(pcwalton): Fill this in.
+        self.dump_with_level(0)
+    }
+
+    /// Dumps the flow tree for debugging, with a prefix to indicate that we're at the given level.
+    fn dump_with_level(self, level: uint) {
+        let mut indent = ~"";
+        for _ in range(0, level) {
+            indent.push_str("| ")
+        }
+        debug!("{}+ {}", indent, self.debug_str());
+        for kid in imm_child_iter(self) {
+            kid.dump_with_level(level + 1)
+        }
     }
 }
 
