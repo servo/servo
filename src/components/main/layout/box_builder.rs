@@ -388,6 +388,11 @@ impl LayoutTreeBuilder {
         let display = match node.type_id() {
             ElementNodeTypeId(_) => match node.style().Box.display {
                 display::none => return NoGenerator,
+                display::table | display::inline_table | display::table_row_group
+                    | display::table_header_group | display::table_footer_group
+                    | display::table_row | display::table_column_group
+                    | display::table_column | display::table_cell | display::table_caption
+                    => display::block,
                 display => display,
             },
             TextNodeTypeId => display::inline,
