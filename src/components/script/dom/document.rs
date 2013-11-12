@@ -340,6 +340,28 @@ impl Document {
             self.idmap.pop(id);
         });
     }
+
+    pub fn update_idmap(&mut self,
+                        abstract_self: AbstractNode<ScriptView>,
+                        new_id: DOMString,
+                        old_id: Option<DOMString>) {
+        // remove old ids if the old ones are not same as the new one.
+        match old_id {
+            Some(ref old_id) if new_id != *old_id => {
+                self.idmap.remove(old_id);
+            }
+            _ => ()
+        }
+
+        // TODO: support the case if multiple elements which haves same id are in the same document.
+        self.idmap.mangle(new_id, abstract_self,
+                         |_, new_node: AbstractNode<ScriptView>| -> AbstractNode<ScriptView> {
+                             new_node
+                         },
+                         |_, old_node: &mut AbstractNode<ScriptView>, new_node: AbstractNode<ScriptView>| {
+                             *old_node = new_node;
+                         });
+    }
 }
 
 #[inline(always)]

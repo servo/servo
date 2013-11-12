@@ -216,6 +216,7 @@ impl<'self> Element {
         let win = self.node.owner_doc().document().window;
         let new_attr = Attr::new_ns(win, local_name.clone(), value.clone(),
                                     name.clone(), namespace.clone(), prefix);
+        let mut old_raw_value: Option<DOMString> = None;
         self.attrs.mangle(local_name.clone(), new_attr,
                           |new_name: &~str, new_value: @mut Attr| {
                               // register to the ordered list.
@@ -229,6 +230,7 @@ impl<'self> Element {
                               for attr in old_value.mut_iter() {
                                   if eq_slice(attr.local_name, *name) &&
                                      attr.namespace == new_value.namespace {
+                                      old_raw_value = Some(attr.Value());
                                       *attr = new_value;
                                       found = true;
                                       break;
@@ -242,7 +244,7 @@ impl<'self> Element {
                               }
                           });
 
-        self.after_set_attr(abstract_self, &namespace, local_name, value);
+        self.after_set_attr(abstract_self, &namespace, local_name, value, old_raw_value);
         Ok(())
     }
 
@@ -250,17 +252,20 @@ impl<'self> Element {
                       abstract_self: AbstractNode<ScriptView>,
                       namespace: &Namespace,
                       local_name: DOMString,
-                      value: DOMString) {
+                      value: DOMString,
+                      old_value: Option<DOMString>) {
 
         match local_name.as_slice() {
             "style" if *namespace == namespace::Null => {
                 self.style_attribute = Some(style::parse_style_attribute(value))
             }
+            "id" => {
+                let doc = self.node.owner_doc();
+                let doc = doc.mut_document();
+                doc.update_idmap(abstract_self, value.clone(), old_value);
+            }
             _ => ()
         }
-
-        // TODO: update owner document's id hashmap for `document.getElementById()`
-        //       if `name` == "id".
 
         //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
         //       This hardcoding is awful.
