@@ -874,6 +874,15 @@ impl Node<ScriptView> {
 
         // Step 5: DocumentFragment, mutation records.
         // Step 6: DocumentFragment.
+        match node.type_id() {
+            DocumentFragmentNodeTypeId => {
+                for c in node.children() {
+                    Node::remove(c, node, true);
+                }
+            },
+            _ => (),
+        }
+
         // Step 7: mutation records.
         // Step 8.
         for node in nodes.iter() {
