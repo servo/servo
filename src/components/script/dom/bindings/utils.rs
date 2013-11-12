@@ -784,7 +784,8 @@ pub enum Error {
     HierarchyRequest,
     InvalidCharacter,
     NotSupported,
-    InvalidState
+    InvalidState,
+    NamespaceError
 }
 
 pub type Fallible<T> = Result<T, Error>;
@@ -883,7 +884,14 @@ pub fn cx_for_dom_object<T: Reflectable>(obj: &mut T) -> *JSContext {
 
 /// Check if an element name is valid. See http://www.w3.org/TR/xml/#NT-Name
 /// for details.
-pub fn is_valid_element_name(name: &str) -> bool {
+#[deriving(Eq)]
+pub enum XMLName {
+    QName,
+    Name,
+    InvalidXMLName
+}
+
+pub fn xml_name_type(name: &str) -> XMLName {
     fn is_valid_start(c: char) -> bool {
         match c {
             ':' |
@@ -919,20 +927,34 @@ pub fn is_valid_element_name(name: &str) -> bool {
     }
 
     let mut iter = name.iter();
+    let mut non_qname_colons = false;
+    let mut seen_colon = false;
     match iter.next() {
-        None => return false,
+        None => return InvalidXMLName,
         Some(c) => {
             if !is_valid_start(c) {
-                return false;
+                return InvalidXMLName;
+            }
+            if c == ':' {
+                non_qname_colons = true;
             }
         }
     }
 
     for c in name.iter() {
         if !is_valid_continuation(c) {
-            return false;
+            return InvalidXMLName;
+        }
+        if c == ':' {
+            match seen_colon {
+                true => non_qname_colons = true,
+                false => seen_colon = true
+            }
         }
     }
 
-    true
+    match non_qname_colons {
+        false => QName,
+        true => Name
+    }
 }
