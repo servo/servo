@@ -29,7 +29,10 @@ impl HTMLScriptElement {
 
 impl HTMLScriptElement {
     pub fn Src(&self) -> DOMString {
-        self.htmlelement.element.get_attr("src").map(|s| s.to_str())
+        match self.htmlelement.element.get_attr("src") {
+            Some(s) => s.to_owned(),
+            None => ~""
+        }
     }
 
     pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
@@ -37,7 +40,7 @@ impl HTMLScriptElement {
     }
 
     pub fn Type(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
@@ -45,7 +48,7 @@ impl HTMLScriptElement {
     }
 
     pub fn Charset(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetCharset(&mut self, _charset: &DOMString) -> ErrorResult {
@@ -69,7 +72,7 @@ impl HTMLScriptElement {
     }
 
     pub fn CrossOrigin(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
@@ -77,7 +80,7 @@ impl HTMLScriptElement {
     }
 
     pub fn Text(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
@@ -85,7 +88,7 @@ impl HTMLScriptElement {
     }
 
     pub fn Event(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetEvent(&mut self, _event: &DOMString) -> ErrorResult {
@@ -93,7 +96,7 @@ impl HTMLScriptElement {
     }
 
     pub fn HtmlFor(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetHtmlFor(&mut self, _html_for: &DOMString) -> ErrorResult {

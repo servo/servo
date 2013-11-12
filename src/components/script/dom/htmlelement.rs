@@ -29,21 +29,21 @@ impl HTMLElement {
 
 impl HTMLElement {
     pub fn Title(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetTitle(&mut self, _title: &DOMString) {
     }
 
     pub fn Lang(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetLang(&mut self, _lang: &DOMString) {
     }
 
     pub fn Dir(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetDir(&mut self, _dir: &DOMString) -> ErrorResult {
@@ -86,7 +86,7 @@ impl HTMLElement {
     }
 
     pub fn AccessKey(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAccessKey(&self, _key: &DOMString) -> ErrorResult {
@@ -94,7 +94,7 @@ impl HTMLElement {
     }
 
     pub fn AccessKeyLabel(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn Draggable(&self) -> bool {
@@ -106,7 +106,7 @@ impl HTMLElement {
     }
 
     pub fn ContentEditable(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetContentEditable(&mut self, _val: &DOMString) -> ErrorResult {
@@ -126,7 +126,7 @@ impl HTMLElement {
     }
 
     pub fn ClassName(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetClassName(&self, _class: &DOMString) {

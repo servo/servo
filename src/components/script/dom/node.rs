@@ -562,10 +562,10 @@ impl Node<ScriptView> {
     }
 
     pub fn NodeName(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
-        Some(match self.type_id {
+        match self.type_id {
             ElementNodeTypeId(*) => {
                 do abstract_self.with_imm_element |element| {
-                    element.TagName().expect("tagName should never be null")
+                    element.TagName()
                 }
             }
             CommentNodeTypeId => ~"#comment",
@@ -577,10 +577,10 @@ impl Node<ScriptView> {
             },
             DocumentFragmentNodeTypeId => ~"#document-fragment",
             DocumentNodeTypeId(_) => ~"#document"
-        })
+        }
     }
 
-    pub fn GetBaseURI(&self) -> DOMString {
+    pub fn GetBaseURI(&self) -> Option<DOMString> {
         None
     }
 
@@ -623,12 +623,12 @@ impl Node<ScriptView> {
         self.next_sibling
     }
 
-    pub fn GetNodeValue(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn GetNodeValue(&self, abstract_self: AbstractNode<ScriptView>) -> Option<DOMString> {
         match self.type_id {
             // ProcessingInstruction
             CommentNodeTypeId | TextNodeTypeId => {
                 do abstract_self.with_imm_characterdata() |characterdata| {
-                    characterdata.Data()
+                    Some(characterdata.Data())
                 }
             }
             _ => {
@@ -637,19 +637,18 @@ impl Node<ScriptView> {
         }
     }
 
-    pub fn SetNodeValue(&mut self, _abstract_self: AbstractNode<ScriptView>, _val: &DOMString) -> ErrorResult {
+    pub fn SetNodeValue(&mut self, _abstract_self: AbstractNode<ScriptView>, _val: &Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetTextContent(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn GetTextContent(&self, abstract_self: AbstractNode<ScriptView>) -> Option<DOMString> {
         match self.type_id {
           DocumentFragmentNodeTypeId | ElementNodeTypeId(*) => {
             let mut content = ~"";
             for node in abstract_self.traverse_preorder() {
                 if node.is_text() {
                     do node.with_imm_text() |text| {
-                        let s = text.element.Data();
-                        content = content + null_str_as_empty(&s);
+                        content = content + text.element.Data();
                     }
                 }
             }
@@ -657,7 +656,7 @@ impl Node<ScriptView> {
           }
           CommentNodeTypeId | TextNodeTypeId => {
             do abstract_self.with_imm_characterdata() |characterdata| {
-                characterdata.Data()
+                Some(characterdata.Data())
             }
           }
           DoctypeNodeTypeId | DocumentNodeTypeId(_) => {
@@ -939,18 +938,15 @@ impl Node<ScriptView> {
 
     pub fn SetTextContent(&mut self,
                           abstract_self: AbstractNode<ScriptView>,
-                          value: &DOMString) -> ErrorResult {
-        let is_empty = match value {
-            &Some(~"") | &None => true,
-            _ => false
-        };
+                          value: &Option<DOMString>) -> ErrorResult {
+        let value = null_str_as_empty(value);
         match self.type_id {
           DocumentFragmentNodeTypeId | ElementNodeTypeId(*) => {
-            let node = if is_empty {
+            let node = if value.len() == 0 {
                 None
             } else {
                 let document = self.owner_doc();
-                Some(document.document().CreateTextNode(document, value))
+                Some(document.document().CreateTextNode(document, &value))
             };
             self.replace_all(abstract_self, node);
           }
@@ -958,7 +954,7 @@ impl Node<ScriptView> {
             self.wait_until_safe_to_modify_dom();
 
             do abstract_self.with_mut_characterdata() |characterdata| {
-                characterdata.data = null_str_as_empty(value);
+                characterdata.data = value.clone();
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc();
@@ -1019,27 +1015,27 @@ impl Node<ScriptView> {
         false
     }
 
-    pub fn LookupPrefix(&self, _prefix: &DOMString) -> DOMString {
+    pub fn LookupPrefix(&self, _prefix: &Option<DOMString>) -> Option<DOMString> {
         None
     }
 
-    pub fn LookupNamespaceURI(&self, _namespace: &DOMString) -> DOMString {
+    pub fn LookupNamespaceURI(&self, _namespace: &Option<DOMString>) -> Option<DOMString> {
         None
     }
 
-    pub fn IsDefaultNamespace(&self, _namespace: &DOMString) -> bool {
+    pub fn IsDefaultNamespace(&self, _namespace: &Option<DOMString>) -> bool {
         false
     }
 
-    pub fn GetNamespaceURI(&self) -> DOMString {
+    pub fn GetNamespaceURI(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn GetPrefix(&self) -> DOMString {
+    pub fn GetPrefix(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn GetLocalName(&self) -> DOMString {
+    pub fn GetLocalName(&self) -> Option<DOMString> {
         None
     }
 

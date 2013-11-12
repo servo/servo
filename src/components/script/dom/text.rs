@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::TextBinding;
-use dom::bindings::utils::{DOMString, Fallible, null_str_as_empty};
+use dom::bindings::utils::{DOMString, Fallible};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView, Node, TextNodeTypeId};
@@ -27,7 +27,7 @@ impl Text {
     }
 
     pub fn Constructor(owner: @mut Window, text: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
-        Ok(Text::new(null_str_as_empty(text), owner.Document()))
+        Ok(Text::new(text.clone(), owner.Document()))
     }
 
     pub fn SplitText(&self, _offset: u32) -> Fallible<AbstractNode<ScriptView>> {
@@ -35,6 +35,6 @@ impl Text {
     }
 
     pub fn GetWholeText(&self) -> Fallible<DOMString> {
-        Ok(None)
+        Ok(~"")
     }
 }

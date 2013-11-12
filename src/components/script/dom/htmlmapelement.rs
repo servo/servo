@@ -29,7 +29,7 @@ impl HTMLMapElement {
 
 impl HTMLMapElement {
     pub fn Name(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {

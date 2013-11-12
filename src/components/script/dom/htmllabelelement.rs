@@ -28,7 +28,7 @@ impl HTMLLabelElement {
 
 impl HTMLLabelElement {
     pub fn HtmlFor(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetHtmlFor(&mut self, _html_for: &DOMString) {

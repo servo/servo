@@ -42,7 +42,7 @@ impl HTMLFieldSetElement {
     }
 
     pub fn Name(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
@@ -50,7 +50,7 @@ impl HTMLFieldSetElement {
     }
 
     pub fn Type(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn Elements(&self) -> @mut HTMLCollection {
@@ -68,7 +68,7 @@ impl HTMLFieldSetElement {
     }
 
     pub fn ValidationMessage(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn CheckValidity(&self) -> bool {

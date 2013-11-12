@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLImageElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult, null_str_as_empty};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLImageElementTypeId;
 use dom::htmlelement::HTMLElement;
@@ -58,8 +58,7 @@ impl HTMLImageElement {
     }
 
     pub fn AfterSetAttr(&mut self, name: &DOMString, _value: &DOMString) {
-        let name = null_str_as_empty(name);
-        if "src" == name {
+        if "src" == *name {
             let document = self.htmlelement.element.node.owner_doc();
             let window = document.document().window;
             let url = window.page.url.as_ref().map(|&(ref url, _)| url.clone());
@@ -68,7 +67,7 @@ impl HTMLImageElement {
     }
 
     pub fn Alt(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAlt(&mut self, _alt: &DOMString) -> ErrorResult {
@@ -76,7 +75,7 @@ impl HTMLImageElement {
     }
 
     pub fn Src(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetSrc(&mut self,
@@ -85,12 +84,12 @@ impl HTMLImageElement {
         let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self,
                       &Some(~"src"),
-                      &Some(null_str_as_empty(src)));
+                      &Some(src.clone()));
         Ok(())
     }
 
     pub fn CrossOrigin(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
@@ -98,7 +97,7 @@ impl HTMLImageElement {
     }
 
     pub fn UseMap(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetUseMap(&mut self, _use_map: &DOMString) -> ErrorResult {
@@ -168,7 +167,7 @@ impl HTMLImageElement {
     }
 
     pub fn Name(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
@@ -176,7 +175,7 @@ impl HTMLImageElement {
     }
 
     pub fn Align(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
@@ -200,7 +199,7 @@ impl HTMLImageElement {
     }
 
     pub fn LongDesc(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
@@ -208,7 +207,7 @@ impl HTMLImageElement {
     }
 
     pub fn Border(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetBorder(&mut self, _border: &DOMString) -> ErrorResult {

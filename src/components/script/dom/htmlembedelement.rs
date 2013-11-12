@@ -28,7 +28,7 @@ impl HTMLEmbedElement {
 
 impl HTMLEmbedElement {
     pub fn Src(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
@@ -36,7 +36,7 @@ impl HTMLEmbedElement {
     }
 
     pub fn Type(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
@@ -44,7 +44,7 @@ impl HTMLEmbedElement {
     }
 
     pub fn Width(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
@@ -52,7 +52,7 @@ impl HTMLEmbedElement {
     }
 
     pub fn Height(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
@@ -60,7 +60,7 @@ impl HTMLEmbedElement {
     }
 
     pub fn Align(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAlign(&mut self, _type: &DOMString) -> ErrorResult {
@@ -68,7 +68,7 @@ impl HTMLEmbedElement {
     }
 
     pub fn Name(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetName(&mut self, _type: &DOMString) -> ErrorResult {

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::AttrBinding;
 use dom::bindings::utils::{Reflectable, Reflector, DOMString};
-use dom::bindings::utils::{reflect_dom_object, null_str_as_empty};
+use dom::bindings::utils::reflect_dom_object;
 use dom::namespace::{Namespace, Null};
 use dom::window::Window;
 
@@ -16,7 +16,7 @@ pub struct Attr {
     value: ~str,
     name: ~str,
     namespace: Namespace,
-    prefix: DOMString
+    prefix: Option<DOMString>
 }
 
 impl Reflectable for Attr {
@@ -70,26 +70,26 @@ impl Attr {
     }
 
     pub fn LocalName(&self) -> DOMString {
-        Some(self.local_name().to_owned())
+        self.local_name().to_owned()
     }
 
     pub fn Value(&self) -> DOMString {
-        Some(self.value.clone())
+        self.value.clone()
     }
 
     pub fn SetValue(&mut self, value: &DOMString) {
-        self.value = null_str_as_empty(value);
+        self.value = value.clone();
     }
 
     pub fn Name(&self) -> DOMString {
-        Some(self.name.clone())
+        self.name.clone()
     }
 
-    pub fn GetNamespaceURI(&self) -> DOMString {
+    pub fn GetNamespaceURI(&self) -> Option<DOMString> {
         self.namespace.to_str()
     }
 
-    pub fn GetPrefix(&self) -> DOMString {
+    pub fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix.clone()
     }
 }

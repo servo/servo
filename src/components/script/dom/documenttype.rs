@@ -10,9 +10,9 @@ use dom::node::{AbstractNode, ScriptView, Node, DoctypeNodeTypeId};
 /// The `DOCTYPE` tag.
 pub struct DocumentType {
     node: Node<ScriptView>,
-    name: ~str,
-    public_id: Option<~str>,
-    system_id: Option<~str>,
+    name: DOMString,
+    public_id: DOMString,
+    system_id: DOMString,
     force_quirks: bool
 }
 
@@ -26,8 +26,8 @@ impl DocumentType {
         DocumentType {
             node: Node::new(DoctypeNodeTypeId, document),
             name: name,
-            public_id: public_id,
-            system_id: system_id,
+            public_id: public_id.unwrap_or(~""),
+            system_id: system_id.unwrap_or(~""),
             force_quirks: force_quirks,
         }
     }
@@ -48,7 +48,7 @@ impl DocumentType {
 
 impl DocumentType {
     pub fn Name(&self) -> DOMString {
-        Some(self.name.clone())
+        self.name.clone()
     }
 
     pub fn PublicId(&self) -> DOMString {

@@ -36,7 +36,7 @@ impl HTMLTableColElement {
     }
 
     pub fn Align(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
@@ -44,7 +44,7 @@ impl HTMLTableColElement {
     }
 
     pub fn Ch(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetCh(&mut self, _ch: &DOMString) -> ErrorResult {
@@ -52,7 +52,7 @@ impl HTMLTableColElement {
     }
 
     pub fn ChOff(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetChOff(&mut self, _ch_off: &DOMString) -> ErrorResult {
@@ -60,7 +60,7 @@ impl HTMLTableColElement {
     }
 
     pub fn VAlign(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetVAlign(&mut self, _v_align: &DOMString) -> ErrorResult {
@@ -68,7 +68,7 @@ impl HTMLTableColElement {
     }
 
     pub fn Width(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {

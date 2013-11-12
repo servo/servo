@@ -772,7 +772,7 @@ impl ScriptTask {
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
         let event = Event::new(window, HTMLEventTypeId);
-        event.mut_event().InitEvent(&Some(~"load"), false, false);
+        event.mut_event().InitEvent(&~"load", false, false);
         let doctarget = AbstractEventTarget::from_document(document);
         let wintarget = AbstractEventTarget::from_window(window);
         window.eventtarget.dispatch_event_with_target(wintarget, Some(doctarget), event);

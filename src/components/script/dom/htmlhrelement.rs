@@ -28,7 +28,7 @@ impl HTMLHRElement {
 
 impl HTMLHRElement {
     pub fn Align(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
@@ -36,7 +36,7 @@ impl HTMLHRElement {
     }
 
     pub fn Color(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetColor(&mut self, _color: &DOMString) -> ErrorResult {
@@ -52,7 +52,7 @@ impl HTMLHRElement {
     }
 
     pub fn Size(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetSize(&mut self, _size: &DOMString) -> ErrorResult {
@@ -60,7 +60,7 @@ impl HTMLHRElement {
     }
 
     pub fn Width(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {

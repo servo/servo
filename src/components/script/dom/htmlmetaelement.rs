@@ -28,7 +28,7 @@ impl HTMLMetaElement {
 
 impl HTMLMetaElement {
     pub fn Name(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
@@ -36,7 +36,7 @@ impl HTMLMetaElement {
     }
 
     pub fn HttpEquiv(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetHttpEquiv(&mut self, _http_equiv: &DOMString) -> ErrorResult {
@@ -44,7 +44,7 @@ impl HTMLMetaElement {
     }
 
     pub fn Content(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetContent(&mut self, _content: &DOMString) -> ErrorResult {
@@ -52,7 +52,7 @@ impl HTMLMetaElement {
     }
 
     pub fn Scheme(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetScheme(&mut self, _scheme: &DOMString) -> ErrorResult {

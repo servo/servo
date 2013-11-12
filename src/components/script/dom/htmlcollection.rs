@@ -55,7 +55,7 @@ impl HTMLCollection {
         self.Item(index)
     }
 
-    pub fn NamedGetter(&self, _cx: *JSContext, _name: &DOMString, _found: &mut bool) -> Fallible<*JSObject> {
+    pub fn NamedGetter(&self, _cx: *JSContext, _name: &Option<DOMString>, _found: &mut bool) -> Fallible<*JSObject> {
         Ok(ptr::null())
     }
 }

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLIFrameElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult, null_str_as_empty};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLIframeElementTypeId;
 use dom::htmlelement::HTMLElement;
@@ -78,7 +78,7 @@ impl HTMLIFrameElement {
 
 impl HTMLIFrameElement {
     pub fn Src(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
@@ -86,7 +86,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn Srcdoc(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetSrcdoc(&mut self, _srcdoc: &DOMString) -> ErrorResult {
@@ -94,7 +94,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn Name(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
@@ -102,19 +102,20 @@ impl HTMLIFrameElement {
     }
 
     pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
-        self.htmlelement.element.GetAttribute(&Some(~"sandbox"))
+        match self.htmlelement.element.GetAttribute(&~"sandbox") {
+            Some(s) => s.to_owned(),
+            None => ~"",
+        }
     }
 
     pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: &DOMString) {
-        self.htmlelement.element.SetAttribute(abstract_self, &Some(~"sandbox"), sandbox);
+        self.htmlelement.element.SetAttribute(abstract_self, &~"sandbox", sandbox);
     }
 
     pub fn AfterSetAttr(&mut self, name: &DOMString, value: &DOMString) {
-        let name = null_str_as_empty(name);
-        if "sandbox" == name {
+        if "sandbox" == *name {
             let mut modes = AllowNothing as u8;
-            let words = null_str_as_empty(value);
-            for word in words.split_iter(' ') {
+            for word in value.split_iter(' ') {
                 modes |= match word.to_ascii_lower().as_slice() {
                     "allow-same-origin" => AllowSameOrigin,
                     "allow-forms" => AllowForms,
@@ -138,7 +139,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn Width(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
@@ -146,7 +147,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn Height(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
@@ -162,7 +163,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn Align(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
@@ -170,7 +171,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn Scrolling(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetScrolling(&mut self, _scrolling: &DOMString) -> ErrorResult {
@@ -178,7 +179,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn FrameBorder(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetFrameBorder(&mut self, _frameborder: &DOMString) -> ErrorResult {
@@ -186,7 +187,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn LongDesc(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
@@ -194,7 +195,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn MarginHeight(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetMarginHeight(&mut self, _marginheight: &DOMString) -> ErrorResult {
@@ -202,7 +203,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn MarginWidth(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetMarginWidth(&mut self, _marginwidth: &DOMString) -> ErrorResult {

@@ -28,7 +28,7 @@ impl HTMLParagraphElement {
 
 impl HTMLParagraphElement {
     pub fn Align(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {

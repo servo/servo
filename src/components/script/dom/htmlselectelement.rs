@@ -57,7 +57,7 @@ impl HTMLSelectElement {
     }
 
     pub fn Name(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
@@ -81,7 +81,7 @@ impl HTMLSelectElement {
     }
 
     pub fn Type(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn Length(&self) -> u32 {
@@ -123,7 +123,7 @@ impl HTMLSelectElement {
     }
 
     pub fn Value(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetValue(&mut self, _value: &DOMString) {
@@ -145,7 +145,7 @@ impl HTMLSelectElement {
     }
 
     pub fn ValidationMessage(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetValidationMessage(&mut self, _message: &DOMString) -> ErrorResult {
