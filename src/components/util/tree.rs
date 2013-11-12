@@ -348,6 +348,6 @@ pub trait TreeNode<Ref: TreeNodeRef<Self>> {
 
 pub trait ElementLike {
     fn get_local_name<'a>(&'a self) -> &'a str;
-    fn get_attr<'a>(&'a self, name: &str) -> Option<&'a str>;
-    fn get_link<'a>(&'a self) -> Option<&'a str>;
+    fn get_attr(&self, name: &str) -> Option<~str>;
+    fn get_link(&self) -> Option<~str>;
 }
