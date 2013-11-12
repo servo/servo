@@ -334,7 +334,7 @@ impl Shaper {
                 let mut max_glyph_idx = glyph_span.end();
                 for i in char_byte_span.eachi() {
                     if byteToGlyph[i] > NO_GLYPH {
-                        max_glyph_idx = uint::max(byteToGlyph[i] as uint, max_glyph_idx);
+                        max_glyph_idx = uint::max(byteToGlyph[i] as uint + 1, max_glyph_idx);
                     }
                 }
 
