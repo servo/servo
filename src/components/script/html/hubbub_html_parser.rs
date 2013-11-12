@@ -8,6 +8,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmliframeelement::IFrameSize;
 use dom::htmlformelement::HTMLFormElement;
+use dom::namespace;
 use dom::node::{AbstractNode, ElementNodeTypeId, ScriptView};
 use dom::types::*;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
@@ -339,7 +340,10 @@ pub fn parse_html(cx: *JSContext,
             debug!("-- attach attrs");
             do node.as_mut_element |element| {
                 for attr in tag.attributes.iter() {
-                    element.set_attr(node, &Some(attr.name.clone()), &Some(attr.value.clone()));
+                    element.set_attribute(node,
+                                          namespace::Null,
+                                          &Some(attr.name.clone()),
+                                          &Some(attr.value.clone()));
                 }
             }
 
@@ -350,7 +354,7 @@ pub fn parse_html(cx: *JSContext,
                     do node.with_imm_element |element| {
                         match (element.get_attr("rel"), element.get_attr("href")) {
                             (Some(rel), Some(href)) => {
-                                if rel == "stylesheet" {
+                                if "stylesheet" == rel {
                                     debug!("found CSS stylesheet: {:s}", href);
                                     let url = make_url(href.to_str(), Some(url2.clone()));
                                     css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
