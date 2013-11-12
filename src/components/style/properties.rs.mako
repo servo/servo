@@ -225,10 +225,11 @@ pub mod longhands {
 
     // TODO: don't parse values we don't support
     <%self:single_keyword_computed name="display"
-            values="inline block inline-block none">
+            values="inline block inline-block 
+            table inline-table table-row-group table-header-group table-footer-group
+            table-row table-column-group table-column table-cell table-caption
+            none">
 //        list-item
-//        table inline-table table-row-group table-header-group table-footer-group
-//        table-row table-column-group table-column table-cell table-caption
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                               -> computed_value::T {
 //            if context.is_root_element && value == list_item {
