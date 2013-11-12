@@ -4,6 +4,7 @@
 
 //! Element nodes.
 
+use dom::attrlist::AttrList;
 use dom::bindings::utils::{Reflectable, DOMString, ErrorResult, Fallible, Reflector};
 use dom::bindings::utils::{null_str_as_empty, null_str_as_empty_ref, NamespaceError};
 use dom::bindings::utils::{InvalidCharacter, QName, Name, InvalidXMLName, xml_name_type};
@@ -30,8 +31,9 @@ pub struct Element {
     node: Node<ScriptView>,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     attrs: HashMap<~str, ~[@mut Attr]>,
-    attrs_list: ~[~str], // store an order of attributes.
+    attrs_insert_order: ~[(~str, Namespace)], // store an order of attributes.
     style_attribute: Option<style::PropertyDeclarationBlock>,
+    attr_list: Option<@mut AttrList>
 }
 
 impl Reflectable for Element {
@@ -149,7 +151,8 @@ impl<'self> Element {
             node: Node::new(ElementNodeTypeId(type_id), document),
             tag_name: tag_name,
             attrs: HashMap::new(),
-            attrs_list: ~[],
+            attrs_insert_order: ~[],
+            attr_list: None,
             style_attribute: None,
         }
     }
@@ -217,7 +220,8 @@ impl<'self> Element {
         self.attrs.mangle(local_name.clone(), new_attr,
                           |new_name: &~str, new_value: @mut Attr| {
                               // register to the ordered list.
-                              self.attrs_list.push(new_name.clone());
+                              let order_value = (new_name.clone(), new_value.namespace.clone());
+                              self.attrs_insert_order.push(order_value);
                               ~[new_value]
                           },
                           |name, old_value: &mut ~[@mut Attr], new_value: @mut Attr| {
@@ -234,7 +238,8 @@ impl<'self> Element {
                               }
                               if !found {
                                   old_value.push(new_value);
-                                  self.attrs_list.push(name.clone());
+                                  let order_value = (name.clone(), new_value.namespace.clone());
+                                  self.attrs_insert_order.push(order_value);
                               }
                           });
 
@@ -293,6 +298,18 @@ impl Element {
 
     pub fn SetId(&mut self, abstract_self: AbstractNode<ScriptView>, id: &DOMString) {
         self.set_attribute(abstract_self, namespace::Null, &Some(~"id"), &Some(id.clone()));
+    }
+
+    pub fn Attributes(&mut self, abstract_self: AbstractNode<ScriptView>) -> @mut AttrList {
+        match self.attr_list {
+            None => {
+                let window = self.node.owner_doc().document().window;
+                let list = AttrList::new(window, abstract_self);
+                self.attr_list = Some(list);
+                list
+            }
+            Some(list) => list
+        }
     }
 
     pub fn GetAttribute(&self, name: &DOMString) -> Option<DOMString> {
