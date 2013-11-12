@@ -252,8 +252,11 @@ impl<'self> Element {
                       local_name: DOMString,
                       value: DOMString) {
 
-        if "style" == local_name && *namespace == namespace::Null {
-             self.style_attribute = Some(style::parse_style_attribute(value));
+        match local_name.as_slice() {
+            "style" if *namespace == namespace::Null => {
+                self.style_attribute = Some(style::parse_style_attribute(value))
+            }
+            _ => ()
         }
 
         // TODO: update owner document's id hashmap for `document.getElementById()`
