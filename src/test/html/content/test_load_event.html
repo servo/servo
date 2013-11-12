@@ -1,0 +1,17 @@
+<html>
+<head>
+<script src="harness.js"></script>
+</head>
+<body>
+<script>
+  addEventListener("load", function(ev) {
+    is_a(ev, Event);
+    ev.preventDefault();
+    is(ev.defaultPrevented, false);
+    is(ev.target, document);
+    is(ev.currentTarget, window);
+    finish();
+  });
+</script>
+</body>
+</html>

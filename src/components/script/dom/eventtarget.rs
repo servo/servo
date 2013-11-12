@@ -5,9 +5,11 @@
 use dom::bindings::utils::{Reflectable, Reflector, DOMString, Fallible};
 use dom::bindings::utils::{null_str_as_word_null, InvalidState};
 use dom::bindings::codegen::EventListenerBinding::EventListener;
+use dom::document::AbstractDocument;
 use dom::event::AbstractEvent;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::{AbstractNode, ScriptView};
+use dom::window::Window;
 
 use std::cast;
 use std::hashmap::HashMap;
@@ -51,6 +53,18 @@ impl AbstractEventTarget {
     pub fn from_node(node: AbstractNode<ScriptView>) -> AbstractEventTarget {
         unsafe {
             cast::transmute(node)
+        }
+    }
+
+    pub fn from_window(window: @mut Window) -> AbstractEventTarget {
+        AbstractEventTarget {
+            eventtarget: unsafe { cast::transmute(window) }
+        }
+    }
+
+    pub fn from_document(document: AbstractDocument) -> AbstractEventTarget {
+        unsafe {
+            cast::transmute(document)
         }
     }
 
@@ -164,10 +178,17 @@ impl EventTarget {
     }
 
     pub fn DispatchEvent(&self, abstract_self: AbstractEventTarget, event: AbstractEvent) -> Fallible<bool> {
+        self.dispatch_event_with_target(abstract_self, None, event)
+    }
+
+    pub fn dispatch_event_with_target(&self,
+                                      abstract_self: AbstractEventTarget,
+                                      abstract_target: Option<AbstractEventTarget>,
+                                      event: AbstractEvent) -> Fallible<bool> {
         if event.event().dispatching || !event.event().initialized {
             return Err(InvalidState);
         }
-        Ok(dispatch_event(abstract_self, event))
+        Ok(dispatch_event(abstract_self, abstract_target, event))
     }
 }
 
