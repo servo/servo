@@ -17,15 +17,20 @@ pub enum Namespace {
 }
 
 impl Namespace {
-    pub fn from_str(url: &str) -> Namespace {
-        match url {
-            "http://www.w3.org/1999/xhtml" => HTML,
-            "http://www.w3.org/XML/1998/namespace" => XML,
-            "http://www.w3.org/2000/xmlns/" => XMLNS,
-            "http://www.w3.org/1999/xlink" => XLink,
-            "http://www.w3.org/2000/svg" => SVG,
-            "http://www.w3.org/1998/Math/MathML" => MathML,
-            _ => Other(url.to_owned())
+    pub fn from_str(url: DOMString) -> Namespace {
+        if url.is_some() {
+            match url {
+                Some(~"http://www.w3.org/1999/xhtml") => HTML,
+                Some(~"http://www.w3.org/XML/1998/namespace") => XML,
+                Some(~"http://www.w3.org/2000/xmlns/") => XMLNS,
+                Some(~"http://www.w3.org/1999/xlink") => XLink,
+                Some(~"http://www.w3.org/2000/svg") => SVG,
+                Some(~"http://www.w3.org/1998/Math/MathML") => MathML,
+                Some(~"") => Null,
+                _ => Other(url.unwrap().to_owned())
+            }
+        }else {
+            return Null;
         }
     }
     pub fn to_str(&self) -> DOMString {

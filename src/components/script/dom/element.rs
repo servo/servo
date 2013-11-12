@@ -130,7 +130,7 @@ impl ElementLike for Element {
         self.get_attribute(&None, name).map(|attr| attr.value.clone())
     }
 
-    fn get_link<'a>(&'a self) -> Option<&'a str> {
+    fn get_link(&self) -> Option<~str>{
         // FIXME: This is HTML only.
         match self.node.type_id {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#selector-link
@@ -154,7 +154,7 @@ impl<'self> Element {
         }
     }
 
-    pub fn normalise_attr_name(&self, name: &DOMString) -> ~str {
+    pub fn normalize_attr_name(&self, name: &DOMString) -> ~str {
         //FIXME: Throw for XML-invalid names
         let owner = self.node.owner_doc();
         if owner.document().doctype == document::HTML { // && self.namespace == Namespace::HTML
@@ -168,22 +168,16 @@ impl<'self> Element {
                          namespace_url: &DOMString,
                          name: &str) -> Option<@mut Attr> {
         let namespace = match *namespace_url {
-            Some(ref x) => Namespace::from_str(x.as_slice()),
+            Some(ref x) => Namespace::from_str(Some(x.as_slice().to_owned())),
             None => namespace::Null
         };
         // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
         let name = name.to_ascii_lower();
-        let value: Option<@mut Attr> = self.attrs.find_equiv(&name).and_then(|attrs| {
-            let mut val = None;
-            for &attr in attrs.iter() {
-                if eq_slice(attr.local_name(), name) && attr.namespace == namespace {
-                    val = Some(attr);
-                    break;
-                }
-            }
-            val
-        });
-        return value;
+        self.attrs.find_equiv(&name).and_then(|attrs| {
+            do attrs.iter().find |attr| {
+                eq_slice(attr.local_name(), name) && attr.namespace == namespace
+            }.map(|x| *x)
+        })
     }
 
     pub fn set_attr(&mut self,
@@ -335,7 +329,7 @@ impl Element {
 
         let namespace = match null_str_as_empty_ref(namespace_url) {
             &"" => namespace::Null,
-            x => Namespace::from_str(x)
+            x => Namespace::from_str(Some(x.to_owned()))
         };
         self.set_attribute(abstract_self, namespace, name, value)
     }
