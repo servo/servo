@@ -29,24 +29,23 @@ B := $(CFG_BUILD_DIR)
 
 MKFILE_DEPS := config.stamp $(call rwildcard,$(S)mk/,*)
 
-# Enable debug!() etc even without configure --enable-debug
-# The evaluation of these prints & their arguments is controlled
-# at runtime by the environment variable RUST_LOG.
-CFG_RUSTC_FLAGS += -Z debug-info -Z no-debug-borrows
+CFG_GCCISH_CFLAGS += -DRUST_DEBUG
 
 ifdef CFG_DISABLE_OPTIMIZE
   $(info cfg: disabling rustc optimization (CFG_DISABLE_OPTIMIZE))
   CFG_RUSTC_FLAGS +=
 else
-  CFG_RUSTC_FLAGS += -O
+  CFG_RUSTC_FLAGS += -O -Z no-debug-borrows
 endif
 
 ifdef CFG_ENABLE_DEBUG
   $(info cfg: enabling more debugging (CFG_ENABLE_DEBUG))
-  CFG_RUSTC_FLAGS +=
-  CFG_GCCISH_CFLAGS += -DRUST_DEBUG
+  CFG_RUSTC_FLAGS += -Z extra-debug-info
 else
-  CFG_GCCISH_CFLAGS += -DRUST_NDEBUG
+  # Enable debug!() etc even without configure --enable-debug
+  # The evaluation of these prints & their arguments is controlled
+  # at runtime by the environment variable RUST_LOG.
+  CFG_RUSTC_FLAGS += -Z debug-info
 endif
 
 export CFG_RUSTC
