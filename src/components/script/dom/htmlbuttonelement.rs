@@ -49,7 +49,7 @@ impl HTMLButtonElement {
     }
 
     pub fn FormAction(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetFormAction(&mut self, _formaction: &DOMString) -> ErrorResult {
@@ -57,7 +57,7 @@ impl HTMLButtonElement {
     }
 
     pub fn FormEnctype(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetFormEnctype(&mut self, _formenctype: &DOMString) -> ErrorResult {
@@ -65,7 +65,7 @@ impl HTMLButtonElement {
     }
 
     pub fn FormMethod(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetFormMethod(&mut self, _formmethod: &DOMString) -> ErrorResult {
@@ -81,7 +81,7 @@ impl HTMLButtonElement {
     }
 
     pub fn FormTarget(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetFormTarget(&mut self, _formtarget: &DOMString) -> ErrorResult {
@@ -89,7 +89,7 @@ impl HTMLButtonElement {
     }
 
     pub fn Name(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
@@ -97,7 +97,7 @@ impl HTMLButtonElement {
     }
     
     pub fn Type(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
@@ -105,7 +105,7 @@ impl HTMLButtonElement {
     }
 
     pub fn Value(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
@@ -128,7 +128,7 @@ impl HTMLButtonElement {
     }
 
     pub fn ValidationMessage(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetValidationMessage(&mut self, _message: &DOMString) -> ErrorResult {

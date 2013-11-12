@@ -28,7 +28,7 @@ impl HTMLDataElement {
 
 impl HTMLDataElement {
     pub fn Value(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {

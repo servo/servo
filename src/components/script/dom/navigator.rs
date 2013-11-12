@@ -23,23 +23,23 @@ impl Navigator {
     }
 
     pub fn DoNotTrack(&self) -> DOMString {
-        Some(~"unspecified")
+        ~"unspecified"
     }
 
     pub fn Vendor(&self) -> DOMString {
-        Some(~"") // Like Gecko
+        ~"" // Like Gecko
     }
 
     pub fn VendorSub(&self) -> DOMString {
-        Some(~"") // Like Gecko
+        ~"" // Like Gecko
     }
 
     pub fn Product(&self) -> DOMString {
-        Some(~"Gecko") // This is supposed to be constant, see webidl.
+        ~"Gecko"
     }
 
     pub fn ProductSub(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn CookieEnabled(&self) -> bool {
@@ -47,7 +47,7 @@ impl Navigator {
     }
 
     pub fn GetBuildID(&self) -> Fallible<DOMString> {
-        Ok(None)
+        Ok(~"")
     }
 
     pub fn JavaEnabled(&self) -> Fallible<bool> {
@@ -59,26 +59,26 @@ impl Navigator {
     }
 
     pub fn AppName(&self) -> DOMString {
-        Some(~"Netscape") // Like Gecko/Webkit
+        ~"Netscape" // Like Gecko/Webkit
     }
 
     pub fn GetAppCodeName(&self) -> Fallible<DOMString> {
-        Ok(Some(~"Mozilla")) // Like Gecko/Webkit
+        Ok(~"Mozilla") // Like Gecko/Webkit
     }
 
     pub fn GetAppVersion(&self) -> Fallible<DOMString> {
-        Ok(None)
+        Ok(~"")
     }
 
     pub fn GetPlatform(&self) -> Fallible<DOMString> {
-        Ok(None)
+        Ok(~"")
     }
 
     pub fn GetUserAgent(&self) -> Fallible<DOMString> {
-        Ok(None)
+        Ok(~"")
     }
 
-    pub fn GetLanguage(&self) -> DOMString {
+    pub fn GetLanguage(&self) -> Option<DOMString> {
         None
     }
 

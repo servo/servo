@@ -154,7 +154,7 @@ impl<'self> Element {
         }
     }
 
-    pub fn normalize_attr_name(&self, name: &DOMString) -> ~str {
+    pub fn normalize_attr_name(&self, name: &Option<DOMString>) -> ~str {
         //FIXME: Throw for XML-invalid names
         let owner = self.node.owner_doc();
         if owner.document().doctype == document::HTML { // && self.namespace == Namespace::HTML
@@ -165,7 +165,7 @@ impl<'self> Element {
     }
 
     pub fn get_attribute<'a>(&'a self,
-                         namespace_url: &DOMString,
+                         namespace_url: &Option<DOMString>,
                          name: &str) -> Option<@mut Attr> {
         let namespace = Namespace::from_str(namespace_url);
         // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
@@ -179,16 +179,16 @@ impl<'self> Element {
 
     pub fn set_attr(&mut self,
                     abstract_self: AbstractNode<ScriptView>,
-                    raw_name: &DOMString,
-                    raw_value: &DOMString) -> ErrorResult {
+                    raw_name: &Option<DOMString>,
+                    raw_value: &Option<DOMString>) -> ErrorResult {
         self.set_attribute(abstract_self, namespace::Null, raw_name, raw_value)
     }
 
     pub fn set_attribute(&mut self,
                          abstract_self: AbstractNode<ScriptView>,
                          namespace: Namespace,
-                         raw_name: &DOMString,
-                         raw_value: &DOMString) -> ErrorResult {
+                         raw_name: &Option<DOMString>,
+                         raw_value: &Option<DOMString>) -> ErrorResult {
         //FIXME: Throw for XML-invalid names
         //FIXME: Throw for XMLNS-invalid names
         let name = null_str_as_empty(raw_name).to_ascii_lower();
@@ -246,7 +246,7 @@ impl<'self> Element {
                       abstract_self: AbstractNode<ScriptView>,
                       namespace: &Namespace,
                       local_name: ~str,
-                      value: &DOMString) {
+                      value: &Option<DOMString>) {
 
         if "style" == local_name && *namespace == namespace::Null {
              self.style_attribute = Some(style::parse_style_attribute(
@@ -261,12 +261,12 @@ impl<'self> Element {
         match abstract_self.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 do abstract_self.with_mut_image_element |image| {
-                    image.AfterSetAttr(&Some(local_name.clone()), value);
+                    image.AfterSetAttr(&local_name, &null_str_as_empty(value));
                 }
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => {
                 do abstract_self.with_mut_iframe_element |iframe| {
-                    iframe.AfterSetAttr(&Some(local_name.clone()), value);
+                    iframe.AfterSetAttr(&local_name, &null_str_as_empty(value));
                 }
             }
             _ => ()
@@ -281,26 +281,26 @@ impl<'self> Element {
 
 impl Element {
     pub fn TagName(&self) -> DOMString {
-        Some(self.tag_name.to_owned().to_ascii_upper())
+        self.tag_name.to_owned().to_ascii_upper()
     }
 
     pub fn Id(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
         match self.get_attr(&"id") {
-            Some(x) => Some(x),
-            None => Some(~"")
+            Some(x) => x,
+            None => ~""
         }
     }
 
     pub fn SetId(&mut self, abstract_self: AbstractNode<ScriptView>, id: &DOMString) {
-        self.set_attribute(abstract_self, namespace::Null, &Some(~"id"), id);
+        self.set_attribute(abstract_self, namespace::Null, &Some(~"id"), &Some(id.clone()));
     }
 
-    pub fn GetAttribute(&self, name: &DOMString) -> DOMString {
-        self.get_attr(null_str_as_empty_ref(name))
+    pub fn GetAttribute(&self, name: &DOMString) -> Option<DOMString> {
+        self.get_attr(*name).map(|s| s.to_owned())
     }
 
-    pub fn GetAttributeNS(&self, namespace: &DOMString, local_name: &DOMString) -> DOMString {
-        self.get_attribute(namespace, null_str_as_empty_ref(local_name))
+    pub fn GetAttributeNS(&self, namespace: &Option<DOMString>, local_name: &DOMString) -> Option<DOMString> {
+        self.get_attribute(namespace, *local_name)
             .map(|attr| attr.value.clone())
     }
 
@@ -308,16 +308,16 @@ impl Element {
                         abstract_self: AbstractNode<ScriptView>,
                         name: &DOMString,
                         value: &DOMString) -> ErrorResult {
-        self.set_attr(abstract_self, name, value);
+        self.set_attr(abstract_self, &Some(name.clone()), &Some(value.clone()));
         Ok(())
     }
 
     pub fn SetAttributeNS(&mut self,
                           abstract_self: AbstractNode<ScriptView>,
-                          namespace_url: &DOMString,
+                          namespace_url: &Option<DOMString>,
                           name: &DOMString,
                           value: &DOMString) -> ErrorResult {
-        let name_type = xml_name_type(name.to_str());
+        let name_type = xml_name_type(*name);
         match name_type {
             InvalidXMLName => return Err(InvalidCharacter),
             Name => return Err(NamespaceError),
@@ -325,14 +325,14 @@ impl Element {
         }
 
         let namespace = Namespace::from_str(namespace_url);
-        self.set_attribute(abstract_self, namespace, name, value)
+        self.set_attribute(abstract_self, namespace, &Some(name.clone()), &Some(value.clone()))
     }
 
     pub fn RemoveAttribute(&self, _name: &DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn RemoveAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString) -> ErrorResult {
+    pub fn RemoveAttributeNS(&self, _namespace: &Option<DOMString>, _localname: &DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -340,7 +340,7 @@ impl Element {
         self.GetAttribute(name).is_some()
     }
 
-    pub fn HasAttributeNS(&self, namespace: &DOMString, local_name: &DOMString) -> bool {
+    pub fn HasAttributeNS(&self, namespace: &Option<DOMString>, local_name: &DOMString) -> bool {
         self.GetAttributeNS(namespace, local_name).is_some()
     }
 
@@ -348,7 +348,7 @@ impl Element {
         HTMLCollection::new(self.node.owner_doc().document().window, ~[])
     }
 
-    pub fn GetElementsByTagNameNS(&self, _namespace: &DOMString, _localname: &DOMString) -> Fallible<@mut HTMLCollection> {
+    pub fn GetElementsByTagNameNS(&self, _namespace: &Option<DOMString>, _localname: &DOMString) -> Fallible<@mut HTMLCollection> {
         Ok(HTMLCollection::new(self.node.owner_doc().document().window, ~[]))
     }
 
@@ -453,7 +453,7 @@ impl Element {
     }
 
     pub fn GetInnerHTML(&self) -> Fallible<DOMString> {
-        Ok(None)
+        Ok(~"")
     }
 
     pub fn SetInnerHTML(&mut self, _value: &DOMString) -> ErrorResult {
@@ -461,7 +461,7 @@ impl Element {
     }
 
     pub fn GetOuterHTML(&self) -> Fallible<DOMString> {
-        Ok(None)
+        Ok(~"")
     }
 
     pub fn SetOuterHTML(&mut self, _value: &DOMString) -> ErrorResult {

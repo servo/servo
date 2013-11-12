@@ -28,7 +28,7 @@ impl HTMLQuoteElement {
 
 impl HTMLQuoteElement {
     pub fn Cite(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetCite(&self, _cite: &DOMString) -> ErrorResult {

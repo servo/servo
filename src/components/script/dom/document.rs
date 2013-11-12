@@ -6,7 +6,7 @@ use dom::comment::Comment;
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable, reflect_dom_object};
 use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
-use dom::bindings::utils::{DOMString, null_str_as_empty_ref, null_str_as_empty, null_str_as_word_null};
+use dom::bindings::utils::DOMString;
 use dom::bindings::utils::{xml_name_type, InvalidXMLName};
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
@@ -181,10 +181,10 @@ impl Document {
     }
 
     pub fn GetElementsByTagName(&self, tag: &DOMString) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, null_str_as_empty(tag)))
+        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, *tag))
     }
 
-    pub fn GetElementsByTagNameNS(&self, _ns: &DOMString, _tag: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByTagNameNS(&self, _ns: &Option<DOMString>, _tag: &DOMString) -> @mut HTMLCollection {
         HTMLCollection::new(self.window, ~[])
     }
 
@@ -193,18 +193,16 @@ impl Document {
     }
 
     pub fn GetElementById(&self, id: &DOMString) -> Option<AbstractNode<ScriptView>> {
-        let key: &~str = &null_str_as_empty(id);
         // TODO: "in tree order, within the context object's tree"
         // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
-        match self.idmap.find_equiv(key) {
+        match self.idmap.find_equiv(id) {
             None => None,
             Some(node) => Some(*node),
         }
     }
 
     pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
-        let local_name = null_str_as_empty(local_name);
-        if xml_name_type(local_name) == InvalidXMLName {
+        if xml_name_type(*local_name) == InvalidXMLName {
             return Err(InvalidCharacter);
         }
         let local_name = local_name.to_ascii_lower();
@@ -216,15 +214,15 @@ impl Document {
     }
 
     pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
-        Text::new(null_str_as_empty(data), abstract_self)
+        Text::new(data.clone(), abstract_self)
     }
 
     pub fn CreateComment(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
-        Comment::new(null_str_as_word_null(data), abstract_self)
+        Comment::new(data.clone(), abstract_self)
     }
 
     pub fn CreateEvent(&self, interface: &DOMString) -> Fallible<AbstractEvent> {
-        match null_str_as_empty_ref(interface) {
+        match interface.as_slice() {
             "UIEvents" => Ok(UIEvent::new(self.window, UIEventTypeId)),
             "MouseEvents" => Ok(MouseEvent::new(self.window)),
             "HTMLEvents" => Ok(Event::new(self.window, HTMLEventTypeId)),
@@ -249,8 +247,7 @@ impl Document {
                             for child in node.children() {
                                 if child.is_text() {
                                     do child.with_imm_text() |text| {
-                                        let s = text.element.Data();
-                                        title = title + null_str_as_empty(&s);
+                                        title = title + text.element.Data();
                                     }
                                 }
                             }
@@ -263,7 +260,7 @@ impl Document {
         let v: ~[&str] = title.word_iter().collect();
         title = v.connect(" ");
         title = title.trim().to_owned();
-        Some(title)
+        title
     }
 
     pub fn SetTitle(&self, abstract_self: AbstractDocument, title: &DOMString) -> ErrorResult {
@@ -307,7 +304,7 @@ impl Document {
 
     pub fn GetElementsByName(&self, name: &DOMString) -> @mut HTMLCollection {
         self.createHTMLCollection(|elem|
-            elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), null_str_as_empty(name)))
+            elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), *name))
     }
 
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {

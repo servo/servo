@@ -116,9 +116,9 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
   }
 }
 
-pub type DOMString = Option<~str>;
+pub type DOMString = ~str;
 
-pub fn null_str_as_empty(s: &DOMString) -> ~str {
+pub fn null_str_as_empty(s: &Option<DOMString>) -> ~str {
     // We don't use map_default because it would allocate ~"" even for Some.
     match *s {
         Some(ref s) => s.clone(),
@@ -126,14 +126,14 @@ pub fn null_str_as_empty(s: &DOMString) -> ~str {
     }
 }
 
-pub fn null_str_as_empty_ref<'a>(s: &'a DOMString) -> &'a str {
+pub fn null_str_as_empty_ref<'a>(s: &'a Option<DOMString>) -> &'a str {
     match *s {
         Some(ref s) => s.as_slice(),
         None => &'a ""
     }
 }
 
-pub fn null_str_as_word_null(s: &DOMString) -> ~str {
+pub fn null_str_as_word_null(s: &Option<DOMString>) -> ~str {
     // We don't use map_default because it would allocate ~"null" even for Some.
     match *s {
         Some(ref s) => s.clone(),
@@ -259,7 +259,7 @@ pub fn jsval_to_str(cx: *JSContext, v: JSVal,
 }
 
 #[fixed_stack_segment]
-pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<DOMString, ()> {
+pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<Option<DOMString>, ()> {
     if jsval::is_null(v) || jsval::is_undefined(v) {
         Ok(None)
     } else {
@@ -273,18 +273,23 @@ pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<DOMString, ()> {
 }
 
 #[fixed_stack_segment]
-pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
+pub unsafe fn str_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
+    do string.to_utf16().as_imm_buf |buf, len| {
+        let jsstr = JS_NewUCStringCopyN(cx, buf, len as libc::size_t);
+        if jsstr.is_null() {
+            // FIXME: is there something else we should do on failure?
+            JSVAL_NULL
+        } else {
+            RUST_STRING_TO_JSVAL(jsstr)
+        }
+    }
+}
+
+#[fixed_stack_segment]
+pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &Option<DOMString>) -> JSVal {
     match string {
         &None => JSVAL_NULL,
-        &Some(ref s) => do s.to_utf16().as_imm_buf |buf, len| {
-            let jsstr = JS_NewUCStringCopyN(cx, buf, len as libc::size_t);
-            if jsstr.is_null() {
-                // FIXME: is there something else we should do on failure?
-                JSVAL_NULL
-            } else {
-                RUST_STRING_TO_JSVAL(jsstr)
-            }
-        }
+        &Some(ref s) => str_to_jsval(cx, s),
     }
 }
 

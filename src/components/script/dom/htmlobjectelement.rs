@@ -30,7 +30,7 @@ impl HTMLObjectElement {
 
 impl HTMLObjectElement {
     pub fn Data(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetData(&mut self, _data: &DOMString) -> ErrorResult {
@@ -38,7 +38,7 @@ impl HTMLObjectElement {
     }
 
     pub fn Type(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
@@ -46,7 +46,7 @@ impl HTMLObjectElement {
     }
 
     pub fn Name(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
@@ -54,7 +54,7 @@ impl HTMLObjectElement {
     }
 
     pub fn UseMap(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetUseMap(&mut self, _use_map: &DOMString) -> ErrorResult {
@@ -66,7 +66,7 @@ impl HTMLObjectElement {
     }
 
     pub fn Width(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
@@ -74,7 +74,7 @@ impl HTMLObjectElement {
     }
 
     pub fn Height(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
@@ -99,7 +99,7 @@ impl HTMLObjectElement {
     }
 
     pub fn ValidationMessage(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn CheckValidity(&self) -> bool {
@@ -110,7 +110,7 @@ impl HTMLObjectElement {
     }
 
     pub fn Align(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
@@ -118,7 +118,7 @@ impl HTMLObjectElement {
     }
 
     pub fn Archive(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetArchive(&mut self, _archive: &DOMString) -> ErrorResult {
@@ -126,7 +126,7 @@ impl HTMLObjectElement {
     }
 
     pub fn Code(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetCode(&mut self, _code: &DOMString) -> ErrorResult {
@@ -150,7 +150,7 @@ impl HTMLObjectElement {
     }
 
     pub fn Standby(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetStandby(&mut self, _standby: &DOMString) -> ErrorResult {
@@ -166,7 +166,7 @@ impl HTMLObjectElement {
     }
 
     pub fn CodeBase(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetCodeBase(&mut self, _codebase: &DOMString) -> ErrorResult {
@@ -174,7 +174,7 @@ impl HTMLObjectElement {
     }
 
     pub fn CodeType(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetCodeType(&mut self, _codetype: &DOMString) -> ErrorResult {
@@ -182,7 +182,7 @@ impl HTMLObjectElement {
     }
 
     pub fn Border(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetBorder(&mut self, _border: &DOMString) -> ErrorResult {

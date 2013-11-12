@@ -28,7 +28,7 @@ impl HTMLParamElement {
 
 impl HTMLParamElement {
     pub fn Name(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
@@ -36,7 +36,7 @@ impl HTMLParamElement {
     }
 
     pub fn Value(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
@@ -44,7 +44,7 @@ impl HTMLParamElement {
     }
 
     pub fn Type(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
@@ -52,7 +52,7 @@ impl HTMLParamElement {
     }
 
     pub fn ValueType(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetValueType(&mut self, _value_type: &DOMString) -> ErrorResult {

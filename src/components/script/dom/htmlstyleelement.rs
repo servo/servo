@@ -35,7 +35,7 @@ impl HTMLStyleElement {
     }
 
     pub fn Media(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetMedia(&mut self, _media: &DOMString) -> ErrorResult {
@@ -43,7 +43,7 @@ impl HTMLStyleElement {
     }
 
     pub fn Type(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {

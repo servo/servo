@@ -37,7 +37,7 @@ impl HTMLTableCellElement {
     }
 
     pub fn Headers(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetHeaders(&self, _headers: &DOMString) -> ErrorResult {
@@ -53,7 +53,7 @@ impl HTMLTableCellElement {
     }
 
     pub fn Abbr(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAbbr(&self, _abbr: &DOMString) -> ErrorResult {
@@ -61,7 +61,7 @@ impl HTMLTableCellElement {
     }
 
     pub fn Scope(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetScope(&self, _abbr: &DOMString) -> ErrorResult {
@@ -69,7 +69,7 @@ impl HTMLTableCellElement {
     }
 
     pub fn Align(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAlign(&self, _align: &DOMString) -> ErrorResult {
@@ -77,7 +77,7 @@ impl HTMLTableCellElement {
     }
 
     pub fn Axis(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetAxis(&self, _axis: &DOMString) -> ErrorResult {
@@ -85,7 +85,7 @@ impl HTMLTableCellElement {
     }
 
     pub fn Height(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetHeight(&self, _height: &DOMString) -> ErrorResult {
@@ -93,7 +93,7 @@ impl HTMLTableCellElement {
     }
 
     pub fn Width(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetWidth(&self, _width: &DOMString) -> ErrorResult {
@@ -101,7 +101,7 @@ impl HTMLTableCellElement {
     }
 
     pub fn Ch(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetCh(&self, _ch: &DOMString) -> ErrorResult {
@@ -109,7 +109,7 @@ impl HTMLTableCellElement {
     }
 
     pub fn ChOff(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetChOff(&self, _ch_off: &DOMString) -> ErrorResult {
@@ -125,7 +125,7 @@ impl HTMLTableCellElement {
     }
 
     pub fn VAlign(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetVAlign(&self, _valign: &DOMString) -> ErrorResult {
@@ -133,7 +133,7 @@ impl HTMLTableCellElement {
     }
 
     pub fn BgColor(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetBgColor(&self, _bg_color: &DOMString) -> ErrorResult {

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::CommentBinding;
-use dom::bindings::utils::{DOMString, Fallible, null_str_as_empty};
+use dom::bindings::utils::{DOMString, Fallible};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView, CommentNodeTypeId, Node};
@@ -27,6 +27,6 @@ impl Comment {
     }
 
     pub fn Constructor(owner: @mut Window, data: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
-        Ok(Comment::new(null_str_as_empty(data), owner.Document()))
+        Ok(Comment::new(data.clone(), owner.Document()))
     }
 }

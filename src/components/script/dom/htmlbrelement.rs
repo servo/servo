@@ -28,7 +28,7 @@ impl HTMLBRElement {
 
 impl HTMLBRElement {
     pub fn Clear(&self) -> DOMString {
-        None
+        ~""
     }
 
     pub fn SetClear(&mut self, _text: &DOMString) -> ErrorResult {

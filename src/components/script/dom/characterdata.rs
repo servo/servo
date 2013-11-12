@@ -23,11 +23,11 @@ impl CharacterData {
     }
     
     pub fn Data(&self) -> DOMString {
-        Some(self.data.clone())
+        self.data.clone()
     }
 
     pub fn SetData(&mut self, arg: &DOMString) -> ErrorResult {
-        self.data = arg.get_ref().clone();
+        self.data = arg.clone();
         Ok(())
     }
 
@@ -36,11 +36,11 @@ impl CharacterData {
     }
 
     pub fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
-        Ok(Some(self.data.slice(offset as uint, count as uint).to_str()))
+        Ok(self.data.slice(offset as uint, count as uint).to_str())
     }
 
     pub fn AppendData(&mut self, arg: &DOMString) -> ErrorResult {
-        self.data.push_str(arg.get_ref().clone());
+        self.data.push_str(*arg);
         Ok(())
     }
 

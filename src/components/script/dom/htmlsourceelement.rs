@@ -28,7 +28,7 @@ impl HTMLSourceElement {
 
 impl HTMLSourceElement {
     pub fn Src(&self) -> DOMString {
-        None
+        ~""
     }
     
     pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
@@ -36,7 +36,7 @@ impl HTMLSourceElement {
     }
 
     pub fn Type(&self) -> DOMString {
-        None
+        ~""
     }
     
     pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
@@ -44,7 +44,7 @@ impl HTMLSourceElement {
     }
 
     pub fn Media(&self) -> DOMString {
-        None
+        ~""
     }
     
     pub fn SetMedia(&mut self, _media: &DOMString) -> ErrorResult {

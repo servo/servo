@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Reflectable, Reflector, DOMString, Fallible};
-use dom::bindings::utils::{null_str_as_word_null, InvalidState};
+use dom::bindings::utils::{InvalidState};
 use dom::bindings::codegen::EventListenerBinding::EventListener;
 use dom::document::AbstractDocument;
 use dom::event::AbstractEvent;
@@ -145,7 +145,7 @@ impl EventTarget {
                             listener: Option<EventListener>,
                             capture: bool) {
         for &listener in listener.iter() {
-            let entry = self.handlers.find_or_insert_with(null_str_as_word_null(ty), |_| ~[]);
+            let entry = self.handlers.find_or_insert_with(ty.clone(), |_| ~[]);
             let phase = if capture { Capturing } else { Bubbling };
             let new_entry = EventListenerEntry {
                 phase: phase,
@@ -162,7 +162,7 @@ impl EventTarget {
                                listener: Option<EventListener>,
                                capture: bool) {
         for &listener in listener.iter() {
-            let mut entry = self.handlers.find_mut(&null_str_as_word_null(ty));
+            let mut entry = self.handlers.find_mut(ty);
             for entry in entry.mut_iter() {
                 let phase = if capture { Capturing } else { Bubbling };
                 let old_entry = EventListenerEntry {
