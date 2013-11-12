@@ -889,18 +889,45 @@ impl Node<ScriptView> {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace-all
-    pub fn replace_all(&mut self,
-                       abstract_self: AbstractNode<ScriptView>,
-                       node: Option<AbstractNode<ScriptView>>) {
-        //FIXME: We should batch document notifications that occur here
-        for child in abstract_self.children() {
-            self.RemoveChild(abstract_self, child);
-        }
+    pub fn replace_all(node: Option<AbstractNode<ScriptView>>,
+                       parent: AbstractNode<ScriptView>) {
+        // Step 1.
         match node {
-            None => {},
-            Some(node) => {
-                self.AppendChild(abstract_self, node);
-            }
+            Some(node) => Node::adopt(node, parent.node().owner_doc()),
+            None => (),
+        }
+
+        // Step 2.
+        let removedNodes: ~[AbstractNode<ScriptView>] = parent.children().collect();
+
+        // Step 3.
+        let addedNodes = match node {
+            None => ~[],
+            Some(node) => match node.type_id() {
+                DocumentFragmentNodeTypeId => node.children().collect(),
+                _ => ~[node],
+            },
+        };
+
+        // Step 4.
+        for child in parent.children() {
+            Node::remove(child, parent, true);
+        }
+
+        // Step 5.
+        match node {
+            Some(node) => Node::insert(node, parent, None, true),
+            None => (),
+        }
+
+        // Step 6: mutation records.
+
+        // Step 7.
+        for removedNode in removedNodes.iter() {
+            removedNode.node_removed();
+        }
+        for addedNode in addedNodes.iter() {
+            addedNode.node_inserted();
         }
     }
 
@@ -939,20 +966,22 @@ impl Node<ScriptView> {
     pub fn SetTextContent(&mut self,
                           abstract_self: AbstractNode<ScriptView>,
                           value: &Option<DOMString>) -> ErrorResult {
+        self.wait_until_safe_to_modify_dom();
+
         let value = null_str_as_empty(value);
         match self.type_id {
           DocumentFragmentNodeTypeId | ElementNodeTypeId(*) => {
+            // Step 1-2.
             let node = if value.len() == 0 {
                 None
             } else {
                 let document = self.owner_doc();
                 Some(document.document().CreateTextNode(document, &value))
             };
-            self.replace_all(abstract_self, node);
+            // Step 3.
+            Node::replace_all(node, abstract_self);
           }
           CommentNodeTypeId | TextNodeTypeId => {
-            self.wait_until_safe_to_modify_dom();
-
             do abstract_self.with_mut_characterdata() |characterdata| {
                 characterdata.data = value.clone();
 
