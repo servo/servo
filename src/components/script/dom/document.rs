@@ -274,7 +274,7 @@ impl Document {
                                 }
                                 has_title = true;
                                 for title_child in child.children() {
-                                    child.remove_child(title_child);
+                                    child.RemoveChild(title_child);
                                 }
                                 child.AppendChild(self.CreateTextNode(abstract_self, title.clone()));
                                 break;
