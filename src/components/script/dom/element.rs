@@ -6,7 +6,7 @@
 
 use dom::attrlist::AttrList;
 use dom::bindings::utils::{Reflectable, DOMString, ErrorResult, Fallible, Reflector};
-use dom::bindings::utils::{null_str_as_empty, null_str_as_empty_ref, NamespaceError};
+use dom::bindings::utils::{null_str_as_empty, NamespaceError};
 use dom::bindings::utils::{InvalidCharacter, QName, Name, InvalidXMLName, xml_name_type};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
@@ -182,20 +182,19 @@ impl<'self> Element {
 
     pub fn set_attr(&mut self,
                     abstract_self: AbstractNode<ScriptView>,
-                    raw_name: &Option<DOMString>,
-                    raw_value: &Option<DOMString>) -> ErrorResult {
-        self.set_attribute(abstract_self, namespace::Null, raw_name, raw_value)
+                    name: DOMString,
+                    value: DOMString) -> ErrorResult {
+        self.set_attribute(abstract_self, namespace::Null, name, value)
     }
 
     pub fn set_attribute(&mut self,
                          abstract_self: AbstractNode<ScriptView>,
                          namespace: Namespace,
-                         raw_name: &Option<DOMString>,
-                         raw_value: &Option<DOMString>) -> ErrorResult {
+                         raw_name: DOMString,
+                         value: DOMString) -> ErrorResult {
         //FIXME: Throw for XML-invalid names
         //FIXME: Throw for XMLNS-invalid names
-        let name = null_str_as_empty(raw_name).to_ascii_lower();
-        let value = null_str_as_empty(raw_value);
+        let name = raw_name.to_ascii_lower();
         let (prefix, local_name) = if name.contains(":")  {
             let parts: ~[&str] = name.splitn_iter(':', 1).collect();
             (Some(parts[0].to_owned()), parts[1].to_owned())
@@ -243,19 +242,18 @@ impl<'self> Element {
                               }
                           });
 
-        self.after_set_attr(abstract_self, &namespace, local_name, raw_value);
+        self.after_set_attr(abstract_self, &namespace, local_name, value);
         Ok(())
     }
 
     fn after_set_attr(&mut self,
                       abstract_self: AbstractNode<ScriptView>,
                       namespace: &Namespace,
-                      local_name: ~str,
-                      value: &Option<DOMString>) {
+                      local_name: DOMString,
+                      value: DOMString) {
 
         if "style" == local_name && *namespace == namespace::Null {
-             self.style_attribute = Some(style::parse_style_attribute(
-                 null_str_as_empty_ref(value)));
+             self.style_attribute = Some(style::parse_style_attribute(value));
         }
 
         // TODO: update owner document's id hashmap for `document.getElementById()`
@@ -266,12 +264,12 @@ impl<'self> Element {
         match abstract_self.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 do abstract_self.with_mut_image_element |image| {
-                    image.AfterSetAttr(&local_name, &null_str_as_empty(value));
+                    image.AfterSetAttr(&local_name, &value);
                 }
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => {
                 do abstract_self.with_mut_iframe_element |iframe| {
-                    iframe.AfterSetAttr(&local_name, &null_str_as_empty(value));
+                    iframe.AfterSetAttr(&local_name, &value);
                 }
             }
             _ => ()
@@ -297,7 +295,7 @@ impl Element {
     }
 
     pub fn SetId(&mut self, abstract_self: AbstractNode<ScriptView>, id: &DOMString) {
-        self.set_attribute(abstract_self, namespace::Null, &Some(~"id"), &Some(id.clone()));
+        self.set_attribute(abstract_self, namespace::Null, ~"id", id.clone());
     }
 
     pub fn Attributes(&mut self, abstract_self: AbstractNode<ScriptView>) -> @mut AttrList {
@@ -325,7 +323,7 @@ impl Element {
                         abstract_self: AbstractNode<ScriptView>,
                         name: &DOMString,
                         value: &DOMString) -> ErrorResult {
-        self.set_attr(abstract_self, &Some(name.clone()), &Some(value.clone()));
+        self.set_attr(abstract_self, name.clone(), value.clone());
         Ok(())
     }
 
@@ -342,7 +340,7 @@ impl Element {
         }
 
         let namespace = Namespace::from_str(namespace_url);
-        self.set_attribute(abstract_self, namespace, &Some(name.clone()), &Some(value.clone()))
+        self.set_attribute(abstract_self, namespace, name.clone(), value.clone())
     }
 
     pub fn RemoveAttribute(&self, _name: &DOMString) -> ErrorResult {
