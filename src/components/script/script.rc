@@ -14,7 +14,6 @@
 #[feature(globs, macro_rules, struct_variant, managed_boxes)];
 
 extern mod geom;
-extern mod gfx (name = "gfx");
 extern mod hubbub;
 extern mod js;
 extern mod servo_net (name = "net");

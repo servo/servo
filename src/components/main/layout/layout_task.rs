@@ -15,10 +15,11 @@ use layout::flow::{FlowContext, ImmutableFlowUtils, MutableFlowUtils, PreorderFl
 use layout::flow::{PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::{RestyleDamage, BubbleWidths};
+use layout::util::LayoutDataAccess;
 
 use std::cast::transmute;
 use std::cell::Cell;
-use std::comm::{Port};
+use std::comm::Port;
 use std::task;
 use extra::arc::{Arc, RWArc};
 use geom::point::Point2D;
@@ -419,22 +420,23 @@ impl LayoutTask {
                         transmute(display_list.get().list[i].base().extra)
                     };
 
-                    do node.write_layout_data |layout_data| {
-                        layout_data.boxes.display_list = Some(display_list.clone());
+                    // FIXME(pcwalton): Why are we cloning the display list here?!
+                    let layout_data = node.layout_data();
+                    let boxes = layout_data.boxes.mutate();
+                    boxes.ptr.display_list = Some(display_list.clone());
 
-                        if layout_data.boxes.range.is_none() {
-                            debug!("Creating initial range for node");
-                            layout_data.boxes.range = Some(Range::new(i,1));
-                        } else {
-                            debug!("Appending item to range");
-                            unsafe {
-                                let old_node: AbstractNode<()> = transmute(node);
-                                assert!(old_node == display_list.get().list[i-1].base().extra,
-                                "Non-contiguous arrangement of display items");
-                            }
-
-                            layout_data.boxes.range.unwrap().extend_by(1);
+                    if boxes.ptr.range.is_none() {
+                        debug!("Creating initial range for node");
+                        boxes.ptr.range = Some(Range::new(i,1));
+                    } else {
+                        debug!("Appending item to range");
+                        unsafe {
+                            let old_node: AbstractNode<()> = transmute(node);
+                            assert!(old_node == display_list.get().list[i-1].base().extra,
+                            "Non-contiguous arrangement of display items");
                         }
+
+                        boxes.ptr.range.unwrap().extend_by(1);
                     }
                 }
 
@@ -469,34 +471,35 @@ impl LayoutTask {
                 };
 
                 fn box_for_node(node: AbstractNode<LayoutView>) -> Option<Rect<Au>> {
-                    do node.read_layout_data |layout_data| {
-                        match (layout_data.boxes.display_list.clone(), layout_data.boxes.range) {
-                            (Some(display_list), Some(range)) => {
-                                let mut rect: Option<Rect<Au>> = None;
-                                for i in range.eachi() {
-                                    rect = match rect {
-                                        Some(acc) => {
-                                            Some(acc.union(&display_list.get().list[i].bounds()))
-                                        }
-                                        None => Some(display_list.get().list[i].bounds())
+                    // FIXME(pcwalton): Why are we cloning the display list here?!
+                    let boxes = node.layout_data().boxes.borrow();
+                    let boxes = boxes.ptr;
+                    match (boxes.display_list.clone(), boxes.range) {
+                        (Some(display_list), Some(range)) => {
+                            let mut rect: Option<Rect<Au>> = None;
+                            for i in range.eachi() {
+                                rect = match rect {
+                                    Some(acc) => {
+                                        Some(acc.union(&display_list.get().list[i].bounds()))
+                                    }
+                                    None => Some(display_list.get().list[i].bounds())
+                                }
+                            }
+                            rect
+                        }
+                        _ => {
+                            let mut acc: Option<Rect<Au>> = None;
+                            for child in node.children() {
+                                let rect = box_for_node(child);
+                                match rect {
+                                    None => continue,
+                                    Some(rect) => acc = match acc {
+                                        Some(acc) =>  Some(acc.union(&rect)),
+                                        None => Some(rect)
                                     }
                                 }
-                                rect
                             }
-                            _ => {
-                                let mut acc: Option<Rect<Au>> = None;
-                                for child in node.children() {
-                                    let rect = box_for_node(child);
-                                    match rect {
-                                        None => continue,
-                                        Some(rect) => acc = match acc {
-                                            Some(acc) =>  Some(acc.union(&rect)),
-                                            None => Some(rect)
-                                        }
-                                    }
-                                }
-                                acc
-                            }
+                            acc
                         }
                     }
                 }
@@ -511,25 +514,23 @@ impl LayoutTask {
                     transmute(node)
                 };
 
-                fn boxes_for_node(node: AbstractNode<LayoutView>,
-                                  boxes: ~[Rect<Au>]) -> ~[Rect<Au>] {
-                    let boxes = Cell::new(boxes);
-                    do node.read_layout_data |layout_data| {
-                        let mut boxes = boxes.take();
-                        match (layout_data.boxes.display_list.clone(), layout_data.boxes.range) {
-                            (Some(display_list), Some(range)) => {
-                                for i in range.eachi() {
-                                    boxes.push(display_list.get().list[i].bounds());
-                                }
-                            }
-                            _ => {
-                                for child in node.children() {
-                                    boxes = boxes_for_node(child, boxes);
-                                }
+                fn boxes_for_node(node: AbstractNode<LayoutView>, mut box_accumulator: ~[Rect<Au>])
+                                  -> ~[Rect<Au>] {
+                    let boxes = node.layout_data().boxes.borrow();
+                    let boxes = boxes.ptr;
+                    match (boxes.display_list.clone(), boxes.range) {
+                        (Some(display_list), Some(range)) => {
+                            for i in range.eachi() {
+                                box_accumulator.push(display_list.get().list[i].bounds());
                             }
                         }
-                        boxes
+                        _ => {
+                            for child in node.children() {
+                                box_accumulator = boxes_for_node(child, box_accumulator);
+                            }
+                        }
                     }
+                    box_accumulator
                 }
 
                 let mut boxes = ~[];

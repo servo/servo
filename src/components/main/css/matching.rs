@@ -14,6 +14,7 @@ use extra::arc::RWArc;
 use css::node_style::StyledNode;
 use css::node_util::NodeUtil;
 use layout::incremental;
+use layout::util::LayoutDataAccess;
 
 use script::dom::node::{AbstractNode, LayoutView};
 use style::Stylist;
@@ -37,10 +38,7 @@ impl MatchMethods for AbstractNode<LayoutView> {
             };
             stylist.get_applicable_declarations(self, style_attribute, None)
         };
-        let cell = Cell::new(applicable_declarations);
-        do self.write_layout_data |data| {
-            data.applicable_declarations = cell.take();
-        }
+        self.layout_data().applicable_declarations.set(applicable_declarations)
     }
     fn match_subtree(&self, stylist: RWArc<Stylist>) {
         let num_tasks = default_sched_threads() * 2;
@@ -84,22 +82,21 @@ impl MatchMethods for AbstractNode<LayoutView> {
             Some(parent) => Some(parent.style()),
             None => None
         };
-        let computed_values = do self.read_layout_data |data| {
-            cascade(data.applicable_declarations, parent_style)
-        };
-        let cell = Cell::new(computed_values);
-        do self.write_layout_data |data| {
-            let style = cell.take();
-            // If there was an existing style, compute the damage that
-            // incremental layout will need to fix.
-            match data.style {
-                None => (),
-                Some(ref previous_style) => self.set_restyle_damage(
-                    incremental::compute_damage(previous_style, &style))
+
+        let layout_data = self.layout_data();
+        let computed_values = cascade(*layout_data.applicable_declarations.borrow().ptr,
+                                      parent_style);
+        let style = layout_data.style.mutate();
+        match *style.ptr {
+            None => (),
+            Some(ref previous_style) => {
+                self.set_restyle_damage(incremental::compute_damage(previous_style,
+                                                                    &computed_values))
             }
-            data.style = Some(style);
         }
+        *style.ptr = Some(computed_values)
     }
+
     fn cascade_subtree(&self, parent: Option<AbstractNode<LayoutView>>) {
         self.cascade_node(parent);
 
