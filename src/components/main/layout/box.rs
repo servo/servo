@@ -209,6 +209,10 @@ impl RenderBox for GenericRenderBox {
         // FIXME(pcwalton): This seems clownshoes; can we remove?
         self.base.position.mutate().ptr.size.width = Au::from_px(45)
     }
+
+    fn debug_str(&self) -> ~str {
+        ~"(generic)"
+    }
 }
 
 /// A box that represents a (replaced content) image and its accompanying borders, shadows, etc.
@@ -281,6 +285,10 @@ impl ImageRenderBox {
     /// FIXME(pcwalton): Ugly. Replace with a real downcast operation.
     fn as_image_render_box(@self) -> @ImageRenderBox {
         self
+    }
+
+    fn debug_str(&self) -> ~str {
+        ~"(image)"
     }
 }
 
@@ -493,6 +501,10 @@ impl RenderBox for TextRenderBox {
             SplitDidFit(left_box, right_box)
         }
     }
+
+    fn debug_str(&self) -> ~str {
+        self.run.text.get().to_str()
+    }
 }
 
 /// The data for an unscanned text box.
@@ -573,6 +585,10 @@ impl RenderBox for UnscannedTextRenderBox {
     /// FIXME(pcwalton): Ugly. Replace with a real downcast operation.
     fn as_unscanned_text_render_box(@self) -> @UnscannedTextRenderBox {
         self
+    }
+
+    fn debug_str(&self) -> ~str {
+        self.text.clone()
     }
 }
 
