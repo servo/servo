@@ -21,12 +21,8 @@ use dom::text::Text;
 use std::cast;
 use std::cast::transmute;
 use std::unstable::raw::Box;
-use extra::arc::Arc;
 use js::jsapi::{JSObject, JSContext};
-use style::{ComputedValues, PropertyDeclaration};
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement};
-use servo_util::range::Range;
-use gfx::display_list::DisplayList;
 
 //
 // The basic Node structure
@@ -93,7 +89,7 @@ pub struct Node<View> {
     child_list: Option<@mut NodeList>,
 
     /// Layout information. Only the layout task may touch this data.
-    priv layout_data: LayoutData,
+    layout_data: Option<~Any>,
 }
 
 /// The different types of nodes.
@@ -543,7 +539,7 @@ impl Node<ScriptView> {
             owner_doc: doc,
             child_list: None,
 
-            layout_data: LayoutData::new(),
+            layout_data: None,
         }
     }
 }
@@ -1092,62 +1088,41 @@ impl Reflectable for Node<ScriptView> {
     }
 }
 
-// This stuff is notionally private to layout, but we put it here because it needs
-// to be stored in a Node, and we can't have cross-crate cyclic dependencies.
+/// A bottom-up, parallelizable traversal.
+pub trait PostorderNodeTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&mut self, node: AbstractNode<LayoutView>) -> bool;
 
-pub struct DisplayBoxes {
-    display_list: Option<Arc<DisplayList<AbstractNode<()>>>>,
-    range: Option<Range>,
-}
-
-/// Data that layout associates with a node.
-pub struct LayoutData {
-    /// The results of CSS matching for this node.
-    applicable_declarations: ~[Arc<~[PropertyDeclaration]>],
-
-    /// The results of CSS styling for this node.
-    style: Option<ComputedValues>,
-
-    /// Description of how to account for recent style changes.
-    restyle_damage: Option<int>,
-
-    /// The boxes assosiated with this flow.
-    /// Used for getBoundingClientRect and friends.
-    boxes: DisplayBoxes,
-}
-
-impl LayoutData {
-    /// Creates new layout data.
-    pub fn new() -> LayoutData {
-        LayoutData {
-            applicable_declarations: ~[],
-            style: None,
-            restyle_damage: None,
-            boxes: DisplayBoxes {
-                display_list: None,
-                range: None,
-            },
-        }
+    /// Returns true if this node should be pruned. If this returns true, we skip the operation
+    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
+    /// visited. The default implementation never prunes any nodes.
+    fn should_prune(&mut self, _node: AbstractNode<LayoutView>) -> bool {
+        false
     }
-}
-
-// This serves as a static assertion that layout data remains sendable. If this is not done, then
-// we can have memory unsafety, which usually manifests as shutdown crashes.
-fn assert_is_sendable<T:Send>(_: T) {}
-fn assert_layout_data_is_sendable() {
-    assert_is_sendable(LayoutData::new())
 }
 
 impl AbstractNode<LayoutView> {
-    // These accessors take a continuation rather than returning a reference, because
-    // an AbstractNode doesn't have a lifetime parameter relating to the underlying
-    // Node.  Also this makes it easier to switch to RWArc if we decide that is
-    // necessary.
-    pub fn read_layout_data<R>(self, blk: &fn(data: &LayoutData) -> R) -> R {
-        blk(&self.node().layout_data)
-    }
+    /// Traverses the tree in postorder.
+    ///
+    /// TODO(pcwalton): Offer a parallel version with a compatible API.
+    pub fn traverse_postorder<T:PostorderNodeTraversal>(self, traversal: &mut T) -> bool {
+        if traversal.should_prune(self) {
+            return true
+        }
 
-    pub fn write_layout_data<R>(self, blk: &fn(data: &mut LayoutData) -> R) -> R {
-        blk(&mut self.mut_node().layout_data)
+        let mut opt_kid = self.first_child();
+        loop {
+            match opt_kid {
+                None => break,
+                Some(kid) => {
+                    if !kid.traverse_postorder(traversal) {
+                        return false
+                    }
+                    opt_kid = kid.next_sibling()
+                }
+            }
+        }
+
+        traversal.process(self)
     }
 }

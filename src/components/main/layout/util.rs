@@ -3,12 +3,34 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use layout::box::{RenderBox, RenderBoxUtils};
+
+use extra::arc::Arc;
+use gfx::display_list::DisplayList;
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::range::Range;
-
+use servo_util::slot::Slot;
+use servo_util::tree::TreeNodeRef;
+use std::any::AnyRefExt;
 use std::iter::Enumerate;
 use std::vec::VecIterator;
+use style::{ComputedValues, PropertyDeclaration};
 
+/// The boxes associated with a node.
+pub struct DisplayBoxes {
+    display_list: Option<Arc<DisplayList<AbstractNode<()>>>>,
+    range: Option<Range>,
+}
+
+impl DisplayBoxes {
+    pub fn init() -> DisplayBoxes {
+        DisplayBoxes {
+            display_list: None,
+            range: None,
+        }
+    }
+}
+
+/// A range of nodes.
 pub struct NodeRange {
     node: AbstractNode<LayoutView>,
     range: Range,
@@ -16,7 +38,10 @@ pub struct NodeRange {
 
 impl NodeRange {
     pub fn new(node: AbstractNode<LayoutView>, range: &Range) -> NodeRange {
-        NodeRange { node: node, range: (*range).clone() }
+        NodeRange {
+            node: node,
+            range: (*range).clone()
+        }
     }
 }
 
@@ -111,3 +136,51 @@ impl ElementMapping {
         debug!("----------------------------------");
     }
 }
+
+/// Data that layout associates with a node.
+pub struct LayoutData {
+    /// The results of CSS matching for this node.
+    applicable_declarations: Slot<~[Arc<~[PropertyDeclaration]>]>,
+
+    /// The results of CSS styling for this node.
+    style: Slot<Option<ComputedValues>>,
+
+    /// Description of how to account for recent style changes.
+    restyle_damage: Slot<Option<int>>,
+
+    /// The boxes assosiated with this flow.
+    /// Used for getBoundingClientRect and friends.
+    boxes: Slot<DisplayBoxes>,
+}
+
+impl LayoutData {
+    /// Creates new layout data.
+    pub fn new() -> LayoutData {
+        LayoutData {
+            applicable_declarations: Slot::init(~[]),
+            style: Slot::init(None),
+            restyle_damage: Slot::init(None),
+            boxes: Slot::init(DisplayBoxes::init()),
+        }
+    }
+}
+
+// This serves as a static assertion that layout data remains sendable. If this is not done, then
+// we can have memory unsafety, which usually manifests as shutdown crashes.
+fn assert_is_sendable<T:Send>(_: T) {}
+fn assert_layout_data_is_sendable() {
+    assert_is_sendable(LayoutData::new())
+}
+
+/// A trait that allows access to the layout data of a DOM node.
+pub trait LayoutDataAccess {
+    fn layout_data<'a>(&'a self) -> &'a LayoutData;
+}
+
+impl LayoutDataAccess for AbstractNode<LayoutView> {
+    #[inline(always)]
+    fn layout_data<'a>(&'a self) -> &'a LayoutData {
+        self.node().layout_data.as_ref().unwrap().as_ref().unwrap()
+    }
+}
+
