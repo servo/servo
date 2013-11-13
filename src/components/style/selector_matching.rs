@@ -60,69 +60,74 @@ impl SelectorMap {
         }
     }
 
-    /// Return all Rules in `self` that match node.
+    /// Append to `rule_list` all Rules in `self` that match node.
     ///
     /// Extract matching rules as per node's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
     fn get_all_matching_rules<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         &self, node: &T,
-        pseudo_element: Option<PseudoElement>) -> ~[Rule] {
+        pseudo_element: Option<PseudoElement>,
+        matching_rules_list: &mut [~[Rule]],
+        list_index: uint) {
+
+        let init_len = matching_rules_list[list_index].len();
         static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
-        let mut rules_list: ~[Rule] = ~[];
         do node.with_imm_element_like |element: &E| {
             match element.get_attr("id") {
-                Some(id) => rules_list.push_all_move(
-                    SelectorMap::get_matching_rules_from_hash(
-                        node, pseudo_element, &self.id_hash, id)),
+                Some(id) => SelectorMap::get_matching_rules_from_hash(
+                    node, pseudo_element, &self.id_hash, id, &mut matching_rules_list[list_index]),
                 None => {}
             }
 
             match element.get_attr("class") {
                 Some(ref class_attr) => {
                     for class in class_attr.split_iter(WHITESPACE) {
-                        rules_list.push_all_move(SelectorMap::get_matching_rules_from_hash(
-                                node, pseudo_element, &self.class_hash, class));
+                        SelectorMap::get_matching_rules_from_hash(
+                            node, pseudo_element, &self.class_hash, class, &mut matching_rules_list[list_index]);
                     }
                 }
                 None => {}
             }
 
-            rules_list.push_all_move(SelectorMap::get_matching_rules_from_hash(
-                    node, pseudo_element, &self.element_hash,
-                    // HTML elements in HTML documents must be matched case-insensitively
-                    // TODO: case-sensitivity depends on the document type
-                    element.get_local_name().to_ascii_lower()));
-            rules_list.push_all_move(SelectorMap::get_matching_rules(node, pseudo_element,
-                                                                     self.universal_rules));
+            SelectorMap::get_matching_rules_from_hash(
+                node, pseudo_element, &self.element_hash,
+                // HTML elements in HTML documents must be matched case-insensitively
+                // TODO: case-sensitivity depends on the document type
+                element.get_local_name().to_ascii_lower(),
+                &mut matching_rules_list[list_index]);
+            SelectorMap::get_matching_rules(
+                node, pseudo_element, self.universal_rules, &mut matching_rules_list[list_index]);
         }
-        tim_sort(rules_list);
-        rules_list
+
+        // Sort only the rules we just added.
+        tim_sort(matching_rules_list[list_index].mut_slice_from(init_len));
     }
 
     fn get_matching_rules_from_hash<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         node: &T,
         pseudo_element: Option<PseudoElement>,
         hash: &HashMap<~str, ~[Rule]>, 
-        key: &str) -> ~[Rule] {
+        key: &str,
+        matching_rules: &mut ~[Rule]) {
         match hash.find(&key.to_str()) {
-            Some(rules) => SelectorMap::get_matching_rules(node, pseudo_element, *rules),
-            None => ~[]
-        }
+            Some(rules) => SelectorMap::get_matching_rules(node, pseudo_element, *rules,
+                                                           matching_rules),
+            None => {}
+        };
     }
     
     /// Return rules in `rules` that match `node`.
     fn get_matching_rules<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         node: &T,
         pseudo_element: Option<PseudoElement>,
-        rules: &[Rule]) -> ~[Rule] {
-        let mut matches = ~[];
+        rules: &[Rule],
+        matching_rules: &mut ~[Rule]) {
         for rule in rules.iter() {
             if matches_selector(&rule.selector, node, pseudo_element) {
                 // TODO: Is the cloning inefficient?
-                matches.push(rule.clone());
+                matching_rules.push(rule.clone());
             }
         }
-        matches
     }
 
     /// Insert rule into the correct hash.
@@ -276,11 +281,14 @@ impl Stylist {
                               &self.user_rule_map.important,
                               &self.ua_rule_map.important];
 
-        let mut matching_rules_list: ~[~[Rule]] = ~[];
-        for rule_map in rule_map_list.iter() {
-            matching_rules_list.push(rule_map.get_all_matching_rules(element, pseudo_element));
+        // TODO: Make this a stack-allocated vector
+        let mut matching_rules_list: [~[Rule], ..6] = [~[], ~[], ~[], ~[], ~[], ~[]];
+        for (i, rule_map) in rule_map_list.iter().enumerate() {
+            rule_map.get_all_matching_rules(element, pseudo_element, matching_rules_list, i);
         }
         
+        // Keeping this as a separate step because we will need it for further
+        // optimizations regarding grouping of Rules having the same Selector.
         let declarations_list = matching_rules_list.map(
             |rules| rules.map(|r| r.declarations.clone()));
 
