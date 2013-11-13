@@ -893,7 +893,7 @@ impl FlowContext for InlineFlow {
     }
 
     fn debug_str(&self) -> ~str {
-        ~"InlineFlow"
+        ~"InlineFlow: " + self.boxes.map(|s| s.debug_str()).connect(", ")
     }
 }
 
