@@ -171,9 +171,9 @@ impl Event {
         }
     }
 
-    pub fn new(window: @mut Window, type_id: EventTypeId) -> AbstractEvent {
-        let ev = reflect_dom_object(@mut Event::new_inherited(type_id), window,
-                                    EventBinding::Wrap);
+    pub fn new(window: @mut Window) -> AbstractEvent {
+        let ev = reflect_dom_object(@mut Event::new_inherited(HTMLEventTypeId),
+                                    window, EventBinding::Wrap);
         Event::as_abstract(ev)
     }
 
@@ -242,7 +242,7 @@ impl Event {
     pub fn Constructor(global: @mut Window,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<AbstractEvent> {
-        let ev = Event::new(global, HTMLEventTypeId);
+        let ev = Event::new(global);
         ev.mut_event().InitEvent(type_, init.bubbles, init.cancelable);
         Ok(ev)
     }
