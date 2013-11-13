@@ -93,6 +93,10 @@ impl FloatFlow {
 
         false
     }
+
+    fn debug_str(&self) -> ~str {
+        ~"FloatFlow"
+    }
 }
 
 impl FlowContext for FloatFlow {
