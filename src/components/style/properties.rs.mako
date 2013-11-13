@@ -228,8 +228,8 @@ pub mod longhands {
             values="inline block inline-block 
             table inline-table table-row-group table-header-group table-footer-group
             table-row table-column-group table-column table-cell table-caption
+            list-item
             none">
-//        list-item
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                               -> computed_value::T {
 //            if context.is_root_element && value == list_item {
