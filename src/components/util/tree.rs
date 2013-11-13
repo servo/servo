@@ -2,7 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+
 //! Helper functions for garbage collected doubly-linked trees.
+
+#[deriving(Eq, Clone)]
+pub enum PseudoElement {
+    Before,
+    After,
+    FirstLine,
+    FirstLetter,
+}
 
 // Macros to make add_child etc. less painful to write.
 // Code outside this module should instead implement TreeNode
@@ -268,6 +277,8 @@ pub trait TreeNodeRef<Node>: Clone {
 
 pub trait TreeNodeRefAsElement<Node, E: ElementLike>: TreeNodeRef<Node> {
     fn with_imm_element_like<R>(&self, f: &fn(&E) -> R) -> R;
+
+    fn set_pseudo_element(&mut self, pseudo_element: Option<PseudoElement>);
 }
 
 fn gather<Node, Ref: TreeNodeRef<Node>>(cur: &Ref, refs: &mut ~[Ref],
@@ -344,7 +355,6 @@ pub trait TreeNode<Ref: TreeNodeRef<Self>> {
         TreeNodeRef::<Self>::set_next_sibling(self, new_next_sibling)
     }
 }
-
 
 pub trait ElementLike {
     fn get_local_name<'a>(&'a self) -> &'a str;

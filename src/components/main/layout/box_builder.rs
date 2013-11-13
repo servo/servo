@@ -21,12 +21,16 @@ use css::node_style::StyledNode;
 
 use style::computed_values::display;
 use style::computed_values::float;
+use style::computed_values::content;
 use layout::float_context::{FloatLeft, FloatRight};
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId, DocumentNodeTypeId};
 use script::dom::node::DocumentFragmentNodeTypeId;
+use script::dom::node::Node;
+use script::dom::element::{Element, HTMLUnknownElementTypeId};
+use script::dom::text::Text;
 use servo_util::range::Range;
-use servo_util::tree::{TreeNodeRef, TreeNode};
+use servo_util::tree::{TreeNodeRef, TreeNode, Before};
 use std::cast;
 use std::cell::Cell;
 
@@ -93,7 +97,7 @@ impl<'self> BoxGenerator<'self> {
         return false;
     }
 
-    // TODO: implement this, generating spacer 
+    // TODO: implement this, generating spacer
     fn make_inline_spacer_for_node_side(_: &LayoutContext,
                                         _: AbstractNode<LayoutView>,
                                         _: InlineSpacerSide)
@@ -339,6 +343,28 @@ impl LayoutTreeBuilder {
         // recurse on child nodes.
         let prev_gen_cell = Cell::new(Normal(None));
         for child_node in cur_node.children() {
+            match child_node.pseudo_element() {
+                Some(&Before) => {
+                    let pseudo_element = self.make_pseudo_element(child_node);
+                    do parent_generator.with_clone |grandparent_clone| {
+                        let grandparent_clone_cell = Cell::new(Some(grandparent_clone));
+                        do this_generator.with_clone |parent_clone| {
+                            match prev_gen_cell.take() {
+                                Normal(prev_gen) => {
+                                    let prev_generator = self.construct_recursively(layout_ctx,
+                                                                                    pseudo_element,
+                                                                                    grandparent_clone_cell.take(),
+                                                                                    parent_clone,
+                                                                                    prev_gen);
+                                    prev_gen_cell.put_back(prev_generator);
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
             do parent_generator.with_clone |grandparent_clone| {
                 let grandparent_clone_cell = Cell::new(Some(grandparent_clone));
                 do this_generator.with_clone |parent_clone| {
@@ -358,7 +384,7 @@ impl LayoutTreeBuilder {
                                                                             grandparent_clone_cell.take().unwrap(),
                                                                             Some(prev_gen));
                             prev_gen_cell.put_back(prev_generator);
-                        } 
+                        }
                     }
                 }
             }
@@ -376,6 +402,55 @@ impl LayoutTreeBuilder {
                     Normal(Some(this_generator))
                 }
             }
+        }
+    }
+
+    fn make_pseudo_element(&self, node: AbstractNode<LayoutView>) -> AbstractNode<LayoutView> {
+        match node.parent_node() {
+            Some(p) => {
+                // Create parent element & pseudo text
+                let document = node.node().owner_doc();
+                let pseudo_parent_element = match p.type_id() {
+                    ElementNodeTypeId(element_type_id) => {
+                        do p.with_imm_element |element| {
+                            @Element::new(element_type_id, element.tag_name.clone(), document)
+                        }
+                    }
+                    _ => { fail!("p should be element") }
+                };
+                let content = match p.pseudo_style().Content.content {
+                    content::SpecifiedContentList(ref value) => {
+                        let iter = &mut value.clone().move_iter().peekable();
+                        match iter.next() {
+                            Some(content::StringContent(str)) => str,
+                            _ => ~"",
+                        }
+                    }
+                    _ => ~"",
+                };
+                let pseudo_text = @Text::new_inherited(content, document);
+
+                // create parent abstract node for pseudo abstract node
+                let pseudo_parent_ab_node = unsafe { Node::as_abstract_node_layout(pseudo_parent_element) };
+                do pseudo_parent_ab_node.write_layout_data |data| {
+                    data.style = Some(p.pseudo_style().clone());
+                }
+
+                // create pseudo abstract node
+                let pseudo_ab_node = unsafe { Node::as_abstract_node_layout(pseudo_text) };
+                TreeNodeRef::<Node<LayoutView>>::set_parent_node(pseudo_ab_node.mut_node(), Some(pseudo_parent_ab_node));
+
+                // store pseudo_parent_element & pseudo_text
+                node.mut_node().pseudo_parent_element = Some(pseudo_parent_element);
+                node.mut_node().pseudo_text = Some(pseudo_text);
+                if pseudo_parent_ab_node.style().Box.display == display::block {
+                    TreeNodeRef::<Node<LayoutView>>::set_first_child(pseudo_parent_ab_node.mut_node(), Some(pseudo_ab_node));
+                    pseudo_parent_ab_node
+                } else {
+                    pseudo_ab_node
+                }
+            }
+            None => { fail!("Target node for pseudo element should have its parent") }
         }
     }
 
@@ -423,7 +498,7 @@ impl LayoutTreeBuilder {
             None => None,
             Some(flow) => Some(flow.class()),
         };
-        
+
         let new_generator = match (display, parent_generator.flow.class(), sibling_flow_class) {
             // Floats
             (display::block, BlockFlowClass, _) |
@@ -494,8 +569,8 @@ impl LayoutTreeBuilder {
             (display::inline, BlockFlowClass, _) |
             (display::inline_block, BlockFlowClass, _) => {
                 return match sibling_generator {
-                    None => NewGenerator(self.create_child_generator(node, 
-                                                                     parent_generator, 
+                    None => NewGenerator(self.create_child_generator(node,
+                                                                     parent_generator,
                                                                      InlineFlowType)),
                     Some(*) => SiblingGenerator
                 }
@@ -586,7 +661,7 @@ impl LayoutTreeBuilder {
                         }
                     }
                 }
-                if (do_remove) { 
+                if (do_remove) {
                     parent_flow.remove_first();
                 }
 
@@ -635,7 +710,7 @@ impl LayoutTreeBuilder {
     }
 
     pub fn fixup_split_inline(&self, _: &mut FlowContext) {
-        // TODO: finish me. 
+        // TODO: finish me.
         fail!(~"TODO: handle case where an inline is split by a block")
     }
 

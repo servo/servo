@@ -10,7 +10,7 @@ use selectors::*;
 use stylesheets::{Stylesheet, iter_style_rules};
 use media_queries::{Device, Screen};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use servo_util::tree::{TreeNodeRefAsElement, TreeNode, ElementLike};
+use servo_util::tree::{TreeNodeRefAsElement, TreeNode, ElementLike, Before};
 
 use std::str;
 
@@ -79,18 +79,30 @@ impl Stylist {
     }
 
     pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-            &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>,
-            pseudo_element: Option<PseudoElement>) -> ~[Arc<~[PropertyDeclaration]>] {
+            &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>) -> (~[Arc<~[PropertyDeclaration]>], ~[Arc<~[PropertyDeclaration]>]) {
         assert!(element.is_element())
-        assert!(style_attribute.is_none() || pseudo_element.is_none(),
-                "Style attributes do not apply to pseudo-elements")
+        //assert!(style_attribute.is_none() || pseudo_element.is_none(), 
+        //        "Style attributes do not apply to pseudo-elements")
         let mut applicable_declarations = ~[];  // TODO: use an iterator?
+        let mut pseudo_applicable_declarations = ~[];
 
         macro_rules! append(
             ($rules: expr) => {
                 for rule in $rules.iter() {
-                    if matches_selector::<N, T, E>(&rule.selector, element, pseudo_element) {
-                        applicable_declarations.push(rule.declarations.clone())
+                    if matches_selector::<N, T, E>(&rule.selector, element) {
+                        match rule.selector.pseudo_element {
+                            Some(Before) => {
+                                match element.node().first_child() {
+                                    Some(ref mut node) => {
+                                        node.set_pseudo_element(rule.selector.pseudo_element);
+                                        pseudo_applicable_declarations.push(rule.declarations.clone());
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            None => applicable_declarations.push(rule.declarations.clone()),
+                            _ => {}
+                        }
                     }
                 }
             };
@@ -112,7 +124,7 @@ impl Stylist {
         append!(self.user_rules.important);
         append!(self.ua_rules.important);
 
-        applicable_declarations
+        (applicable_declarations, pseudo_applicable_declarations)
     }
 }
 
@@ -146,8 +158,7 @@ impl Ord for Rule {
 
 #[inline]
 fn matches_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        selector: &Selector, element: &T, pseudo_element: Option<PseudoElement>) -> bool {
-    selector.pseudo_element == pseudo_element &&
+        selector: &Selector, element: &T) -> bool {
     matches_compound_selector::<N, T, E>(&selector.compound_selectors, element)
 }
 

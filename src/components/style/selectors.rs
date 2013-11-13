@@ -6,6 +6,7 @@ use std::{vec, iter};
 use std::ascii::StrAsciiExt;
 use cssparser::ast::*;
 use namespaces::NamespaceMap;
+use servo_util::tree::{PseudoElement, Before, After, FirstLine, FirstLetter};
 
 
 #[deriving(Eq, Clone)]
@@ -16,16 +17,6 @@ pub struct Selector {
 }
 
 pub static STYLE_ATTRIBUTE_SPECIFICITY: u32 = 1 << 31;
-
-
-#[deriving(Eq, Clone)]
-pub enum PseudoElement {
-    Before,
-    After,
-    FirstLine,
-    FirstLetter,
-}
-
 
 #[deriving(Eq, Clone)]
 pub struct CompoundSelector {

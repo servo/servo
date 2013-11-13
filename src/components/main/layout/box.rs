@@ -772,6 +772,11 @@ impl RenderBoxBase {
         self.node.style()
     }
 
+    #[inline(always)]
+    pub fn pseudo_style(&self) -> &'static ComputedValues {
+        self.node.pseudo_style()
+    }
+
     /// Returns the text alignment of the computed style of the nearest ancestor-or-self `Element`
     /// node.
     pub fn text_align(&self) -> text_align::T {

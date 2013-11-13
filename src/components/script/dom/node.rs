@@ -24,7 +24,7 @@ use std::unstable::raw::Box;
 use extra::arc::Arc;
 use js::jsapi::{JSObject, JSContext};
 use style::{ComputedValues, PropertyDeclaration};
-use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement};
+use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement, PseudoElement};
 use servo_util::range::Range;
 use gfx::display_list::DisplayList;
 
@@ -94,6 +94,12 @@ pub struct Node<View> {
 
     /// Layout information. Only the layout task may touch this data.
     priv layout_data: LayoutData,
+
+    /// Text for pseudo element
+    pseudo_text: Option<@Text>,
+
+    /// Parent element to style text for pseudo element
+    pseudo_parent_element: Option<@Element>,
 }
 
 /// The different types of nodes.
@@ -175,8 +181,12 @@ impl<View> TreeNodeRefAsElement<Node<View>, Element> for AbstractNode<View> {
     fn with_imm_element_like<R>(&self, f: &fn(&Element) -> R) -> R {
         self.with_imm_element(f)
     }
+    fn set_pseudo_element(&mut self, pseudo_element: Option<PseudoElement>) {
+        do self.write_layout_data_view |data| {
+            data.pseudo_element = pseudo_element
+        }
+    }
 }
-
 
 impl<View> TreeNode<AbstractNode<View>> for Node<View> { }
 
@@ -484,6 +494,12 @@ impl AbstractNode<ScriptView> {
     }
 }
 
+impl<View> AbstractNode<View> {
+    pub fn write_layout_data_view<R>(self, blk: &fn(data: &mut LayoutData) -> R) -> R {
+        blk(&mut self.mut_node().layout_data)
+    }
+}
+
 impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
     fn next(&mut self) -> Option<AbstractNode<View>> {
         let node = self.current_node;
@@ -505,6 +521,14 @@ impl<View> Node<View> {
 }
 
 impl Node<ScriptView> {
+    pub unsafe fn as_abstract_node_layout<N>(node: @N) -> AbstractNode<LayoutView> {
+        // This surrenders memory management of the node!
+        let node = AbstractNode {
+            obj: transmute(node),
+        };
+        node
+    }
+
     pub fn reflect_node<N: Reflectable>
             (node:      @mut N,
              document:  AbstractDocument,
@@ -544,6 +568,9 @@ impl Node<ScriptView> {
             child_list: None,
 
             layout_data: LayoutData::new(),
+
+            pseudo_text: None,
+            pseudo_parent_element: None,
         }
     }
 }
@@ -1105,8 +1132,17 @@ pub struct LayoutData {
     /// The results of CSS matching for this node.
     applicable_declarations: ~[Arc<~[PropertyDeclaration]>],
 
+    /// The results of CSS matching for pseudo node.
+    pseudo_applicable_declarations: ~[Arc<~[PropertyDeclaration]>],
+
     /// The results of CSS styling for this node.
     style: Option<ComputedValues>,
+
+    /// The results of CSS styling for pseudo node.
+    pseudo_style: Option<ComputedValues>,
+
+    /// The enum value of pseudo element
+    pseudo_element: Option<PseudoElement>,
 
     /// Description of how to account for recent style changes.
     restyle_damage: Option<int>,
@@ -1121,7 +1157,10 @@ impl LayoutData {
     pub fn new() -> LayoutData {
         LayoutData {
             applicable_declarations: ~[],
+            pseudo_applicable_declarations: ~[],
             style: None,
+            pseudo_style: None,
+            pseudo_element: None,
             restyle_damage: None,
             boxes: DisplayBoxes {
                 display_list: None,
@@ -1149,5 +1188,16 @@ impl AbstractNode<LayoutView> {
 
     pub fn write_layout_data<R>(self, blk: &fn(data: &mut LayoutData) -> R) -> R {
         blk(&mut self.mut_node().layout_data)
+    }
+
+    pub fn pseudo_element(self) -> Option<&PseudoElement> {
+        do self.read_layout_data |layout_data| {
+            match layout_data.pseudo_element {
+                Some(ref s) => {
+                    unsafe { Some(cast::transmute_region(s)) }
+                }
+                None => None,
+            }
+        }
     }
 }

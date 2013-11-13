@@ -30,16 +30,22 @@ pub trait MatchMethods {
 
 impl MatchMethods for AbstractNode<LayoutView> {
     fn match_node(&self, stylist: &Stylist) {
-        let applicable_declarations = do self.with_imm_element |element| {
+        let (applicable_declarations, pseudo_applicable_declarations) = do self.with_imm_element |element| {
             let style_attribute = match element.style_attribute {
                 None => None,
                 Some(ref style_attribute) => Some(style_attribute)
             };
-            stylist.get_applicable_declarations(self, style_attribute, None)
+            stylist.get_applicable_declarations(self, style_attribute)
         };
         let cell = Cell::new(applicable_declarations);
         do self.write_layout_data |data| {
             data.applicable_declarations = cell.take();
+        }
+        if pseudo_applicable_declarations.len() > 0 {
+            let pseudo_cell = Cell::new(pseudo_applicable_declarations);
+            do self.write_layout_data |data| {
+                data.pseudo_applicable_declarations = pseudo_cell.take();
+            }
         }
     }
     fn match_subtree(&self, stylist: RWArc<Stylist>) {
@@ -84,8 +90,14 @@ impl MatchMethods for AbstractNode<LayoutView> {
             Some(parent) => Some(parent.style()),
             None => None
         };
-        let computed_values = do self.read_layout_data |data| {
-            cascade(data.applicable_declarations, parent_style)
+        let computed_values = do self.write_layout_data |data| {
+            let computed_values = cascade(data.applicable_declarations, parent_style);
+            if data.pseudo_applicable_declarations.len() > 0 {
+                let pseudo_computed_values = cascade(data.pseudo_applicable_declarations, Some(&computed_values));
+                let cell = Cell::new(pseudo_computed_values);
+                data.pseudo_style = Some(cell.take());
+            }
+            computed_values
         };
         let cell = Cell::new(computed_values);
         do self.write_layout_data |data| {
