@@ -82,9 +82,7 @@ impl HTMLImageElement {
                   abstract_self: AbstractNode<ScriptView>,
                   src: &DOMString) -> ErrorResult {
         let node = &mut self.htmlelement.element;
-        node.set_attr(abstract_self,
-                      &Some(~"src"),
-                      &Some(src.clone()));
+        node.set_attr(abstract_self, ~"src", src.clone());
         Ok(())
     }
 
@@ -127,9 +125,7 @@ impl HTMLImageElement {
                     abstract_self: AbstractNode<ScriptView>,
                     width: u32) -> ErrorResult {
         let node = &mut self.htmlelement.element;
-        node.set_attr(abstract_self,
-                      &Some(~"width"),
-                      &Some(width.to_str()));
+        node.set_attr(abstract_self, ~"width", width.to_str());
         Ok(())
     }
 
@@ -148,9 +144,7 @@ impl HTMLImageElement {
                      abstract_self: AbstractNode<ScriptView>,
                      height: u32) -> ErrorResult {
         let node = &mut self.htmlelement.element;
-        node.set_attr(abstract_self,
-                      &Some(~"height"),
-                      &Some(height.to_str()));
+        node.set_attr(abstract_self, ~"height", height.to_str());
         Ok(())
     }
 
