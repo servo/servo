@@ -342,8 +342,8 @@ pub fn parse_html(cx: *JSContext,
                 for attr in tag.attributes.iter() {
                     element.set_attribute(node,
                                           namespace::Null,
-                                          &Some(attr.name.clone()),
-                                          &Some(attr.value.clone()));
+                                          attr.name.clone(),
+                                          attr.value.clone());
                 }
             }
 
