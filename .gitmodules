@@ -93,16 +93,16 @@
 	url = https://github.com/mozilla-servo/libpng.git
 [submodule "src/platform/android/fontconfig"]
 	path = src/platform/android/fontconfig
-	url = http://github.com/webconvforge/fontconfig.git
+	url = https://github.com/webconvforge/fontconfig.git
 [submodule "src/platform/android/libexpat"]
 	path = src/platform/android/libexpat
-	url = http://github.com/webconvforge/libexpat.git
+	url = https://github.com/webconvforge/libexpat.git
 [submodule "src/platform/android/libfreetype2"]
 	path = src/platform/android/libfreetype2
-	url = http://github.com/webconvforge/libfreetype2.git
+	url = https://github.com/webconvforge/libfreetype2.git
 [submodule "src/support/glut/rust-glut"]
 	path = src/support/glut/rust-glut
-	url = http://github.com/mozilla-servo/rust-glut.git
+	url = https://github.com/mozilla-servo/rust-glut.git
 [submodule "src/support/http/rust-http"]
 	path = src/support/http/rust-http
 	url = https://github.com/mozilla-servo/rust-http
