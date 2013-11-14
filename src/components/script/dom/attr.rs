@@ -8,13 +8,11 @@ use dom::bindings::utils::reflect_dom_object;
 use dom::namespace::{Namespace, Null};
 use dom::window::Window;
 
-use std::str::eq_slice;
-
 pub struct Attr {
     reflector_: Reflector,
-    priv local_name: Option<~str>,
-    value: ~str,
-    name: ~str,
+    local_name: DOMString,
+    value: DOMString,
+    name: DOMString,
     namespace: Namespace,
     prefix: Option<DOMString>
 }
@@ -30,8 +28,9 @@ impl Reflectable for Attr {
 }
 
 impl Attr {
-    fn new_inherited(name: ~str, value: ~str, local_name: Option<~str>,
-                         namespace: Namespace, prefix: Option<~str>) -> Attr {
+    fn new_inherited(local_name: DOMString, value: DOMString,
+                     name: DOMString, namespace: Namespace,
+                     prefix: Option<DOMString>) -> Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
@@ -42,35 +41,25 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &Window, name: ~str, value: ~str) -> @mut Attr {
-        Attr::new_helper(window, name, value, None, Null, None)
+    pub fn new(window: &Window, local_name: DOMString, value: DOMString) -> @mut Attr {
+        let name = local_name.clone();
+        Attr::new_helper(window, local_name, value, name, Null, None)
     }
 
-    pub fn new_ns(window: &Window, name: ~str, value: ~str, local_name: ~str, namespace: Namespace,
-                  prefix: Option<~str>) -> @mut Attr {
-        let local_name = if eq_slice(local_name, name) {
-            None
-        } else {
-            Some(local_name)
-        };
+    pub fn new_ns(window: &Window, local_name: DOMString, value: DOMString,
+                  name: DOMString, namespace: Namespace,
+                  prefix: Option<DOMString>) -> @mut Attr {
         Attr::new_helper(window, name, value, local_name, namespace, prefix)
     }
 
-    fn new_helper(window: &Window, name: ~str, value: ~str, local_name: Option<~str>,
-                  namespace: Namespace, prefix: Option<~str>) -> @mut Attr {
+    fn new_helper(window: &Window, name: DOMString, value: DOMString, local_name: DOMString,
+                  namespace: Namespace, prefix: Option<DOMString>) -> @mut Attr {
         let attr = Attr::new_inherited(name, value, local_name, namespace, prefix);
         reflect_dom_object(@mut attr, window, AttrBinding::Wrap)
     }
 
-    pub fn local_name<'a>(&'a self) -> &'a str {
-        match self.local_name {
-            Some(ref x) => x.as_slice(),
-            None => self.name.as_slice()
-        }
-    }
-
     pub fn LocalName(&self) -> DOMString {
-        self.local_name().to_owned()
+        self.local_name.clone()
     }
 
     pub fn Value(&self) -> DOMString {

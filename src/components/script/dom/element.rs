@@ -175,7 +175,7 @@ impl<'self> Element {
         let name = name.to_ascii_lower();
         self.attrs.find_equiv(&name).and_then(|attrs| {
             do attrs.iter().find |attr| {
-                eq_slice(attr.local_name(), name) && attr.namespace == namespace
+                eq_slice(attr.local_name, name) && attr.namespace == namespace
             }.map(|x| *x)
         })
     }
@@ -227,7 +227,7 @@ impl<'self> Element {
                               // update value.
                               let mut found = false;
                               for attr in old_value.mut_iter() {
-                                  if eq_slice(attr.local_name(), *name) &&
+                                  if eq_slice(attr.local_name, *name) &&
                                      attr.namespace == new_value.namespace {
                                       *attr = new_value;
                                       found = true;
