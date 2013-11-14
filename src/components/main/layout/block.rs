@@ -212,9 +212,10 @@ impl BlockFlow {
         for &box in self.box.iter() {
             let base = box.base();
             let style = base.style();
-            let maybe_height = MaybeAuto::from_style(style.Box.height, Au::new(0));
-            let maybe_height = maybe_height.specified_or_zero();
-            height = geometry::max(height, maybe_height);
+            height = match MaybeAuto::from_style(style.Box.height, Au::new(0)) {
+                Auto => height,
+                Specified(value) => value
+            };
         }
 
         let mut noncontent_height = Au::new(0);
@@ -238,7 +239,6 @@ impl BlockFlow {
                 model.margin.bottom;
         }
 
-        //TODO(eatkinson): compute heights using the 'height' property.
         self.base.position.size.height = height + noncontent_height;
 
         if inorder {
