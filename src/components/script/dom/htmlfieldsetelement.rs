@@ -45,7 +45,7 @@ impl HTMLFieldSetElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -75,6 +75,6 @@ impl HTMLFieldSetElement {
         false
     }
 
-    pub fn SetCustomValidity(&mut self, _error: &DOMString) {
+    pub fn SetCustomValidity(&mut self, _error: DOMString) {
     }
 }

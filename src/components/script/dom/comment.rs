@@ -26,7 +26,7 @@ impl Comment {
         Node::reflect_node(@mut node, document, CommentBinding::Wrap)
     }
 
-    pub fn Constructor(owner: @mut Window, data: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
-        Ok(Comment::new(data.clone(), owner.Document()))
+    pub fn Constructor(owner: @mut Window, data: DOMString) -> Fallible<AbstractNode<ScriptView>> {
+        Ok(Comment::new(data, owner.Document()))
     }
 }

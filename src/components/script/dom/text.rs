@@ -26,7 +26,7 @@ impl Text {
         Node::reflect_node(@mut node, document, TextBinding::Wrap)
     }
 
-    pub fn Constructor(owner: @mut Window, text: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
+    pub fn Constructor(owner: @mut Window, text: DOMString) -> Fallible<AbstractNode<ScriptView>> {
         Ok(Text::new(text.clone(), owner.Document()))
     }
 

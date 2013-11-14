@@ -180,29 +180,29 @@ impl Document {
         self.window.get_cx()
     }
 
-    pub fn GetElementsByTagName(&self, tag: &DOMString) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, *tag))
+    pub fn GetElementsByTagName(&self, tag: DOMString) -> @mut HTMLCollection {
+        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, tag))
     }
 
-    pub fn GetElementsByTagNameNS(&self, _ns: &Option<DOMString>, _tag: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByTagNameNS(&self, _ns: Option<DOMString>, _tag: DOMString) -> @mut HTMLCollection {
         HTMLCollection::new(self.window, ~[])
     }
 
-    pub fn GetElementsByClassName(&self, _class: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByClassName(&self, _class: DOMString) -> @mut HTMLCollection {
         HTMLCollection::new(self.window, ~[])
     }
 
-    pub fn GetElementById(&self, id: &DOMString) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetElementById(&self, id: DOMString) -> Option<AbstractNode<ScriptView>> {
         // TODO: "in tree order, within the context object's tree"
         // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
-        match self.idmap.find_equiv(id) {
+        match self.idmap.find_equiv(&id) {
             None => None,
             Some(node) => Some(*node),
         }
     }
 
-    pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
-        if xml_name_type(*local_name) == InvalidXMLName {
+    pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: DOMString) -> Fallible<AbstractNode<ScriptView>> {
+        if xml_name_type(local_name) == InvalidXMLName {
             return Err(InvalidCharacter);
         }
         let local_name = local_name.to_ascii_lower();
@@ -213,15 +213,15 @@ impl Document {
         DocumentFragment::new(abstract_self)
     }
 
-    pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
-        Text::new(data.clone(), abstract_self)
+    pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: DOMString) -> AbstractNode<ScriptView> {
+        Text::new(data, abstract_self)
     }
 
-    pub fn CreateComment(&self, abstract_self: AbstractDocument, data: &DOMString) -> AbstractNode<ScriptView> {
-        Comment::new(data.clone(), abstract_self)
+    pub fn CreateComment(&self, abstract_self: AbstractDocument, data: DOMString) -> AbstractNode<ScriptView> {
+        Comment::new(data, abstract_self)
     }
 
-    pub fn CreateEvent(&self, interface: &DOMString) -> Fallible<AbstractEvent> {
+    pub fn CreateEvent(&self, interface: DOMString) -> Fallible<AbstractEvent> {
         match interface.as_slice() {
             "UIEvents" => Ok(UIEvent::new(self.window, UIEventTypeId)),
             "MouseEvents" => Ok(MouseEvent::new(self.window)),
@@ -263,7 +263,7 @@ impl Document {
         title
     }
 
-    pub fn SetTitle(&self, abstract_self: AbstractDocument, title: &DOMString) -> ErrorResult {
+    pub fn SetTitle(&self, abstract_self: AbstractDocument, title: DOMString) -> ErrorResult {
         match self.doctype {
             SVG => {
                 fail!("no SVG document yet")
@@ -285,12 +285,12 @@ impl Document {
                                 for title_child in child.children() {
                                     child.remove_child(title_child);
                                 }
-                                child.AppendChild(self.CreateTextNode(abstract_self, title));
+                                child.AppendChild(self.CreateTextNode(abstract_self, title.clone()));
                                 break;
                             }
                             if !has_title {
                                 let new_title = HTMLTitleElement::new(~"title", abstract_self);
-                                new_title.AppendChild(self.CreateTextNode(abstract_self, title));
+                                new_title.AppendChild(self.CreateTextNode(abstract_self, title.clone()));
                                 node.AppendChild(new_title);
                             }
                             break;
@@ -302,9 +302,9 @@ impl Document {
         Ok(())
     }
 
-    pub fn GetElementsByName(&self, name: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByName(&self, name: DOMString) -> @mut HTMLCollection {
         self.createHTMLCollection(|elem|
-            elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), *name))
+            elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), name))
     }
 
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {

@@ -42,6 +42,6 @@ impl HTMLHeadingElement {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString) {
+    pub fn SetAlign(&mut self, _align: DOMString) {
     }
 }

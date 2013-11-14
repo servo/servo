@@ -633,7 +633,7 @@ impl Node<ScriptView> {
         }
     }
 
-    pub fn SetNodeValue(&mut self, _abstract_self: AbstractNode<ScriptView>, _val: &Option<DOMString>) -> ErrorResult {
+    pub fn SetNodeValue(&mut self, _abstract_self: AbstractNode<ScriptView>, _val: Option<DOMString>) -> ErrorResult {
         Ok(())
     }
 
@@ -970,10 +970,10 @@ impl Node<ScriptView> {
 
     pub fn SetTextContent(&mut self,
                           abstract_self: AbstractNode<ScriptView>,
-                          value: &Option<DOMString>) -> ErrorResult {
+                          value: Option<DOMString>) -> ErrorResult {
         self.wait_until_safe_to_modify_dom();
 
-        let value = null_str_as_empty(value);
+        let value = null_str_as_empty(&value);
         match self.type_id {
           DocumentFragmentNodeTypeId | ElementNodeTypeId(*) => {
             // Step 1-2.
@@ -981,7 +981,7 @@ impl Node<ScriptView> {
                 None
             } else {
                 let document = self.owner_doc();
-                Some(document.document().CreateTextNode(document, &value))
+                Some(document.document().CreateTextNode(document, value))
             };
             // Step 3.
             Node::replace_all(node, abstract_self);
@@ -1049,15 +1049,15 @@ impl Node<ScriptView> {
         false
     }
 
-    pub fn LookupPrefix(&self, _prefix: &Option<DOMString>) -> Option<DOMString> {
+    pub fn LookupPrefix(&self, _prefix: Option<DOMString>) -> Option<DOMString> {
         None
     }
 
-    pub fn LookupNamespaceURI(&self, _namespace: &Option<DOMString>) -> Option<DOMString> {
+    pub fn LookupNamespaceURI(&self, _namespace: Option<DOMString>) -> Option<DOMString> {
         None
     }
 
-    pub fn IsDefaultNamespace(&self, _namespace: &Option<DOMString>) -> bool {
+    pub fn IsDefaultNamespace(&self, _namespace: Option<DOMString>) -> bool {
         false
     }
 

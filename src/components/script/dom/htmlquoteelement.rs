@@ -31,7 +31,7 @@ impl HTMLQuoteElement {
         ~""
     }
 
-    pub fn SetCite(&self, _cite: &DOMString) -> ErrorResult {
+    pub fn SetCite(&self, _cite: DOMString) -> ErrorResult {
         Ok(())
     }
 }

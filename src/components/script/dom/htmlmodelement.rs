@@ -31,7 +31,7 @@ impl HTMLModElement {
         ~""
     }
 
-    pub fn SetCite(&mut self, _cite: &DOMString) -> ErrorResult {
+    pub fn SetCite(&mut self, _cite: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -39,7 +39,7 @@ impl HTMLModElement {
         ~""
     }
 
-    pub fn SetDateTime(&mut self, _datetime: &DOMString) -> ErrorResult {
+    pub fn SetDateTime(&mut self, _datetime: DOMString) -> ErrorResult {
         Ok(())
     }
 }

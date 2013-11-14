@@ -35,7 +35,7 @@ impl HTMLTableSectionElement {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -43,7 +43,7 @@ impl HTMLTableSectionElement {
         ~""
     }
 
-    pub fn SetCh(&mut self, _ch: &DOMString) -> ErrorResult {
+    pub fn SetCh(&mut self, _ch: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -51,7 +51,7 @@ impl HTMLTableSectionElement {
         ~""
     }
 
-    pub fn SetChOff(&mut self, _ch_off: &DOMString) -> ErrorResult {
+    pub fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -59,7 +59,7 @@ impl HTMLTableSectionElement {
         ~""
     }
 
-    pub fn SetVAlign(&mut self, _v_align: &DOMString) -> ErrorResult {
+    pub fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult {
         Ok(())
     }
 }

@@ -31,7 +31,7 @@ impl HTMLEmbedElement {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -39,7 +39,7 @@ impl HTMLEmbedElement {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -47,7 +47,7 @@ impl HTMLEmbedElement {
         ~""
     }
 
-    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
+    pub fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -55,7 +55,7 @@ impl HTMLEmbedElement {
         ~""
     }
 
-    pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
+    pub fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -63,7 +63,7 @@ impl HTMLEmbedElement {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -71,7 +71,7 @@ impl HTMLEmbedElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 

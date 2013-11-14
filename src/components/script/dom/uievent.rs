@@ -33,7 +33,7 @@ impl UIEvent {
     }
 
     pub fn Constructor(owner: @mut Window,
-                       type_: &DOMString,
+                       type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<AbstractEvent> {
         let ev = UIEvent::new(owner, UIEventTypeId);
         ev.mut_uievent().InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
@@ -50,7 +50,7 @@ impl UIEvent {
     }
 
     pub fn InitUIEvent(&mut self,
-                       type_: &DOMString,
+                       type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
                        view: Option<@mut WindowProxy>,

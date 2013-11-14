@@ -52,7 +52,7 @@ impl HTMLButtonElement {
         ~""
     }
 
-    pub fn SetFormAction(&mut self, _formaction: &DOMString) -> ErrorResult {
+    pub fn SetFormAction(&mut self, _formaction: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -60,7 +60,7 @@ impl HTMLButtonElement {
         ~""
     }
 
-    pub fn SetFormEnctype(&mut self, _formenctype: &DOMString) -> ErrorResult {
+    pub fn SetFormEnctype(&mut self, _formenctype: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -68,7 +68,7 @@ impl HTMLButtonElement {
         ~""
     }
 
-    pub fn SetFormMethod(&mut self, _formmethod: &DOMString) -> ErrorResult {
+    pub fn SetFormMethod(&mut self, _formmethod: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -84,7 +84,7 @@ impl HTMLButtonElement {
         ~""
     }
 
-    pub fn SetFormTarget(&mut self, _formtarget: &DOMString) -> ErrorResult {
+    pub fn SetFormTarget(&mut self, _formtarget: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -92,7 +92,7 @@ impl HTMLButtonElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
     
@@ -100,7 +100,7 @@ impl HTMLButtonElement {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -108,7 +108,7 @@ impl HTMLButtonElement {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -131,7 +131,7 @@ impl HTMLButtonElement {
         ~""
     }
 
-    pub fn SetValidationMessage(&mut self, _message: &DOMString) -> ErrorResult {
+    pub fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -139,6 +139,6 @@ impl HTMLButtonElement {
         true
     }
 
-    pub fn SetCustomValidity(&mut self, _error: &DOMString) {
+    pub fn SetCustomValidity(&mut self, _error: DOMString) {
     }
 }

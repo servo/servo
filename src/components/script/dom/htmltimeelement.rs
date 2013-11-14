@@ -31,7 +31,7 @@ impl HTMLTimeElement {
         ~""
     }
     
-    pub fn SetDateTime(&mut self, _dateTime: &DOMString) -> ErrorResult {
+    pub fn SetDateTime(&mut self, _dateTime: DOMString) -> ErrorResult {
         Ok(())
     }
 }

@@ -32,21 +32,21 @@ impl HTMLElement {
         ~""
     }
 
-    pub fn SetTitle(&mut self, _title: &DOMString) {
+    pub fn SetTitle(&mut self, _title: DOMString) {
     }
 
     pub fn Lang(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetLang(&mut self, _lang: &DOMString) {
+    pub fn SetLang(&mut self, _lang: DOMString) {
     }
 
     pub fn Dir(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetDir(&mut self, _dir: &DOMString) -> ErrorResult {
+    pub fn SetDir(&mut self, _dir: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -89,7 +89,7 @@ impl HTMLElement {
         ~""
     }
 
-    pub fn SetAccessKey(&self, _key: &DOMString) -> ErrorResult {
+    pub fn SetAccessKey(&self, _key: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -109,7 +109,7 @@ impl HTMLElement {
         ~""
     }
 
-    pub fn SetContentEditable(&mut self, _val: &DOMString) -> ErrorResult {
+    pub fn SetContentEditable(&mut self, _val: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -129,7 +129,7 @@ impl HTMLElement {
         ~""
     }
 
-    pub fn SetClassName(&self, _class: &DOMString) {
+    pub fn SetClassName(&self, _class: DOMString) {
     }
 
     pub fn GetOffsetParent(&self) -> Option<AbstractNode<ScriptView>> {

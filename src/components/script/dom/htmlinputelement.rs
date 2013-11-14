@@ -31,7 +31,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetAccept(&mut self, _accept: &DOMString) -> ErrorResult {
+    pub fn SetAccept(&mut self, _accept: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -39,7 +39,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetAlt(&mut self, _alt: &DOMString) -> ErrorResult {
+    pub fn SetAlt(&mut self, _alt: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -47,7 +47,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetAutocomplete(&mut self, _autocomple: &DOMString) -> ErrorResult {
+    pub fn SetAutocomplete(&mut self, _autocomple: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -86,7 +86,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetFormAction(&mut self, _form_action: &DOMString) -> ErrorResult {
+    pub fn SetFormAction(&mut self, _form_action: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -94,7 +94,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetFormEnctype(&mut self, _form_enctype: &DOMString) -> ErrorResult {
+    pub fn SetFormEnctype(&mut self, _form_enctype: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -102,7 +102,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetFormMethod(&mut self, _form_method: &DOMString) -> ErrorResult {
+    pub fn SetFormMethod(&mut self, _form_method: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -118,7 +118,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetFormTarget(&mut self, _form_target: &DOMString) -> ErrorResult {
+    pub fn SetFormTarget(&mut self, _form_target: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -141,7 +141,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetInputMode(&mut self, _input_mode: &DOMString) -> ErrorResult {
+    pub fn SetInputMode(&mut self, _input_mode: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -149,7 +149,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetMax(&mut self, _max: &DOMString) -> ErrorResult {
+    pub fn SetMax(&mut self, _max: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -165,7 +165,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetMin(&mut self, _min: &DOMString) -> ErrorResult {
+    pub fn SetMin(&mut self, _min: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -181,7 +181,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -189,7 +189,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetPattern(&mut self, _pattern: &DOMString) -> ErrorResult {
+    pub fn SetPattern(&mut self, _pattern: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -197,7 +197,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetPlaceholder(&mut self, _placeholder: &DOMString) -> ErrorResult {
+    pub fn SetPlaceholder(&mut self, _placeholder: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -229,7 +229,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -237,7 +237,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetStep(&mut self, _step: &DOMString) -> ErrorResult {
+    pub fn SetStep(&mut self, _step: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -245,7 +245,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -253,7 +253,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetDefaultValue(&mut self, _default_value: &DOMString) -> ErrorResult {
+    pub fn SetDefaultValue(&mut self, _default_value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -261,7 +261,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -287,7 +287,7 @@ impl HTMLInputElement {
         false
     }
 
-    pub fn SetCustomValidity(&self, _error: &DOMString) {
+    pub fn SetCustomValidity(&self, _error: DOMString) {
     }
 
     pub fn Select(&self) {
@@ -313,7 +313,7 @@ impl HTMLInputElement {
         Ok(~"")
     }
 
-    pub fn SetSelectionDirection(&mut self, _selection_direction: &DOMString) -> ErrorResult {
+    pub fn SetSelectionDirection(&mut self, _selection_direction: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -321,7 +321,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -329,7 +329,7 @@ impl HTMLInputElement {
         ~""
     }
 
-    pub fn SetUseMap(&mut self, _align: &DOMString) -> ErrorResult {
+    pub fn SetUseMap(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 }

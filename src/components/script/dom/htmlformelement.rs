@@ -32,7 +32,7 @@ impl HTMLFormElement {
         ~""
     }
 
-    pub fn SetAcceptCharset(&mut self, _accept_charset: &DOMString) -> ErrorResult {
+    pub fn SetAcceptCharset(&mut self, _accept_charset: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -40,7 +40,7 @@ impl HTMLFormElement {
         ~""
     }
 
-    pub fn SetAction(&mut self, _action: &DOMString) -> ErrorResult {
+    pub fn SetAction(&mut self, _action: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -48,7 +48,7 @@ impl HTMLFormElement {
         ~""
     }
 
-    pub fn SetAutocomplete(&mut self, _autocomplete: &DOMString) -> ErrorResult {
+    pub fn SetAutocomplete(&mut self, _autocomplete: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -56,7 +56,7 @@ impl HTMLFormElement {
         ~""
     }
 
-    pub fn SetEnctype(&mut self, _enctype: &DOMString) -> ErrorResult {
+    pub fn SetEnctype(&mut self, _enctype: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -64,7 +64,7 @@ impl HTMLFormElement {
         ~""
     }
 
-    pub fn SetEncoding(&mut self, _encoding: &DOMString) -> ErrorResult {
+    pub fn SetEncoding(&mut self, _encoding: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -72,7 +72,7 @@ impl HTMLFormElement {
         ~""
     }
 
-    pub fn SetMethod(&mut self, _method: &DOMString) -> ErrorResult {
+    pub fn SetMethod(&mut self, _method: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -80,7 +80,7 @@ impl HTMLFormElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -96,7 +96,7 @@ impl HTMLFormElement {
         ~""
     }
 
-    pub fn SetTarget(&mut self, _target: &DOMString) -> ErrorResult {
+    pub fn SetTarget(&mut self, _target: DOMString) -> ErrorResult {
         Ok(())
     }
 
