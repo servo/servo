@@ -7,7 +7,7 @@
 
 use css::matching::MatchMethods;
 use css::select::new_stylist;
-use layout::aux::LayoutAuxMethods;
+use layout::extra::LayoutAuxMethods;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder};

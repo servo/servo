@@ -92,7 +92,7 @@ pub mod layout {
     pub mod text;
     pub mod util;
     pub mod incremental;
-    mod aux;
+    mod extra;
 }
 
 pub mod windowing;
