@@ -392,6 +392,7 @@ impl LayoutTreeBuilder {
                     | display::table_header_group | display::table_footer_group
                     | display::table_row | display::table_column_group
                     | display::table_column | display::table_cell | display::table_caption
+                    | display::list_item
                     => display::block,
                 display => display,
             },
