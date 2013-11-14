@@ -275,12 +275,12 @@ impl Stylist {
                 "Style attributes do not apply to pseudo-elements");
             
         // In cascading order
-        let rule_map_list = ~[&self.ua_rule_map.normal,
-                              &self.user_rule_map.normal,
-                              &self.author_rule_map.normal,
-                              &self.author_rule_map.important,
-                              &self.user_rule_map.important,
-                              &self.ua_rule_map.important];
+        let rule_map_list = [&self.ua_rule_map.normal,
+                             &self.user_rule_map.normal,
+                             &self.author_rule_map.normal,
+                             &self.author_rule_map.important,
+                             &self.user_rule_map.important,
+                             &self.ua_rule_map.important];
 
         // TODO: Make this a stack-allocated vector
         let mut matching_rules_list: [~[Rule], ..6] = [~[], ~[], ~[], ~[], ~[], ~[]];
