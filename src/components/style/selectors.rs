@@ -80,7 +80,10 @@ pub struct AttrSelector {
 type Iter = iter::Peekable<ComponentValue, vec::MoveIterator<ComponentValue>>;
 
 
-// None means invalid selector
+/// Parse a comma-separated list of Selectors.
+/// aka Selector Group in http://www.w3.org/TR/css3-selectors/#grouping
+///
+/// Return the Selectors or None if there is an invalid selector.
 pub fn parse_selector_list(input: ~[ComponentValue], namespaces: &NamespaceMap)
                            -> Option<~[Selector]> {
     let iter = &mut input.move_iter().peekable();
@@ -108,7 +111,10 @@ pub fn parse_selector_list(input: ~[ComponentValue], namespaces: &NamespaceMap)
 }
 
 
-// None means invalid selector
+/// Build up a Selector.
+/// selector : simple_selector_sequence [ combinator simple_selector_sequence ]* ;
+///
+/// None means invalid selector.
 fn parse_selector(iter: &mut Iter, namespaces: &NamespaceMap)
                   -> Option<Selector> {
     let (first, pseudo_element) = match parse_simple_selectors(iter, namespaces) {
@@ -201,7 +207,11 @@ fn compute_specificity(mut selector: &CompoundSelector,
 }
 
 
-// None means invalid selector
+/// simple_selector_sequence
+/// : [ type_selector | universal ] [ HASH | class | attrib | pseudo | negation ]*
+/// | [ HASH | class | attrib | pseudo | negation ]+
+/// 
+/// None means invalid selector
 fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
                            -> Option<(~[SimpleSelector], Option<PseudoElement>)> {
     let mut empty = true;

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::ascii::StrAsciiExt;
+use std::hashmap::HashMap;
 use extra::arc::Arc;
 use extra::sort::tim_sort;
 
@@ -21,96 +22,285 @@ pub enum StylesheetOrigin {
 }
 
 
-pub struct Stylist {
-    priv ua_rules: PerOriginRules,
-    priv author_rules: PerOriginRules,
-    priv user_rules: PerOriginRules,
+/// Map node attributes to Rules whose last simple selector starts with them.
+///
+/// e.g.,
+/// "p > img" would go into the set of Rules corresponding to the
+/// element "img"
+/// "a .foo .bar.baz" would go into the set of Rules corresponding to
+/// the class "bar"
+///
+/// Because we match Rules right-to-left (i.e., moving up the tree
+/// from a node), we need to compare the last simple selector in the
+/// Rule with the node.
+///
+/// So, if a node has ID "id1" and classes "foo" and "bar", then all
+/// the rules it matches will have their last simple selector starting
+/// either with "#id1" or with ".foo" or with ".bar".
+///
+/// Hence, the union of the rules keyed on each of node's classes, ID,
+/// element name, etc. will contain the Rules that actually match that
+/// node.
+pub struct SelectorMap {
+    // TODO: Tune the initial capacity of the HashMap
+    // FIXME: Use interned strings
+    priv id_hash: HashMap<~str, ~[Rule]>,
+    priv class_hash: HashMap<~str, ~[Rule]>,
+    priv element_hash: HashMap<~str, ~[Rule]>,
+    // For Rules that don't have ID, class, or element selectors.
+    priv universal_rules: ~[Rule],
 }
 
+impl SelectorMap {
+    fn new() -> SelectorMap {
+        SelectorMap {
+            id_hash: HashMap::new(),
+            class_hash: HashMap::new(),
+            element_hash: HashMap::new(),
+            universal_rules: ~[],
+        }
+    }
+
+    /// Append to `rule_list` all Rules in `self` that match node.
+    ///
+    /// Extract matching rules as per node's ID, classes, tag name, etc..
+    /// Sort the Rules at the end to maintain cascading order.
+    fn get_all_matching_rules<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+        &self, node: &T,
+        pseudo_element: Option<PseudoElement>,
+        matching_rules_list: &mut [~[Rule]],
+        list_index: uint) {
+
+        let init_len = matching_rules_list[list_index].len();
+        static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
+        do node.with_imm_element_like |element: &E| {
+            match element.get_attr("id") {
+                Some(id) => SelectorMap::get_matching_rules_from_hash(
+                    node, pseudo_element, &self.id_hash, id, &mut matching_rules_list[list_index]),
+                None => {}
+            }
+
+            match element.get_attr("class") {
+                Some(ref class_attr) => {
+                    for class in class_attr.split_iter(WHITESPACE) {
+                        SelectorMap::get_matching_rules_from_hash(
+                            node, pseudo_element, &self.class_hash, class, &mut matching_rules_list[list_index]);
+                    }
+                }
+                None => {}
+            }
+
+            SelectorMap::get_matching_rules_from_hash(
+                node, pseudo_element, &self.element_hash,
+                // HTML elements in HTML documents must be matched case-insensitively
+                // TODO: case-sensitivity depends on the document type
+                element.get_local_name().to_ascii_lower(),
+                &mut matching_rules_list[list_index]);
+            SelectorMap::get_matching_rules(
+                node, pseudo_element, self.universal_rules, &mut matching_rules_list[list_index]);
+        }
+
+        // Sort only the rules we just added.
+        tim_sort(matching_rules_list[list_index].mut_slice_from(init_len));
+    }
+
+    fn get_matching_rules_from_hash<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+        node: &T,
+        pseudo_element: Option<PseudoElement>,
+        hash: &HashMap<~str, ~[Rule]>, 
+        key: &str,
+        matching_rules: &mut ~[Rule]) {
+        match hash.find(&key.to_str()) {
+            Some(rules) => SelectorMap::get_matching_rules(node, pseudo_element, *rules,
+                                                           matching_rules),
+            None => {}
+        };
+    }
+    
+    /// Return rules in `rules` that match `node`.
+    fn get_matching_rules<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+        node: &T,
+        pseudo_element: Option<PseudoElement>,
+        rules: &[Rule],
+        matching_rules: &mut ~[Rule]) {
+        for rule in rules.iter() {
+            if matches_selector(&rule.selector, node, pseudo_element) {
+                // TODO: Is the cloning inefficient?
+                matching_rules.push(rule.clone());
+            }
+        }
+    }
+
+    /// Insert rule into the correct hash.
+    /// Order in which to try: id_hash, class_hash, element_hash, universal_rules.
+    fn insert(&mut self, rule: Rule) {
+        // TODO: Can we avoid the repeated clones? (IMHO, the clone()
+        // is required because Arc makes Rule non-copyable)
+        match SelectorMap::get_id_name(rule.clone()) {
+            Some(id_name) => {
+                // TODO: Is this is a wasteful allocation of a list (~[rule])?
+                self.id_hash.insert_or_update_with(id_name,
+                                                   ~[rule.clone()],
+                                                   |_, v| v.push(rule.clone()));
+                return;
+            }
+            None => {}
+        }
+        match SelectorMap::get_class_name(rule.clone()) {
+            Some(class_name) => {
+                self.class_hash.insert_or_update_with(class_name,
+                                                      ~[rule.clone()],
+                                                      |_, v| v.push(rule.clone()));
+                return;
+            }
+            None => {}
+        }
+
+        match SelectorMap::get_element_name(rule.clone()) {
+            Some(element_name) => {
+                self.element_hash.insert_or_update_with(element_name,
+                                                        ~[rule.clone()],
+                                                        |_, v| v.push(rule.clone()));
+                return;
+            }
+            None => {}
+        }
+
+        self.universal_rules.push(rule.clone());
+    }
+
+    /// Retrieve the first ID name in Rule, or None otherwise.
+    fn get_id_name(rule: Rule) -> Option<~str> {
+        let selector = rule.selector;
+        let simple_selector_sequence = &selector.compound_selectors.simple_selectors;
+        for ss in simple_selector_sequence.iter() {
+            match *ss {
+                // TODO: Implement case-sensitivity based on the document type and quirks mode
+                IDSelector(ref id) => return Some(id.clone()),
+                _ => {}
+            }
+        }
+        return None
+    }
+
+    /// Retrieve the FIRST class name in Rule, or None otherwise.
+    fn get_class_name(rule: Rule) -> Option<~str> {
+        let simple_selector_sequence = &rule.selector.compound_selectors.simple_selectors;
+        for ss in simple_selector_sequence.iter() {
+            match *ss {
+                // TODO: Implement case-sensitivity based on the document type and quirks mode
+                ClassSelector(ref class) => return Some(class.clone()),
+                _ => {}
+            }
+        }
+        return None
+    }
+
+    /// Retrieve the name if it is a type selector, or None otherwise.
+    fn get_element_name(rule: Rule) -> Option<~str> {
+        let simple_selector_sequence = &rule.selector.compound_selectors.simple_selectors;
+        for ss in simple_selector_sequence.iter() {
+            match *ss {
+                // HTML elements in HTML documents must be matched case-insensitively
+                // TODO: case-sensitivity depends on the document type
+                LocalNameSelector(ref name) => return Some(name.to_ascii_lower()),
+                _ => {}
+            }
+        }
+        return None
+    }
+}
+
+pub struct Stylist {
+    priv ua_rule_map: PerOriginSelectorMap,
+    priv author_rule_map: PerOriginSelectorMap,
+    priv user_rule_map: PerOriginSelectorMap,
+    priv stylesheet_index: uint,
+}
 
 impl Stylist {
     #[inline]
     pub fn new() -> Stylist {
         Stylist {
-            ua_rules: PerOriginRules::new(),
-            author_rules: PerOriginRules::new(),
-            user_rules: PerOriginRules::new(),
+            ua_rule_map: PerOriginSelectorMap::new(),
+            author_rule_map: PerOriginSelectorMap::new(),
+            user_rule_map: PerOriginSelectorMap::new(),
+            stylesheet_index: 0u,
         }
     }
 
     pub fn add_stylesheet(&mut self, stylesheet: Stylesheet, origin: StylesheetOrigin) {
-        let rules = match origin {
-            UserAgentOrigin => &mut self.ua_rules,
-            AuthorOrigin => &mut self.author_rules,
-            UserOrigin => &mut self.user_rules,
+        let rule_map = match origin {
+            UserAgentOrigin => &mut self.ua_rule_map,
+            AuthorOrigin => &mut self.author_rule_map,
+            UserOrigin => &mut self.user_rule_map,
         };
         let mut added_normal_declarations = false;
         let mut added_important_declarations = false;
+        let mut style_rule_index = 0u;
 
+        // Take apart the StyleRule into individual Rules and insert
+        // them into the SelectorMap of that priority.
         macro_rules! append(
             ($priority: ident, $flag: ident) => {
                 if style_rule.declarations.$priority.len() > 0 {
                     $flag = true;
                     for selector in style_rule.selectors.iter() {
                         // TODO: avoid copying?
-                        rules.$priority.push(Rule {
-                            selector: selector.clone(),
-                            declarations: Arc::new(style_rule.declarations.$priority.clone()),
-                        })
-                    }
-                }
-            };
-        )
-
-        let device = &Device { media_type: Screen };  // TODO, use Print when printing
-        do iter_style_rules(stylesheet.rules.as_slice(), device) |style_rule| {
-            append!(normal, added_normal_declarations);
-            append!(important, added_important_declarations);
-        }
-
-        // These sorts need to be stable
-        // Do not sort already-sorted unchanged vectors
-        if added_normal_declarations {
-            tim_sort(rules.normal)
-        }
-        if added_important_declarations {
-            tim_sort(rules.important)
-        }
-    }
-
-    pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-            &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>,
-            pseudo_element: Option<PseudoElement>) -> ~[Arc<~[PropertyDeclaration]>] {
-        assert!(element.is_element())
-        assert!(style_attribute.is_none() || pseudo_element.is_none(),
-                "Style attributes do not apply to pseudo-elements")
-        let mut applicable_declarations = ~[];  // TODO: use an iterator?
-
-        macro_rules! append(
-            ($rules: expr) => {
-                for rule in $rules.iter() {
-                    if matches_selector::<N, T, E>(&rule.selector, element, pseudo_element) {
-                        applicable_declarations.push(rule.declarations.clone())
+                        rule_map.$priority.insert(Rule {
+                                selector: selector.clone(),
+                                declarations: Arc::new(style_rule.declarations.$priority.clone()),
+                                index: style_rule_index,
+                                stylesheet_index: self.stylesheet_index,
+                            });
                     }
                 }
             };
         );
 
-        // In cascading order
-        append!(self.ua_rules.normal);
-        append!(self.user_rules.normal);
+        let device = &Device { media_type: Screen };  // TODO, use Print when printing
+        do iter_style_rules(stylesheet.rules.as_slice(), device) |style_rule| {
+            append!(normal, added_normal_declarations);
+            append!(important, added_important_declarations);
+            style_rule_index += 1u;
+        }
+        self.stylesheet_index += 1;
+    }
 
+    pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+            &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>,
+            pseudo_element: Option<PseudoElement>) -> ~[Arc<~[PropertyDeclaration]>] {
+        assert!(element.is_element());
+        assert!(style_attribute.is_none() || pseudo_element.is_none(),
+                "Style attributes do not apply to pseudo-elements");
+            
+        // In cascading order
+        let rule_map_list = [&self.ua_rule_map.normal,
+                             &self.user_rule_map.normal,
+                             &self.author_rule_map.normal,
+                             &self.author_rule_map.important,
+                             &self.user_rule_map.important,
+                             &self.ua_rule_map.important];
+
+        // TODO: Make this a stack-allocated vector
+        let mut matching_rules_list: [~[Rule], ..6] = [~[], ~[], ~[], ~[], ~[], ~[]];
+        for (i, rule_map) in rule_map_list.iter().enumerate() {
+            rule_map.get_all_matching_rules(element, pseudo_element, matching_rules_list, i);
+        }
+        
+        // Keeping this as a separate step because we will need it for further
+        // optimizations regarding grouping of Rules having the same Selector.
+        let declarations_list = matching_rules_list.map(
+            |rules| rules.map(|r| r.declarations.clone()));
+
+        let mut applicable_declarations = ~[];
+        applicable_declarations.push_all_move(declarations_list.slice(0, 3).concat_vec());
         // Style attributes have author origin but higher specificity than style rules.
-        append!(self.author_rules.normal);
         // TODO: avoid copying?
         style_attribute.map(|sa| applicable_declarations.push(Arc::new(sa.normal.clone())));
-
-        append!(self.author_rules.important);
-        // TODO: avoid copying?
+        applicable_declarations.push_all_move(declarations_list.slice(3, 4).concat_vec());
         style_attribute.map(|sa| applicable_declarations.push(Arc::new(sa.important.clone())));
-
-        append!(self.user_rules.important);
-        append!(self.ua_rules.important);
+        applicable_declarations.push_all_move(declarations_list.slice(4, 6).concat_vec());
 
         applicable_declarations
     }
@@ -129,17 +319,36 @@ impl PerOriginRules {
     }
 }
 
+struct PerOriginSelectorMap {
+    normal: SelectorMap,
+    important: SelectorMap,
+}
+
+impl PerOriginSelectorMap {
+    #[inline]
+    fn new() -> PerOriginSelectorMap {
+        PerOriginSelectorMap { normal: SelectorMap::new(), important:SelectorMap::new() }
+    }
+}
+
 #[deriving(Clone)]
 struct Rule {
     selector: Selector,
     declarations: Arc<~[PropertyDeclaration]>,
+    // Index of the parent StyleRule in the parent Stylesheet (useful for
+    // breaking ties while cascading).
+    index: uint,
+    // Index of the parent stylesheet among all the stylesheets
+    stylesheet_index: uint,
 }
 
 
 impl Ord for Rule {
     #[inline]
     fn lt(&self, other: &Rule) -> bool {
-        self.selector.specificity < other.selector.specificity
+        let this_rank = (self.selector.specificity, self.stylesheet_index, self.index);
+        let other_rank = (other.selector.specificity, other.stylesheet_index, other.index);
+        this_rank < other_rank
     }
 }
 
@@ -148,7 +357,7 @@ impl Ord for Rule {
 fn matches_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         selector: &Selector, element: &T, pseudo_element: Option<PseudoElement>) -> bool {
     selector.pseudo_element == pseudo_element &&
-    matches_compound_selector::<N, T, E>(&selector.compound_selectors, element)
+        matches_compound_selector::<N, T, E>(&selector.compound_selectors, element)
 }
 
 fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
@@ -312,3 +521,69 @@ fn match_attribute<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike
         }
     }
 }
+fn get_rules(css_string: &str) -> ~[~[Rule]] {
+    let device = &Device { media_type: Screen };
+    let sheet = Stylesheet::from_str(css_string);
+    let mut index = 0u;
+    let mut results = ~[];
+    do iter_style_rules(sheet.rules.as_slice(), device) |style_rule| {
+        results.push(style_rule.selectors.iter().map(|s| Rule {
+                    selector: s.clone(),
+                    declarations: Arc::new(style_rule.declarations.normal.clone()),
+                    index: index,
+                    stylesheet_index: 0u,
+                }).collect());
+        index += 1u;
+    }
+    results
+}
+
+/// Helper method to get some Rules from selector strings.
+/// Each sublist of the result contains the Rules for one StyleRule.
+fn get_mock_rules(css_selectors: &[&str]) -> ~[~[Rule]] {
+    let css_string = css_selectors.map(|s| s + " { color: red; } ").concat();
+    get_rules(css_string)
+}
+
+#[test]
+fn test_rule_ordering_same_specificity(){
+    let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
+    let rule1 = rules_list[0][0].clone();
+    let rule2 = rules_list[1][0].clone();
+    assert!(rule1 < rule2, "The rule that comes later should win.");
+}
+
+#[test]
+fn test_get_id_name(){
+    let rules_list = get_mock_rules([".intro", "#top"]);
+    assert_eq!(SelectorMap::get_id_name(rules_list[0][0].clone()), None);
+    assert_eq!(SelectorMap::get_id_name(rules_list[1][0].clone()), Some(~"top"));
+}
+
+#[test]
+fn test_get_class_name(){
+    let rules_list = get_mock_rules([".intro.foo", "#top"]);
+    assert_eq!(SelectorMap::get_class_name(rules_list[0][0].clone()), Some(~"intro"));
+    assert_eq!(SelectorMap::get_class_name(rules_list[1][0].clone()), None);
+}
+
+#[test]
+fn test_get_element_name(){
+    let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
+    assert_eq!(SelectorMap::get_element_name(rules_list[0][0].clone()), Some(~"img"));
+    assert_eq!(SelectorMap::get_element_name(rules_list[1][0].clone()), None);
+    assert_eq!(SelectorMap::get_element_name(rules_list[2][0].clone()), Some(~"img"));
+    assert_eq!(SelectorMap::get_element_name(rules_list[3][0].clone()), Some(~"img"));
+}
+
+#[test]
+fn test_insert(){
+    let rules_list = get_mock_rules([".intro.foo", "#top"]);
+    let mut selector_map = SelectorMap::new();
+    selector_map.insert(rules_list[1][0].clone());
+    assert_eq!(1, selector_map.id_hash.find(&~"top").unwrap()[0].index);
+    selector_map.insert(rules_list[0][0].clone());
+    assert_eq!(0, selector_map.class_hash.find(&~"intro").unwrap()[0].index);
+    assert!(selector_map.class_hash.find(&~"foo").is_none());
+}
+
