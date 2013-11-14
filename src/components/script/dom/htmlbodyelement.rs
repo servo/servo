@@ -31,7 +31,7 @@ impl HTMLBodyElement {
         ~""
     }
 
-    pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
+    pub fn SetText(&mut self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -39,7 +39,7 @@ impl HTMLBodyElement {
         ~""
     }
 
-    pub fn SetLink(&self, _link: &DOMString) -> ErrorResult {
+    pub fn SetLink(&self, _link: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -47,7 +47,7 @@ impl HTMLBodyElement {
         ~""
     }
 
-    pub fn SetVLink(&self, _v_link: &DOMString) -> ErrorResult {
+    pub fn SetVLink(&self, _v_link: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -55,7 +55,7 @@ impl HTMLBodyElement {
         ~""
     }
 
-    pub fn SetALink(&self, _a_link: &DOMString) -> ErrorResult {
+    pub fn SetALink(&self, _a_link: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -63,7 +63,7 @@ impl HTMLBodyElement {
         ~""
     }
 
-    pub fn SetBgColor(&self, _bg_color: &DOMString) -> ErrorResult {
+    pub fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -71,7 +71,7 @@ impl HTMLBodyElement {
         ~""
     }
 
-    pub fn SetBackground(&self, _background: &DOMString) -> ErrorResult {
+    pub fn SetBackground(&self, _background: DOMString) -> ErrorResult {
         Ok(())
     }
 }

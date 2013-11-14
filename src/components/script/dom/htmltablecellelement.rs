@@ -40,7 +40,7 @@ impl HTMLTableCellElement {
         ~""
     }
 
-    pub fn SetHeaders(&self, _headers: &DOMString) -> ErrorResult {
+    pub fn SetHeaders(&self, _headers: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -56,7 +56,7 @@ impl HTMLTableCellElement {
         ~""
     }
 
-    pub fn SetAbbr(&self, _abbr: &DOMString) -> ErrorResult {
+    pub fn SetAbbr(&self, _abbr: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -64,7 +64,7 @@ impl HTMLTableCellElement {
         ~""
     }
 
-    pub fn SetScope(&self, _abbr: &DOMString) -> ErrorResult {
+    pub fn SetScope(&self, _abbr: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -72,7 +72,7 @@ impl HTMLTableCellElement {
         ~""
     }
 
-    pub fn SetAlign(&self, _align: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -80,7 +80,7 @@ impl HTMLTableCellElement {
         ~""
     }
 
-    pub fn SetAxis(&self, _axis: &DOMString) -> ErrorResult {
+    pub fn SetAxis(&self, _axis: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -88,7 +88,7 @@ impl HTMLTableCellElement {
         ~""
     }
 
-    pub fn SetHeight(&self, _height: &DOMString) -> ErrorResult {
+    pub fn SetHeight(&self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -96,7 +96,7 @@ impl HTMLTableCellElement {
         ~""
     }
 
-    pub fn SetWidth(&self, _width: &DOMString) -> ErrorResult {
+    pub fn SetWidth(&self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -104,7 +104,7 @@ impl HTMLTableCellElement {
         ~""
     }
 
-    pub fn SetCh(&self, _ch: &DOMString) -> ErrorResult {
+    pub fn SetCh(&self, _ch: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -112,7 +112,7 @@ impl HTMLTableCellElement {
         ~""
     }
 
-    pub fn SetChOff(&self, _ch_off: &DOMString) -> ErrorResult {
+    pub fn SetChOff(&self, _ch_off: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -128,7 +128,7 @@ impl HTMLTableCellElement {
         ~""
     }
 
-    pub fn SetVAlign(&self, _valign: &DOMString) -> ErrorResult {
+    pub fn SetVAlign(&self, _valign: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -136,7 +136,7 @@ impl HTMLTableCellElement {
         ~""
     }
 
-    pub fn SetBgColor(&self, _bg_color: &DOMString) -> ErrorResult {
+    pub fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
         Ok(())
     }
 }

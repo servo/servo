@@ -81,7 +81,7 @@ impl HTMLIFrameElement {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -89,7 +89,7 @@ impl HTMLIFrameElement {
         ~""
     }
 
-    pub fn SetSrcdoc(&mut self, _srcdoc: &DOMString) -> ErrorResult {
+    pub fn SetSrcdoc(&mut self, _srcdoc: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -97,23 +97,23 @@ impl HTMLIFrameElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
     pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
-        match self.htmlelement.element.GetAttribute(&~"sandbox") {
+        match self.htmlelement.element.GetAttribute(~"sandbox") {
             Some(s) => s.to_owned(),
             None => ~"",
         }
     }
 
-    pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: &DOMString) {
-        self.htmlelement.element.SetAttribute(abstract_self, &~"sandbox", sandbox);
+    pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: DOMString) {
+        self.htmlelement.element.SetAttribute(abstract_self, ~"sandbox", sandbox);
     }
 
-    pub fn AfterSetAttr(&mut self, name: &DOMString, value: &DOMString) {
-        if "sandbox" == *name {
+    pub fn AfterSetAttr(&mut self, name: DOMString, value: DOMString) {
+        if "sandbox" == name {
             let mut modes = AllowNothing as u8;
             for word in value.split_iter(' ') {
                 modes |= match word.to_ascii_lower().as_slice() {
@@ -142,7 +142,7 @@ impl HTMLIFrameElement {
         ~""
     }
 
-    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
+    pub fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -150,7 +150,7 @@ impl HTMLIFrameElement {
         ~""
     }
 
-    pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
+    pub fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -166,7 +166,7 @@ impl HTMLIFrameElement {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -174,7 +174,7 @@ impl HTMLIFrameElement {
         ~""
     }
 
-    pub fn SetScrolling(&mut self, _scrolling: &DOMString) -> ErrorResult {
+    pub fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -182,7 +182,7 @@ impl HTMLIFrameElement {
         ~""
     }
 
-    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString) -> ErrorResult {
+    pub fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -190,7 +190,7 @@ impl HTMLIFrameElement {
         ~""
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
+    pub fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -198,7 +198,7 @@ impl HTMLIFrameElement {
         ~""
     }
 
-    pub fn SetMarginHeight(&mut self, _marginheight: &DOMString) -> ErrorResult {
+    pub fn SetMarginHeight(&mut self, _marginheight: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -206,7 +206,7 @@ impl HTMLIFrameElement {
         ~""
     }
 
-    pub fn SetMarginWidth(&mut self, _marginwidth: &DOMString) -> ErrorResult {
+    pub fn SetMarginWidth(&mut self, _marginwidth: DOMString) -> ErrorResult {
         Ok(())
     }
 

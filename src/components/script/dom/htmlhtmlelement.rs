@@ -31,7 +31,7 @@ impl HTMLHtmlElement {
         ~""
     }
 
-    pub fn SetVersion(&mut self, _version: &DOMString) -> ErrorResult {
+    pub fn SetVersion(&mut self, _version: DOMString) -> ErrorResult {
         Ok(())
     }
 }

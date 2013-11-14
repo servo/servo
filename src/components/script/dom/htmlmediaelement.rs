@@ -24,7 +24,7 @@ impl HTMLMediaElement {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -36,7 +36,7 @@ impl HTMLMediaElement {
         ~""
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
+    pub fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -44,14 +44,14 @@ impl HTMLMediaElement {
         ~""
     }
 
-    pub fn SetPreload(&mut self, _preload: &DOMString) -> ErrorResult {
+    pub fn SetPreload(&mut self, _preload: DOMString) -> ErrorResult {
         Ok(())
     }
 
     pub fn Load(&self) {
     }
 
-    pub fn CanPlayType(&self, _type: &DOMString) -> DOMString {
+    pub fn CanPlayType(&self, _type: DOMString) -> DOMString {
         ~""
     }
 

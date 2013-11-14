@@ -31,7 +31,7 @@ impl HTMLAreaElement {
         ~""
     }
 
-    pub fn SetAlt(&self, _alt: &DOMString) -> ErrorResult {
+    pub fn SetAlt(&self, _alt: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -39,7 +39,7 @@ impl HTMLAreaElement {
         ~""
     }
 
-    pub fn SetCoords(&self, _coords: &DOMString) -> ErrorResult {
+    pub fn SetCoords(&self, _coords: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -47,7 +47,7 @@ impl HTMLAreaElement {
         ~""
     }
 
-    pub fn SetShape(&self, _shape: &DOMString) -> ErrorResult {
+    pub fn SetShape(&self, _shape: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -55,7 +55,7 @@ impl HTMLAreaElement {
         ~""
     }
 
-    pub fn SetHref(&self, _href: &DOMString) -> ErrorResult {
+    pub fn SetHref(&self, _href: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -63,7 +63,7 @@ impl HTMLAreaElement {
         ~""
     }
 
-    pub fn SetTarget(&self, _target: &DOMString) -> ErrorResult {
+    pub fn SetTarget(&self, _target: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -71,7 +71,7 @@ impl HTMLAreaElement {
         ~""
     }
 
-    pub fn SetDownload(&self, _download: &DOMString) -> ErrorResult {
+    pub fn SetDownload(&self, _download: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -79,7 +79,7 @@ impl HTMLAreaElement {
         ~""
     }
 
-    pub fn SetPing(&self, _ping: &DOMString) -> ErrorResult {
+    pub fn SetPing(&self, _ping: DOMString) -> ErrorResult {
         Ok(())
     }
 

@@ -39,7 +39,7 @@ impl HTMLDListElement {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 }

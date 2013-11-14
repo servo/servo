@@ -31,7 +31,7 @@ impl HTMLFontElement {
         ~""
     }
 
-    pub fn SetColor(&mut self, _color: &DOMString) -> ErrorResult {
+    pub fn SetColor(&mut self, _color: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -39,7 +39,7 @@ impl HTMLFontElement {
         ~""
     }
 
-    pub fn SetFace(&mut self, _face: &DOMString) -> ErrorResult {
+    pub fn SetFace(&mut self, _face: DOMString) -> ErrorResult {
         Ok(())
     }
     
@@ -47,7 +47,7 @@ impl HTMLFontElement {
         ~""
     }
 
-    pub fn SetSize(&mut self, _size: &DOMString) -> ErrorResult {
+    pub fn SetSize(&mut self, _size: DOMString) -> ErrorResult {
         Ok(())
     }
 }

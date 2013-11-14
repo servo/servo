@@ -31,7 +31,7 @@ impl HTMLParamElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -39,7 +39,7 @@ impl HTMLParamElement {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -47,7 +47,7 @@ impl HTMLParamElement {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -55,7 +55,7 @@ impl HTMLParamElement {
         ~""
     }
 
-    pub fn SetValueType(&mut self, _value_type: &DOMString) -> ErrorResult {
+    pub fn SetValueType(&mut self, _value_type: DOMString) -> ErrorResult {
         Ok(())
     }
 }

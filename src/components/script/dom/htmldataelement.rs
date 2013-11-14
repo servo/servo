@@ -31,7 +31,7 @@ impl HTMLDataElement {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 }

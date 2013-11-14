@@ -60,7 +60,7 @@ impl HTMLSelectElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -96,7 +96,7 @@ impl HTMLSelectElement {
         None
     }
 
-    pub fn NamedItem(&self, _name: &DOMString) -> Option<AbstractNode<ScriptView>> {
+    pub fn NamedItem(&self, _name: DOMString) -> Option<AbstractNode<ScriptView>> {
         None
     }
 
@@ -126,7 +126,7 @@ impl HTMLSelectElement {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString) {
+    pub fn SetValue(&mut self, _value: DOMString) {
     }
 
     pub fn WillValidate(&self) -> bool {
@@ -148,7 +148,7 @@ impl HTMLSelectElement {
         ~""
     }
 
-    pub fn SetValidationMessage(&mut self, _message: &DOMString) -> ErrorResult {
+    pub fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -156,6 +156,6 @@ impl HTMLSelectElement {
         true
     }
 
-    pub fn SetCustomValidity(&mut self, _error: &DOMString) {
+    pub fn SetCustomValidity(&mut self, _error: DOMString) {
     }
 }

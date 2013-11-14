@@ -55,7 +55,7 @@ impl HTMLVideoElement {
         ~""
     }
 
-    pub fn SetPoster(&mut self, _poster: &DOMString) -> ErrorResult {
+    pub fn SetPoster(&mut self, _poster: DOMString) -> ErrorResult {
         Ok(())
     }
 }

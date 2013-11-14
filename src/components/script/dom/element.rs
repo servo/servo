@@ -129,7 +129,7 @@ impl ElementLike for Element {
     }
 
     fn get_attr(&self, name: &str) -> Option<~str> {
-        self.get_attribute(&None, name).map(|attr| attr.value.clone())
+        self.get_attribute(None, name).map(|attr| attr.value.clone())
     }
 
     fn get_link(&self) -> Option<~str>{
@@ -157,18 +157,18 @@ impl<'self> Element {
         }
     }
 
-    pub fn normalize_attr_name(&self, name: &Option<DOMString>) -> ~str {
+    pub fn normalize_attr_name(&self, name: Option<DOMString>) -> ~str {
         //FIXME: Throw for XML-invalid names
         let owner = self.node.owner_doc();
         if owner.document().doctype == document::HTML { // && self.namespace == Namespace::HTML
-            null_str_as_empty(name).to_ascii_lower()
+            null_str_as_empty(&name).to_ascii_lower()
         } else {
-            null_str_as_empty(name)
+            null_str_as_empty(&name)
         }
     }
 
     pub fn get_attribute<'a>(&'a self,
-                         namespace_url: &Option<DOMString>,
+                         namespace_url: Option<DOMString>,
                          name: &str) -> Option<@mut Attr> {
         let namespace = Namespace::from_str(namespace_url);
         // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
@@ -264,12 +264,12 @@ impl<'self> Element {
         match abstract_self.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 do abstract_self.with_mut_image_element |image| {
-                    image.AfterSetAttr(&local_name, &value);
+                    image.AfterSetAttr(local_name.clone(), value.clone());
                 }
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => {
                 do abstract_self.with_mut_iframe_element |iframe| {
-                    iframe.AfterSetAttr(&local_name, &value);
+                    iframe.AfterSetAttr(local_name.clone(), value.clone());
                 }
             }
             _ => ()
@@ -294,8 +294,8 @@ impl Element {
         }
     }
 
-    pub fn SetId(&mut self, abstract_self: AbstractNode<ScriptView>, id: &DOMString) {
-        self.set_attribute(abstract_self, namespace::Null, ~"id", id.clone());
+    pub fn SetId(&mut self, abstract_self: AbstractNode<ScriptView>, id: DOMString) {
+        self.set_attribute(abstract_self, namespace::Null, ~"id", id);
     }
 
     pub fn Attributes(&mut self, abstract_self: AbstractNode<ScriptView>) -> @mut AttrList {
@@ -310,29 +310,29 @@ impl Element {
         }
     }
 
-    pub fn GetAttribute(&self, name: &DOMString) -> Option<DOMString> {
-        self.get_attr(*name).map(|s| s.to_owned())
+    pub fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
+        self.get_attr(name).map(|s| s.to_owned())
     }
 
-    pub fn GetAttributeNS(&self, namespace: &Option<DOMString>, local_name: &DOMString) -> Option<DOMString> {
-        self.get_attribute(namespace, *local_name)
+    pub fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString> {
+        self.get_attribute(namespace, local_name)
             .map(|attr| attr.value.clone())
     }
 
     pub fn SetAttribute(&mut self,
                         abstract_self: AbstractNode<ScriptView>,
-                        name: &DOMString,
-                        value: &DOMString) -> ErrorResult {
-        self.set_attr(abstract_self, name.clone(), value.clone());
+                        name: DOMString,
+                        value: DOMString) -> ErrorResult {
+        self.set_attr(abstract_self, name, value);
         Ok(())
     }
 
     pub fn SetAttributeNS(&mut self,
                           abstract_self: AbstractNode<ScriptView>,
-                          namespace_url: &Option<DOMString>,
-                          name: &DOMString,
-                          value: &DOMString) -> ErrorResult {
-        let name_type = xml_name_type(*name);
+                          namespace_url: Option<DOMString>,
+                          name: DOMString,
+                          value: DOMString) -> ErrorResult {
+        let name_type = xml_name_type(name);
         match name_type {
             InvalidXMLName => return Err(InvalidCharacter),
             Name => return Err(NamespaceError),
@@ -340,38 +340,38 @@ impl Element {
         }
 
         let namespace = Namespace::from_str(namespace_url);
-        self.set_attribute(abstract_self, namespace, name.clone(), value.clone())
+        self.set_attribute(abstract_self, namespace, name, value)
     }
 
-    pub fn RemoveAttribute(&self, _name: &DOMString) -> ErrorResult {
+    pub fn RemoveAttribute(&self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn RemoveAttributeNS(&self, _namespace: &Option<DOMString>, _localname: &DOMString) -> ErrorResult {
+    pub fn RemoveAttributeNS(&self, _namespace: Option<DOMString>, _localname: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn HasAttribute(&self, name: &DOMString) -> bool {
+    pub fn HasAttribute(&self, name: DOMString) -> bool {
         self.GetAttribute(name).is_some()
     }
 
-    pub fn HasAttributeNS(&self, namespace: &Option<DOMString>, local_name: &DOMString) -> bool {
+    pub fn HasAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> bool {
         self.GetAttributeNS(namespace, local_name).is_some()
     }
 
-    pub fn GetElementsByTagName(&self, _localname: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByTagName(&self, _localname: DOMString) -> @mut HTMLCollection {
         HTMLCollection::new(self.node.owner_doc().document().window, ~[])
     }
 
-    pub fn GetElementsByTagNameNS(&self, _namespace: &Option<DOMString>, _localname: &DOMString) -> Fallible<@mut HTMLCollection> {
+    pub fn GetElementsByTagNameNS(&self, _namespace: Option<DOMString>, _localname: DOMString) -> Fallible<@mut HTMLCollection> {
         Ok(HTMLCollection::new(self.node.owner_doc().document().window, ~[]))
     }
 
-    pub fn GetElementsByClassName(&self, _names: &DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByClassName(&self, _names: DOMString) -> @mut HTMLCollection {
         HTMLCollection::new(self.node.owner_doc().document().window, ~[])
     }
 
-    pub fn MozMatchesSelector(&self, _selector: &DOMString) -> Fallible<bool> {
+    pub fn MozMatchesSelector(&self, _selector: DOMString) -> Fallible<bool> {
         Ok(false)
     }
 
@@ -471,7 +471,7 @@ impl Element {
         Ok(~"")
     }
 
-    pub fn SetInnerHTML(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetInnerHTML(&mut self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -479,15 +479,15 @@ impl Element {
         Ok(~"")
     }
 
-    pub fn SetOuterHTML(&mut self, _value: &DOMString) -> ErrorResult {
+    pub fn SetOuterHTML(&mut self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn InsertAdjacentHTML(&mut self, _position: &DOMString, _text: &DOMString) -> ErrorResult {
+    pub fn InsertAdjacentHTML(&mut self, _position: DOMString, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn QuerySelector(&self, _selectors: &DOMString) -> Fallible<Option<AbstractNode<ScriptView>>> {
+    pub fn QuerySelector(&self, _selectors: DOMString) -> Fallible<Option<AbstractNode<ScriptView>>> {
         Ok(None)
     }
 }

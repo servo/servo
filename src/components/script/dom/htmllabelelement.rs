@@ -31,6 +31,6 @@ impl HTMLLabelElement {
         ~""
     }
 
-    pub fn SetHtmlFor(&mut self, _html_for: &DOMString) {
+    pub fn SetHtmlFor(&mut self, _html_for: DOMString) {
     }
 }

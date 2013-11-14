@@ -31,7 +31,7 @@ impl HTMLTrackElement {
         ~""
     }
 
-    pub fn SetKind(&mut self, _kind: &DOMString) -> ErrorResult {
+    pub fn SetKind(&mut self, _kind: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -39,7 +39,7 @@ impl HTMLTrackElement {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -47,7 +47,7 @@ impl HTMLTrackElement {
         ~""
     }
 
-    pub fn SetSrclang(&mut self, _srclang: &DOMString) -> ErrorResult {
+    pub fn SetSrclang(&mut self, _srclang: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -55,7 +55,7 @@ impl HTMLTrackElement {
         ~""
     }
 
-    pub fn SetLabel(&mut self, _label: &DOMString) -> ErrorResult {
+    pub fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
         Ok(())
     }
 

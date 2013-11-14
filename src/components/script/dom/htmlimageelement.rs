@@ -57,8 +57,8 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn AfterSetAttr(&mut self, name: &DOMString, _value: &DOMString) {
-        if "src" == *name {
+    pub fn AfterSetAttr(&mut self, name: DOMString, _value: DOMString) {
+        if "src" == name {
             let document = self.htmlelement.element.node.owner_doc();
             let window = document.document().window;
             let url = window.page.url.as_ref().map(|&(ref url, _)| url.clone());
@@ -70,7 +70,7 @@ impl HTMLImageElement {
         ~""
     }
 
-    pub fn SetAlt(&mut self, _alt: &DOMString) -> ErrorResult {
+    pub fn SetAlt(&mut self, _alt: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -80,7 +80,7 @@ impl HTMLImageElement {
 
     pub fn SetSrc(&mut self,
                   abstract_self: AbstractNode<ScriptView>,
-                  src: &DOMString) -> ErrorResult {
+                  src: DOMString) -> ErrorResult {
         let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self, ~"src", src.clone());
         Ok(())
@@ -90,7 +90,7 @@ impl HTMLImageElement {
         ~""
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
+    pub fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -98,7 +98,7 @@ impl HTMLImageElement {
         ~""
     }
 
-    pub fn SetUseMap(&mut self, _use_map: &DOMString) -> ErrorResult {
+    pub fn SetUseMap(&mut self, _use_map: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -164,7 +164,7 @@ impl HTMLImageElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -172,7 +172,7 @@ impl HTMLImageElement {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -196,7 +196,7 @@ impl HTMLImageElement {
         ~""
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
+    pub fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -204,7 +204,7 @@ impl HTMLImageElement {
         ~""
     }
 
-    pub fn SetBorder(&mut self, _border: &DOMString) -> ErrorResult {
+    pub fn SetBorder(&mut self, _border: DOMString) -> ErrorResult {
         Ok(())
     }
 }

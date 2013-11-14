@@ -17,8 +17,8 @@ pub enum Namespace {
 }
 
 impl Namespace {
-    pub fn from_str(url: &Option<DOMString>) -> Namespace {
-        match null_str_as_empty_ref(url) {
+    pub fn from_str(url: Option<DOMString>) -> Namespace {
+        match null_str_as_empty_ref(&url) {
             &"http://www.w3.org/1999/xhtml" => HTML,
             &"http://www.w3.org/XML/1998/namespace" => XML,
             &"http://www.w3.org/2000/xmlns/" => XMLNS,

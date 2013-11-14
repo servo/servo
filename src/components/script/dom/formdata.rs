@@ -34,7 +34,7 @@ impl FormData {
         reflect_dom_object(@mut FormData::new_inherited(window), window, FormDataBinding::Wrap)
     }
 
-    pub fn Append(&mut self, name: &DOMString, value: @mut Blob, filename: Option<DOMString>) {
+    pub fn Append(&mut self, name: DOMString, value: @mut Blob, filename: Option<DOMString>) {
         let blob = BlobData {
             blob: value,
             name: filename.unwrap_or(~"default")
@@ -42,8 +42,8 @@ impl FormData {
         self.data.insert(name.clone(), blob);
     }
 
-    pub fn Append_(&mut self, name: &DOMString, value: &DOMString) {
-        self.data.insert(name.clone(), StringData((*value).clone()));
+    pub fn Append_(&mut self, name: DOMString, value: DOMString) {
+        self.data.insert(name, StringData(value));
     }
 }
 

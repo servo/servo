@@ -38,7 +38,7 @@ impl HTMLLinkElement {
         ~""
     }
 
-    pub fn SetHref(&mut self, _href: &DOMString) -> ErrorResult {
+    pub fn SetHref(&mut self, _href: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -46,7 +46,7 @@ impl HTMLLinkElement {
         ~""
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
+    pub fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -54,7 +54,7 @@ impl HTMLLinkElement {
         ~""
     }
 
-    pub fn SetRel(&mut self, _rel: &DOMString) -> ErrorResult {
+    pub fn SetRel(&mut self, _rel: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -62,7 +62,7 @@ impl HTMLLinkElement {
         ~""
     }
 
-    pub fn SetMedia(&mut self, _media: &DOMString) -> ErrorResult {
+    pub fn SetMedia(&mut self, _media: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -70,7 +70,7 @@ impl HTMLLinkElement {
         ~""
     }
 
-    pub fn SetHreflang(&mut self, _href: &DOMString) -> ErrorResult {
+    pub fn SetHreflang(&mut self, _href: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -78,7 +78,7 @@ impl HTMLLinkElement {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -86,7 +86,7 @@ impl HTMLLinkElement {
         ~""
     }
 
-    pub fn SetCharset(&mut self, _charset: &DOMString) -> ErrorResult {
+    pub fn SetCharset(&mut self, _charset: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -94,7 +94,7 @@ impl HTMLLinkElement {
         ~""
     }
 
-    pub fn SetRev(&mut self, _rev: &DOMString) -> ErrorResult {
+    pub fn SetRev(&mut self, _rev: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -102,7 +102,7 @@ impl HTMLLinkElement {
         ~""
     }
 
-    pub fn SetTarget(&mut self, _target: &DOMString) -> ErrorResult {
+    pub fn SetTarget(&mut self, _target: DOMString) -> ErrorResult {
         Ok(())
     }
 }

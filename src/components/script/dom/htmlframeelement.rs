@@ -32,7 +32,7 @@ impl HTMLFrameElement {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -40,7 +40,7 @@ impl HTMLFrameElement {
         ~""
     }
 
-    pub fn SetScrolling(&mut self, _scrolling: &DOMString) -> ErrorResult {
+    pub fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -48,7 +48,7 @@ impl HTMLFrameElement {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -56,7 +56,7 @@ impl HTMLFrameElement {
         ~""
     }
 
-    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString) -> ErrorResult {
+    pub fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -64,7 +64,7 @@ impl HTMLFrameElement {
         ~""
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
+    pub fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -88,7 +88,7 @@ impl HTMLFrameElement {
         ~""
     }
 
-    pub fn SetMarginHeight(&mut self, _height: &DOMString) -> ErrorResult {
+    pub fn SetMarginHeight(&mut self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -96,7 +96,7 @@ impl HTMLFrameElement {
         ~""
     }
 
-    pub fn SetMarginWidth(&mut self, _height: &DOMString) -> ErrorResult {
+    pub fn SetMarginWidth(&mut self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 }
