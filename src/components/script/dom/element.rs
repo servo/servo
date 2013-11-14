@@ -167,7 +167,7 @@ impl<'self> Element {
         }
     }
 
-    pub fn get_attribute<'a>(&'a self,
+    pub fn get_attribute(&self,
                          namespace_url: Option<DOMString>,
                          name: &str) -> Option<@mut Attr> {
         let namespace = Namespace::from_str(namespace_url);
