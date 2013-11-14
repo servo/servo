@@ -223,14 +223,14 @@ impl Window {
 
         let global = WindowBinding::Wrap(cx, ptr::null(), win);
         unsafe {
-            let fns = ["window","self"];
-            for str in fns.iter() {
+            let fn_names = ["window","self"];
+            for str in fn_names.iter() {
                 do (*str).to_c_str().with_ref |name| {
-                JS_DefineProperty(cx, global,  name,
-                                  RUST_OBJECT_TO_JSVAL(global),
-                                  Some(GetJSClassHookStubPointer(PROPERTY_STUB) as JSPropertyOp),
-                                  Some(GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as JSStrictPropertyOp),
-                                  JSPROP_ENUMERATE);
+                    JS_DefineProperty(cx, global,  name,
+                                      RUST_OBJECT_TO_JSVAL(global),
+                                      Some(GetJSClassHookStubPointer(PROPERTY_STUB) as JSPropertyOp),
+                                      Some(GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as JSStrictPropertyOp),
+                                      JSPROP_ENUMERATE);
                 }
 
             }
