@@ -441,9 +441,7 @@ impl<'self, View> AbstractNode<View> {
     }
 
     pub fn children(&self) -> AbstractNodeChildrenIterator<View> {
-        AbstractNodeChildrenIterator {
-            current_node: self.first_child(),
-        }
+        self.node().children()
     }
 
     // Issue #1030: should not walk the tree
@@ -497,6 +495,12 @@ impl<View> Node<View> {
 
     pub fn set_owner_doc(&mut self, document: AbstractDocument) {
         self.owner_doc = Some(document);
+    }
+
+    pub fn children(&self) -> AbstractNodeChildrenIterator<View> {
+        AbstractNodeChildrenIterator {
+            current_node: self.first_child,
+        }
     }
 }
 
