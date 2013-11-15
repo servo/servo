@@ -12,7 +12,7 @@ use dom::bindings::utils::{Reflectable, GlobalStaticData};
 use dom::document::AbstractDocument;
 use dom::element::Element;
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
-use dom::event::{Event, HTMLEventTypeId};
+use dom::event::Event;
 use dom::eventtarget::AbstractEventTarget;
 use dom::htmldocument::HTMLDocument;
 use dom::window::Window;
@@ -771,7 +771,7 @@ impl ScriptTask {
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
-        let event = Event::new(window, HTMLEventTypeId);
+        let event = Event::new(window);
         event.mut_event().InitEvent(~"load", false, false);
         let doctarget = AbstractEventTarget::from_document(document);
         let wintarget = AbstractEventTarget::from_window(window);
