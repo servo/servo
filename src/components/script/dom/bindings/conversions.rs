@@ -11,6 +11,23 @@ pub trait JSValConvertible {
     fn from_jsval(val: JSVal) -> Option<Self>;
 }
 
+
+impl JSValConvertible for i64 {
+    #[fixed_stack_segment]
+    fn to_jsval(&self) -> JSVal {
+        unsafe {
+            RUST_DOUBLE_TO_JSVAL(*self as f64)
+        }
+    }
+
+    #[fixed_stack_segment]
+    fn from_jsval(val: JSVal) -> Option<i64> {
+        unsafe {
+            Some(RUST_JSVAL_TO_DOUBLE(val) as i64)
+        }
+    }
+}
+
 impl JSValConvertible for u32 {
     #[fixed_stack_segment]
     fn to_jsval(&self) -> JSVal {

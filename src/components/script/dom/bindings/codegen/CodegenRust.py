@@ -1097,14 +1097,9 @@ for (uint32_t i = 0; i < length; ++i) {
         if isMember:
             # We have to make a copy, because our jsval may well not
             # live as long as our string needs to.
-            declType = CGGeneric("nsString")
-            return (
-                "{\n"
-                "  FakeDependentString str;\n"
-                "%s\n"
-                "  ${declName} = str;\n"
-                "}\n" % CGIndenter(CGGeneric(getConversionCode("str"))).define(),
-                declType, None, isOptional, None)
+            declType = CGGeneric("DOMString")
+            return ("%s\n" % getConversionCode("${declName}"),
+                    declType, None, isOptional, None)
 
         declType = "DOMString"
         initialValue = None
@@ -4833,7 +4828,7 @@ class CGDictionary(CGThing):
         else:
             inheritance = ""
         memberDecls = ["  %s: %s," %
-                       (m[0].identifier.name, self.getMemberType(m))
+                       (self.makeMemberName(m[0].identifier.name), self.getMemberType(m))
                        for m in self.memberInfo]
 
         return (string.Template(
@@ -4876,8 +4871,8 @@ class CGDictionary(CGThing):
                 return "false"
             elif ty in ["i32", "u32", "i16", "u16"]:
                 return "0"
-            elif ty is "nsString":
-                return "\"\""
+            elif ty == "DOMString":
+                return '~""'
             elif ty.startswith("Option"):
                 return "None"
             else:
@@ -4895,7 +4890,7 @@ class CGDictionary(CGThing):
              "    ${selfName} {\n" +
              (("      parent: %s::%s::new(),\n" % (self.makeModuleName(d.parent),
                                                    self.makeClassName(d.parent))) if d.parent else "") +
-             "\n".join("      %s: %s," % (m[0].identifier.name, defaultValue(self.getMemberType(m))) for m in self.memberInfo) + "\n"
+             "\n".join("      %s: %s," % (self.makeMemberName(m[0].identifier.name), defaultValue(self.getMemberType(m))) for m in self.memberInfo) + "\n"
              "    }\n"
              "  }\n"
              "\n"
@@ -4965,7 +4960,7 @@ class CGDictionary(CGThing):
                   holderType, dealWithOptional, initialValue)) = memberInfo
         replacements = { "val": "temp",
                          "valPtr": "&temp",
-                         "declName": ("self.%s" % member.identifier.name),
+                         "declName": ("self.%s" % self.makeMemberName(member.identifier.name)),
                          # We need a holder name for external interfaces, but
                          # it's scoped down to the conversion so we can just use
                          # anything we want.
@@ -5021,7 +5016,7 @@ class CGDictionary(CGThing):
                 "}")
             conversionReplacements["convert"] = CGIndenter(
                 CGGeneric(conversionReplacements["convert"])).define()
-        
+
         return CGGeneric(
             string.Template(conversion).substitute(conversionReplacements)
             )
@@ -5029,6 +5024,13 @@ class CGDictionary(CGThing):
     @staticmethod
     def makeIdName(name):
         return name + "_id"
+
+    @staticmethod
+    def makeMemberName(name):
+        # Can't use Rust keywords as member names.
+        if name == "type":
+            return name + "_"
+        return name
 
     @staticmethod
     def getDictionaryDependencies(dictionary):

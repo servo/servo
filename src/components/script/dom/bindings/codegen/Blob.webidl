@@ -4,12 +4,25 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://dev.w3.org/2006/webapi/FileAPI/
+ * http://dev.w3.org/2006/webapi/FileAPI/#blob
  *
  * Copyright © 2012 W3C® (MIT, ERCIM, Keio), All Rights Reserved. W3C
  * liability, trademark and document use rules apply.
  */
 
-[Constructor]
+[Constructor/*,
+ Constructor(sequence<(ArrayBuffer or ArrayBufferView or Blob or DOMString)> blobParts, optional BlobPropertyBag option)*/]
 interface Blob {
+  readonly attribute unsigned long long size;
+  readonly attribute DOMString type;
+
+  Blob slice([Clamp] optional long long start,
+             [Clamp] optional long long end,
+             optional DOMString contentType);
+  void close();
+};
+
+
+dictionary BlobPropertyBag {
+  DOMString type = "";
 };
