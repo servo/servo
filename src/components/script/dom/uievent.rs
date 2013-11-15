@@ -25,8 +25,8 @@ impl UIEvent {
         }
     }
 
-    pub fn new(window: @mut Window, type_id: EventTypeId) -> AbstractEvent {
-        let ev = reflect_dom_object(@mut UIEvent::new_inherited(type_id),
+    pub fn new(window: @mut Window) -> AbstractEvent {
+        let ev = reflect_dom_object(@mut UIEvent::new_inherited(UIEventTypeId),
                                     window,
                                     UIEventBinding::Wrap);
         Event::as_abstract(ev)
@@ -35,7 +35,7 @@ impl UIEvent {
     pub fn Constructor(owner: @mut Window,
                        type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<AbstractEvent> {
-        let ev = UIEvent::new(owner, UIEventTypeId);
+        let ev = UIEvent::new(owner);
         ev.mut_uievent().InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
                                      init.view, init.detail);
         Ok(ev)

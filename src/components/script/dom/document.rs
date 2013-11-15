@@ -11,7 +11,7 @@ use dom::bindings::utils::{xml_name_type, InvalidXMLName};
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
 use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
-use dom::event::{AbstractEvent, Event, HTMLEventTypeId, UIEventTypeId};
+use dom::event::{AbstractEvent, Event};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::mouseevent::MouseEvent;
@@ -223,9 +223,9 @@ impl Document {
 
     pub fn CreateEvent(&self, interface: DOMString) -> Fallible<AbstractEvent> {
         match interface.as_slice() {
-            "UIEvents" => Ok(UIEvent::new(self.window, UIEventTypeId)),
+            "UIEvents" => Ok(UIEvent::new(self.window)),
             "MouseEvents" => Ok(MouseEvent::new(self.window)),
-            "HTMLEvents" => Ok(Event::new(self.window, HTMLEventTypeId)),
+            "HTMLEvents" => Ok(Event::new(self.window)),
             _ => Err(NotSupported)
         }
     }
