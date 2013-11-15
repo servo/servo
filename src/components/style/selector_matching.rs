@@ -478,6 +478,10 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
         }
         FirstChild => matches_first_child(element),
 
+        Root => {
+            element.is_root()
+        }
+
         Negation(ref negated) => {
             !negated.iter().all(|s| matches_simple_selector(s, element))
         },

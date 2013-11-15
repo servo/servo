@@ -162,7 +162,10 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
     }
 
     fn is_root(&self) -> bool {
-        self.parent_node().is_none()
+        match self.parent_node() {
+            Some(parent) => parent.is_document(),
+            None => false
+        }
     }
 }
 
