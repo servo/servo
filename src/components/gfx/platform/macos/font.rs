@@ -4,9 +4,9 @@
 
 /// Implementation of Quartz (CoreGraphics) fonts.
 
-extern mod core_foundation;
-extern mod core_graphics;
-extern mod core_text;
+extern mod core_foundation = "rust-core-foundation";
+extern mod core_graphics = "rust-core-graphics";
+extern mod core_text = "rust-core-text";
 
 use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FontWeight100, FontWeight200, FontWeight300, FontWeight400};

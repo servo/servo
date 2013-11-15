@@ -10,7 +10,7 @@
 
 #[feature(globs, managed_boxes)];
 
-extern mod geom;
+extern mod geom = "rust-geom";
 extern mod http;
 extern mod servo_util (name = "util");
 extern mod stb_image;
