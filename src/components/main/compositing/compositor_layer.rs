@@ -381,6 +381,37 @@ impl CompositorLayer {
         }
     }
 
+    pub fn move(&mut self, origin: Point2D<f32>, window_size: Size2D<f32>) -> bool {
+        match self.scroll_behavior {
+            Scroll => {
+                // Scroll this layer!
+                let old_origin = self.scroll_offset;
+                self.scroll_offset = Point2D(0f32, 0f32) - origin;
+
+                // bounds checking
+                let page_size = match self.page_size {
+                    Some(size) => size,
+                    None => fail!("CompositorLayer: tried to scroll with no page size set"),
+                };
+                let min_x = (window_size.width - page_size.width).min(&0.0);
+                self.scroll_offset.x = self.scroll_offset.x.clamp(&min_x, &0.0);
+                let min_y = (window_size.height - page_size.height).min(&0.0);
+                self.scroll_offset.y = self.scroll_offset.y.clamp(&min_y, &0.0);
+
+                // check to see if we scrolled
+                if old_origin - self.scroll_offset == Point2D(0f32, 0f32) {
+                    return false;
+                }
+
+                self.root_layer.common.set_transform(identity().translate(self.scroll_offset.x,
+                                                                          self.scroll_offset.y,
+                                                                          0.0));
+                true
+            }
+            FixedPosition => false  // Ignore this scroll event.
+        }
+    }
+
     // Returns whether the layer should be vertically flipped.
     #[cfg(target_os="macos")]
     fn texture_flip_and_target(cpu_painting: bool, size: Size2D<uint>) -> (Flip, TextureTarget) {
