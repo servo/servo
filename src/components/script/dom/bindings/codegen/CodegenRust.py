@@ -945,8 +945,10 @@ for (uint32_t i = 0; i < length; ++i) {
 
         # Set up some sensible defaults for these things insofar as we can.
         holderType = None
-        if argIsPointer:
+        initialValue = None
+        if argIsPointer or isOptional:
             declType = "Option<" + typePtr + ">"
+            initialValue = "None"
         else:
             declType = typePtr
 
@@ -995,7 +997,7 @@ for (uint32_t i = 0; i < length; ++i) {
         declType = CGGeneric(declType)
         if holderType is not None:
             holderType = CGGeneric(holderType)
-        return (templateBody, declType, holderType, isOptional, None)
+        return (templateBody, declType, holderType, isOptional, initialValue)
 
     if type.isSpiderMonkeyInterface():
         assert not isEnforceRange and not isClamp
