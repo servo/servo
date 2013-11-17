@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::WindowBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
+use dom::bindings::utils::{trace_option, trace_reflector};
 use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::eventtarget::{EventTarget, WindowTypeId};
@@ -17,8 +18,8 @@ use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 
 use js::glue::*;
-use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JS_CallTracer};
-use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JSTracer, JSTRACE_OBJECT};
+use js::jsapi::{JSObject, JSContext, JS_DefineProperty};
+use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JSTracer};
 use js::{JSVAL_NULL, JSPROP_ENUMERATE};
 
 use std::cell::Cell;
@@ -251,24 +252,11 @@ impl Window {
 }
 
 impl Traceable for Window {
-    #[fixed_stack_segment]
     fn trace(&self, tracer: *mut JSTracer) {
         debug!("tracing window");
-        unsafe {
-            match self.page.frame {
-                Some(frame) => {
-                    (*tracer).debugPrinter = ptr::null();
-                    (*tracer).debugPrintIndex = -1;
-                    do "document".to_c_str().with_ref |name| {
-                        (*tracer).debugPrintArg = name as *libc::c_void;
-                        debug!("tracing document");
-                        JS_CallTracer(tracer as *JSTracer,
-                                      frame.document.reflector().get_jsobject(),
-                                      JSTRACE_OBJECT as u32);
-                    }
-                }
-                None => ()
-            }
-        }
+
+        self.page.frame.map(|frame| trace_reflector(tracer, "document", frame.document.reflector()));
+        trace_option(tracer, "location", self.location);
+        trace_option(tracer, "navigator", self.navigator);
     }
 }
