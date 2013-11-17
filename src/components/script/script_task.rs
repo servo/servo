@@ -701,7 +701,7 @@ impl ScriptTask {
                                                                  self.constellation_chan.clone());
 
 
-        let HtmlParserResult {root, discovery_port} = html_parsing_result;
+        let HtmlParserResult {discovery_port} = html_parsing_result;
 
         // Create the root frame.
         page.frame = Some(Frame {
@@ -741,11 +741,8 @@ impl ScriptTask {
             }
         }
 
-        // Tie the root into the document. This will kick off the initial reflow
-        // of the page.
-        // FIXME: We have no way to ensure that the first reflow performed is a
-        //        ReflowForDisplay operation.
-        document.set_root(root);
+        // Kick off the initial reflow of the page.
+        document.document().content_changed();
 
         // No more reflow required
         page.url = Some((url, false));
