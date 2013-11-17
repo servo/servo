@@ -8,6 +8,7 @@ use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::eventtarget::{EventTarget, WindowTypeId};
 use dom::node::{AbstractNode, ScriptView};
+use dom::location::Location;
 use dom::navigator::Navigator;
 
 use layout_interface::ReflowForDisplay;
@@ -43,6 +44,7 @@ pub struct Window {
     script_chan: ScriptChan,
     compositor: @ScriptListener,
     timer_chan: SharedChan<TimerControlMsg>,
+    location: Option<@mut Location>,
     navigator: Option<@mut Navigator>,
     image_cache_task: ImageCacheTask,
     active_timers: ~HashSet<i32>,
@@ -114,6 +116,13 @@ impl Window {
 
     pub fn GetFrameElement(&self) -> Option<AbstractNode<ScriptView>> {
         None
+    }
+
+    pub fn Location(&mut self) -> @mut Location {
+        if self.location.is_none() {
+            self.location = Some(Location::new(self, self.page));
+        }
+        self.location.unwrap()
     }
 
     pub fn Navigator(&mut self) -> @mut Navigator {
@@ -215,6 +224,7 @@ impl Window {
                 }
                 SharedChan::new(timer_chan)
             },
+            location: None,
             navigator: None,
             image_cache_task: image_cache_task,
             active_timers: ~HashSet::new(),
