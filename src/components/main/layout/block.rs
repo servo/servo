@@ -127,12 +127,10 @@ impl BlockFlow {
                 }
             };
 
-            let mut model_ref = base.model.mutate();
-            let model = &mut model_ref.ptr;
-            top_offset = clearance + model.margin.top + model.border.top + model.padding.top;
+            top_offset = clearance + base.margin.top + base.border.top + base.padding.top;
             cur_y = cur_y + top_offset;
-            bottom_offset = model.margin.bottom + model.border.bottom + model.padding.bottom;
-            left_offset = model.offset();
+            bottom_offset = base.margin.bottom + base.border.bottom + base.padding.bottom;
+            left_offset = base.offset();
         }
 
         if inorder {
@@ -160,17 +158,15 @@ impl BlockFlow {
         let mut first_in_flow = true;
         for &box in self.box.iter() {
             let base = box.base();
-            let mut model_ref = base.model.mutate();
-            let model = &mut model_ref.ptr;
-            if !self.is_root && model.border.top == Au::new(0) && model.padding.top == Au::new(0) {
-                collapsible = model.margin.top;
+            if !self.is_root && base.border.top == Au::new(0) && base.padding.top == Au::new(0) {
+                collapsible = base.margin.top;
                 top_margin_collapsible = true;
             }
-            if !self.is_root && model.border.bottom == Au::new(0) && model.padding.bottom == Au::new(0) {
+            if !self.is_root && base.border.bottom == Au::new(0) && base.padding.bottom == Au::new(0) {
                 bottom_margin_collapsible = true;
             }
-            margin_top = model.margin.top;
-            margin_bottom = model.margin.bottom;
+            margin_top = base.margin.top;
+            margin_bottom = base.margin.bottom;
         }
 
         for kid in self.base.child_iter() {
@@ -220,23 +216,22 @@ impl BlockFlow {
 
         let mut noncontent_height = Au::new(0);
         for box in self.box.iter() {
-            let base = box.base();
-            let mut model_ref = base.model.mutate();
+            let base = box.mut_base();
             let mut position_ref = base.position.mutate();
-            let (model, position) = (&mut model_ref.ptr, &mut position_ref.ptr);
+            let position = &mut position_ref.ptr;
 
             // The associated box is the border box of this flow.
-            model.margin.top = margin_top;
-            model.margin.bottom = margin_bottom;
+            base.margin.top = margin_top;
+            base.margin.bottom = margin_bottom;
 
-            position.origin.y = clearance + model.margin.top;
+            position.origin.y = clearance + base.margin.top;
 
-            noncontent_height = model.padding.top + model.padding.bottom + model.border.top +
-                model.border.bottom;
+            noncontent_height = base.padding.top + base.padding.bottom + base.border.top +
+                base.border.bottom;
             position.size.height = height + noncontent_height;
 
-            noncontent_height = noncontent_height + clearance + model.margin.top +
-                model.margin.bottom;
+            noncontent_height = noncontent_height + clearance + base.margin.top +
+                base.margin.bottom;
         }
 
         self.base.position.size.height = height + noncontent_height;
@@ -257,18 +252,18 @@ impl BlockFlow {
                                     -> bool {
         if self.base.node.is_iframe_element() {
             let x = self.base.abs_position.x + do self.box.map_default(Au::new(0)) |box| {
-                let model = box.base().model.get();
-                model.margin.left + model.border.left + model.padding.left
+                let base = box.base();
+                base.margin.left + base.border.left + base.padding.left
             };
             let y = self.base.abs_position.y + do self.box.map_default(Au::new(0)) |box| {
-                let model = box.base().model.get();
-                model.margin.top + model.border.top + model.padding.top
+                let base = box.base();
+                base.margin.top + base.border.top + base.padding.top
             };
             let w = self.base.position.size.width - do self.box.map_default(Au::new(0)) |box| {
-                box.base().model.get().noncontent_width()
+                box.base().noncontent_width()
             };
             let h = self.base.position.size.height - do self.box.map_default(Au::new(0)) |box| {
-                box.base().model.get().noncontent_height()
+                box.base().noncontent_height()
             };
             do self.base.node.with_mut_iframe_element |iframe_element| {
                 iframe_element.size.get_mut_ref().set_rect(Rect(Point2D(to_frac_px(x) as f32,
@@ -339,9 +334,10 @@ impl FlowContext for BlockFlow {
            these widths will not include child elements, just padding etc. */
         for box in self.box.iter() {
             {
-                // Can compute border width here since it doesn't depend on anything.
+                let mut_base = box.mut_base();
                 let base = box.base();
-                base.model.mutate().ptr.compute_borders(base.style())
+                // Can compute border width here since it doesn't depend on anything.
+                mut_base.compute_borders(base.style())
             }
 
             let (this_minimum_width, this_preferred_width) = box.minimum_and_preferred_widths();
@@ -374,16 +370,14 @@ impl FlowContext for BlockFlow {
         let mut x_offset = Au::new(0);
 
         for &box in self.box.iter() {
-            let base = box.base();
+            let base = box.mut_base();
             let style = base.style();
-            let mut model_ref = base.model.mutate();
-            let model = &mut model_ref.ptr;
 
             // Can compute padding here since we know containing block width.
-            model.compute_padding(style, remaining_width);
+            base.compute_padding(style, remaining_width);
 
-            // Margins are 0 right now so model.noncontent_width() is just borders + padding.
-            let available_width = remaining_width - model.noncontent_width();
+            // Margins are 0 right now so base.noncontent_width() is just borders + padding.
+            let available_width = remaining_width - base.noncontent_width();
 
             // Top and bottom margins for blocks are 0 if auto.
             let margin_top = MaybeAuto::from_style(style.Margin.margin_top,
@@ -426,19 +420,19 @@ impl FlowContext for BlockFlow {
                 }
             };
 
-            model.margin.top = margin_top;
-            model.margin.right = margin_right;
-            model.margin.bottom = margin_bottom;
-            model.margin.left = margin_left;
+            base.margin.top = margin_top;
+            base.margin.right = margin_right;
+            base.margin.bottom = margin_bottom;
+            base.margin.left = margin_left;
 
-            x_offset = model.offset();
+            x_offset = base.offset();
             remaining_width = width;
 
             //The associated box is the border box of this flow
             let position_ref = base.position.mutate();
-            position_ref.ptr.origin.x = model.margin.left;
-            let padding_and_borders = model.padding.left + model.padding.right +
-                model.border.left + model.border.right;
+            position_ref.ptr.origin.x = base.margin.left;
+            let padding_and_borders = base.padding.left + base.padding.right +
+                base.border.left + base.border.right;
             position_ref.ptr.size.width = remaining_width + padding_and_borders;
         }
 
@@ -482,26 +476,24 @@ impl FlowContext for BlockFlow {
                         collapsible: &mut Au) {
         for &box in self.box.iter() {
             let base = box.base();
-            let mut model_ref = base.model.mutate();
-            let model = &mut model_ref.ptr;
 
             // The top margin collapses with its first in-flow block-level child's
             // top margin if the parent has no top border, no top padding.
             if *first_in_flow && top_margin_collapsible {
                 // If top-margin of parent is less than top-margin of its first child, 
                 // the parent box goes down until its top is aligned with the child.
-                if *margin_top < model.margin.top {
+                if *margin_top < base.margin.top {
                     // TODO: The position of child floats should be updated and this
                     // would influence clearance as well. See #725
-                    let extra_margin = model.margin.top - *margin_top;
+                    let extra_margin = base.margin.top - *margin_top;
                     *top_offset = *top_offset + extra_margin;
-                    *margin_top = model.margin.top;
+                    *margin_top = base.margin.top;
                 }
             }
             // The bottom margin of an in-flow block-level element collapses 
             // with the top margin of its next in-flow block-level sibling.
-            *collapsing = geometry::min(model.margin.top, *collapsible);
-            *collapsible = model.margin.bottom;
+            *collapsing = geometry::min(base.margin.top, *collapsible);
+            *collapsible = base.margin.bottom;
         }
 
         *first_in_flow = false;
