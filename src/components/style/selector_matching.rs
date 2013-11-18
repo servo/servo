@@ -138,19 +138,28 @@ impl SelectorMap {
         // is required because Arc makes Rule non-copyable)
         match SelectorMap::get_id_name(rule.clone()) {
             Some(id_name) => {
-                // TODO: Is this is a wasteful allocation of a list (~[rule])?
-                self.id_hash.insert_or_update_with(id_name,
-                                                   ~[rule.clone()],
-                                                   |_, v| v.push(rule.clone()));
+                match self.id_hash.find_mut(&id_name) {
+                    Some(rules) => {
+                        rules.push(rule.clone());
+                        return;
+                    }
+                    None => {}
+                }
+                self.id_hash.insert(id_name, ~[rule.clone()]);
                 return;
             }
             None => {}
         }
         match SelectorMap::get_class_name(rule.clone()) {
             Some(class_name) => {
-                self.class_hash.insert_or_update_with(class_name,
-                                                      ~[rule.clone()],
-                                                      |_, v| v.push(rule.clone()));
+                match self.class_hash.find_mut(&class_name) {
+                    Some(rules) => {
+                        rules.push(rule.clone());
+                        return;
+                    }
+                    None => {}
+                }
+                self.class_hash.insert(class_name, ~[rule.clone()]);
                 return;
             }
             None => {}
@@ -158,9 +167,14 @@ impl SelectorMap {
 
         match SelectorMap::get_element_name(rule.clone()) {
             Some(element_name) => {
-                self.element_hash.insert_or_update_with(element_name,
-                                                        ~[rule.clone()],
-                                                        |_, v| v.push(rule.clone()));
+                match self.element_hash.find_mut(&element_name) {
+                    Some(rules) => {
+                        rules.push(rule.clone());
+                        return;
+                    }
+                    None => {}
+                }
+                self.element_hash.insert(element_name, ~[rule.clone()]);
                 return;
             }
             None => {}
