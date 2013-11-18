@@ -26,16 +26,31 @@
     border-width: 10px;
     border-color: green red yellow black;
 }
+#diamond1{
+    width: 0;
+    height: 0;
+    border: 50px solid transparent;
+    border-bottom-color: red;
+    position: relative;
+}
+#diamond2{
+    width: 0;
+    height: 0;
+    border: 50px solid transparent;
+    border-top-color: red;
+    position: relative;
+}
 </style>
 </head>
 <body>
 <div id="none"> none test.</div>
 <div id="hidden"> hidden test.</div>
-<!-- It doesn't work well yet. -->
 <div id="solid"> solid test</div>
-<!-- It shows almost same result with firefox. -->
 <div id="dashed"> dashed test</div>
 <!-- It doesn't show anything yet. -->
 <div id="dotted"> dotted test. (dotted isn't supported yet)</div>
+<!-- It's a Diamond -->
+<div id="diamond1"></div>
+<div id="diamond2"></div>
 </body>
 </HTML>
