@@ -15,6 +15,7 @@ extern mod http;
 extern mod servo_util (name = "util");
 extern mod stb_image;
 extern mod extra;
+extern mod png;
 
 /// Image handling.
 ///
