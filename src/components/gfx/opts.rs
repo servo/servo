@@ -7,7 +7,7 @@
 
 use azure::azure_hl::{BackendType, CairoBackend, CoreGraphicsBackend};
 use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBackend};
-use extra::getopts;
+use extra::getopts::groups;
 
 /// Global flags for Servo, currently set on the command line.
 #[deriving(Clone)]
@@ -41,26 +41,40 @@ pub struct Opts {
     headless: bool,
 }
 
+fn print_usage(opts: &[groups::OptGroup]) {
+    let message = format!("Usage: ./servo [ options ... ] [URL]\n\twhere options include");
+    println(groups::usage(message, opts));
+}
+
 pub fn from_cmdline_args(args: &[~str]) -> Opts {
     let args = args.tail();
 
     let opts = ~[
-        getopts::optflag("c"),      // CPU rendering
-        getopts::optopt("o"),       // output file
-        getopts::optopt("r"),       // rendering backend
-        getopts::optopt("s"),       // size of tiles
-        getopts::optopt("t"),       // threads to render with
-        getopts::optflagopt("p"),   // profiler flag and output interval
-        getopts::optflag("x"),      // exit after load flag
-        getopts::optflag("z"),      // headless mode
+        groups::optflag("c", "cpu", "CPU rendering"),
+        groups::optopt("o", "output", "Output file", "output.png"),
+        groups::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
+        groups::optopt("s", "size", "Size of tiles", "512"),
+        groups::optopt("t", "threads", "Number of render threads", "1"),
+        groups::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
+        groups::optflag("x", "exit", "Exit after load flag"),
+        groups::optflag("z", "headless", "Headless mode"),
+        groups::optflag("h", "help", "Print this message")
     ];
 
-    let opt_match = match getopts::getopts(args, opts) {
+    let opt_match = match groups::getopts(args, opts) {
         Ok(m) => m,
         Err(f) => fail!(f.to_err_msg()),
     };
 
+    if opt_match.opt_present("h") || opt_match.opt_present("help") {
+        print_usage(opts);
+        // TODO: how to return a null struct and let the caller know that
+        // it should abort?
+        fail!("")
+    };
+
     let urls = if opt_match.free.is_empty() {
+        print_usage(opts);
         fail!(~"servo asks that you provide 1 or more URLs")
     } else {
         opt_match.free.clone()
