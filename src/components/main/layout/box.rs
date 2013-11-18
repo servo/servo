@@ -28,12 +28,12 @@ use std::unstable::raw::Box;
 use style::ComputedValues;
 use style::computed_values::{
     border_style, clear, float, font_family, font_style, line_height,
-    position, text_align, text_decoration, vertical_align};
+    position, text_align, text_decoration, vertical_align, LengthOrPercentage};
 
 use css::node_style::StyledNode;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
-use layout::model::{BoxModel, MaybeAuto};
+use layout::model::{MaybeAuto, specified};
 
 /// Boxes (`struct Box`) are the leaves of the layout tree. They cannot position themselves. In
 /// general, boxes do not have a simple correspondence with CSS boxes in the specification:
@@ -119,6 +119,8 @@ impl Clone for @RenderBox {
 pub trait RenderBoxUtils {
     fn base<'a>(&'a self) -> &'a RenderBoxBase;
 
+    fn mut_base<'a>(&'a self) -> &'a mut RenderBoxBase;
+
     /// Returns true if this element is replaced content. This is true for images, form elements,
     /// and so on.
     fn is_replaced(&self) -> bool;
@@ -172,6 +174,7 @@ pub trait RenderBoxUtils {
 
 pub trait RenderBoxRefUtils<'self> {
     fn base(self) -> &'self RenderBoxBase;
+    fn mut_base(self) -> &'self mut RenderBoxBase;
 }
 
 /// A box that represents a generic render box.
@@ -618,13 +621,22 @@ pub struct RenderBoxBase {
     /// The position of this box relative to its owning flow.
     position: Slot<Rect<Au>>,
 
-    /// The core parameters (border, padding, margin) used by the box model.
-    model: Slot<BoxModel>,
-
     /// A debug ID.
     ///
     /// TODO(#87) Make this only present in debug builds.
-    id: int
+    id: int,
+
+    /// the border of the content box.
+    border: SideOffsets2D<Au>,
+
+    /// the padding of the content box.
+    padding: SideOffsets2D<Au>,
+
+    /// the margin of the content box.
+    margin: SideOffsets2D<Au>,
+
+    /// The width of the content box.
+    content_box_width: Au,
 }
 
 impl RenderBoxBase {
@@ -634,8 +646,11 @@ impl RenderBoxBase {
         RenderBoxBase {
             node: node,
             position: Slot::init(Au::zero_rect()),
-            model: Slot::init(Zero::zero()),
             id: id,
+            border: Zero::zero(),
+            padding: Zero::zero(),
+            margin: Zero::zero(),
+            content_box_width: Zero::zero(),
         }
     }
 
@@ -655,13 +670,11 @@ impl RenderBoxBase {
         let margin_right = MaybeAuto::from_style(style.Margin.margin_right,
                                                  Au::new(0)).specified_or_zero();
 
-        let mut model_ref = self.model.mutate();
-        let model = &mut model_ref.ptr;
-        let padding_left = model.compute_padding_length(style.Padding.padding_left, Au::new(0));
-        let padding_right = model.compute_padding_length(style.Padding.padding_right, Au::new(0));
+        let padding_left = self.compute_padding_length(style.Padding.padding_left, Au::new(0));
+        let padding_right = self.compute_padding_length(style.Padding.padding_right, Au::new(0));
 
-        width + margin_left + margin_right + padding_left + padding_right + model.border.left +
-            model.border.right
+        width + margin_left + margin_right + padding_left + padding_right + self.border.left +
+            self.border.right
     }
 
     pub fn calculate_line_height(&self, font_size: Au) -> Au { 
@@ -672,23 +685,50 @@ impl RenderBoxBase {
         }
     }
 
-    pub fn compute_padding(&self, containing_block_width: Au) {
-        self.model.mutate().ptr.compute_padding(self.node.style(), containing_block_width);
+    /// Populates the box model border parameters from the given computed style.
+    pub fn compute_borders(&mut self, style: &ComputedValues) {
+        self.border.top = style.Border.border_top_width;
+        self.border.right = style.Border.border_right_width;
+        self.border.bottom = style.Border.border_bottom_width;
+        self.border.left = style.Border.border_left_width;
     }
 
-    pub fn get_noncontent_width(&self) -> Au {
-        let model_ref = self.model.mutate();
-        model_ref.ptr.border.left + model_ref.ptr.padding.left + model_ref.ptr.border.right +
-            model_ref.ptr.padding.right
+    /// Populates the box model padding parameters from the given computed style.
+    pub fn compute_padding(&mut self, style: &ComputedValues, containing_block_width: Au) {
+        self.padding.top = self.compute_padding_length(style.Padding.padding_top,
+                                                       containing_block_width);
+        self.padding.right = self.compute_padding_length(style.Padding.padding_right,
+                                                         containing_block_width);
+        self.padding.bottom = self.compute_padding_length(style.Padding.padding_bottom,
+                                                          containing_block_width);
+        self.padding.left = self.compute_padding_length(style.Padding.padding_left,
+                                                        containing_block_width);
+    }
+
+    pub fn compute_padding_length(&self, padding: LengthOrPercentage, content_box_width: Au) -> Au {
+        specified(padding, content_box_width)
+    }
+
+    pub fn noncontent_width(&self) -> Au {
+        let left = self.margin.left + self.border.left + self.padding.left;
+        let right = self.margin.right + self.border.right + self.padding.right;
+        left + right
+    }
+
+    pub fn noncontent_height(&self) -> Au {
+        let top = self.margin.top + self.border.top + self.padding.top;
+        let bottom = self.margin.bottom + self.border.bottom + self.padding.bottom;
+        top + bottom
     }
 
     /// The box formed by the content edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
     /// the owning flow.
     pub fn content_box(&self) -> Rect<Au> {
-        let (position, model) = (self.position.get(), self.model.get());
-        let origin = Point2D(position.origin.x + model.border.left + model.padding.left,
+        let position = self.position.get();
+        let origin = Point2D(position.origin.x + self.border.left + self.padding.left,
                              position.origin.y);
-        let size = Size2D(position.size.width - self.get_noncontent_width(), position.size.height);
+        let noncontent_width = self.border.left + self.padding.left + self.border.right + self.padding.right;
+        let size = Size2D(position.size.width - noncontent_width, position.size.height);
         Rect(origin, size)
     }
 
@@ -824,6 +864,10 @@ impl RenderBoxBase {
         get_propagated_text_decoration(self.nearest_ancestor_element())
     }
 
+    pub fn offset(&self) -> Au {
+        self.margin.left + self.border.left + self.padding.left
+    }
+
 }
 
 impl RenderBoxUtils for @RenderBox {
@@ -832,6 +876,13 @@ impl RenderBoxUtils for @RenderBox {
         unsafe {
             let (_, box_ptr): (uint, *Box<RenderBoxBase>) = cast::transmute(*self);
             cast::transmute(&(*box_ptr).data)
+        }
+    }
+
+    fn mut_base<'a>(&'a self) -> &'a mut RenderBoxBase {
+        unsafe {
+            let (_, box_ptr): (uint, *Box<RenderBoxBase>) = cast::transmute(*self);
+            cast::transmute_mut(&(*box_ptr).data)
         }
     }
 
@@ -894,7 +945,7 @@ impl RenderBoxUtils for @RenderBox {
                                    abs_bounds: &Rect<Au>) {
         // Fast path.
         let base = self.base();
-        let border = base.model.get().border;
+        let border = base.border;
         if border.is_zero() {
             return
         }
@@ -1112,6 +1163,14 @@ impl<'self> RenderBoxRefUtils<'self> for &'self RenderBox {
     fn base(self) -> &'self RenderBoxBase {
         unsafe {
             let (_, box_ptr): (uint, *RenderBoxBase) = cast::transmute(self);
+            cast::transmute(box_ptr)
+        }
+    }
+
+    #[inline(always)]
+    fn mut_base(self) -> &'self mut RenderBoxBase {
+        unsafe {
+            let (_, box_ptr): (uint, *mut RenderBoxBase) = cast::transmute(self);
             cast::transmute(box_ptr)
         }
     }

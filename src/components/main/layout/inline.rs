@@ -681,10 +681,10 @@ impl FlowContext for InlineFlow {
                         let mut top;
                         let mut bottom;
                         {
-                            let model = image_box.base.model.get();
-                            top = model.border.top + model.padding.top + model.margin.top;
-                            bottom = model.border.bottom + model.padding.bottom +
-                                model.margin.bottom;
+                            let base = &image_box.base;
+                            top = base.border.top + base.padding.top + base.margin.top;
+                            bottom = base.border.bottom + base.padding.bottom +
+                                base.margin.bottom;
                         }
 
                         let noncontent_height = top + bottom;

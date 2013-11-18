@@ -127,8 +127,7 @@ impl FlowContext for FloatFlow {
 
         for box in self.box.iter() {
             {
-                let base = box.base();
-                base.model.mutate().ptr.compute_borders(base.style());
+                box.mut_base().compute_borders(box.base().style());
             }
 
             let (this_minimum_width, this_preferred_width) = box.minimum_and_preferred_widths();
@@ -153,13 +152,13 @@ impl FlowContext for FloatFlow {
 
         for &box in self.box.iter() {
             let base = box.base();
+            let mut_base = box.mut_base();
             let style = base.style();
             let mut position_ref = base.position.mutate();
-            let mut model_ref = base.model.mutate();
-            let (position, model) = (&mut position_ref.ptr, &mut model_ref.ptr);
+            let position = &mut position_ref.ptr;
 
             // Can compute padding here since we know containing block width.
-            model.compute_padding(style, remaining_width);
+            mut_base.compute_padding(style, remaining_width);
 
             // Margins for floats are 0 if auto.
             let margin_top = MaybeAuto::from_style(style.Margin.margin_top,
@@ -180,19 +179,19 @@ impl FlowContext for FloatFlow {
                                               remaining_width).specified_or_default(shrink_to_fit);
             debug!("assign_widths_float -- width: {}", width);
 
-            model.margin.top = margin_top;
-            model.margin.right = margin_right;
-            model.margin.bottom = margin_bottom;
-            model.margin.left = margin_left;
+            mut_base.margin.top = margin_top;
+            mut_base.margin.right = margin_right;
+            mut_base.margin.bottom = margin_bottom;
+            mut_base.margin.left = margin_left;
 
-            x_offset = model.offset();
+            x_offset = base.offset();
             remaining_width = width;
 
             // The associated box is the border box of this flow.
-            position.origin.x = model.margin.left;
+            position.origin.x = base.margin.left;
 
-            let padding_and_borders = model.padding.left + model.padding.right +
-                model.border.left + model.border.right;
+            let padding_and_borders = base.padding.left + base.padding.right +
+                base.border.left + base.border.right;
             position.size.width = remaining_width + padding_and_borders;
         }
 
@@ -231,12 +230,11 @@ impl FlowContext for FloatFlow {
                 Some(clear) => self.base.floats_in.clearance(clear),
             };
 
-            let model = base.model.get();
-            let noncontent_width = model.padding.left + model.padding.right + model.border.left +
-                model.border.right;
+            let noncontent_width = base.padding.left + base.padding.right + base.border.left +
+                base.border.right;
 
-            full_noncontent_width = noncontent_width + model.margin.left + model.margin.right;
-            margin_height = model.margin.top + model.margin.bottom;
+            full_noncontent_width = noncontent_width + base.margin.left + base.margin.right;
+            margin_height = base.margin.top + base.margin.bottom;
         }
 
         let info = PlacementInfo {
@@ -270,9 +268,7 @@ impl FlowContext for FloatFlow {
 
         for &box in self.box.iter() {
             let base = box.base();
-            let model_ref = base.model.borrow();
-            top_offset = model_ref.ptr.margin.top + model_ref.ptr.border.top +
-                model_ref.ptr.padding.top;
+            top_offset = base.margin.top + base.border.top + base.padding.top;
             cur_y = cur_y + top_offset;
         }
 
@@ -287,15 +283,14 @@ impl FlowContext for FloatFlow {
         let mut noncontent_height;
         for box in self.box.iter() {
             let base = box.base();
-            let mut model_ref = base.model.mutate();
             let mut position_ref = base.position.mutate();
-            let (model, position) = (&mut model_ref.ptr, &mut position_ref.ptr);
+            let position = &mut position_ref.ptr;
 
             // The associated box is the border box of this flow.
-            position.origin.y = model.margin.top;
+            position.origin.y = base.margin.top;
 
-            noncontent_height = model.padding.top + model.padding.bottom + model.border.top +
-                model.border.bottom;
+            noncontent_height = base.padding.top + base.padding.bottom + base.border.top +
+                base.border.bottom;
         
             //TODO(eatkinson): compute heights properly using the 'height' property.
             let height_prop = MaybeAuto::from_style(base.style().Box.height,
