@@ -6,6 +6,7 @@
 //! well, this type should be upstreamed to the Rust standard library.
 
 use std::cast;
+use std::util;
 
 #[unsafe_no_drop_flag]
 #[no_freeze]
@@ -74,6 +75,13 @@ impl<T> Slot<T> {
         }
     }
 
+    /// Borrows the data immutably. This function is thread-safe, but *bad things will happen if
+    /// you try to mutate the data while one of these pointers is held*.
+    #[inline]
+    pub unsafe fn borrow_unchecked<'a>(&'a self) -> &'a T {
+        &self.value
+    }
+
     #[inline]
     pub fn borrow<'a>(&'a self) -> SlotRef<'a,T> {
         unsafe {
@@ -109,8 +117,14 @@ impl<T> Slot<T> {
         *self.mutate().ptr = value
     }
 
+    /// Replaces the slot's value with the given value and returns the old value.
+    #[inline]
+    pub fn replace(&self, value: T) -> T {
+        util::replace(self.mutate().ptr, value)
+    }
+
     #[inline(never)]
-    pub fn fail(&self) {
+    pub fn fail(&self) -> ! {
         fail!("slot is borrowed")
     }
 }

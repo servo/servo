@@ -225,6 +225,7 @@ pub struct ImageRenderBox {
 }
 
 impl ImageRenderBox {
+    #[inline]
     pub fn new(base: RenderBoxBase, image_url: Url, local_image_cache: @mut LocalImageCache)
                -> ImageRenderBox {
         assert!(base.node.is_image_element());
@@ -523,6 +524,7 @@ pub struct UnscannedTextRenderBox {
 
 impl UnscannedTextRenderBox {
     /// Creates a new instance of `UnscannedTextRenderBox`.
+    #[inline(always)]
     pub fn new(base: RenderBoxBase) -> UnscannedTextRenderBox {
         assert!(base.node.is_text());
 

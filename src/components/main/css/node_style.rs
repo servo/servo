@@ -17,6 +17,7 @@ pub trait StyledNode {
 }
 
 impl StyledNode for AbstractNode<LayoutView> {
+    #[inline]
     fn style(&self) -> &ComputedValues {
         // FIXME(pcwalton): Is this assertion needed for memory safety? It's slow.
         //assert!(self.is_element()); // Only elements can have styles

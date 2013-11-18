@@ -8,7 +8,6 @@ use layout::util::{DisplayBoxes, LayoutData, LayoutDataAccess};
 
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::tree::TreeNodeRef;
-use std::cast;
 
 /// Functionality useful for querying the layout-specific data on DOM nodes.
 pub trait LayoutAuxMethods {
@@ -18,20 +17,17 @@ pub trait LayoutAuxMethods {
 
 impl LayoutAuxMethods for AbstractNode<LayoutView> {
     /// Resets layout data and styles for the node.
-    ///
-    /// FIXME(pcwalton): Do this as part of box building instead of in a traversal.
     fn initialize_layout_data(self) {
-        unsafe {
-            let node = cast::transmute_mut(self.node());
-            if node.layout_data.is_none() {
-                node.layout_data = Some(~LayoutData::new() as ~Any)
-            } else {
-                self.layout_data().boxes.set(DisplayBoxes::init());
-            }
+        let layout_data_handle = self.mutate_layout_data();
+        match *layout_data_handle.ptr {
+            None => *layout_data_handle.ptr = Some(~LayoutData::new()),
+            Some(ref mut layout_data) => layout_data.boxes = DisplayBoxes::init(),
         }
     }
 
     /// Resets layout data and styles for a Node tree.
+    ///
+    /// FIXME(pcwalton): Do this as part of box building instead of in a traversal.
     fn initialize_style_for_subtree(self) {
         for n in self.traverse_preorder() {
             n.initialize_layout_data();

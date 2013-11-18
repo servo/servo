@@ -40,6 +40,14 @@ impl BlockFlow {
         }
     }
 
+    pub fn from_box(base: FlowData, box: @RenderBox) -> BlockFlow {
+        BlockFlow {
+            base: base,
+            box: Some(box),
+            is_root: false
+        }
+    }
+
     pub fn new_root(base: FlowData) -> BlockFlow {
         BlockFlow {
             base: base,
@@ -497,6 +505,10 @@ impl FlowContext for BlockFlow {
         }
 
         *first_in_flow = false;
+    }
+
+    fn mark_as_root(&mut self) {
+        self.is_root = true
     }
 
     fn debug_str(&self) -> ~str {
