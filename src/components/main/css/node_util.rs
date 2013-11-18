@@ -27,22 +27,29 @@ impl<'self> NodeUtil<'self> for AbstractNode<LayoutView> {
      * FIXME: This isn't completely memory safe since the style is
      * stored in a box that can be overwritten
      */
+    #[inline]
     fn get_css_select_results(self) -> &'self ComputedValues {
-        let layout_data = self.layout_data();
-        match *layout_data.style.borrow().ptr {
-            None => fail!(~"style() called on node without a style!"),
-            Some(ref style) => unsafe { cast::transmute_region(style) }
+        unsafe {
+            cast::transmute_region(self.borrow_layout_data_unchecked()
+                                       .as_ref()
+                                       .unwrap()
+                                       .style
+                                       .as_ref()
+                                       .unwrap())
         }
     }
 
     /// Does this node have a computed style yet?
     fn have_css_select_results(self) -> bool {
-        self.layout_data().style.borrow().ptr.is_some()
+        self.borrow_layout_data().ptr.as_ref().unwrap().style.is_some()
     }
 
     /// Update the computed style of an HTML element with a style specified by CSS.
     fn set_css_select_results(self, decl: ComputedValues) {
-        *self.layout_data().style.mutate().ptr = Some(decl)
+        match *self.mutate_layout_data().ptr {
+            Some(ref mut data) => data.style = Some(decl),
+            _ => fail!("no layout data for this node"),
+        }
     }
 
     /// Get the description of how to account for recent style changes.
@@ -56,17 +63,21 @@ impl<'self> NodeUtil<'self> for AbstractNode<LayoutView> {
             RestyleDamage::none()
         };
 
-        self.layout_data()
-            .restyle_damage
-            .borrow()
+        self.borrow_layout_data()
             .ptr
+            .as_ref()
+            .unwrap()
+            .restyle_damage
             .map(|x| RestyleDamage::from_int(x))
             .unwrap_or(default)
     }
 
     /// Set the restyle damage field.
     fn set_restyle_damage(self, damage: RestyleDamage) {
-        *self.layout_data().restyle_damage.mutate().ptr = Some(damage.to_int())
+        match *self.mutate_layout_data().ptr {
+            Some(ref mut data) => data.restyle_damage = Some(damage.to_int()),
+            _ => fail!("no layout data for this node"),
+        }
     }
 }
 
