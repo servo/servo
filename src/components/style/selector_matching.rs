@@ -304,8 +304,14 @@ impl Stylist {
         
         // Keeping this as a separate step because we will need it for further
         // optimizations regarding grouping of Rules having the same Selector.
-        let declarations_list = matching_rules_list.map(
-            |rules| rules.map(|r| r.declarations.clone()));
+        let mut declarations_list = ~[];
+        for rules in matching_rules_list.iter() {
+            declarations_list.push(~[]);
+            let curr_declarations = &mut declarations_list[declarations_list.len() - 1];
+            for rule in rules.iter() {
+                curr_declarations.push(rule.declarations.clone());
+            }
+        }
 
         let mut applicable_declarations = ~[];
         applicable_declarations.push_all_move(declarations_list.slice(0, 3).concat_vec());
