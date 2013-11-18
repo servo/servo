@@ -41,12 +41,13 @@ pub struct Opts {
     headless: bool,
 }
 
-fn print_usage(opts: &[groups::OptGroup]) {
-    let message = format!("Usage: ./servo [ options ... ] [URL]\n\twhere options include");
+fn print_usage(app: &str, opts: &[groups::OptGroup]) {
+    let message = format!("Usage: {} [ options ... ] [URL]\n\twhere options include", app);
     println(groups::usage(message, opts));
 }
 
 pub fn from_cmdline_args(args: &[~str]) -> Opts {
+    let app_name = args[0].to_str();
     let args = args.tail();
 
     let opts = ~[
@@ -67,14 +68,14 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
     };
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
-        print_usage(opts);
+        print_usage(app_name, opts);
         // TODO: how to return a null struct and let the caller know that
         // it should abort?
         fail!("")
     };
 
     let urls = if opt_match.free.is_empty() {
-        print_usage(opts);
+        print_usage(app_name, opts);
         fail!(~"servo asks that you provide 1 or more URLs")
     } else {
         opt_match.free.clone()
