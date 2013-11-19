@@ -55,10 +55,6 @@ export CFG_ENABLE_DEBUG
 export CFG_ENABLE_DEBUG_SKIA
 export RUSTC=$(CFG_RUSTC)
 export RUSTFLAGS=$(CFG_RUSTC_FLAGS)
-export CC=$(CFG_CC)
-export CXX=$(CFG_CXX)
-export LD=$(CFG_LD)
-export AR=$(CFG_AR)
 export RANLIB=$(CFG_RANLIB)
 export PYTHON=$(CFG_PYTHON2)
 export PATH=$(CFG_PATH)
@@ -95,7 +91,7 @@ $(S)config.stamp : $(S)configure $(S)Makefile.in
 ifneq ($(CFG_LOCAL_RUSTC),1)
 $(CFG_RUSTC): $(B)src/compiler/rust/rust-auto-clean-stamp
 	@$(call E, building rustc)
-	$(Q)CFG_RUSTC_FLAGS= CFG_ENABLE_DEBUG= RUSTFLAGS= $(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CC=gcc CXX=g++ LD=ld AR=ar
+	$(Q)CFG_RUSTC_FLAGS= CFG_ENABLE_DEBUG= RUSTFLAGS= $(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust"
 
 clean-rust:
 	@$(call E, cleaning rustc)
@@ -180,6 +176,11 @@ endif
 
 $(eval $(call DEF_SUBMODULE_DEPS,$(1)))
 
+CROSS_COMPILER_CC = CC=$(CFG_CC)
+CROSS_COMPILER_CXX = CXX=$(CFG_CXX)
+CROSS_COMPILER_LD = LD=$(CFG_LD)
+CROSS_COMPILER_AR = AR=$(CFG_AR)
+
 $$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(RUSTC_DEP_$(1))
 #	@$$(call E, make: $(1))
 #	@$$(call E, $(1) deps= $$(DEPS_$(1)))
@@ -191,6 +192,10 @@ $$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(RUSTC_DEP_$(1))
 	$$(ENV_CFLAGS_$(1)) \
 	$$(ENV_CXXFLAGS_$(1)) \
 	$$(ENV_RFLAGS_$(1)) \
+    $$(CROSS_COMPILER_CC) \
+    $$(CROSS_COMPILER_CXX) \
+    $$(CROSS_COMPILER_LD) \
+    $$(CROSS_COMPILER_AR) \
 	$$(MAKE) -C $$(B)src/$$(PATH_$(1)) && touch $$(DONE_$(1))
 
 # main submodule target

@@ -374,7 +374,7 @@ probe_need CFG_AUTOCONF213 autoconf213  \
 step_msg "looking for build programs"
 case ${TARGET_OSTYPE} in
     android)
-        CFG_PATH="${CFG_ANDROID_CROSS_PATH}/bin":$PATH
+        CFG_PATH=$PATH:"${CFG_ANDROID_CROSS_PATH}/bin"
         OLD_PATH=$PATH
         export PATH=${CFG_PATH}
 
@@ -536,6 +536,7 @@ if [ $CFG_OSTYPE = "linux-androideabi" ]
 then
 CFG_SUBMODULES="\
     support/glut/rust-glut \
+    support/egl/rust-egl \
     platform/android/libexpat \
     platform/android/libfreetype2 \
     platform/android/fontconfig \
