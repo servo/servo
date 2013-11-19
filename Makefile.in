@@ -216,17 +216,6 @@ include $(S)mk/rustpkg.mk
 $(foreach submodule,$(SUBMODULES_RUSTPKG),\
 $(eval $(call DEF_SUBMODULE_RUSTPKG_RULES,$(submodule))))
 
-# rust-opengles needs some extra build options
-
-ifeq ($(shell uname -s),Darwin)
-ifeq ($(shell sw_vers | grep -c 10.6),1)
-EXTRA_RFLAGS_rust-opengles += --cfg mac_10_6
-endif
-ifeq ($(shell sw_vers | grep -c 10.7),1)
-EXTRA_RFLAGS_rust-opengles += --cfg mac_10_7
-endif
-endif
-
 DONE_SUBMODULES = $(foreach submodule,$(SUBMODULES),$(DONE_$(submodule)))
 DONE_SUBMODULES_RUSTPKG = $(foreach submodule,$(SUBMODULES_RUSTPKG),$(DONE_$(submodule)))
 

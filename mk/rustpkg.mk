@@ -12,6 +12,16 @@ DO_CLEAN_$(1) = rm -rf $$(DONE_$(1)) $(CFG_BUILD_HOME)/workspace/build/$(CFG_TAR
 
 EXTRA_RFLAGS_$(1) =
 
+ifeq ($(shell uname -s),Darwin)
+ifeq ($(shell sw_vers | grep -c 10.6),1)
+EXTRA_RFLAGS_$(1) += --cfg mac_10_6
+endif
+ifeq ($(shell sw_vers | grep -c 10.7),1)
+EXTRA_RFLAGS_$(1) += --cfg mac_10_7
+endif
+else
+endif
+
 clean-$(1) :
 	$$(Q) $$(DO_CLEAN_$(1))
 .PHONY : clean-$(1)
