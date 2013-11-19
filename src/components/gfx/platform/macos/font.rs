@@ -23,13 +23,13 @@ use core_foundation::string::UniChar;
 use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::{CGFont, CGGlyph};
 use core_graphics::geometry::CGRect;
-use core_graphics;
-use core_text::font::{CTFont, CTFontMethods, CTFontMethodsPrivate};
+use core_text::font::CTFont;
 use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
 use core_text::font_descriptor::{kCTFontDefaultOrientation};
 use core_text;
 
 use std::ptr;
+use std::vec;
 
 pub struct FontTable {
     data: CFData,
@@ -48,7 +48,7 @@ impl FontTable {
 
 impl FontTableMethods for FontTable {
     fn with_buffer(&self, blk: &fn(*u8, uint)) {
-        blk(self.data.bytes(), self.data.len());
+        blk(vec::raw::to_ptr(self.data.bytes()), self.data.len() as uint);
     }
 }
 
@@ -80,11 +80,8 @@ impl FontHandle {
 impl FontHandleMethods for FontHandle {
     fn new_from_buffer(_: &FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle)
                     -> Result<FontHandle, ()> {
-        let fontprov : CGDataProvider = do buf.as_imm_buf |cbuf, len| {
-            core_graphics::data_provider::new_from_buffer(cbuf, len)
-        };
-
-        let cgfont = core_graphics::font::create_with_data_provider(&fontprov);
+        let fontprov = CGDataProvider::from_buffer(buf);
+        let cgfont = CGFont::from_data_provider(fontprov);
         let ctfont = core_text::font::new_from_CGFont(&cgfont, style.pt_size);
 
         let result = Ok(FontHandle {

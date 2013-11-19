@@ -8,12 +8,12 @@ use font_list::{FontEntry, FontFamily, FontFamilyMap};
 use platform::macos::font::FontHandle;
 use platform::macos::font_context::FontContextHandle;
 
-use core_foundation::array::CFArray;
-use core_foundation::base::CFWrapper;
+use core_foundation::base::TCFType;
 use core_foundation::string::{CFString, CFStringRef};
-use core_text::font_collection::CTFontCollectionMethods;
 use core_text;
+use core_text::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef};
 
+use std::cast;
 use std::hashmap::HashMap;
 
 pub struct FontListHandle {
@@ -28,10 +28,12 @@ impl FontListHandle {
     }
 
     pub fn get_available_families(&self) -> FontFamilyMap {
-        let family_names: CFArray<CFStringRef> = core_text::font_collection::get_family_names();
+        let family_names = core_text::font_collection::get_family_names();
         let mut family_map: FontFamilyMap = HashMap::new();
         for strref in family_names.iter() {
-            let family_name = CFString::wrap_shared(strref).to_str();
+            let family_name_ref: CFStringRef = unsafe { cast::transmute(strref) };
+            let family_name_cf: CFString = unsafe { TCFType::wrap_under_get_rule(family_name_ref) };
+            let family_name = family_name_cf.to_str();
             debug!("Creating new FontFamily for family: {:s}", family_name);
 
             let new_family = @mut FontFamily::new(family_name);
@@ -46,7 +48,8 @@ impl FontListHandle {
         let family_collection = core_text::font_collection::create_for_family(family.family_name);
         let family_descriptors = family_collection.get_descriptors();
         for descref in family_descriptors.iter() {
-            let desc = CFWrapper::wrap_shared(descref);
+            let descref: CTFontDescriptorRef = unsafe { cast::transmute(descref) };
+            let desc: CTFontDescriptor = unsafe { TCFType::wrap_under_get_rule(descref) };
             let font = core_text::font::new_from_descriptor(&desc, 0.0);
             let handle = FontHandle::new_from_CTFont(&self.fctx, font).unwrap();
 
