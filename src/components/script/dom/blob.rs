@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{DOMString, Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::Fallible;
 use dom::bindings::codegen::BlobBinding;
 use dom::window::Window;
@@ -29,6 +29,20 @@ impl Blob {
     pub fn Constructor(window: @mut Window) -> Fallible<@mut Blob> {
         Ok(Blob::new(window))
     }
+
+    pub fn Size(&self) -> u64 {
+        0
+    }
+
+    pub fn Type(&self) -> DOMString {
+        ~""
+    }
+
+    pub fn Slice(&self, _start: i64, _end: i64, _contentType: Option<DOMString>) -> @mut Blob {
+        Blob::new(self.window)
+    }
+
+    pub fn Close(&self) {}
 }
 
 impl Reflectable for Blob {

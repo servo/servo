@@ -196,14 +196,14 @@ impl LineboxScanner {
         debug!("LineboxScanner: Trying to place first box of line {}", self.lines.len());
 
         let first_box_size = first_box.base().position.get().size;
-        debug!("LineboxScanner: box size: {}", first_box_size);
-        let splitable = first_box.can_split();
+        let splittable = first_box.can_split();
+        debug!("LineboxScanner: box size: {}, splittable: {}", first_box_size, splittable);
         let line_is_empty: bool = self.pending_line.range.length() == 0;
 
-        // Initally, pretend a splitable box has 0 width.
+        // Initally, pretend a splittable box has 0 width.
         // We will move it later if it has nonzero width
         // and that causes problems.
-        let placement_width = if splitable {
+        let placement_width = if splittable {
             Au::new(0)
         } else {
             first_box_size.width
@@ -231,7 +231,7 @@ impl LineboxScanner {
 
         // If not, but we can't split the box, then we'll place
         // the line here and it will overflow.
-        if !splitable {
+        if !splittable {
             debug!("LineboxScanner: case=line doesn't fit, but is unsplittable");
             return (line_bounds, first_box_size.width);
         }
@@ -467,6 +467,15 @@ impl InlineFlow {
         }
     }
 
+    pub fn from_boxes(base: FlowData, boxes: ~[@RenderBox]) -> InlineFlow {
+        InlineFlow {
+            base: base,
+            boxes: boxes,
+            lines: ~[],
+            elems: ElementMapping::new(),
+        }
+    }
+
     pub fn teardown(&mut self) {
         for box in self.boxes.iter() {
             box.teardown();
@@ -681,10 +690,10 @@ impl FlowContext for InlineFlow {
                         let mut top;
                         let mut bottom;
                         {
-                            let model = image_box.base.model.get();
-                            top = model.border.top + model.padding.top + model.margin.top;
-                            bottom = model.border.bottom + model.padding.bottom +
-                                model.margin.bottom;
+                            let base = &image_box.base;
+                            top = base.border.top + base.padding.top + base.margin.top;
+                            bottom = base.border.bottom + base.padding.bottom +
+                                base.margin.bottom;
                         }
 
                         let noncontent_height = top + bottom;

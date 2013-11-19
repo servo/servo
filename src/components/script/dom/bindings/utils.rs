@@ -863,24 +863,36 @@ pub fn CreateDOMGlobal(cx: *JSContext, class: *JSClass) -> *JSObject {
     }
 }
 
+/// Returns the global object of the realm that the given JS object was created in.
 #[fixed_stack_segment]
-fn cx_for_dom_reflector(obj: *JSObject) -> *JSContext {
+fn global_object_for_js_object(obj: *JSObject) -> *Box<window::Window> {
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        //XXXjdm either don't hardcode or sanity assert prototype stuff
-        let win = unwrap_object::<*Box<window::Window>>(global, PrototypeList::id::Window, 1);
-        match win {
-            Ok(win) => {
-                match (*win).data.page.js_info {
-                    Some(ref info) => info.js_context.ptr,
-                    None => fail!("no JS context for DOM global")
-                }
-            }
-            Err(_) => fail!("found DOM global that doesn't unwrap to Window")
+        // FIXME(jdm): Either don't hardcode or sanity assert prototype stuff.
+        match unwrap_object::<*Box<window::Window>>(global, PrototypeList::id::Window, 1) {
+            Ok(win) => win,
+            Err(_) => fail!("found DOM global that doesn't unwrap to Window"),
         }
     }
+}
+
+#[fixed_stack_segment]
+fn cx_for_dom_reflector(obj: *JSObject) -> *JSContext {
+    unsafe {
+        let win = global_object_for_js_object(obj);
+        match (*win).data.page.js_info {
+            Some(ref info) => info.js_context.ptr,
+            None => fail!("no JS context for DOM global")
+        }
+    }
+}
+
+/// Returns the global object of the realm that the given DOM object was created in.
+#[fixed_stack_segment]
+pub fn global_object_for_dom_object<T: Reflectable>(obj: &mut T) -> *Box<window::Window> {
+    global_object_for_js_object(obj.reflector().get_jsobject())
 }
 
 pub fn cx_for_dom_object<T: Reflectable>(obj: &mut T) -> *JSContext {

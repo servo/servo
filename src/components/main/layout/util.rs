@@ -3,14 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use layout::box::{RenderBox, RenderBoxUtils};
+use layout::construct::{ConstructionResult, NoConstructionResult};
 
 use extra::arc::Arc;
 use gfx::display_list::DisplayList;
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::range::Range;
-use servo_util::slot::Slot;
+use servo_util::slot::{MutSlotRef, SlotRef};
 use servo_util::tree::TreeNodeRef;
-use std::any::AnyRefExt;
+use std::cast;
 use std::iter::Enumerate;
 use std::vec::VecIterator;
 use style::{ComputedValues, PropertyDeclaration};
@@ -140,47 +141,66 @@ impl ElementMapping {
 /// Data that layout associates with a node.
 pub struct LayoutData {
     /// The results of CSS matching for this node.
-    applicable_declarations: Slot<~[Arc<~[PropertyDeclaration]>]>,
+    applicable_declarations: ~[Arc<~[PropertyDeclaration]>],
 
     /// The results of CSS styling for this node.
-    style: Slot<Option<ComputedValues>>,
+    style: Option<ComputedValues>,
 
     /// Description of how to account for recent style changes.
-    restyle_damage: Slot<Option<int>>,
+    restyle_damage: Option<int>,
 
     /// The boxes assosiated with this flow.
     /// Used for getBoundingClientRect and friends.
-    boxes: Slot<DisplayBoxes>,
+    boxes: DisplayBoxes,
+
+    /// The current results of flow construction for this node. This is either a flow or a
+    /// `ConstructionItem`. See comments in `construct.rs` for more details.
+    flow_construction_result: ConstructionResult,
 }
 
 impl LayoutData {
     /// Creates new layout data.
     pub fn new() -> LayoutData {
         LayoutData {
-            applicable_declarations: Slot::init(~[]),
-            style: Slot::init(None),
-            restyle_damage: Slot::init(None),
-            boxes: Slot::init(DisplayBoxes::init()),
+            applicable_declarations: ~[],
+            style: None,
+            restyle_damage: None,
+            boxes: DisplayBoxes::init(),
+            flow_construction_result: NoConstructionResult,
         }
     }
 }
 
-// This serves as a static assertion that layout data remains sendable. If this is not done, then
-// we can have memory unsafety, which usually manifests as shutdown crashes.
-fn assert_is_sendable<T:Send>(_: T) {}
-fn assert_layout_data_is_sendable() {
-    assert_is_sendable(LayoutData::new())
-}
-
 /// A trait that allows access to the layout data of a DOM node.
 pub trait LayoutDataAccess {
-    fn layout_data<'a>(&'a self) -> &'a LayoutData;
+    /// Borrows the layout data without checks.
+    ///
+    /// FIXME(pcwalton): Make safe.
+    unsafe fn borrow_layout_data_unchecked<'a>(&'a self) -> &'a Option<~LayoutData>;
+    /// Borrows the layout data immutably. Fails on a conflicting borrow.
+    fn borrow_layout_data<'a>(&'a self) -> SlotRef<'a,Option<~LayoutData>>;
+    /// Borrows the layout data mutably. Fails on a conflicting borrow.
+    fn mutate_layout_data<'a>(&'a self) -> MutSlotRef<'a,Option<~LayoutData>>;
 }
 
 impl LayoutDataAccess for AbstractNode<LayoutView> {
     #[inline(always)]
-    fn layout_data<'a>(&'a self) -> &'a LayoutData {
-        self.node().layout_data.as_ref().unwrap().as_ref().unwrap()
+    unsafe fn borrow_layout_data_unchecked<'a>(&'a self) -> &'a Option<~LayoutData> {
+        cast::transmute(self.node().layout_data.borrow_unchecked())
+    }
+
+    #[inline(always)]
+    fn borrow_layout_data<'a>(&'a self) -> SlotRef<'a,Option<~LayoutData>> {
+        unsafe {
+            cast::transmute(self.node().layout_data.borrow())
+        }
+    }
+
+    #[inline(always)]
+    fn mutate_layout_data<'a>(&'a self) -> MutSlotRef<'a,Option<~LayoutData>> {
+        unsafe {
+            cast::transmute(self.node().layout_data.mutate())
+        }
     }
 }
 

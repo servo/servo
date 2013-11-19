@@ -72,7 +72,6 @@ pub enum HtmlDiscoveryMessage {
 }
 
 pub struct HtmlParserResult {
-    root: AbstractNode<ScriptView>,
     discovery_port: Port<HtmlDiscoveryMessage>,
 }
 
@@ -300,12 +299,11 @@ pub fn parse_html(cx: *JSContext,
         (*page).url = Some((url2.clone(), true));
     }
 
-    // Build the root node.
-    let root = HTMLHtmlElement::new(~"html", document);
-    debug!("created new node");
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
-    parser.set_document_node(unsafe { root.to_hubbub_node() });
+
+    let document_node = AbstractNode::<ScriptView>::from_document(document);
+    parser.set_document_node(unsafe { document_node.to_hubbub_node() });
     parser.enable_scripting(true);
     parser.enable_styling(true);
 
@@ -427,10 +425,7 @@ pub fn parse_html(cx: *JSContext,
                 debug!("append child {:x} {:x}", parent, child);
                 let parent: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(parent);
                 let child: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(child);
-                // FIXME this needs to be AppendChild.
-                //       Probably blocked on #838, so that we can remove the
-                //       double root element.
-                parent.add_child(child, None);
+                parent.AppendChild(child);
             }
             child
         },
@@ -543,7 +538,6 @@ pub fn parse_html(cx: *JSContext,
     js_chan.send(JSTaskExit);
 
     HtmlParserResult {
-        root: root,
         discovery_port: discovery_port,
     }
 }

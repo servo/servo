@@ -68,8 +68,7 @@ fn test_options(config: Config) -> TestOpts {
 
 fn find_tests(config: Config) -> ~[TestDescAndFn] {
     let mut files = list_dir_path(&Path::new(config.source_dir));
-    // FIXME (#1094): not the right way to transform a path
-    files.retain( |file| file.display().to_str().ends_with(".html") );
+    files.retain(|file| file.extension_str() == Some("html") );
     return files.map(|file| make_test(file.display().to_str()) );
 }
 

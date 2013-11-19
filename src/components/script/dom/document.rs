@@ -11,7 +11,7 @@ use dom::bindings::utils::{xml_name_type, InvalidXMLName};
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
 use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
-use dom::event::{AbstractEvent, Event, HTMLEventTypeId, UIEventTypeId};
+use dom::event::{AbstractEvent, Event};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::mouseevent::MouseEvent;
@@ -76,17 +76,6 @@ impl AbstractDocument {
         AbstractDocument {
             document: ptr as *mut Box<Document>
         }
-    }
-
-    pub fn set_root(&self, root: AbstractNode<ScriptView>) {
-        assert!(do root.traverse_preorder().all |node| {
-            node.node().owner_doc() == *self
-        });
-
-        let document = self.mut_document();
-        document.node.AppendChild(AbstractNode::from_document(*self), root);
-        // Register elements having "id" attribute to the owner doc.
-        document.register_nodes_with_id(&root);
     }
 }
 
@@ -173,7 +162,9 @@ impl Reflectable for Document {
 
 impl Document {
     pub fn GetDocumentElement(&self) -> Option<AbstractNode<ScriptView>> {
-        self.node.first_child
+        do self.node.children().find |c| {
+            c.is_element()
+        }
     }
 
     fn get_cx(&self) -> *JSContext {
@@ -223,9 +214,9 @@ impl Document {
 
     pub fn CreateEvent(&self, interface: DOMString) -> Fallible<AbstractEvent> {
         match interface.as_slice() {
-            "UIEvents" => Ok(UIEvent::new(self.window, UIEventTypeId)),
+            "UIEvents" => Ok(UIEvent::new(self.window)),
             "MouseEvents" => Ok(MouseEvent::new(self.window)),
-            "HTMLEvents" => Ok(Event::new(self.window, HTMLEventTypeId)),
+            "HTMLEvents" => Ok(Event::new(self.window)),
             _ => Err(NotSupported)
         }
     }
