@@ -11,7 +11,7 @@
 #[feature(macro_rules, managed_boxes)];
 
 extern mod extra;
-extern mod geom;
+extern mod geom = "rust-geom";
 
 pub mod cache;
 pub mod geometry;

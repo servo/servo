@@ -15,16 +15,15 @@
 
 extern mod alert;
 extern mod azure;
-extern mod geom;
+extern mod geom = "rust-geom";
 extern mod gfx (name = "gfx");
 #[cfg(not(target_os="android"))]
 extern mod glfw;
-//extern mod http_client;
 #[cfg(target_os="android")]
 extern mod glut;
 extern mod js;
-extern mod layers;
-extern mod opengles;
+extern mod layers = "rust-layers";
+extern mod opengles = "rust-opengles";
 extern mod png;
 extern mod script;
 extern mod servo_net (name = "net");
@@ -36,11 +35,9 @@ extern mod stb_image;
 extern mod extra;
 
 #[cfg(target_os="macos")]
-extern mod core_graphics;
+extern mod core_graphics = "rust-core-graphics";
 #[cfg(target_os="macos")]
-extern mod core_text;
-#[cfg(target_os="macos")]
-extern mod io_surface;
+extern mod core_text = "rust-core-text";
 
 use compositing::{CompositorChan, CompositorTask};
 use constellation::Constellation;

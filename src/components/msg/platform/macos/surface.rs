@@ -8,7 +8,6 @@
 use platform::surface::NativeSurfaceAzureMethods;
 
 use azure::AzSkiaGrGLSharedSurfaceRef;
-use core_foundation::base::CFWrapper;
 use io_surface::IOSurface;
 use layers::platform::surface::NativeSurface;
 use std::cast;
@@ -17,7 +16,7 @@ impl NativeSurfaceAzureMethods for NativeSurface {
     fn from_azure_surface(surface: AzSkiaGrGLSharedSurfaceRef) -> NativeSurface {
         unsafe {
             let io_surface = IOSurface {
-                contents: CFWrapper::wrap_owned(cast::transmute(surface)),
+                obj: cast::transmute(surface),
             };
             NativeSurface::from_io_surface(io_surface)
         }
