@@ -45,7 +45,6 @@ mod render_context;
 pub mod color;
 pub mod display_list;
 pub mod render_task;
-pub mod surface;
 
 // Fonts
 pub mod font;
