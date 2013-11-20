@@ -11,7 +11,9 @@ use geom::size::Size2D;
 use gfx::render_task::{ReRenderMsg, UnusedBufferMsg};
 use layers::layers::{ContainerLayerKind, ContainerLayer, Flip, NoFlip, TextureLayer};
 use layers::layers::TextureLayerKind;
-#[cfg(target_os="macos")] use layers::layers::VerticalFlip;
+#[cfg(target_os="macos")] 
+#[cfg(target_os="android")]
+use layers::layers::VerticalFlip;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
 use layers::texturegl::{Texture, TextureTarget};
 #[cfg(target_os="macos")] use layers::texturegl::TextureTargetRectangle;
@@ -424,7 +426,18 @@ impl CompositorLayer {
         (flip, TextureTargetRectangle(size))
     }
 
-    #[cfg(not(target_os="macos"))]
+    #[cfg(target_os="android")]
+    fn texture_flip_and_target(cpu_painting: bool, size: Size2D<uint>) -> (Flip, TextureTarget) {
+        let flip = if cpu_painting {
+            NoFlip
+        } else {
+            VerticalFlip
+        };
+
+        (flip, TextureTarget2D)
+    }
+
+    #[cfg(target_os="linux")]
     fn texture_flip_and_target(_: bool, _: Size2D<uint>) -> (Flip, TextureTarget) {
         (NoFlip, TextureTarget2D)
     }
