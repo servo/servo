@@ -15,6 +15,7 @@ extern mod extra;
 extern mod geom = "rust-geom";
 extern mod layers = "rust-layers";
 extern mod stb_image;
+extern mod png;
 extern mod servo_net (name = "net");
 extern mod servo_util (name = "util");
 extern mod style;
