@@ -242,8 +242,11 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
         }
     }
 
-    fn is_root(&self) -> bool {
-        self.parent_node().is_none()
+    fn is_document(&self) -> bool {
+        match self.type_id() {
+            DocumentNodeTypeId(*) => true,
+            _ => false
+        }
     }
 }
 
@@ -325,11 +328,6 @@ impl<'self, View> AbstractNode<View> {
     /// Returns the next sibling of this node. Fails if this node is borrowed mutably.
     pub fn next_sibling(self) -> Option<AbstractNode<View>> {
         self.node().next_sibling
-    }
-
-    /// Is this node a root?
-    pub fn is_root(self) -> bool {
-        self.parent_node().is_none()
     }
 
     //
@@ -432,13 +430,6 @@ impl<'self, View> AbstractNode<View> {
             fail!(~"node is not text");
         }
         self.transmute_mut(f)
-    }
-
-    pub fn is_document(self) -> bool {
-        match self.type_id() {
-            DocumentNodeTypeId(*) => true,
-            _ => false
-        }
     }
 
     // FIXME: This should be doing dynamic borrow checking for safety.
