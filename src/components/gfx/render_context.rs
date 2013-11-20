@@ -43,6 +43,8 @@ impl<'self> RenderContext<'self>  {
         self.draw_target.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color));
     }
 
+
+
     pub fn draw_border(&self,
                        bounds: &Rect<Au>,
                        border: SideOffsets2D<Au>,
@@ -51,6 +53,7 @@ impl<'self> RenderContext<'self>  {
         let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
         let rect = bounds.to_azure_rect();
         let border = border.to_float_px();
+
 
         self.draw_target.make_current();
         let mut dash: [AzFloat, ..2] = [0 as AzFloat, 0 as AzFloat];
@@ -100,6 +103,32 @@ impl<'self> RenderContext<'self>  {
                                      &stroke_opts,
                                      &draw_opts);
     }
+
+    pub fn draw_push_clip(&self,
+                       bounds: &Rect<Au>,
+                       border: SideOffsets2D<f32>
+                       ){
+       
+        let rect = bounds.to_azure_rect();
+        let path_builder = self.draw_target.create_path_builder();
+
+        let left_top = Point2D(rect.origin.x, rect.origin.y);
+        let right_top = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
+        let left_bottom = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
+        let right_bottom = Point2D(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height);
+
+        path_builder.move_to(left_top);
+        path_builder.line_to(right_top);
+        path_builder.line_to(right_bottom);
+        path_builder.line_to(left_bottom);
+
+        let path = path_builder.finish();
+        self.draw_target.push_clip(&path);
+    }    
+    
+    pub fn draw_pop_clip(&self){
+        self.draw_target.pop_clip();
+    }    
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<~Image>) {
         let image = image.get();
