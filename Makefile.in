@@ -378,3 +378,6 @@ backup-rust:
 
 restore-rust:
 	if [ -d ../$(CFG_TARGET_TRIPLES) ]; then rm -rf $(B)src/compiler/rust; mv ../$(CFG_TARGET_TRIPLES) $(B)src/compiler/rust; fi
+
+.NOTPARALLEL:
+
