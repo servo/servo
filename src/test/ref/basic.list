@@ -1,3 +1,5 @@
 == basic_width_px.html basic_width_em.html
 == hello_a.html hello_b.html
 == margin_a.html margin_b.html
+== root_pseudo_a.html root_pseudo_b.html
+== first_child_pseudo_a.html first_child_pseudo_b.html
