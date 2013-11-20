@@ -43,8 +43,6 @@ impl<'self> RenderContext<'self>  {
         self.draw_target.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color));
     }
 
-
-
     pub fn draw_border(&self,
                        bounds: &Rect<Au>,
                        border: SideOffsets2D<Au>,
@@ -53,7 +51,6 @@ impl<'self> RenderContext<'self>  {
         let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
         let rect = bounds.to_azure_rect();
         let border = border.to_float_px();
-
 
         self.draw_target.make_current();
         let mut dash: [AzFloat, ..2] = [0 as AzFloat, 0 as AzFloat];
@@ -104,11 +101,7 @@ impl<'self> RenderContext<'self>  {
                                      &draw_opts);
     }
 
-    pub fn draw_push_clip(&self,
-                       bounds: &Rect<Au>,
-                       border: SideOffsets2D<f32>
-                       ){
-       
+    pub fn draw_push_clip(&self, bounds: &Rect<Au>) {
         let rect = bounds.to_azure_rect();
         let path_builder = self.draw_target.create_path_builder();
 
@@ -126,7 +119,7 @@ impl<'self> RenderContext<'self>  {
         self.draw_target.push_clip(&path);
     }    
     
-    pub fn draw_pop_clip(&self){
+    pub fn draw_pop_clip(&self) {
         self.draw_target.pop_clip();
     }    
 
