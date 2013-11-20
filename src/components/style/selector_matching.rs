@@ -478,9 +478,7 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
         }
         FirstChild => matches_first_child(element),
 
-        Root => {
-            element.is_root()
-        }
+        Root => matches_root(element),
 
         Negation(ref negated) => {
             !negated.iter().all(|s| matches_simple_selector(s, element))
@@ -496,6 +494,15 @@ fn url_is_visited(_url: &str) -> bool {
 }
 
 #[inline]
+fn matches_root<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+        element: &T) -> bool {
+    match element.node().parent_node() {
+        Some(parent) => parent.is_document(),
+        None => false
+    }
+}
+
+#[inline]
 fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         element: &T) -> bool {
     let mut node = element.clone();
@@ -506,8 +513,14 @@ fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Element
                 if node.is_element() {
                     return false
                 }
+            },
+            None => match node.node().parent_node() {
+                // Selectors level 3 says :first-child does not match the
+                // root of the document; Warning, level 4 says, for the time
+                // being, the contrary...
+                Some(parent) => return !parent.is_document(),
+                None => return false
             }
-            None => return !element.is_root(),
         }
     }
 }
