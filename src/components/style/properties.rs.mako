@@ -394,6 +394,45 @@ pub mod longhands {
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 
+    <%self:longhand name="content" inherited="False">
+            pub use to_computed_value = super::computed_as_specified;
+            pub mod computed_value {
+                #[deriving(Eq, Clone)]
+                pub enum Content {
+                    StringContent(~str),
+                }
+                #[deriving(Eq, Clone)]
+                pub enum T {
+                    normal,
+                    none,
+                    Content(~[Content]),
+                }
+            }
+            pub type SpecifiedValue = computed_value::T;
+            #[inline] pub fn get_initial_value() -> computed_value::T  { normal }
+
+            // normal | none | [ <string> ]+
+            // TODO: <uri>, <counter>, attr(<identifier>), open-quote, close-quote, no-open-quote, no-close-quote
+            pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
+                match one_component_value(input) {
+                    Some(&Ident(ref keyword)) => match keyword.to_ascii_lower().as_slice() {
+                        "normal" => return Some(normal),
+                        "none" => return Some(none),
+                        _ => ()
+                    },
+                    _ => ()
+                }
+                let mut content = ~[];
+                for component_value in input.skip_whitespace() {
+                    match component_value {
+                        &String(ref value)
+                        => content.push(StringContent(value.to_owned())),
+                        _ => return None  // invalid/unsupported value
+                    }
+                }
+                Some(Content(content))
+            }
+    </%self:longhand>
     // CSS 2.1, Section 13 - Paged media
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
