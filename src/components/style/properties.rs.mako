@@ -374,7 +374,7 @@ pub mod longhands {
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
     ${new_style_struct("Content")}
 
-    <%self:raw_longhand name="content" inherited="False">
+    <%self:longhand name="content" inherited="False">
             pub use to_computed_value = super::computed_as_specified;
             pub mod computed_value {
                 #[deriving(Eq, Clone)]
@@ -383,29 +383,36 @@ pub mod longhands {
                 }
                 #[deriving(Eq, Clone)]
                 pub enum T {
-		    SpecifiedNormal,
-		    SpecifiedNone,
-		    SpecifiedContentList(~[Content]),
-		}
+                    normal,
+                    none,
+                    Content(~[Content]),
+                }
             }
             pub type SpecifiedValue = computed_value::T;
-            #[inline] pub fn get_initial_value() -> computed_value::T  { SpecifiedNormal }
-            pub fn parse_specified(input: &[ComponentValue]) -> Option<DeclaredValue<SpecifiedValue>> {
-                let mut iter = input.skip_whitespace();
-                let mut content_list = ~[];
-                loop {
-                    match iter.next() {
-                        Some(&String(ref value)) => content_list.push(StringContent(value.to_owned())),
-                        Some(_) => {
-                            // TODO impl other properties
-                            break
-                        }
-                        None => break,
+            #[inline] pub fn get_initial_value() -> computed_value::T  { normal }
+
+            // normal | none | [ <string> ]+
+            // TODO: <uri>, <counter>, attr(<identifier>), open-quote, close-quote, no-open-quote, no-close-quote
+            pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
+                match one_component_value(input) {
+                    Some(&Ident(ref keyword)) => match keyword.to_ascii_lower().as_slice() {
+                        "normal" => return Some(normal),
+                        "none" => return Some(none),
+                        _ => ()
+                    },
+                    _ => ()
+                }
+                let mut content = ~[];
+                for component_value in input.skip_whitespace() {
+                    match component_value {
+                        &String(ref value)
+                        => content.push(StringContent(value.to_owned())),
+                        _ => return None  // invalid/unsupported value
                     }
                 }
-                Some(SpecifiedValue(SpecifiedContentList(content_list)))
+                Some(Content(content))
             }
-    </%self:raw_longhand>
+    </%self:longhand>
     // CSS 2.1, Section 13 - Paged media
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
