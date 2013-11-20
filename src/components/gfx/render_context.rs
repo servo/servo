@@ -17,6 +17,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::side_offsets::SideOffsets2D;
 use servo_net::image::base::Image;
+use png::{RGBA8, K8, KA8};
 use servo_util::geometry::Au;
 use std::vec;
 use std::libc::types::common::c99::uint16_t;
@@ -54,7 +55,7 @@ impl<'self> RenderContext<'self>  {
         self.draw_target.make_current();
         let mut dash: [AzFloat, ..2] = [0 as AzFloat, 0 as AzFloat];
         let mut stroke_opts = StrokeOptions(0 as AzFloat, 10 as AzFloat);
- 
+
         // draw top border
         RenderContext::apply_border_style(style.top, border.top, dash, &mut stroke_opts);
         let y = rect.origin.y + border.top * 0.5;
@@ -103,11 +104,17 @@ impl<'self> RenderContext<'self>  {
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<~Image>) {
         let image = image.get();
         let size = Size2D(image.width as i32, image.height as i32);
-        let stride = image.width * 4;
+        let pixel_width = match image.color_type {
+            RGBA8 => 4,
+            K8    => 1,
+            KA8   => 2,
+            _     => fail!(~"color type not supported"),
+        };
+        let stride = image.width * pixel_width;
 
         self.draw_target.make_current();
         let draw_target_ref = &self.draw_target;
-        let azure_surface = draw_target_ref.create_source_surface_from_data(image.data, size,
+        let azure_surface = draw_target_ref.create_source_surface_from_data(image.pixels, size,
                                                                             stride as i32, B8G8R8A8);
         let source_rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat),
                                Size2D(image.width as AzFloat, image.height as AzFloat));
@@ -140,7 +147,7 @@ impl<'self> RenderContext<'self>  {
             //FIXME(sammykim): This doesn't work with dash_pattern and cap_style well. I referred firefox code.
             border_style::dotted => {
                 stroke_opts.line_width = border_width;
-                
+
                 if border_width > 2.0 {
                     dash[0] = 0 as AzFloat;
                     dash[1] = border_width * 2.0;
@@ -165,9 +172,9 @@ impl<'self> RenderContext<'self>  {
             border_style::solid => {
                 stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
                 stroke_opts.set_join_style(AZ_JOIN_BEVEL as u8);
-                stroke_opts.line_width = border_width; 
+                stroke_opts.line_width = border_width;
                 stroke_opts.mDashLength = 0 as size_t;
-            }            
+            }
             //FIXME(sammykim): Five more styles should be implemented.
             //double, groove, ridge, inset, outset
         }
