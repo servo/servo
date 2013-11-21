@@ -134,59 +134,56 @@ impl SelectorMap {
     /// Insert rule into the correct hash.
     /// Order in which to try: id_hash, class_hash, element_hash, universal_rules.
     fn insert(&mut self, rule: Rule) {
-        // TODO: Can we avoid the repeated clones? (IMHO, the clone()
-        // is required because Arc makes Rule non-copyable)
-        match SelectorMap::get_id_name(rule.clone()) {
+        match SelectorMap::get_id_name(&rule) {
             Some(id_name) => {
                 match self.id_hash.find_mut(&id_name) {
                     Some(rules) => {
-                        rules.push(rule.clone());
+                        rules.push(rule);
                         return;
                     }
                     None => {}
                 }
-                self.id_hash.insert(id_name, ~[rule.clone()]);
+                self.id_hash.insert(id_name, ~[rule]);
                 return;
             }
             None => {}
         }
-        match SelectorMap::get_class_name(rule.clone()) {
+        match SelectorMap::get_class_name(&rule) {
             Some(class_name) => {
                 match self.class_hash.find_mut(&class_name) {
                     Some(rules) => {
-                        rules.push(rule.clone());
+                        rules.push(rule);
                         return;
                     }
                     None => {}
                 }
-                self.class_hash.insert(class_name, ~[rule.clone()]);
+                self.class_hash.insert(class_name, ~[rule]);
                 return;
             }
             None => {}
         }
 
-        match SelectorMap::get_element_name(rule.clone()) {
+        match SelectorMap::get_element_name(&rule) {
             Some(element_name) => {
                 match self.element_hash.find_mut(&element_name) {
                     Some(rules) => {
-                        rules.push(rule.clone());
+                        rules.push(rule);
                         return;
                     }
                     None => {}
                 }
-                self.element_hash.insert(element_name, ~[rule.clone()]);
+                self.element_hash.insert(element_name, ~[rule]);
                 return;
             }
             None => {}
         }
 
-        self.universal_rules.push(rule.clone());
+        self.universal_rules.push(rule);
     }
 
     /// Retrieve the first ID name in Rule, or None otherwise.
-    fn get_id_name(rule: Rule) -> Option<~str> {
-        let selector = rule.selector;
-        let simple_selector_sequence = &selector.compound_selectors.simple_selectors;
+    fn get_id_name(rule: &Rule) -> Option<~str> {
+        let simple_selector_sequence = &rule.selector.compound_selectors.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // TODO: Implement case-sensitivity based on the document type and quirks mode
@@ -198,7 +195,7 @@ impl SelectorMap {
     }
 
     /// Retrieve the FIRST class name in Rule, or None otherwise.
-    fn get_class_name(rule: Rule) -> Option<~str> {
+    fn get_class_name(rule: &Rule) -> Option<~str> {
         let simple_selector_sequence = &rule.selector.compound_selectors.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
@@ -211,7 +208,7 @@ impl SelectorMap {
     }
 
     /// Retrieve the name if it is a type selector, or None otherwise.
-    fn get_element_name(rule: Rule) -> Option<~str> {
+    fn get_element_name(rule: &Rule) -> Option<~str> {
         let simple_selector_sequence = &rule.selector.compound_selectors.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
@@ -620,24 +617,24 @@ fn test_rule_ordering_same_specificity(){
 #[test]
 fn test_get_id_name(){
     let rules_list = get_mock_rules([".intro", "#top"]);
-    assert_eq!(SelectorMap::get_id_name(rules_list[0][0].clone()), None);
-    assert_eq!(SelectorMap::get_id_name(rules_list[1][0].clone()), Some(~"top"));
+    assert_eq!(SelectorMap::get_id_name(&rules_list[0][0]), None);
+    assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some(~"top"));
 }
 
 #[test]
 fn test_get_class_name(){
     let rules_list = get_mock_rules([".intro.foo", "#top"]);
-    assert_eq!(SelectorMap::get_class_name(rules_list[0][0].clone()), Some(~"intro"));
-    assert_eq!(SelectorMap::get_class_name(rules_list[1][0].clone()), None);
+    assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(~"intro"));
+    assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
 }
 
 #[test]
 fn test_get_element_name(){
     let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
-    assert_eq!(SelectorMap::get_element_name(rules_list[0][0].clone()), Some(~"img"));
-    assert_eq!(SelectorMap::get_element_name(rules_list[1][0].clone()), None);
-    assert_eq!(SelectorMap::get_element_name(rules_list[2][0].clone()), Some(~"img"));
-    assert_eq!(SelectorMap::get_element_name(rules_list[3][0].clone()), Some(~"img"));
+    assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some(~"img"));
+    assert_eq!(SelectorMap::get_element_name(&rules_list[1][0]), None);
+    assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some(~"img"));
+    assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some(~"img"));
 }
 
 #[test]
