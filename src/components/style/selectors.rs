@@ -62,7 +62,7 @@ pub enum SimpleSelector {
     AnyLink,
     Link,
     Visited,
-    FirstChild,
+    FirstChild, LastChild, OnlyChild,
 //    Empty,
     Root,
 //    Lang(~str),
@@ -191,7 +191,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
                 | &AttrExists(*) | &AttrEqual(*) | &AttrIncludes(*) | &AttrDashMatch(*)
                 | &AttrPrefixMatch(*) | &AttrSubstringMatch(*) | &AttrSuffixMatch(*)
                 | &AnyLink | &Link | &Visited
-                | &FirstChild | &Root
+                | &FirstChild | &LastChild | &OnlyChild | &Root
 //                | &Empty | &Lang(*) | &NthChild(*)
                 => specificity.class_like_selectors += 1,
                 &NamespaceSelector(*) => (),
@@ -438,6 +438,8 @@ fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
         "link" => Some(Link),
         "visited" => Some(Visited),
         "first-child" => Some(FirstChild),
+        "last-child"  => Some(LastChild),
+        "only-child"  => Some(OnlyChild),
         "root" => Some(Root),
 //        "empty" => Some(Empty),
         _ => None

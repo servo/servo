@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>:last-child test</title>
+    <style type="text/css">
+      html:last-child { background: red; }
+      html             { background: yellow;}
+
+      p { width: 20px; height: 20px; background: orange; float: left; margin-left: 10px; }
+      div { clear: both; }
+      #p1, #p2, #p3 { background: red; }
+      #d1 > *:last-child { background: green }
+      #d2 > *:last-child { background: green }
+      #d3 > *:last-child { background: green }
+      #p4 { background: green; }
+      #d4 > *:last-child { background: red }
+    </style>
+  </head>
+  <body>
+    <div id="d1"><p> </p><p id="p1"> </p></div>
+    <div id="d2"><p> </p><p id="p2"> </p> </div>
+    <div id="d3"><p> </p><p id="p3"> </p><!-- comment --></div>
+    <div id="d4"><p> </p><p id="p4"> </p><span> </span></div>
+  </body>
+</html>
