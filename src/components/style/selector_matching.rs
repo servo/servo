@@ -478,6 +478,10 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
         }
         FirstChild => matches_first_child(element),
 
+        LastChild  => matches_last_child(element),
+
+        OnlyChild  => matches_first_child(element) && matches_last_child(element),
+
         Root => matches_root(element),
 
         Negation(ref negated) => {
@@ -516,6 +520,29 @@ fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Element
             },
             None => match node.node().parent_node() {
                 // Selectors level 3 says :first-child does not match the
+                // root of the document; Warning, level 4 says, for the time
+                // being, the contrary...
+                Some(parent) => return !parent.is_document(),
+                None => return false
+            }
+        }
+    }
+}
+
+#[inline]
+fn matches_last_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+        element: &T) -> bool {
+    let mut node = element.clone();
+    loop {
+        match node.node().next_sibling() {
+            Some(next_sibling) => {
+                node = next_sibling;
+                if node.is_element() {
+                    return false
+                }
+            },
+            None => match node.node().parent_node() {
+                // Selectors level 3 says :last-child does not match the
                 // root of the document; Warning, level 4 says, for the time
                 // being, the contrary...
                 Some(parent) => return !parent.is_document(),
