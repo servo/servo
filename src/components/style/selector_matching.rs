@@ -124,7 +124,7 @@ impl SelectorMap {
         rules: &[Rule],
         matching_rules: &mut ~[Rule]) {
         for rule in rules.iter() {
-            if matches_selector(&rule.selector, node, pseudo_element) {
+            if matches_selector(rule.selector.get(), node, pseudo_element) {
                 // TODO: Is the cloning inefficient?
                 matching_rules.push(rule.clone());
             }
@@ -183,7 +183,7 @@ impl SelectorMap {
 
     /// Retrieve the first ID name in Rule, or None otherwise.
     fn get_id_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.compound_selectors.simple_selectors;
+        let simple_selector_sequence = &rule.selector.get().compound_selectors.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // TODO: Implement case-sensitivity based on the document type and quirks mode
@@ -196,7 +196,7 @@ impl SelectorMap {
 
     /// Retrieve the FIRST class name in Rule, or None otherwise.
     fn get_class_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.compound_selectors.simple_selectors;
+        let simple_selector_sequence = &rule.selector.get().compound_selectors.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // TODO: Implement case-sensitivity based on the document type and quirks mode
@@ -209,7 +209,7 @@ impl SelectorMap {
 
     /// Retrieve the name if it is a type selector, or None otherwise.
     fn get_element_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.compound_selectors.simple_selectors;
+        let simple_selector_sequence = &rule.selector.get().compound_selectors.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // HTML elements in HTML documents must be matched case-insensitively
@@ -259,7 +259,7 @@ impl Stylist {
                     for selector in style_rule.selectors.iter() {
                         // TODO: avoid copying?
                         rule_map.$priority.insert(Rule {
-                                selector: selector.clone(),
+                                selector: Arc::new(selector.clone()),
                                 declarations: Arc::new(style_rule.declarations.$priority.clone()),
                                 index: style_rule_index,
                                 stylesheet_index: self.stylesheet_index,
@@ -350,7 +350,10 @@ impl PerOriginSelectorMap {
 
 #[deriving(Clone)]
 struct Rule {
-    selector: Selector,
+    // This is an Arc because Rule will essentially be cloned for every node
+    // that it matches. Selector contains an owned vector (through
+    // CompoundSelector) and we want to avoid the allocation.
+    selector: Arc<Selector>,
     declarations: Arc<~[PropertyDeclaration]>,
     // Index of the parent StyleRule in the parent Stylesheet (useful for
     // breaking ties while cascading).
@@ -363,8 +366,8 @@ struct Rule {
 impl Ord for Rule {
     #[inline]
     fn lt(&self, other: &Rule) -> bool {
-        let this_rank = (self.selector.specificity, self.stylesheet_index, self.index);
-        let other_rank = (other.selector.specificity, other.stylesheet_index, other.index);
+        let this_rank = (self.selector.get().specificity, self.stylesheet_index, self.index);
+        let other_rank = (other.selector.get().specificity, other.stylesheet_index, other.index);
         this_rank < other_rank
     }
 }
@@ -589,7 +592,7 @@ fn get_rules(css_string: &str) -> ~[~[Rule]] {
     let mut results = ~[];
     do iter_style_rules(sheet.rules.as_slice(), device) |style_rule| {
         results.push(style_rule.selectors.iter().map(|s| Rule {
-                    selector: s.clone(),
+                    selector: Arc::new(s.clone()),
                     declarations: Arc::new(style_rule.declarations.normal.clone()),
                     index: index,
                     stylesheet_index: 0u,
