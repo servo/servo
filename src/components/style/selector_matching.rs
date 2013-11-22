@@ -303,11 +303,11 @@ impl Stylist {
         // optimizations regarding grouping of Rules having the same Selector.
         let mut declarations_list = ~[];
         for rules in matching_rules_list.iter() {
-            declarations_list.push(~[]);
-            let curr_declarations = &mut declarations_list[declarations_list.len() - 1];
+            let mut curr_declarations = ~[];
             for rule in rules.iter() {
                 curr_declarations.push(rule.declarations.clone());
             }
+            declarations_list.push(curr_declarations);
         }
 
         let mut applicable_declarations = ~[];
