@@ -41,10 +41,6 @@ impl CanvasRenderingContext2D {
 
 }
 
-impl CanvasRenderingContext2D {
-    pub fn Constructor(window: @mut Window) -> Fallible<@mut CanvasRenderingContext2D> {
-        Ok(CanvasRenderingContext2D::new(window))
-    }
 }
 
 
