@@ -108,18 +108,3 @@ There are lots of make targets you can use:
 - `make DEP` - builds only the specified dependency. e.g. `make rust-opengles`
 - `make check-DEP` - build and run tests for specified dependency
 
-=======
-Generating a Binding for CanvasRenderingContext2D
-===============================
-
-- Add the implementation CanvasRenderingContext2D webidl file to (src/components/script/dom/bindings/codegen)[https://github.com/Aalhad/CanvasRenderingContext2DMozilla/tree/master/src/components/script/dom/bindings/codegen]
- 
-- Add an entry to (Bindings.conf)[https://github.com/Aalhad/servo/blob/master/src/components/script/dom/bindings/codegen/Bindings.conf] - if there's a addExternalInterface call that references the new name, remove it
- 
-- Create your implementation (canvasrenderingcontext2d.rs) in (src/components/script/dom)[https://github.com/Aalhad/servo/blob/master/src/components/script/dom] - you'll need a struct containing a Reflector at minimum, as well as implementation of the Reflectable and BindingObject traits. Look at (blob.rs)[https://github.com/mozilla/servo/blob/master/src/components/script/dom/blob.rs] for a nice, minimal reference.
- 
-- Add your implementation to (script.rc)[https://github.com/Aalhad/servo/blob/master/src/components/script/script.rc] to ensure it is compiled.
-
-- Build, and fix up any compile errors (such as missing methods or incorrect argument types in your new implementation).
-
-
