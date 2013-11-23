@@ -14,67 +14,6 @@ On OS X (homebrew):
 brew install https://raw.github.com/Homebrew/homebrew-versions/master/autoconf213.rb
 brew install automake libtool pkg-config
 
-    Explore
-    Gist
-    Blog
-    Help
-
-    Aalhad
-
-    165
-    1,287
-    199
-
-public mozilla / servo
-
-You are editing a file in a project you do not have write access to. We are forking this project for you (if one does not yet exist) to write your proposed changes to. Submitting a change to this file will write it to a new branch in your fork so you can send a pull request.
-servo /
-
-or cancel
-
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-20
-21
-22
-23
-24
-25
-26
-27
-28
-29
-30
-31
-32
-33
-34
-35
-36
-37
-38
-39
-40
-41
-42
-43
 The Servo Parallel Browser Project
 Servo is a prototype web browser engine written in the [Rust](https://github.com/mozilla/rust)
 language. It is currently developed on 64bit OS X and 64bit Linux.
