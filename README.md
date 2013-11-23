@@ -1,18 +1,5 @@
-# The Servo Parallel Browser Project
+The Servo Parallel Browser Project
 
-### Note: Please use Linux or Mac OS only.
-
-##Note getting started developing Rust
-
-
-This page describes how to download and build the Rust compiler and associated tools and libraries from the current git sources.
-If you're more interested in using Rust than in hacking on the Rust compiler,
-you might prefer to install a released version, following the instructions in the tutorial.
-
-Here is the link for setting up Rust on your Computer.
-https://github.com/mozilla/rust/wiki/Note-getting-started-developing-Rust
-
-##Note getting started developing Servo
 Servo is a prototype web browser engine written in the [Rust](https://github.com/mozilla/rust)
 language. It is currently developed on 64bit OS X and 64bit Linux.
 
@@ -26,6 +13,115 @@ On OS X (homebrew):
 ``` sh
 brew install https://raw.github.com/Homebrew/homebrew-versions/master/autoconf213.rb
 brew install automake libtool pkg-config
+
+    Explore
+    Gist
+    Blog
+    Help
+
+    Aalhad
+
+    165
+    1,287
+    199
+
+public mozilla / servo
+
+You are editing a file in a project you do not have write access to. We are forking this project for you (if one does not yet exist) to write your proposed changes to. Submitting a change to this file will write it to a new branch in your fork so you can send a pull request.
+servo /
+
+or cancel
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+The Servo Parallel Browser Project
+Servo is a prototype web browser engine written in the [Rust](https://github.com/mozilla/rust)
+language. It is currently developed on 64bit OS X and 64bit Linux.
+Servo welcomes contribution from everyone.  See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for help getting started.
+## Prerequisites
+On OS X (homebrew):
+``` sh
+brew install https://raw.github.com/Homebrew/homebrew-versions/master/autoconf213.rb
+brew install automake libtool pkg-config
+```
+On OS X (MacPorts):
+``` sh
+sudo port install autoconf213
+```
+    
+On Debian-based Linuxes:
+``` sh
+sudo apt-get install autoconf2.13 curl freeglut3-dev libtool \
+    libfreetype6-dev libfontconfig1-dev libgl1-mesa-dri libglib2.0-dev \
+    xorg-dev msttcorefonts
+```
+On Debian-based Linuxes (cross-compilation for Android):
+``` sh
+sudo apt-get install autoconf2.13 curl libtool ia32-libs
+```
+And it needs pre-installed Android tools.
+See wiki for [details](https://github.com/mozilla/servo/wiki/Doc-building-for-android)
+Servo builds its own copy of Rust, so there is no need to provide a Rust
+compiler.
+Commit summary: Extended description: (optional)
+Aalhad aalhad_22@yahoo.com
+
+    Status
+    API
+    Training
+    Shop
+    Blog
+    About
+
+    © 2013 GitHub, Inc.
+    Terms
+    Privacy
+    Security
+    Contact
+
+
 ```
 
 On OS X (MacPorts):
