@@ -44,24 +44,6 @@ And it needs pre-installed Android tools.
 See wiki for [details](https://github.com/mozilla/servo/wiki/Doc-building-for-android)
 Servo builds its own copy of Rust, so there is no need to provide a Rust
 compiler.
-Commit summary: Extended description: (optional)
-Aalhad aalhad_22@yahoo.com
-
-    Status
-    API
-    Training
-    Shop
-    Blog
-    About
-
-    © 2013 GitHub, Inc.
-    Terms
-    Privacy
-    Security
-    Contact
-
-
-```
 
 On OS X (MacPorts):
 
