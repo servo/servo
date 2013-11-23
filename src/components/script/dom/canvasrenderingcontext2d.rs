@@ -54,12 +54,5 @@ impl Reflectable for CanvasRenderingContext2D {
         &mut self.reflector_
     }
 
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        unreachable!();
-    }
-
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
-        Some(self.window as @mut Reflectable)
-    }
-
+  
 }
