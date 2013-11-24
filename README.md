@@ -34,32 +34,6 @@ See wiki for [details](https://github.com/mozilla/servo/wiki/Doc-building-for-an
 Servo builds its own copy of Rust, so there is no need to provide a Rust
 compiler.
 
-On OS X (MacPorts):
-
-``` sh
-sudo port install autoconf213
-```
-    
-On Debian-based Linuxes:
-
-``` sh
-sudo apt-get install autoconf2.13 curl freeglut3-dev libtool \
-    libfreetype6-dev libfontconfig1-dev libgl1-mesa-dri libglib2.0-dev \
-    xorg-dev msttcorefonts
-```
-
-On Debian-based Linuxes (cross-compilation for Android):
-
-``` sh
-sudo apt-get install autoconf2.13 curl libtool ia32-libs
-```
-And it needs pre-installed Android tools.
-See wiki for [details](https://github.com/mozilla/servo/wiki/Doc-building-for-android)
-
-
-Servo builds its own copy of Rust, so there is no need to provide a Rust
-compiler.
-
 ## Building
 
 Servo cannot be built in-tree; you must create a directory in which to run
