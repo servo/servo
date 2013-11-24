@@ -29,7 +29,7 @@ use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JS_NewGlobalObject, JS_InitStandardClasses};
-use js::jsapi::{JSString};
+use js::jsapi::{JSString, JS_CallTracer, JSTRACE_OBJECT};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
@@ -586,6 +586,24 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: c_uint, _vp: *mut JSVa
 
 pub trait Traceable {
     fn trace(&self, trc: *mut JSTracer);
+}
+
+#[fixed_stack_segment]
+pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+    unsafe {
+        do description.to_c_str().with_ref |name| {
+            (*tracer).debugPrinter = ptr::null();
+            (*tracer).debugPrintIndex = -1;
+            (*tracer).debugPrintArg = name as *libc::c_void;
+            debug!("tracing {:s}", description);
+            JS_CallTracer(tracer as *JSTracer, reflector.get_jsobject(),
+                          JSTRACE_OBJECT as u32);
+        }
+    }
+}
+
+pub fn trace_option<T: Reflectable>(tracer: *mut JSTracer, description: &str, option: Option<@mut T>) {
+    option.map(|some| trace_reflector(tracer, description, some.reflector()));
 }
 
 #[fixed_stack_segment]
