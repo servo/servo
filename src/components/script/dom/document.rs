@@ -92,7 +92,7 @@ pub struct Document {
     window: @mut Window,
     doctype: DocumentType,
     title: ~str,
-    idmap: HashMap<~str, AbstractNode<ScriptView>>
+    idmap: HashMap<DOMString, AbstractNode<ScriptView>>
 }
 
 impl Document {
@@ -326,7 +326,7 @@ impl Document {
     }
 
     pub fn register_nodes_with_id(&mut self, root: &AbstractNode<ScriptView>) {
-        foreach_ided_elements(root, |id: &~str, abstract_node: &AbstractNode<ScriptView>| {
+        foreach_ided_elements(root, |id: &DOMString, abstract_node: &AbstractNode<ScriptView>| {
             // TODO: "in tree order, within the context object's tree"
             // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
             self.idmap.find_or_insert(id.clone(), *abstract_node);
@@ -334,17 +334,39 @@ impl Document {
     }
 
     pub fn unregister_nodes_with_id(&mut self, root: &AbstractNode<ScriptView>) {
-        foreach_ided_elements(root, |id: &~str, _| {
+        foreach_ided_elements(root, |id: &DOMString, _| {
             // TODO: "in tree order, within the context object's tree"
             // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
             self.idmap.pop(id);
         });
     }
+
+    pub fn update_idmap(&mut self,
+                        abstract_self: AbstractNode<ScriptView>,
+                        new_id: DOMString,
+                        old_id: Option<DOMString>) {
+        // remove old ids if the old ones are not same as the new one.
+        match old_id {
+            Some(ref old_id) if new_id != *old_id => {
+                self.idmap.remove(old_id);
+            }
+            _ => ()
+        }
+
+        // TODO: support the case if multiple elements which haves same id are in the same document.
+        self.idmap.mangle(new_id, abstract_self,
+                         |_, new_node: AbstractNode<ScriptView>| -> AbstractNode<ScriptView> {
+                             new_node
+                         },
+                         |_, old_node: &mut AbstractNode<ScriptView>, new_node: AbstractNode<ScriptView>| {
+                             *old_node = new_node;
+                         });
+    }
 }
 
 #[inline(always)]
 fn foreach_ided_elements(root: &AbstractNode<ScriptView>,
-                         callback: &fn(&~str, &AbstractNode<ScriptView>)) {
+                         callback: &fn(&DOMString, &AbstractNode<ScriptView>)) {
     for node in root.traverse_preorder() {
         if !node.is_element() {
             continue;

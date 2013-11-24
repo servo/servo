@@ -43,8 +43,23 @@
       is(removed, null, "test2-3, removed element");
     }
 
-    // TODO:
     // test3: update `id` attribute
+    {
+      // setup fixtures.
+      let TEST_ID = "test3";
+      let test = document.createElement("div");
+      test.setAttribute("id", TEST_ID);
+      gBody.appendChild(test);
+
+      // update id
+      let UPDATED_ID = "test3-updated";
+      test.setAttribute("id", UPDATED_ID);
+      let e = document.getElementById(UPDATED_ID);
+      is(e, test, "test3-0, update 'id' attribute.");
+
+      let old = document.getElementById(TEST_ID);
+      is(old, null, "test3-1, the method shouldn't get the element by the old id.");
+    }
 
     // TODO:
     // test4: "in tree order, within the context object's tree"
