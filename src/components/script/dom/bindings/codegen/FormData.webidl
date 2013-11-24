@@ -7,7 +7,7 @@
  * http://xhr.spec.whatwg.org
  */
 
-/*[Constructor(optional HTMLFormElement form)]*/
+[Constructor(optional HTMLFormElement form)]
 interface FormData {
   void append(DOMString name, Blob value, optional DOMString filename);
   void append(DOMString name, DOMString value);

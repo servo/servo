@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Fallible, Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::DOMString;
 use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
+use dom::node::{AbstractNode, ScriptView};
 use dom::window::Window;
 
 use std::hashmap::HashMap;
@@ -19,19 +20,26 @@ pub struct FormData {
     data: HashMap<~str, FormDatum>,
     reflector_: Reflector,
     window: @mut Window,
+    form: Option<AbstractNode<ScriptView>>
 }
 
 impl FormData {
-    pub fn new_inherited(window: @mut Window) -> FormData {
+    pub fn new_inherited(form: Option<AbstractNode<ScriptView>>, window: @mut Window) -> FormData {
         FormData {
             data: HashMap::new(),
             reflector_: Reflector::new(),
             window: window,
+            form: form
         }
     }
 
-    pub fn new(window: @mut Window) -> @mut FormData {
-        reflect_dom_object(@mut FormData::new_inherited(window), window, FormDataBinding::Wrap)
+    pub fn new(form: Option<AbstractNode<ScriptView>>, window: @mut Window) -> @mut FormData {
+        reflect_dom_object(@mut FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
+    }
+
+    pub fn Constructor(window: @mut Window,
+                       form: Option<AbstractNode<ScriptView>>) -> Fallible<@mut FormData> {
+        Ok(FormData::new(form, window))
     }
 
     pub fn Append(&mut self, name: DOMString, value: @mut Blob, filename: Option<DOMString>) {
