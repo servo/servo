@@ -7,9 +7,10 @@
 
 use css::matching::MatchMethods;
 use css::select::new_stylist;
+use css::node_style::StyledNode;
 use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionResult};
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder};
+use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
 use layout::extra::LayoutAuxMethods;
 use layout::flow::{FlowContext, ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
 use layout::flow::{PostorderFlowTraversal};
@@ -25,9 +26,10 @@ use gfx::display_list::DisplayList;
 use gfx::font_context::FontContext;
 use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
-use gfx::render_task;
+use gfx::{render_task, color};
 use script::dom::event::ReflowEvent;
-use script::dom::node::{AbstractNode, LayoutDataRef, LayoutView};
+use script::dom::node::{AbstractNode, LayoutDataRef, LayoutView, ElementNodeTypeId};
+use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
 use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitNowMsg, LayoutQuery};
 use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse};
@@ -515,10 +517,29 @@ impl LayoutTask {
                     }
                 }
 
+                    let mut color = color::rgba(255.0, 255.0, 255.0, 255.0);
+
+                    for child in node.traverse_preorder() {
+                      if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) || 
+                         child.type_id() == ElementNodeTypeId(HTMLBodyElementTypeId) {
+                             let element_bg_color = child.style().resolve_color(
+                                 child.style().Background.background_color
+                             ).to_gfx_color();
+                             match element_bg_color {
+                                 color::rgba(0., 0., 0., 0.) => {}
+                                 _ => {
+                                   color = element_bg_color;
+                                   break;
+                               }
+                             }
+                      }
+                    }
+
                 let render_layer = RenderLayer {
                     display_list: display_list.clone(),
                     size: Size2D(root_size.width.to_nearest_px() as uint,
-                                 root_size.height.to_nearest_px() as uint)
+                                 root_size.height.to_nearest_px() as uint),
+                    color: color
                 };
 
                 self.display_list = Some(display_list.clone());

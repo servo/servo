@@ -15,7 +15,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
         match compositor.port.recv() {
             Exit => break,
 
-            GetGraphicsMetadata(chan) => {
+             GetGraphicsMetadata(chan) => {
                 unsafe {
                     chan.send(intrinsics::uninit());
                 }
@@ -30,7 +30,8 @@ pub fn run_compositor(compositor: &CompositorTask) {
             // SetIds.
 
             NewLayer(*) | SetLayerPageSize(*) | SetLayerClipRect(*) | DeleteLayer(*) |
-            Paint(*) | InvalidateRect(*) | ChangeReadyState(*) | ChangeRenderState(*)
+            Paint(*) | InvalidateRect(*) | ChangeReadyState(*) | ChangeRenderState(*)|
+            SetUnRenderedColor(*)
                 => ()
         }
     }
