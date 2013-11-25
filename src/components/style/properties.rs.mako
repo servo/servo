@@ -850,8 +850,8 @@ pub mod shorthands {
 
 
 pub struct PropertyDeclarationBlock {
-    important: ~[PropertyDeclaration],
-    normal: ~[PropertyDeclaration],
+    important: Arc<~[PropertyDeclaration]>,
+    normal: Arc<~[PropertyDeclaration]>,
 }
 
 
@@ -881,8 +881,8 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I) -> PropertyD
         }
     }
     PropertyDeclarationBlock {
-        important: important,
-        normal: normal,
+        important: Arc::new(important),
+        normal: Arc::new(normal),
     }
 }
 
