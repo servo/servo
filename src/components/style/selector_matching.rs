@@ -293,7 +293,6 @@ impl Stylist {
                              &self.user_rule_map.important,
                              &self.ua_rule_map.important];
 
-        // TODO: Make this a stack-allocated vector
         let mut matching_rules_list: [~[Rule], ..6] = [~[], ~[], ~[], ~[], ~[], ~[]];
         for (i, rule_map) in rule_map_list.iter().enumerate() {
             rule_map.get_all_matching_rules(element, pseudo_element, matching_rules_list, i);
@@ -301,14 +300,8 @@ impl Stylist {
         
         // Keeping this as a separate step because we will need it for further
         // optimizations regarding grouping of Rules having the same Selector.
-        let mut declarations_list = ~[];
-        for rules in matching_rules_list.iter() {
-            let mut curr_declarations = ~[];
-            for rule in rules.iter() {
-                curr_declarations.push(rule.declarations.clone());
-            }
-            declarations_list.push(curr_declarations);
-        }
+        let declarations_list: ~[~[Arc<~[PropertyDeclaration]>]] = matching_rules_list.iter().map(
+            |rules| rules.iter().map(|r| r.declarations.clone()).collect()).collect();
 
         let mut applicable_declarations = ~[];
         applicable_declarations.push_all_move(declarations_list.slice(0, 3).concat_vec());
