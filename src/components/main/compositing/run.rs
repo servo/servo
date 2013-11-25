@@ -89,13 +89,13 @@ pub fn run_compositor(compositor: &CompositorTask) {
                 ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
                 ChangeRenderState(render_state) => window.set_render_state(render_state),
 
-                SetUnRenderedColor(id, color) => {
-                  match compositor_layer {
-                      Some(ref mut layer) => {
-                          layer.unrendered_color = color;
-                      }
-                      None => {}
-                  }
+                SetUnRenderedColor(_id, color) => {
+                    match compositor_layer {
+                        Some(ref mut layer) => {
+                            layer.unrendered_color = color;
+                        }
+                        None => {}
+                    }
                 }
 
 
