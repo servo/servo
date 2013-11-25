@@ -308,9 +308,12 @@ CFG_SELF=${CFG_SRC_DIR}$(basename $0)
 CFG_CONFIGURE_ARGS="$@"
 CFG_PATH=$PATH
 
-if git status $CFG_SRC_DIR/src/compiler $CFG_SRC_DIR/src/support $CFG_SRC_DIR/src/platform \
-    | grep -q 'modified:.*modified content'; then
-    err "Some submodule has a dirty working tree.  See 'git status'."
+if [ -n "$CFG_DISABLE_MANAGE_SUBMODULES" ]
+then
+    if git status $CFG_SRC_DIR/src/compiler $CFG_SRC_DIR/src/support $CFG_SRC_DIR/src/platform \
+        | grep -q 'modified:.*modified content'; then
+        err "Some submodule has a dirty working tree.  See 'git status'."
+    fi
 fi
 
 OPTIONS=""
