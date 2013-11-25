@@ -28,7 +28,6 @@ use std::comm::SharedChan;
 use std::hashmap::HashSet;
 use std::ptr;
 use std::int;
-use std::libc;
 use std::rt::io::timer::Timer;
 use std::task::spawn_with;
 use js::jsapi::JSVal;
