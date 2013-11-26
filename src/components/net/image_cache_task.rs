@@ -48,20 +48,11 @@ pub enum Msg {
     Exit(Chan<()>),
 }
 
+#[deriving(Clone)]
 pub enum ImageResponseMsg {
     ImageReady(Arc<~Image>),
     ImageNotReady,
     ImageFailed
-}
-
-impl ImageResponseMsg {
-    fn clone(&self) -> ImageResponseMsg {
-        match *self {
-            ImageReady(ref img) => ImageReady(img.clone()),
-            ImageNotReady => ImageNotReady,
-            ImageFailed => ImageFailed,
-        }
-    }
 }
 
 impl Eq for ImageResponseMsg {
@@ -243,11 +234,11 @@ impl ImageCache {
         }
     }
 
-    fn set_state(&self, url: Url, state: ImageState) {
+    fn set_state(&mut self, url: Url, state: ImageState) {
         self.state_map.insert(url, state);
     }
 
-    fn prefetch(&self, url: Url) {
+    fn prefetch(&mut self, url: Url) {
         match self.get_state(url.clone()) {
             Init => {
                 let to_cache = self.chan.clone();
@@ -278,7 +269,7 @@ impl ImageCache {
         }
     }
 
-    fn store_prefetched_image_data(&self, url: Url, data: Result<Cell<~[u8]>, ()>) {
+    fn store_prefetched_image_data(&mut self, url: Url, data: Result<Cell<~[u8]>, ()>) {
         match self.get_state(url.clone()) {
           Prefetching(next_step) => {
             match data {
@@ -307,7 +298,7 @@ impl ImageCache {
         }
     }
 
-    fn decode(&self, url: Url) {
+    fn decode(&mut self, url: Url) {
         match self.get_state(url.clone()) {
             Init => fail!(~"decoding image before prefetch"),
 
@@ -350,7 +341,7 @@ impl ImageCache {
         }
     }
 
-    fn store_image(&self, url: Url, image: Option<Arc<~Image>>) {
+    fn store_image(&mut self, url: Url, image: Option<Arc<~Image>>) {
 
         match self.get_state(url.clone()) {
           Decoding => {
@@ -377,7 +368,7 @@ impl ImageCache {
 
     }
 
-    fn purge_waiters(&self, url: Url, f: &fn() -> ImageResponseMsg) {
+    fn purge_waiters(&mut self, url: Url, f: &fn() -> ImageResponseMsg) {
         match self.wait_map.pop(&url) {
             Some(waiters) => {
                 for response in waiters.iter() {
@@ -399,7 +390,7 @@ impl ImageCache {
         }
     }
 
-    fn wait_for_image(&self, url: Url, response: Chan<ImageResponseMsg>) {
+    fn wait_for_image(&mut self, url: Url, response: Chan<ImageResponseMsg>) {
         match self.get_state(url.clone()) {
             Init => fail!(~"request for image before prefetch"),
 

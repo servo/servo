@@ -147,8 +147,9 @@ mod make_url_tests {
 
 }
 
-pub type UrlMap<T> = @mut HashMap<Url, T>;
+pub type UrlMap<T> = HashMap<Url, T>;
 
 pub fn url_map<T: Clone + 'static>() -> UrlMap<T> {
-    @mut HashMap::new()
+    HashMap::new()
 }
+
