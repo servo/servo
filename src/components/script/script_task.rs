@@ -6,7 +6,7 @@
 //! and layout tasks.
 
 use dom::bindings::codegen::RegisterBindings;
-use dom::bindings::utils::{Reflectable, GlobalStaticData};
+use dom::bindings::utils::{Reflectable, GlobalStaticData, NodePtrHashSet};
 use dom::document::AbstractDocument;
 use dom::element::Element;
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
@@ -117,9 +117,11 @@ pub struct Page {
     /// The current size of the window, in pixels.
     window_size: Size2D<uint>,
 
+    /// JavaScript information. This contains the all-important context and compartment.
     js_info: Option<JSPageInfo>,
 
-    /// Cached copy of the most recent url loaded by the script
+    /// Cached copy of the most recent URL loaded by the script.
+    ///
     /// TODO(tkuehn): this currently does not follow any particular caching policy
     /// and simply caches pages forever (!). The bool indicates if reflow is required
     /// when reloading.
@@ -358,6 +360,7 @@ impl Page {
             dom_static: GlobalStaticData(),
             js_compartment: compartment,
             js_context: js_context,
+            valid_dom_nodes: NodePtrHashSet::init(),
         });
     }
 }
@@ -374,10 +377,16 @@ pub struct Frame {
 pub struct JSPageInfo {
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
+
     /// The JavaScript compartment for the origin associated with the script task.
     js_compartment: @mut Compartment,
+
     /// The JavaScript context.
     js_context: @Cx,
+
+    /// A table of valid pointers to DOM nodes. This is used when receiving untrusted addresses
+    /// of DOM nodes, most notably when layout sends the address of a DOM node for hit testing.
+    valid_dom_nodes: NodePtrHashSet,
 }
 
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
@@ -852,6 +861,13 @@ impl ScriptTask {
                 match page.query_layout(HitTestQuery(root.unwrap(), point, chan), port) {
                     Ok(node) => match node {
                         HitTestResponse(node) => {
+                            // Validate that the node's address is in our set.
+                            let node: AbstractNode = page.js_info
+                                                         .as_ref()
+                                                         .unwrap()
+                                                         .valid_dom_nodes
+                                                         .validate(&node);
+
                             debug!("clicked on {:s}", node.debug_str());
                             let mut node = node;
                             // traverse node generations until a node that is an element is found

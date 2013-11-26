@@ -4,17 +4,9 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
+use dom::node::AbstractNode;
 use dom::window;
 
-use std::libc::c_uint;
-use std::cast;
-use std::hashmap::HashMap;
-use std::libc;
-use std::ptr;
-use std::ptr::{null, to_unsafe_ptr};
-use std::str;
-use std::vec;
-use std::unstable::raw::Box;
 use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
@@ -22,11 +14,11 @@ use js::glue::{ReportError};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
-use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate};
 use js::jsapi::{JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject};
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
 use js::jsapi::{JS_NewUCStringCopyN, JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
+use js::jsapi::{JS_ObjectIsDate, JS_ObjectIsRegExp};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
@@ -38,6 +30,16 @@ use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
 use js::{JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
 use js::{JS_THIS_OBJECT, JSFUN_CONSTRUCTOR, JS_CALLEE, JSPROP_READONLY};
 use js;
+use servo_util::ptrhash::PtrHashSet;
+use std::cast;
+use std::hashmap::HashMap;
+use std::libc::{c_uint, uintptr_t};
+use std::libc;
+use std::ptr::{null, to_unsafe_ptr};
+use std::ptr;
+use std::str;
+use std::unstable::raw::Box;
+use std::vec;
 
 static TOSTRING_CLASS_RESERVED_SLOT: libc::size_t = 0;
 static TOSTRING_NAME_RESERVED_SLOT: libc::size_t = 1;
@@ -602,7 +604,7 @@ pub trait Reflectable {
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector;
 }
 
-pub fn reflect_dom_object<T: Reflectable>
+pub fn reflect_dom_object<T:Reflectable>
         (obj:     @mut T,
          window:  &window::Window,
          wrap_fn: extern "Rust" fn(*JSContext, *JSObject, @mut T) -> *JSObject)
@@ -613,6 +615,12 @@ pub fn reflect_dom_object<T: Reflectable>
         fail!("Could not eagerly wrap object");
     }
     assert!(obj.reflector().get_jsobject().is_not_null());
+
+    unsafe {
+        // Insert the node into the list of valid nodes.
+        NodePtrHashSet::insert(&mut *obj);
+    }
+
     obj
 }
 
@@ -897,6 +905,11 @@ pub fn throw_method_failed_with_details<T>(cx: *JSContext,
     return 0;
 }
 
+/// Returns the address of the JavaScript object for the given DOM node.
+fn address_of_dom_object<T: Reflectable>(obj: &mut T) -> uintptr_t {
+    obj.reflector().get_jsobject() as uintptr_t
+}
+
 /// Check if an element name is valid. See http://www.w3.org/TR/xml/#NT-Name
 /// for details.
 #[deriving(Eq)]
@@ -973,3 +986,64 @@ pub fn xml_name_type(name: &str) -> XMLName {
         true => Name
     }
 }
+
+/// A set of addresses of valid nodes. This is used by the script task to ensure that nodes are
+/// valid before accepting them from layout.
+///
+/// This is important for security because a bug in layout flow construction could result in boxes
+/// that point to freed nodes. Hit tests in layout would then attempt to send us addresses of dead
+/// nodes, which could be exploitable. We could fix this with concurrent garbage collection, but
+/// that would be very expensive. As a result we adopt a different approach: treat all pointers to
+/// nodes coming from layout as potentially invalid and check their validity first. We store all
+/// valid pointers in this tightly packed data structure.
+///
+/// This data structure is quite fast compared to hit testing; accesses are around 90 ns on a 2.7
+/// GHz Core i7, dwarfing the cost of hit testing by at least five orders of magnitude.
+pub struct NodePtrHashSet {
+    // NB: This must be private because otherwise safe code could add stuff to it, causing a
+    // potentially exploitable situation.
+    priv table: PtrHashSet,
+}
+
+impl NodePtrHashSet {
+    pub fn init() -> NodePtrHashSet {
+        NodePtrHashSet {
+            table: PtrHashSet::init(),
+        }
+    }
+
+    unsafe fn insert<T:Reflectable>(node: &mut T) {
+        let address = address_of_dom_object(node) as u64;
+        let js_window = global_object_for_dom_object(node);
+        match (*js_window).data.page.js_info {
+            None => fail!("No JS info in page?!"),
+            Some(ref mut js_info) => {
+                js_info.valid_dom_nodes.table.insert(address);
+            }
+        }
+    }
+
+    pub unsafe fn remove<T:Reflectable>(node: &mut T) {
+        let address = address_of_dom_object(node) as u64;
+        let js_window = global_object_for_dom_object(node);
+        match (*js_window).data.page.js_info {
+            None => fail!("No JS info in page?!"),
+            Some(ref mut js_info) => {
+                js_info.valid_dom_nodes.table.remove(&address);
+            }
+        }
+    }
+
+    /// Transforms an opaque object into an `AbstractNode`, checking its validity first.
+    pub fn validate<T>(&self, node: &T) -> AbstractNode {
+        unsafe {
+            let mut node: AbstractNode = cast::transmute_copy(node);
+            let address = address_of_dom_object(&mut node) as u64;
+            if !self.table.contains(&address) {
+                fail!("Layout sent us an invalid DOM node!")
+            }
+            node
+        }
+    }
+}
+
