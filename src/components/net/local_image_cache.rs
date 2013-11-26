@@ -34,9 +34,10 @@ pub struct LocalImageCache {
     priv image_cache_task: ImageCacheTask,
     priv round_number: uint,
     priv on_image_available: Option<~ImageResponder:Send>,
-    priv state_map: UrlMap<@mut ImageState>
+    priv state_map: UrlMap<ImageState>
 }
 
+#[deriving(Clone)]
 struct ImageState {
     prefetched: bool,
     decoded: bool,
@@ -52,51 +53,62 @@ impl LocalImageCache {
         self.on_image_available = Some(on_image_available);
     }
 
-    pub fn prefetch(&self, url: &Url) {
-        let state = self.get_state(url);
-        if !state.prefetched {
-            self.image_cache_task.send(Prefetch((*url).clone()));
+    pub fn prefetch(&mut self, url: &Url) {
+        {
+            let state = self.get_state(url);
+            if state.prefetched {
+                return
+            }
+
             state.prefetched = true;
         }
+
+        self.image_cache_task.send(Prefetch((*url).clone()));
     }
 
-    pub fn decode(&self, url: &Url) {
-        let state = self.get_state(url);
-        if !state.decoded {
-            self.image_cache_task.send(Decode((*url).clone()));
+    pub fn decode(&mut self, url: &Url) {
+        {
+            let state = self.get_state(url);
+            if state.decoded {
+                return
+            }
             state.decoded = true;
         }
+
+        self.image_cache_task.send(Decode((*url).clone()));
     }
 
     // FIXME: Should return a Future
-    pub fn get_image(&self, url: &Url) -> Port<ImageResponseMsg> {
-        let state = self.get_state(url);
+    pub fn get_image(&mut self, url: &Url) -> Port<ImageResponseMsg> {
+        {
+            let state = self.get_state(url);
 
-        // Save the previous round number for comparison
-        let last_round = state.last_request_round;
-        // Set the current round number for this image
-        state.last_request_round = self.round_number;
+            // Save the previous round number for comparison
+            let last_round = state.last_request_round;
+            // Set the current round number for this image
+            state.last_request_round = self.round_number;
 
-        match state.last_response {
-            ImageReady(ref image) => {
-                let (port, chan) = comm::stream();
-                chan.send(ImageReady(image.clone()));
-                return port;
-            }
-            ImageNotReady => {
-                if last_round == self.round_number {
+            match state.last_response {
+                ImageReady(ref image) => {
                     let (port, chan) = comm::stream();
-                    chan.send(ImageNotReady);
+                    chan.send(ImageReady(image.clone()));
                     return port;
-                } else {
-                    // We haven't requested the image from the
-                    // remote cache this round
                 }
-            }
-            ImageFailed => {
-                let (port, chan) = comm::stream();
-                chan.send(ImageFailed);
-                return port;
+                ImageNotReady => {
+                    if last_round == self.round_number {
+                        let (port, chan) = comm::stream();
+                        chan.send(ImageNotReady);
+                        return port;
+                    } else {
+                        // We haven't requested the image from the
+                        // remote cache this round
+                    }
+                }
+                ImageFailed => {
+                    let (port, chan) = comm::stream();
+                    chan.send(ImageFailed);
+                    return port;
+                }
             }
         }
 
@@ -130,24 +142,24 @@ impl LocalImageCache {
             ImageNotReady => ImageNotReady,
             ImageFailed => ImageFailed
         };
-        state.last_response = response_copy;
+        self.get_state(url).last_response = response_copy;
 
         let (port, chan) = comm::stream();
         chan.send(response);
         return port;
     }
 
-    fn get_state(&self, url: &Url) -> @mut ImageState {
-        let state = do self.state_map.find_or_insert_with(url.clone()) |_| {
-            let new_state = @mut ImageState {
+    fn get_state<'a>(&'a mut self, url: &Url) -> &'a mut ImageState {
+        let state = self.state_map.find_or_insert_with(url.clone(), |_| {
+            let new_state = ImageState {
                 prefetched: false,
                 decoded: false,
                 last_request_round: 0,
                 last_response: ImageNotReady
             };
             new_state
-        };
-        *state  // Unborrowing the state
+        });
+        state
     }
 }
 
