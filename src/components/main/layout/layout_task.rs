@@ -514,18 +514,19 @@ impl LayoutTask {
         match *node.mutate_layout_data().ptr {
             Some(ref mut layout_data) => {
                 let boxes = &mut layout_data.boxes;
-                if boxes.display_bound_list.is_none() || boxes.display_bound.is_none() {
-                    boxes.display_bound_list = Some(~[]);
-                    boxes.display_bound = Some(Au::zero_rect());
-                }
 
+                if boxes.display_bound_list.is_none() {
+                    boxes.display_bound_list = Some(~[]);
+                }
                 match boxes.display_bound_list {
                     Some(ref mut list) => list.push(item.base().bounds),
                     None => {}
                 }
-                match boxes.display_bound {
-                    Some(ref mut bounds) => *bounds = bounds.union(&item.base().bounds),
-                    None => {}
+
+                if boxes.display_bound.is_none() {
+                    boxes.display_bound = Some(item.base().bounds);
+                } else {
+                    boxes.display_bound = Some(boxes.display_bound.unwrap().union(&item.base().bounds));
                 }
             }
             None => fail!("no layout data"),
@@ -556,7 +557,7 @@ impl LayoutTask {
                     let layout_data = node.borrow_layout_data();
                     let boxes = &layout_data.ptr.as_ref().unwrap().boxes;
                     match boxes.display_bound {
-                        Some(_) => boxes.display_bound.clone(),
+                        Some(_) => boxes.display_bound,
                         _ => {
                             let mut acc: Option<Rect<Au>> = None;
                             for child in node.children() {
