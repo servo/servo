@@ -34,7 +34,7 @@ enum SupervisorMsg {
 
 type UnsafeFlow = (*c_void, *c_void);
 
-fn to_unsafe_flow(flow: *mut ~FlowContext:) -> UnsafeFlow {
+pub fn to_unsafe_flow(flow: *mut ~FlowContext:) -> UnsafeFlow {
     unsafe {
         cast::transmute_copy(&(*flow))
     }

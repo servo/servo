@@ -35,6 +35,7 @@ use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
 use layout::parallel::FlowParallelInfo;
+use layout::parallel;
 
 use extra::dlist::{DList, DListIterator, MutDListIterator};
 use extra::container::Deque;
@@ -46,6 +47,7 @@ use servo_util::ptrhash::PtrHashSet;
 use script::dom::node::{AbstractNode, LayoutView};
 use std::cast;
 use std::cell::Cell;
+use std::unstable::atomics::Relaxed;
 
 /// Virtual methods that make up a float context.
 ///
@@ -511,7 +513,11 @@ impl<'self> MutableFlowUtils for &'self mut FlowContext {
         }
 
         let base = mut_base(self);
-        base.children.push_back(new_child)
+        base.children.push_back(new_child);
+        let _ = base.parallel.children_count.fetch_add(1, Relaxed);
+
+        let kid_base = mut_base(new_child);
+        kid_base.parallel.parent = parallel::to_unsafe_flow(self);
     }
 
     /// Invokes a closure with the first child of this flow.
