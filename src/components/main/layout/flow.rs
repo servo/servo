@@ -43,10 +43,10 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
-use servo_util::ptrhash::{PtrHashSet, PtrHashSetIterator};
 use script::dom::node::{AbstractNode, LayoutView};
 use std::cast;
 use std::cell::Cell;
+use std::hashmap::{HashSet, HashSetIterator};
 use std::unstable::atomics::Relaxed;
 
 /// Virtual methods that make up a float context.
@@ -577,14 +577,14 @@ impl MutableOwnedFlowUtils for ~FlowContext: {
 /// parallel traversals.
 #[deriving(Clone)]
 pub struct LeafSet {
-    priv set: PtrHashSet,
+    priv set: HashSet<u64>,
 }
 
 impl LeafSet {
     /// Creates a new leaf set.
     pub fn init() -> LeafSet {
         LeafSet {
-            set: PtrHashSet::init(),
+            set: HashSet::new(),
         }
     }
 
@@ -609,7 +609,7 @@ impl LeafSet {
         self.set.remove(&(addr as u64));
     }
 
-    pub fn iter<'a>(&'a self) -> PtrHashSetIterator<'a> {
+    pub fn iter<'a>(&'a self) -> HashSetIterator<'a,u64> {
         self.set.iter()
     }
 }

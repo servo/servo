@@ -269,7 +269,6 @@ impl ParallelPostorderFlowTraversal {
                  root: &mut ~FlowContext:,
                  layout_context: &mut LayoutContext,
                  profiler_chan: ProfilerChan) {
-        let mut check_addrs = ~[];
         profile(time::LayoutParallelWarmupCategory, profiler_chan, || {
             let mut index = 0;
             self.warmup(root, null_unsafe_flow(), &mut index, &mut check_addrs);
@@ -282,19 +281,10 @@ impl ParallelPostorderFlowTraversal {
 
         let mut leaf_set: HashSet<u64> = HashSet::new();
         layout_context.leaf_set.access(|ls| {
-            for addr in ls.iter() {
+            for &addr in ls.iter() {
                 leaf_set.insert(addr);
             }
         });
-
-        println("--- INTERSECTION ---");
-        for &val in leaf_set.intersection_iter(&check_set) {
-            println!("{}", val);
-        }
-        println("--- DIFFERENCE ---");
-        for &val in leaf_set.difference_iter(&check_set) {
-            println!("{}", val);
-        }
 
         for worker in self.workers.mut_iter() {
             worker.chan.send(StartMsg(util::replace(&mut worker.deque, None).unwrap()))
