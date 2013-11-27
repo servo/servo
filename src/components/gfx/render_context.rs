@@ -33,6 +33,13 @@ pub struct RenderContext<'self> {
     screen_rect: Rect<uint>,
 }
 
+enum Direction {
+    Top,
+    Left,
+    Right,
+    Bottom
+}
+
 impl<'self> RenderContext<'self>  {
     pub fn get_draw_target(&self) -> &'self DrawTarget {
         self.draw_target
@@ -48,57 +55,13 @@ impl<'self> RenderContext<'self>  {
                        border: SideOffsets2D<Au>,
                        color: SideOffsets2D<Color>,
                        style: SideOffsets2D<border_style::T>) {
-        let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
-        let rect = bounds.to_azure_rect();
         let border = border.to_float_px();
-
         self.draw_target.make_current();
-        let mut dash: [AzFloat, ..2] = [0 as AzFloat, 0 as AzFloat];
-        let mut stroke_opts = StrokeOptions(0 as AzFloat, 10 as AzFloat);
 
-        // draw top border
-        RenderContext::apply_border_style(style.top, border.top, dash, &mut stroke_opts);
-        let y = rect.origin.y + border.top * 0.5;
-        let start = Point2D(rect.origin.x, y);
-        let end = Point2D(rect.origin.x + rect.size.width, y);
-        self.draw_target.stroke_line(start,
-                                     end,
-                                     &ColorPattern(color.top),
-                                     &stroke_opts,
-                                     &draw_opts);
-
-        // draw right border
-        RenderContext::apply_border_style(style.right, border.right, dash,  &mut stroke_opts);
-        let x = rect.origin.x + rect.size.width - border.right * 0.5;
-        let start = Point2D(x, rect.origin.y);
-        let end = Point2D(x, rect.origin.y + rect.size.height);
-        self.draw_target.stroke_line(start,
-                                     end,
-                                     &ColorPattern(color.right),
-                                     &stroke_opts,
-                                     &draw_opts);
-
-        // draw bottom border
-        RenderContext::apply_border_style(style.bottom, border.bottom, dash, &mut stroke_opts);
-        let y = rect.origin.y + rect.size.height - border.bottom * 0.5;
-        let start = Point2D(rect.origin.x, y);
-        let end = Point2D(rect.origin.x + rect.size.width, y);
-        self.draw_target.stroke_line(start,
-                                     end,
-                                     &ColorPattern(color.bottom),
-                                     &stroke_opts,
-                                     &draw_opts);
-
-        // draw left border
-        RenderContext::apply_border_style(style.left, border.left, dash,  &mut stroke_opts);
-        let x = rect.origin.x + border.left * 0.5;
-        let start = Point2D(x, rect.origin.y);
-        let end = Point2D(x, rect.origin.y + rect.size.height);
-        self.draw_target.stroke_line(start,
-                                     end,
-                                     &ColorPattern(color.left),
-                                     &stroke_opts,
-                                     &draw_opts);
+        self.draw_border_segment(Top, bounds, border, color, style);
+        self.draw_border_segment(Right, bounds, border, color, style);
+        self.draw_border_segment(Bottom, bounds, border, color, style);
+        self.draw_border_segment(Left, bounds, border, color, style);
     }
 
     pub fn draw_push_clip(&self, bounds: &Rect<Au>) {
@@ -160,46 +123,127 @@ impl<'self> RenderContext<'self>  {
         self.draw_target.fill_rect(&rect, &pattern);
     }
 
-    fn apply_border_style(style: border_style::T, border_width: AzFloat, dash: &mut [AzFloat], stroke_opts: &mut StrokeOptions){
-        match style{
+    fn draw_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: SideOffsets2D<Color>, style: SideOffsets2D<border_style::T>) {
+        let (style_select, color_select) = match direction {
+            Top => (style.top, color.top),
+            Left => (style.left, color.left),
+            Right => (style.right, color.right),
+            Bottom => (style.bottom, color.bottom)
+        };
+
+        match style_select{
             border_style::none => {
             }
             border_style::hidden => {
             }
             //FIXME(sammykim): This doesn't work with dash_pattern and cap_style well. I referred firefox code.
             border_style::dotted => {
-                stroke_opts.line_width = border_width;
-
-                if border_width > 2.0 {
-                    dash[0] = 0 as AzFloat;
-                    dash[1] = border_width * 2.0;
-
-                    stroke_opts.set_cap_style(AZ_CAP_ROUND as u8);
-                } else {
-                    dash[0] = border_width;
-                    dash[1] = border_width;
-                }
-                stroke_opts.mDashPattern = vec::raw::to_ptr(dash);
-                stroke_opts.mDashLength = dash.len() as size_t;
             }
             border_style::dashed => {
-                stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
-                stroke_opts.line_width = border_width;
-                dash[0] = border_width*3 as AzFloat;
-                dash[1] = border_width*3 as AzFloat;
-                stroke_opts.mDashPattern = vec::raw::to_ptr(dash);
-                stroke_opts.mDashLength = dash.len() as size_t;
+                self.draw_dashed_border_segment(direction,bounds,border,color_select);
             }
-            //FIXME(sammykim): BorderStyleSolid doesn't show proper join-style with comparing firefox.
             border_style::solid => {
-                stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
-                stroke_opts.set_join_style(AZ_JOIN_BEVEL as u8);
-                stroke_opts.line_width = border_width;
-                stroke_opts.mDashLength = 0 as size_t;
+                self.draw_solid_border_segment(direction,bounds,border,color_select);
             }
             //FIXME(sammykim): Five more styles should be implemented.
             //double, groove, ridge, inset, outset
         }
+    }
+
+    fn draw_dashed_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: Color) {
+        let rect = bounds.to_azure_rect();
+        let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
+        let mut stroke_opts = StrokeOptions(0 as AzFloat, 10 as AzFloat);
+        let mut dash: [AzFloat, ..2] = [0 as AzFloat, 0 as AzFloat];
+
+        stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
+
+        let border_width = match direction {
+            Top => border.top,
+            Left => border.left,
+            Right => border.right,
+            Bottom => border.bottom
+        };
+
+        stroke_opts.line_width = border_width;
+        dash[0] = border_width * 3 as AzFloat;
+        dash[1] = border_width * 3 as AzFloat;
+        stroke_opts.mDashPattern = vec::raw::to_ptr(dash);
+        stroke_opts.mDashLength = dash.len() as size_t;
+
+        let (start, end)  = match direction {
+            Top => {
+                let y = rect.origin.y + border.top * 0.5;
+                let start = Point2D(rect.origin.x, y);
+                let end = Point2D(rect.origin.x + rect.size.width, y);
+                (start, end)
+            }
+            Left => {
+                let x = rect.origin.x + border.left * 0.5;
+                let start = Point2D(x, rect.origin.y + rect.size.height);
+                let end = Point2D(x, rect.origin.y + border.top);
+                (start, end)
+            }
+            Right => {
+                let x = rect.origin.x + rect.size.width - border.right * 0.5;
+                let start = Point2D(x, rect.origin.y);
+                let end = Point2D(x, rect.origin.y + rect.size.height);
+                (start, end)
+            }
+            Bottom => {
+                let y = rect.origin.y + rect.size.height - border.bottom * 0.5;
+                let start = Point2D(rect.origin.x + rect.size.width, y);
+                let end = Point2D(rect.origin.x + border.left, y);
+                (start, end)
+            }
+        };
+
+        self.draw_target.stroke_line(start,
+                                     end,
+                                     &ColorPattern(color),
+                                     &stroke_opts,
+                                     &draw_opts);
+    }
+
+    fn draw_solid_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: Color) {
+        let rect = bounds.to_azure_rect();
+        let draw_opts = DrawOptions(1.0 , 0);
+        let path_builder = self.draw_target.create_path_builder();
+
+        let left_top = Point2D(rect.origin.x, rect.origin.y);
+        let right_top = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
+        let left_bottom = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
+        let right_bottom = Point2D(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height);
+
+        match direction {
+            Top => {
+                path_builder.move_to(left_top);
+                path_builder.line_to(right_top);
+                path_builder.line_to(right_top + Point2D(-border.right, border.top));
+                path_builder.line_to(left_top + Point2D(border.left, border.top));
+            }
+            Left => {
+                path_builder.move_to(left_top);
+                path_builder.line_to(left_top + Point2D(border.left, border.top));
+                path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
+                path_builder.line_to(left_bottom);
+            }
+            Right => {
+                path_builder.move_to(right_top);
+                path_builder.line_to(right_bottom);
+                path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
+                path_builder.line_to(right_top + Point2D(-border.right, border.top));
+            }
+            Bottom => {
+                path_builder.move_to(left_bottom);
+                path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
+                path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
+                path_builder.line_to(right_bottom);
+            }
+        }
+
+        let path = path_builder.finish();
+        self.draw_target.fill(&path, &ColorPattern(color), &draw_opts);
     }
 }
 
