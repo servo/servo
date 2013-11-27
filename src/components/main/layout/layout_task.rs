@@ -42,6 +42,7 @@ use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
 use servo_util::range::Range;
+use servo_util::sync::MutexArcUtils;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::tree::TreeNodeRef;
@@ -76,7 +77,7 @@ struct LayoutTask {
     image_cache_task: ImageCacheTask,
 
     /// The local image cache.
-    local_image_cache: @mut LocalImageCache,
+    local_image_cache: MutexArc<LocalImageCache>,
 
     /// The local font context.
     font_ctx: MutexArc<FontContext>,
@@ -260,7 +261,7 @@ impl LayoutTask {
             script_chan: script_chan,
             render_chan: render_chan,
             image_cache_task: image_cache_task.clone(),
-            local_image_cache: @mut LocalImageCache(image_cache_task),
+            local_image_cache: MutexArc::new(LocalImageCache(image_cache_task)),
             font_ctx: MutexArc::new(fctx),
             screen_size: None,
 
@@ -280,7 +281,7 @@ impl LayoutTask {
 
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context(&self) -> LayoutContext {
-        let image_cache = self.local_image_cache;
+        let image_cache = self.local_image_cache.clone();
         let font_ctx = self.font_ctx.clone();
         let screen_size = self.screen_size.unwrap();
 
@@ -420,7 +421,9 @@ impl LayoutTask {
         debug!("{:?}", node.dump());
 
         // Reset the image cache.
-        self.local_image_cache.next_round(self.make_on_image_available_cb());
+        self.local_image_cache.force_access(|local_image_cache| {
+            local_image_cache.next_round(self.make_on_image_available_cb())
+        });
 
         let screen_size = Size2D(Au::from_px(data.window_size.width as int),
                                  Au::from_px(data.window_size.height as int));
@@ -543,6 +546,8 @@ impl LayoutTask {
                 };
 
                 self.display_list = Some(display_list.clone());
+
+                debug!("Layout done!");
 
                 self.render_chan.send(RenderMsg(render_layer));
             } // time(layout: display list building)

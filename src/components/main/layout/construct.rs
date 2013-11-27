@@ -225,7 +225,7 @@ impl<'self> FlowConstructor<'self> {
             Some(url) => {
                 // FIXME(pcwalton): The fact that image render boxes store the cache in the
                 // box makes little sense to me.
-                @ImageRenderBox::new(base, url, self.layout_context.image_cache) as @RenderBox
+                @ImageRenderBox::new(base, url, self.layout_context.image_cache.clone()) as @RenderBox
             }
         }
     }
