@@ -71,6 +71,9 @@ impl ImageHolder {
     pub fn get_image(&mut self) -> Option<Arc<~Image>> {
         debug!("get_image() {}", self.url.to_str());
 
+        return None;
+
+        /*
         // If this is the first time we've called this function, load
         // the image and store it for the future
         if self.image.is_none() {
@@ -95,7 +98,7 @@ impl ImageHolder {
         let result = image.clone();
         replace(&mut self.image, image);
 
-        return result;
+        return result;*/
     }
 }
 

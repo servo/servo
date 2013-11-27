@@ -308,7 +308,8 @@ impl RenderBox for ImageRenderBox {
 
     fn minimum_and_preferred_widths(&self) -> (Au, Au) {
         let guessed_width = self.base.guess_width();
-        let image_width = self.image_width();
+        //let image_width = self.image_width();
+        let image_width = Au(0);
         (guessed_width + image_width, guessed_width + image_width)
     }
 
@@ -392,7 +393,8 @@ impl RenderBox for TextRenderBox {
     }
 
     fn minimum_and_preferred_widths(&self) -> (Au, Au) {
-        let guessed_width = self.base.guess_width();
+        return (Au(0), Au(0));
+        /*let guessed_width = self.base.guess_width();
         let min_width = self.run.min_width_for_range(&self.range);
 
         let mut max_line_width = Au::new(0);
@@ -401,7 +403,7 @@ impl RenderBox for TextRenderBox {
             max_line_width = Au::max(max_line_width, line_metrics.advance_width);
         }
 
-        (guessed_width + min_width, guessed_width + max_line_width)
+        (guessed_width + min_width, guessed_width + max_line_width)*/
     }
 
     fn box_height(&self) -> Au {

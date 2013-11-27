@@ -21,7 +21,7 @@ use std::task::{SingleThreaded, spawn_sched};
 use std::unstable::atomics::{AtomicInt, SeqCst};
 use std::util;
 
-static WORKER_COUNT: uint = 8;
+static WORKER_COUNT: uint = 4;
 
 enum WorkerMsg {
     StartMsg(Worker<UnsafeFlow>),
