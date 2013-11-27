@@ -404,9 +404,9 @@ impl LayoutTask {
     #[inline(never)]
     fn solve_constraints_parallel(&mut self,
                                   layout_root: &mut ~FlowContext:,
-                                  _: &mut LayoutContext,
+                                  layout_context: &mut LayoutContext,
                                   profiler_chan: ProfilerChan) {
-        self.parallel_traversal.start(layout_root, profiler_chan)
+        self.parallel_traversal.start(layout_root, layout_context, profiler_chan)
     }
 
     /// Performs layout constraint solving.

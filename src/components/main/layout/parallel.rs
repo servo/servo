@@ -15,6 +15,7 @@ use servo_util::time;
 use std::cast;
 use std::cell::Cell;
 use std::comm::SharedChan;
+use std::hashmap::HashSet;
 use std::libc::c_void;
 use std::ptr;
 use std::task::{SingleThreaded, spawn_sched};
@@ -34,9 +35,9 @@ enum SupervisorMsg {
 
 type UnsafeFlow = (*c_void, *c_void);
 
-pub fn to_unsafe_flow(flow: *mut ~FlowContext:) -> UnsafeFlow {
+pub fn owned_flow_to_unsafe_flow(flow: *mut ~FlowContext:) -> UnsafeFlow {
     unsafe {
-        cast::transmute_copy(&(*flow))
+        cast::transmute_copy(&*flow)
     }
 }
 
@@ -232,7 +233,8 @@ impl ParallelPostorderFlowTraversal {
     fn warmup(&mut self,
               flow: &mut ~FlowContext:,
               parent: UnsafeFlow,
-              next_queue_index: &mut uint) {
+              next_queue_index: &mut uint,
+              check: &mut ~[u64]) {
         let child_count = flow.child_count();
         let base = flow::mut_base(*flow);
         assert!(child_count < 0x8000_0000_0000_0000);   // You never know...
@@ -243,7 +245,10 @@ impl ParallelPostorderFlowTraversal {
         if child_count == 0 {
             match self.workers[*next_queue_index].deque {
                 None => fail!("no deque!"),
-                Some(ref mut deque) => deque.push(to_unsafe_flow(flow)),
+                Some(ref mut deque) => {
+                    deque.push(owned_flow_to_unsafe_flow(flow));
+                    check.push(owned_flow_to_unsafe_flow(flow).second() as u64);
+                }
             }
 
             *next_queue_index += 1;
@@ -255,16 +260,41 @@ impl ParallelPostorderFlowTraversal {
         }
 
         for kid in base.child_iter() {
-            self.warmup(kid, to_unsafe_flow(flow), next_queue_index)
+            self.warmup(kid, owned_flow_to_unsafe_flow(flow), next_queue_index, check)
         }
     }
 
     /// Traverses the given flow tree in parallel.
-    pub fn start(&mut self, root: &mut ~FlowContext:, profiler_chan: ProfilerChan) {
+    pub fn start(&mut self,
+                 root: &mut ~FlowContext:,
+                 layout_context: &mut LayoutContext,
+                 profiler_chan: ProfilerChan) {
+        let mut check_addrs = ~[];
         profile(time::LayoutParallelWarmupCategory, profiler_chan, || {
             let mut index = 0;
-            self.warmup(root, null_unsafe_flow(), &mut index);
+            self.warmup(root, null_unsafe_flow(), &mut index, &mut check_addrs);
         });
+
+        let mut check_set = HashSet::new();
+        for &addr in check_addrs.iter() {
+            check_set.insert(addr);
+        }
+
+        let mut leaf_set: HashSet<u64> = HashSet::new();
+        layout_context.leaf_set.access(|ls| {
+            for addr in ls.iter() {
+                leaf_set.insert(addr);
+            }
+        });
+
+        println("--- INTERSECTION ---");
+        for &val in leaf_set.intersection_iter(&check_set) {
+            println!("{}", val);
+        }
+        println("--- DIFFERENCE ---");
+        for &val in leaf_set.difference_iter(&check_set) {
+            println!("{}", val);
+        }
 
         for worker in self.workers.mut_iter() {
             worker.chan.send(StartMsg(util::replace(&mut worker.deque, None).unwrap()))

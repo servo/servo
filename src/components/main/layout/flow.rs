@@ -43,7 +43,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
-use servo_util::ptrhash::PtrHashSet;
+use servo_util::ptrhash::{PtrHashSet, PtrHashSetIterator};
 use script::dom::node::{AbstractNode, LayoutView};
 use std::cast;
 use std::cell::Cell;
@@ -193,10 +193,6 @@ pub trait MutableFlowUtils {
 
     // Mutators
 
-    /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
-    /// it's present.
-    fn add_new_child(self, new_child: ~FlowContext:, leaf_set: &mut LeafSet);
-
     /// Invokes a closure with the first child of this flow.
     fn with_first_child<R>(self, f: &fn(Option<&mut ~FlowContext:>) -> R) -> R;
 
@@ -219,6 +215,12 @@ pub trait MutableFlowUtils {
                           dirty: &Rect<Au>,
                           list: &Cell<DisplayList<E>>)
                           -> bool;
+}
+
+pub trait MutableOwnedFlowUtils {
+    /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
+    /// it's present.
+    fn add_new_child(&mut self, new_child: ~FlowContext:, leaf_set: &mut LeafSet);
 }
 
 pub enum FlowClass {
@@ -505,21 +507,6 @@ impl<'self> MutableFlowUtils for &'self mut FlowContext {
         traversal.process(self)
     }
 
-    /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
-    /// it's present.
-    fn add_new_child(self, new_child: ~FlowContext:, leaf_set: &mut LeafSet) {
-        if self.child_count() == 0 {
-            leaf_set.remove(self)
-        }
-
-        let base = mut_base(self);
-        base.children.push_back(new_child);
-        let _ = base.parallel.children_count.fetch_add(1, Relaxed);
-
-        let kid_base = mut_base(new_child);
-        kid_base.parallel.parent = parallel::to_unsafe_flow(self);
-    }
-
     /// Invokes a closure with the first child of this flow.
     fn with_first_child<R>(self, f: &fn(Option<&mut ~FlowContext:>) -> R) -> R {
         f(mut_base(self).children.front_mut())
@@ -567,6 +554,25 @@ impl<'self> MutableFlowUtils for &'self mut FlowContext {
     }
 }
 
+impl MutableOwnedFlowUtils for ~FlowContext: {
+    /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
+    /// it's present.
+    fn add_new_child(&mut self, mut new_child: ~FlowContext:, leaf_set: &mut LeafSet) {
+        if self.child_count() == 0 {
+            leaf_set.remove(self)
+        }
+
+        {
+            let kid_base = mut_base(new_child);
+            kid_base.parallel.parent = parallel::owned_flow_to_unsafe_flow(self);
+        }
+
+        let base = mut_base(*self);
+        base.children.push_back(new_child);
+        let _ = base.parallel.children_count.fetch_add(1, Relaxed);
+    }
+}
+
 /// Keeps track of the leaves of the flow tree. This is used to efficiently start bottom-up
 /// parallel traversals.
 #[deriving(Clone)]
@@ -583,24 +589,28 @@ impl LeafSet {
     }
 
     /// Inserts a newly-created flow into the leaf set.
-    pub fn insert(&mut self, flow: &FlowContext:) {
+    pub fn insert(&mut self, flow: &~FlowContext:) {
         // This isn't really unsafe.
-        let (addr, _): (uint, uint) = unsafe {
-            cast::transmute_copy(&flow)
+        let (_, addr): (uint, uint) = unsafe {
+            cast::transmute_copy(&*flow)
         };
         self.set.insert(addr as u64);
     }
 
     /// Removes a flow from the leaf set. Asserts that the flow was indeed in the leaf set. (This
     /// invariant is needed for memory safety, as there must always be exactly one leaf set.)
-    fn remove(&mut self, flow: &FlowContext:) {
-        let (addr, _): (uint, uint) = unsafe {
-            cast::transmute_copy(&flow)
+    fn remove(&mut self, flow: &~FlowContext:) {
+        let (_, addr): (uint, uint) = unsafe {
+            cast::transmute_copy(&*flow)
         };
         if !self.set.contains(&(addr as u64)) {
             fail!("attempted to remove a flow from the leaf set that wasn't in the set!")
         }
         self.set.remove(&(addr as u64));
+    }
+
+    pub fn iter<'a>(&'a self) -> PtrHashSetIterator<'a> {
+        self.set.iter()
     }
 }
 

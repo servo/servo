@@ -27,7 +27,7 @@ use layout::box::{UnscannedTextRenderBox};
 use layout::context::LayoutContext;
 use layout::float::FloatFlow;
 use layout::float_context::FloatType;
-use layout::flow::{FlowContext, FlowData, MutableFlowUtils};
+use layout::flow::{FlowContext, FlowData, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::LayoutDataAccess;
@@ -253,7 +253,7 @@ impl<'self> FlowConstructor<'self> {
         if boxes.len() > 0 {
             let inline_base = FlowData::new(self.next_flow_id(), node);
             let mut inline_flow = ~InlineFlow::from_boxes(inline_base, boxes) as ~FlowContext:;
-            self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(inline_flow));
+            self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&mut inline_flow));
             TextRunScanner::new().scan_for_runs(self.layout_context, inline_flow);
             let inline_flow = Cell::new(inline_flow);
             self.layout_context.leaf_set.access(|leaf_set| {
@@ -368,7 +368,7 @@ impl<'self> FlowConstructor<'self> {
         let base = FlowData::new(self.next_flow_id(), node);
         let box = self.build_box_for_node(node);
         let mut flow = ~BlockFlow::from_box(base, box) as ~FlowContext:;
-        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(flow));
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }
@@ -380,7 +380,7 @@ impl<'self> FlowConstructor<'self> {
         let base = FlowData::new(self.next_flow_id(), node);
         let box = self.build_box_for_node(node);
         let mut flow = ~FloatFlow::from_box(base, float_type, box) as ~FlowContext:;
-        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(flow));
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }
