@@ -34,7 +34,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
-use layout::parallel::FlowParallelInfo;
+use layout::parallel::{FlowParallelInfo, UnsafeFlow};
 use layout::parallel;
 
 use extra::dlist::{DList, DListIterator, MutDListIterator};
@@ -564,7 +564,7 @@ impl MutableOwnedFlowUtils for ~FlowContext: {
 
         {
             let kid_base = mut_base(new_child);
-            kid_base.parallel.parent = parallel::owned_flow_to_unsafe_flow(self);
+            kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
         }
 
         let base = mut_base(*self);
@@ -577,7 +577,7 @@ impl MutableOwnedFlowUtils for ~FlowContext: {
 /// parallel traversals.
 #[deriving(Clone)]
 pub struct LeafSet {
-    priv set: HashSet<u64>,
+    priv set: HashSet<UnsafeFlow>,
 }
 
 impl LeafSet {
@@ -590,26 +590,24 @@ impl LeafSet {
 
     /// Inserts a newly-created flow into the leaf set.
     pub fn insert(&mut self, flow: &~FlowContext:) {
-        // This isn't really unsafe.
-        let (_, addr): (uint, uint) = unsafe {
-            cast::transmute_copy(&*flow)
-        };
-        self.set.insert(addr as u64);
+        self.set.insert(parallel::owned_flow_to_unsafe_flow(flow));
     }
 
     /// Removes a flow from the leaf set. Asserts that the flow was indeed in the leaf set. (This
     /// invariant is needed for memory safety, as there must always be exactly one leaf set.)
     fn remove(&mut self, flow: &~FlowContext:) {
-        let (_, addr): (uint, uint) = unsafe {
-            cast::transmute_copy(&*flow)
-        };
-        if !self.set.contains(&(addr as u64)) {
+        let flow = parallel::owned_flow_to_unsafe_flow(flow);
+        if !self.set.contains(&flow) {
             fail!("attempted to remove a flow from the leaf set that wasn't in the set!")
         }
-        self.set.remove(&(addr as u64));
+        self.set.remove(&flow);
     }
 
-    pub fn iter<'a>(&'a self) -> HashSetIterator<'a,u64> {
+    pub fn clear(&mut self) {
+        self.set.clear()
+    }
+
+    pub fn iter<'a>(&'a self) -> HashSetIterator<'a,UnsafeFlow> {
         self.set.iter()
     }
 }

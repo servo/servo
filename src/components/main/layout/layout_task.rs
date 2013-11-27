@@ -588,6 +588,9 @@ impl LayoutTask {
             } // time(layout: display list building)
         }
 
+        // FIXME(pcwalton): Hack because we don't destroy flows right.
+        self.leaf_set.access(|leaf_set| leaf_set.clear());
+
         // Tell script that we're done.
         //
         // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without

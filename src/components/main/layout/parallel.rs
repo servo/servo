@@ -22,7 +22,7 @@ use std::task::{SingleThreaded, spawn_sched};
 use std::unstable::atomics::{AtomicInt, SeqCst};
 use std::util;
 
-static WORKER_COUNT: uint = 4;
+static WORKER_COUNT: uint = 6;
 
 enum WorkerMsg {
     StartMsg(Worker<UnsafeFlow>),
@@ -33,9 +33,15 @@ enum SupervisorMsg {
     FinishedMsg,
 }
 
-type UnsafeFlow = (*c_void, *c_void);
+pub type UnsafeFlow = (*c_void, *c_void);
 
-pub fn owned_flow_to_unsafe_flow(flow: *mut ~FlowContext:) -> UnsafeFlow {
+pub fn owned_flow_to_unsafe_flow(flow: *~FlowContext:) -> UnsafeFlow {
+    unsafe {
+        cast::transmute_copy(&*flow)
+    }
+}
+
+pub fn mut_owned_flow_to_unsafe_flow(flow: *mut ~FlowContext:) -> UnsafeFlow {
     unsafe {
         cast::transmute_copy(&*flow)
     }
@@ -230,38 +236,23 @@ impl ParallelPostorderFlowTraversal {
     }
 
     /// TODO(pcwalton): This could be parallelized.
-    fn warmup(&mut self,
-              flow: &mut ~FlowContext:,
-              parent: UnsafeFlow,
-              next_queue_index: &mut uint,
-              check: &mut ~[u64]) {
-        let child_count = flow.child_count();
-        let base = flow::mut_base(*flow);
-        assert!(child_count < 0x8000_0000_0000_0000);   // You never know...
-        base.parallel.children_count = AtomicInt::new(child_count as int);
-        base.parallel.parent = parent;
-
-        // If this is a leaf, enqueue it in a round-robin fashion.
-        if child_count == 0 {
-            match self.workers[*next_queue_index].deque {
-                None => fail!("no deque!"),
-                Some(ref mut deque) => {
-                    deque.push(owned_flow_to_unsafe_flow(flow));
-                    check.push(owned_flow_to_unsafe_flow(flow).second() as u64);
+    fn warmup(&mut self, layout_context: &mut LayoutContext) {
+        let mut next_queue_index = 0;
+        layout_context.leaf_set.access(|leaf_set| {
+            for &flow in leaf_set.iter() {
+                match self.workers[next_queue_index].deque {
+                    None => fail!("no deque!"),
+                    Some(ref mut deque) => {
+                        deque.push(flow);
+                    }
                 }
             }
 
-            *next_queue_index += 1;
-            if *next_queue_index >= WORKER_COUNT - 1 {
-                *next_queue_index = 0
+            next_queue_index += 1;
+            if next_queue_index >= WORKER_COUNT - 1 {
+                next_queue_index = 0
             }
-
-            return
-        }
-
-        for kid in base.child_iter() {
-            self.warmup(kid, owned_flow_to_unsafe_flow(flow), next_queue_index, check)
-        }
+        });
     }
 
     /// Traverses the given flow tree in parallel.
@@ -269,22 +260,7 @@ impl ParallelPostorderFlowTraversal {
                  root: &mut ~FlowContext:,
                  layout_context: &mut LayoutContext,
                  profiler_chan: ProfilerChan) {
-        profile(time::LayoutParallelWarmupCategory, profiler_chan, || {
-            let mut index = 0;
-            self.warmup(root, null_unsafe_flow(), &mut index, &mut check_addrs);
-        });
-
-        let mut check_set = HashSet::new();
-        for &addr in check_addrs.iter() {
-            check_set.insert(addr);
-        }
-
-        let mut leaf_set: HashSet<u64> = HashSet::new();
-        layout_context.leaf_set.access(|ls| {
-            for &addr in ls.iter() {
-                leaf_set.insert(addr);
-            }
-        });
+        profile(time::LayoutParallelWarmupCategory, profiler_chan, || self.warmup(layout_context));
 
         for worker in self.workers.mut_iter() {
             worker.chan.send(StartMsg(util::replace(&mut worker.deque, None).unwrap()))
