@@ -12,8 +12,8 @@ use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionR
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
 use layout::extra::LayoutAuxMethods;
-use layout::flow::{FlowContext, ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
-use layout::flow::{PostorderFlowTraversal};
+use layout::flow::{FlowContext, ImmutableFlowUtils, LeafSet, MutableFlowUtils};
+use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::{RestyleDamage, BubbleWidths};
 use layout::parallel::ParallelPostorderFlowTraversal;
@@ -82,6 +82,9 @@ struct LayoutTask {
 
     /// The local font context.
     font_ctx: MutexArc<FontContext>,
+
+    /// The set of leaves in the flow tree.
+    leaf_set: MutexArc<LeafSet>,
 
     /// The size of the viewport.
     screen_size: Option<Size2D<Au>>,
@@ -259,6 +262,7 @@ impl LayoutTask {
         let font_ctx = FontContext::new(opts.render_backend, true, profiler_chan.clone());
         let font_ctx = MutexArc::new(font_ctx);
         let local_image_cache = MutexArc::new(LocalImageCache(image_cache_task.clone()));
+        let leaf_set = MutexArc::new(LeafSet::init());
 
         LayoutTask {
             id: id,
@@ -269,6 +273,7 @@ impl LayoutTask {
             image_cache_task: image_cache_task.clone(),
             local_image_cache: local_image_cache.clone(),
             font_ctx: font_ctx.clone(),
+            leaf_set: leaf_set.clone(),
             screen_size: None,
             display_list: None,
             stylist: RWArc::new(new_stylist()),
@@ -276,6 +281,7 @@ impl LayoutTask {
                 image_cache: local_image_cache,
                 font_ctx: font_ctx,
                 screen_size: Rect(Point2D(Au(0), Au(0)), Size2D(Au(800), Au(600))),
+                leaf_set: leaf_set,
             }),
             profiler_chan: profiler_chan,
         }
@@ -290,14 +296,11 @@ impl LayoutTask {
 
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context(&self) -> LayoutContext {
-        let image_cache = self.local_image_cache.clone();
-        let font_ctx = self.font_ctx.clone();
-        let screen_size = self.screen_size.unwrap();
-
         LayoutContext {
-            image_cache: image_cache,
-            font_ctx: font_ctx,
-            screen_size: Rect(Point2D(Au(0), Au(0)), screen_size),
+            image_cache: self.local_image_cache.clone(),
+            font_ctx: self.font_ctx.clone(),
+            screen_size: Rect(Point2D(Au(0), Au(0)), self.screen_size.unwrap()),
+            leaf_set: self.leaf_set.clone(),
         }
     }
 

@@ -5,7 +5,7 @@
 //! Implements parallel traversals over the flow tree.
 
 use layout::context::LayoutContext;
-use layout::flow::{FlowContext, PostorderFlowTraversal};
+use layout::flow::{FlowContext, ImmutableFlowUtils, PostorderFlowTraversal};
 use layout::flow;
 use layout::layout_task::BubbleWidthsTraversal;
 
@@ -233,13 +233,14 @@ impl ParallelPostorderFlowTraversal {
               flow: &mut ~FlowContext:,
               parent: UnsafeFlow,
               next_queue_index: &mut uint) {
+        let child_count = flow.child_count();
         let base = flow::mut_base(*flow);
-        assert!(base.children.len() < 0x8000_0000_0000_0000);   // You never know...
-        base.parallel.children_count = AtomicInt::new(base.children.len() as int);
+        assert!(child_count < 0x8000_0000_0000_0000);   // You never know...
+        base.parallel.children_count = AtomicInt::new(child_count as int);
         base.parallel.parent = parent;
 
         // If this is a leaf, enqueue it in a round-robin fashion.
-        if base.children.len() == 0 {
+        if child_count == 0 {
             match self.workers[*next_queue_index].deque {
                 None => fail!("no deque!"),
                 Some(ref mut deque) => deque.push(to_unsafe_flow(flow)),

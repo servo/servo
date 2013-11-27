@@ -4,6 +4,8 @@
 
 //! Data needed by the layout task.
 
+use layout::flow::LeafSet;
+
 use extra::arc::MutexArc;
 use geom::rect::Rect;
 use gfx::font_context::FontContext;
@@ -21,6 +23,9 @@ pub struct LayoutContext {
 
     /// The size of the viewport.
     screen_size: Rect<Au>,
+
+    /// The set of leaves.
+    leaf_set: MutexArc<LeafSet>,
 }
 
 // Ensures that layout context remains sendable. *Do not* remove this unless you know what you are
