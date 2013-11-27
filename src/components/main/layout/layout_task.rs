@@ -16,6 +16,7 @@ use layout::flow::{FlowContext, ImmutableFlowUtils, MutableFlowUtils, PreorderFl
 use layout::flow::{PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::{RestyleDamage, BubbleWidths};
+use layout::parallel::ParallelPostorderFlowTraversal;
 use layout::util::{LayoutData, LayoutDataAccess};
 
 use extra::arc::{Arc, MutexArc, RWArc};
@@ -90,6 +91,9 @@ struct LayoutTask {
 
     stylist: RWArc<Stylist>,
 
+    /// The workers that we use for parallel operation.
+    parallel_traversal: ParallelPostorderFlowTraversal,
+
     /// The channel on which messages can be sent to the profiler.
     profiler_chan: ProfilerChan,
 }
@@ -137,7 +141,7 @@ impl PreorderFlowTraversal for PropagateDamageTraversal {
 
 /// The bubble-widths traversal, the first part of layout computation. This computes preferred
 /// and intrinsic widths and bubbles them up the tree.
-struct BubbleWidthsTraversal<'self>(&'self mut LayoutContext);
+pub struct BubbleWidthsTraversal<'self>(&'self mut LayoutContext);
 
 impl<'self> PostorderFlowTraversal for BubbleWidthsTraversal<'self> {
     #[inline]
@@ -166,7 +170,7 @@ impl<'self> PreorderFlowTraversal for AssignWidthsTraversal<'self> {
 /// The assign-heights-and-store-overflow traversal, the last (and most expensive) part of layout
 /// computation. Determines the final heights for all layout objects, computes positions, and
 /// computes overflow regions. In Gecko this corresponds to `FinishAndStoreOverflow`.
-struct AssignHeightsAndStoreOverflowTraversal<'self>(&'self mut LayoutContext);
+pub struct AssignHeightsAndStoreOverflowTraversal<'self>(&'self mut LayoutContext);
 
 impl<'self> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'self> {
     #[inline]
@@ -252,7 +256,9 @@ impl LayoutTask {
            opts: &Opts,
            profiler_chan: ProfilerChan)
            -> LayoutTask {
-        let fctx = FontContext::new(opts.render_backend, true, profiler_chan.clone());
+        let font_ctx = FontContext::new(opts.render_backend, true, profiler_chan.clone());
+        let font_ctx = MutexArc::new(font_ctx);
+        let local_image_cache = MutexArc::new(LocalImageCache(image_cache_task.clone()));
 
         LayoutTask {
             id: id,
@@ -261,13 +267,16 @@ impl LayoutTask {
             script_chan: script_chan,
             render_chan: render_chan,
             image_cache_task: image_cache_task.clone(),
-            local_image_cache: MutexArc::new(LocalImageCache(image_cache_task)),
-            font_ctx: MutexArc::new(fctx),
+            local_image_cache: local_image_cache.clone(),
+            font_ctx: font_ctx.clone(),
             screen_size: None,
-
             display_list: None,
-
             stylist: RWArc::new(new_stylist()),
+            parallel_traversal: ParallelPostorderFlowTraversal::init(LayoutContext {
+                image_cache: local_image_cache,
+                font_ctx: font_ctx,
+                screen_size: Rect(Point2D(Au(0), Au(0)), Size2D(Au(800), Au(600))),
+            }),
             profiler_chan: profiler_chan,
         }
     }
@@ -385,6 +394,18 @@ impl LayoutTask {
         flow
     }
 
+    /// Performs layout constraint solving in parallel.
+    ///
+    /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
+    /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
+    #[inline(never)]
+    fn solve_constraints_parallel(&mut self,
+                                  layout_root: &mut ~FlowContext:,
+                                  _: &mut LayoutContext,
+                                  profiler_chan: ProfilerChan) {
+        self.parallel_traversal.start(layout_root, profiler_chan)
+    }
+
     /// Performs layout constraint solving.
     ///
     /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
@@ -394,7 +415,12 @@ impl LayoutTask {
                          layout_root: &mut FlowContext,
                          layout_context: &mut LayoutContext) {
         let _ = layout_root.traverse_postorder(&mut BubbleWidthsTraversal(layout_context));
+    }
 
+    #[inline(never)]
+    fn solve_constraints_2(&mut self,
+                         layout_root: &mut FlowContext,
+                         layout_context: &mut LayoutContext) {
         // FIXME(kmc): We want to do
         //     for flow in layout_root.traverse_preorder_prune(|f|
         //          f.restyle_damage().lacks(Reflow)) 
@@ -469,7 +495,13 @@ impl LayoutTask {
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         do profile(time::LayoutMainCategory, self.profiler_chan.clone()) {
-            self.solve_constraints(layout_root, &mut layout_ctx)
+            self.solve_constraints(layout_root, &mut layout_ctx);
+        }
+        self.solve_constraints_2(layout_root, &mut layout_ctx);
+
+        do profile(time::LayoutParallelMainCategory, self.profiler_chan.clone()) {
+            let profiler_chan = self.profiler_chan.clone();
+            self.solve_constraints_parallel(&mut layout_root, &mut layout_ctx, profiler_chan)
         }
 
         // Build the display list if necessary, and send it to the renderer.

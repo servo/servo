@@ -34,6 +34,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
+use layout::parallel::FlowParallelInfo;
 
 use extra::dlist::{DList, DListIterator, MutDListIterator};
 use extra::container::Deque;
@@ -338,6 +339,11 @@ pub struct FlowData {
     /// pixels of all the display list items for correct invalidation.
     overflow: Rect<Au>,
 
+    /// Data used during parallel traversals.
+    ///
+    /// TODO(pcwalton): Group with other transient data to save space.
+    parallel: FlowParallelInfo,
+
     floats_in: FloatContext,
     floats_out: FloatContext,
     num_floats: uint,
@@ -377,6 +383,9 @@ impl FlowData {
             pref_width: Au::new(0),
             position: Au::zero_rect(),
             overflow: Au::zero_rect(),
+
+            parallel: FlowParallelInfo::init(),
+
             floats_in: Invalid,
             floats_out: Invalid,
             num_floats: 0,

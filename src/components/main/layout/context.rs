@@ -11,6 +11,7 @@ use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 
 /// Data needed by the layout task.
+#[deriving(Clone)]
 pub struct LayoutContext {
     /// The font context.
     font_ctx: MutexArc<FontContext>,
