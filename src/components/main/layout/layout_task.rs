@@ -18,7 +18,7 @@ use layout::flow;
 use layout::incremental::{RestyleDamage, BubbleWidths};
 use layout::util::{LayoutData, LayoutDataAccess};
 
-use extra::arc::{Arc, RWArc};
+use extra::arc::{Arc, MutexArc, RWArc};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -79,7 +79,7 @@ struct LayoutTask {
     local_image_cache: @mut LocalImageCache,
 
     /// The local font context.
-    font_ctx: @mut FontContext,
+    font_ctx: MutexArc<FontContext>,
 
     /// The size of the viewport.
     screen_size: Option<Size2D<Au>>,
@@ -251,7 +251,7 @@ impl LayoutTask {
            opts: &Opts,
            profiler_chan: ProfilerChan)
            -> LayoutTask {
-        let fctx = @mut FontContext::new(opts.render_backend, true, profiler_chan.clone());
+        let fctx = FontContext::new(opts.render_backend, true, profiler_chan.clone());
 
         LayoutTask {
             id: id,
@@ -261,7 +261,7 @@ impl LayoutTask {
             render_chan: render_chan,
             image_cache_task: image_cache_task.clone(),
             local_image_cache: @mut LocalImageCache(image_cache_task),
-            font_ctx: fctx,
+            font_ctx: MutexArc::new(fctx),
             screen_size: None,
 
             display_list: None,
@@ -281,7 +281,7 @@ impl LayoutTask {
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context(&self) -> LayoutContext {
         let image_cache = self.local_image_cache;
-        let font_ctx = self.font_ctx;
+        let font_ctx = self.font_ctx.clone();
         let screen_size = self.screen_size.unwrap();
 
         LayoutContext {

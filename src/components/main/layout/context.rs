@@ -4,6 +4,7 @@
 
 //! Data needed by the layout task.
 
+use extra::arc::MutexArc;
 use geom::rect::Rect;
 use gfx::font_context::FontContext;
 use servo_util::geometry::Au;
@@ -11,7 +12,7 @@ use servo_net::local_image_cache::LocalImageCache;
 
 /// Data needed by the layout task.
 pub struct LayoutContext {
-    font_ctx: @mut FontContext,
+    font_ctx: MutexArc<FontContext>,
     image_cache: @mut LocalImageCache,
-    screen_size: Rect<Au>
+    screen_size: Rect<Au>,
 }

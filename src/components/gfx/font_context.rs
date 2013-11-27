@@ -2,17 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use font::{Font, FontDescriptor, FontGroup, FontHandleMethods, FontStyle,
-           SelectorPlatformIdentifier};
-use font::{SpecifiedFontStyle, UsedFontStyle};
+use font::{Font, FontDescriptor, FontGroup, FontHandleMethods, FontStyle};
+use font::{SelectorPlatformIdentifier, SpecifiedFontStyle, UsedFontStyle};
 use font_list::FontList;
-use servo_util::cache::{Cache, LRUCache};
-use servo_util::time::ProfilerChan;
-
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 
 use azure::azure_hl::BackendType;
+use extra::arc::MutexArc;
+use servo_util::cache::{Cache, LRUCache};
+use servo_util::time::ProfilerChan;
 use std::hashmap::HashMap;
 
 // TODO(Rust #3934): creating lots of new dummy styles is a workaround
@@ -34,9 +33,9 @@ pub trait FontContextHandleMethods {
 }
 
 pub struct FontContext {
-    instance_cache: LRUCache<FontDescriptor, @mut Font>,
+    instance_cache: LRUCache<FontDescriptor, MutexArc<Font>>,
     font_list: Option<FontList>, // only needed by layout
-    group_cache: LRUCache<SpecifiedFontStyle, @FontGroup>,
+    group_cache: LRUCache<SpecifiedFontStyle, MutexArc<FontGroup>>,
     handle: FontContextHandle,
     backend: BackendType,
     generic_fonts: HashMap<~str,~str>,
@@ -76,22 +75,23 @@ impl<'self> FontContext {
         self.font_list.get_ref()
     }
 
-    pub fn get_resolved_font_for_style(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
+    pub fn get_resolved_font_for_style(&mut self, style: &SpecifiedFontStyle)
+                                       -> MutexArc<FontGroup> {
         match self.group_cache.find(style) {
             Some(fg) => {
                 debug!("font group cache hit");
-                fg
+                fg.clone()
             },
             None => {
                 debug!("font group cache miss");
                 let fg = self.create_font_group(style);
-                self.group_cache.insert(style.clone(), fg);
+                self.group_cache.insert(style.clone(), fg.clone());
                 fg
             }
         }
     }
 
-    pub fn get_font_by_descriptor(&mut self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
+    pub fn get_font_by_descriptor(&mut self, desc: &FontDescriptor) -> Result<MutexArc<Font>, ()> {
         match self.instance_cache.find(desc) {
             Some(f) => {
                 debug!("font cache hit");
@@ -101,9 +101,10 @@ impl<'self> FontContext {
                 debug!("font cache miss");
                 let result = self.create_font_instance(desc);
                 match result {
-                    Ok(font) => {
-                        self.instance_cache.insert(desc.clone(), font);
-                    }, _ => {}
+                    Ok(ref font) => {
+                        self.instance_cache.insert(desc.clone(), font.clone());
+                    },
+                    _ => {}
                 };
                 result
             }
@@ -120,7 +121,7 @@ impl<'self> FontContext {
         }
     }
 
-    fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
+    fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> MutexArc<FontGroup> {
         let mut fonts = ~[];
 
         debug!("(create font group) --- starting ---");
@@ -140,13 +141,15 @@ impl<'self> FontContext {
             for font_entry in result.iter() {
                 found = true;
 
-                let font_id =
-                  SelectorPlatformIdentifier(font_entry.handle.face_identifier());
+                let font_id = font_entry.get().handle.face_identifier();
+                let font_id = SelectorPlatformIdentifier(font_id);
                 let font_desc = FontDescriptor::new((*style).clone(), font_id);
 
                 let instance = self.get_font_by_descriptor(&font_desc);
 
-                for font in instance.iter() { fonts.push(*font); }
+                for font in instance.iter() {
+                    fonts.push((*font).clone());
+                }
             };
 
             if !found {
@@ -163,14 +166,14 @@ impl<'self> FontContext {
             };
 
             for font_entry in result.iter() {
-                let font_id =
-                  SelectorPlatformIdentifier(font_entry.handle.face_identifier());
+                let font_id = font_entry.get().handle.face_identifier();
+                let font_id = SelectorPlatformIdentifier(font_id);
                 let font_desc = FontDescriptor::new((*style).clone(), font_id);
 
                 let instance = self.get_font_by_descriptor(&font_desc);
 
                 for font in instance.iter() {
-                    fonts.push(*font);
+                    fonts.push((*font).clone());
                 }
             }
         }
@@ -181,10 +184,10 @@ impl<'self> FontContext {
 
         debug!("(create font group) --- finished ---");
 
-        @FontGroup::new(style.families.to_managed(), &used_style, fonts)
+        MutexArc::new(FontGroup::new(style.families.clone(), &used_style, fonts))
     }
 
-    fn create_font_instance(&self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
+    fn create_font_instance(&self, desc: &FontDescriptor) -> Result<MutexArc<Font>, ()> {
         return match &desc.selector {
             // TODO(Issue #174): implement by-platform-name font selectors.
             &SelectorPlatformIdentifier(ref identifier) => { 

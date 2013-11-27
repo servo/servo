@@ -12,6 +12,8 @@ use layout::box::{RenderBox, RenderBoxUtils, TextRenderBox, UnscannedTextRenderB
 use layout::context::LayoutContext;
 use layout::flow::FlowContext;
 use servo_util::range::Range;
+use servo_util::sync::MutexArcUtils;
+use std::cell::Cell;
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
 struct TextRunScanner {
@@ -123,8 +125,13 @@ impl TextRunScanner {
                     // TODO(#177): Text run creation must account for the renderability of text by
                     // font group fonts. This is probably achieved by creating the font group above
                     // and then letting `FontGroup` decide which `Font` to stick into the text run.
-                    let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
-                    let run = @fontgroup.create_textrun(transformed_text, decoration);
+                    let fontgroup = ctx.font_ctx.force_access(|context| {
+                        context.get_resolved_font_for_style(&font_style)
+                    });
+                    let transformed_text = Cell::new(transformed_text);
+                    let run = @fontgroup.force_access(|fontgroup| {
+                        fontgroup.create_textrun(transformed_text.take(), decoration)
+                    });
 
                     debug!("TextRunScanner: pushing single text box in range: {} ({})", self.clump, text);
                     let range = Range::new(0, run.char_len());
@@ -172,14 +179,17 @@ impl TextRunScanner {
                 // and then letting `FontGroup` decide which `Font` to stick into the text run.
                 let in_box = in_boxes[self.clump.begin()];
                 let font_style = in_box.base().font_style();
-                let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
+                let fontgroup = ctx.font_ctx.force_access(|context| {
+                    context.get_resolved_font_for_style(&font_style)
+                });
                 let decoration = in_box.base().text_decoration();
 
                 // TextRuns contain a cycle which is usually resolved by the teardown
                 // sequence. If no clump takes ownership, however, it will leak.
                 let clump = self.clump;
                 let run = if clump.length() != 0 && run_str.len() > 0 {
-                    Some(@TextRun::new(fontgroup.fonts[0], run_str, decoration))
+                    let font = fontgroup.force_access(|fontgroup| fontgroup.fonts[0].clone());
+                    Some(@TextRun::new(font, run_str, decoration))
                 } else {
                     None
                 };

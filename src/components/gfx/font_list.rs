@@ -7,17 +7,18 @@ use gfx_font::FontHandleMethods;
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_list::FontListHandle;
-use servo_util::time;
-use servo_util::time::profile;
-use servo_util::time::ProfilerChan;
 
+use extra::arc::{Arc, MutexArc};
+use servo_util::sync::MutexArcUtils;
+use servo_util::time::{ProfilerChan, profile};
+use servo_util::time;
 use std::hashmap::HashMap;
 
-pub type FontFamilyMap = HashMap<~str, @mut FontFamily>;
+pub type FontFamilyMap = HashMap<~str, MutexArc<FontFamily>>;
 
 trait FontListHandleMethods {
     fn get_available_families(&self, fctx: &FontContextHandle) -> FontFamilyMap;
-    fn load_variations_for_family(&self, family: @mut FontFamily);
+    fn load_variations_for_family(&self, family: MutexArc<FontFamily>);
     fn get_last_resort_font_families() -> ~[~str];
 }
 
@@ -52,17 +53,16 @@ impl FontList {
         }
     }
 
-    pub fn find_font_in_family(&self,
-                           family_name: &str, 
-                           style: &SpecifiedFontStyle) -> Option<@FontEntry> {
+    pub fn find_font_in_family(&self, family_name: &str, style: &SpecifiedFontStyle)
+                               -> Option<Arc<FontEntry>> {
         let family = self.find_family(family_name);
 
         // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
 
         // if such family exists, try to match style to a font
-        let mut result: Option<@FontEntry> = None;
+        let mut result: Option<Arc<FontEntry>> = None;
         for fam in family.iter() {
-            result = fam.find_font_for_style(&self.handle, style);
+            result = FontFamily::find_font_for_style(fam.clone(), &self.handle, style);
         }
 
         let decision = if result.is_some() {
@@ -76,7 +76,7 @@ impl FontList {
         result
     }
 
-    fn find_family(&self, family_name: &str) -> Option<@mut FontFamily> {
+    fn find_family(&self, family_name: &str) -> Option<MutexArc<FontFamily>> {
         // look up canonical name
         let family = self.family_map.find_equiv(&family_name);
 
@@ -84,7 +84,7 @@ impl FontList {
         debug!("FontList: {:s} font family with name={:s}", decision, family_name);
 
         // TODO(Issue #188): look up localized font family names if canonical name not found
-        family.map(|f| *f)
+        family.map(|f| (*f).clone())
     }
 
     pub fn get_last_resort_font_families() -> ~[~str] {
@@ -96,7 +96,7 @@ impl FontList {
 // Holds a specific font family, and the various 
 pub struct FontFamily {
     family_name: ~str,
-    entries: ~[@FontEntry],
+    entries: ~[Arc<FontEntry>],
 }
 
 impl FontFamily {
@@ -107,17 +107,22 @@ impl FontFamily {
         }
     }
 
-    fn load_family_variations(@mut self, list: &FontListHandle) {
-        if self.entries.len() > 0 {
+    fn load_family_variations(this: MutexArc<FontFamily>, list: &FontListHandle) {
+        // Don't hold `this` across `load_variations_for_family` to avoid a deadlock.
+        if this.force_access(|this| this.entries.len() > 0) {
             return
         }
-        list.load_variations_for_family(self);
-        assert!(self.entries.len() > 0)
+
+        list.load_variations_for_family(this.clone());
+
+        assert!(this.force_access(|this| this.entries.len() > 0))
     }
 
-    pub fn find_font_for_style(@mut self, list: &FontListHandle, style: &SpecifiedFontStyle)
-                            -> Option<@FontEntry> {
-        self.load_family_variations(list);
+    pub fn find_font_for_style(this: MutexArc<FontFamily>,
+                               list: &FontListHandle,
+                               style: &SpecifiedFontStyle)
+                               -> Option<Arc<FontEntry>> {
+        FontFamily::load_family_variations(this.clone(), list);
 
         // TODO(Issue #189): optimize lookup for
         // regular/bold/italic/bolditalic with fixed offsets and a
@@ -125,15 +130,17 @@ impl FontFamily {
 
         // TODO(Issue #190): if not in the fast path above, do
         // expensive matching of weights, etc.
-        for entry in self.entries.iter() {
-            if (style.weight.is_bold() == entry.is_bold()) && 
-               (style.italic == entry.is_italic()) {
-
-                return Some(*entry);
+        this.force_access(|this| {
+            let mut result = None;
+            for entry in this.entries.iter() {
+                if (style.weight.is_bold() == entry.get().is_bold()) &&
+                        (style.italic == entry.get().is_italic()) {
+                    result = Some((*entry).clone());
+                    break
+                }
             }
-        }
-
-        None
+            result
+        })
     }
 }
 
