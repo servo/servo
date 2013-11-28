@@ -118,7 +118,7 @@ impl FontListHandle {
                     debug!("variation file: {}", file);
                     debug!("variation index: {}", index);
 
-                    let font_handle = FontHandle::new_from_file_unstyled(&self.fctx,
+                    let font_handle = FontHandle::new_from_file_unstyled(self.fctx.clone(),
                                                                          file);
                     let font_handle = font_handle.unwrap();
 
