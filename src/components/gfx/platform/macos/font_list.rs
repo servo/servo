@@ -10,9 +10,10 @@ use platform::macos::font_context::FontContextHandle;
 
 use core_foundation::base::TCFType;
 use core_foundation::string::{CFString, CFStringRef};
-use core_text;
 use core_text::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef};
-
+use core_text;
+use extra::arc::{Arc, MutexArc};
+use servo_util::sync::MutexArcUtils;
 use std::cast;
 use std::hashmap::HashMap;
 
@@ -36,27 +37,30 @@ impl FontListHandle {
             let family_name = family_name_cf.to_str();
             debug!("Creating new FontFamily for family: {:s}", family_name);
 
-            let new_family = @mut FontFamily::new(family_name);
+            let new_family = MutexArc::new(FontFamily::new(family_name));
             family_map.insert(family_name, new_family);
         }
         family_map
     }
 
-    pub fn load_variations_for_family(&self, family: @mut FontFamily) {
-        debug!("Looking for faces of family: {:s}", family.family_name);
+    pub fn load_variations_for_family(&self, family: MutexArc<FontFamily>) {
+        family.force_access(|family| {
+            debug!("Looking for faces of family: {:s}", family.family_name);
 
-        let family_collection = core_text::font_collection::create_for_family(family.family_name);
-        let family_descriptors = family_collection.get_descriptors();
-        for descref in family_descriptors.iter() {
-            let descref: CTFontDescriptorRef = unsafe { cast::transmute(descref) };
-            let desc: CTFontDescriptor = unsafe { TCFType::wrap_under_get_rule(descref) };
-            let font = core_text::font::new_from_descriptor(&desc, 0.0);
-            let handle = FontHandle::new_from_CTFont(&self.fctx, font).unwrap();
+            let family_collection =
+                core_text::font_collection::create_for_family(family.family_name);
+            let family_descriptors = family_collection.get_descriptors();
+            for descref in family_descriptors.iter() {
+                let descref: CTFontDescriptorRef = unsafe { cast::transmute(descref) };
+                let desc: CTFontDescriptor = unsafe { TCFType::wrap_under_get_rule(descref) };
+                let font = core_text::font::new_from_descriptor(&desc, 0.0);
+                let handle = FontHandle::new_from_CTFont(&self.fctx, font).unwrap();
 
-            debug!("Creating new FontEntry for face: {:s}", handle.face_name());
-            let entry = @FontEntry::new(handle);
-            family.entries.push(entry)
-        }
+                debug!("Creating new FontEntry for face: {:s}", handle.face_name());
+                let entry = Arc::new(FontEntry::new(handle));
+                family.entries.push(entry)
+            }
+        })
     }
 
     pub fn get_last_resort_font_families() -> ~[~str] {

@@ -18,10 +18,3 @@ pub trait ShaperMethods {
     fn shape_text(&self, text: &str, glyphs: &mut GlyphStore);
 }
 
-// TODO(Issue #163): this is a workaround for static methods and
-// typedefs not working well together. It should be removed.
-pub impl Shaper {
-    pub fn new(font: @mut Font) -> Shaper {
-        harfbuzz::shaper::HarfbuzzShaper::new(font)
-    }
-}

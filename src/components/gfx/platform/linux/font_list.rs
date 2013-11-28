@@ -24,6 +24,8 @@ use font_list::{FontEntry, FontFamily, FontFamilyMap};
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 
+use extra::arc::{Arc, MutexArc};
+use servo_util::sync::MutexArcUtils;
 use std::hashmap::HashMap;
 use std::libc;
 use std::libc::{c_int, c_char};
@@ -53,7 +55,7 @@ impl FontListHandle {
                     while FcPatternGetString(*font, FC_FAMILY, v, &family) == FcResultMatch {
                         let family_name = str::raw::from_c_str(family as *c_char);
                         debug!("Creating new FontFamily for family: {:s}", family_name);
-                        let new_family = @mut FontFamily::new(family_name);
+                        let new_family = MutexArc::new(FontFamily::new(family_name));
                         family_map.insert(family_name, new_family);
                         v += 1;
                     }
@@ -64,69 +66,71 @@ impl FontListHandle {
     }
 
     #[fixed_stack_segment]
-    pub fn load_variations_for_family(&self, family: @mut FontFamily) {
-        debug!("getting variations for {:?}", family);
+    pub fn load_variations_for_family(&self, family: MutexArc<FontFamily>) {
         unsafe {
-            let config = FcConfigGetCurrent();
-            let font_set = FcConfigGetFonts(config, FcSetSystem);
-            let font_set_array_ptr = ptr::to_unsafe_ptr(&font_set);
-            let pattern = FcPatternCreate();
-            assert!(pattern.is_not_null());
-            do "family".to_c_str().with_ref |FC_FAMILY| {
-                do family.family_name.to_c_str().with_ref |family_name| {
-                    let ok = FcPatternAddString(pattern, FC_FAMILY, family_name as *FcChar8);
-                    assert!(ok != 0);
+            family.force_access(|family| {
+                debug!("getting variations for {:?}", family);
+                let config = FcConfigGetCurrent();
+                let font_set = FcConfigGetFonts(config, FcSetSystem);
+                let font_set_array_ptr = ptr::to_unsafe_ptr(&font_set);
+                let pattern = FcPatternCreate();
+                assert!(pattern.is_not_null());
+                do "family".to_c_str().with_ref |FC_FAMILY| {
+                    do family.family_name.to_c_str().with_ref |family_name| {
+                        let ok = FcPatternAddString(pattern, FC_FAMILY, family_name as *FcChar8);
+                        assert!(ok != 0);
+                    }
                 }
-            }
 
-            let object_set = FcObjectSetCreate();
-            assert!(object_set.is_not_null());
+                let object_set = FcObjectSetCreate();
+                assert!(object_set.is_not_null());
 
-            do "file".to_c_str().with_ref |FC_FILE| {
-                FcObjectSetAdd(object_set, FC_FILE);
-            }
-            do "index".to_c_str().with_ref |FC_INDEX| {
-                FcObjectSetAdd(object_set, FC_INDEX);
-            }
+                do "file".to_c_str().with_ref |FC_FILE| {
+                    FcObjectSetAdd(object_set, FC_FILE);
+                }
+                do "index".to_c_str().with_ref |FC_INDEX| {
+                    FcObjectSetAdd(object_set, FC_INDEX);
+                }
 
-            let matches = FcFontSetList(config, font_set_array_ptr, 1, pattern, object_set);
+                let matches = FcFontSetList(config, font_set_array_ptr, 1, pattern, object_set);
 
-            debug!("found {} variations", (*matches).nfont);
+                debug!("found {} variations", (*matches).nfont);
 
-            for i in range(0, (*matches).nfont as int) {
-                let font = (*matches).fonts.offset(i);
-                let file = do "file".to_c_str().with_ref |FC_FILE| {
-                    let file: *FcChar8 = ptr::null();
-                    if FcPatternGetString(*font, FC_FILE, 0, &file) == FcResultMatch {
-                        str::raw::from_c_str(file as *libc::c_char)
-                    } else {
-                        fail!();
-                    }
-                };
-                let index = do "index".to_c_str().with_ref |FC_INDEX| {
-                    let index: libc::c_int = 0;
-                    if FcPatternGetInteger(*font, FC_INDEX, 0, &index) == FcResultMatch {
-                        index
-                    } else {
-                        fail!();
-                    }
-                };
+                for i in range(0, (*matches).nfont as int) {
+                    let font = (*matches).fonts.offset(i);
+                    let file = do "file".to_c_str().with_ref |FC_FILE| {
+                        let file: *FcChar8 = ptr::null();
+                        if FcPatternGetString(*font, FC_FILE, 0, &file) == FcResultMatch {
+                            str::raw::from_c_str(file as *libc::c_char)
+                        } else {
+                            fail!();
+                        }
+                    };
+                    let index = do "index".to_c_str().with_ref |FC_INDEX| {
+                        let index: libc::c_int = 0;
+                        if FcPatternGetInteger(*font, FC_INDEX, 0, &index) == FcResultMatch {
+                            index
+                        } else {
+                            fail!();
+                        }
+                    };
 
-                debug!("variation file: {}", file);
-                debug!("variation index: {}", index);
+                    debug!("variation file: {}", file);
+                    debug!("variation index: {}", index);
 
-                let font_handle = FontHandle::new_from_file_unstyled(&self.fctx,
-                                                                     file);
-                let font_handle = font_handle.unwrap();
+                    let font_handle = FontHandle::new_from_file_unstyled(self.fctx.clone(),
+                                                                         file);
+                    let font_handle = font_handle.unwrap();
 
-                debug!("Creating new FontEntry for face: {:s}", font_handle.face_name());
-                let entry = @FontEntry::new(font_handle);
-                family.entries.push(entry);
-            }
+                    debug!("Creating new FontEntry for face: {:s}", font_handle.face_name());
+                    let entry = Arc::new(FontEntry::new(font_handle));
+                    family.entries.push(entry);
+                }
 
-            FcFontSetDestroy(matches);
-            FcPatternDestroy(pattern);
-            FcObjectSetDestroy(object_set);
+                FcFontSetDestroy(matches);
+                FcPatternDestroy(pattern);
+                FcObjectSetDestroy(object_set);
+            })
         }
     }
 

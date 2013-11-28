@@ -2,20 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::vec::VecIterator;
-
-use font_context::FontContext;
-use servo_util::geometry::Au;
-use text::glyph::GlyphStore;
 use font::{Font, FontDescriptor, RunMetrics};
+use font_context::FontContext;
+use text::glyph::GlyphStore;
+
+use extra::arc::{Arc, MutexArc};
+use servo_util::geometry::Au;
 use servo_util::range::Range;
-use extra::arc::Arc;
+use servo_util::sync::MutexArcUtils;
+use std::vec::VecIterator;
 use style::computed_values::text_decoration;
 
 /// A text run.
 pub struct TextRun {
     text: Arc<~str>,
-    font: @mut Font,
+    font: MutexArc<Font>,
     decoration: text_decoration::T,
     glyphs: Arc<~[Arc<GlyphStore>]>,
 }
@@ -120,8 +121,8 @@ impl<'self> Iterator<Range> for LineIterator<'self> {
 }
 
 impl<'self> TextRun {
-    pub fn new(font: @mut Font, text: ~str, decoration: text_decoration::T) -> TextRun {
-        let glyphs = TextRun::break_and_shape(font, text);
+    pub fn new(font: MutexArc<Font>, text: ~str, decoration: text_decoration::T) -> TextRun {
+        let glyphs = TextRun::break_and_shape(font.clone(), text);
 
         let run = TextRun {
             text: Arc::new(text),
@@ -133,10 +134,10 @@ impl<'self> TextRun {
     }
 
     pub fn teardown(&self) {
-        self.font.teardown();
+        self.font.force_access(|font| font.teardown());
     }
 
-    pub fn break_and_shape(font: @mut Font, text: &str) -> ~[Arc<GlyphStore>] {
+    pub fn break_and_shape(font: MutexArc<Font>, text: &str) -> ~[Arc<GlyphStore>] {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
 
         let mut glyphs = ~[];
@@ -173,7 +174,7 @@ impl<'self> TextRun {
                 let slice = text.slice(byte_last_boundary, byte_i).to_owned();
                 debug!("creating glyph store for slice {} (ws? {}), {} - {} in run {}",
                         slice, !cur_slice_is_whitespace, byte_last_boundary, byte_i, text);
-                glyphs.push(font.shape_text(slice, !cur_slice_is_whitespace));
+                glyphs.push(Font::shape_text(font.clone(), slice, !cur_slice_is_whitespace));
                 byte_last_boundary = byte_i;
             }
 
@@ -185,7 +186,7 @@ impl<'self> TextRun {
             let slice = text.slice_from(byte_last_boundary).to_owned();
             debug!("creating glyph store for final slice {} (ws? {}), {} - {} in run {}",
                 slice, cur_slice_is_whitespace, byte_last_boundary, text.len(), text);
-            glyphs.push(font.shape_text(slice, cur_slice_is_whitespace));
+            glyphs.push(Font::shape_text(font.clone(), slice, cur_slice_is_whitespace));
         }
 
         glyphs
@@ -194,7 +195,7 @@ impl<'self> TextRun {
     pub fn serialize(&self) -> SendableTextRun {
         SendableTextRun {
             text: self.text.clone(),
-            font: self.font.get_descriptor(),
+            font: self.font.force_access(|font| font.get_descriptor()),
             decoration: self.decoration,
             glyphs: self.glyphs.clone(),
         }
@@ -217,22 +218,26 @@ impl<'self> TextRun {
         true
     }
 
+    // NB: Takes a lock on the font temporarily.
     pub fn metrics_for_range(&self, range: &Range) -> RunMetrics {
-        self.font.measure_text(self, range)
+        self.font.force_access(|font| font.measure_text(self, range))
     }
 
+    // NB: Takes a lock on the font temporarily.
     pub fn metrics_for_slice(&self, glyphs: &GlyphStore, slice_range: &Range) -> RunMetrics {
-        self.font.measure_text_for_slice(glyphs, slice_range)
+        self.font.force_access(|font| font.measure_text_for_slice(glyphs, slice_range))
     }
 
     pub fn min_width_for_range(&self, range: &Range) -> Au {
         let mut max_piece_width = Au(0);
         debug!("iterating outer range {:?}", range);
-        for (glyphs, offset, slice_range) in self.iter_slices_for_range(range) {
-            debug!("iterated on {:?}[{:?}]", offset, slice_range);
-            let metrics = self.font.measure_text_for_slice(glyphs, &slice_range);
-            max_piece_width = Au::max(max_piece_width, metrics.advance_width);
-        }
+        self.font.force_access(|font| {
+            for (glyphs, offset, slice_range) in self.iter_slices_for_range(range) {
+                debug!("iterated on {:?}[{:?}]", offset, slice_range);
+                let metrics = font.measure_text_for_slice(glyphs, &slice_range);
+                max_piece_width = Au::max(max_piece_width, metrics.advance_width);
+            }
+        });
         max_piece_width
     }
 

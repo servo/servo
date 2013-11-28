@@ -12,6 +12,8 @@ use freetype::freetype::{FT_Done_FreeType, FT_Init_FreeType};
 
 use std::ptr;
 
+use extra::arc::Arc;
+
 struct FreeTypeLibraryHandle {
     ctx: FT_Library,
 }
@@ -27,7 +29,7 @@ impl Drop for FreeTypeLibraryHandle {
 }
 
 pub struct FontContextHandle {
-    ctx: @FreeTypeLibraryHandle,
+    ctx: Arc<FreeTypeLibraryHandle>,
 }
 
 impl FontContextHandle {
@@ -39,15 +41,15 @@ impl FontContextHandle {
             if !result.succeeded() { fail!(); }
 
             FontContextHandle { 
-                ctx: @FreeTypeLibraryHandle { ctx: ctx },
+                ctx: Arc::new(FreeTypeLibraryHandle { ctx: ctx }),
             }
         }
     }
 }
 
-impl FontContextHandleMethods for FontContextHandle {
+impl FontContextHandleMethods for FontContextHandle { 
     fn clone(&self) -> FontContextHandle {
-        FontContextHandle { ctx: self.ctx }
+        FontContextHandle { ctx: self.ctx.clone() }
     }
 
     fn create_font_from_identifier(&self, name: ~str, style: UsedFontStyle)
@@ -55,7 +57,7 @@ impl FontContextHandleMethods for FontContextHandle {
         debug!("Creating font handle for {:s}", name);
         do path_from_identifier(name, &style).and_then |file_name| {
             debug!("Opening font face {:s}", file_name);
-            FontHandle::new_from_file(self, file_name.to_owned(), &style)
+            FontHandle::new_from_file(self.clone(), file_name.to_owned(), &style)
         }
     }
 }
