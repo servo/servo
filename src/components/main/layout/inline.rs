@@ -21,6 +21,7 @@ use style::computed_values::text_align;
 use style::computed_values::vertical_align;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
+use servo_util::sync::MutexArcUtils;
 use std::cell::Cell;
 use std::u16;
 use std::util;
@@ -718,7 +719,9 @@ impl FlowContext for InlineFlow {
 
                         // Find the top and bottom of the content area.
                         // Those are used in text-top and text-bottom value of 'vertical-align'
-                        let text_ascent = text_box.run.font.metrics.ascent;
+                        let text_ascent = text_box.run
+                                                  .font
+                                                  .force_access(|font| font.metrics.ascent);
                        
                         // Offset from the top of the box is 1/2 of the leading + ascent
                         let text_offset = text_ascent + (line_height - em_size).scale_by(0.5);

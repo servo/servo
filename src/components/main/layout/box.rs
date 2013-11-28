@@ -4,6 +4,12 @@
 
 //! The `RenderBox` type, which represents the leaves of the layout tree.
 
+use css::node_style::StyledNode;
+use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
+use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
+use layout::model::{MaybeAuto, specified};
+
+use extra::arc::MutexArc;
 use extra::url::Url;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
@@ -26,14 +32,9 @@ use std::cmp::ApproxEq;
 use std::num::Zero;
 use std::unstable::raw::Box;
 use style::ComputedValues;
-use style::computed_values::{
-    border_style, clear, float, font_family, font_style, line_height,
-    position, text_align, text_decoration, vertical_align, LengthOrPercentage};
-
-use css::node_style::StyledNode;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
-use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
-use layout::model::{MaybeAuto, specified};
+use style::computed_values::{border_style, clear, float, font_family, font_style, line_height};
+use style::computed_values::{position, text_align, text_decoration, vertical_align};
+use style::computed_values::{LengthOrPercentage};
 
 /// Boxes (`struct Box`) are the leaves of the layout tree. They cannot position themselves. In
 /// general, boxes do not have a simple correspondence with CSS boxes in the specification:
@@ -226,13 +227,13 @@ pub struct ImageRenderBox {
 
 impl ImageRenderBox {
     #[inline]
-    pub fn new(base: RenderBoxBase, image_url: Url, local_image_cache: @mut LocalImageCache)
+    pub fn new(base: RenderBoxBase, image_url: Url, local_image_cache: MutexArc<LocalImageCache>)
                -> ImageRenderBox {
         assert!(base.node.is_image_element());
 
         ImageRenderBox {
             base: base,
-            image: Slot::init(ImageHolder::new(image_url, local_image_cache)),
+            image: Slot::init(ImageHolder::new(image_url, local_image_cache.clone())),
         }
     }
 
@@ -307,7 +308,8 @@ impl RenderBox for ImageRenderBox {
 
     fn minimum_and_preferred_widths(&self) -> (Au, Au) {
         let guessed_width = self.base.guess_width();
-        let image_width = self.image_width();
+        //let image_width = self.image_width();
+        let image_width = Au(0);
         (guessed_width + image_width, guessed_width + image_width)
     }
 
@@ -391,7 +393,8 @@ impl RenderBox for TextRenderBox {
     }
 
     fn minimum_and_preferred_widths(&self) -> (Au, Au) {
-        let guessed_width = self.base.guess_width();
+        return (Au(0), Au(0));
+        /*let guessed_width = self.base.guess_width();
         let min_width = self.run.min_width_for_range(&self.range);
 
         let mut max_line_width = Au::new(0);
@@ -400,7 +403,7 @@ impl RenderBox for TextRenderBox {
             max_line_width = Au::max(max_line_width, line_metrics.advance_width);
         }
 
-        (guessed_width + min_width, guessed_width + max_line_width)
+        (guessed_width + min_width, guessed_width + max_line_width)*/
     }
 
     fn box_height(&self) -> Au {

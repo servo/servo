@@ -15,16 +15,17 @@
 /// low-level drawing primitives.
 
 use color::Color;
-use servo_util::geometry::Au;
-use style::computed_values::border_style;
 use render_context::RenderContext;
 use text::SendableTextRun;
 
-use std::cast::transmute_region;
+use extra::arc::Arc;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use servo_net::image::base::Image;
+use servo_util::geometry::Au;
 use servo_util::range::Range;
-use extra::arc::Arc;
+use servo_util::sync::MutexArcUtils;
+use style::computed_values::border_style;
+use std::cast::transmute_region;
 
 /// A list of rendering operations to be performed.
 pub struct DisplayList<E> {
@@ -125,21 +126,30 @@ impl<E> DisplayItem<E> {
                 // FIXME(pcwalton): Allocating? Why?
                 let new_run = @text.text_run.deserialize(render_context.font_ctx);
 
-                let font = new_run.font;
+                let font = &new_run.font;
                 let origin = text.base.bounds.origin;
-                let baseline_origin = Point2D(origin.x, origin.y + font.metrics.ascent);
 
-                font.draw_text_into_context(render_context,
-                                            new_run,
-                                            &text.range,
-                                            baseline_origin,
-                                            text.color);
+                let (baseline_origin,
+                     underline_size,
+                     underline_offset,
+                     strikeout_size,
+                     strikeout_offset) = font.force_access(|font| {
+                        let baseline_origin = Point2D(origin.x, origin.y + font.metrics.ascent);
+
+                        font.draw_text_into_context(render_context,
+                                                    new_run,
+                                                    &text.range,
+                                                    baseline_origin,
+                                                    text.color);
+
+                        (baseline_origin,
+                         font.metrics.underline_size,
+                         font.metrics.underline_offset,
+                         font.metrics.strikeout_size,
+                         font.metrics.strikeout_offset)
+                    });
 
                 let width = text.base.bounds.size.width;
-                let underline_size = font.metrics.underline_size;
-                let underline_offset = font.metrics.underline_offset;
-                let strikeout_size = font.metrics.strikeout_size;
-                let strikeout_offset = font.metrics.strikeout_offset;
 
                 if new_run.decoration.underline {
                     let underline_y = baseline_origin.y - underline_offset;

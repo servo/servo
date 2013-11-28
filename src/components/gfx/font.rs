@@ -5,7 +5,7 @@
 use azure::{AzFloat, AzScaledFontRef};
 use azure::azure_hl::{BackendType, ColorPattern};
 use azure::scaled_font::ScaledFont;
-use extra::arc::Arc;
+use extra::arc::{Arc, MutexArc};
 use geom::{Point2D, Rect, Size2D};
 use std::cast;
 use std::ptr;
@@ -13,6 +13,7 @@ use std::str;
 use std::vec;
 use servo_util::cache::{Cache, HashCache};
 use servo_util::range::Range;
+use servo_util::sync::MutexArcUtils;
 use servo_util::time::ProfilerChan;
 use style::computed_values::text_decoration;
 
@@ -171,15 +172,15 @@ pub enum FontSelector {
 // The ordering of font instances is mainly decided by the CSS
 // 'font-family' property. The last font is a system fallback font.
 pub struct FontGroup {
-    families: @str,
+    families: ~str,
     // style of the first western font in group, which is
     // used for purposes of calculating text run metrics.
     style: UsedFontStyle,
-    fonts: ~[@mut Font],
+    fonts: ~[MutexArc<Font>],
 }
 
 impl FontGroup {
-    pub fn new(families: @str, style: &UsedFontStyle, fonts: ~[@mut Font]) -> FontGroup {
+    pub fn new(families: ~str, style: &UsedFontStyle, fonts: ~[MutexArc<Font>]) -> FontGroup {
         FontGroup {
             families: families,
             style: (*style).clone(),
@@ -195,7 +196,7 @@ impl FontGroup {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        return TextRun::new(self.fonts[0], text, decoration);
+        return TextRun::new(self.fonts[0].clone(), text, decoration);
     }
 }
 
@@ -234,7 +235,10 @@ and the renderer can use it to render text.
 pub struct Font {
     priv handle: FontHandle,
     priv azure_font: Option<ScaledFont>,
-    priv shaper: Option<@Shaper>,
+
+    /// FIXME(pcwalton): A `MutexArc` is potentially unfortunate here.
+    priv shaper: Option<MutexArc<Shaper>>,
+
     style: UsedFontStyle,
     metrics: FontMetrics,
     backend: BackendType,
@@ -244,23 +248,15 @@ pub struct Font {
 }
 
 impl Font {
-    pub fn new_from_buffer(ctx: &FontContext,
-                       buffer: ~[u8],
-                       style: &SpecifiedFontStyle,
-                       backend: BackendType,
-                       profiler_chan: ProfilerChan)
-            -> Result<@mut Font, ()> {
-        let handle = FontHandleMethods::new_from_buffer(&ctx.handle, buffer, style);
-        let handle: FontHandle = if handle.is_ok() {
-            handle.unwrap()
-        } else {
-            return Err(handle.unwrap_err());
-        };
-        
+    pub fn new_from_adopted_handle(_: &FontContext,
+                                   handle: FontHandle,
+                                   style: &SpecifiedFontStyle,
+                                   backend: BackendType,
+                                   profiler_chan: ProfilerChan)
+                                   -> MutexArc<Font> {
         let metrics = handle.get_metrics();
-        // TODO(Issue #179): convert between specified and used font style here?
 
-        return Ok(@mut Font {
+        MutexArc::new(Font {
             handle: handle,
             azure_font: None,
             shaper: None,
@@ -270,49 +266,39 @@ impl Font {
             profiler_chan: profiler_chan,
             shape_cache: HashCache::new(),
             glyph_advance_cache: HashCache::new(),
-        });
+        })
     }
 
-    pub fn new_from_adopted_handle(_fctx: &FontContext, handle: FontHandle,
-                               style: &SpecifiedFontStyle, backend: BackendType,
-                               profiler_chan: ProfilerChan) -> @mut Font {
-        let metrics = handle.get_metrics();
-
-        @mut Font {
-            handle: handle,
-            azure_font: None,
-            shaper: None,
-            style: (*style).clone(),
-            metrics: metrics,
-            backend: backend,
-            profiler_chan: profiler_chan,
-            shape_cache: HashCache::new(),
-            glyph_advance_cache: HashCache::new(),
-        }
-    }
-
-    pub fn new_from_existing_handle(fctx: &FontContext, handle: &FontHandle,
-                                style: &SpecifiedFontStyle, backend: BackendType,
-                                profiler_chan: ProfilerChan) -> Result<@mut Font,()> {
-
+    pub fn new_from_existing_handle(fctx: &FontContext,
+                                    handle: &FontHandle,
+                                    style: &SpecifiedFontStyle,
+                                    backend: BackendType,
+                                    profiler_chan: ProfilerChan)
+                                    -> Result<MutexArc<Font>,()> {
         // TODO(Issue #179): convert between specified and used font style here?
         let styled_handle = match handle.clone_with_style(&fctx.handle, style) {
             Ok(result) => result,
             Err(()) => return Err(())
         };
 
-        return Ok(Font::new_from_adopted_handle(fctx, styled_handle, style, backend, profiler_chan));
+        return Ok(Font::new_from_adopted_handle(fctx,
+                                                styled_handle,
+                                                style,
+                                                backend,
+                                                profiler_chan));
     }
 
-    fn get_shaper(@mut self) -> @Shaper {
+    fn get_shaper(this: MutexArc<Font>) -> MutexArc<Shaper> {
+        // FIXME(pcwalton): A lock :(
         // fast path: already created a shaper
-        match self.shaper {
-            Some(shaper) => { return shaper; },
+        let shaper_opt = this.force_access(|this_ref| this_ref.shaper.clone());
+        match shaper_opt {
+            Some(shaper) => return shaper,
             None => {}
         }
 
-        let shaper = @Shaper::new(self);
-        self.shaper = Some(shaper);
+        let shaper = MutexArc::new(Shaper::new(this.clone()));
+        this.force_access(|this_ref| this_ref.shaper = Some(shaper.clone()));
         shaper
     }
 
@@ -454,13 +440,18 @@ impl Font {
         RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
     }
 
-    pub fn shape_text(@mut self, text: ~str, is_whitespace: bool) -> Arc<GlyphStore> {
-        let shaper = self.get_shaper();
-        do self.shape_cache.find_or_create(&text) |txt| {
-            let mut glyphs = GlyphStore::new(text.char_len(), is_whitespace);
-            shaper.shape_text(*txt, &mut glyphs);
-            Arc::new(glyphs)
-        }
+    pub fn shape_text(this: MutexArc<Font>, text: ~str, is_whitespace: bool) -> Arc<GlyphStore> {
+        let shaper = Font::get_shaper(this.clone());
+        
+        // FIXME(pcwalton): Uh-oh, we're locking on the font here. This is bad for parallelism.
+        // Maybe use a concurrent hash table?
+        this.force_access(|this| {
+            this.shape_cache.find_or_create(&text, |txt| {
+                let mut glyphs = GlyphStore::new(text.char_len(), is_whitespace);
+                shaper.force_access(|shaper| shaper.shape_text(*txt, &mut glyphs));
+                Arc::new(glyphs)
+            })
+        })
     }
 
     pub fn get_descriptor(&self) -> FontDescriptor {

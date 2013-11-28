@@ -23,3 +23,7 @@ pub mod url;
 pub mod vec;
 pub mod debug;
 pub mod io;
+pub mod sync;
+pub mod deque;
+pub mod ptrhash;
+

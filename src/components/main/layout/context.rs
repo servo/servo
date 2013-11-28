@@ -4,14 +4,34 @@
 
 //! Data needed by the layout task.
 
+use layout::flow::LeafSet;
+
+use extra::arc::MutexArc;
 use geom::rect::Rect;
 use gfx::font_context::FontContext;
-use servo_util::geometry::Au;
 use servo_net::local_image_cache::LocalImageCache;
+use servo_util::geometry::Au;
 
 /// Data needed by the layout task.
+#[deriving(Clone)]
 pub struct LayoutContext {
-    font_ctx: @mut FontContext,
-    image_cache: @mut LocalImageCache,
-    screen_size: Rect<Au>
+    /// The font context.
+    font_ctx: MutexArc<FontContext>,
+
+    /// The image cache.
+    image_cache: MutexArc<LocalImageCache>,
+
+    /// The size of the viewport.
+    screen_size: Rect<Au>,
+
+    /// The set of leaves.
+    leaf_set: MutexArc<LeafSet>,
 }
+
+// Ensures that layout context remains sendable. *Do not* remove this unless you know what you are
+// doing.
+fn stay_sendable_please<T:Send>(_: T) {
+    let x: Option<LayoutContext> = None;
+    stay_sendable_please(x)
+}
+

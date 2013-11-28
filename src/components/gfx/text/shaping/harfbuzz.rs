@@ -5,46 +5,48 @@
 extern mod harfbuzz;
 
 use font::{Font, FontHandleMethods, FontTableMethods, FontTableTag};
-use servo_util::geometry::Au;
 use platform::font::FontTable;
 use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
 use text::shaping::ShaperMethods;
-use servo_util::range::Range;
 use text::util::{float_to_fixed, fixed_to_float, fixed_to_rounded_int};
 
-use std::cast::transmute;
-use std::char;
-use std::libc::{c_uint, c_int, c_void, c_char};
-use std::ptr;
-use std::ptr::null;
-use std::uint;
-use std::util::ignore;
-use std::vec;
+use extra::arc::MutexArc;
 use geom::Point2D;
+use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR};
 use harfbuzz::{hb_blob_create, hb_face_create_for_tables};
+use harfbuzz::{hb_blob_t};
+use harfbuzz::{hb_bool_t};
 use harfbuzz::{hb_buffer_add_utf8};
+use harfbuzz::{hb_buffer_destroy};
 use harfbuzz::{hb_buffer_get_glyph_positions};
 use harfbuzz::{hb_buffer_set_direction};
-use harfbuzz::{hb_buffer_destroy};
 use harfbuzz::{hb_face_destroy};
+use harfbuzz::{hb_face_t, hb_font_t};
 use harfbuzz::{hb_font_create};
 use harfbuzz::{hb_font_destroy, hb_buffer_create};
 use harfbuzz::{hb_font_funcs_create};
 use harfbuzz::{hb_font_funcs_destroy};
 use harfbuzz::{hb_font_funcs_set_glyph_func};
 use harfbuzz::{hb_font_funcs_set_glyph_h_advance_func};
+use harfbuzz::{hb_font_funcs_t, hb_buffer_t, hb_codepoint_t};
 use harfbuzz::{hb_font_set_funcs};
 use harfbuzz::{hb_font_set_ppem};
 use harfbuzz::{hb_font_set_scale};
-use harfbuzz::{hb_shape, hb_buffer_get_glyph_infos};
-use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR};
-use harfbuzz::{hb_blob_t};
-use harfbuzz::{hb_bool_t};
-use harfbuzz::{hb_face_t, hb_font_t};
-use harfbuzz::{hb_font_funcs_t, hb_buffer_t, hb_codepoint_t};
 use harfbuzz::{hb_glyph_info_t};
 use harfbuzz::{hb_glyph_position_t};
 use harfbuzz::{hb_position_t, hb_tag_t};
+use harfbuzz::{hb_shape, hb_buffer_get_glyph_infos};
+use servo_util::geometry::Au;
+use servo_util::range::Range;
+use servo_util::sync::MutexArcUtils;
+use std::cast::transmute;
+use std::char;
+use std::libc::{c_uint, c_int, c_void, c_char};
+use std::ptr::null;
+use std::ptr;
+use std::uint;
+use std::util::ignore;
+use std::vec;
 
 static NO_GLYPH: i32 = -1;
 static CONTINUATION_BYTE: i32 = -2;
@@ -136,7 +138,7 @@ impl ShapedGlyphData {
 }
 
 pub struct Shaper {
-    font: @mut Font,
+    font: MutexArc<Font>,
     priv hb_face: *hb_face_t,
     priv hb_font: *hb_font_t,
     priv hb_funcs: *hb_font_funcs_t,
@@ -161,40 +163,39 @@ impl Drop for Shaper {
 
 impl Shaper {
     #[fixed_stack_segment]
-    pub fn new(font: @mut Font) -> Shaper {
+    pub fn new(font: MutexArc<Font>) -> Shaper {
         unsafe {
-            // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
-            let font_ptr = {
-                let borrowed_font= &mut *font;
-                borrowed_font as *mut Font
-            };
-            let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func,
-                                                                font_ptr as *c_void,
-                                                                None);
-            let hb_font: *hb_font_t = hb_font_create(hb_face);
+            font.force_access(|borrowed_font| {
+                // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
+                let font_ptr = borrowed_font as *mut Font;
+                let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func,
+                                                                    font_ptr as *c_void,
+                                                                    None);
+                let hb_font: *hb_font_t = hb_font_create(hb_face);
 
-            // Set points-per-em. if zero, performs no hinting in that direction.
-            let pt_size = font.style.pt_size;
-            hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
+                // Set points-per-em. if zero, performs no hinting in that direction.
+                let pt_size = borrowed_font.style.pt_size;
+                hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
-            // Set scaling. Note that this takes 16.16 fixed point.
-            hb_font_set_scale(hb_font,
-                              Shaper::float_to_fixed(pt_size) as c_int,
-                              Shaper::float_to_fixed(pt_size) as c_int);
+                // Set scaling. Note that this takes 16.16 fixed point.
+                hb_font_set_scale(hb_font,
+                                  Shaper::float_to_fixed(pt_size) as c_int,
+                                  Shaper::float_to_fixed(pt_size) as c_int);
 
-            // configure static function callbacks.
-            // NB. This funcs structure could be reused globally, as it never changes.
-            let hb_funcs: *hb_font_funcs_t = hb_font_funcs_create();
-            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, null(), None);
-            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, null(), None);
-            hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, None);
+                // configure static function callbacks.
+                // NB. This funcs structure could be reused globally, as it never changes.
+                let hb_funcs: *hb_font_funcs_t = hb_font_funcs_create();
+                hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, null(), None);
+                hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, null(), None);
+                hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, None);
 
-            Shaper {
-                font: font,
-                hb_face: hb_face,
-                hb_font: hb_font,
-                hb_funcs: hb_funcs,
-            }
+                Shaper {
+                    font: font.clone(),
+                    hb_face: hb_face,
+                    hb_font: hb_font,
+                    hb_funcs: hb_funcs,
+                }
+            })
         }
     }
 
