@@ -489,13 +489,23 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
                 }
             }
         }
+
         FirstChild => matches_first_child(element),
-
         LastChild  => matches_last_child(element),
-
-        OnlyChild  => matches_first_child(element) && matches_last_child(element),
+        OnlyChild  => matches_first_child(element) &&
+                      matches_last_child(element),
 
         Root => matches_root(element),
+
+        NthChild(a, b)      => matches_generic_nth_child(element, a, b, false, false),
+        NthLastChild(a, b)  => matches_generic_nth_child(element, a, b, false, true),
+        NthOfType(a, b)     => matches_generic_nth_child(element, a, b, true, false),
+        NthLastOfType(a, b) => matches_generic_nth_child(element, a, b, true, true),
+
+        FirstOfType => matches_generic_nth_child(element, 0, 1, true, false),
+        LastOfType  => matches_generic_nth_child(element, 0, 1, true, true),
+        OnlyOfType  => matches_generic_nth_child(element, 0, 1, true, false) &&
+                       matches_generic_nth_child(element, 0, 1, true, true),
 
         Negation(ref negated) => {
             !negated.iter().all(|s| matches_simple_selector(s, element))
@@ -508,6 +518,66 @@ fn url_is_visited(_url: &str) -> bool {
     // This function will probably need to take a "session"
     // or something containing browsing history as an additional parameter.
     false
+}
+
+#[inline]
+fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
+        element: &T, a: i32, b: i32, isOfType: bool, isFromEnd: bool) -> bool {
+    let mut node = element.clone();
+    // fail if we can't find a parent or if the node is the root element
+    // of the document (Cf. Selectors Level 3)
+    match node.node().parent_node() {
+        Some(parent) => if parent.is_document() {
+            return false;
+        },
+        None => return false
+    };
+
+    let mut local_name = "";
+    if isOfType {
+        // FIXME this is wrong
+        // TODO when the DOM supports namespaces on elements
+        do element.with_imm_element_like |element: &E| {
+            local_name = element.get_local_name();
+        }
+    }
+
+    let mut index = 1;
+    loop {
+        if isFromEnd {
+            match node.node().next_sibling() {
+                None => break,
+                Some(next_sibling) => node = next_sibling
+            }
+        } else {
+            match node.node().prev_sibling() {
+                None => break,
+                Some(prev_sibling) => node = prev_sibling
+            }
+        }
+
+        if node.is_element() {
+            if isOfType {
+                // FIXME this is wrong
+                // TODO when the DOM supports namespaces on elements
+                do node.with_imm_element_like |node: &E| {
+                    if local_name == node.get_local_name() {
+                        index += 1;
+                    }
+                }
+            } else {
+              index += 1;
+            }
+        }
+
+    }
+
+    if a == 0 {
+        return b == index;
+    }
+
+    let n: i32 =  (((index as f32) - (b as f32))  / (a as f32)) as i32;
+    n >= 0 && (a * n == index - b) 
 }
 
 #[inline]
