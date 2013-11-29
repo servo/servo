@@ -5,3 +5,10 @@
 == first_child_pseudo_a.html first_child_pseudo_b.html
 == last_child_pseudo_a.html last_child_pseudo_b.html
 == only_child_pseudo_a.html only_child_pseudo_b.html
+== nth_child_pseudo_a.html nth_child_pseudo_b.html
+== nth_last_child_pseudo_a.html nth_last_child_pseudo_b.html
+== nth_of_type_pseudo_a.html nth_of_type_pseudo_b.html
+== nth_last_of_type_pseudo_a.html nth_last_of_type_pseudo_b.html
+== first_of_type_pseudo_a.html first_of_type_pseudo_b.html
+== last_of_type_pseudo_a.html last_of_type_pseudo_b.html
+== only_of_type_pseudo_a.html only_of_type_pseudo_b.html

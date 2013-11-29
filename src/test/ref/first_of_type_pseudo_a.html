@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>:first-of-type test</title>
+    <style type="text/css">
+      /* should not match according to Selectors 3 because html has no parent element */
+      html:first-of-type { background: red; }
+
+      div > p,
+      div > div,
+      div > address {
+          float: left;
+          width: 20px;
+          height: 20px;
+          margin: 0px;
+          margin-right: 10px;
+          padding: 0px;
+      }
+      div > p {
+          background: white;
+      }
+      div > div,
+      div > address {
+          background: black;
+      }
+      body > div { clear: both; margin-bottom: 10px; }
+
+      #d1 > .ok { background: red; }
+      #d1 > *:first-of-type { background: green }
+
+    </style>
+  </head>
+  <body>
+    <div id="d1">
+      <p class="ok"> </p>
+      <div class="ok"> </div>
+      <div> </div>
+      <p> </p>
+      <address class="ok"> </address>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+      <address> </address>
+      <address> </address>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+    </div>
+  </body>
+</html>
