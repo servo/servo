@@ -371,6 +371,7 @@ pub mod longhands {
 
 
     // CSS 2.1, Section 11 - Visual effects
+    ${single_keyword("overflow", "visible hidden", inherited=False)} // TODO: scroll auto
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 

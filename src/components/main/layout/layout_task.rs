@@ -22,7 +22,7 @@ use extra::arc::{Arc, RWArc};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::display_list::DisplayList;
+use gfx::display_list::{DisplayList,DisplayItem,ClipDisplayItemClass};
 use gfx::font_context::FontContext;
 use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
@@ -41,7 +41,6 @@ use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
-use servo_util::range::Range;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::tree::TreeNodeRef;
@@ -178,26 +177,6 @@ impl<'self> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'s
     #[inline]
     fn should_process(&mut self, flow: &mut FlowContext) -> bool {
         !flow::base(flow).is_inorder
-    }
-}
-
-/// The display list building traversal. In WebKit this corresponds to `paint`. In Gecko this
-/// corresponds to `BuildDisplayListForChild`.
-struct DisplayListBuildingTraversal<'self> {
-    builder: DisplayListBuilder<'self>,
-    root_pos: Rect<Au>,
-    display_list: ~Cell<DisplayList<AbstractNode<()>>>,
-}
-
-impl<'self> PreorderFlowTraversal for DisplayListBuildingTraversal<'self> {
-    #[inline]
-    fn process(&mut self, _: &mut FlowContext) -> bool {
-        true
-    }
-
-    #[inline]
-    fn should_prune(&mut self, flow: &mut FlowContext) -> bool {
-        flow.build_display_list(&self.builder, &self.root_pos, self.display_list)
     }
 }
 
@@ -472,49 +451,20 @@ impl LayoutTask {
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
             do profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone()) {
-                // TODO: Set options on the builder before building.
-                // TODO: Be smarter about what needs painting.
-                let mut traversal = DisplayListBuildingTraversal {
-                    builder: DisplayListBuilder {
+                let root_size = flow::base(layout_root).position.size;
+                let display_list= ~Cell::new(DisplayList::<AbstractNode<()>>::new());
+                let dirty = flow::base(layout_root).position.clone();
+                layout_root.build_display_list(
+                    &DisplayListBuilder {
                         ctx: &layout_ctx,
                     },
-                    root_pos: flow::base(layout_root).position.clone(),
-                    display_list: ~Cell::new(DisplayList::<AbstractNode<()>>::new()),
-                };
+                    &dirty,
+                    display_list);
 
-                let _ = layout_root.traverse_preorder(&mut traversal);
-
-                let root_size = flow::base(layout_root).position.size;
-
-                let display_list = Arc::new(traversal.display_list.take());
+                let display_list = Arc::new(display_list.take());
 
                 for i in range(0,display_list.get().list.len()) {
-                    let node: AbstractNode<LayoutView> = unsafe {
-                        transmute(display_list.get().list[i].base().extra)
-                    };
-
-                    // FIXME(pcwalton): Why are we cloning the display list here?!
-                    match *node.mutate_layout_data().ptr {
-                        Some(ref mut layout_data) => {
-                            let boxes = &mut layout_data.boxes;
-                            boxes.display_list = Some(display_list.clone());
-
-                            if boxes.range.is_none() {
-                                debug!("Creating initial range for node");
-                                boxes.range = Some(Range::new(i,1));
-                            } else {
-                                debug!("Appending item to range");
-                                unsafe {
-                                    let old_node: AbstractNode<()> = transmute(node);
-                                    assert!(old_node == display_list.get().list[i-1].base().extra,
-                                    "Non-contiguous arrangement of display items");
-                                }
-
-                                boxes.range.unwrap().extend_by(1);
-                            }
-                        }
-                        None => fail!("no layout data"),
-                    }
+                    self.display_item_bound_to_node(&display_list.get().list[i]);
                 }
 
                     let mut color = color::rgba(255.0, 255.0, 255.0, 255.0);
@@ -556,6 +506,42 @@ impl LayoutTask {
         data.script_chan.send(ReflowCompleteMsg(self.id, data.id));
     }
 
+    fn display_item_bound_to_node(&mut self,item: &DisplayItem<AbstractNode<()>>) {
+        let node: AbstractNode<LayoutView> = unsafe {
+            transmute(item.base().extra)
+        };
+
+        match *node.mutate_layout_data().ptr {
+            Some(ref mut layout_data) => {
+                let boxes = &mut layout_data.boxes;
+
+                if boxes.display_bound_list.is_none() {
+                    boxes.display_bound_list = Some(~[]);
+                }
+                match boxes.display_bound_list {
+                    Some(ref mut list) => list.push(item.base().bounds),
+                    None => {}
+                }
+
+                if boxes.display_bound.is_none() {
+                    boxes.display_bound = Some(item.base().bounds);
+                } else {
+                    boxes.display_bound = Some(boxes.display_bound.unwrap().union(&item.base().bounds));
+                }
+            }
+            None => fail!("no layout data"),
+        }
+
+        match *item {
+            ClipDisplayItemClass(ref cc) => {
+                for item in cc.child_list.iter() {
+                    self.display_item_bound_to_node(item);
+                }
+            }
+            _ => {}
+        }
+    }
+
     /// Handles a query from the script task. This is the main routine that DOM functions like
     /// `getClientRects()` or `getBoundingClientRect()` ultimately invoke.
     fn handle_query(&self, query: LayoutQuery) {
@@ -570,19 +556,8 @@ impl LayoutTask {
                     // FIXME(pcwalton): Why are we cloning the display list here?!
                     let layout_data = node.borrow_layout_data();
                     let boxes = &layout_data.ptr.as_ref().unwrap().boxes;
-                    match (boxes.display_list.clone(), boxes.range) {
-                        (Some(display_list), Some(range)) => {
-                            let mut rect: Option<Rect<Au>> = None;
-                            for i in range.eachi() {
-                                rect = match rect {
-                                    Some(acc) => {
-                                        Some(acc.union(&display_list.get().list[i].bounds()))
-                                    }
-                                    None => Some(display_list.get().list[i].bounds())
-                                }
-                            }
-                            rect
-                        }
+                    match boxes.display_bound {
+                        Some(_) => boxes.display_bound,
                         _ => {
                             let mut acc: Option<Rect<Au>> = None;
                             for child in node.children() {
@@ -614,10 +589,10 @@ impl LayoutTask {
                                   -> ~[Rect<Au>] {
                     let layout_data = node.borrow_layout_data();
                     let boxes = &layout_data.ptr.as_ref().unwrap().boxes;
-                    match (boxes.display_list.clone(), boxes.range) {
-                        (Some(display_list), Some(range)) => {
-                            for i in range.eachi() {
-                                box_accumulator.push(display_list.get().list[i].bounds());
+                    match boxes.display_bound_list {
+                        Some(ref display_bound_list) => {
+                            for item in display_bound_list.iter() {
+                                box_accumulator.push(*item);
                             }
                         }
                         _ => {
@@ -634,29 +609,54 @@ impl LayoutTask {
                 reply_chan.send(ContentBoxesResponse(boxes))
             }
             HitTestQuery(_, point, reply_chan) => {
+                fn hit_test(x:Au, y:Au, list: &[DisplayItem<AbstractNode<()>>]) -> Option<HitTestResponse> {
+
+                    for item in list.rev_iter() {
+                        match *item {
+                            ClipDisplayItemClass(ref cc) => {
+                                let ret = hit_test(x, y, cc.child_list);
+                                if !ret.is_none() {
+                                    return ret;
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+
+                    for item in list.rev_iter() {
+                        match *item {
+                            ClipDisplayItemClass(_) => continue,
+                            _ => {}
+                        }
+                        let bounds = item.bounds();
+                        // TODO this check should really be performed by a method of DisplayItem
+                        if x < bounds.origin.x + bounds.size.width &&
+                            bounds.origin.x <= x &&
+                            y < bounds.origin.y + bounds.size.height &&
+                            bounds.origin.y <= y {
+                            let node: AbstractNode<LayoutView> = unsafe {
+                                transmute(item.base().extra)
+                            };
+                            let resp = Some(HitTestResponse(node));
+                            return resp;
+                        }
+                    }
+
+                    let ret: Option<HitTestResponse> = None;
+                    ret
+                }
                 let response = {
                     match self.display_list {
                         Some(ref list) => {
                             let display_list = list.get();
                             let (x, y) = (Au::from_frac_px(point.x as f64),
                                           Au::from_frac_px(point.y as f64));
-                            let mut resp = Err(());
-                            // iterate in reverse to ensure we have the most recently painted render box
-                            for display_item in display_list.list.rev_iter() {
-                                let bounds = display_item.bounds();
-                                // TODO this check should really be performed by a method of DisplayItem
-                                if x <= bounds.origin.x + bounds.size.width &&
-                                    bounds.origin.x <= x &&
-                                        y < bounds.origin.y + bounds.size.height &&
-                                        bounds.origin.y <  y {
-                                            let node: AbstractNode<LayoutView> = unsafe {
-                                                transmute(display_item.base().extra)
-                                            };
-                                            resp = Ok(HitTestResponse(node));
-                                            break;
-                                        }
+                            let resp = hit_test(x,y,display_list.list);
+                            if resp.is_none() {
+                                Err(())
+                            } else {
+                                Ok(resp.unwrap())
                             }
-                            resp
                         }
                         None => {
                             error!("Can't hit test: no display list");

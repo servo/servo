@@ -34,6 +34,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
+use gfx::display_list::{ClipDisplayItemClass};
 
 use extra::dlist::{DList, DListIterator, MutDListIterator};
 use extra::container::Deque;
@@ -526,7 +527,34 @@ impl<'self> MutableFlowUtils for &'self mut FlowContext {
             InlineFlowClass => self.as_inline().build_display_list_inline(builder, dirty, list),
             FloatFlowClass => self.as_float().build_display_list_float(builder, dirty, list),
             _ => fail!("Tried to build_display_list_recurse of flow: {:?}", self),
+        };
+
+        if list.with_mut_ref(|list| list.list.len() == 0) {
+            return true;
         }
+
+        let child_list = ~Cell::new(DisplayList::new());
+        for kid in child_iter(self) {
+            kid.build_display_list(builder,dirty,child_list);
+        }
+
+        do list.with_mut_ref |list| {
+            let result = list.list.mut_rev_iter().position(|item| {
+                match *item {
+                    ClipDisplayItemClass(ref mut item) => {
+                        item.child_list.push_all_move(child_list.take().list);
+                        true
+                    },
+                    _ => false,
+                }
+            });
+
+            if result.is_none() {
+                fail!("fail to find parent item");
+            }
+
+        }
+        true
     }
 }
 
