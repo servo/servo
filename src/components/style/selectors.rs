@@ -5,6 +5,7 @@
 use std::{vec, iter};
 use std::ascii::StrAsciiExt;
 use cssparser::ast::*;
+use cssparser::parse_nth;
 use namespaces::NamespaceMap;
 
 
@@ -66,7 +67,13 @@ pub enum SimpleSelector {
 //    Empty,
     Root,
 //    Lang(~str),
-//    NthChild(i32, i32),
+    NthChild(i32, i32),
+    NthLastChild(i32, i32),
+    NthOfType(i32, i32),
+    NthLastOfType(i32, i32),
+    FirstOfType,
+    LastOfType,
+    OnlyOfType
     // ...
 }
 
@@ -192,7 +199,10 @@ fn compute_specificity(mut selector: &CompoundSelector,
                 | &AttrPrefixMatch(*) | &AttrSubstringMatch(*) | &AttrSuffixMatch(*)
                 | &AnyLink | &Link | &Visited
                 | &FirstChild | &LastChild | &OnlyChild | &Root
-//                | &Empty | &Lang(*) | &NthChild(*)
+//                | &Empty | &Lang(*)
+                | &NthChild(*) | &NthLastChild(*)
+                | &NthOfType(*) | &NthLastOfType(*)
+                | &FirstOfType | &LastOfType | &OnlyOfType
                 => specificity.class_like_selectors += 1,
                 &NamespaceSelector(*) => (),
                 &Negation(ref negated)
@@ -441,6 +451,9 @@ fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
         "last-child"  => Some(LastChild),
         "only-child"  => Some(OnlyChild),
         "root" => Some(Root),
+        "first-of-type" => Some(FirstOfType),
+        "last-of-type"  => Some(LastOfType),
+        "only-of-type"  => Some(OnlyOfType),
 //        "empty" => Some(Empty),
         _ => None
     }
@@ -452,7 +465,10 @@ fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
                                  -> Option<SimpleSelector> {
     match name.to_ascii_lower().as_slice() {
 //        "lang" => parse_lang(arguments),
-//        "nth-child" => parse_nth(arguments).map(|&(a, b)| NthChild(a, b)),
+        "nth-child"        => parse_nth(arguments).map(|(a, b)| NthChild(a, b)),
+        "nth-last-child"   => parse_nth(arguments).map(|(a, b)| NthLastChild(a, b)),
+        "nth-of-type"      => parse_nth(arguments).map(|(a, b)| NthOfType(a, b)),
+        "nth-last-of-type" => parse_nth(arguments).map(|(a, b)| NthLastOfType(a, b)),
         "not" => if inside_negation { None } else { parse_negation(arguments, namespaces) },
         _ => None
     }

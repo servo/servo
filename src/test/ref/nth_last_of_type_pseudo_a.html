@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>:nth-last-of-type test</title>
+    <style type="text/css">
+      /* should not match according to Selectors 3 because html has no parent element */
+      html:nth-last-of-type(1) { background: red; }
+
+      div > p,
+      div > div,
+      div > address {
+          float: left;
+          width: 20px;
+          height: 20px;
+          margin: 0px;
+          margin-right: 10px;
+          padding: 0px;
+      }
+      div > p {
+          background: white;
+      }
+      div > div,
+      div > address {
+          background: black;
+      }
+      body > div { clear: both; margin-bottom: 10px; }
+
+      #odd > .odd { background: red; }
+      #odd > p:nth-last-of-type(odd) { background: green }
+
+      #even > .even { background: red; }
+      #even > p:nth-last-of-type(even) { background: green }
+
+      #nth > .nth { background: red; }
+      #nth > p:nth-last-of-type(3n+5) { background: green; }
+
+      #nth2 > .nth2 { background: red; }
+      #nth2 > p:nth-last-of-type(3n-5) { background: green; }
+
+      #negativen > .negativen { background: red; }
+      #negativen > p:nth-last-of-type(-2n+5) { background: green; }
+    </style>
+  </head>
+  <body>
+    <div id="odd">
+      <p> </p>
+      <div> </div>
+      <address> </address>
+      <div> </div>
+      <p class="odd"> </p>
+      <p> </p>
+      <div> </div>
+      <p class="odd"> </p>
+      <p> </p>
+      <address> </address>
+      <address> </address>
+      <p class="odd"> </p>
+      <div> </div>
+      <p> </p>
+      <p class="odd"> </p>
+    </div>
+    <div id="even">
+      <p class="even"> </p>
+      <div> </div>
+      <address> </address>
+      <div> </div>
+      <p> </p>
+      <p class="even"> </p>
+      <div> </div>
+      <p> </p>
+      <p class="even"> </p>
+      <address> </address>
+      <address> </address>
+      <p> </p>
+      <div> </div>
+      <p class="even"> </p>
+      <p> </p>
+    </div>
+    <div id="nth">
+      <p class="nth"> </p>
+      <div> </div>
+      <address> </address>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+      <div> </div>
+      <p class="nth"> </p>
+      <p> </p>
+      <address> </address>
+      <address> </address>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+    </div>
+    <div id="nth2">
+      <p> </p>
+      <div> </div>
+      <address> </address>
+      <div> </div>
+      <p class="nth2"> </p>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p class="nth2"> </p>
+      <address> </address>
+      <address> </address>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p class="nth2"> </p>
+    </div>
+    <div id="negativen">
+      <p> </p>
+      <div> </div>
+      <address> </address>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+      <div> </div>
+      <p class="negativen"> </p>
+      <p> </p>
+      <address> </address>
+      <address> </address>
+      <p class="negativen"> </p>
+      <div> </div>
+      <p> </p>
+      <p class="negativen"> </p>
+    </div>
+  </body>
+</html>

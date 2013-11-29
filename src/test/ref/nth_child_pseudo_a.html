@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>:nth-child test</title>
+    <style type="text/css">
+      /* should not match according to Selectors 3 because html has no parent element */
+      html:nth-child(1) { background: red; }
+
+      div > p { float: left; width: 40px; height: 40px; margin-right: 10px; border: 1px solid black; }
+      div { clear: both; }
+
+      #odd > .odd { background: red; }
+      #odd > *:nth-child(odd) { background: green }
+
+      #even > .even { background: red; }
+      #even > *:nth-child(even) { background: green }
+
+      #nth > .nth { background: red; }
+      #nth > :nth-child(3n+5) { background: green; }
+
+      #nth2 > .nth2 { background: red; }
+      #nth2 > :nth-child(3n-5) { background: green; }
+
+      #negativen > .negativen { background: red; }
+      #negativen > :nth-child(-2n+5) { background: green; }
+    </style>
+  </head>
+  <body>
+    <div id="odd">
+      <p class="odd"> </p>
+      <p> </p>
+      <p class="odd"> </p>
+      <p> </p>
+      <p class="odd"> </p>
+      <p> </p>
+      <p class="odd"> </p>
+      <p> </p>
+    </div>
+    <div id="even">
+      <p> </p>
+      <p class="even"> </p>
+      <p> </p>
+      <p class="even"> </p>
+      <p> </p>
+      <p class="even"> </p>
+      <p> </p>
+      <p class="even"> </p>
+    </div>
+    <div id="nth">
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <p class="nth"> </p>
+      <p> </p>
+      <p> </p>
+      <p class="nth"> </p>
+      <p> </p>
+      <p> </p>
+      <p class="nth"> </p>
+    </div>
+    <div id="nth2">
+      <p class="nth2"> </p>
+      <p> </p>
+      <p> </p>
+      <p class="nth2"> </p>
+      <p> </p>
+      <p> </p>
+      <p class="nth2"> </p>
+      <p> </p>
+      <p> </p>
+      <p class="nth2"> </p>
+      <p> </p>
+    </div>
+    <div id="negativen">
+      <p class="negativen"> </p>
+      <p> </p>
+      <p class="negativen"> </p>
+      <p> </p>
+      <p class="negativen"> </p>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+    </div>
+  </body>
+</html>
