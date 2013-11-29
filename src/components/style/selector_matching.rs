@@ -522,7 +522,7 @@ fn url_is_visited(_url: &str) -> bool {
 
 #[inline]
 fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        element: &T, a: i32, b: i32, isOfType: bool, isFromEnd: bool) -> bool {
+        element: &T, a: i32, b: i32, is_of_type: bool, is_from_end: bool) -> bool {
     let mut node = element.clone();
     // fail if we can't find a parent or if the node is the root element
     // of the document (Cf. Selectors Level 3)
@@ -534,7 +534,7 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
     };
 
     let mut local_name = "";
-    if isOfType {
+    if is_of_type {
         // FIXME this is wrong
         // TODO when the DOM supports namespaces on elements
         do element.with_imm_element_like |element: &E| {
@@ -544,7 +544,7 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
 
     let mut index = 1;
     loop {
-        if isFromEnd {
+        if is_from_end {
             match node.node().next_sibling() {
                 None => break,
                 Some(next_sibling) => node = next_sibling
@@ -557,7 +557,7 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
         }
 
         if node.is_element() {
-            if isOfType {
+            if is_of_type {
                 // FIXME this is wrong
                 // TODO when the DOM supports namespaces on elements
                 do node.with_imm_element_like |node: &E| {
@@ -576,7 +576,7 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
         return b == index;
     }
 
-    let n: i32 =  (((index as f32) - (b as f32))  / (a as f32)) as i32;
+    let (n, r) = (index - b).div_rem(&a);
     n >= 0 && (a * n == index - b) 
 }
 
