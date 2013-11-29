@@ -101,6 +101,28 @@ impl<'self> RenderContext<'self>  {
                                      &draw_opts);
     }
 
+    pub fn draw_push_clip(&self, bounds: &Rect<Au>) {
+        let rect = bounds.to_azure_rect();
+        let path_builder = self.draw_target.create_path_builder();
+
+        let left_top = Point2D(rect.origin.x, rect.origin.y);
+        let right_top = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
+        let left_bottom = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
+        let right_bottom = Point2D(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height);
+
+        path_builder.move_to(left_top);
+        path_builder.line_to(right_top);
+        path_builder.line_to(right_bottom);
+        path_builder.line_to(left_bottom);
+
+        let path = path_builder.finish();
+        self.draw_target.push_clip(&path);
+    }    
+    
+    pub fn draw_pop_clip(&self) {
+        self.draw_target.pop_clip();
+    }    
+
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<~Image>) {
         let image = image.get();
         let size = Size2D(image.width as i32, image.height as i32);

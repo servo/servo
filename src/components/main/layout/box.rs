@@ -9,7 +9,7 @@ use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
 use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextDisplayItem};
-use gfx::display_list::{TextDisplayItemClass};
+use gfx::display_list::{TextDisplayItemClass, ClipDisplayItem, ClipDisplayItemClass};
 use gfx::font::{FontStyle, FontWeight300};
 use gfx::text::text_run::TextRun;
 use gfx::color::rgb;
@@ -28,7 +28,7 @@ use std::unstable::raw::Box;
 use style::ComputedValues;
 use style::computed_values::{
     border_style, clear, float, font_family, font_style, line_height,
-    position, text_align, text_decoration, vertical_align, LengthOrPercentage};
+    position, text_align, text_decoration, vertical_align, LengthOrPercentage, overflow};
 
 use css::node_style::StyledNode;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
@@ -76,6 +76,13 @@ pub trait RenderBox {
     /// FIXME(pcwalton): Ugly. Replace with a real downcast operation.
     fn as_unscanned_text_render_box(@self) -> @UnscannedTextRenderBox {
         fail!("as_unscanned_text_render_box() called on a non-unscanned-text-render-box")
+    }
+
+     /// If this is an unscanned text render box, returns the underlying object. Fails otherwise.
+    ///
+    /// FIXME(pcwalton): Ugly. Replace with a real downcast operation.
+    fn as_generic_render_box(@self) -> @GenericRenderBox {
+        fail!("as_generic_render_box() called on a generic-render-box")
     }
 
     /// Cleans up all memory associated with this render box.
@@ -188,11 +195,22 @@ impl GenericRenderBox {
             base: base,
         }
     }
+
+    fn need_clip(&self) -> bool {
+        if self.base.node.style().Box.overflow == overflow::hidden {
+            return true;
+        }
+        false
+    }
 }
 
 impl RenderBox for GenericRenderBox {
     fn class(&self) -> RenderBoxClass {
         GenericRenderBoxClass
+    }
+
+    fn as_generic_render_box(@self) -> @GenericRenderBox {
+        self
     }
 
     fn minimum_and_preferred_widths(&self) -> (Au, Au) {
@@ -1029,6 +1047,19 @@ impl RenderBoxUtils for @RenderBox {
                 // Add the background to the list, if applicable.
                 self.paint_background_if_applicable(list, &absolute_box_bounds);
 
+                do list.with_mut_ref |list| {
+                    let item = ~ClipDisplayItem {
+                        base: BaseDisplayItem {
+                            bounds: absolute_box_bounds,
+                            extra: ExtraDisplayListData::new(self),
+                        },
+                        child_list: ~[],
+                        need_clip: false
+                    };
+                    list.append_item(ClipDisplayItemClass(item));
+                }
+
+
                 let nearest_ancestor_element = base.nearest_ancestor_element();
                 let color = nearest_ancestor_element.style().Color.color.to_gfx_color();
 
@@ -1099,6 +1130,19 @@ impl RenderBoxUtils for @RenderBox {
                 // Add the background to the list, if applicable.
                 self.paint_background_if_applicable(list, &absolute_box_bounds);
 
+                let generic_box = self.as_generic_render_box();
+                do list.with_mut_ref |list| {
+                    let item = ~ClipDisplayItem {
+                        base: BaseDisplayItem {
+                            bounds: absolute_box_bounds,
+                            extra: ExtraDisplayListData::new(self),
+                        },
+                        child_list: ~[],
+                        need_clip: generic_box.need_clip()
+                    };
+                    list.append_item(ClipDisplayItemClass(item));
+                }
+
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
                 debug!("{:?}", {
@@ -1122,10 +1166,22 @@ impl RenderBoxUtils for @RenderBox {
                 });
             },
             ImageRenderBoxClass => {
-                let image_box = self.as_image_render_box();
-
                 // Add the background to the list, if applicable.
                 self.paint_background_if_applicable(list, &absolute_box_bounds);
+
+                do list.with_mut_ref |list| {
+                    let item = ~ClipDisplayItem {
+                        base: BaseDisplayItem {
+                            bounds: absolute_box_bounds,
+                            extra: ExtraDisplayListData::new(self),
+                        },
+                        child_list: ~[],
+                        need_clip: false
+                    };
+                    list.append_item(ClipDisplayItemClass(item));
+                }
+
+                let image_box = self.as_image_render_box();
 
                 match image_box.image.mutate().ptr.get_image() {
                     Some(image) => {

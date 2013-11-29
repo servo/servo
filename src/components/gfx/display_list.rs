@@ -64,6 +64,7 @@ pub enum DisplayItem<E> {
     TextDisplayItemClass(~TextDisplayItem<E>),
     ImageDisplayItemClass(~ImageDisplayItem<E>),
     BorderDisplayItemClass(~BorderDisplayItem<E>),
+    ClipDisplayItemClass(~ClipDisplayItem<E>)
 }
 
 /// Information common to all display items.
@@ -111,12 +112,30 @@ pub struct BorderDisplayItem<E> {
     style: SideOffsets2D<border_style::T>
 }
 
+pub struct ClipDisplayItem<E> {
+    base: BaseDisplayItem<E>,
+    child_list: ~[DisplayItem<E>],
+    need_clip: bool
+}
+
 impl<E> DisplayItem<E> {
     /// Renders this display item into the given render context.
     fn draw_into_context(&self, render_context: &RenderContext) {
         match *self {
             SolidColorDisplayItemClass(ref solid_color) => {
                 render_context.draw_solid_color(&solid_color.base.bounds, solid_color.color)
+            }
+
+            ClipDisplayItemClass(ref clip) => {
+                if clip.need_clip {
+                    render_context.draw_push_clip(&clip.base.bounds);
+                }
+                for item in clip.child_list.iter() {
+                    (*item).draw_into_context(render_context);
+                }
+                if clip.need_clip {
+                    render_context.draw_pop_clip();
+                }
             }
 
             TextDisplayItemClass(ref text) => {
@@ -182,7 +201,8 @@ impl<E> DisplayItem<E> {
                 SolidColorDisplayItemClass(ref solid_color) => transmute_region(&solid_color.base),
                 TextDisplayItemClass(ref text) => transmute_region(&text.base),
                 ImageDisplayItemClass(ref image_item) => transmute_region(&image_item.base),
-                BorderDisplayItemClass(ref border) => transmute_region(&border.base)
+                BorderDisplayItemClass(ref border) => transmute_region(&border.base),
+                ClipDisplayItemClass(ref clip) => transmute_region(&clip.base),
             }
         }
     }
