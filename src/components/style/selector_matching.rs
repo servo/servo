@@ -577,7 +577,7 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
     }
 
     let (n, r) = (index - b).div_rem(&a);
-    n >= 0 && (a * n == index - b) 
+    n >= 0 && r == 0
 }
 
 #[inline]
