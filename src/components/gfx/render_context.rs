@@ -8,8 +8,7 @@ use opts::Opts;
 
 use azure::azure_hl::{B8G8R8A8, Color, ColorPattern, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, Linear, StrokeOptions};
-use azure::{AZ_CAP_BUTT, AZ_CAP_ROUND};
-use azure::AZ_JOIN_BEVEL;
+use azure::AZ_CAP_BUTT;
 use azure::AzFloat;
 use extra::arc::Arc;
 use geom::point::Point2D;

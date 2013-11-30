@@ -6,7 +6,6 @@
 
 use std::cell::Cell;
 use std::comm;
-use std::rt;
 use std::task;
 use std::vec;
 use extra::arc::RWArc;
