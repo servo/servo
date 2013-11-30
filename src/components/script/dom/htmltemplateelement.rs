@@ -3,25 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLTemplateElementBinding;
-use dom::document::AbstractDocument;
+use dom::bindings::codegen::InheritTypes::HTMLTemplateElementDerived;
+use dom::bindings::js::JS;
+use dom::document::Document;
 use dom::element::HTMLTemplateElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLTemplateElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLTemplateElementDerived for EventTarget {
+    fn is_htmltemplateelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLTemplateElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLTemplateElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLTemplateElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement: HTMLElement::new_inherited(HTMLTemplateElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLTemplateElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLTemplateElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTemplateElement> {
+        let element = HTMLTemplateElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLTemplateElementBinding::Wrap)
     }
 }

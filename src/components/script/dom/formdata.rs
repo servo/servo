@@ -4,27 +4,30 @@
 
 use dom::bindings::utils::{Fallible, Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::codegen::FormDataBinding;
+use dom::bindings::js::JS;
 use dom::blob::Blob;
-use dom::node::AbstractNode;
+use dom::htmlformelement::HTMLFormElement;
 use dom::window::Window;
 use servo_util::str::DOMString;
 
 use std::hashmap::HashMap;
 
+#[deriving(Encodable)]
 enum FormDatum {
     StringData(DOMString),
-    BlobData { blob: @mut Blob, name: DOMString }
+    BlobData { blob: JS<Blob>, name: DOMString }
 }
 
+#[deriving(Encodable)]
 pub struct FormData {
     data: HashMap<DOMString, FormDatum>,
     reflector_: Reflector,
-    window: @mut Window,
-    form: Option<AbstractNode>
+    window: JS<Window>,
+    form: Option<JS<HTMLFormElement>>
 }
 
 impl FormData {
-    pub fn new_inherited(form: Option<AbstractNode>, window: @mut Window) -> FormData {
+    pub fn new_inherited(form: Option<JS<HTMLFormElement>>, window: JS<Window>) -> FormData {
         FormData {
             data: HashMap::new(),
             reflector_: Reflector::new(),
@@ -33,18 +36,18 @@ impl FormData {
         }
     }
 
-    pub fn new(form: Option<AbstractNode>, window: @mut Window) -> @mut FormData {
-        reflect_dom_object(@mut FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
+    pub fn new(form: Option<JS<HTMLFormElement>>, window: &JS<Window>) -> JS<FormData> {
+        reflect_dom_object(~FormData::new_inherited(form, window.clone()), window.get(), FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(window: @mut Window, form: Option<AbstractNode>)
-                       -> Fallible<@mut FormData> {
+    pub fn Constructor(window: &JS<Window>, form: Option<JS<HTMLFormElement>>)
+                       -> Fallible<JS<FormData>> {
         Ok(FormData::new(form, window))
     }
 
-    pub fn Append(&mut self, name: DOMString, value: @mut Blob, filename: Option<DOMString>) {
+    pub fn Append(&mut self, name: DOMString, value: &JS<Blob>, filename: Option<DOMString>) {
         let blob = BlobData {
-            blob: value,
+            blob: value.clone(),
             name: filename.unwrap_or(~"default")
         };
         self.data.insert(name.clone(), blob);

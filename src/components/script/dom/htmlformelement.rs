@@ -3,28 +3,41 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLFormElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
+use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
-use dom::document::AbstractDocument;
-use dom::element::HTMLFormElementTypeId;
+use dom::document::Document;
+use dom::element::{Element, HTMLFormElementTypeId};
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLFormElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLFormElementDerived for EventTarget {
+    fn is_htmlformelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLFormElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLFormElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLFormElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(HTMLFormElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLFormElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLFormElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLFormElement> {
+        let element = HTMLFormElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLFormElementBinding::Wrap)
     }
 }
 
@@ -101,9 +114,10 @@ impl HTMLFormElement {
         Ok(())
     }
 
-    pub fn Elements(&self) -> @mut HTMLCollection {
-        let window = self.htmlelement.element.node.owner_doc().document().window;
-        HTMLCollection::new(window, ~[])
+    pub fn Elements(&self) -> JS<HTMLCollection> {
+        let doc = self.htmlelement.element.node.owner_doc();
+        let doc = doc.get();
+        HTMLCollection::new(&doc.window, ~[])
     }
 
     pub fn Length(&self) -> i32 {
@@ -121,7 +135,7 @@ impl HTMLFormElement {
         false
     }
 
-    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> AbstractNode {
+    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> JS<Element> {
         fail!("Not implemented.")
     }
 }

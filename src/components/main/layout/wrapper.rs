@@ -11,15 +11,18 @@
 //!
 //! (1) Layout is not allowed to mutate the DOM.
 //!
-//! (2) Layout is not allowed to see anything with `Abstract` in the name, because it could hang
+//! (2) Layout is not allowed to see anything with `JS` in the name, because it could hang
 //!     onto these objects and cause use-after-free.
 
 use extra::url::Url;
+use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLIFrameElementCast};
+use script::dom::bindings::codegen::InheritTypes::{TextCast, ElementCast};
+use script::dom::bindings::js::JS;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::HTMLImageElement;
-use script::dom::node::{AbstractNode, DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
+use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId, NodeHelpers};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::concurrentmap::{ConcurrentHashMap, ConcurrentHashMapIterator};
@@ -35,20 +38,20 @@ use layout::util::LayoutDataWrapper;
 /// Allows some convenience methods on generic layout nodes.
 pub trait TLayoutNode {
     /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> Self;
+    unsafe fn new_with_this_lifetime(&self, node: JS<Node>) -> Self;
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
     fn type_id(&self) -> NodeTypeId;
 
-    /// Returns the interior of this node as an `AbstractNode`. This is highly unsafe for layout to
+
+    /// Returns the interior of this node as a `JS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
-    unsafe fn get_abstract(&self) -> AbstractNode;
+    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node>;
 
     /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
     /// and as such is marked `unsafe`.
     unsafe fn get<'a>(&'a self) -> &'a Node {
-        let node = self.get_abstract();
-        cast::transmute(node.node())
+        self.get_jsmanaged().get()
     }
 
     fn node_is_element(&self) -> bool {
@@ -70,40 +73,18 @@ pub trait TLayoutNode {
     /// FIXME(pcwalton): Don't copy URLs.
     fn image_url(&self) -> Option<Url> {
         unsafe {
-            self.with_image_element(|image_element| {
-                image_element.image.as_ref().map(|url| (*url).clone())
-            })
+            let image_element: JS<HTMLImageElement> = HTMLImageElementCast::to(self.get_jsmanaged());
+            image_element.get().extra.image.as_ref().map(|url| (*url).clone())
         }
-    }
-
-    /// Downcasts this node to an iframe element and calls the given closure.
-    ///
-    /// FIXME(pcwalton): RAII.
-    unsafe fn with_iframe_element<R>(&self, f: |&HTMLIFrameElement| -> R) -> R {
-        if !self.get_abstract().is_iframe_element() {
-            fail!(~"node is not an iframe element");
-        }
-        self.get_abstract().transmute(f)
-    }
-
-    /// Downcasts this node to an image element and calls the given closure.
-    ///
-    /// FIXME(pcwalton): RAII.
-    unsafe fn with_image_element<R>(&self, f: |&HTMLImageElement| -> R) -> R {
-        if !self.get_abstract().is_image_element() {
-            fail!(~"node is not an image element");
-        }
-        self.get_abstract().transmute(f)
     }
 
     /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
     /// not an iframe element, fails.
     fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
         unsafe {
-            self.with_iframe_element(|iframe_element| {
-                let size = iframe_element.size.unwrap();
-                (size.pipeline_id, size.subpage_id)
-            })
+            let iframe_element: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(self.get_jsmanaged());
+            let size = iframe_element.get().size.unwrap();
+            (size.pipeline_id, size.subpage_id)
         }
     }
 
@@ -112,45 +93,39 @@ pub trait TLayoutNode {
     /// FIXME(pcwalton): Don't copy text. Atomically reference count instead.
     fn text(&self) -> ~str {
         unsafe {
-            self.with_text(|text| text.characterdata.data.to_str())
+            let text: JS<Text> = TextCast::to(self.get_jsmanaged());
+            text.get().characterdata.data.to_str()
         }
-    }
-
-    /// Downcasts this node to a text node and calls the given closure.
-    ///
-    /// FIXME(pcwalton): RAII.
-    unsafe fn with_text<R>(&self, f: |&Text| -> R) -> R {
-        self.get_abstract().with_imm_text(f)
     }
 
     /// Returns the first child of this node.
     fn first_child(&self) -> Option<Self> {
         unsafe {
-            self.get_abstract().first_child().map(|node| self.new_with_this_lifetime(node))
+            self.get_jsmanaged().first_child().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
     /// Dumps this node tree, for debugging.
     fn dump(&self) {
         unsafe {
-            self.get_abstract().dump()
+            self.get_jsmanaged().dump()
         }
     }
 }
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
-/// only ever see these and must never see instances of `AbstractNode`.
+/// only ever see these and must never see instances of `JS`.
 #[deriving(Clone, Eq)]
 pub struct LayoutNode<'a> {
     /// The wrapped node.
-    priv node: AbstractNode,
+    priv node: JS<Node>,
 
     /// Being chained to a value prevents `LayoutNode`s from escaping.
     priv chain: &'a (),
 }
 
 impl<'ln> TLayoutNode for LayoutNode<'ln> {
-    unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> LayoutNode<'ln> {
+    unsafe fn new_with_this_lifetime(&self, node: JS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
             node: node,
             chain: self.chain,
@@ -159,14 +134,14 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
     fn type_id(&self) -> NodeTypeId {
         self.node.type_id()
     }
-    unsafe fn get_abstract(&self) -> AbstractNode {
-        self.node
+    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
+        &self.node
     }
 }
 
 impl<'ln> LayoutNode<'ln> {
     /// Creates a new layout node, scoped to the given closure.
-    pub unsafe fn with_layout_node<R>(node: AbstractNode, f: <'a> |LayoutNode<'a>| -> R) -> R {
+    pub unsafe fn with_layout_node<R>(node: JS<Node>, f: <'a> |LayoutNode<'a>| -> R) -> R {
         let heavy_iron_ball = ();
         f(LayoutNode {
             node: node,
@@ -194,34 +169,34 @@ impl<'ln> LayoutNode<'ln> {
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.node().parent_node.map(|node| self.new_with_this_lifetime(node))
+            self.node.parent_node().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
     fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
+            self.node.prev_sibling().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
+            self.node.next_sibling().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
     fn with_element<R>(&self, f: |&LayoutElement<'ln>| -> R) -> R {
-        self.node.with_imm_element(|element| {
-            // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
-            // implementations.
-            unsafe {
-                f(&LayoutElement {
-                    element: cast::transmute_region(element),
-                })
-            }
-        })
+        let elem: JS<Element> = ElementCast::to(&self.node);
+        let element = elem.get();
+        // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
+        // implementations.
+        unsafe {
+            f(&LayoutElement {
+                element: cast::transmute_region(element),
+            })
+        }
     }
 
     fn is_element(&self) -> bool {
@@ -257,8 +232,8 @@ pub struct LayoutNodeChildrenIterator<'a> {
 
 impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<LayoutNode<'a>> {
-        let node = self.current_node;
-        self.current_node = self.current_node.and_then(|node| {
+        let node = self.current_node.clone();
+        self.current_node = node.clone().and_then(|node| {
             node.next_sibling()
         });
         node
@@ -358,7 +333,7 @@ impl<'le> TElement for LayoutElement<'le> {
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
 pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
-    priv node: AbstractNode,
+    priv node: JS<Node>,
 
     /// Being chained to a value prevents `ThreadSafeLayoutNode`s from escaping.
     priv chain: &'ln (),
@@ -366,7 +341,7 @@ pub struct ThreadSafeLayoutNode<'ln> {
 
 impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> ThreadSafeLayoutNode<'ln> {
+    unsafe fn new_with_this_lifetime(&self, node: JS<Node>) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
             node: node,
             chain: self.chain,
@@ -375,23 +350,32 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     fn type_id(&self) -> NodeTypeId {
         self.node.type_id()
     }
-    unsafe fn get_abstract(&self) -> AbstractNode {
-        self.node
+    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
+        &self.node
+    }
+}
+
+impl<'ln> Clone for ThreadSafeLayoutNode<'ln> {
+    fn clone(&self) -> ThreadSafeLayoutNode<'ln> {
+        ThreadSafeLayoutNode {
+            node: self.node.clone(),
+            chain: self.chain,
+        }
     }
 }
 
 impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
-    pub fn new<'a>(node: LayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
+    pub fn new<'a>(node: &LayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
         ThreadSafeLayoutNode {
-            node: node.node,
+            node: node.node.clone(),
             chain: node.chain,
         }
     }
 
     /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
     unsafe fn next_sibling(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
+        self.node.next_sibling().map(|node| self.new_with_this_lifetime(node))
     }
 
     /// Returns an iterator over this node's children.
@@ -405,12 +389,12 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline]
     pub fn with_element<R>(&self, f: |&ThreadSafeLayoutElement| -> R) -> R {
         unsafe {
-            self.get_abstract().with_imm_element(|element| {
-                // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
-                // implementations.
-                f(&ThreadSafeLayoutElement {
-                    element: cast::transmute_region(element),
-                })
+            let elem: JS<Element> = ElementCast::to(&self.node);
+            let element = elem.get();
+            // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
+            // implementations.
+            f(&ThreadSafeLayoutElement {
+                element: cast::transmute_region(element),
             })
         }
     }
@@ -434,7 +418,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Traverses the tree in postorder.
     ///
     /// TODO(pcwalton): Offer a parallel version with a compatible API.
-    pub fn traverse_postorder_mut<T:PostorderNodeMutTraversal>(mut self, traversal: &mut T)
+    pub fn traverse_postorder_mut<T:PostorderNodeMutTraversal>(&mut self, traversal: &mut T)
                                   -> bool {
         if traversal.should_prune(self) {
             return true
@@ -444,7 +428,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         loop {
             match opt_kid {
                 None => break,
-                Some(kid) => {
+                Some(mut kid) => {
                     if !kid.traverse_postorder_mut(traversal) {
                         return false
                     }
@@ -465,8 +449,8 @@ pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
 
 impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<ThreadSafeLayoutNode<'a>> {
-        let node = self.current_node;
-        self.current_node = self.current_node.and_then(|node| {
+        let node = self.current_node.clone();
+        self.current_node = self.current_node.clone().and_then(|node| {
             unsafe {
                 node.next_sibling()
             }
@@ -491,17 +475,19 @@ impl<'le> ThreadSafeLayoutElement<'le> {
 /// A bottom-up, parallelizable traversal.
 pub trait PostorderNodeMutTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process<'a>(&'a mut self, node: ThreadSafeLayoutNode<'a>) -> bool;
+    fn process<'a>(&'a mut self, node: &ThreadSafeLayoutNode<'a>) -> bool;
 
     /// Returns true if this node should be pruned. If this returns true, we skip the operation
     /// entirely and do not process any descendant nodes. This is called *before* child nodes are
     /// visited. The default implementation never prunes any nodes.
-    fn should_prune<'a>(&'a self, _node: ThreadSafeLayoutNode<'a>) -> bool {
+    fn should_prune<'a>(&'a self, _node: &ThreadSafeLayoutNode<'a>) -> bool {
         false
     }
 }
 
-pub type UnsafeLayoutNode = (uint, uint);
+/// Opaque type stored in type-unsafe work queues for parallel layout.
+/// Must be transmutable to and from LayoutNode/ThreadsafeLayoutNode/PaddedUnsafeFlow.
+pub type UnsafeLayoutNode = (uint, uint, uint);
 
 pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode {
     unsafe {

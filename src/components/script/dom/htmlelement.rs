@@ -3,29 +3,42 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLElementBinding;
-use dom::bindings::utils::{Fallible, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::bindings::codegen::InheritTypes::HTMLElementDerived;
+use dom::bindings::js::JS;
+use dom::bindings::utils::{ErrorResult, Fallible};
+use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
-use dom::node::{AbstractNode, Node};
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::node::{Node, ElementNodeTypeId};
 use js::jsapi::{JSContext, JSVal};
 use js::JSVAL_NULL;
 use servo_util::namespace;
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLElement {
     element: Element
 }
 
+impl HTMLElementDerived for EventTarget {
+    fn is_htmlelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(_)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: AbstractDocument) -> HTMLElement {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: JS<Document>) -> HTMLElement {
         HTMLElement {
             element: Element::new_inherited(type_id, tag_name, namespace::HTML, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document);
-        Node::reflect_node(@mut element, document, HTMLElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLElement> {
+        let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document.clone());
+        Node::reflect_node(~element, document, HTMLElementBinding::Wrap)
     }
 }
 
@@ -134,7 +147,7 @@ impl HTMLElement {
     pub fn SetClassName(&self, _class: DOMString) {
     }
 
-    pub fn GetOffsetParent(&self) -> Option<AbstractNode> {
+    pub fn GetOffsetParent(&self) -> Option<JS<Element>> {
         None
     }
 

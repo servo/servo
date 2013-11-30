@@ -26,15 +26,17 @@ mod macros;
 
 pub mod dom {
     pub mod bindings {
+        pub mod js;
         pub mod element;
-        pub mod node;
         pub mod utils;
         pub mod callback;
         pub mod conversions;
         pub mod proxyhandler;
+        pub mod trace;
         pub mod codegen {
             pub use self::BindingDeclarations::*;
             pub mod InterfaceTypes;
+            pub mod InheritTypes;
             pub mod PrototypeList;
             pub mod RegisterBindings;
             pub mod BindingDeclarations;

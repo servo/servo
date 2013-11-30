@@ -3,27 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLInputElementBinding;
-use dom::bindings::utils::{Fallible, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::bindings::codegen::InheritTypes::HTMLInputElementDerived;
+use dom::bindings::js::JS;
+use dom::bindings::utils::{ErrorResult, Fallible};
+use dom::document::Document;
 use dom::element::HTMLInputElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLInputElementDerived for EventTarget {
+    fn is_htmlinputelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLInputElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLInputElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLInputElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLInputElement {
         HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLInputElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLInputElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLInputElement> {
+        let element = HTMLInputElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLInputElementBinding::Wrap)
     }
 }
 

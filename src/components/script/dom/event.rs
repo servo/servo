@@ -2,19 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::eventtarget::AbstractEventTarget;
-use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
+use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{Fallible, ErrorResult};
-use dom::mouseevent::MouseEvent;
-use dom::uievent::UIEvent;
+use dom::eventtarget::EventTarget;
+use dom::window::Window;
 use servo_util::str::DOMString;
 
 use geom::point::Point2D;
-
-use std::cast;
-use std::unstable::raw::Box;
 
 pub enum Event_ {
     ResizeEvent(uint, uint), 
@@ -25,10 +21,7 @@ pub enum Event_ {
     MouseMoveEvent(Point2D<f32>)
 }
 
-pub struct AbstractEvent {
-    event: *mut Box<Event>
-}
-
+#[deriving(Encodable)]
 pub enum EventPhase {
     Phase_None = 0,
     Phase_Capturing,
@@ -36,91 +29,7 @@ pub enum EventPhase {
     Phase_Bubbling
 }
 
-impl AbstractEvent {
-    pub fn from_box(box_: *mut Box<Event>) -> AbstractEvent {
-        AbstractEvent {
-            event: box_
-        }
-    }
-
-    //
-    // Downcasting borrows
-    //
-
-    fn transmute<'a, T>(&'a self) -> &'a T {
-        unsafe {
-            let box_: *Box<T> = self.event as *Box<T>;
-            &(*box_).data
-        }
-    }
-
-    fn transmute_mut<'a, T>(&'a self) -> &'a mut T {
-        unsafe {
-            let box_: *mut Box<T> = self.event as *mut Box<T>;
-            &mut (*box_).data
-        }
-    }
-
-    pub fn type_id(&self) -> EventTypeId {
-        self.event().type_id
-    }
-
-    pub fn event<'a>(&'a self) -> &'a Event {
-        self.transmute()
-    }
-
-    pub fn mut_event<'a>(&'a self) -> &'a mut Event {
-        self.transmute_mut()
-    }
-
-    pub fn is_uievent(&self) -> bool {
-        self.type_id() == UIEventTypeId
-    }
-
-    pub fn uievent<'a>(&'a self) -> &'a UIEvent {
-        assert!(self.is_uievent());
-        self.transmute()
-    }
-
-    pub fn mut_uievent<'a>(&'a self) -> &'a mut UIEvent {
-        assert!(self.is_uievent());
-        self.transmute_mut()
-    }
-
-    pub fn is_mouseevent(&self) -> bool {
-        self.type_id() == MouseEventTypeId
-    }
-
-    pub fn mouseevent<'a>(&'a self) -> &'a MouseEvent {
-        assert!(self.is_mouseevent());
-        self.transmute()
-    }
-
-    pub fn mut_mouseevent<'a>(&'a self) -> &'a mut MouseEvent {
-        assert!(self.is_mouseevent());
-        self.transmute_mut()
-    }
-
-    pub fn propagation_stopped(&self) -> bool {
-        self.event().stop_propagation
-    }
-
-    pub fn bubbles(&self) -> bool {
-        self.event().bubbles
-    }
-}
-
-impl Reflectable for AbstractEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.event().reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.mut_event().mut_reflector()
-    }
-}
-
-#[deriving(Eq)]
+#[deriving(Eq, Encodable)]
 pub enum EventTypeId {
     HTMLEventTypeId,
     UIEventTypeId,
@@ -128,11 +37,12 @@ pub enum EventTypeId {
     KeyEventTypeId
 }
 
+#[deriving(Encodable)]
 pub struct Event {
     type_id: EventTypeId,
     reflector_: Reflector,
-    current_target: Option<AbstractEventTarget>,
-    target: Option<AbstractEventTarget>,
+    current_target: Option<JS<EventTarget>>,
+    target: Option<JS<EventTarget>>,
     type_: DOMString,
     phase: EventPhase,
     default_prevented: bool,
@@ -142,7 +52,7 @@ pub struct Event {
     bubbles: bool,
     trusted: bool,
     dispatching: bool,
-    initialized: bool
+    initialized: bool,
 }
 
 impl Event {
@@ -165,18 +75,10 @@ impl Event {
         }
     }
 
-    //FIXME: E should be bounded by some trait that is only implemented for Event types
-    pub fn as_abstract<E>(event: @mut E) -> AbstractEvent {
-        // This surrenders memory management of the event!
-        AbstractEvent {
-            event: unsafe { cast::transmute(event) },
-        }
-    }
-
-    pub fn new(window: @mut Window) -> AbstractEvent {
-        let ev = reflect_dom_object(@mut Event::new_inherited(HTMLEventTypeId),
-                                    window, EventBinding::Wrap);
-        Event::as_abstract(ev)
+    pub fn new(window: &JS<Window>) -> JS<Event> {
+        reflect_dom_object(~Event::new_inherited(HTMLEventTypeId),
+                           window.get(),
+                           EventBinding::Wrap)
     }
 
     pub fn EventPhase(&self) -> u16 {
@@ -187,12 +89,12 @@ impl Event {
         self.type_.clone()
     }
 
-    pub fn GetTarget(&self) -> Option<AbstractEventTarget> {
-        self.target
+    pub fn GetTarget(&self) -> Option<JS<EventTarget>> {
+        self.target.clone()
     }
 
-    pub fn GetCurrentTarget(&self) -> Option<AbstractEventTarget> {
-        self.current_target
+    pub fn GetCurrentTarget(&self) -> Option<JS<EventTarget>> {
+        self.current_target.clone()
     }
 
     pub fn DefaultPrevented(&self) -> bool {
@@ -241,11 +143,11 @@ impl Event {
         self.trusted
     }
 
-    pub fn Constructor(global: @mut Window,
+    pub fn Constructor(global: &JS<Window>,
                        type_: DOMString,
-                       init: &EventBinding::EventInit) -> Fallible<AbstractEvent> {
-        let ev = Event::new(global);
-        ev.mut_event().InitEvent(type_, init.bubbles, init.cancelable);
+                       init: &EventBinding::EventInit) -> Fallible<JS<Event>> {
+        let mut ev = Event::new(global);
+        ev.get_mut().InitEvent(type_, init.bubbles, init.cancelable);
         Ok(ev)
     }
 }

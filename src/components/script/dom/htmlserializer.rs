@@ -4,10 +4,20 @@
 
 use servo_util::namespace;
 use dom::attr::Attr;
+use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, CommentCast};
+use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, CharacterDataCast};
+use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
+use dom::bindings::js::JS;
+use dom::characterdata::CharacterData;
+use dom::comment::Comment;
+use dom::documenttype::DocumentType;
+use dom::element::Element;
 use dom::node::NodeIterator;
 use dom::node::{DoctypeNodeTypeId, DocumentFragmentNodeTypeId, CommentNodeTypeId};
 use dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
-use dom::node::{TextNodeTypeId, AbstractNode};
+use dom::node::{TextNodeTypeId, NodeHelpers};
+use dom::processinginstruction::ProcessingInstruction;
+use dom::text::Text;
 
 pub fn serialize(iterator: &mut NodeIterator) -> ~str {
     let mut html = ~"";
@@ -20,19 +30,24 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
         html.push_str(
             match node.type_id() {
                 ElementNodeTypeId(..) => {
-                    serialize_elem(node, &mut open_elements)
+                    let elem: JS<Element> = ElementCast::to(&node);
+                    serialize_elem(&elem, &mut open_elements)
                 }
                 CommentNodeTypeId => {
-                    serialize_comment(node)
+                    let comment: JS<Comment> = CommentCast::to(&node);
+                    serialize_comment(&comment)
                 }
                 TextNodeTypeId => {
-                    serialize_text(node)
+                    let text: JS<Text> = TextCast::to(&node);
+                    serialize_text(&text)
                 }
                 DoctypeNodeTypeId => {
-                    serialize_doctype(node)
+                    let doctype: JS<DocumentType> = DocumentTypeCast::to(&node);
+                    serialize_doctype(&doctype)
                 }
                 ProcessingInstructionNodeTypeId => {
-                    serialize_processing_instruction(node)
+                    let processing_instruction: JS<ProcessingInstruction> = ProcessingInstructionCast::to(&node);
+                    serialize_processing_instruction(&processing_instruction)
                 }
                 DocumentFragmentNodeTypeId => {
                     ~""
@@ -41,7 +56,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
                     fail!("It shouldn't be possible to serialize a document node")
                 }
             }
-            );
+        );
     }
     while open_elements.len() > 0 {
         html.push_str(~"</" + open_elements.pop() + ">");
@@ -49,88 +64,75 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
     html
 }
 
-fn serialize_comment(node: AbstractNode) -> ~str {
-    node.with_imm_characterdata(|comment| {
-        ~"<!--" + comment.data + "-->"
-    })
+fn serialize_comment(comment: &JS<Comment>) -> ~str {
+    ~"<!--" + comment.get().characterdata.data + "-->"
 }
 
-fn serialize_text(node: AbstractNode) -> ~str {
-    node.with_imm_characterdata(|text| {
-        match node.parent_node() {
-            Some(parent) if parent.is_element() => {
-                parent.with_imm_element(|elem| {
-                    match elem.tag_name.as_slice() {
-                        "style" | "script" | "xmp" | "iframe" |
-                        "noembed" | "noframes" | "plaintext" |
-                        "noscript" if elem.namespace == namespace::HTML => {
-                            text.data.clone()
-                        },
-                        _ => escape(text.data, false)
-                    }
-               })
-            },
-            _ => escape(text.data, false)
+fn serialize_text(text: &JS<Text>) -> ~str {
+    match text.get().characterdata.node.parent_node {
+        Some(ref parent) if parent.is_element() => {
+            let elem: JS<Element> = ElementCast::to(parent);
+            match elem.get().tag_name.as_slice() {
+                "style" | "script" | "xmp" | "iframe" |
+                "noembed" | "noframes" | "plaintext" |
+                "noscript" if elem.get().namespace == namespace::HTML => {
+                    text.get().characterdata.data.clone()
+                },
+                _ => escape(text.get().characterdata.data, false)
+            }
         }
-    })
+        _ => escape(text.get().characterdata.data, false)
+    }
 }
 
-fn serialize_processing_instruction(node: AbstractNode) -> ~str {
-    node.with_imm_processing_instruction(|processing_instruction| {
-        ~"<?" + processing_instruction.target + " " + processing_instruction.characterdata.data + "?>"
-    })
+fn serialize_processing_instruction(processing_instruction: &JS<ProcessingInstruction>) -> ~str {
+    ~"<?" + processing_instruction.get().target + " " + processing_instruction.get().characterdata.data + "?>"
 }
 
-fn serialize_doctype(node: AbstractNode) -> ~str {
-    node.with_imm_doctype(|doctype| {
-        ~"<!DOCTYPE" + doctype.name + ">"
-    })
+fn serialize_doctype(doctype: &JS<DocumentType>) -> ~str {
+    ~"<!DOCTYPE" + doctype.get().name + ">"
 }
 
-fn serialize_elem(node: AbstractNode, open_elements: &mut ~[~str]) -> ~str {
-    node.with_imm_element(|elem| {
-        let mut rv = ~"<" + elem.tag_name;
-        for attr in elem.attrs.iter() {
-            rv.push_str(serialize_attr(attr));
-        };
-        rv.push_str(">");
-        match elem.tag_name.as_slice() {
-            "pre" | "listing" | "textarea" if
-                elem.namespace == namespace::HTML => {
-                    match node.first_child() {
-                        Some(child) if child.is_text() => {
-                            child.with_imm_characterdata(|text| {
-                                if text.data[0] == 0x0A as u8 {
-                                    rv.push_str("\x0A");
-                                }
-                            })
-                        },
-                        _ => {}
-                    }
-            },
-            _ => {}
-        }
-        if !elem.is_void() {
-            open_elements.push(elem.tag_name.clone());
-        }
-        rv
-    })
-}
-
-fn serialize_attr(attr: &@mut Attr) -> ~str {
-    let attr_name = if attr.namespace == namespace::XML {
-        ~"xml:" + attr.local_name.clone()
-    } else if attr.namespace == namespace::XMLNS &&
-        attr.local_name.as_slice() == "xmlns" {
-        ~"xmlns"
-    } else if attr.namespace == namespace::XMLNS {
-        ~"xmlns:" + attr.local_name.clone()
-    } else if attr.namespace == namespace::XLink {
-        ~"xlink:" + attr.local_name.clone()
-    } else {
-        attr.name.clone()
+fn serialize_elem(elem: &JS<Element>, open_elements: &mut ~[~str]) -> ~str {
+    let mut rv = ~"<" + elem.get().tag_name;
+    for attr in elem.get().attrs.iter() {
+        rv.push_str(serialize_attr(attr));
     };
-    ~" " + attr_name + "=\"" + escape(attr.value, true) + "\""
+    rv.push_str(">");
+    match elem.get().tag_name.as_slice() {
+        "pre" | "listing" | "textarea" if elem.get().namespace == namespace::HTML => {
+            match elem.get().node.first_child {
+                Some(ref child) if child.is_text() => {
+                    let text: JS<CharacterData> = CharacterDataCast::to(child);
+                    if text.get().data[0] == 0x0A as u8 {
+                        rv.push_str("\x0A");
+                    }
+                },
+                _ => {}
+            }
+        },
+        _ => {}
+    }
+    if !elem.get().is_void() {
+        open_elements.push(elem.get().tag_name.clone());
+    }
+    rv
+}
+
+fn serialize_attr(attr: &JS<Attr>) -> ~str {
+    let attr_name = if attr.get().namespace == namespace::XML {
+        ~"xml:" + attr.get().local_name.clone()
+    } else if attr.get().namespace == namespace::XMLNS &&
+        attr.get().local_name.as_slice() == "xmlns" {
+        ~"xmlns"
+    } else if attr.get().namespace == namespace::XMLNS {
+        ~"xmlns:" + attr.get().local_name.clone()
+    } else if attr.get().namespace == namespace::XLink {
+        ~"xlink:" + attr.get().local_name.clone()
+    } else {
+        attr.get().name.clone()
+    };
+    ~" " + attr_name + "=\"" + escape(attr.get().value, true) + "\""
 }
 
 fn escape(string: &str, attr_mode: bool) -> ~str {

@@ -563,7 +563,7 @@ impl Iterator<@Box> for BoxIterator {
 
 impl BaseFlow {
     #[inline]
-    pub fn new(id: int, node: ThreadSafeLayoutNode) -> BaseFlow {
+    pub fn new(id: int, node: &ThreadSafeLayoutNode) -> BaseFlow {
         let style = node.style();
         BaseFlow {
             restyle_damage: node.restyle_damage(),

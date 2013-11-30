@@ -3,27 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLTableElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLTableElementDerived;
+use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLTableElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLTableElementDerived for EventTarget {
+    fn is_htmltableelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLTableElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLTableElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLTableElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLTableElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLTableElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTableElement> {
+        let element = HTMLTableElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLTableElementBinding::Wrap)
     }
 }
 

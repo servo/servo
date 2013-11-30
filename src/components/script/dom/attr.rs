@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::AttrBinding;
+use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::namespace::{Namespace, Null};
@@ -10,6 +11,7 @@ use servo_util::str::DOMString;
 
 use std::util;
 
+#[deriving(Encodable)]
 pub struct Attr {
     reflector_: Reflector,
     local_name: DOMString,
@@ -43,22 +45,22 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &Window, local_name: DOMString, value: DOMString) -> @mut Attr {
+    pub fn new(window: &Window, local_name: DOMString, value: DOMString) -> JS<Attr> {
         let name = local_name.clone();
         Attr::new_helper(window, local_name, value, name, Null, None)
     }
 
     pub fn new_ns(window: &Window, local_name: DOMString, value: DOMString,
                   name: DOMString, namespace: Namespace,
-                  prefix: Option<DOMString>) -> @mut Attr {
+                  prefix: Option<DOMString>) -> JS<Attr> {
         Attr::new_helper(window, local_name, value, name, namespace, prefix)
     }
 
     fn new_helper(window: &Window, local_name: DOMString, value: DOMString,
                   name: DOMString, namespace: Namespace,
-                  prefix: Option<DOMString>) -> @mut Attr {
+                  prefix: Option<DOMString>) -> JS<Attr> {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix);
-        reflect_dom_object(@mut attr, window, AttrBinding::Wrap)
+        reflect_dom_object(~attr, window, AttrBinding::Wrap)
     }
 
     pub fn set_value(&mut self, mut value: DOMString) -> DOMString {
