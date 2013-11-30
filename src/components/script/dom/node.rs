@@ -12,7 +12,7 @@ use dom::characterdata::CharacterData;
 use dom::document::{AbstractDocument, DocumentTypeId};
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
-use dom::element::{HTMLStyleElementTypeId};
+use dom::element::{HTMLAnchorElementTypeId, HTMLStyleElementTypeId};
 use dom::eventtarget::{AbstractEventTarget, EventTarget, NodeTypeId};
 use dom::nodelist::{NodeList};
 use dom::htmlimageelement::HTMLImageElement;
@@ -490,6 +490,10 @@ impl<'self, View> AbstractNode<View> {
 
     pub fn is_style_element(self) -> bool {
         self.type_id() == ElementNodeTypeId(HTMLStyleElementTypeId)
+    }
+
+    pub fn is_anchor_element(self) -> bool {
+        self.type_id() == ElementNodeTypeId(HTMLAnchorElementTypeId)
     }
 
     pub unsafe fn raw_object(self) -> *mut Box<Node<View>> {

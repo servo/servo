@@ -227,6 +227,18 @@ pub fn run_compositor(compositor: &CompositorTask) {
                         None => {} // Nothing to do
                     }
                 }
+
+                ScrollFragmentPoint(id, point) => {
+                    let page_window = Size2D(window_size.width as f32 / world_zoom,
+                                             window_size.height as f32 / world_zoom);
+                    match compositor_layer {
+                        Some(ref mut layer) if layer.pipeline.id == id => {
+                            recomposite = layer.move(point, page_window) | recomposite;
+                            ask_for_tiles();
+                        }
+                        Some(_) | None => {}
+                    }
+                }
             }
         }
     };
