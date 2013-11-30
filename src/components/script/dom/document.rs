@@ -4,6 +4,7 @@
 
 use dom::comment::Comment;
 use dom::bindings::codegen::DocumentBinding;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable, reflect_dom_object};
 use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
 use dom::bindings::utils::DOMString;
@@ -11,7 +12,7 @@ use dom::bindings::utils::{xml_name_type, InvalidXMLName};
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
 use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
-use dom::event::{AbstractEvent, Event};
+use dom::event::Event;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::mouseevent::MouseEvent;
@@ -214,10 +215,10 @@ impl Document {
         Comment::new(data, abstract_self)
     }
 
-    pub fn CreateEvent(&self, interface: DOMString) -> Fallible<AbstractEvent> {
+    pub fn CreateEvent(&self, interface: DOMString) -> Fallible<JSManaged<Event>> {
         match interface.as_slice() {
-            "UIEvents" => Ok(UIEvent::new(self.window)),
-            "MouseEvents" => Ok(MouseEvent::new(self.window)),
+            "UIEvents" => Ok(Event::from(UIEvent::new(self.window))),
+            "MouseEvents" => Ok(Event::from(MouseEvent::new(self.window))),
             "HTMLEvents" => Ok(Event::new(self.window)),
             _ => Err(NotSupported)
         }

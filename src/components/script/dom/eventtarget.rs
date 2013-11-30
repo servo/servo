@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, DOMString, Fallible};
 use dom::bindings::utils::{InvalidState};
 use dom::bindings::codegen::EventListenerBinding::EventListener;
 use dom::document::AbstractDocument;
-use dom::event::AbstractEvent;
+use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::{AbstractNode, ScriptView};
 use dom::window::Window;
@@ -177,15 +178,16 @@ impl EventTarget {
         }
     }
 
-    pub fn DispatchEvent(&self, abstract_self: AbstractEventTarget, event: AbstractEvent) -> Fallible<bool> {
+    pub fn DispatchEvent(&self, abstract_self: AbstractEventTarget,
+                         event: JSManaged<Event>) -> Fallible<bool> {
         self.dispatch_event_with_target(abstract_self, None, event)
     }
 
     pub fn dispatch_event_with_target(&self,
                                       abstract_self: AbstractEventTarget,
                                       abstract_target: Option<AbstractEventTarget>,
-                                      event: AbstractEvent) -> Fallible<bool> {
-        if event.event().dispatching || !event.event().initialized {
+                                      event: JSManaged<Event>) -> Fallible<bool> {
+        if event.value().dispatching || !event.value().initialized {
             return Err(InvalidState);
         }
         Ok(dispatch_event(abstract_self, abstract_target, event))

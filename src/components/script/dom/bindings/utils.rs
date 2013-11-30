@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::window;
 
 use std::libc::c_uint;
@@ -640,6 +641,20 @@ pub fn reflect_dom_object<T: Reflectable>
     }
     assert!(obj.reflector().get_jsobject().is_not_null());
     obj
+}
+
+pub fn reflect_dom_object2<T: Reflectable>
+        (obj:     ~T,
+         window:  &window::Window,
+         wrap_fn: extern "Rust" fn(*JSContext, *JSObject, @mut T) -> *JSObject)
+         ->       JSManaged<T> {
+    let cx = window.get_cx();
+    let scope = window.reflector().get_jsobject();
+    //if wrap_fn(cx, scope, obj).is_null() {
+    //    fail!("Could not eagerly wrap object");
+    //}
+    assert!(obj.reflector().get_jsobject().is_not_null());
+    JSManaged::new(obj)
 }
 
 pub struct Reflector {
