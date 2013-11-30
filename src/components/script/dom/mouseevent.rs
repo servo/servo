@@ -3,13 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::MouseEventBinding;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{AbstractEvent, Event, MouseEventTypeId};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
+use dom::event::{Event, MouseEventTypeId, EventBase};
 use dom::eventtarget::AbstractEventTarget;
-use dom::uievent::UIEvent;
+use dom::uievent::{UIEvent, UIEventBase};
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
+
+pub trait MouseEventDerived { fn is_mouseevent(&self) -> bool; }
+pub trait MouseEventBase : UIEventBase {}
+
+impl EventBase for MouseEvent {}
+impl UIEventBase for MouseEvent {}
+impl MouseEventBase for MouseEvent {}
 
 pub struct MouseEvent {
     parent: UIEvent,
@@ -23,6 +31,23 @@ pub struct MouseEvent {
     meta_key: bool,
     button: u16,
     related_target: Option<AbstractEventTarget>
+}
+
+impl MouseEventDerived for Event {
+    fn is_mouseevent(&self) -> bool {
+        self.type_id == MouseEventTypeId
+    }
+}
+
+impl MouseEvent {
+    pub fn from<T: MouseEventBase>(derived: JSManaged<T>) -> JSManaged<MouseEvent> {
+        derived.transmute()
+    }
+
+    pub fn to<T: MouseEventDerived>(base: JSManaged<T>) -> JSManaged<MouseEvent> {
+        assert!(base.value().is_mouseevent());
+        base.transmute()
+    }
 }
 
 impl MouseEvent {
@@ -42,21 +67,21 @@ impl MouseEvent {
         }
     }
 
-    pub fn new(window: @mut Window) -> AbstractEvent {
-        Event::as_abstract(reflect_dom_object(@mut MouseEvent::new_inherited(),
-                                              window,
-                                              MouseEventBinding::Wrap))
+    pub fn new(window: @mut Window) -> JSManaged<MouseEvent> {
+        reflect_dom_object2(~MouseEvent::new_inherited(),
+                            window,
+                            MouseEventBinding::Wrap)
     }
 
     pub fn Constructor(owner: @mut Window,
                        type_: DOMString,
-                       init: &MouseEventBinding::MouseEventInit) -> Fallible<AbstractEvent> {
-        let ev = MouseEvent::new(owner);
-        ev.mut_mouseevent().InitMouseEvent(type_, init.bubbles, init.cancelable, init.view,
-                                           init.detail, init.screenX, init.screenY,
-                                           init.clientX, init.clientY, init.ctrlKey,
-                                           init.altKey, init.shiftKey, init.metaKey,
-                                           init.button, init.relatedTarget);
+                       init: &MouseEventBinding::MouseEventInit) -> Fallible<JSManaged<MouseEvent>> {
+        let mut ev = MouseEvent::new(owner);
+        ev.mut_value().InitMouseEvent(type_, init.bubbles, init.cancelable, init.view,
+                                      init.detail, init.screenX, init.screenY,
+                                      init.clientX, init.clientY, init.ctrlKey,
+                                      init.altKey, init.shiftKey, init.metaKey,
+                                      init.button, init.relatedTarget);
         Ok(ev)
     }
 

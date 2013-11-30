@@ -26,6 +26,7 @@ mod macros;
 
 pub mod dom {
     pub mod bindings {
+        pub mod jsmanaged;
         pub mod element;
         pub mod node;
         pub mod utils;

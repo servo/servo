@@ -766,8 +766,8 @@ impl ScriptTask {
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
-        let event = Event::new(window);
-        event.mut_event().InitEvent(~"load", false, false);
+        let mut event = Event::new(window);
+        event.mut_value().InitEvent(~"load", false, false);
         let doctarget = AbstractEventTarget::from_document(document);
         let wintarget = AbstractEventTarget::from_window(window);
         window.eventtarget.dispatch_event_with_target(wintarget, Some(doctarget), event);

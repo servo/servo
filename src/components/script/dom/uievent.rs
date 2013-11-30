@@ -3,17 +3,41 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::UIEventBinding;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, Fallible};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::node::AbstractNode;
-use dom::event::{AbstractEvent, Event, EventTypeId, UIEventTypeId};
+use dom::event::{Event, EventTypeId, UIEventTypeId, EventBase};
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
+
+pub trait UIEventDerived { fn is_uievent(&self) -> bool; }
+pub trait UIEventBase : EventBase {}
+
+impl EventBase for UIEvent {}
+impl UIEventBase for UIEvent {}
 
 pub struct UIEvent {
     parent: Event,
     view: Option<@mut WindowProxy>,
     detail: i32
+}
+
+impl UIEventDerived for Event {
+    fn is_uievent(&self) -> bool {
+        self.type_id == UIEventTypeId
+    }
+}
+
+impl UIEvent {
+    pub fn from<T: UIEventBase>(derived: JSManaged<T>) -> JSManaged<UIEvent> {
+        derived.transmute()
+    }
+
+    pub fn to<T: UIEventDerived>(base: JSManaged<T>) -> JSManaged<UIEvent> {
+        assert!(base.value().is_uievent());
+        base.transmute()
+    }
 }
 
 impl UIEvent {
@@ -25,19 +49,18 @@ impl UIEvent {
         }
     }
 
-    pub fn new(window: @mut Window) -> AbstractEvent {
-        let ev = reflect_dom_object(@mut UIEvent::new_inherited(UIEventTypeId),
-                                    window,
-                                    UIEventBinding::Wrap);
-        Event::as_abstract(ev)
+    pub fn new(window: @mut Window) -> JSManaged<UIEvent> {
+        reflect_dom_object2(~UIEvent::new_inherited(UIEventTypeId),
+                            window,
+                            UIEventBinding::Wrap)
     }
 
     pub fn Constructor(owner: @mut Window,
                        type_: DOMString,
-                       init: &UIEventBinding::UIEventInit) -> Fallible<AbstractEvent> {
-        let ev = UIEvent::new(owner);
-        ev.mut_uievent().InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
-                                     init.view, init.detail);
+                       init: &UIEventBinding::UIEventInit) -> Fallible<JSManaged<UIEvent>> {
+        let mut ev = UIEvent::new(owner);
+        ev.mut_value().InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
+                                   init.view, init.detail);
         Ok(ev)
     }
 
