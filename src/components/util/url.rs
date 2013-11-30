@@ -42,6 +42,8 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
                     current_url.scheme + "://" +
                         current_url.host + "/" +
                         str_url.trim_left_chars(&'/')
+                } else if str_url.starts_with("#") {
+                    current_url.scheme + "://" + current_url.host + current_url.path + str_url
                 } else {
                     let mut path = ~[];
                     for p in current_url.path.split_iter('/') {
@@ -145,6 +147,18 @@ mod make_url_tests {
         assert!(new_url.path == ~"/snarf/crumpet.html");
     }
 
+    #[test]
+    fn should_create_url_based_on_old_url_5() {
+        let old_str = ~"http://example.com/index.html";
+        let old_url = make_url(old_str, None);
+        let new_str = ~"#top";
+        let new_url = make_url(new_str, Some(old_url));
+
+        assert!(new_url.scheme == ~"http");
+        assert!(new_url.host == ~"example.com");
+        assert!(new_url.path == ~"/index.html");
+        assert!(new_url.fragment == Some(~"top"));
+    }
 }
 
 pub type UrlMap<T> = HashMap<Url, T>;

@@ -19,14 +19,18 @@ use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
 use layout_interface::{AddStylesheetMsg, DocumentDamage};
+use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery};
 use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg, ReapLayoutDataMsg};
 use layout_interface::{Reflow, ReflowDocumentDamage, ReflowForDisplay, ReflowGoal, ReflowMsg};
 use layout_interface;
 
+use dom::node::ScriptView;
 use extra::future::Future;
 use extra::url::Url;
+use std::str::eq_slice;
 use geom::size::Size2D;
+use geom::point::Point2D;
 use js::JSVAL_NULL;
 use js::global::debug_fns;
 use js::glue::RUST_JSVAL_TO_OBJECT;
@@ -41,6 +45,7 @@ use servo_msg::constellation_msg::{SubpageId};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
+use servo_util::geometry::to_frac_px;
 use servo_util::tree::{TreeNode, TreeNodeRef, ElementLike};
 use servo_util::url::make_url;
 use std::cell::Cell;
@@ -126,7 +131,10 @@ pub struct Page {
     next_subpage_id: SubpageId,
 
     /// Pending resize event, if any.
-    resize_event: Option<Size2D<uint>>
+    resize_event: Option<Size2D<uint>>,
+
+    /// Pending scroll to fragment event, if any
+    fragment_node: Option<AbstractNode<ScriptView>>
 }
 
 pub struct PageTree {
@@ -152,6 +160,7 @@ impl PageTree {
                 url: None,
                 next_subpage_id: SubpageId(0),
                 resize_event: None,
+                fragment_node: None,
                 last_reflow_id: 0
             },
             inner: ~[],
@@ -748,6 +757,8 @@ impl ScriptTask {
         // Kick off the initial reflow of the page.
         document.document().content_changed();
 
+        let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_owned());
+
         // No more reflow required
         page.url = Some((url, false));
 
@@ -777,6 +788,38 @@ impl ScriptTask {
         let doctarget = AbstractEventTarget::from_document(document);
         let wintarget = AbstractEventTarget::from_window(window);
         window.eventtarget.dispatch_event_with_target(wintarget, Some(doctarget), event);
+
+        page.fragment_node = fragment.map_default(None, |fragid| self.find_fragment_node(page, fragid));
+    }
+
+    fn find_fragment_node(&self, page: &mut Page, fragid: ~str) -> Option<AbstractNode<ScriptView>> {
+        let document = page.frame.expect("root frame is None").document; 
+        match document.document().GetElementById(fragid.to_owned()) {
+            Some(node) => Some(node),
+            None => {
+                let doc_node = AbstractNode::from_document(document);
+                let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
+                do anchors.find |node| {
+                    do node.with_imm_element |elem| {
+                        match elem.get_attr("name") {
+                            Some(name) => eq_slice(name, fragid),
+                            None => false
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &mut Page, node: AbstractNode<ScriptView>) {
+        let (port, chan) = comm::stream();
+        match page.query_layout(ContentBoxQuery(node, chan), port) {
+            ContentBoxResponse(rect) => {
+                let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(), 
+                                    to_frac_px(rect.origin.y).to_f32().unwrap());
+                self.compositor.scroll_fragment_point(pipeline_id, point);
+            }
+        }
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.
@@ -796,6 +839,10 @@ impl ScriptTask {
                 if page.frame.is_some() {
                     page.damage(ReflowDocumentDamage);
                     page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor)
+                }
+                match page.fragment_node.take() {
+                    Some(node) => self.scroll_fragment_point(pipeline_id, page, node),
+                    None => {}
                 }
             }
 
@@ -856,12 +903,21 @@ impl ScriptTask {
         let attr = element.get_attr("href");
         for href in attr.iter() {
             debug!("ScriptTask: clicked on link to {:s}", *href);
+            let click_frag = href.starts_with("#");
             let current_url = do page.url.as_ref().map |&(ref url, _)| {
                 url.clone()
             };
             debug!("ScriptTask: current url is {:?}", current_url);
             let url = make_url(href.to_owned(), current_url);
-            self.constellation_chan.send(LoadUrlMsg(page.id, url, Future::from_value(page.window_size.get())));
+
+            if click_frag {
+                match self.find_fragment_node(page, url.fragment.unwrap()) {
+                    Some(node) => self.scroll_fragment_point(page.id, page, node),
+                    None => {}
+                }
+            } else {
+                self.constellation_chan.send(LoadUrlMsg(page.id, url, Future::from_value(page.window_size.get())));
+            } 
         }
     }
 }

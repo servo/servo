@@ -31,7 +31,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
 
             NewLayer(*) | SetLayerPageSize(*) | SetLayerClipRect(*) | DeleteLayer(*) |
             Paint(*) | InvalidateRect(*) | ChangeReadyState(*) | ChangeRenderState(*)|
-            SetUnRenderedColor(*)
+            ScrollFragmentPoint(*) | SetUnRenderedColor(*)
                 => ()
         }
     }
