@@ -7,7 +7,7 @@ use layout::box::{CannotSplit, GenericRenderBoxClass, ImageRenderBoxClass, Rende
 use layout::box::{RenderBoxUtils, SplitDidFit, SplitDidNotFit, TextRenderBoxClass};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::flow::{FlowClass, FlowContext, FlowData, InlineFlowClass};
+use layout::flow::{FlowClass, Flow, FlowData, InlineFlowClass};
 use layout::flow;
 use layout::float_context::FloatContext;
 use layout::util::{ElementMapping};
@@ -501,7 +501,7 @@ impl InlineFlow {
 
         // TODO(#228): Once we form line boxes and have their cached bounds, we can be smarter and
         // not recurse on a line if nothing in it can intersect the dirty region.
-        debug!("FlowContext[{:d}]: building display list for {:u} inline boxes",
+        debug!("Flow[{:d}]: building display list for {:u} inline boxes",
                self.base.id,
                self.boxes.len());
 
@@ -517,7 +517,7 @@ impl InlineFlow {
     }
 }
 
-impl FlowContext for InlineFlow {
+impl Flow for InlineFlow {
     fn class(&self) -> FlowClass {
         InlineFlowClass
     }
@@ -543,7 +543,7 @@ impl FlowContext for InlineFlow {
         let mut pref_width = Au::new(0);
 
         for box in self.boxes.iter() {
-            debug!("FlowContext[{:d}]: measuring {:s}", self.base.id, box.debug_str());
+            debug!("Flow[{:d}]: measuring {:s}", self.base.id, box.debug_str());
             let (this_minimum_width, this_preferred_width) =
                 box.minimum_and_preferred_widths();
             min_width = Au::max(min_width, this_minimum_width);

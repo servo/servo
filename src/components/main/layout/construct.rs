@@ -27,7 +27,7 @@ use layout::box::{UnscannedTextRenderBox};
 use layout::context::LayoutContext;
 use layout::float::FloatFlow;
 use layout::float_context::FloatType;
-use layout::flow::{FlowContext, FlowData, MutableFlowUtils};
+use layout::flow::{Flow, FlowData, MutableFlowUtils};
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::LayoutDataAccess;
@@ -49,7 +49,7 @@ pub enum ConstructionResult {
 
     /// This node contributed a flow at the proper position in the tree. Nothing more needs to be
     /// done for this node.
-    FlowConstructionResult(~FlowContext:),
+    FlowConstructionResult(~Flow:),
 
     /// This node contributed some object or objects that will be needed to construct a proper flow
     /// later up the tree, but these objects have not yet found their home.
@@ -57,7 +57,7 @@ pub enum ConstructionResult {
 }
 
 /// Represents the output of flow construction for a DOM node that has not yet resulted in a
-/// complete flow. Construction items bubble up the tree until they find a `FlowContext` to be
+/// complete flow. Construction items bubble up the tree until they find a `Flow` to be
 /// attached to.
 enum ConstructionItem {
     /// Inline boxes and associated {ib} splits that have not yet found flows.
@@ -104,7 +104,7 @@ struct InlineBlockSplit {
     predecessor_boxes: ~[@RenderBox],
 
     /// The flow that caused this {ib} split.
-    flow: ~FlowContext:,
+    flow: ~Flow:,
 }
 
 /// Methods on optional vectors.
@@ -247,11 +247,11 @@ impl<'self> FlowConstructor<'self> {
     #[inline(always)]
     fn flush_inline_boxes_to_flow(&self,
                                   boxes: ~[@RenderBox],
-                                  flow: &mut ~FlowContext:,
+                                  flow: &mut ~Flow:,
                                   node: AbstractNode<LayoutView>) {
         if boxes.len() > 0 {
             let inline_base = FlowData::new(self.next_flow_id(), node);
-            let mut inline_flow = ~InlineFlow::from_boxes(inline_base, boxes) as ~FlowContext:;
+            let mut inline_flow = ~InlineFlow::from_boxes(inline_base, boxes) as ~Flow:;
             TextRunScanner::new().scan_for_runs(self.layout_context, inline_flow);
             flow.add_new_child(inline_flow)
         }
@@ -261,7 +261,7 @@ impl<'self> FlowConstructor<'self> {
     /// the given flow.
     fn flush_inline_boxes_to_flow_if_necessary(&self,
                                                opt_boxes: &mut Option<~[@RenderBox]>,
-                                               flow: &mut ~FlowContext:,
+                                               flow: &mut ~Flow:,
                                                node: AbstractNode<LayoutView>) {
         let opt_boxes = util::replace(opt_boxes, None);
         if opt_boxes.len() > 0 {
@@ -273,7 +273,7 @@ impl<'self> FlowConstructor<'self> {
     /// other `BlockFlow`s or `InlineFlow`s will be populated underneath this node, depending on
     /// whether {ib} splits needed to happen.
     fn build_children_of_block_flow(&self,
-                                    flow: &mut ~FlowContext:,
+                                    flow: &mut ~Flow:,
                                     node: AbstractNode<LayoutView>) {
         // Gather up boxes for the inline flows we might need to create.
         let mut opt_boxes_for_inline_flow = None;
@@ -352,10 +352,10 @@ impl<'self> FlowConstructor<'self> {
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
     /// other `BlockFlow`s or `InlineFlow`s underneath it, depending on whether {ib} splits needed
     /// to happen.
-    fn build_flow_for_block(&self, node: AbstractNode<LayoutView>) -> ~FlowContext: {
+    fn build_flow_for_block(&self, node: AbstractNode<LayoutView>) -> ~Flow: {
         let base = FlowData::new(self.next_flow_id(), node);
         let box = self.build_box_for_node(node);
-        let mut flow = ~BlockFlow::from_box(base, box) as ~FlowContext:;
+        let mut flow = ~BlockFlow::from_box(base, box) as ~Flow:;
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }
@@ -363,10 +363,10 @@ impl<'self> FlowConstructor<'self> {
     /// Builds the flow for a node with `float: {left|right}`. This yields a `FloatFlow` with a
     /// `BlockFlow` underneath it.
     fn build_flow_for_floated_block(&self, node: AbstractNode<LayoutView>, float_type: FloatType)
-                                    -> ~FlowContext: {
+                                    -> ~Flow: {
         let base = FlowData::new(self.next_flow_id(), node);
         let box = self.build_box_for_node(node);
-        let mut flow = ~FloatFlow::from_box(base, float_type, box) as ~FlowContext:;
+        let mut flow = ~FloatFlow::from_box(base, float_type, box) as ~Flow:;
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }

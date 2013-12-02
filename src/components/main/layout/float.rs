@@ -5,7 +5,7 @@
 use layout::box::{RenderBox, RenderBoxUtils};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::flow::{FloatFlowClass, FlowClass, FlowContext, FlowData};
+use layout::flow::{FloatFlowClass, FlowClass, Flow, FlowData};
 use layout::flow;
 use layout::model::{MaybeAuto};
 use layout::float_context::{FloatContext, PlacementInfo, FloatType};
@@ -111,7 +111,7 @@ impl FloatFlow {
     }
 }
 
-impl FlowContext for FloatFlow {
+impl Flow for FloatFlow {
     fn class(&self) -> FlowClass {
         FloatFlowClass
     }

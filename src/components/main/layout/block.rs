@@ -7,7 +7,7 @@
 use layout::box::{RenderBox, RenderBoxUtils};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::flow::{BlockFlowClass, FlowClass, FlowContext, FlowData, ImmutableFlowUtils};
+use layout::flow::{BlockFlowClass, FlowClass, Flow, FlowData, ImmutableFlowUtils};
 use layout::flow;
 use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
 use layout::float_context::{FloatContext, Invalid};
@@ -304,7 +304,7 @@ impl BlockFlow {
     }
 }
 
-impl FlowContext for BlockFlow {
+impl Flow for BlockFlow {
     fn class(&self) -> FlowClass {
         BlockFlowClass
     }
