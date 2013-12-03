@@ -254,13 +254,13 @@ impl Stylist {
         // them into the SelectorMap of that priority.
         macro_rules! append(
             ($priority: ident, $flag: ident) => {
-                if style_rule.declarations.$priority.len() > 0 {
+                if style_rule.declarations.$priority.get().len() > 0 {
                     $flag = true;
                     for selector in style_rule.selectors.iter() {
                         // TODO: avoid copying?
                         rule_map.$priority.insert(Rule {
                                 selector: Arc::new(selector.clone()),
-                                declarations: Arc::new(style_rule.declarations.$priority.clone()),
+                                declarations: style_rule.declarations.$priority.clone(),
                                 index: style_rule_index,
                                 stylesheet_index: self.stylesheet_index,
                             });
@@ -307,9 +307,9 @@ impl Stylist {
         applicable_declarations.push_all_move(declarations_list.slice(0, 3).concat_vec());
         // Style attributes have author origin but higher specificity than style rules.
         // TODO: avoid copying?
-        style_attribute.map(|sa| applicable_declarations.push(Arc::new(sa.normal.clone())));
+        style_attribute.map(|sa| applicable_declarations.push(sa.normal.clone()));
         applicable_declarations.push_all_move(declarations_list.slice(3, 4).concat_vec());
-        style_attribute.map(|sa| applicable_declarations.push(Arc::new(sa.important.clone())));
+        style_attribute.map(|sa| applicable_declarations.push(sa.important.clone()));
         applicable_declarations.push_all_move(declarations_list.slice(4, 6).concat_vec());
 
         applicable_declarations
@@ -656,7 +656,7 @@ fn get_rules(css_string: &str) -> ~[~[Rule]] {
     do iter_style_rules(sheet.rules.as_slice(), device) |style_rule| {
         results.push(style_rule.selectors.iter().map(|s| Rule {
                     selector: Arc::new(s.clone()),
-                    declarations: Arc::new(style_rule.declarations.normal.clone()),
+                    declarations: style_rule.declarations.normal.clone(),
                     index: index,
                     stylesheet_index: 0u,
                 }).collect());
