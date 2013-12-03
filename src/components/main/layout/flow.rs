@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Servo's experimental layout system builds a tree of `FlowContext` and `RenderBox` objects and
+//! Servo's experimental layout system builds a tree of `Flow` and `RenderBox` objects and
 /// solves layout constraints to obtain positions and display attributes of tree nodes. Positions
 /// are computed in several tree traversals driven by the fundamental data dependencies required by
 /// inline and block layout.
@@ -50,7 +50,7 @@ use std::cell::Cell;
 ///
 /// Note that virtual methods have a cost; we should not overuse them in Servo. Consider adding
 /// methods to `ImmutableFlowUtils` or `MutableFlowUtils` before adding more methods here.
-pub trait FlowContext {
+pub trait Flow {
     // RTTI
     //
     // TODO(pcwalton): Use Rust's RTTI, once that works.
@@ -124,7 +124,7 @@ pub trait FlowContext {
 // Base access
 
 #[inline(always)]
-pub fn base<'a>(this: &'a FlowContext) -> &'a FlowData {
+pub fn base<'a>(this: &'a Flow) -> &'a FlowData {
     unsafe {
         let (_, ptr): (uint, &FlowData) = cast::transmute(this);
         ptr
@@ -132,12 +132,12 @@ pub fn base<'a>(this: &'a FlowContext) -> &'a FlowData {
 }
 
 /// Iterates over the children of this immutable flow.
-pub fn imm_child_iter<'a>(flow: &'a FlowContext) -> DListIterator<'a,~FlowContext:> {
+pub fn imm_child_iter<'a>(flow: &'a Flow) -> DListIterator<'a,~Flow:> {
     base(flow).children.iter()
 }
 
 #[inline(always)]
-pub fn mut_base<'a>(this: &'a mut FlowContext) -> &'a mut FlowData {
+pub fn mut_base<'a>(this: &'a mut Flow) -> &'a mut FlowData {
     unsafe {
         let (_, ptr): (uint, &mut FlowData) = cast::transmute(this);
         ptr
@@ -145,12 +145,12 @@ pub fn mut_base<'a>(this: &'a mut FlowContext) -> &'a mut FlowData {
 }
 
 /// Returns the last child of this flow.
-pub fn last_child<'a>(flow: &'a mut FlowContext) -> Option<&'a mut ~FlowContext:> {
+pub fn last_child<'a>(flow: &'a mut Flow) -> Option<&'a mut ~Flow:> {
     mut_base(flow).children.back_mut()
 }
 
 /// Iterates over the children of this flow.
-pub fn child_iter<'a>(flow: &'a mut FlowContext) -> MutDListIterator<'a,~FlowContext:> {
+pub fn child_iter<'a>(flow: &'a mut Flow) -> MutDListIterator<'a,~Flow:> {
     mut_base(flow).children.mut_iter()
 }
 
@@ -188,13 +188,13 @@ pub trait MutableFlowUtils {
     // Mutators
 
     /// Adds a new flow as a child of this flow.
-    fn add_new_child(self, new_child: ~FlowContext:);
+    fn add_new_child(self, new_child: ~Flow:);
 
     /// Invokes a closure with the first child of this flow.
-    fn with_first_child<R>(self, f: &fn(Option<&mut ~FlowContext:>) -> R) -> R;
+    fn with_first_child<R>(self, f: &fn(Option<&mut ~Flow:>) -> R) -> R;
 
     /// Invokes a closure with the last child of this flow.
-    fn with_last_child<R>(self, f: &fn(Option<&mut ~FlowContext:>) -> R) -> R;
+    fn with_last_child<R>(self, f: &fn(Option<&mut ~Flow:>) -> R) -> R;
 
     /// Removes the first child of this flow and destroys it.
     fn remove_first(self);
@@ -237,7 +237,7 @@ impl AbsoluteFlow {
     }
 }
 
-impl FlowContext for AbsoluteFlow {
+impl Flow for AbsoluteFlow {
     fn class(&self) -> FlowClass {
         AbsoluteFlowClass
     }
@@ -255,7 +255,7 @@ impl InlineBlockFlow {
     }
 }
 
-impl FlowContext for InlineBlockFlow {
+impl Flow for InlineBlockFlow {
     fn class(&self) -> FlowClass {
         InlineBlockFlowClass
     }
@@ -273,7 +273,7 @@ impl TableFlow {
     }
 }
 
-impl FlowContext for TableFlow {
+impl Flow for TableFlow {
     fn class(&self) -> FlowClass {
         TableFlowClass
     }
@@ -282,12 +282,12 @@ impl FlowContext for TableFlow {
 /// A top-down traversal.
 pub trait PreorderFlowTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&mut self, flow: &mut FlowContext) -> bool;
+    fn process(&mut self, flow: &mut Flow) -> bool;
 
     /// Returns true if this node should be pruned. If this returns true, we skip the operation
     /// entirely and do not process any descendant nodes. This is called *before* child nodes are
     /// visited. The default implementation never prunes any nodes.
-    fn should_prune(&mut self, _flow: &mut FlowContext) -> bool {
+    fn should_prune(&mut self, _flow: &mut Flow) -> bool {
         false
     }
 }
@@ -295,19 +295,19 @@ pub trait PreorderFlowTraversal {
 /// A bottom-up traversal, with a optional in-order pass.
 pub trait PostorderFlowTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&mut self, flow: &mut FlowContext) -> bool;
+    fn process(&mut self, flow: &mut Flow) -> bool;
 
     /// Returns false if this node must be processed in-order. If this returns false, we skip the
     /// operation for this node, but continue processing the descendants. This is called *after*
     /// child nodes are visited.
-    fn should_process(&mut self, _flow: &mut FlowContext) -> bool {
+    fn should_process(&mut self, _flow: &mut Flow) -> bool {
         true
     }
 
     /// Returns true if this node should be pruned. If this returns true, we skip the operation
     /// entirely and do not process any descendant nodes. This is called *before* child nodes are
     /// visited. The default implementation never prunes any nodes.
-    fn should_prune(&mut self, _flow: &mut FlowContext) -> bool {
+    fn should_prune(&mut self, _flow: &mut Flow) -> bool {
         false
     }
 }
@@ -320,7 +320,7 @@ pub struct FlowData {
     node: AbstractNode<LayoutView>,
     restyle_damage: RestyleDamage,
 
-    children: DList<~FlowContext:>,
+    children: DList<~Flow:>,
 
     /* TODO (Issue #87): debug only */
     id: int,
@@ -386,12 +386,12 @@ impl FlowData {
         }
     }
 
-    pub fn child_iter<'a>(&'a mut self) -> MutDListIterator<'a,~FlowContext:> {
+    pub fn child_iter<'a>(&'a mut self) -> MutDListIterator<'a,~Flow:> {
         self.children.mut_iter()
     }
 }
 
-impl<'self> ImmutableFlowUtils for &'self FlowContext {
+impl<'self> ImmutableFlowUtils for &'self Flow {
     /// Returns true if this flow is a block or a float flow.
     fn is_block_like(self) -> bool {
         match self.class() {
@@ -440,7 +440,7 @@ impl<'self> ImmutableFlowUtils for &'self FlowContext {
     }
 }
 
-impl<'self> MutableFlowUtils for &'self mut FlowContext {
+impl<'self> MutableFlowUtils for &'self mut Flow {
     /// Traverses the tree in preorder.
     fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &mut T) -> bool {
         if traversal.should_prune(self) {
@@ -480,17 +480,17 @@ impl<'self> MutableFlowUtils for &'self mut FlowContext {
     }
 
     /// Adds a new flow as a child of this flow.
-    fn add_new_child(self, new_child: ~FlowContext:) {
+    fn add_new_child(self, new_child: ~Flow:) {
         mut_base(self).children.push_back(new_child)
     }
 
     /// Invokes a closure with the first child of this flow.
-    fn with_first_child<R>(self, f: &fn(Option<&mut ~FlowContext:>) -> R) -> R {
+    fn with_first_child<R>(self, f: &fn(Option<&mut ~Flow:>) -> R) -> R {
         f(mut_base(self).children.front_mut())
     }
 
     /// Invokes a closure with the last child of this flow.
-    fn with_last_child<R>(self, f: &fn(Option<&mut ~FlowContext:>) -> R) -> R {
+    fn with_last_child<R>(self, f: &fn(Option<&mut ~Flow:>) -> R) -> R {
         f(mut_base(self).children.back_mut())
     }
 
@@ -521,7 +521,7 @@ impl<'self> MutableFlowUtils for &'self mut FlowContext {
                           dirty: &Rect<Au>,
                           list: &Cell<DisplayList<E>>)
                           -> bool {
-        debug!("FlowContext: building display list for f{}", base(self).id);
+        debug!("Flow: building display list for f{}", base(self).id);
         match self.class() {
             BlockFlowClass => self.as_block().build_display_list_block(builder, dirty, list),
             InlineFlowClass => self.as_inline().build_display_list_inline(builder, dirty, list),

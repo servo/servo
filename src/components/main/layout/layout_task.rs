@@ -12,7 +12,7 @@ use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionR
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
 use layout::extra::LayoutAuxMethods;
-use layout::flow::{FlowContext, ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
+use layout::flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
 use layout::flow::{PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::{RestyleDamage, BubbleWidths};
@@ -98,7 +98,7 @@ struct ComputeDamageTraversal;
 
 impl PostorderFlowTraversal for ComputeDamageTraversal {
     #[inline]
-    fn process(&mut self, flow: &mut FlowContext) -> bool {
+    fn process(&mut self, flow: &mut Flow) -> bool {
         let mut damage = flow::base(flow).restyle_damage;
         for child in flow::child_iter(flow) {
             damage.union_in_place(flow::base(*child).restyle_damage)
@@ -117,7 +117,7 @@ struct PropagateDamageTraversal {
 
 impl PreorderFlowTraversal for PropagateDamageTraversal {
     #[inline]
-    fn process(&mut self, flow: &mut FlowContext) -> bool {
+    fn process(&mut self, flow: &mut Flow) -> bool {
         // Also set any damage implied by resize.
         if self.resized {
             flow::mut_base(flow).restyle_damage.union_in_place(RestyleDamage::for_resize())
@@ -139,13 +139,13 @@ struct BubbleWidthsTraversal<'self>(&'self mut LayoutContext);
 
 impl<'self> PostorderFlowTraversal for BubbleWidthsTraversal<'self> {
     #[inline]
-    fn process(&mut self, flow: &mut FlowContext) -> bool {
+    fn process(&mut self, flow: &mut Flow) -> bool {
         flow.bubble_widths(**self);
         true
     }
 
     #[inline]
-    fn should_prune(&mut self, flow: &mut FlowContext) -> bool {
+    fn should_prune(&mut self, flow: &mut Flow) -> bool {
         flow::mut_base(flow).restyle_damage.lacks(BubbleWidths)
     }
 }
@@ -155,7 +155,7 @@ struct AssignWidthsTraversal<'self>(&'self mut LayoutContext);
 
 impl<'self> PreorderFlowTraversal for AssignWidthsTraversal<'self> {
     #[inline]
-    fn process(&mut self, flow: &mut FlowContext) -> bool {
+    fn process(&mut self, flow: &mut Flow) -> bool {
         flow.assign_widths(**self);
         true
     }
@@ -168,14 +168,14 @@ struct AssignHeightsAndStoreOverflowTraversal<'self>(&'self mut LayoutContext);
 
 impl<'self> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'self> {
     #[inline]
-    fn process(&mut self, flow: &mut FlowContext) -> bool {
+    fn process(&mut self, flow: &mut Flow) -> bool {
         flow.assign_height(**self);
         flow.store_overflow(**self);
         true
     }
 
     #[inline]
-    fn should_process(&mut self, flow: &mut FlowContext) -> bool {
+    fn should_process(&mut self, flow: &mut Flow) -> bool {
         !flow::base(flow).is_inorder
     }
 }
@@ -346,7 +346,7 @@ impl LayoutTask {
     /// marked `#[inline(never)]` to aid benchmarking in sampling profilers.
     #[inline(never)]
     fn construct_flow_tree(&self, layout_context: &LayoutContext, node: AbstractNode<LayoutView>)
-                           -> ~FlowContext: {
+                           -> ~Flow: {
         node.traverse_postorder(&FlowConstructor::init(layout_context));
 
         let result = match *node.mutate_layout_data().ptr {
@@ -369,7 +369,7 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints(&mut self,
-                         layout_root: &mut FlowContext,
+                         layout_root: &mut Flow,
                          layout_context: &mut LayoutContext) {
         let _ = layout_root.traverse_postorder(&mut BubbleWidthsTraversal(layout_context));
 
