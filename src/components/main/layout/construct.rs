@@ -25,7 +25,6 @@ use layout::block::BlockFlow;
 use layout::box::{GenericRenderBox, ImageRenderBox, RenderBox, RenderBoxBase};
 use layout::box::{UnscannedTextRenderBox};
 use layout::context::LayoutContext;
-use layout::float::FloatFlow;
 use layout::float_context::FloatType;
 use layout::flow::{Flow, FlowData, MutableFlowUtils};
 use layout::inline::InlineFlow;
@@ -360,13 +359,13 @@ impl<'self> FlowConstructor<'self> {
         flow
     }
 
-    /// Builds the flow for a node with `float: {left|right}`. This yields a `FloatFlow` with a
-    /// `BlockFlow` underneath it.
+    /// Builds the flow for a node with `float: {left|right}`. This yields a float `BlockFlow` with
+    /// a `BlockFlow` underneath it.
     fn build_flow_for_floated_block(&self, node: AbstractNode<LayoutView>, float_type: FloatType)
                                     -> ~Flow: {
         let base = FlowData::new(self.next_flow_id(), node);
         let box = self.build_box_for_node(node);
-        let mut flow = ~FloatFlow::from_box(base, float_type, box) as ~Flow:;
+        let mut flow = ~BlockFlow::float_from_box(base, float_type, box) as ~Flow:;
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }
