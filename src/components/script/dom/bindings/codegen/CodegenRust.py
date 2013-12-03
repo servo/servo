@@ -2499,41 +2499,54 @@ class CGAbstractMethod(CGThing):
     def definition_body(self):
         assert(False) # Override me!
 
+def DOMObjectIsMoved(descriptor):
+    return descriptor.nativeType.find('JSManaged') is not -1
+
+def DOMObjectPointerType(descriptor):
+    return "~" if DOMObjectIsMoved(descriptor) else "@mut "
+
+def DOMObjectPointerArg(descriptor):
+    return DOMObjectPointerType(descriptor) + descriptor.concreteType
+
 def CreateBindingJSObject(descriptor, parent=None):
+    func = "squirrel_away_unique" if DOMObjectIsMoved(descriptor) else "squirrel_away"
+    create = ""
+    if DOMObjectIsMoved(descriptor):
+        create += "  let raw: *mut %s = &mut *aObject;\n" % descriptor.concreteType;
     if descriptor.proxy:
         assert not descriptor.createGlobal
         handler = """
   let page = page_from_context(aCx);
   let handler = (*page).js_info.get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
-        create = handler + """  let obj = NewProxyObject(aCx, *handler,
-                           ptr::to_unsafe_ptr(&RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void)),
+        create += handler + """  let obj = NewProxyObject(aCx, *handler,
+                           ptr::to_unsafe_ptr(&RUST_PRIVATE_TO_JSVAL(%s(aObject) as *libc::c_void)),
                            proto, %s,
                            ptr::null(), ptr::null());
   if obj.is_null() {
     return ptr::null();
   }
 
-""" % parent
+""" % (func, parent)
     else:
         if descriptor.createGlobal:
-            create = "  let obj = CreateDOMGlobal(aCx, &Class.base);\n"
+            create += "  let obj = CreateDOMGlobal(aCx, &Class.base);\n"
         else:
-            create = "  let obj = JS_NewObject(aCx, &Class.base, proto, %s);\n" % parent
+            create += "  let obj = JS_NewObject(aCx, &Class.base, proto, %s);\n" % parent
         create += """  if obj.is_null() {
     return ptr::null();
   }
 
   JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                     RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void));
-"""
+                     RUST_PRIVATE_TO_JSVAL(%s(aObject) as *libc::c_void));
+""" % func
     return create
 
 class CGWrapWithCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('@mut ' + descriptor.concreteType, 'aObject')]
+                Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap_', '*JSObject', args)
 
     def definition_body(self):
@@ -2550,28 +2563,30 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
   if proto.is_null() {
     return ptr::null();
   }
+
 %s
 
-  //NS_ADDREF(aObject);
+  %s.mut_reflector().set_jsobject(obj);
 
-  aObject.mut_reflector().set_jsobject(obj);
-
-  return obj;""" % (CreateBindingJSObject(self.descriptor, "aScope"))
+  return obj;""" % (CreateBindingJSObject(self.descriptor, "aScope"),
+                    "(*raw)" if DOMObjectIsMoved(self.descriptor) else "aObject")
         else:
             return """
   assert!(aScope.is_null());
+
 %s
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);
-  aObject.mut_reflector().set_jsobject(obj);
-  return obj;""" % CreateBindingJSObject(self.descriptor)
+  %s.mut_reflector().set_jsobject(obj);
+  return obj;""" % (CreateBindingJSObject(self.descriptor),
+                    "(*raw)" if DOMObjectIsMoved(self.descriptor) else "aObject")
 
 class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         # XXX can we wrap if we don't have an interface prototype object?
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('@mut ' + descriptor.concreteType, 'aObject')]
+                Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, inline=True, pub=True)
 
     def definition_body(self):
@@ -4483,9 +4498,9 @@ def finalizeHook(descriptor, hookName, context):
     else:
         assert descriptor.nativeIsISupports
         release = """let val = JS_GetReservedSlot(obj, dom_object_slot(obj));
-let _: @mut %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
+let _: %s %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
 debug!("%s finalize: {:p}", this);
-""" % (descriptor.concreteType, descriptor.concreteType)
+""" % (DOMObjectPointerType(descriptor), descriptor.concreteType, descriptor.concreteType)
     #return clearWrapper + release
     return release
 
