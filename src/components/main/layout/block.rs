@@ -10,7 +10,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{BlockFlowClass, FlowClass, Flow, FlowData, ImmutableFlowUtils};
 use layout::flow;
 use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
-use layout::float_context::{FloatContext, Invalid};
+use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
 
 use std::cell::Cell;
 use geom::point::Point2D;
@@ -20,6 +20,34 @@ use gfx::display_list::DisplayList;
 use servo_util::geometry::{Au, to_frac_px};
 use servo_util::geometry;
 
+pub struct FloatedBlockInfo {
+    containing_width: Au,
+
+    /// Offset relative to where the parent tried to position this flow
+    rel_pos: Point2D<Au>,
+
+    /// Index into the box list for inline floats
+    index: Option<uint>,
+
+    /// Number of floated children
+    floated_children: uint,
+
+    /// Left or right?
+    float_type: FloatType
+}
+
+impl FloatedBlockInfo {
+    pub fn new(float_type: FloatType) -> FloatedBlockInfo {
+        FloatedBlockInfo {
+            containing_width: Au(0),
+            rel_pos: Point2D(Au(0), Au(0)),
+            index: None,
+            floated_children: 0,
+            float_type: float_type
+        }
+    }
+}
+
 pub struct BlockFlow {
     /// Data common to all flows.
     base: FlowData,
@@ -28,7 +56,10 @@ pub struct BlockFlow {
     box: Option<@RenderBox>,
 
     /// Whether this block flow is the root flow.
-    is_root: bool
+    is_root: bool,
+
+    // Additional floating flow members.
+    float: Option<~FloatedBlockInfo>
 }
 
 impl BlockFlow {
@@ -36,7 +67,8 @@ impl BlockFlow {
         BlockFlow {
             base: base,
             box: None,
-            is_root: false
+            is_root: false,
+            float: None
         }
     }
 
@@ -44,7 +76,17 @@ impl BlockFlow {
         BlockFlow {
             base: base,
             box: Some(box),
-            is_root: false
+            is_root: false,
+            float: None
+        }
+    }
+
+    pub fn float_from_box(base: FlowData, float_type: FloatType, box: @RenderBox) -> BlockFlow {
+        BlockFlow {
+            base: base,
+            box: Some(box),
+            is_root: false,
+            float: Some(~FloatedBlockInfo::new(float_type))
         }
     }
 
@@ -52,8 +94,22 @@ impl BlockFlow {
         BlockFlow {
             base: base,
             box: None,
-            is_root: true
+            is_root: true,
+            float: None
         }
+    }
+
+    pub fn new_float(base: FlowData, float_type: FloatType) -> BlockFlow {
+        BlockFlow {
+            base: base,
+            box: None,
+            is_root: false,
+            float: Some(~FloatedBlockInfo::new(float_type))
+        }
+    }
+
+    pub fn is_float(&self) -> bool {
+        self.float.is_some()
     }
 
     pub fn teardown(&mut self) {
@@ -61,6 +117,7 @@ impl BlockFlow {
             box.teardown();
         }
         self.box = None;
+        self.float = None;
     }
 
     /// Computes left and right margins and width based on CSS 2.1 section 10.3.3.
@@ -113,6 +170,63 @@ impl BlockFlow {
         };
         //return values in same order as params
         (width_Au, left_margin_Au, right_margin_Au)
+    }
+
+    fn compute_block_margins(&self, box: @RenderBox, remaining_width: Au, available_width: Au) -> (Au, Au, Au) {
+        let base = box.base();
+        let style = base.style();
+
+        let (width, maybe_margin_left, maybe_margin_right) =
+            (MaybeAuto::from_style(style.Box.width, remaining_width),
+             MaybeAuto::from_style(style.Margin.margin_left, remaining_width),
+             MaybeAuto::from_style(style.Margin.margin_right, remaining_width));
+
+        let (width, margin_left, margin_right) = self.compute_horiz(width,
+                                                                    maybe_margin_left,
+                                                                    maybe_margin_right,
+                                                                    available_width);
+
+        // If the tentative used width is greater than 'max-width', width should be recalculated,
+        // but this time using the computed value of 'max-width' as the computed value for 'width'.
+        let (width, margin_left, margin_right) = {
+            match specified_or_none(style.Box.max_width, remaining_width) {
+                Some(value) if value < width => self.compute_horiz(Specified(value),
+                                                                   maybe_margin_left,
+                                                                   maybe_margin_right,
+                                                                   available_width),
+                _ => (width, margin_left, margin_right)
+            }
+        };
+
+        // If the resulting width is smaller than 'min-width', width should be recalculated,
+        // but this time using the value of 'min-width' as the computed value for 'width'.
+        let (width, margin_left, margin_right) = {
+            let computed_min_width = specified(style.Box.min_width, remaining_width);
+            if computed_min_width > width {
+                self.compute_horiz(Specified(computed_min_width),
+                                   maybe_margin_left,
+                                   maybe_margin_right,
+                                   available_width)
+            } else {
+                (width, margin_left, margin_right)
+            }
+        };
+
+        return (width, margin_left, margin_right);
+    }
+
+    fn compute_float_margins(&self, box: @RenderBox, remaining_width: Au) -> (Au, Au, Au) {
+        let style = box.base().style();
+        let margin_left = MaybeAuto::from_style(style.Margin.margin_left,
+                                                remaining_width).specified_or_zero();
+        let margin_right = MaybeAuto::from_style(style.Margin.margin_right,
+                                                 remaining_width).specified_or_zero();
+        let shrink_to_fit = geometry::min(self.base.pref_width,
+                                          geometry::max(self.base.min_width, remaining_width));
+        let width = MaybeAuto::from_style(style.Box.width,
+                                          remaining_width).specified_or_default(shrink_to_fit);
+        debug!("assign_widths_float -- width: {}", width);
+        return (width, margin_left, margin_right);
     }
 
     // inline(always) because this is only ever called by in-order or non-in-order top-level
@@ -252,12 +366,104 @@ impl BlockFlow {
         }
     }
 
+    fn assign_height_float_inorder(&mut self) {
+        // assign_height_float was already called by the traversal function
+        // so this is well-defined
+
+        let mut height = Au(0);
+        let mut clearance = Au(0);
+        let mut full_noncontent_width = Au(0);
+        let mut margin_height = Au(0);
+
+        for box in self.box.iter() {
+            let base = box.base();
+            height = base.position.borrow().ptr.size.height;
+            clearance = match base.clear() {
+                None => Au(0),
+                Some(clear) => self.base.floats_in.clearance(clear),
+            };
+
+            let noncontent_width = base.padding.left + base.padding.right + base.border.left +
+                base.border.right;
+
+            full_noncontent_width = noncontent_width + base.margin.left + base.margin.right;
+            margin_height = base.margin.top + base.margin.bottom;
+        }
+
+        let info = PlacementInfo {
+            width: self.base.position.size.width + full_noncontent_width,
+            height: height + margin_height,
+            ceiling: clearance,
+            max_width: self.float.get_ref().containing_width,
+            f_type: self.float.get_ref().float_type,
+        };
+
+        // Place the float and return the FloatContext back to the parent flow.
+        // After, grab the position and use that to set our position.
+        self.base.floats_out = self.base.floats_in.add_float(&info);
+        self.float.get_mut_ref().rel_pos = self.base.floats_out.last_float_pos();
+    }
+
+    fn assign_height_float(&mut self, ctx: &mut LayoutContext) {
+        // Now that we've determined our height, propagate that out.
+        let has_inorder_children = self.base.num_floats > 0;
+        if has_inorder_children {
+            let mut float_ctx = FloatContext::new(self.float.get_ref().floated_children);
+            for kid in self.base.child_iter() {
+                flow::mut_base(*kid).floats_in = float_ctx.clone();
+                kid.assign_height_inorder(ctx);
+                float_ctx = flow::mut_base(*kid).floats_out.clone();
+            }
+        }
+        let mut cur_y = Au(0);
+        let mut top_offset = Au(0);
+
+        for &box in self.box.iter() {
+            let base = box.base();
+            top_offset = base.margin.top + base.border.top + base.padding.top;
+            cur_y = cur_y + top_offset;
+        }
+
+        for kid in self.base.child_iter() {
+            let child_base = flow::mut_base(*kid);
+            child_base.position.origin.y = cur_y;
+            cur_y = cur_y + child_base.position.size.height;
+        }
+
+        let mut height = cur_y - top_offset;
+
+        let mut noncontent_height;
+        let box = self.box.as_ref().unwrap();
+        let base = box.base();
+        let mut position_ref = base.position.mutate();
+        let position = &mut position_ref.ptr;
+
+        // The associated box is the border box of this flow.
+        position.origin.y = base.margin.top;
+
+        noncontent_height = base.padding.top + base.padding.bottom + base.border.top +
+            base.border.bottom;
+    
+        //TODO(eatkinson): compute heights properly using the 'height' property.
+        let height_prop = MaybeAuto::from_style(base.style().Box.height,
+                                                Au::new(0)).specified_or_zero();
+
+        height = geometry::max(height, height_prop) + noncontent_height;
+        debug!("assign_height_float -- height: {}", height);
+
+        position.size.height = height;
+    }
+
     pub fn build_display_list_block<E:ExtraDisplayListData>(
                                     &mut self,
                                     builder: &DisplayListBuilder,
                                     dirty: &Rect<Au>, 
                                     list: &Cell<DisplayList<E>>) 
                                     -> bool {
+        if self.is_float() {
+            return self.build_display_list_float(builder, dirty, list);
+        }
+
         if self.base.node.is_iframe_element() {
             let x = self.base.abs_position.x + do self.box.map_default(Au::new(0)) |box| {
                 let base = box.base();
@@ -302,6 +508,39 @@ impl BlockFlow {
 
         false
     }
+
+    pub fn build_display_list_float<E:ExtraDisplayListData>(&mut self,
+                                                            builder: &DisplayListBuilder,
+                                                            dirty: &Rect<Au>, 
+                                                            list: &Cell<DisplayList<E>>) 
+                                                            -> bool {
+        //TODO: implement iframe size messaging
+        if self.base.node.is_iframe_element() {
+            error!("float iframe size messaging not implemented yet");
+        }
+        let abs_rect = Rect(self.base.abs_position, self.base.position.size);
+        if !abs_rect.intersects(dirty) {
+            return true;
+        }
+
+
+        let offset = self.base.abs_position + self.float.get_ref().rel_pos;
+        // add box that starts block context
+        for box in self.box.iter() {
+            box.build_display_list(builder, dirty, &offset, list)
+        }
+
+
+        // TODO: handle any out-of-flow elements
+
+        // go deeper into the flow tree
+        for child in self.base.child_iter() {
+            let child_base = flow::mut_base(*child);
+            child_base.abs_position = offset + child_base.position.origin;
+        }
+
+        false
+    }
 }
 
 impl Flow for BlockFlow {
@@ -334,8 +573,14 @@ impl Flow for BlockFlow {
             let child_base = flow::mut_base(*child_ctx);
             min_width = geometry::max(min_width, child_base.min_width);
             pref_width = geometry::max(pref_width, child_base.pref_width);
-
             num_floats = num_floats + child_base.num_floats;
+        }
+
+        if self.is_float() {
+            self.base.num_floats = 1;
+            self.float.get_mut_ref().floated_children = num_floats;
+        } else {
+            self.base.num_floats = num_floats;
         }
 
         /* if not an anonymous block context, add in block box's widths.
@@ -355,16 +600,20 @@ impl Flow for BlockFlow {
 
         self.base.min_width = min_width;
         self.base.pref_width = pref_width;
-        self.base.num_floats = num_floats;
     }
- 
+
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
     /// on this context, the context has had its width set by the parent context.
     ///
     /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
     /// contexts.
-    fn assign_widths(&mut self, ctx: &mut LayoutContext) { 
-        debug!("assign_widths_block: assigning width for flow {}",  self.base.id);
+    fn assign_widths(&mut self, ctx: &mut LayoutContext) {
+        if self.is_float() {
+            debug!("assign_widths_float: assigning width for flow {}",  self.base.id);
+        } else {
+            debug!("assign_widths_block: assigning width for flow {}",  self.base.id);
+        }
+
         if self.is_root {
             debug!("Setting root position");
             self.base.position.origin = Au::zero_point();
@@ -377,12 +626,19 @@ impl Flow for BlockFlow {
         let mut remaining_width = self.base.position.size.width;
         let mut x_offset = Au::new(0);
 
+        if self.is_float() {
+            // Parent usually sets this, but floats are never inorder
+            self.base.is_inorder = false;
+        }
+
         for &box in self.box.iter() {
-            let base = box.mut_base();
+            let base = box.base();
+            let mut_base = box.mut_base();
             let style = base.style();
+            let mut_position = &mut base.position.mutate().ptr;
 
             // Can compute padding here since we know containing block width.
-            base.compute_padding(style, remaining_width);
+            mut_base.compute_padding(style, remaining_width);
 
             // Margins are 0 right now so base.noncontent_width() is just borders + padding.
             let available_width = remaining_width - base.noncontent_width();
@@ -393,58 +649,38 @@ impl Flow for BlockFlow {
             let margin_bottom = MaybeAuto::from_style(style.Margin.margin_bottom,
                                                       remaining_width).specified_or_zero();
 
-            let (width, maybe_margin_left, maybe_margin_right) =
-                (MaybeAuto::from_style(style.Box.width, remaining_width),
-                 MaybeAuto::from_style(style.Margin.margin_left, remaining_width),
-                 MaybeAuto::from_style(style.Margin.margin_right, remaining_width));
-
-            let (width, margin_left, margin_right) = self.compute_horiz(width,
-                                                                        maybe_margin_left,
-                                                                        maybe_margin_right,
-                                                                        available_width);
-
-            // If the tentative used width is greater than 'max-width', width should be recalculated,
-            // but this time using the computed value of 'max-width' as the computed value for 'width'.
-            let (width, margin_left, margin_right) = {
-                match specified_or_none(style.Box.max_width, remaining_width) {
-                    Some(value) if value < width => self.compute_horiz(Specified(value),
-                                                                       maybe_margin_left,
-                                                                       maybe_margin_right,
-                                                                       available_width),
-                    _ => (width, margin_left, margin_right)
-                }
-            };
-            // If the resulting width is smaller than 'min-width', width should be recalculated,
-            // but this time using the value of 'min-width' as the computed value for 'width'.
-            let (width, margin_left, margin_right) = {
-                let computed_min_width = specified(style.Box.min_width, remaining_width);
-                if computed_min_width > width {
-                    self.compute_horiz(Specified(computed_min_width),
-                                       maybe_margin_left,
-                                       maybe_margin_right,
-                                       available_width)
-                } else {
-                    (width, margin_left, margin_right)
-                }
+            let (width, margin_left, margin_right) = if self.is_float() {
+                self.compute_float_margins(box, remaining_width)
+            } else {
+                self.compute_block_margins(box, remaining_width, available_width)
             };
 
-            base.margin.top = margin_top;
-            base.margin.right = margin_right;
-            base.margin.bottom = margin_bottom;
-            base.margin.left = margin_left;
+            mut_base.margin.top = margin_top;
+            mut_base.margin.right = margin_right;
+            mut_base.margin.bottom = margin_bottom;
+            mut_base.margin.left = margin_left;
 
             x_offset = base.offset();
             remaining_width = width;
 
             //The associated box is the border box of this flow
-            let position_ref = base.position.mutate();
-            position_ref.ptr.origin.x = base.margin.left;
+            mut_position.origin.x = base.margin.left;
+
             let padding_and_borders = base.padding.left + base.padding.right +
                 base.border.left + base.border.right;
-            position_ref.ptr.size.width = remaining_width + padding_and_borders;
+            mut_position.size.width = remaining_width + padding_and_borders;
         }
 
-        let has_inorder_children = self.base.is_inorder || self.base.num_floats > 0;
+        if self.is_float() {
+            self.base.position.size.width = remaining_width;
+        }
+
+        let has_inorder_children = if self.is_float() {
+                self.base.num_floats > 0
+            } else {
+                self.base.is_inorder || self.base.num_floats > 0
+            };
+
         for kid in self.base.child_iter() {
             assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
@@ -460,19 +696,29 @@ impl Flow for BlockFlow {
     }
 
     fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height_inorder: assigning height for block {}", self.base.id);
-        self.assign_height_block_base(ctx, true);
+        if self.is_float() {
+            debug!("assign_height_inorder_float: assigning height for float {}", self.base.id);
+            self.assign_height_float_inorder();
+        } else {
+            debug!("assign_height_inorder: assigning height for block {}", self.base.id);
+            self.assign_height_block_base(ctx, true);
+        }
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height: assigning height for block {}", self.base.id);
-        // This is the only case in which a block flow can start an inorder
-        // subtraversal.
-        if self.is_root && self.base.num_floats > 0 {
-            self.assign_height_inorder(ctx);
-            return;
+        if self.is_float() {
+            debug!("assign_height_float: assigning height for float {}", self.base.id);
+            self.assign_height_float(ctx);
+        } else {
+            debug!("assign_height: assigning height for block {}", self.base.id);
+            // This is the only case in which a block flow can start an inorder
+            // subtraversal.
+            if self.is_root && self.base.num_floats > 0 {
+                self.assign_height_inorder(ctx);
+                return;
+            }
+            self.assign_height_block_base(ctx, false);
         }
-        self.assign_height_block_base(ctx, false);
     }
 
     fn collapse_margins(&mut self,
@@ -482,6 +728,12 @@ impl Flow for BlockFlow {
                         top_offset: &mut Au,
                         collapsing: &mut Au,
                         collapsible: &mut Au) {
+        if self.is_float() {
+            // Margins between a floated box and any other box do not collapse.
+            *collapsing = Au::new(0);
+            return;
+        }
+
         for &box in self.box.iter() {
             let base = box.base();
 
@@ -515,7 +767,7 @@ impl Flow for BlockFlow {
         if self.is_root {
             ~"BlockFlow(root)"
         } else {
-            let txt = ~"BlockFlow: ";
+            let txt = if self.is_float() { ~"FloatFlow: " } else { ~"BlockFlow: " };
             txt.append(match self.box {
                 Some(rb) => {
                     rb.debug_str()

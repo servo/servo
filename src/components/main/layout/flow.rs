@@ -29,7 +29,6 @@ use css::node_style::StyledNode;
 use layout::block::BlockFlow;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
-use layout::float::FloatFlow;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
@@ -72,11 +71,6 @@ pub trait Flow {
     /// If this is an inline flow, returns the underlying object. Fails otherwise.
     fn as_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
         fail!("called as_inline() on a non-inline flow")
-    }
-
-    /// If this is a float flow, returns the underlying object. Fails otherwise.
-    fn as_float<'a>(&'a mut self) -> &'a mut FloatFlow {
-        fail!("called as_float() on a non-float flow")
     }
 
     // Main methods
@@ -217,7 +211,6 @@ pub trait MutableFlowUtils {
 pub enum FlowClass {
     AbsoluteFlowClass,
     BlockFlowClass,
-    FloatFlowClass,
     InlineBlockFlowClass,
     InlineFlowClass,
     TableFlowClass,
@@ -395,7 +388,7 @@ impl<'self> ImmutableFlowUtils for &'self Flow {
     /// Returns true if this flow is a block or a float flow.
     fn is_block_like(self) -> bool {
         match self.class() {
-            BlockFlowClass | FloatFlowClass => true,
+            BlockFlowClass => true,
             AbsoluteFlowClass | InlineBlockFlowClass | InlineFlowClass | TableFlowClass => false,
         }
     }
@@ -408,7 +401,7 @@ impl<'self> ImmutableFlowUtils for &'self Flow {
     /// Returns true if this flow is a block flow, an inline-block flow, or a float flow.
     fn starts_block_flow(self) -> bool {
         match self.class() {
-            BlockFlowClass | InlineBlockFlowClass | FloatFlowClass => true,
+            BlockFlowClass | InlineBlockFlowClass => true,
             AbsoluteFlowClass | InlineFlowClass | TableFlowClass => false,
         }
     }
@@ -417,7 +410,7 @@ impl<'self> ImmutableFlowUtils for &'self Flow {
     fn starts_inline_flow(self) -> bool {
         match self.class() {
             InlineFlowClass => true,
-            AbsoluteFlowClass | BlockFlowClass | FloatFlowClass | InlineBlockFlowClass |
+            AbsoluteFlowClass | BlockFlowClass | InlineBlockFlowClass |
             TableFlowClass => false,
         }
     }
@@ -525,7 +518,6 @@ impl<'self> MutableFlowUtils for &'self mut Flow {
         match self.class() {
             BlockFlowClass => self.as_block().build_display_list_block(builder, dirty, list),
             InlineFlowClass => self.as_inline().build_display_list_inline(builder, dirty, list),
-            FloatFlowClass => self.as_float().build_display_list_float(builder, dirty, list),
             _ => fail!("Tried to build_display_list_recurse of flow: {:?}", self),
         };
 
