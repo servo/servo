@@ -212,6 +212,8 @@ impl<'self> Element {
             None => {}
         }
 
+        self.node.wait_until_safe_to_modify_dom();
+
         // FIXME: reduce the time of `value.clone()`.
         let win = self.node.owner_doc().document().window;
         let new_attr = Attr::new_ns(win, local_name.clone(), value.clone(),

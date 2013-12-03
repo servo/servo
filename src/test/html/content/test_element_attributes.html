@@ -1,0 +1,21 @@
+<html>
+<head id="foo">
+  <script src="harness.js"></script>
+</head>
+<body>
+<div></div>
+<script>
+  var attrs = [];
+  for (var i = 'a'.charCodeAt(0); i != 'z'.charCodeAt(0); i++) {
+    document.getElementsByTagName('div')[0].setAttribute(String.fromCharCode(i),
+                                                      i.toString());
+  }
+  var attributes = document.getElementsByTagName('div')[0].attributes;
+  for (var i = 0; i < attributes.length; i++) {
+    is(attributes[i].name, String.fromCharCode(i + 'a'.charCodeAt(0)));
+    is(attributes[i].value, (i + 'a'.charCodeAt(0)).toString());
+  }
+  finish();
+</script>
+</body>
+</html>

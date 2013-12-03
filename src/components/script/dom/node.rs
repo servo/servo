@@ -220,18 +220,28 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
     }
 
     fn set_parent_node(node: &mut Node<View>, new_parent_node: Option<AbstractNode<View>>) {
+        let doc = node.owner_doc();
+        doc.document().wait_until_safe_to_modify_dom();
         node.parent_node = new_parent_node
     }
     fn set_first_child(node: &mut Node<View>, new_first_child: Option<AbstractNode<View>>) {
+        let doc = node.owner_doc();
+        doc.document().wait_until_safe_to_modify_dom();
         node.first_child = new_first_child
     }
     fn set_last_child(node: &mut Node<View>, new_last_child: Option<AbstractNode<View>>) {
+        let doc = node.owner_doc();
+        doc.document().wait_until_safe_to_modify_dom();
         node.last_child = new_last_child
     }
     fn set_prev_sibling(node: &mut Node<View>, new_prev_sibling: Option<AbstractNode<View>>) {
+        let doc = node.owner_doc();
+        doc.document().wait_until_safe_to_modify_dom();
         node.prev_sibling = new_prev_sibling
     }
     fn set_next_sibling(node: &mut Node<View>, new_next_sibling: Option<AbstractNode<View>>) {
+        let doc = node.owner_doc();
+        doc.document().wait_until_safe_to_modify_dom();
         node.next_sibling = new_next_sibling
     }
 
@@ -545,6 +555,10 @@ impl<'self, View> AbstractNode<View> {
 impl AbstractNode<ScriptView> {
     pub fn AppendChild(self, node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
         self.node().AppendChild(self, node)
+    }
+
+    pub fn RemoveChild(self, node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
+        self.node().RemoveChild(self, node)
     }
 
     // http://dom.spec.whatwg.org/#node-is-inserted
@@ -1076,8 +1090,6 @@ impl Node<ScriptView> {
     pub fn SetTextContent(&mut self,
                           abstract_self: AbstractNode<ScriptView>,
                           value: Option<DOMString>) -> ErrorResult {
-        self.wait_until_safe_to_modify_dom();
-
         let value = null_str_as_empty(&value);
         match self.type_id {
           DocumentFragmentNodeTypeId | ElementNodeTypeId(*) => {
@@ -1092,6 +1104,8 @@ impl Node<ScriptView> {
             Node::replace_all(node, abstract_self);
           }
           CommentNodeTypeId | TextNodeTypeId => {
+            self.wait_until_safe_to_modify_dom();
+
             do abstract_self.with_mut_characterdata() |characterdata| {
                 characterdata.data = value.clone();
 
@@ -1108,11 +1122,10 @@ impl Node<ScriptView> {
     pub fn InsertBefore(&self,
                         node: AbstractNode<ScriptView>,
                         child: Option<AbstractNode<ScriptView>>) -> Fallible<AbstractNode<ScriptView>> {
-        self.wait_until_safe_to_modify_dom();
         Node::pre_insert(node, node, child)
     }
 
-    fn wait_until_safe_to_modify_dom(&self) {
+    pub fn wait_until_safe_to_modify_dom(&self) {
         let document = self.owner_doc();
         document.document().wait_until_safe_to_modify_dom();
     }
@@ -1120,7 +1133,6 @@ impl Node<ScriptView> {
     pub fn AppendChild(&self,
                        abstract_self: AbstractNode<ScriptView>,
                        node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
-        self.wait_until_safe_to_modify_dom();
         Node::pre_insert(node, abstract_self, None)
     }
 
@@ -1131,7 +1143,6 @@ impl Node<ScriptView> {
     pub fn RemoveChild(&self,
                        abstract_self: AbstractNode<ScriptView>,
                        node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
-        self.wait_until_safe_to_modify_dom();
         Node::pre_remove(node, abstract_self)
     }
 
