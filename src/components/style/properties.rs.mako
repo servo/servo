@@ -933,7 +933,9 @@ enum PropertyDeclarationParseResult {
 impl PropertyDeclaration {
     pub fn parse(name: &str, value: &[ComponentValue],
                  result_list: &mut ~[PropertyDeclaration]) -> PropertyDeclarationParseResult {
-        match name.to_ascii_lower().as_slice() {
+        // FIXME: local variable to work around Rust #10683
+        let name_lower = name.to_ascii_lower();
+        match name_lower.as_slice() {
             % for property in LONGHANDS:
                 "${property.name}" => result_list.push(${property.ident}_declaration(
                     match longhands::${property.ident}::parse_declared(value) {
