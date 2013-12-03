@@ -207,8 +207,11 @@ pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth
 }
 
 pub unsafe fn squirrel_away<T>(x: @mut T) -> *Box<T> {
-    let y: *Box<T> = cast::transmute(x);
-    y
+    cast::transmute(x)
+}
+
+pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *Box<T> {
+    cast::transmute(x)
 }
 
 pub fn jsstring_to_str(cx: *JSContext, s: *JSString) -> ~str {
@@ -620,15 +623,9 @@ pub fn reflect_dom_object<T: Reflectable>
 pub fn reflect_dom_object2<T: Reflectable>
         (obj:     ~T,
          window:  &window::Window,
-         wrap_fn: extern "Rust" fn(*JSContext, *JSObject, @mut T) -> *JSObject)
+         wrap_fn: extern "Rust" fn(*JSContext, *JSObject, ~T) -> *JSObject)
          ->       JSManaged<T> {
-    let cx = window.get_cx();
-    let scope = window.reflector().get_jsobject();
-    //if wrap_fn(cx, scope, obj).is_null() {
-    //    fail!("Could not eagerly wrap object");
-    //}
-    assert!(obj.reflector().get_jsobject().is_not_null());
-    JSManaged::new(obj)
+    JSManaged::new(obj, window, wrap_fn)
 }
 
 pub struct Reflector {
