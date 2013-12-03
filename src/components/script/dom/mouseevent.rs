@@ -3,21 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::MouseEventBinding;
+use dom::bindings::codegen::InheritTypes::{MouseEventBase, MouseEventDerived};
 use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
-use dom::event::{Event, MouseEventTypeId, EventBase};
+use dom::event::{Event, MouseEventTypeId};
 use dom::eventtarget::AbstractEventTarget;
-use dom::uievent::{UIEvent, UIEventBase};
+use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
-
-pub trait MouseEventDerived { fn is_mouseevent(&self) -> bool; }
-pub trait MouseEventBase : UIEventBase {}
-
-impl EventBase for MouseEvent {}
-impl UIEventBase for MouseEvent {}
-impl MouseEventBase for MouseEvent {}
 
 pub struct MouseEvent {
     parent: UIEvent,
