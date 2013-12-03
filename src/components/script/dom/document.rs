@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::comment::Comment;
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable, reflect_dom_object};
@@ -217,8 +218,8 @@ impl Document {
 
     pub fn CreateEvent(&self, interface: DOMString) -> Fallible<JSManaged<Event>> {
         match interface.as_slice() {
-            "UIEvents" => Ok(Event::from(UIEvent::new(self.window))),
-            "MouseEvents" => Ok(Event::from(MouseEvent::new(self.window))),
+            "UIEvents" => Ok(EventCast::from(UIEvent::new(self.window))),
+            "MouseEvents" => Ok(EventCast::from(MouseEvent::new(self.window))),
             "HTMLEvents" => Ok(Event::new(self.window)),
             _ => Err(NotSupported)
         }

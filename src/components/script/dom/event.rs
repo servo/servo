@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::InheritTypes::{EventBase};
 use dom::eventtarget::AbstractEventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
@@ -33,12 +32,6 @@ pub enum EventTypeId {
     UIEventTypeId,
     MouseEventTypeId,
     KeyEventTypeId
-}
-
-impl Event {
-    pub fn from<T: EventBase>(derived: JSManaged<T>) -> JSManaged<Event> {
-        derived.transmute()
-    }
 }
 
 pub struct Event {
