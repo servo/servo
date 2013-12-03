@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Constructs display lists from render boxes.
+//! Constructs display lists from boxes.
 
-use layout::box::{RenderBox, RenderBoxUtils};
+use layout::box::Box;
 use layout::context::LayoutContext;
 use std::cast::transmute;
 use script::dom::node::AbstractNode;
@@ -16,27 +16,27 @@ use style;
 /// that nodes in this view shoud not really be touched. The idea is to
 /// store the nodes in the display list and have layout transmute them.
 pub trait ExtraDisplayListData {
-    fn new(box: &@RenderBox) -> Self;
+    fn new(box: &@Box) -> Self;
 }
 
 pub type Nothing = ();
 
 impl ExtraDisplayListData for AbstractNode<()> {
-    fn new(box: &@RenderBox) -> AbstractNode<()> {
+    fn new(box: &@Box) -> AbstractNode<()> {
         unsafe {
-            transmute(box.base().node)
+            transmute(box.node)
         }
     }
 }
 
 impl ExtraDisplayListData for Nothing {
-    fn new(_: &@RenderBox) -> Nothing {
+    fn new(_: &@Box) -> Nothing {
         ()
     }
 }
 
-impl ExtraDisplayListData for @RenderBox {
-    fn new(box: &@RenderBox) -> @RenderBox {
+impl ExtraDisplayListData for @Box {
+    fn new(box: &@Box) -> @Box {
         *box
     }
 }

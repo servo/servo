@@ -7,8 +7,8 @@
 //! Each step of the traversal considers the node and existing flow, if there is one. If a node is
 //! not dirty and an existing flow exists, then the traversal reuses that flow. Otherwise, it
 //! proceeds to construct either a flow or a `ConstructionItem`. A construction item is a piece of
-//! intermediate data that goes with a DOM node and hasn't found its "home" yet—maybe it's a render
-//! box, maybe it's an absolute or fixed position thing that hasn't found its containing block yet.
+//! intermediate data that goes with a DOM node and hasn't found its "home" yet—maybe it's a box,
+//! maybe it's an absolute or fixed position thing that hasn't found its containing block yet.
 //! Construction items bubble up the tree from children to parents until they find their homes.
 //!
 //! TODO(pcwalton): There is no incremental reflow yet. This scheme requires that nodes either have
@@ -22,8 +22,7 @@
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box::{GenericRenderBox, ImageRenderBox, RenderBox, RenderBoxBase};
-use layout::box::{UnscannedTextRenderBox};
+use layout::box::{Box, GenericBox, ImageBox, ImageBoxInfo, UnscannedTextBox, UnscannedTextBoxInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
 use layout::flow::{Flow, FlowData, MutableFlowUtils};
@@ -70,8 +69,8 @@ struct InlineBoxesConstructionResult {
     /// TODO(pcwalton): Small vector optimization.
     splits: Option<~[InlineBlockSplit]>,
 
-    /// Any render boxes that succeed the {ib} splits.
-    boxes: ~[@RenderBox],
+    /// Any boxes that succeed the {ib} splits.
+    boxes: ~[@Box],
 }
 
 /// Represents an {ib} split that has not yet found the containing block that it belongs to. This
@@ -97,10 +96,10 @@ struct InlineBoxesConstructionResult {
 ///             C
 ///         ])
 struct InlineBlockSplit {
-    /// The inline render boxes that precede the flow.
+    /// The inline boxes that precede the flow.
     ///
     /// TODO(pcwalton): Small vector optimization.
-    predecessor_boxes: ~[@RenderBox],
+    predecessor_boxes: ~[@Box],
 
     /// The flow that caused this {ib} split.
     flow: ~Flow:,
@@ -180,11 +179,6 @@ pub struct FlowConstructor<'self> {
     ///
     /// FIXME(pcwalton): This is going to have to be atomic; can't we do something better?
     next_flow_id: Slot<int>,
-
-    /// The next box ID to assign.
-    ///
-    /// FIXME(pcwalton): This is going to have to be atomic; can't we do something better?
-    next_box_id: Slot<int>,
 }
 
 impl<'self> FlowConstructor<'self> {
@@ -193,7 +187,6 @@ impl<'self> FlowConstructor<'self> {
         FlowConstructor {
             layout_context: layout_context,
             next_flow_id: Slot::init(0),
-            next_box_id: Slot::init(0),
         }
     }
 
@@ -204,39 +197,36 @@ impl<'self> FlowConstructor<'self> {
         id
     }
 
-    /// Returns the next render box ID and bumps the internal counter.
-    fn next_box_id(&self) -> int {
-        let id = self.next_box_id.get();
-        self.next_box_id.set(id + 1);
-        id
-    }
-
-    /// Builds a `RenderBox` for the given image. This is out of line to guide inlining.
-    fn build_box_for_image(&self, base: RenderBoxBase, node: AbstractNode<LayoutView>)
-                           -> @RenderBox {
+    /// Builds the `ImageBoxInfo` for the given image. This is out of line to guide inlining.
+    fn build_box_info_for_image(&self, node: AbstractNode<LayoutView>) -> Option<ImageBoxInfo> {
         // FIXME(pcwalton): Don't copy URLs.
         let url = node.with_imm_image_element(|image_element| {
             image_element.image.as_ref().map(|url| (*url).clone())
         });
 
         match url {
-            None => @GenericRenderBox::new(base) as @RenderBox,
+            None => None,
             Some(url) => {
-                // FIXME(pcwalton): The fact that image render boxes store the cache in the
-                // box makes little sense to me.
-                @ImageRenderBox::new(base, url, self.layout_context.image_cache) as @RenderBox
+                // FIXME(pcwalton): The fact that image boxes store the cache within them makes
+                // little sense to me.
+                Some(ImageBoxInfo::new(url, self.layout_context.image_cache))
             }
         }
     }
 
-    /// Builds a `RenderBox` for the given node.
-    fn build_box_for_node(&self, node: AbstractNode<LayoutView>) -> @RenderBox {
-        let base = RenderBoxBase::new(node, self.next_box_id());
-        match node.type_id() {
-            ElementNodeTypeId(HTMLImageElementTypeId) => self.build_box_for_image(base, node),
-            TextNodeTypeId => @UnscannedTextRenderBox::new(base) as @RenderBox,
-            _ => @GenericRenderBox::new(base) as @RenderBox,
-        }
+    /// Builds a `Box` for the given node.
+    fn build_box_for_node(&self, node: AbstractNode<LayoutView>) -> @Box {
+        let specific = match node.type_id() {
+            ElementNodeTypeId(HTMLImageElementTypeId) => {
+                match self.build_box_info_for_image(node) {
+                    None => GenericBox,
+                    Some(image_box_info) => ImageBox(image_box_info),
+                }
+            }
+            TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(&node)),
+            _ => GenericBox,
+        };
+        @Box::new(node, specific)
     }
 
     /// Creates an inline flow from a set of inline boxes and adds it as a child of the given flow.
@@ -245,7 +235,7 @@ impl<'self> FlowConstructor<'self> {
     /// otherwise.
     #[inline(always)]
     fn flush_inline_boxes_to_flow(&self,
-                                  boxes: ~[@RenderBox],
+                                  boxes: ~[@Box],
                                   flow: &mut ~Flow:,
                                   node: AbstractNode<LayoutView>) {
         if boxes.len() > 0 {
@@ -259,7 +249,7 @@ impl<'self> FlowConstructor<'self> {
     /// Creates an inline flow from a set of inline boxes, if present, and adds it as a child of
     /// the given flow.
     fn flush_inline_boxes_to_flow_if_necessary(&self,
-                                               opt_boxes: &mut Option<~[@RenderBox]>,
+                                               opt_boxes: &mut Option<~[@Box]>,
                                                flow: &mut ~Flow:,
                                                node: AbstractNode<LayoutView>) {
         let opt_boxes = util::replace(opt_boxes, None);
@@ -378,13 +368,13 @@ impl<'self> FlowConstructor<'self> {
         let mut opt_inline_block_splits = None;
         let mut opt_box_accumulator = None;
 
-        // Concatenate all the render boxes of our kids, creating {ib} splits as necessary.
+        // Concatenate all the boxes of our kids, creating {ib} splits as necessary.
         for kid in node.children() {
             match kid.swap_out_construction_result() {
                 NoConstructionResult => {}
                 FlowConstructionResult(flow) => {
                     // {ib} split. Flush the accumulator to our new split and make a new
-                    // accumulator to hold any subsequent `RenderBox`es we come across.
+                    // accumulator to hold any subsequent boxes we come across.
                     let split = InlineBlockSplit {
                         predecessor_boxes: util::replace(&mut opt_box_accumulator, None).to_vec(),
                         flow: flow,
@@ -438,7 +428,7 @@ impl<'self> FlowConstructor<'self> {
     }
 
     /// Creates an `InlineBoxesConstructionResult` for replaced content. Replaced content doesn't
-    /// render its children, so this just nukes a child's boxes and creates a `RenderBox`.
+    /// render its children, so this just nukes a child's boxes and creates a `Box`.
     fn build_boxes_for_replaced_inline_content(&self, node: AbstractNode<LayoutView>)
                                                -> ConstructionResult {
         for kid in node.children() {
@@ -454,7 +444,7 @@ impl<'self> FlowConstructor<'self> {
         ConstructionItemConstructionResult(construction_item)
     }
 
-    /// Builds one or more render boxes for a node with `display: inline`. This yields an
+    /// Builds one or more boxes for a node with `display: inline`. This yields an
     /// `InlineBoxesConstructionResult`.
     fn build_boxes_for_inline(&self, node: AbstractNode<LayoutView>) -> ConstructionResult {
         // Is this node replaced content?
@@ -462,8 +452,7 @@ impl<'self> FlowConstructor<'self> {
             // Go to a path that concatenates our kids' boxes.
             self.build_boxes_for_nonreplaced_inline_content(node)
         } else {
-            // Otherwise, just nuke our kids' boxes, create our `RenderBox` if any, and be done
-            // with it.
+            // Otherwise, just nuke our kids' boxes, create our box if any, and be done with it.
             self.build_boxes_for_replaced_inline_content(node)
         }
     }
@@ -494,7 +483,7 @@ impl<'self> PostorderNodeTraversal for FlowConstructor<'self> {
                 }
             }
 
-            // Inline items contribute inline render box construction results.
+            // Inline items contribute inline box construction results.
             (display::inline, float::none) => {
                 let construction_result = self.build_boxes_for_inline(node);
                 node.set_flow_construction_result(construction_result)
@@ -575,7 +564,7 @@ impl NodeUtils for AbstractNode<LayoutView> {
 }
 
 /// Strips ignorable whitespace from the start of a list of boxes.
-fn strip_ignorable_whitespace_from_start(opt_boxes: &mut Option<~[@RenderBox]>) {
+fn strip_ignorable_whitespace_from_start(opt_boxes: &mut Option<~[@Box]>) {
     match util::replace(opt_boxes, None) {
         None => return,
         Some(boxes) => {
@@ -597,7 +586,7 @@ fn strip_ignorable_whitespace_from_start(opt_boxes: &mut Option<~[@RenderBox]>) 
 }
 
 /// Strips ignorable whitespace from the end of a list of boxes.
-fn strip_ignorable_whitespace_from_end(opt_boxes: &mut Option<~[@RenderBox]>) {
+fn strip_ignorable_whitespace_from_end(opt_boxes: &mut Option<~[@Box]>) {
     match *opt_boxes {
         None => {}
         Some(ref mut boxes) => {
