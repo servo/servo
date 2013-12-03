@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::MouseEventBinding;
-use dom::bindings::codegen::InheritTypes::{MouseEventBase, MouseEventDerived};
+use dom::bindings::codegen::InheritTypes::MouseEventDerived;
 use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
@@ -14,7 +14,7 @@ use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 
 pub struct MouseEvent {
-    parent: UIEvent,
+    mouseevent: UIEvent,
     screen_x: i32,
     screen_y: i32,
     client_x: i32,
@@ -34,20 +34,9 @@ impl MouseEventDerived for Event {
 }
 
 impl MouseEvent {
-    pub fn from<T: MouseEventBase>(derived: JSManaged<T>) -> JSManaged<MouseEvent> {
-        derived.transmute()
-    }
-
-    pub fn to<T: MouseEventDerived>(base: JSManaged<T>) -> JSManaged<MouseEvent> {
-        assert!(base.value().is_mouseevent());
-        base.transmute()
-    }
-}
-
-impl MouseEvent {
     pub fn new_inherited() -> MouseEvent {
         MouseEvent {
-            parent: UIEvent::new_inherited(MouseEventTypeId),
+            mouseevent: UIEvent::new_inherited(MouseEventTypeId),
             screen_x: 0,
             screen_y: 0,
             client_x: 0,
@@ -145,7 +134,7 @@ impl MouseEvent {
                           metaKeyArg: bool,
                           buttonArg: u16,
                           relatedTargetArg: Option<AbstractEventTarget>) -> ErrorResult {
-        self.parent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
+        self.mouseevent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x = screenXArg;
         self.screen_y = screenYArg;
         self.client_x = clientXArg;
@@ -162,10 +151,10 @@ impl MouseEvent {
 
 impl Reflectable for MouseEvent {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.parent.reflector()
+        self.mouseevent.reflector()
     }
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.parent.mut_reflector()
+        self.mouseevent.mut_reflector()
     }
 }
