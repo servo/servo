@@ -3,19 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::UIEventBinding;
+use dom::bindings::codegen::InheritTypes::{UIEventBase, UIEventDerived};
 use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::node::{AbstractNode, ScriptView};
-use dom::event::{Event, EventTypeId, UIEventTypeId, EventBase};
+use dom::event::{Event, EventTypeId, UIEventTypeId};
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
-
-pub trait UIEventDerived { fn is_uievent(&self) -> bool; }
-pub trait UIEventBase : EventBase {}
-
-impl EventBase for UIEvent {}
-impl UIEventBase for UIEvent {}
 
 pub struct UIEvent {
     parent: Event,
