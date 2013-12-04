@@ -558,7 +558,6 @@ impl Flow for BlockFlow {
     min/pref widths based on child context widths and dimensions of
     any boxes it is responsible for flowing.  */
 
-    /* TODO: floats */
     /* TODO: absolute contexts */
     /* TODO: inline-blocks */
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
@@ -587,10 +586,8 @@ impl Flow for BlockFlow {
            these widths will not include child elements, just padding etc. */
         for box in self.box.iter() {
             {
-                let mut_base = box.mut_base();
-                let base = box.base();
                 // Can compute border width here since it doesn't depend on anything.
-                mut_base.compute_borders(base.style())
+                box.mut_base().compute_borders(box.base().style());
             }
 
             let (this_minimum_width, this_preferred_width) = box.minimum_and_preferred_widths();
@@ -627,6 +624,8 @@ impl Flow for BlockFlow {
         let mut x_offset = Au::new(0);
 
         if self.is_float() {
+            self.float.get_mut_ref().containing_width = remaining_width;
+
             // Parent usually sets this, but floats are never inorder
             self.base.is_inorder = false;
         }
