@@ -373,6 +373,9 @@ pub mod longhands {
     // CSS 2.1, Section 11 - Visual effects
     ${single_keyword("overflow", "visible hidden", inherited=False)} // TODO: scroll auto
 
+    // TODO: collapse. Well, do tables first.
+    ${single_keyword("visibility", "visible hidden", inherited=True)}
+
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 
     // CSS 2.1, Section 13 - Paged media

@@ -28,7 +28,8 @@ use std::unstable::raw::Box;
 use style::ComputedValues;
 use style::computed_values::{
     border_style, clear, float, font_family, font_style, line_height,
-    position, text_align, text_decoration, vertical_align, LengthOrPercentage, overflow};
+    position, text_align, text_decoration, vertical_align, LengthOrPercentage,
+    overflow, visibility};
 
 use css::node_style::StyledNode;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
@@ -1031,6 +1032,10 @@ impl RenderBoxUtils for @RenderBox {
         debug!("RenderBox::build_display_list at rel={}, abs={}: {:s}",
                box_bounds, absolute_box_bounds, self.debug_str());
         debug!("RenderBox::build_display_list: dirty={}, offset={}", *dirty, *offset);
+
+        if base.nearest_ancestor_element().style().Box.visibility != visibility::visible {
+            return;
+        }
 
         if absolute_box_bounds.intersects(dirty) {
             debug!("RenderBox::build_display_list: intersected. Adding display item...");
