@@ -21,55 +21,62 @@ pub fn factory() -> LoaderTask {
     f
 }
 
-fn load(url: Url, start_chan: Chan<LoadResponse>) {
-    assert!("http" == url.scheme);
-
-    info!("requesting {:s}", url.to_str());
-
-    let request = ~RequestWriter::new(Get, url.clone());
-    let mut response = match request.read_response() {
-        Ok(r) => r,
-        Err(_) => {
-            start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
-            return;
-        }
-    };
-
-    // Dump headers, but only do the iteration if info!() is enabled.
-    info!("got HTTP response {:s}, headers:", response.status.to_str());
-    info!("{:?}",
-        for header in response.headers.iter() {
-            info!(" - {:s}: {:s}", header.header_name(), header.header_value());
-        });
-
-    // FIXME: detect redirect loops
-    if 3 == (response.status.code() / 100) {
-        match response.headers.location {
-            Some(url) => {
-                info!("redirecting to {:s}", url.to_str());
-                return load(url, start_chan);
-            }
-            None => ()
-        }
-    }
-
-    let mut metadata = Metadata::default(url);
-    metadata.set_content_type(&response.headers.content_type);
-
-    let progress_chan = start_sending(start_chan, metadata);
+fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
+    // Loop to handle redirects.
     loop {
-        let mut buf = vec::with_capacity(1024);
+        assert!("http" == url.scheme);
 
-        unsafe { vec::raw::set_len(&mut buf, 1024) };
-        match response.read(buf) {
-            Some(len) => {
-                unsafe { vec::raw::set_len(&mut buf, len) };
-            }
-            None => {
-                progress_chan.send(Done(Ok(())));
+        info!("requesting {:s}", url.to_str());
+
+        let request = ~RequestWriter::new(Get, url.clone());
+        let mut response = match request.read_response() {
+            Ok(r) => r,
+            Err(_) => {
+                start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
                 return;
             }
+        };
+
+        // Dump headers, but only do the iteration if info!() is enabled.
+        info!("got HTTP response {:s}, headers:", response.status.to_str());
+        info!("{:?}",
+            for header in response.headers.iter() {
+                info!(" - {:s}: {:s}", header.header_name(), header.header_value());
+            });
+
+        // FIXME: detect redirect loops
+        if 3 == (response.status.code() / 100) {
+            match response.headers.location {
+                Some(new_url) => {
+                    info!("redirecting to {:s}", new_url.to_str());
+                    url = new_url;
+                    continue;
+                }
+                None => ()
+            }
         }
-        progress_chan.send(Payload(buf));
+
+        let mut metadata = Metadata::default(url);
+        metadata.set_content_type(&response.headers.content_type);
+
+        let progress_chan = start_sending(start_chan, metadata);
+        loop {
+            let mut buf = vec::with_capacity(1024);
+
+            unsafe { vec::raw::set_len(&mut buf, 1024) };
+            match response.read(buf) {
+                Some(len) => {
+                    unsafe { vec::raw::set_len(&mut buf, len) };
+                    progress_chan.send(Payload(buf));
+                }
+                None => {
+                    progress_chan.send(Done(Ok(())));
+                    break;
+                }
+            }
+        }
+
+        // We didn't get redirected.
+        break;
     }
 }
