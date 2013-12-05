@@ -4,7 +4,7 @@
 
 use compositing::*;
 
-use std::unstable::intrinsics;
+use layers::platform::surface::NativeGraphicsMetadata;
 
 /// Starts the compositor, which listens for messages on the specified port.
 ///
@@ -16,9 +16,9 @@ pub fn run_compositor(compositor: &CompositorTask) {
             Exit => break,
 
              GetGraphicsMetadata(chan) => {
-                unsafe {
-                    chan.send(intrinsics::uninit());
-                }
+                chan.send(NativeGraphicsMetadata {
+                    display: ~"",
+                });
             }
 
             SetIds(_, response_chan, _) => {
