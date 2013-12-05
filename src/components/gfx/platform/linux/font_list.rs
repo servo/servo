@@ -53,7 +53,7 @@ impl FontListHandle {
                     while FcPatternGetString(*font, FC_FAMILY, v, &family) == FcResultMatch {
                         let family_name = str::raw::from_c_str(family as *c_char);
                         debug!("Creating new FontFamily for family: {:s}", family_name);
-                        let new_family = @mut FontFamily::new(family_name);
+                        let new_family = FontFamily::new(family_name);
                         family_map.insert(family_name, new_family);
                         v += 1;
                     }
@@ -64,7 +64,7 @@ impl FontListHandle {
     }
 
     #[fixed_stack_segment]
-    pub fn load_variations_for_family(&self, family: @mut FontFamily) {
+    pub fn load_variations_for_family(&self, family: &mut FontFamily) {
         debug!("getting variations for {:?}", family);
         unsafe {
             let config = FcConfigGetCurrent();
@@ -120,7 +120,7 @@ impl FontListHandle {
                 let font_handle = font_handle.unwrap();
 
                 debug!("Creating new FontEntry for face: {:s}", font_handle.face_name());
-                let entry = @FontEntry::new(font_handle);
+                let entry = FontEntry::new(font_handle);
                 family.entries.push(entry);
             }
 

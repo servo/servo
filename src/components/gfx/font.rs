@@ -75,6 +75,7 @@ pub trait FontTableMethods {
     fn with_buffer(&self, &fn(*u8, uint));
 }
 
+#[deriving(Clone)]
 pub struct FontMetrics {
     underline_size:   Au,
     underline_offset: Au,
@@ -234,7 +235,7 @@ and the renderer can use it to render text.
 pub struct Font {
     priv handle: FontHandle,
     priv azure_font: Option<ScaledFont>,
-    priv shaper: Option<@Shaper>,
+    priv shaper: Option<Shaper>,
     style: UsedFontStyle,
     metrics: FontMetrics,
     backend: BackendType,
@@ -243,7 +244,7 @@ pub struct Font {
     glyph_advance_cache: HashCache<u32, FractionalPixel>,
 }
 
-impl Font {
+impl<'self> Font {
     pub fn new_from_buffer(ctx: &FontContext,
                        buffer: ~[u8],
                        style: &SpecifiedFontStyle,
@@ -256,7 +257,7 @@ impl Font {
         } else {
             return Err(handle.unwrap_err());
         };
-        
+
         let metrics = handle.get_metrics();
         // TODO(Issue #179): convert between specified and used font style here?
 
@@ -304,16 +305,20 @@ impl Font {
         return Ok(Font::new_from_adopted_handle(fctx, styled_handle, style, backend, profiler_chan));
     }
 
-    fn get_shaper(@mut self) -> @Shaper {
+    fn make_shaper(&'self mut self) -> &'self Shaper {
         // fast path: already created a shaper
         match self.shaper {
-            Some(shaper) => { return shaper; },
+            Some(ref shaper) => { 
+                let s: &'self Shaper = shaper;
+                return s; 
+            },
             None => {}
         }
 
-        let shaper = @Shaper::new(self);
+        let shaper = Shaper::new(self);
         self.shaper = Some(shaper);
-        shaper
+        let s:&'self Shaper = self.shaper.get_ref();
+        s
     }
 
     pub fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
@@ -369,7 +374,7 @@ impl Font {
     #[fixed_stack_segment]
     pub fn draw_text_into_context(&mut self,
                               rctx: &RenderContext,
-                              run: &TextRun,
+                              run: &~TextRun,
                               range: &Range,
                               baseline_origin: Point2D<Au>,
                               color: Color) {
@@ -454,11 +459,13 @@ impl Font {
         RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
     }
 
-    pub fn shape_text(@mut self, text: ~str, is_whitespace: bool) -> Arc<GlyphStore> {
-        let shaper = self.get_shaper();
+    pub fn shape_text(&mut self, text: ~str, is_whitespace: bool) -> Arc<GlyphStore> {
+
+        //FIXME (ksh8281)
+        self.make_shaper();
         do self.shape_cache.find_or_create(&text) |txt| {
             let mut glyphs = GlyphStore::new(text.char_len(), is_whitespace);
-            shaper.shape_text(*txt, &mut glyphs);
+            self.shaper.get_ref().shape_text(*txt, &mut glyphs);
             Arc::new(glyphs)
         }
     }

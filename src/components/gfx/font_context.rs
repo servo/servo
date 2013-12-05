@@ -130,24 +130,31 @@ impl<'self> FontContext {
             let family_name = family.trim();
             let transformed_family_name = self.transform_family(family_name);
             debug!("(create font group) transformed family is `{:s}`", transformed_family_name);
+            let mut found = false;
 
             let result = match self.font_list {
-                Some(ref fl) => fl.find_font_in_family(transformed_family_name, style),
+                Some(ref mut fl) => {
+                    let font_in_family = fl.find_font_in_family(&transformed_family_name, style);
+                    if font_in_family.is_some() {
+                        let font_entry = font_in_family.unwrap();
+                        let font_id =
+                            SelectorPlatformIdentifier(font_entry.handle.face_identifier());
+                            let font_desc = FontDescriptor::new((*style).clone(), font_id);
+                            Some(font_desc)
+                    } else {
+                        None
+                    }
+                }
                 None => None,
             };
 
-            let mut found = false;
-            for font_entry in result.iter() {
+            if result.is_some() {
                 found = true;
-
-                let font_id =
-                  SelectorPlatformIdentifier(font_entry.handle.face_identifier());
-                let font_desc = FontDescriptor::new((*style).clone(), font_id);
-
-                let instance = self.get_font_by_descriptor(&font_desc);
+                let instance = self.get_font_by_descriptor(&result.unwrap());
 
                 for font in instance.iter() { fonts.push(*font); }
-            };
+            }
+
 
             if !found {
                 debug!("(create font group) didn't find `{:s}`", transformed_family_name);
@@ -156,7 +163,6 @@ impl<'self> FontContext {
 
         if fonts.len() == 0 {
             let last_resort = FontList::get_last_resort_font_families();
-
             for family in last_resort.iter() {
                 let result = match self.font_list {
                     Some(ref fl) => fl.find_font_in_family(*family, style),
@@ -167,7 +173,6 @@ impl<'self> FontContext {
                     let font_id =
                         SelectorPlatformIdentifier(font_entry.handle.face_identifier());
                     let font_desc = FontDescriptor::new((*style).clone(), font_id);
-
                     let instance = self.get_font_by_descriptor(&font_desc);
 
                     for font in instance.iter() {
@@ -183,7 +188,7 @@ impl<'self> FontContext {
 
         debug!("(create font group) --- finished ---");
 
-        @FontGroup::new(style.families.to_managed(), &used_style, fonts)
+        FontGroup::new(style.families.to_owned(), &used_style, fonts)
     }
 
     fn create_font_instance(&self, desc: &FontDescriptor) -> Result<@mut Font, ()> {

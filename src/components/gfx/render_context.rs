@@ -24,7 +24,7 @@ use std::libc::size_t;
 
 pub struct RenderContext<'self> {
     draw_target: &'self DrawTarget,
-    font_ctx: @mut FontContext,
+    font_ctx: &'self mut ~FontContext,
     opts: &'self Opts,
     /// The rectangle that this context encompasses in page coordinates.
     page_rect: Rect<f32>,
