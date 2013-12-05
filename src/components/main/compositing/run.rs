@@ -131,7 +131,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
                     constellation_chan = Some(new_constellation_chan);
                 }
 
-                GetGraphicsMetadata(chan) => chan.send(azure_hl::current_graphics_metadata()),
+                GetGraphicsMetadata(chan) => chan.send(Some(azure_hl::current_graphics_metadata())),
 
                 NewLayer(_id, new_size) => {
                     // FIXME: This should create an additional layer instead of replacing the current one.

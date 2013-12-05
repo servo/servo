@@ -107,7 +107,7 @@ pub struct RenderTask<C,T> {
     graphics_context: GraphicsContext,
 
     /// The native graphics context.
-    native_graphics_context: NativePaintingGraphicsContext,
+    native_graphics_context: Option<NativePaintingGraphicsContext>,
 
     /// The layer to be rendered
     render_layer: Option<RenderLayer<T>>,
@@ -122,6 +122,14 @@ pub struct RenderTask<C,T> {
     buffer_map: BufferMap<~LayerBuffer>,
 }
 
+// If we implement this as a function, we get borrowck errors from borrowing
+// the whole RenderTask struct.
+macro_rules! native_graphics_context(
+    ($task:expr) => (
+        $task.native_graphics_context.as_ref().expect("Need a graphics context to do rendering")
+    )
+)
+
 impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
     pub fn create(id: PipelineId,
                   port: Port<Msg<T>>,
@@ -132,10 +140,9 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
         do spawn_with((port, compositor, constellation_chan, opts, profiler_chan))
             |(port, compositor, constellation_chan, opts, profiler_chan)| {
 
-            let graphics_metadata = compositor.get_graphics_metadata();
+            let native_graphics_context = compositor.get_graphics_metadata().map(
+                |md| NativePaintingGraphicsContext::from_metadata(&md));
             let cpu_painting = opts.cpu_painting;
-            let native_graphics_context =
-                    NativePaintingGraphicsContext::from_metadata(&graphics_metadata);
 
             // FIXME: rust/#5967
             let mut render_task = RenderTask {
@@ -167,7 +174,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
             render_task.start();
 
             // Destroy all the buffers.
-            render_task.buffer_map.clear(&render_task.native_graphics_context)
+            render_task.buffer_map.clear(native_graphics_context!(render_task));
         }
     }
 
@@ -195,7 +202,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                 UnusedBufferMsg(unused_buffers) => {
                     // move_rev_iter is more efficient
                     for buffer in unused_buffers.move_rev_iter() {
-                        self.buffer_map.insert(&self.native_graphics_context, buffer);
+                        self.buffer_map.insert(native_graphics_context!(self), buffer);
                     }
                 }
                 PaintPermissionGranted => {
@@ -249,7 +256,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                             // (texture color buffer, renderbuffers) instead of recreating them.
                             let draw_target =
                                 DrawTarget::new_with_fbo(self.opts.render_backend,
-                                                         &self.native_graphics_context,
+                                                         native_graphics_context!(self),
                                                          size,
                                                          B8G8R8A8);
                             draw_target.make_current();
@@ -306,7 +313,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                                     // in case it dies in transit to the compositor task.
                                     let mut native_surface: NativeSurface =
                                         layers::platform::surface::NativeSurfaceMethods::new(
-                                            &self.native_graphics_context,
+                                            native_graphics_context!(self),
                                             Size2D(width as i32, height as i32),
                                             width as i32 * 4);
                                     native_surface.mark_wont_leak();
@@ -322,7 +329,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                             };
 
                             do draw_target.snapshot().get_data_surface().with_data |data| {
-                                buffer.native_surface.upload(&self.native_graphics_context, data);
+                                buffer.native_surface.upload(native_graphics_context!(self), data);
                                 debug!("RENDERER uploading to native surface {:d}",
                                        buffer.native_surface.get_id() as int);
                             }

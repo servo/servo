@@ -8,7 +8,7 @@
        url = "http://servo.org/")];
 #[crate_type = "lib"];
 
-#[feature(globs, managed_boxes)];
+#[feature(globs, managed_boxes, macro_rules)];
 
 extern mod azure;
 extern mod extra;
