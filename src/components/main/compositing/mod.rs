@@ -61,7 +61,7 @@ impl ScriptListener for CompositorChan {
 
 /// Implementation of the abstract `RenderListener` interface.
 impl RenderListener for CompositorChan {
-    fn get_graphics_metadata(&self) -> NativeGraphicsMetadata {
+    fn get_graphics_metadata(&self) -> Option<NativeGraphicsMetadata> {
         let (port, chan) = comm::stream();
         self.chan.send(GetGraphicsMetadata(chan));
         port.recv()
@@ -117,7 +117,9 @@ pub enum Msg {
     /// Requests the compositor's graphics metadata. Graphics metadata is what the renderer needs
     /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
     /// is the pixel format.
-    GetGraphicsMetadata(Chan<NativeGraphicsMetadata>),
+    ///
+    /// The headless compositor returns `None`.
+    GetGraphicsMetadata(Chan<Option<NativeGraphicsMetadata>>),
 
     /// Alerts the compositor that there is a new layer to be rendered.
     NewLayer(PipelineId, Size2D<f32>),

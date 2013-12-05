@@ -76,7 +76,7 @@ impl Epoch {
 /// The interface used by the renderer to acquire draw targets for each render frame and
 /// submit them to be drawn to the display.
 pub trait RenderListener {
-    fn get_graphics_metadata(&self) -> NativeGraphicsMetadata;
+    fn get_graphics_metadata(&self) -> Option<NativeGraphicsMetadata>;
     fn new_layer(&self, PipelineId, Size2D<uint>);
     fn set_layer_page_size_and_color(&self, PipelineId, Size2D<uint>, Epoch, Color);
     fn set_layer_clip_rect(&self, PipelineId, Rect<uint>);
