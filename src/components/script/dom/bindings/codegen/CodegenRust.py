@@ -3107,11 +3107,10 @@ class CGPerSignatureCall(CGThing):
                              self.idlNode.identifier.name))
 
     def getErrorReport(self):
-        #return CGGeneric('return ThrowMethodFailedWithDetails<%s>(cx, rv, "%s", "%s");'
-        #                 % (toStringBool(not self.descriptor.workers),
-        #                    self.descriptor.interface.identifier.name,
-        #                    self.idlNode.identifier.name))
-        return CGGeneric('return 0'); #XXXjdm
+        return CGGeneric(
+            'return throw_method_failed_with_details(cx, result_fallible, "%s", "%s");' %
+                (self.descriptor.interface.identifier.name,
+                 self.idlNode.identifier.name))
 
     def define(self):
         return (self.cgRoot.define() + "\n" + self.wrap_return_value())

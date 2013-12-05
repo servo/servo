@@ -1,0 +1,11 @@
+<!doctype html>
+<script src="harness.js"></script>
+<script>
+try {
+  document.createElement("1foo");
+  is(true, false, "No exception thrown");
+} catch (e) {
+  is(true, true, "Exception caught");
+}
+finish();
+</script>

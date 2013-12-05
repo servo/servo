@@ -194,6 +194,7 @@ impl Document {
 
     pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: DOMString) -> Fallible<AbstractNode<ScriptView>> {
         if xml_name_type(local_name) == InvalidXMLName {
+            debug!("Not a valid element name");
             return Err(InvalidCharacter);
         }
         let local_name = local_name.to_ascii_lower();
