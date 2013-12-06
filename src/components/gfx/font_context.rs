@@ -154,23 +154,25 @@ impl<'self> FontContext {
             }
         }
 
-        let last_resort = FontList::get_last_resort_font_families();
+        if fonts.len() == 0 {
+            let last_resort = FontList::get_last_resort_font_families();
 
-        for family in last_resort.iter() {
-            let result = match self.font_list {
-                Some(ref fl) => fl.find_font_in_family(*family, style),
-                None => None,
-            };
+            for family in last_resort.iter() {
+                let result = match self.font_list {
+                    Some(ref fl) => fl.find_font_in_family(*family, style),
+                        None => None,
+                };
 
-            for font_entry in result.iter() {
-                let font_id =
-                  SelectorPlatformIdentifier(font_entry.handle.face_identifier());
-                let font_desc = FontDescriptor::new((*style).clone(), font_id);
+                for font_entry in result.iter() {
+                    let font_id =
+                        SelectorPlatformIdentifier(font_entry.handle.face_identifier());
+                    let font_desc = FontDescriptor::new((*style).clone(), font_id);
 
-                let instance = self.get_font_by_descriptor(&font_desc);
+                    let instance = self.get_font_by_descriptor(&font_desc);
 
-                for font in instance.iter() {
-                    fonts.push(*font);
+                    for font in instance.iter() {
+                        fonts.push(*font);
+                    }
                 }
             }
         }
