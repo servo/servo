@@ -36,13 +36,13 @@ impl FontListHandle {
             let family_name = family_name_cf.to_str();
             debug!("Creating new FontFamily for family: {:s}", family_name);
 
-            let new_family = @mut FontFamily::new(family_name);
+            let new_family = FontFamily::new(family_name);
             family_map.insert(family_name, new_family);
         }
         family_map
     }
 
-    pub fn load_variations_for_family(&self, family: @mut FontFamily) {
+    pub fn load_variations_for_family(&self, family: &mut FontFamily) {
         debug!("Looking for faces of family: {:s}", family.family_name);
 
         let family_collection = core_text::font_collection::create_for_family(family.family_name);
@@ -54,7 +54,7 @@ impl FontListHandle {
             let handle = FontHandle::new_from_CTFont(&self.fctx, font).unwrap();
 
             debug!("Creating new FontEntry for face: {:s}", handle.face_name());
-            let entry = @FontEntry::new(handle);
+            let entry = FontEntry::new(handle);
             family.entries.push(entry)
         }
     }
