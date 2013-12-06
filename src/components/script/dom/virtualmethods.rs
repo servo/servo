@@ -6,6 +6,7 @@ use dom::attr::{AttrValue, StringAttrValue};
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLBodyElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLCanvasElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
@@ -13,11 +14,14 @@ use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
 use dom::bindings::js::JSRef;
 use dom::element::Element;
-use dom::element::{ElementTypeId, HTMLAnchorElementTypeId, HTMLBodyElementTypeId, HTMLImageElementTypeId};
-use dom::element::{HTMLIFrameElementTypeId, HTMLObjectElementTypeId, HTMLStyleElementTypeId};
+use dom::element::{ElementTypeId, HTMLAnchorElementTypeId};
+use dom::element::{HTMLBodyElementTypeId, HTMLCanvasElementTypeId};
+use dom::element::{HTMLIFrameElementTypeId, HTMLImageElementTypeId};
+use dom::element::{HTMLObjectElementTypeId, HTMLStyleElementTypeId};
 use dom::event::Event;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -109,6 +113,10 @@ pub fn vtable_for<'a>(node: &'a JSRef<Node>) -> &'a VirtualMethods+ {
         }
         ElementNodeTypeId(HTMLBodyElementTypeId) => {
             let element: &JSRef<HTMLBodyElement> = HTMLBodyElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods+
+        }
+        ElementNodeTypeId(HTMLCanvasElementTypeId) => {
+            let element: &JSRef<HTMLCanvasElement> = HTMLCanvasElementCast::to_ref(node).unwrap();
             element as &VirtualMethods+
         }
         ElementNodeTypeId(HTMLImageElementTypeId) => {

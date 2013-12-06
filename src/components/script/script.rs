@@ -19,6 +19,7 @@
 #[phase(plugin, link)]
 extern crate log;
 
+extern crate azure;
 extern crate debug;
 extern crate cssparser;
 extern crate collections;
@@ -70,6 +71,7 @@ pub mod dom {
     pub mod attrlist;
     pub mod blob;
     pub mod browsercontext;
+    pub mod canvasrenderingcontext2d;
     pub mod characterdata;
     pub mod clientrect;
     pub mod clientrectlist;
