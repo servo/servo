@@ -38,7 +38,7 @@ impl CanvasRenderingContext2D {
     */
      pub fn FillRect(&self, x: f32, y: f32, width: f32, height: f32) {  
       let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
-      let Azrect=Rect(Point2D(x,y), Size2D(width,height));
+      let Azrect = Rect(Point2D(x,y), Size2D(width,height));
       let drawtarget = DrawTarget::new(SkiaBackend, Size2D(100 as i32,100 as i32), B8G8R8A8);
       drawtarget.fill_rect(&Azrect, &colorpattern); 	
     }
@@ -49,7 +49,7 @@ impl CanvasRenderingContext2D {
     */
      pub fn ClearRect(&self, x: f32, y: f32, width: f32, height: f32) {
 
-      let Azrect=Rect(Point2D(x,y), Size2D(width,height));
+      let Azrect = Rect(Point2D(x,y), Size2D(width,height));
       let drawtarget = DrawTarget::new(SkiaBackend, Size2D(100 as i32,100 as i32), B8G8R8A8);
       drawtarget.clear_rect(&Azrect);
     }
@@ -59,7 +59,7 @@ impl CanvasRenderingContext2D {
     */
     pub fn StrokeRect(&self, x: f32, y: f32, width: f32, height: f32) {
       let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
-      let Azrect=Rect(Point2D(x,y), Size2D(width,height));
+      let Azrect = Rect(Point2D(x,y), Size2D(width,height));
       let drawtarget = DrawTarget::new(SkiaBackend, Size2D(100 as i32,100 as i32), B8G8R8A8);
       let strokeopts = StrokeOptions(10.0, 10.0); 
       let drawopts = DrawOptions(1.0, 0);  
