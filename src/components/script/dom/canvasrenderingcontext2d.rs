@@ -84,16 +84,16 @@ impl CanvasRenderingContext2D {
         self.width
     }
 
-    pub fn SetWidth(&mut self, _width: i32) {
-        self.width = _width
+    pub fn SetWidth(&mut self, width: i32) {
+        self.width = width
     }
 
     pub fn Height(&self) -> i32 {                
         self.height
     }
 
-    pub fn SetHeight(&mut self, _height: i32) {
-        self.height = _height
+    pub fn SetHeight(&mut self, height: i32) {
+        self.height = height
     }
 
 }
