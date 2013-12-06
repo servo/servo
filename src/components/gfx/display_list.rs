@@ -144,20 +144,24 @@ impl<E> DisplayItem<E> {
                 // FIXME(pcwalton): Allocating? Why?
                 let font = render_context.font_ctx.get_font_by_descriptor(&text.text_run.font_descriptor).unwrap();
 
+                let font_metrics = font.with_borrow( |font| {
+                    font.metrics.clone()
+                });
                 let origin = text.base.bounds.origin;
-                let baseline_origin = Point2D(origin.x, origin.y + font.metrics.ascent);
-
-                font.draw_text_into_context(render_context,
-                                            &text.text_run,
-                                            &text.range,
-                                            baseline_origin,
-                                            text.color);
-
+                let baseline_origin = Point2D(origin.x, origin.y + 
+                                              font.with_borrow( |font| {font.metrics.ascent} ));
+                font.with_mut_borrow( |font| {
+                    font.draw_text_into_context(render_context,
+                                                &text.text_run,
+                                                &text.range,
+                                                baseline_origin,
+                                                text.color);
+                });
                 let width = text.base.bounds.size.width;
-                let underline_size = font.metrics.underline_size;
-                let underline_offset = font.metrics.underline_offset;
-                let strikeout_size = font.metrics.strikeout_size;
-                let strikeout_offset = font.metrics.strikeout_offset;
+                let underline_size = font_metrics.underline_size;
+                let underline_offset = font_metrics.underline_offset;
+                let strikeout_size = font_metrics.strikeout_size;
+                let strikeout_offset = font_metrics.strikeout_offset;
 
                 if text.text_run.decoration.underline {
                     let underline_y = baseline_origin.y - underline_offset;

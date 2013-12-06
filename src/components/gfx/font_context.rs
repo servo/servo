@@ -15,6 +15,8 @@ use platform::font_context::FontContextHandle;
 use azure::azure_hl::BackendType;
 use std::hashmap::HashMap;
 
+use std::rc::RcMut;
+
 // TODO(Rust #3934): creating lots of new dummy styles is a workaround
 // for not being able to store symbolic enums in top-level constants.
 pub fn dummy_style() -> FontStyle {
@@ -34,9 +36,9 @@ pub trait FontContextHandleMethods {
 }
 
 pub struct FontContext {
-    instance_cache: LRUCache<FontDescriptor, @mut Font>,
+    instance_cache: LRUCache<FontDescriptor, RcMut<Font>>,
     font_list: Option<FontList>, // only needed by layout
-    group_cache: LRUCache<SpecifiedFontStyle, @FontGroup>,
+    group_cache: LRUCache<SpecifiedFontStyle, RcMut<FontGroup>>,
     handle: FontContextHandle,
     backend: BackendType,
     generic_fonts: HashMap<~str,~str>,
@@ -76,7 +78,7 @@ impl<'self> FontContext {
         self.font_list.get_ref()
     }
 
-    pub fn get_resolved_font_for_style(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
+    pub fn get_resolved_font_for_style(&mut self, style: &SpecifiedFontStyle) -> RcMut<FontGroup> {
         match self.group_cache.find(style) {
             Some(fg) => {
                 debug!("font group cache hit");
@@ -85,13 +87,13 @@ impl<'self> FontContext {
             None => {
                 debug!("font group cache miss");
                 let fg = self.create_font_group(style);
-                self.group_cache.insert(style.clone(), fg);
+                self.group_cache.insert(style.clone(), fg.clone());
                 fg
             }
         }
     }
 
-    pub fn get_font_by_descriptor(&mut self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
+    pub fn get_font_by_descriptor(&mut self, desc: &FontDescriptor) -> Result<RcMut<Font>, ()> {
         match self.instance_cache.find(desc) {
             Some(f) => {
                 debug!("font cache hit");
@@ -100,9 +102,9 @@ impl<'self> FontContext {
             None => { 
                 debug!("font cache miss");
                 let result = self.create_font_instance(desc);
-                match result {
+                match result.clone() {
                     Ok(font) => {
-                        self.instance_cache.insert(desc.clone(), font);
+                        self.instance_cache.insert(desc.clone(), font.clone());
                     }, _ => {}
                 };
                 result
@@ -120,7 +122,7 @@ impl<'self> FontContext {
         }
     }
 
-    fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
+    fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> RcMut<FontGroup> {
         let mut fonts = ~[];
 
         debug!("(create font group) --- starting ---");
@@ -152,7 +154,7 @@ impl<'self> FontContext {
                 found = true;
                 let instance = self.get_font_by_descriptor(&result.unwrap());
 
-                for font in instance.iter() { fonts.push(*font); }
+                for font in instance.iter() { fonts.push(font.clone()); }
             }
 
 
@@ -169,14 +171,30 @@ impl<'self> FontContext {
                         None => None,
                 };
 
-                for font_entry in result.iter() {
-                    let font_id =
-                        SelectorPlatformIdentifier(font_entry.handle.face_identifier());
-                    let font_desc = FontDescriptor::new((*style).clone(), font_id);
-                    let instance = self.get_font_by_descriptor(&font_desc);
+        for family in last_resort.iter() {
+            if self.font_list.is_some() {
+                let font_desc = {
+                    let font_list = self.font_list.get_mut_ref(); 
+                    let font_entry = font_list.find_font_in_family(family, style);
+                    match font_entry {
+                        Some(v) => {
+                            let font_id =
+                            SelectorPlatformIdentifier(v.handle.face_identifier());
+                            Some(FontDescriptor::new((*style).clone(), font_id))
+                        }, None => {
+                            None
+                        }
+                    }
+                };
 
-                    for font in instance.iter() {
-                        fonts.push(*font);
+                match font_desc {
+                    Some(ref fd) => {
+                        let instance = self.get_font_by_descriptor(fd);
+
+                        for font in instance.iter() {
+                            fonts.push(font.clone());
+                        }
+                    }, None => {
                     }
                 }
             }
@@ -188,21 +206,21 @@ impl<'self> FontContext {
 
         debug!("(create font group) --- finished ---");
 
-        FontGroup::new(style.families.to_owned(), &used_style, fonts)
+        unsafe { RcMut::new_unchecked(FontGroup::new(style.families.to_owned(), &used_style, fonts)) }
     }
 
-    fn create_font_instance(&self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
+    fn create_font_instance(&self, desc: &FontDescriptor) -> Result<RcMut<Font>, ()> {
         return match &desc.selector {
             // TODO(Issue #174): implement by-platform-name font selectors.
             &SelectorPlatformIdentifier(ref identifier) => { 
                 let result_handle = self.handle.create_font_from_identifier((*identifier).clone(),
                                                                             desc.style.clone());
                 do result_handle.and_then |handle| {
-                    Ok(Font::new_from_adopted_handle(self,
+                    Ok(RcMut::new(Font::new_from_adopted_handle(self,
                                                      handle,
                                                      &desc.style,
                                                      self.backend,
-                                                     self.profiler_chan.clone()))
+                                                     self.profiler_chan.clone())))
                 }
             }
         };

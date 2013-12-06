@@ -75,23 +75,7 @@ impl<'self> FontList {
             None
         }
     }
-/*
-    fn find_family(&'self mut self, family_name: &~str) -> Option<&'self mut FontFamily> {
-        // TODO(Issue #188): look up localized font family names if canonical name not found
-        // look up canonical name
-        if self.family_map.contains_key(family_name) {
-            //FIXME call twice!(ksh8281)
-            debug!("FontList: {:s} font family with name={:s}", "Found", family_name.to_str());
-            let s: &'self mut FontFamily = self.family_map.get_mut(family_name);
-            Some(s)
 
-        }
-        else {
-            debug!("FontList: {:s} font family with name={:s}", "Couldn't find", family_name.to_str());
-            None
-        }
-    }
-*/
     pub fn get_last_resort_font_families() -> ~[~str] {
         let last_resort = FontListHandle::get_last_resort_font_families();
         last_resort

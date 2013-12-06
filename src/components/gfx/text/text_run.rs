@@ -4,7 +4,6 @@
 
 use std::vec::VecIterator;
 
-use font_context::FontContext;
 use servo_util::geometry::Au;
 use text::glyph::GlyphStore;
 use font::{Font, FontDescriptor, RunMetrics, FontStyle, FontMetrics};
@@ -23,31 +22,6 @@ pub struct TextRun {
     glyphs: Arc<~[Arc<GlyphStore>]>,
 }
 
-/// The same as a text run, but with a font descriptor instead of a font. This makes them thread
-/// safe.
-/*pub struct SendableTextRun {
-    text: Arc<~str>,
-    font: FontDescriptor,
-    decoration: text_decoration::T,
-    priv glyphs: Arc<~[Arc<GlyphStore>]>,
-}
-
-impl SendableTextRun {
-    pub fn deserialize(&self, fctx: @mut FontContext) -> TextRun {
-        let font = match fctx.get_font_by_descriptor(&self.font) {
-            Ok(f) => f,
-            Err(_) => fail!("Font descriptor deserialization failed! desc={:?}", self.font)
-        };
-
-        TextRun {
-            text: self.text.clone(),
-            font: font,
-            decoration: self.decoration,
-            glyphs: self.glyphs.clone(),
-        }
-    }
-}
-*/
 pub struct SliceIterator<'self> {
     priv glyph_iter: VecIterator<'self, Arc<GlyphStore>>,
     priv range:      Range,
@@ -194,16 +168,7 @@ impl<'self> TextRun {
 
         glyphs
     }
-/*
-    pub fn serialize(&self) -> SendableTextRun {
-        SendableTextRun {
-            text: self.text.clone(),
-            font: self.font.get_descriptor(),
-            decoration: self.decoration,
-            glyphs: self.glyphs.clone(),
-        }
-    }
-*/
+    
     pub fn char_len(&self) -> uint {
         do self.glyphs.get().iter().fold(0u) |len, slice_glyphs| {
             len + slice_glyphs.get().char_len()
@@ -243,7 +208,7 @@ impl<'self> TextRun {
     pub fn min_width_for_range(&self, range: &Range) -> Au {
         let mut max_piece_width = Au(0);
         debug!("iterating outer range {:?}", range);
-        for (glyphs, offset, slice_range) in self.iter_slices_for_range(range) {
+        for (_, offset, slice_range) in self.iter_slices_for_range(range) {
             debug!("iterated on {:?}[{:?}]", offset, slice_range);
             let metrics = self.metrics_for_range(&slice_range);
             max_piece_width = Au::max(max_piece_width, metrics.advance_width);
