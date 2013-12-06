@@ -59,8 +59,7 @@ struct LineBox {
 struct LineboxScanner {
     floats: FloatContext,
     new_boxes: ~[@Box],
-    /// FIXME(pcwalton): `@mut`? :(
-    work_list: @mut RingBuf<@Box>,
+    work_list: RingBuf<@Box>,
     pending_line: LineBox,
     lines: ~[LineBox],
     cur_y: Au,
@@ -73,7 +72,7 @@ impl LineboxScanner {
         LineboxScanner {
             floats: float_ctx,
             new_boxes: ~[],
-            work_list: @mut RingBuf::new(),
+            work_list: RingBuf::new(),
             pending_line: LineBox {
                 range: Range::empty(), 
                 bounds: Rect(Point2D(Au::new(0), Au::new(0)), Size2D(Au::new(0), Au::new(0))), 
