@@ -18,7 +18,7 @@ use layout::flow;
 use layout::incremental::{RestyleDamage, BubbleWidths};
 use layout::util::{LayoutData, LayoutDataAccess};
 
-use extra::arc::{Arc, RWArc};
+use extra::arc::{Arc, RWArc, MutexArc};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -75,7 +75,7 @@ struct LayoutTask {
     image_cache_task: ImageCacheTask,
 
     /// The local image cache.
-    local_image_cache: @mut LocalImageCache,
+    local_image_cache: MutexArc<LocalImageCache>,
 
     /// The local font context.
     font_ctx: @mut FontContext,
@@ -239,7 +239,7 @@ impl LayoutTask {
             script_chan: script_chan,
             render_chan: render_chan,
             image_cache_task: image_cache_task.clone(),
-            local_image_cache: @mut LocalImageCache(image_cache_task),
+            local_image_cache: MutexArc::new(LocalImageCache(image_cache_task)),
             font_ctx: fctx,
             screen_size: None,
 
@@ -259,7 +259,7 @@ impl LayoutTask {
 
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context(&self) -> LayoutContext {
-        let image_cache = self.local_image_cache;
+        let image_cache = self.local_image_cache.clone();
         let font_ctx = self.font_ctx;
         let screen_size = self.screen_size.unwrap();
 
@@ -399,7 +399,10 @@ impl LayoutTask {
         debug!("{:?}", node.dump());
 
         // Reset the image cache.
-        self.local_image_cache.next_round(self.make_on_image_available_cb());
+        unsafe {
+            self.local_image_cache.unsafe_access(
+                |cache| cache.next_round(self.make_on_image_available_cb()));
+        }
 
         let screen_size = Size2D(Au::from_px(data.window_size.width as int),
                                  Au::from_px(data.window_size.height as int));

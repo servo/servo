@@ -9,9 +9,11 @@ use gfx::font_context::FontContext;
 use servo_util::geometry::Au;
 use servo_net::local_image_cache::LocalImageCache;
 
+use extra::arc::MutexArc;
+
 /// Data needed by the layout task.
 pub struct LayoutContext {
     font_ctx: @mut FontContext,
-    image_cache: @mut LocalImageCache,
+    image_cache: MutexArc<LocalImageCache>,
     screen_size: Rect<Au>
 }
