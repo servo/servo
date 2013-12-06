@@ -12,24 +12,26 @@
 
 // import from http://mxr.mozilla.org/mozilla-central/source/dom/webidl/HTMLCanvasElement.webidl
 
-/*
+
 interface Blob;
 interface FileCallback;
 interface nsIInputStreamCallback;
 interface nsISupports;
 interface PrintCallback;
 interface Variant;
-*/
+interface CanvasRenderingContext2D;
+//interface Window;
 
 interface HTMLCanvasElement : HTMLElement {
   [Pure, SetterThrows]
            attribute unsigned long width;
   [Pure, SetterThrows]
            attribute unsigned long height;
-/*
-  [Throws]
-  nsISupports? getContext(DOMString contextId, optional any contextOptions = null);
 
+  CanvasRenderingContext2D GetContext(DOMString contextId);
+
+//  void setContext(CanvasRenderingContext2D context);
+/*
   [Throws]
   DOMString toDataURL(optional DOMString type = "",
                       optional any encoderOptions);
