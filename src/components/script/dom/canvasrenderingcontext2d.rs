@@ -38,28 +38,28 @@ impl CanvasRenderingContext2D {
     */
      pub fn FillRect(&self, x: f32, y: f32, width: f32, height: f32) {  
       let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
-      let Azrect=Rect(Point2D(x,y), Size2D(width,height));
+      let Azrect = Rect(Point2D(x,y), Size2D(width,height));
       let drawtarget = DrawTarget::new(SkiaBackend, Size2D(100 as i32,100 as i32), B8G8R8A8);
       drawtarget.fill_rect(&Azrect, &colorpattern); 	
     }
 
     
     /*
-     fn clearRect - It takes (x,y) co-ordinates and widht, height as parameters and clears the specified pixels of the rectangle.
+     fn clearRect - It takes (x,y) co-ordinates and width, height as parameters and clears the specified pixels of the rectangle.
     */
      pub fn ClearRect(&self, x: f32, y: f32, width: f32, height: f32) {
 
-      let Azrect=Rect(Point2D(x,y), Size2D(width,height));
+      let Azrect = Rect(Point2D(x,y), Size2D(width,height));
       let drawtarget = DrawTarget::new(SkiaBackend, Size2D(100 as i32,100 as i32), B8G8R8A8);
       drawtarget.clear_rect(&Azrect);
     }
 
     /*
-     fn strokeRect - It takes (x,y) co-ordinates and widht, height as parameters of the rectangle to be created i.e no fill
+     fn strokeRect - It takes (x,y) co-ordinates and width, height as parameters of the rectangle to be created i.e no fill
     */
     pub fn StrokeRect(&self, x: f32, y: f32, width: f32, height: f32) {
       let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
-      let Azrect=Rect(Point2D(x,y), Size2D(width,height));
+      let Azrect = Rect(Point2D(x,y), Size2D(width,height));
       let drawtarget = DrawTarget::new(SkiaBackend, Size2D(100 as i32,100 as i32), B8G8R8A8);
       let strokeopts = StrokeOptions(10.0, 10.0); 
       let drawopts = DrawOptions(1.0, 0);  
@@ -84,16 +84,16 @@ impl CanvasRenderingContext2D {
         self.width
     }
 
-    pub fn SetWidth(&mut self, _width: i32) {
-        self.width = _width
+    pub fn SetWidth(&mut self, width: i32) {
+        self.width = width
     }
 
     pub fn Height(&self) -> i32 {                
         self.height
     }
 
-    pub fn SetHeight(&mut self, _height: i32) {
-        self.height = _height
+    pub fn SetHeight(&mut self, height: i32) {
+        self.height = height
     }
 
 }
