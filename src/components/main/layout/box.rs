@@ -5,6 +5,7 @@
 //! The `Box` type, which represents the leaves of the layout tree.
 
 use extra::url::Url;
+use extra::arc::MutexArc;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color::rgb;
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
@@ -98,7 +99,7 @@ impl ImageBoxInfo {
     ///
     /// FIXME(pcwalton): The fact that image boxes store the cache in the box makes little sense to
     /// me.
-    pub fn new(image_url: Url, local_image_cache: @mut LocalImageCache) -> ImageBoxInfo {
+    pub fn new(image_url: Url, local_image_cache: MutexArc<LocalImageCache>) -> ImageBoxInfo {
         ImageBoxInfo {
             image: Slot::init(ImageHolder::new(image_url, local_image_cache)),
         }

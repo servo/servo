@@ -209,7 +209,7 @@ impl<'self> FlowConstructor<'self> {
             Some(url) => {
                 // FIXME(pcwalton): The fact that image boxes store the cache within them makes
                 // little sense to me.
-                Some(ImageBoxInfo::new(url, self.layout_context.image_cache))
+                Some(ImageBoxInfo::new(url, self.layout_context.image_cache.clone()))
             }
         }
     }
