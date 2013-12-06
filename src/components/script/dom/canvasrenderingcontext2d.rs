@@ -1,17 +1,11 @@
 use dom::bindings::utils::{DOMString, Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::Fallible;
 use dom::bindings::codegen::CanvasRenderingContext2DBinding;
 use dom::window::Window;
-use dom::bindings::utils::{ErrorResult};
-use std::libc::*;
-use dom::htmlcanvaselement::HTMLCanvasElement;
-use geom::rect::Rect;
-use azure::azure_hl::{DrawTarget, Color, Drop, BackendType, B8G8R8A8, SkiaBackend, StrokeOptions, DrawOptions};
+use azure::azure_hl::{DrawTarget, Color, B8G8R8A8, SkiaBackend, StrokeOptions, DrawOptions};
 use geom::rect::Rect;
 use azure::azure_hl::{ColorPattern};
 use geom::point::Point2D;
 use geom::size::Size2D;
-use azure::{AzBackendType, AzDrawTargetRef, AzSourceSurfaceRef, AzDataSourceSurfaceRef};
 
 
 pub struct CanvasRenderingContext2D {
@@ -35,22 +29,35 @@ impl CanvasRenderingContext2D {
         reflect_dom_object(@mut CanvasRenderingContext2D::new_inherited(window), window, CanvasRenderingContext2DBinding::Wrap)
     }
 
-    pub fn FillRect(&self, x: f32, y: f32, width: f32, height: f32) {  
+
+
+    /* 
+      fn FillRect - It takes the (x,y)co-ordinates and height , weight as parameters of the rectangle to be filled.
+	            The rectangle will be filled with the color specified by colorPattern variable that holds a default color(r,g,b,a).
+		    We have used Color(1.0, 0.0, 0.0, 0.0) i.e Red      	
+    */
+     pub fn FillRect(&self, x: f32, y: f32, width: f32, height: f32) {  
       let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
       let Azrect=Rect(Point2D(x,y), Size2D(width,height));
       let drawtarget = DrawTarget::new(SkiaBackend, Size2D(100 as i32,100 as i32), B8G8R8A8);
       drawtarget.fill_rect(&Azrect, &colorpattern); 	
     }
 
-    pub fn ClearRect(&self, x: f32, y: f32, width: f32, height: f32) {
+    
+    /*
+     fn clearRect - It takes (x,y) co-ordinates and widht, height as parameters and clears the specified pixels of the rectangle.
+    */
+     pub fn ClearRect(&self, x: f32, y: f32, width: f32, height: f32) {
 
       let Azrect=Rect(Point2D(x,y), Size2D(width,height));
       let drawtarget = DrawTarget::new(SkiaBackend, Size2D(100 as i32,100 as i32), B8G8R8A8);
       drawtarget.clear_rect(&Azrect);
     }
 
+    /*
+     fn strokeRect - It takes (x,y) co-ordinates and widht, height as parameters of the rectangle to be created i.e no fill
+    */
     pub fn StrokeRect(&self, x: f32, y: f32, width: f32, height: f32) {
-  
       let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
       let Azrect=Rect(Point2D(x,y), Size2D(width,height));
       let drawtarget = DrawTarget::new(SkiaBackend, Size2D(100 as i32,100 as i32), B8G8R8A8);
@@ -59,6 +66,9 @@ impl CanvasRenderingContext2D {
       drawtarget.stroke_rect(&Azrect, &colorpattern, &strokeopts, &drawopts);
     }	
 
+    /*
+     fn strokeLine - It strokes the line from the start and end points provided as parameters.
+    */
     pub fn StrokeLine(&self, x: f32, y: f32, x1: f32, y1: f32) {
   
       let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
