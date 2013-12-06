@@ -13,7 +13,6 @@
 // import from http://mxr.mozilla.org/mozilla-central/source/dom/webidl/HTMLCanvasElement.webidl
 
 interface CanvasRenderingContext2D;
-//interface Window;
 
 interface HTMLCanvasElement : HTMLElement {
   [Pure, SetterThrows]
