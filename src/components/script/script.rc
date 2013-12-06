@@ -21,6 +21,7 @@ extern mod servo_util (name = "util");
 extern mod style;
 extern mod servo_msg (name = "msg");
 extern mod extra;
+extern mod azure;
 
 pub mod dom {
     pub mod bindings {
@@ -46,6 +47,7 @@ pub mod dom {
     pub mod attr;
     pub mod attrlist;
     pub mod blob;
+    pub mod canvasrenderingcontext2d;
     pub mod characterdata;
     pub mod clientrect;
     pub mod clientrectlist;

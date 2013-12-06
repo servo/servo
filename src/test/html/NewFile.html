@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+ <canvas id="tutorial" style="border:1px solid #d3d3d3"> </canvas>
+ <div id="a">
+
+</div>
+  
+<script type="text/javascript">
+
+canvas = document.getElementById('tutorial');
+
+var ctx = canvas.GetContext('2d');
+ctx.SetWidth(5000);
+ctx.SetHeight(1000);
+var width = ctx.Width();
+var height = ctx.Height();
+ctx.FillRect(10.0,10.0,100.0,100.0);
+ctx.StrokeRect(20.0,40.0,80.0,80.0);
+ctx.ClearRect(10.0,10.0,100.0,100.0);
+ctx.StrokeLine(10.0,20.0,50.0,70.0);
+
+
+
+alert(width);
+alert(height);
+
+</script>
+ hello world!
+
+  
+</body>
+</html>

@@ -3,25 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLCanvasElementBinding;
-use dom::bindings::utils::{ErrorResult};
+use dom::bindings::codegen::CanvasRenderingContext2DBinding;
+use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
+use dom::window::Window;
 use dom::document::AbstractDocument;
 use dom::element::HTMLCanvasElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::node::{Node, ScriptView, AbstractNode};
+use dom::element::ElementTypeId;
 
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
-}
+  }
 
 impl HTMLCanvasElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLCanvasElement {
+    pub fn new_inherited(type_id: ElementTypeId, localName: ~str, document: AbstractDocument) -> HTMLCanvasElement {
         HTMLCanvasElement {
-            htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, document)
-        }
+            htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, document),
+       }
     }
 
     pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
-        let element = HTMLCanvasElement::new_inherited(localName, document);
+        let element = HTMLCanvasElement::new_inherited(HTMLCanvasElementTypeId, localName, document);
         Node::reflect_node(@mut element, document, HTMLCanvasElementBinding::Wrap)
     }
 }
@@ -42,4 +46,16 @@ impl HTMLCanvasElement {
     pub fn SetHeight(&mut self, _height: u32) -> ErrorResult {
         Ok(())
     }
+  
+    
+    /*
+	fn GetContext() - returns a CanvasRenderingContext2D object that can be used to call the methods implemented in 
+	canvasrenderingcontext2D.rs file .
+    */
+     pub fn GetContext(&self, _id: DOMString) -> @mut CanvasRenderingContext2D {
+   
+          let canvas = CanvasRenderingContext2D::new(self.htmlelement.element.node.owner_doc().document().window);
+	  canvas
+     }
+
 }
