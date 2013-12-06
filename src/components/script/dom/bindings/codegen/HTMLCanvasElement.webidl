@@ -12,13 +12,6 @@
 
 // import from http://mxr.mozilla.org/mozilla-central/source/dom/webidl/HTMLCanvasElement.webidl
 
-
-interface Blob;
-interface FileCallback;
-interface nsIInputStreamCallback;
-interface nsISupports;
-interface PrintCallback;
-interface Variant;
 interface CanvasRenderingContext2D;
 //interface Window;
 
