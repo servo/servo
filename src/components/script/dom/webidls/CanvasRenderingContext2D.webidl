@@ -10,15 +10,11 @@
  * and create derivative works of this document.
  */
 
-// import from http://mxr.mozilla.org/mozilla-central/source/dom/webidl/HTMLCanvasElement.webidl
-
-typedef CanvasRenderingContext2D RenderingContext;
-
-interface HTMLCanvasElement : HTMLElement {
-  [Pure]
-           attribute unsigned long width;
-  [Pure]
-           attribute unsigned long height;
-
-  RenderingContext? getContext(DOMString contextId);
+interface CanvasRenderingContext2D {
+  [LenientFloat]
+  void fillRect(float x, float y, float w, float h);
+  [LenientFloat]
+  void strokeRect(float x, float y, float w, float h);
+  [LenientFloat]
+  void clearRect(float x, float y, float w, float h);
 };
