@@ -59,7 +59,7 @@ impl<'self> FontList {
         // look up canonical name
         if self.family_map.contains_key(family_name) {
             //FIXME call twice!(ksh8281)
-            debug!("FontList: {:s} font family with name={:s}", "Found", family_name.to_str());
+            debug!("FontList: Found font family with name={:s}", family_name.to_str());
             let s: &'self mut FontFamily = self.family_map.get_mut(family_name);
             // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
             // if such family exists, try to match style to a font
@@ -69,9 +69,8 @@ impl<'self> FontList {
             }
 
             None
-        }
-        else {
-            debug!("FontList: {:s} font family with name={:s}", "Couldn't find", family_name.to_str());
+        } else {
+            debug!("FontList: Couldn't find font family with name={:s}", family_name.to_str());
             None
         }
     }

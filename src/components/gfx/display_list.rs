@@ -148,8 +148,7 @@ impl<E> DisplayItem<E> {
                     font.metrics.clone()
                 });
                 let origin = text.base.bounds.origin;
-                let baseline_origin = Point2D(origin.x, origin.y + 
-                                              font.with_borrow( |font| {font.metrics.ascent} ));
+                let baseline_origin = Point2D(origin.x, origin.y + font_metrics.ascent);
                 font.with_mut_borrow( |font| {
                     font.draw_text_into_context(render_context,
                                                 &text.text_run,

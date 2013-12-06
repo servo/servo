@@ -195,12 +195,11 @@ impl FontGroup {
 
     pub fn create_textrun(&self, text: ~str, decoration: text_decoration::T) -> TextRun {
         assert!(self.fonts.len() > 0);
-        
+
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        let lr = self.fonts[0].with_mut_borrow(|font| {
+        self.fonts[0].with_mut_borrow(|font| {
             TextRun::new(font, text.clone(), decoration)
-        });
-        lr
+        })
     }
 }
 
@@ -321,8 +320,7 @@ impl<'self> Font {
 
         let shaper = Shaper::new(self);
         self.shaper = Some(shaper);
-        let s:&'self Shaper = self.shaper.get_ref();
-        s
+        self.shaper.get_ref()
     }
 
     pub fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {

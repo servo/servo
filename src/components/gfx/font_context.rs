@@ -103,7 +103,7 @@ impl<'self> FontContext {
                 debug!("font cache miss");
                 let result = self.create_font_instance(desc);
                 match result.clone() {
-                    Ok(font) => {
+                    Ok(ref font) => {
                         self.instance_cache.insert(desc.clone(), font.clone());
                     }, _ => {}
                 };
@@ -137,26 +137,30 @@ impl<'self> FontContext {
             let result = match self.font_list {
                 Some(ref mut fl) => {
                     let font_in_family = fl.find_font_in_family(&transformed_family_name, style);
-                    if font_in_family.is_some() {
-                        let font_entry = font_in_family.unwrap();
-                        let font_id =
-                            SelectorPlatformIdentifier(font_entry.handle.face_identifier());
+                    match font_in_family {
+                        Some(font_entry) => {
+                            let font_id =
+                                SelectorPlatformIdentifier(font_entry.handle.face_identifier());
                             let font_desc = FontDescriptor::new((*style).clone(), font_id);
                             Some(font_desc)
-                    } else {
-                        None
+                        },
+                        None => {
+                            None
+                        }
                     }
                 }
                 None => None,
             };
 
-            if result.is_some() {
-                found = true;
-                let instance = self.get_font_by_descriptor(&result.unwrap());
+            match result {
+                Some(ref result) => {
+                    found = true;
+                    let instance = self.get_font_by_descriptor(result);
 
-                for font in instance.iter() { fonts.push(font.clone()); }
+                    for font in instance.iter() { fonts.push(font.clone()); }
+                }, 
+                _ => {}
             }
-
 
             if !found {
                 debug!("(create font group) didn't find `{:s}`", transformed_family_name);
@@ -166,24 +170,25 @@ impl<'self> FontContext {
         if fonts.len() == 0 {
             let last_resort = FontList::get_last_resort_font_families();
             for family in last_resort.iter() {
-                let result = match self.font_list {
-                    Some(ref fl) => fl.find_font_in_family(*family, style),
-                        None => None,
-                };
-
-        for family in last_resort.iter() {
-            if self.font_list.is_some() {
-                let font_desc = {
-                    let font_list = self.font_list.get_mut_ref(); 
-                    let font_entry = font_list.find_font_in_family(family, style);
-                    match font_entry {
-                        Some(v) => {
-                            let font_id =
-                            SelectorPlatformIdentifier(v.handle.face_identifier());
-                            Some(FontDescriptor::new((*style).clone(), font_id))
-                        }, None => {
-                            None
-                        }
+                let font_desc = match self.font_list {
+                    Some(ref mut font_list) => {
+                        let font_desc = {
+                            let font_entry = font_list.find_font_in_family(family, style);
+                            match font_entry {
+                                Some(v) => {
+                                    let font_id =
+                                        SelectorPlatformIdentifier(v.handle.face_identifier());
+                                    Some(FontDescriptor::new((*style).clone(), font_id))
+                                },
+                                None => {
+                                    None
+                                }
+                            }
+                        };
+                        font_desc
+                    },
+                    None => {
+                        None
                     }
                 };
 
@@ -194,12 +199,11 @@ impl<'self> FontContext {
                         for font in instance.iter() {
                             fonts.push(font.clone());
                         }
-                    }, None => {
-                    }
-                }
+                    },
+                    None => { }
+                };
             }
         }
-
         assert!(fonts.len() > 0);
         // TODO(Issue #179): Split FontStyle into specified and used styles
         let used_style = (*style).clone();

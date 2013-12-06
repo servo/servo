@@ -188,11 +188,10 @@ impl TextRunScanner {
                 // sequence. If no clump takes ownership, however, it will leak.
                 let clump = self.clump;
                 let run = if clump.length() != 0 && run_str.len() > 0 {
-                    let font = {
-                        fontgroup.with_borrow( |fg| fg.fonts[0].clone())
-                    };
-                    font.with_mut_borrow( |font| {
-                        Some(@TextRun::new(font, run_str.clone(), decoration))
+                    fontgroup.with_borrow( |fg| {
+                        fg.fonts[0].with_mut_borrow( |font| {
+                            Some(@TextRun::new(font, run_str.clone(), decoration))
+                        })
                     })
                 } else {
                     None

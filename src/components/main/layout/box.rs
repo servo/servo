@@ -955,7 +955,7 @@ impl Box {
                 self.position.mutate().ptr.size.width = image_width
             }
             ScannedTextBox(_) => {
-
+                // Scanned text boxes will have already had their widths assigned by this point.
             }
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
         }

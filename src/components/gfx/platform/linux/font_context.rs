@@ -52,7 +52,7 @@ impl FontContextHandle {
                 None => {
                     let ctx: FT_Library = ptr::null();
                     let result = FT_Init_FreeType(ptr::to_unsafe_ptr(&ctx));
-                    if !result.succeeded() { fail!(); }
+                    if !result.succeeded() { fail!("Unable to initialize FreeType library"); }
                     ft_pointer = Some(ctx);
                     font_context_ref_count = font_context_ref_count + 1;
                     FontContextHandle {
@@ -68,7 +68,7 @@ impl FontContextHandleMethods for FontContextHandle {
     fn clone(&self) -> FontContextHandle {
         unsafe {
             font_context_ref_count = font_context_ref_count + 1;
-            FontContextHandle{
+            FontContextHandle {
                 ctx: self.ctx.clone()
             }
         }
