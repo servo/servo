@@ -45,7 +45,7 @@ impl CanvasRenderingContext2D {
 
     
     /*
-     fn clearRect - It takes (x,y) co-ordinates and widht, height as parameters and clears the specified pixels of the rectangle.
+     fn clearRect - It takes (x,y) co-ordinates and width, height as parameters and clears the specified pixels of the rectangle.
     */
      pub fn ClearRect(&self, x: f32, y: f32, width: f32, height: f32) {
 
@@ -55,7 +55,7 @@ impl CanvasRenderingContext2D {
     }
 
     /*
-     fn strokeRect - It takes (x,y) co-ordinates and widht, height as parameters of the rectangle to be created i.e no fill
+     fn strokeRect - It takes (x,y) co-ordinates and width, height as parameters of the rectangle to be created i.e no fill
     */
     pub fn StrokeRect(&self, x: f32, y: f32, width: f32, height: f32) {
       let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
