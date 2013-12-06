@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! CSS block layout.
+//! CSS block formatting contexts.
 
-use layout::box::{RenderBox, RenderBoxUtils};
+use layout::box::Box;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{BlockFlowClass, FlowClass, Flow, FlowData, ImmutableFlowUtils};
@@ -13,13 +13,12 @@ use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
 use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
 
 use std::cell::Cell;
-use geom::point::Point2D;
-use geom::size::Size2D;
-use geom::rect::Rect;
+use geom::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::{Au, to_frac_px};
 use servo_util::geometry;
 
+/// Information specific to floated blocks.
 pub struct FloatedBlockInfo {
     containing_width: Au,
 
@@ -48,12 +47,13 @@ impl FloatedBlockInfo {
     }
 }
 
+/// A block formatting context.
 pub struct BlockFlow {
     /// Data common to all flows.
     base: FlowData,
 
-    /// The associated render box.
-    box: Option<@RenderBox>,
+    /// The associated box.
+    box: Option<@Box>,
 
     /// Whether this block flow is the root flow.
     is_root: bool,
@@ -72,7 +72,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn from_box(base: FlowData, box: @RenderBox) -> BlockFlow {
+    pub fn from_box(base: FlowData, box: @Box) -> BlockFlow {
         BlockFlow {
             base: base,
             box: Some(box),
@@ -81,7 +81,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn float_from_box(base: FlowData, float_type: FloatType, box: @RenderBox) -> BlockFlow {
+    pub fn float_from_box(base: FlowData, float_type: FloatType, box: @Box) -> BlockFlow {
         BlockFlow {
             base: base,
             box: Some(box),
@@ -172,9 +172,9 @@ impl BlockFlow {
         (width_Au, left_margin_Au, right_margin_Au)
     }
 
-    fn compute_block_margins(&self, box: @RenderBox, remaining_width: Au, available_width: Au) -> (Au, Au, Au) {
-        let base = box.base();
-        let style = base.style();
+    fn compute_block_margins(&self, box: @Box, remaining_width: Au, available_width: Au)
+                             -> (Au, Au, Au) {
+        let style = box.style();
 
         let (width, maybe_margin_left, maybe_margin_right) =
             (MaybeAuto::from_style(style.Box.width, remaining_width),
@@ -215,8 +215,8 @@ impl BlockFlow {
         return (width, margin_left, margin_right);
     }
 
-    fn compute_float_margins(&self, box: @RenderBox, remaining_width: Au) -> (Au, Au, Au) {
-        let style = box.base().style();
+    fn compute_float_margins(&self, box: @Box, remaining_width: Au) -> (Au, Au, Au) {
+        let style = box.style();
         let margin_left = MaybeAuto::from_style(style.Margin.margin_left,
                                                 remaining_width).specified_or_zero();
         let margin_right = MaybeAuto::from_style(style.Margin.margin_right,
@@ -241,18 +241,19 @@ impl BlockFlow {
         let mut float_ctx = Invalid;
 
         for &box in self.box.iter() {
-            let base = box.base();
-            clearance = match base.clear() {
+            clearance = match box.clear() {
                 None => Au::new(0),
                 Some(clear) => {
                     self.base.floats_in.clearance(clear)
                 }
             };
 
-            top_offset = clearance + base.margin.top + base.border.top + base.padding.top;
+            top_offset = clearance + box.margin.get().top + box.border.get().top +
+                box.padding.get().top;
             cur_y = cur_y + top_offset;
-            bottom_offset = base.margin.bottom + base.border.bottom + base.padding.bottom;
-            left_offset = base.offset();
+            bottom_offset = box.margin.get().bottom + box.border.get().bottom +
+                box.padding.get().bottom;
+            left_offset = box.offset();
         }
 
         if inorder {
@@ -279,16 +280,16 @@ impl BlockFlow {
         let mut bottom_margin_collapsible = false;
         let mut first_in_flow = true;
         for &box in self.box.iter() {
-            let base = box.base();
-            if !self.is_root && base.border.top == Au::new(0) && base.padding.top == Au::new(0) {
-                collapsible = base.margin.top;
+            if !self.is_root && box.border.get().top == Au(0) && box.padding.get().top == Au(0) {
+                collapsible = box.margin.get().top;
                 top_margin_collapsible = true;
             }
-            if !self.is_root && base.border.bottom == Au::new(0) && base.padding.bottom == Au::new(0) {
+            if !self.is_root && box.border.get().bottom == Au(0) &&
+                    box.padding.get().bottom == Au(0) {
                 bottom_margin_collapsible = true;
             }
-            margin_top = base.margin.top;
-            margin_bottom = base.margin.bottom;
+            margin_top = box.margin.get().top;
+            margin_bottom = box.margin.get().bottom;
         }
 
         for kid in self.base.child_iter() {
@@ -328,8 +329,7 @@ impl BlockFlow {
         };
 
         for &box in self.box.iter() {
-            let base = box.base();
-            let style = base.style();
+            let style = box.style();
             height = match MaybeAuto::from_style(style.Box.height, Au::new(0)) {
                 Auto => height,
                 Specified(value) => value
@@ -338,22 +338,23 @@ impl BlockFlow {
 
         let mut noncontent_height = Au::new(0);
         for box in self.box.iter() {
-            let base = box.mut_base();
-            let mut position_ref = base.position.mutate();
-            let position = &mut position_ref.ptr;
+            let mut position = box.position.get();
+            let mut margin = box.margin.get();
 
             // The associated box is the border box of this flow.
-            base.margin.top = margin_top;
-            base.margin.bottom = margin_bottom;
+            margin.top = margin_top;
+            margin.bottom = margin_bottom;
 
-            position.origin.y = clearance + base.margin.top;
+            position.origin.y = clearance + margin.top;
 
-            noncontent_height = base.padding.top + base.padding.bottom + base.border.top +
-                base.border.bottom;
+            noncontent_height = box.padding.get().top + box.padding.get().bottom +
+                box.border.get().top + box.border.get().bottom;
             position.size.height = height + noncontent_height;
 
-            noncontent_height = noncontent_height + clearance + base.margin.top +
-                base.margin.bottom;
+            noncontent_height = noncontent_height + clearance + margin.top + margin.bottom;
+
+            box.position.set(position);
+            box.margin.set(margin);
         }
 
         self.base.position.size.height = height + noncontent_height;
@@ -376,18 +377,18 @@ impl BlockFlow {
         let mut margin_height = Au(0);
 
         for box in self.box.iter() {
-            let base = box.base();
-            height = base.position.borrow().ptr.size.height;
-            clearance = match base.clear() {
+            height = box.position.get().size.height;
+            clearance = match box.clear() {
                 None => Au(0),
                 Some(clear) => self.base.floats_in.clearance(clear),
             };
 
-            let noncontent_width = base.padding.left + base.padding.right + base.border.left +
-                base.border.right;
+            let noncontent_width = box.padding.get().left + box.padding.get().right +
+                box.border.get().left + box.border.get().right;
 
-            full_noncontent_width = noncontent_width + base.margin.left + base.margin.right;
-            margin_height = base.margin.top + base.margin.bottom;
+            full_noncontent_width = noncontent_width + box.margin.get().left +
+                box.margin.get().right;
+            margin_height = box.margin.get().top + box.margin.get().bottom;
         }
 
         let info = PlacementInfo {
@@ -419,8 +420,7 @@ impl BlockFlow {
         let mut top_offset = Au(0);
 
         for &box in self.box.iter() {
-            let base = box.base();
-            top_offset = base.margin.top + base.border.top + base.padding.top;
+            top_offset = box.margin.get().top + box.border.get().top + box.padding.get().top;
             cur_y = cur_y + top_offset;
         }
 
@@ -434,24 +434,23 @@ impl BlockFlow {
 
         let mut noncontent_height;
         let box = self.box.as_ref().unwrap();
-        let base = box.base();
-        let mut position_ref = base.position.mutate();
-        let position = &mut position_ref.ptr;
+        let mut position = box.position.get();
 
         // The associated box is the border box of this flow.
-        position.origin.y = base.margin.top;
+        position.origin.y = box.margin.get().top;
 
-        noncontent_height = base.padding.top + base.padding.bottom + base.border.top +
-            base.border.bottom;
+        noncontent_height = box.padding.get().top + box.padding.get().bottom +
+            box.border.get().top + box.border.get().bottom;
     
         //TODO(eatkinson): compute heights properly using the 'height' property.
-        let height_prop = MaybeAuto::from_style(base.style().Box.height,
+        let height_prop = MaybeAuto::from_style(box.style().Box.height,
                                                 Au::new(0)).specified_or_zero();
 
         height = geometry::max(height, height_prop) + noncontent_height;
         debug!("assign_height_float -- height: {}", height);
 
         position.size.height = height;
+        box.position.set(position);
     }
 
     pub fn build_display_list_block<E:ExtraDisplayListData>(
@@ -466,18 +465,16 @@ impl BlockFlow {
 
         if self.base.node.is_iframe_element() {
             let x = self.base.abs_position.x + do self.box.map_default(Au::new(0)) |box| {
-                let base = box.base();
-                base.margin.left + base.border.left + base.padding.left
+                box.margin.get().left + box.border.get().left + box.padding.get().left
             };
             let y = self.base.abs_position.y + do self.box.map_default(Au::new(0)) |box| {
-                let base = box.base();
-                base.margin.top + base.border.top + base.padding.top
+                box.margin.get().top + box.border.get().top + box.padding.get().top
             };
             let w = self.base.position.size.width - do self.box.map_default(Au::new(0)) |box| {
-                box.base().noncontent_width()
+                box.noncontent_width()
             };
             let h = self.base.position.size.height - do self.box.map_default(Au::new(0)) |box| {
-                box.base().noncontent_height()
+                box.noncontent_height()
             };
             do self.base.node.with_mut_iframe_element |iframe_element| {
                 iframe_element.size.get_mut_ref().set_rect(Rect(Point2D(to_frac_px(x) as f32,
@@ -587,7 +584,7 @@ impl Flow for BlockFlow {
         for box in self.box.iter() {
             {
                 // Can compute border width here since it doesn't depend on anything.
-                box.mut_base().compute_borders(box.base().style());
+                box.compute_borders(box.style())
             }
 
             let (this_minimum_width, this_preferred_width) = box.minimum_and_preferred_widths();
@@ -631,16 +628,13 @@ impl Flow for BlockFlow {
         }
 
         for &box in self.box.iter() {
-            let base = box.base();
-            let mut_base = box.mut_base();
-            let style = base.style();
-            let mut_position = &mut base.position.mutate().ptr;
+            let style = box.style();
 
             // Can compute padding here since we know containing block width.
-            mut_base.compute_padding(style, remaining_width);
+            box.compute_padding(style, remaining_width);
 
             // Margins are 0 right now so base.noncontent_width() is just borders + padding.
-            let available_width = remaining_width - base.noncontent_width();
+            let available_width = remaining_width - box.noncontent_width();
 
             // Top and bottom margins for blocks are 0 if auto.
             let margin_top = MaybeAuto::from_style(style.Margin.margin_top,
@@ -654,20 +648,20 @@ impl Flow for BlockFlow {
                 self.compute_block_margins(box, remaining_width, available_width)
             };
 
-            mut_base.margin.top = margin_top;
-            mut_base.margin.right = margin_right;
-            mut_base.margin.bottom = margin_bottom;
-            mut_base.margin.left = margin_left;
+            box.margin.set(SideOffsets2D::new(margin_top,
+                                              margin_right,
+                                              margin_bottom,
+                                              margin_left));
 
-            x_offset = base.offset();
+            x_offset = box.offset();
             remaining_width = width;
 
-            //The associated box is the border box of this flow
-            mut_position.origin.x = base.margin.left;
-
-            let padding_and_borders = base.padding.left + base.padding.right +
-                base.border.left + base.border.right;
-            mut_position.size.width = remaining_width + padding_and_borders;
+            // The associated box is the border box of this flow.
+            let position_ref = box.position.mutate();
+            position_ref.ptr.origin.x = box.margin.get().left;
+            let padding_and_borders = box.padding.get().left + box.padding.get().right +
+                box.border.get().left + box.border.get().right;
+            position_ref.ptr.size.width = remaining_width + padding_and_borders;
         }
 
         if self.is_float() {
@@ -734,25 +728,23 @@ impl Flow for BlockFlow {
         }
 
         for &box in self.box.iter() {
-            let base = box.base();
-
             // The top margin collapses with its first in-flow block-level child's
             // top margin if the parent has no top border, no top padding.
             if *first_in_flow && top_margin_collapsible {
                 // If top-margin of parent is less than top-margin of its first child, 
                 // the parent box goes down until its top is aligned with the child.
-                if *margin_top < base.margin.top {
+                if *margin_top < box.margin.get().top {
                     // TODO: The position of child floats should be updated and this
                     // would influence clearance as well. See #725
-                    let extra_margin = base.margin.top - *margin_top;
+                    let extra_margin = box.margin.get().top - *margin_top;
                     *top_offset = *top_offset + extra_margin;
-                    *margin_top = base.margin.top;
+                    *margin_top = box.margin.get().top;
                 }
             }
             // The bottom margin of an in-flow block-level element collapses 
             // with the top margin of its next in-flow block-level sibling.
-            *collapsing = geometry::min(base.margin.top, *collapsible);
-            *collapsible = base.margin.bottom;
+            *collapsing = geometry::min(box.margin.get().top, *collapsible);
+            *collapsible = box.margin.get().bottom;
         }
 
         *first_in_flow = false;

@@ -2,23 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Servo's experimental layout system builds a tree of `Flow` and `RenderBox` objects and
-/// solves layout constraints to obtain positions and display attributes of tree nodes. Positions
-/// are computed in several tree traversals driven by the fundamental data dependencies required by
+//! Servo's experimental layout system builds a tree of `Flow` and `Box` objects and solves
+//! layout constraints to obtain positions and display attributes of tree nodes. Positions are
+//! computed in several tree traversals driven by the fundamental data dependencies required by
 /// inline and block layout.
 /// 
 /// Flows are interior nodes in the layout tree and correspond closely to *flow contexts* in the
-/// CSS specification. Flows are responsible for positioning their child flow contexts and render
-/// boxes. Flows have purpose-specific fields, such as auxiliary line box structs, out-of-flow
-/// child lists, and so on.
+/// CSS specification. Flows are responsible for positioning their child flow contexts and boxes.
+/// Flows have purpose-specific fields, such as auxiliary line box structs, out-of-flow child
+/// lists, and so on.
 ///
 /// Currently, the important types of flows are:
 /// 
 /// * `BlockFlow`: A flow that establishes a block context. It has several child flows, each of
 ///   which are positioned according to block formatting context rules (CSS block boxes). Block
 ///   flows also contain a single `GenericBox` to represent their rendered borders, padding, etc.
-///   (In the future, this render box may be folded into `BlockFlow` to save space.) The BlockFlow
-///   at the root of the tree has special behavior: it stretches to the boundaries of the viewport.
+///   (In the future, this box may be folded into `BlockFlow` to save space.) The BlockFlow at the
+///   root of the tree has special behavior: it stretches to the boundaries of the viewport.
 ///   
 /// * `InlineFlow`: A flow that establishes an inline context. It has a flat list of child
 ///   boxes/flows that are subject to inline layout and line breaking and structs to represent
@@ -27,7 +27,7 @@
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box::RenderBox;
+use layout::box::Box;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::float_context::{FloatContext, Invalid};
@@ -340,12 +340,12 @@ pub struct FlowData {
 }
 
 pub struct BoxIterator {
-    priv boxes: ~[@RenderBox],
+    priv boxes: ~[@Box],
     priv index: uint,
 }
 
-impl Iterator<@RenderBox> for BoxIterator {
-    fn next(&mut self) -> Option<@RenderBox> {
+impl Iterator<@Box> for BoxIterator {
+    fn next(&mut self) -> Option<@Box> {
         if self.index >= self.boxes.len() {
             None
         } else {

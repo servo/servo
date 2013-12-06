@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use layout::box::{RenderBox, RenderBoxUtils};
+use layout::box::Box;
 use layout::construct::{ConstructionResult, NoConstructionResult};
 
 use extra::arc::Arc;
@@ -76,7 +76,7 @@ impl ElementMapping {
         self.entries.iter().enumerate()
     }
 
-    pub fn repair_for_box_changes(&mut self, old_boxes: &[@RenderBox], new_boxes: &[@RenderBox]) {
+    pub fn repair_for_box_changes(&mut self, old_boxes: &[@Box], new_boxes: &[@Box]) {
         let entries = &mut self.entries;
 
         debug!("--- Old boxes: ---");
@@ -118,8 +118,7 @@ impl ElementMapping {
                     repair_stack.push(item);
                     entries_k += 1;
                 }
-                while new_j < new_boxes.len() &&
-                        old_boxes[old_i].base().node != new_boxes[new_j].base().node {
+                while new_j < new_boxes.len() && old_boxes[old_i].node != new_boxes[new_j].node {
                     debug!("repair_for_box_changes: Slide through new box {:u}", new_j);
                     new_j += 1;
                 }
