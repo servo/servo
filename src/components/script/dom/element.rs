@@ -294,7 +294,7 @@ impl<'self> Element {
 
 impl Element {
     pub fn TagName(&self) -> DOMString {
-        self.tag_name.to_owned().to_ascii_upper()
+        self.tag_name.to_ascii_upper()
     }
 
     pub fn Id(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
