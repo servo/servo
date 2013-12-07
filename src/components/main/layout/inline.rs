@@ -579,21 +579,9 @@ impl InlineFlow {
     }
 
     /// Sets box X positions based on alignment for one line.
-    fn set_horizontal_box_positions(boxes: &[Box], line: &LineBox) {
+    fn set_horizontal_box_positions(boxes: &[Box], line: &LineBox, linebox_align: text_align::T) {
         // Figure out how much width we have.
         let slack_width = Au::max(Au(0), line.green_zone.width - line.bounds.size.width);
-
-        // Get the text alignment.
-        //
-        // TODO(burg, issue #222): use 'text-align' property from `InlineFlow`'s block container,
-        // not from the style of the first box child.
-        let linebox_align = if line.range.begin() < boxes.len() {
-            let first_box = &boxes[line.range.begin()];
-            first_box.style().Text.text_align
-        } else {
-            // Nothing to lay out, so assume left alignment.
-            text_align::left
-        };
 
         // Set the box x positions based on that alignment.
         let mut offset_x = line.bounds.origin.x;
@@ -712,10 +700,13 @@ impl Flow for InlineFlow {
 
         let mut line_height_offset = Au::new(0);
 
+        // All lines use text alignment from base (non-inline) node
+        let text_align = self.base.node.style().get().Text.text_align;
+
         // Now, go through each line and lay out the boxes inside.
         for line in self.lines.mut_iter() {
             // Lay out boxes horizontally.
-            InlineFlow::set_horizontal_box_positions(self.boxes, line);
+            InlineFlow::set_horizontal_box_positions(self.boxes, line, text_align);
 
             // Set the top y position of the current linebox.
             // `line_height_offset` is updated at the end of the previous loop.
