@@ -4,45 +4,22 @@
 
 use std::vec::VecIterator;
 
-use font_context::FontContext;
 use servo_util::geometry::Au;
 use text::glyph::GlyphStore;
-use font::{Font, FontDescriptor, RunMetrics};
+use font::{Font, FontDescriptor, RunMetrics, FontStyle, FontMetrics};
 use servo_util::range::Range;
 use extra::arc::Arc;
 use style::computed_values::text_decoration;
 
 /// A text run.
+#[deriving(Clone)]
 pub struct TextRun {
     text: Arc<~str>,
-    font: @mut Font,
+    font_descriptor: FontDescriptor,
+    font_metrics: FontMetrics,
+    font_style: FontStyle,
     decoration: text_decoration::T,
     glyphs: Arc<~[Arc<GlyphStore>]>,
-}
-
-/// The same as a text run, but with a font descriptor instead of a font. This makes them thread
-/// safe.
-pub struct SendableTextRun {
-    text: Arc<~str>,
-    font: FontDescriptor,
-    decoration: text_decoration::T,
-    priv glyphs: Arc<~[Arc<GlyphStore>]>,
-}
-
-impl SendableTextRun {
-    pub fn deserialize(&self, fctx: @mut FontContext) -> TextRun {
-        let font = match fctx.get_font_by_descriptor(&self.font) {
-            Ok(f) => f,
-            Err(_) => fail!("Font descriptor deserialization failed! desc={:?}", self.font)
-        };
-
-        TextRun {
-            text: self.text.clone(),
-            font: font,
-            decoration: self.decoration,
-            glyphs: self.glyphs.clone(),
-        }
-    }
 }
 
 pub struct SliceIterator<'self> {
@@ -120,12 +97,14 @@ impl<'self> Iterator<Range> for LineIterator<'self> {
 }
 
 impl<'self> TextRun {
-    pub fn new(font: @mut Font, text: ~str, decoration: text_decoration::T) -> TextRun {
+    pub fn new(font: &mut Font, text: ~str, decoration: text_decoration::T) -> TextRun {
         let glyphs = TextRun::break_and_shape(font, text);
 
         let run = TextRun {
             text: Arc::new(text),
-            font: font,
+            font_style: font.style.clone(),
+            font_metrics: font.metrics.clone(),
+            font_descriptor: font.get_descriptor(),
             decoration: decoration,
             glyphs: Arc::new(glyphs),
         };
@@ -133,10 +112,9 @@ impl<'self> TextRun {
     }
 
     pub fn teardown(&self) {
-        self.font.teardown();
     }
 
-    pub fn break_and_shape(font: @mut Font, text: &str) -> ~[Arc<GlyphStore>] {
+    pub fn break_and_shape(font: &mut Font, text: &str) -> ~[Arc<GlyphStore>] {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
 
         let mut glyphs = ~[];
@@ -190,16 +168,7 @@ impl<'self> TextRun {
 
         glyphs
     }
-
-    pub fn serialize(&self) -> SendableTextRun {
-        SendableTextRun {
-            text: self.text.clone(),
-            font: self.font.get_descriptor(),
-            decoration: self.decoration,
-            glyphs: self.glyphs.clone(),
-        }
-    }
-
+    
     pub fn char_len(&self) -> uint {
         do self.glyphs.get().iter().fold(0u) |len, slice_glyphs| {
             len + slice_glyphs.get().char_len()
@@ -218,19 +187,30 @@ impl<'self> TextRun {
     }
 
     pub fn metrics_for_range(&self, range: &Range) -> RunMetrics {
-        self.font.measure_text(self, range)
+        // TODO(Issue #199): alter advance direction for RTL
+        // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
+        let mut advance = Au(0);
+        for (glyphs, _offset, slice_range) in self.iter_slices_for_range(range) {
+            for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
+                advance = advance + glyph.advance();
+            }
+        }
+        RunMetrics::new(advance, self.font_metrics.ascent, self.font_metrics.descent)
     }
 
     pub fn metrics_for_slice(&self, glyphs: &GlyphStore, slice_range: &Range) -> RunMetrics {
-        self.font.measure_text_for_slice(glyphs, slice_range)
+        let mut advance = Au(0);
+        for (_i, glyph) in glyphs.iter_glyphs_for_char_range(slice_range) {
+            advance = advance + glyph.advance();
+        }
+        RunMetrics::new(advance, self.font_metrics.ascent, self.font_metrics.descent)
     }
-
     pub fn min_width_for_range(&self, range: &Range) -> Au {
         let mut max_piece_width = Au(0);
         debug!("iterating outer range {:?}", range);
-        for (glyphs, offset, slice_range) in self.iter_slices_for_range(range) {
+        for (_, offset, slice_range) in self.iter_slices_for_range(range) {
             debug!("iterated on {:?}[{:?}]", offset, slice_range);
-            let metrics = self.font.measure_text_for_slice(glyphs, &slice_range);
+            let metrics = self.metrics_for_range(&slice_range);
             max_piece_width = Au::max(max_piece_width, metrics.advance_width);
         }
         max_piece_width

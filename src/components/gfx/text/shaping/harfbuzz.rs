@@ -136,7 +136,6 @@ impl ShapedGlyphData {
 }
 
 pub struct Shaper {
-    font: @mut Font,
     priv hb_face: *hb_face_t,
     priv hb_font: *hb_font_t,
     priv hb_funcs: *hb_font_funcs_t,
@@ -161,13 +160,10 @@ impl Drop for Shaper {
 
 impl Shaper {
     #[fixed_stack_segment]
-    pub fn new(font: @mut Font) -> Shaper {
+    pub fn new(font: &mut Font) -> Shaper {
         unsafe {
             // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
-            let font_ptr = {
-                let borrowed_font= &mut *font;
-                borrowed_font as *mut Font
-            };
+            let font_ptr = font as *mut Font;
             let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func,
                                                                 font_ptr as *c_void,
                                                                 None);
@@ -190,7 +186,6 @@ impl Shaper {
             hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, None);
 
             Shaper {
-                font: font,
                 hb_face: hb_face,
                 hb_font: hb_font,
                 hb_funcs: hb_funcs,

@@ -630,13 +630,21 @@ impl Box {
 
                 // Create the text box.
                 do list.with_mut_ref |list| {
+                    // FIXME(pcwalton): Allocation? Why?!
+                    let run = ~TextRun {
+                        text: text_box.run.text.clone(),
+                        font_descriptor: text_box.run.font_descriptor.clone(),
+                        font_metrics: text_box.run.font_metrics.clone(),
+                        font_style: text_box.run.font_style.clone(),
+                        decoration: text_box.run.decoration.clone(),
+                        glyphs: text_box.run.glyphs.clone()
+                    };
                     let text_display_item = ~TextDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
                             extra: ExtraDisplayListData::new(&self),
                         },
-                        // FIXME(pcwalton): Allocation? Why?!
-                        text_run: ~text_box.run.serialize(),
+                        text_run: run,
                         range: text_box.range,
                         color: color,
                     };

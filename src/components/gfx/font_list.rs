@@ -13,11 +13,11 @@ use servo_util::time::ProfilerChan;
 
 use std::hashmap::HashMap;
 
-pub type FontFamilyMap = HashMap<~str, @mut FontFamily>;
+pub type FontFamilyMap = HashMap<~str, FontFamily>;
 
 trait FontListHandleMethods {
     fn get_available_families(&self, fctx: &FontContextHandle) -> FontFamilyMap;
-    fn load_variations_for_family(&self, family: @mut FontFamily);
+    fn load_variations_for_family(&self, family: &mut FontFamily);
     fn get_last_resort_font_families() -> ~[~str];
 }
 
@@ -28,7 +28,7 @@ pub struct FontList {
     prof_chan: ProfilerChan,
 }
 
-impl FontList {
+impl<'self> FontList {
     pub fn new(fctx: &FontContextHandle,
            prof_chan: ProfilerChan)
            -> FontList {
@@ -52,39 +52,27 @@ impl FontList {
         }
     }
 
-    pub fn find_font_in_family(&self,
-                           family_name: &str, 
-                           style: &SpecifiedFontStyle) -> Option<@FontEntry> {
-        let family = self.find_family(family_name);
-
-        // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
-
-        // if such family exists, try to match style to a font
-        let mut result: Option<@FontEntry> = None;
-        for fam in family.iter() {
-            result = fam.find_font_for_style(&self.handle, style);
-        }
-
-        let decision = if result.is_some() {
-            "Found"
-        } else {
-            "Couldn't find"
-        };
-
-        debug!("FontList: {:s} font face in family[{:s}] matching style", decision, family_name);
-
-        result
-    }
-
-    fn find_family(&self, family_name: &str) -> Option<@mut FontFamily> {
-        // look up canonical name
-        let family = self.family_map.find_equiv(&family_name);
-
-        let decision = if family.is_some() { "Found" } else { "Couldn't find" };
-        debug!("FontList: {:s} font family with name={:s}", decision, family_name);
-
+    pub fn find_font_in_family(&'self mut self,
+                           family_name: &~str, 
+                           style: &SpecifiedFontStyle) -> Option<&'self FontEntry> {
         // TODO(Issue #188): look up localized font family names if canonical name not found
-        family.map(|f| *f)
+        // look up canonical name
+        if self.family_map.contains_key(family_name) {
+            //FIXME call twice!(ksh8281)
+            debug!("FontList: Found font family with name={:s}", family_name.to_str());
+            let s: &'self mut FontFamily = self.family_map.get_mut(family_name);
+            // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
+            // if such family exists, try to match style to a font
+            let result = s.find_font_for_style(&mut self.handle, style);
+            if result.is_some() {
+                return result;
+            }
+
+            None
+        } else {
+            debug!("FontList: Couldn't find font family with name={:s}", family_name.to_str());
+            None
+        }
     }
 
     pub fn get_last_resort_font_families() -> ~[~str] {
@@ -94,12 +82,12 @@ impl FontList {
 }
 
 // Holds a specific font family, and the various 
-pub struct FontFamily {
+pub struct FontFamily<'self> {
     family_name: ~str,
-    entries: ~[@FontEntry],
+    entries: ~[FontEntry],
 }
 
-impl FontFamily {
+impl<'self> FontFamily {
     pub fn new(family_name: &str) -> FontFamily {
         FontFamily {
             family_name: family_name.to_str(),
@@ -107,7 +95,7 @@ impl FontFamily {
         }
     }
 
-    fn load_family_variations(@mut self, list: &FontListHandle) {
+    fn load_family_variations(&mut self, list: &FontListHandle) {
         if self.entries.len() > 0 {
             return
         }
@@ -115,8 +103,8 @@ impl FontFamily {
         assert!(self.entries.len() > 0)
     }
 
-    pub fn find_font_for_style(@mut self, list: &FontListHandle, style: &SpecifiedFontStyle)
-                            -> Option<@FontEntry> {
+    pub fn find_font_for_style(&'self mut self, list: &FontListHandle, style: &SpecifiedFontStyle)
+                            -> Option<&'self FontEntry> {
         self.load_family_variations(list);
 
         // TODO(Issue #189): optimize lookup for
@@ -129,7 +117,7 @@ impl FontFamily {
             if (style.weight.is_bold() == entry.is_bold()) && 
                (style.italic == entry.is_italic()) {
 
-                return Some(*entry);
+                return Some(entry);
             }
         }
 

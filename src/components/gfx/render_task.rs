@@ -97,7 +97,7 @@ pub struct RenderTask<C,T> {
     port: Port<Msg<T>>,
     compositor: C,
     constellation_chan: ConstellationChan,
-    font_ctx: @mut FontContext,
+    font_ctx: ~FontContext,
     opts: Opts,
 
     /// A channel to the profiler.
@@ -150,7 +150,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                 port: port,
                 compositor: compositor,
                 constellation_chan: constellation_chan,
-                font_ctx: @mut FontContext::new(opts.render_backend.clone(),
+                font_ctx: ~FontContext::new(opts.render_backend.clone(),
                                                 false,
                                                 profiler_chan.clone()),
                 opts: opts,
@@ -266,9 +266,9 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
 
                     {
                         // Build the render context.
-                        let ctx = RenderContext {
+                        let mut ctx = RenderContext {
                             draw_target: &draw_target,
-                            font_ctx: self.font_ctx,
+                            font_ctx: &mut self.font_ctx,
                             opts: &self.opts,
                             page_rect: tile.page_rect,
                             screen_rect: tile.screen_rect,
@@ -287,7 +287,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                         
                         // Draw the display list.
                         do profile(time::RenderingDrawingCategory, self.profiler_chan.clone()) {
-                            render_layer.display_list.get().draw_into_context(&ctx);
+                            render_layer.display_list.get().draw_into_context(&mut ctx);
                             ctx.draw_target.flush();
                         }
                     }

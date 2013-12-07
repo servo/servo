@@ -18,7 +18,7 @@ use color::Color;
 use servo_util::geometry::Au;
 use style::computed_values::border_style;
 use render_context::RenderContext;
-use text::SendableTextRun;
+use text::TextRun;
 
 use std::cast::transmute_region;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
@@ -47,7 +47,7 @@ impl<E> DisplayList<E> {
     }
 
     /// Draws the display list into the given render context.
-    pub fn draw_into_context(&self, render_context: &RenderContext) {
+    pub fn draw_into_context(&self, render_context: &mut RenderContext) {
         debug!("Beginning display list.");
         for item in self.list.iter() {
             // FIXME(Issue #150): crashes
@@ -87,7 +87,7 @@ pub struct SolidColorDisplayItem<E> {
 /// Renders text.
 pub struct TextDisplayItem<E> {
     base: BaseDisplayItem<E>,
-    text_run: ~SendableTextRun,
+    text_run: ~TextRun,
     range: Range,
     color: Color,
 }
@@ -120,7 +120,7 @@ pub struct ClipDisplayItem<E> {
 
 impl<E> DisplayItem<E> {
     /// Renders this display item into the given render context.
-    fn draw_into_context(&self, render_context: &RenderContext) {
+    fn draw_into_context(&self, render_context: &mut RenderContext) {
         match *self {
             SolidColorDisplayItemClass(ref solid_color) => {
                 render_context.draw_solid_color(&solid_color.base.bounds, solid_color.color)
@@ -142,36 +142,38 @@ impl<E> DisplayItem<E> {
                 debug!("Drawing text at {:?}.", text.base.bounds);
 
                 // FIXME(pcwalton): Allocating? Why?
-                let new_run = @text.text_run.deserialize(render_context.font_ctx);
+                let font = render_context.font_ctx.get_font_by_descriptor(&text.text_run.font_descriptor).unwrap();
 
-                let font = new_run.font;
+                let font_metrics = font.with_borrow( |font| {
+                    font.metrics.clone()
+                });
                 let origin = text.base.bounds.origin;
-                let baseline_origin = Point2D(origin.x, origin.y + font.metrics.ascent);
-
-                font.draw_text_into_context(render_context,
-                                            new_run,
-                                            &text.range,
-                                            baseline_origin,
-                                            text.color);
-
+                let baseline_origin = Point2D(origin.x, origin.y + font_metrics.ascent);
+                font.with_mut_borrow( |font| {
+                    font.draw_text_into_context(render_context,
+                                                &text.text_run,
+                                                &text.range,
+                                                baseline_origin,
+                                                text.color);
+                });
                 let width = text.base.bounds.size.width;
-                let underline_size = font.metrics.underline_size;
-                let underline_offset = font.metrics.underline_offset;
-                let strikeout_size = font.metrics.strikeout_size;
-                let strikeout_offset = font.metrics.strikeout_offset;
+                let underline_size = font_metrics.underline_size;
+                let underline_offset = font_metrics.underline_offset;
+                let strikeout_size = font_metrics.strikeout_size;
+                let strikeout_offset = font_metrics.strikeout_offset;
 
-                if new_run.decoration.underline {
+                if text.text_run.decoration.underline {
                     let underline_y = baseline_origin.y - underline_offset;
                     let underline_bounds = Rect(Point2D(baseline_origin.x, underline_y),
                                                 Size2D(width, underline_size));
                     render_context.draw_solid_color(&underline_bounds, text.color);
                 }
-                if new_run.decoration.overline {
+                if text.text_run.decoration.overline {
                     let overline_bounds = Rect(Point2D(baseline_origin.x, origin.y),
                                                Size2D(width, underline_size));
                     render_context.draw_solid_color(&overline_bounds, text.color);
                 }
-                if new_run.decoration.line_through {
+                if text.text_run.decoration.line_through {
                     let strikeout_y = baseline_origin.y - strikeout_offset;
                     let strikeout_bounds = Rect(Point2D(baseline_origin.x, strikeout_y),
                                                 Size2D(width, strikeout_size));

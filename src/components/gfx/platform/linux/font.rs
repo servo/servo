@@ -8,6 +8,7 @@ use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle, FontWeight100};
 use font::{FontWeight200, FontWeight300, FontWeight400, FontWeight500, FontWeight600};
 use font::{FontWeight700, FontWeight800, FontWeight900};
+use font_context::FontContextHandleMethods;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use platform::font_context::FontContextHandle;
@@ -93,7 +94,7 @@ impl FontHandleMethods for FontHandle {
               let handle = FontHandle {
                   face: face,
                   source: FontSourceMem(buf),
-                  handle: *fctx
+                  handle: fctx.clone()
               };
               Ok(handle)
             }
@@ -295,7 +296,7 @@ impl<'self> FontHandle {
                 Ok(FontHandle {
                     source: FontSourceFile(file.to_str()),
                     face: face,
-                    handle: *fctx
+                    handle: fctx.clone()
                 })
             } else {
                 Err(())
@@ -323,7 +324,7 @@ impl<'self> FontHandle {
             Ok(FontHandle {
                 source: FontSourceFile(file),
                 face: face,
-                handle: *fctx
+                handle: fctx.clone()
             })
         }
     }
