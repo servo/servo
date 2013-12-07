@@ -13,7 +13,7 @@ use std::task::spawn;
 use std::to_str::ToStr;
 use std::util::replace;
 use std::result;
-use extra::arc::Arc;
+use extra::arc::{Arc,MutexArc};
 use extra::url::Url;
 
 pub enum Msg {
@@ -148,7 +148,7 @@ struct ImageCache {
     /// The state of processsing an image for a URL
     state_map: UrlMap<ImageState>,
     /// List of clients waiting on a WaitForImage response
-    wait_map: UrlMap<@mut ~[Chan<ImageResponseMsg>]>,
+    wait_map: UrlMap<MutexArc<~[Chan<ImageResponseMsg>]>>,
     need_exit: Option<Chan<()>>,
 }
 
@@ -156,9 +156,9 @@ struct ImageCache {
 enum ImageState {
     Init,
     Prefetching(AfterPrefetch),
-    Prefetched(@Cell<~[u8]>),
+    Prefetched(Cell<~[u8]>),
     Decoding,
-    Decoded(@Arc<~Image>),
+    Decoded(Arc<~Image>),
     Failed
 }
 
@@ -229,7 +229,7 @@ impl ImageCache {
 
     fn get_state(&self, url: Url) -> ImageState {
         match self.state_map.find(&url) {
-            Some(state) => *state,
+            Some(state) => state.clone(),
             None => Init
         }
     }
@@ -275,7 +275,7 @@ impl ImageCache {
             match data {
               Ok(data_cell) => {
                 let data = data_cell.take();
-                self.set_state(url.clone(), Prefetched(@Cell::new(data)));
+                self.set_state(url.clone(), Prefetched(Cell::new(data)));
                 match next_step {
                   DoDecode => self.decode(url),
                   _ => ()
@@ -347,7 +347,7 @@ impl ImageCache {
           Decoding => {
             match image {
               Some(image) => {
-                self.set_state(url.clone(), Decoded(@image.clone()));
+                self.set_state(url.clone(), Decoded(image.clone()));
                 self.purge_waiters(url, || ImageReady(image.clone()) );
               }
               None => {
@@ -371,8 +371,12 @@ impl ImageCache {
     fn purge_waiters(&mut self, url: Url, f: &fn() -> ImageResponseMsg) {
         match self.wait_map.pop(&url) {
             Some(waiters) => {
-                for response in waiters.iter() {
-                    response.send(f());
+                unsafe {
+                    waiters.unsafe_access( |waiters| {
+                        for response in waiters.iter() {
+                            response.send(f());
+                        }
+                    })
                 }
             }
             None => ()
@@ -385,7 +389,7 @@ impl ImageCache {
             Prefetching(DoDecode) => response.send(ImageNotReady),
             Prefetching(DoNotDecode) | Prefetched(*) => fail!(~"request for image before decode"),
             Decoding => response.send(ImageNotReady),
-            Decoded(image) => response.send(ImageReady((*image).clone())),
+            Decoded(image) => response.send(ImageReady(image.clone())),
             Failed => response.send(ImageFailed),
         }
     }
@@ -400,14 +404,19 @@ impl ImageCache {
                 // We don't have this image yet
                 if self.wait_map.contains_key(&url) {
                     let waiters = self.wait_map.find_mut(&url).unwrap();
-                    waiters.push(response);
+                    unsafe {
+                        let res = Cell::new(response);
+                        waiters.unsafe_access( |waiters| {
+                            waiters.push(res.take());
+                        });
+                    }
                 } else {
-                    self.wait_map.insert(url, @mut ~[response]);
+                    self.wait_map.insert(url, MutexArc::new(~[response]));
                 }
             }
 
             Decoded(image) => {
-                response.send(ImageReady((*image).clone()));
+                response.send(ImageReady(image.clone()));
             }
 
             Failed => {
