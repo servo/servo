@@ -13,19 +13,21 @@ use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
-use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::htmlcollection::HTMLCollection;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlobjectelement::HTMLObjectElement;
-use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
 use dom::htmlserializer::serialize;
+use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
+use dom::node::window_from_node;
+use html::cssparse::parse_inline_css;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
-use layout_interface::{MatchSelectorsDocumentDamage};
+use layout_interface::{MatchSelectorsDocumentDamage, AddStylesheetMsg, LayoutChan};
 use style;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
@@ -621,6 +623,19 @@ impl IElement for JS<Element> {
             }
             _ => ()
         }
+
+        // Recognize a style element, parse it and send it to layout task via AddStylesheet.
+        let node: JS<Node> = NodeCast::from(self);
+        if node.type_id() == ElementNodeTypeId(HTMLStyleElementTypeId) {
+            let _ = node.get().GetTextContent(&node).map(|data| {
+                let win = window_from_node(self);
+                let url = win.get().page().get_url();
+                let sheet = parse_inline_css(url, data);
+                let LayoutChan(ref layout_chan) = win.get().page().layout_chan;
+                layout_chan.send(AddStylesheetMsg(sheet));
+            });
+        }
+
     }
 
     fn unbind_from_tree_impl(&self) {
