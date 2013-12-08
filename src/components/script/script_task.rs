@@ -222,6 +222,12 @@ impl<'self> Iterator<@mut Page> for PageTreeIterator<'self> {
 }
 
 impl Page {
+    
+    //Retrieves the page url.
+    pub fn get_url(&self) -> Url {
+        self.url.get_ref().first().clone()
+    }
+    
     /// Adds the given damage.
     fn damage(&mut self, level: DocumentDamageLevel) {
         let root = self.frame.get_ref().document.document().GetDocumentElement();
