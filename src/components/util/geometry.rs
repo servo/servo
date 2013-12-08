@@ -9,6 +9,9 @@ use geom::size::Size2D;
 use std::num::{NumCast, One, Zero};
 use std::fmt;
 
+// An Au is an "App Unit" and represents 1/60th of a CSS pixel.  It was
+// originally proposed in 2002 as a standard unit of measure in Gecko.
+// See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
 pub struct Au(i32);
 
 // We don't use #[deriving] here for inlining.
@@ -223,5 +226,10 @@ pub fn to_frac_px(au: Au) -> f64 {
 // assumes 72 points per inch, and 96 px per inch
 pub fn from_pt(pt: f64) -> Au {
     from_px((pt / 72f64 * 96f64) as int)
+}
+
+// assumes 72 points per inch, and 96 px per inch
+pub fn to_pt(au: Au) -> f64 {
+    (*au as f64) / 60f64 * 72f64 / 96f64
 }
 

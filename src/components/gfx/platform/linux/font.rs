@@ -243,7 +243,7 @@ impl FontHandleMethods for FontHandle {
             }
         }
 
-        return FontMetrics {
+        let metrics = FontMetrics {
             underline_size:   underline_size,
             underline_offset: underline_offset,
             strikeout_size:   strikeout_size,
@@ -254,7 +254,10 @@ impl FontHandleMethods for FontHandle {
             ascent:           ascent,
             descent:          -descent, // linux font's seem to use the opposite sign from mac
             max_advance:      max_advance
-        }
+        };
+
+        debug!("Font metrics (@{:f} pt): {:?}", geometry::to_pt(em_size), metrics);
+        return metrics;
     }
 
     fn get_table_for_tag(&self, _: FontTableTag) -> Option<FontTable> {
