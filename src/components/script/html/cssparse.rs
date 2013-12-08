@@ -21,6 +21,7 @@ pub enum StylesheetProvenance {
     InlineProvenance(Url, ~str),
 }
 
+// Parses the style data and returns the stylesheet
 pub fn parse_inline_css(url: Url, data: ~str)-> Stylesheet{
         let resource_task = ResourceTask(); //Resource task is not used for inline parsing 
         let port =  spawn_css_parser(InlineProvenance(url, data), resource_task.clone());
