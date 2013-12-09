@@ -132,8 +132,9 @@ impl TextRunScanner {
                            self.clump,
                            *text);
                     let range = Range::new(0, run.get().char_len());
-                    let new_text_box_info = ScannedTextBoxInfo::new(run.clone(), range);
                     let new_metrics = run.get().metrics_for_range(&range);
+                    let new_text_box_info = ScannedTextBoxInfo::new(run, range);
+
                     let new_box = @old_box.transform(new_metrics.bounding_box.size,
                                                      ScannedTextBox(new_text_box_info));
                     out_boxes.push(new_box)
