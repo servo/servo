@@ -11,6 +11,7 @@ use layout::flow::Flow;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{CompressWhitespaceNewline, transform_text};
 use std::vec;
+use extra::arc::Arc;
 use servo_util::range::Range;
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
@@ -125,14 +126,14 @@ impl TextRunScanner {
                     // font group fonts. This is probably achieved by creating the font group above
                     // and then letting `FontGroup` decide which `Font` to stick into the text run.
                     let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
-                    let run = @fontgroup.with_borrow(|fg| fg.create_textrun(transformed_text.clone(), decoration));
+                    let run = Arc::new(~fontgroup.with_borrow(|fg| fg.create_textrun(transformed_text.clone(), decoration)));
 
                     debug!("TextRunScanner: pushing single text box in range: {} ({})",
                            self.clump,
                            *text);
-                    let range = Range::new(0, run.char_len());
-                    let new_text_box_info = ScannedTextBoxInfo::new(run, range);
-                    let new_metrics = run.metrics_for_range(&range);
+                    let range = Range::new(0, run.get().char_len());
+                    let new_text_box_info = ScannedTextBoxInfo::new(run.clone(), range);
+                    let new_metrics = run.get().metrics_for_range(&range);
                     let new_box = @old_box.transform(new_metrics.bounding_box.size,
                                                      ScannedTextBox(new_text_box_info));
                     out_boxes.push(new_box)
@@ -190,7 +191,7 @@ impl TextRunScanner {
                 let run = if clump.length() != 0 && run_str.len() > 0 {
                     fontgroup.with_borrow( |fg| {
                         fg.fonts[0].with_mut_borrow( |font| {
-                            Some(@TextRun::new(font, run_str.clone(), decoration))
+                            Some(Arc::new(~TextRun::new(font, run_str.clone(), decoration)))
                         })
                     })
                 } else {
@@ -208,8 +209,8 @@ impl TextRunScanner {
                         continue
                     }
 
-                    let new_text_box_info = ScannedTextBoxInfo::new(run.unwrap(), range);
-                    let new_metrics = new_text_box_info.run.metrics_for_range(&range);
+                    let new_text_box_info = ScannedTextBoxInfo::new(run.get_ref().clone(), range);
+                    let new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
                     let new_box = @in_boxes[i].transform(new_metrics.bounding_box.size,
                                                          ScannedTextBox(new_text_box_info));
                     out_boxes.push(new_box)
