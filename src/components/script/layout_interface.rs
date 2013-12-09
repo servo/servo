@@ -15,6 +15,7 @@ use geom::size::Size2D;
 use script_task::{ScriptChan};
 use servo_util::geometry::Au;
 use std::comm::{Chan, SharedChan};
+use std::cmp;
 use style::Stylesheet;
 
 /// Asynchronous messages that script can send to layout.
@@ -62,23 +63,18 @@ pub struct ContentBoxesResponse(~[Rect<Au>]);
 pub struct HitTestResponse(AbstractNode<LayoutView>);
 
 /// Determines which part of the 
+#[deriving(Eq, Ord)]
 pub enum DocumentDamageLevel {
-    /// Perform CSS selector matching and reflow.
-    MatchSelectorsDocumentDamage,
     /// Reflow, but do not perform CSS selector matching.
     ReflowDocumentDamage,
+    /// Perform CSS selector matching and reflow.
+    MatchSelectorsDocumentDamage,
 }
 
 impl DocumentDamageLevel {
     /// Sets this damage to the maximum of this damage and the given damage.
-    ///
-    /// FIXME(pcwalton): This could be refactored to use `max` and the `Ord` trait, and this
-    /// function removed.
     pub fn add(&mut self, new_damage: DocumentDamageLevel) {
-        match (*self, new_damage) {
-            (ReflowDocumentDamage, new_damage) => *self = new_damage,
-            (MatchSelectorsDocumentDamage, _) => *self = MatchSelectorsDocumentDamage,
-        }
+        *self = cmp::max(*self, new_damage);
     }
 }
 
@@ -128,4 +124,17 @@ impl LayoutChan {
     pub fn new(chan: Chan<Msg>) -> LayoutChan {
         LayoutChan(SharedChan::new(chan))
     }
+}
+
+#[test]
+fn test_add_damage() {
+    fn assert_add(mut a: DocumentDamageLevel, b: DocumentDamageLevel,
+                  result: DocumentDamageLevel) {
+        a.add(b);
+        assert!(a == result);
+    }
+
+    assert_add(ReflowDocumentDamage, ReflowDocumentDamage, ReflowDocumentDamage);
+    assert_add(ReflowDocumentDamage, MatchSelectorsDocumentDamage, MatchSelectorsDocumentDamage);
+    assert_add(MatchSelectorsDocumentDamage, ReflowDocumentDamage, MatchSelectorsDocumentDamage);
 }
