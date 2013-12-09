@@ -230,6 +230,15 @@ impl FontHandleMethods for FontHandle {
         let descent = self.font_units_to_au(face.descender as f64);
         let max_advance = self.font_units_to_au(face.max_advance_width as f64);
 
+        // 'leading' is supposed to be the vertical distance between two baselines,
+        // reflected by the height attibute in freetype.  On OS X (w/ CTFont),
+        // leading represents the distance between the bottom of a line descent to
+        // the top of the next line's ascent or: (line_height - ascent - descent),
+        // see http://stackoverflow.com/a/5635981 for CTFont implementation.
+        // Convert using a formular similar to what CTFont returns for consistency.
+        let height = self.font_units_to_au(face.height as f64);
+        let leading = height - (ascent + descent);
+
         let mut strikeout_size = geometry::from_pt(0.0);
         let mut strikeout_offset = geometry::from_pt(0.0);
         let mut x_height = geometry::from_pt(0.0);
@@ -243,18 +252,21 @@ impl FontHandleMethods for FontHandle {
             }
         }
 
-        return FontMetrics {
+        let metrics = FontMetrics {
             underline_size:   underline_size,
             underline_offset: underline_offset,
             strikeout_size:   strikeout_size,
             strikeout_offset: strikeout_offset,
-            leading:          geometry::from_pt(0.0), //FIXME
+            leading:          leading,
             x_height:         x_height,
             em_size:          em_size,
             ascent:           ascent,
             descent:          -descent, // linux font's seem to use the opposite sign from mac
             max_advance:      max_advance
-        }
+        };
+
+        debug!("Font metrics (@{:f} pt): {:?}", geometry::to_pt(em_size), metrics);
+        return metrics;
     }
 
     fn get_table_for_tag(&self, _: FontTableTag) -> Option<FontTable> {
