@@ -702,7 +702,7 @@ impl Flow for InlineFlow {
                     },
                     ScannedTextBox(ref text_box) => {
                         let range = &text_box.range;
-                        let run = &text_box.run;
+                        let run = text_box.run.get();
                         
                         // Compute the height based on the line-height and font size
                         let text_bounds = run.metrics_for_range(range).bounding_box;
@@ -711,7 +711,7 @@ impl Flow for InlineFlow {
 
                         // Find the top and bottom of the content area.
                         // Those are used in text-top and text-bottom value of 'vertical-align'
-                        let text_ascent = text_box.run.font_metrics.ascent;
+                        let text_ascent = run.font_metrics.ascent;
                        
                         // Offset from the top of the box is 1/2 of the leading + ascent
                         let text_offset = text_ascent + (line_height - em_size).scale_by(0.5);
