@@ -427,7 +427,7 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
         }
         NamespaceSelector(ref url) => {
             do element.with_imm_element_like |element: &E| {
-                str::eq_slice(element.get_namespace(), *url)
+                element.get_namespace_url() == url.as_slice()
             }
         }
         // TODO: case-sensitivity depends on the document type and quirks mode
@@ -538,11 +538,11 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
     };
 
     let mut element_local_name = "";
-    let mut element_namespace = ~"";
+    let mut element_namespace = "";
     if is_of_type {
         do element.with_imm_element_like |element: &E| {
             element_local_name = element.get_local_name();
-            element_namespace = element.get_namespace();
+            element_namespace = element.get_namespace_url();
         }
     }
 
@@ -564,7 +564,7 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
             if is_of_type {
                 do node.with_imm_element_like |node: &E| {
                     if element_local_name == node.get_local_name() &&
-                       element_namespace == node.get_namespace() {
+                       element_namespace == node.get_namespace_url() {
                         index += 1;
                     }
                 }

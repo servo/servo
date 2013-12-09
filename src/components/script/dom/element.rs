@@ -129,8 +129,8 @@ impl ElementLike for Element {
         self.tag_name.as_slice()
     }
 
-    fn get_namespace<'a>(&'a self) -> ~str {
-        self.namespace.to_str().unwrap_or(~"")
+    fn get_namespace_url<'a>(&'a self) -> &'a str {
+        self.namespace.to_str().unwrap_or("")
     }
 
     fn get_attr(&self, name: &str) -> Option<~str> {
