@@ -23,6 +23,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery};
 use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg, ReapLayoutDataMsg};
 use layout_interface::{Reflow, ReflowDocumentDamage, ReflowForDisplay, ReflowGoal, ReflowMsg};
+use layout_interface::ContentChangedDocumentDamage;
 use layout_interface;
 
 use dom::node::ScriptView;
@@ -329,7 +330,7 @@ impl Page {
     /// FIXME: This should basically never be used.
     pub fn reflow_all(&mut self, goal: ReflowGoal, script_chan: ScriptChan, compositor: @ScriptListener) {
         if self.frame.is_some() {
-            self.damage(MatchSelectorsDocumentDamage);
+            self.damage(ContentChangedDocumentDamage);
         }
 
         //FIXME: In the case where an initial reflow is required, we should always

@@ -69,6 +69,8 @@ pub enum DocumentDamageLevel {
     ReflowDocumentDamage,
     /// Perform CSS selector matching and reflow.
     MatchSelectorsDocumentDamage,
+    /// Content changed; set full style damage and do the above.
+    ContentChangedDocumentDamage,
 }
 
 impl DocumentDamageLevel {
@@ -135,6 +137,11 @@ fn test_add_damage() {
     }
 
     assert_add(ReflowDocumentDamage, ReflowDocumentDamage, ReflowDocumentDamage);
+    assert_add(ContentChangedDocumentDamage, ContentChangedDocumentDamage, ContentChangedDocumentDamage);
     assert_add(ReflowDocumentDamage, MatchSelectorsDocumentDamage, MatchSelectorsDocumentDamage);
     assert_add(MatchSelectorsDocumentDamage, ReflowDocumentDamage, MatchSelectorsDocumentDamage);
+    assert_add(ReflowDocumentDamage, ContentChangedDocumentDamage, ContentChangedDocumentDamage);
+    assert_add(ContentChangedDocumentDamage, ReflowDocumentDamage, ContentChangedDocumentDamage);
+    assert_add(MatchSelectorsDocumentDamage, ContentChangedDocumentDamage, ContentChangedDocumentDamage);
+    assert_add(ContentChangedDocumentDamage, MatchSelectorsDocumentDamage, ContentChangedDocumentDamage);
 }
