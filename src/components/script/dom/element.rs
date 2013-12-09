@@ -30,6 +30,7 @@ use std::ascii::StrAsciiExt;
 pub struct Element {
     node: Node<ScriptView>,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
+    namespace: Namespace,
     attrs: HashMap<~str, ~[@mut Attr]>,
     attrs_insert_order: ~[(~str, Namespace)], // store an order of attributes.
     style_attribute: Option<style::PropertyDeclarationBlock>,
@@ -128,6 +129,10 @@ impl ElementLike for Element {
         self.tag_name.as_slice()
     }
 
+    fn get_namespace<'a>(&'a self) -> ~str {
+        self.namespace.to_str().unwrap_or(~"")
+    }
+
     fn get_attr(&self, name: &str) -> Option<~str> {
         self.get_attribute(None, name).map(|attr| attr.value.clone())
     }
@@ -146,10 +151,11 @@ impl ElementLike for Element {
 }
 
 impl<'self> Element {
-    pub fn new(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> Element {
+    pub fn new(type_id: ElementTypeId, tag_name: ~str, namespace: Namespace, document: AbstractDocument) -> Element {
         Element {
             node: Node::new(ElementNodeTypeId(type_id), document),
             tag_name: tag_name,
+            namespace: namespace,
             attrs: HashMap::new(),
             attrs_insert_order: ~[],
             attr_list: None,
