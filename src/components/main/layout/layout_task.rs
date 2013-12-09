@@ -33,7 +33,7 @@ use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
 use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitNowMsg, LayoutQuery};
 use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse};
-use script::layout_interface::{MatchSelectorsDocumentDamage, Msg, PrepareToExitMsg};
+use script::layout_interface::{ContentChangedDocumentDamage, Msg, PrepareToExitMsg};
 use script::layout_interface::{QueryMsg, ReapLayoutDataMsg, Reflow, ReflowDocumentDamage};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
 use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
@@ -112,15 +112,14 @@ impl PostorderFlowTraversal for ComputeDamageTraversal {
 ///
 /// FIXME(pcwalton): Merge this with flow tree building and/or other traversals.
 struct PropagateDamageTraversal {
-    resized: bool,
+    all_style_damage: bool,
 }
 
 impl PreorderFlowTraversal for PropagateDamageTraversal {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        // Also set any damage implied by resize.
-        if self.resized {
-            flow::mut_base(flow).restyle_damage.union_in_place(RestyleDamage::for_resize())
+        if self.all_style_damage {
+            flow::mut_base(flow).restyle_damage.union_in_place(RestyleDamage::all())
         }
 
         let prop = flow::base(flow).restyle_damage.propagate_down();
@@ -404,10 +403,18 @@ impl LayoutTask {
                 |cache| cache.next_round(self.make_on_image_available_cb()));
         }
 
+        // true => Do the reflow with full style damage, because content
+        // changed or the window was resized.
+        let mut all_style_damage = match data.damage.level {
+            ContentChangedDocumentDamage => true,
+            _ => false
+        };
+
         let screen_size = Size2D(Au::from_px(data.window_size.width as int),
                                  Au::from_px(data.window_size.height as int));
-        let resized = self.screen_size != Some(screen_size);
-        debug!("resized: {}", resized);
+        if self.screen_size != Some(screen_size) {
+            all_style_damage = true;
+        }
         self.screen_size = Some(screen_size);
 
         // Create a layout context for use throughout the following passes.
@@ -423,7 +430,7 @@ impl LayoutTask {
         // Perform CSS selector matching if necessary.
         match data.damage.level {
             ReflowDocumentDamage => {}
-            MatchSelectorsDocumentDamage => {
+            _ => {
                 do profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone()) {
                     node.match_subtree(self.stylist.clone());
                     node.cascade_subtree(None);
@@ -438,7 +445,7 @@ impl LayoutTask {
 
         // Propagate damage.
         layout_root.traverse_preorder(&mut PropagateDamageTraversal {
-            resized: resized,
+            all_style_damage: all_style_damage
         });
         layout_root.traverse_postorder(&mut ComputeDamageTraversal.clone());
 
