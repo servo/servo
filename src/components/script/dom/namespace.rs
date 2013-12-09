@@ -19,26 +19,26 @@ pub enum Namespace {
 impl Namespace {
     pub fn from_str(url: Option<DOMString>) -> Namespace {
         match null_str_as_empty_ref(&url) {
-            &"http://www.w3.org/1999/xhtml" => HTML,
-            &"http://www.w3.org/XML/1998/namespace" => XML,
-            &"http://www.w3.org/2000/xmlns/" => XMLNS,
-            &"http://www.w3.org/1999/xlink" => XLink,
-            &"http://www.w3.org/2000/svg" => SVG,
-            &"http://www.w3.org/1998/Math/MathML" => MathML,
-            &"" => Null,
+            "http://www.w3.org/1999/xhtml" => HTML,
+            "http://www.w3.org/XML/1998/namespace" => XML,
+            "http://www.w3.org/2000/xmlns/" => XMLNS,
+            "http://www.w3.org/1999/xlink" => XLink,
+            "http://www.w3.org/2000/svg" => SVG,
+            "http://www.w3.org/1998/Math/MathML" => MathML,
+            "" => Null,
             ns => Other(ns.to_owned())
         }
     }
-    pub fn to_str(&self) -> Option<DOMString> {
+    pub fn to_str<'a>(&'a self) -> Option<&'a str> {
         match *self {
             Null => None,
-            HTML => Some(~"http://www.w3.org/1999/xhtml"),
-            XML => Some(~"http://www.w3.org/XML/1998/namespace"),
-            XMLNS => Some(~"http://www.w3.org/2000/xmlns/"),
-            XLink => Some(~"http://www.w3.org/1999/xlink"),
-            SVG => Some(~"http://www.w3.org/2000/svg"),
-            MathML => Some(~"http://www.w3.org/1998/Math/MathML"),
-            Other(ref x) => Some(x.to_owned())
+            HTML => Some("http://www.w3.org/1999/xhtml"),
+            XML => Some("http://www.w3.org/XML/1998/namespace"),
+            XMLNS => Some("http://www.w3.org/2000/xmlns/"),
+            XLink => Some("http://www.w3.org/1999/xlink"),
+            SVG => Some("http://www.w3.org/2000/svg"),
+            MathML => Some("http://www.w3.org/1998/Math/MathML"),
+            Other(ref x) => Some(x.as_slice())
         }
     }
 }
