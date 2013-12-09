@@ -2,18 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use constellation::SendableFrameTree;
 use compositing::compositor_layer::CompositorLayer;
 use compositing::*;
 
 use platform::{Application, Window};
 
-use windowing::{WindowEvent, WindowMethods};
-use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
-use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
-use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
-use windowing::RefreshWindowEvent;
+use windowing::{WindowEvent, WindowMethods,
+                WindowNavigateMsg,
+                IdleWindowEvent, RefreshWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent,
+                MouseWindowEventClass,ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent,
+                FinishedWindowEvent, QuitWindowEvent,
+                MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 
-use azure::azure_hl::SourceSurfaceMethods;
+
+use azure::azure_hl::{SourceSurfaceMethods, Color};
 use azure::azure_hl;
 use extra::time::precise_time_s;
 use geom::matrix::identity;
@@ -22,12 +25,14 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::opts::Opts;
 use layers::layers::{ContainerLayer, ContainerLayerKind};
+use layers::platform::surface::NativeCompositingGraphicsContext;
 use layers::rendergl;
+use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use opengles::gl2;
 use png;
-use servo_msg::compositor_msg::IdleRenderState;
-use servo_msg::constellation_msg::{ConstellationChan, NavigateMsg, ResizedWindowMsg, LoadUrlMsg};
+use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerBufferSet, RenderState};
+use servo_msg::constellation_msg::{ConstellationChan, NavigateMsg, ResizedWindowMsg, LoadUrlMsg, PipelineId};
 use servo_msg::constellation_msg;
 use servo_util::time::{profile, ProfilerChan};
 use servo_util::{time, url};
@@ -37,343 +42,582 @@ use std::path::Path;
 use std::rt::io::timer::Timer;
 use std::vec;
 
-/// Starts the compositor, which listens for messages on the specified port.
-pub fn run_compositor(app: &Application,
-                      opts: Opts,
-                      port: Port<Msg>,
-                      constellation_chan: &ConstellationChan,
-                      profiler_chan: ProfilerChan) {
-    let window: @mut Window = WindowMethods::new(app);
 
-    // Create an initial layer tree.
-    //
-    // TODO: There should be no initial layer tree until the renderer creates one from the display
-    // list. This is only here because we don't have that logic in the renderer yet.
-    let context = rendergl::init_render_context();
-    let root_layer = @mut ContainerLayer();
-    let window_size = window.size();
-    let mut scene = Scene(ContainerLayerKind(root_layer), window_size, identity());
-    let mut window_size = Size2D(window_size.width as uint, window_size.height as uint);
-    let mut done = false;
-    let mut recomposite = false;
-    let graphics_context = CompositorTask::create_graphics_context();
+pub struct IOCompositor {
+    /// The application window.
+    window: @mut Window,
 
-    // Tracks whether the renderer has finished its first rendering
-    let mut composite_ready = false;
+    /// The port on which we receive messages.
+    port: Port<Msg>,
 
-    // Keeps track of the current zoom factor
-    let mut world_zoom = 1f32;
-    let mut zoom_action = false;
-    let mut zoom_time = 0f64;
+    /// The render context.
+    context: RenderContext,
 
-    // The root CompositorLayer
-    let mut compositor_layer: Option<CompositorLayer> = None;
-    let mut constellation_chan: ConstellationChan = constellation_chan.clone();
+    /// The root ContainerLayer.
+    root_layer: @mut ContainerLayer,
 
-    // Get BufferRequests from each layer.
-    let ask_for_tiles = || {
-        let window_size_page = Size2D(window_size.width as f32 / world_zoom,
-                                      window_size.height as f32 / world_zoom);
-        for layer in compositor_layer.mut_iter() {
-            if !layer.hidden {
-                let rect = Rect(Point2D(0f32, 0f32), window_size_page);
-                recomposite = layer.get_buffer_request(&graphics_context, rect, world_zoom) ||
-                    recomposite;
-            } else {
-                debug!("Compositor: root layer is hidden!");
-            }
+    /// The canvas to paint a page.
+    scene: Scene,
+
+    /// The application window size.
+    window_size: Size2D<uint>,
+
+    /// The platform-specific graphics context.
+    graphics_context: NativeCompositingGraphicsContext,
+
+    /// Tracks whether the renderer has finished its first rendering
+    composite_ready: bool,
+
+    /// Tracks whether we should close compositor.
+    done: bool,
+
+    /// Tracks whether we need to re-composite a page.
+    recomposite: bool,
+
+    /// Keeps track of the current zoom factor.
+    world_zoom: f32,
+
+    /// Tracks whether the zoom action has happend recently.
+    zoom_action: bool,
+
+    /// The time of the last zoom action has started.
+    zoom_time: f64,
+
+    /// The command line option flags.
+    opts: Opts,
+
+    /// The root CompositorLayer
+    compositor_layer: Option<CompositorLayer>,
+
+    /// The channel on which messages can be sent to the constellation.
+    constellation_chan: ConstellationChan,
+
+    /// The channel on which messages can be sent to the profiler.
+    profiler_chan: ProfilerChan
+}
+
+impl IOCompositor {
+
+    pub fn new(app: &Application,
+               opts: Opts,
+               port: Port<Msg>,
+               constellation_chan: ConstellationChan,
+               profiler_chan: ProfilerChan) -> IOCompositor {
+        let window: @mut Window = WindowMethods::new(app);
+
+        // Create an initial layer tree.
+        //
+        // TODO: There should be no initial layer tree until the renderer creates one from the display
+        // list. This is only here because we don't have that logic in the renderer yet.
+        let root_layer = @mut ContainerLayer();
+        let window_size = window.size();
+
+        IOCompositor {
+            window: window,
+            port: port,
+            opts: opts,
+            context: rendergl::init_render_context(),
+            root_layer: root_layer,
+            scene: Scene(ContainerLayerKind(root_layer), window_size, identity()),
+            window_size: Size2D(window_size.width as uint, window_size.height as uint),
+            graphics_context: CompositorTask::create_graphics_context(),
+            composite_ready: false,
+            done: false,
+            recomposite: false,
+            world_zoom: 1f32,
+            zoom_action: false,
+            zoom_time: 0f64,
+            compositor_layer: None,
+            constellation_chan: constellation_chan.clone(),
+            profiler_chan: profiler_chan
         }
-    };
+    }
 
-    let check_for_messages: &fn(&Port<Msg>) = |port: &Port<Msg>| {
+    pub fn create(app: &Application,
+                  opts: Opts,
+                  port: Port<Msg>,
+                  constellation_chan: ConstellationChan,
+                  profiler_chan: ProfilerChan) {
+        let mut compositor = IOCompositor::new(app,
+                                               opts,
+                                               port,
+                                               constellation_chan,
+                                               profiler_chan);
+
+        // Starts the compositor, which listens for messages on the specified port.
+        compositor.run();
+    }
+
+    fn run (&mut self) {
+        // Tell the constellation about the initial window size.
+        self.constellation_chan.send(ResizedWindowMsg(self.window_size));
+
+        // Enter the main event loop.
+        let mut tm = Timer::new().unwrap();
+        while !self.done {
+            // Check for new messages coming from the rendering task.
+            self.handle_message();
+
+            // Check for messages coming from the windowing system.
+            self.handle_window_message(self.window.recv());
+
+            // If asked to recomposite and renderer has run at least once
+            if self.recomposite && self.composite_ready {
+                self.recomposite = false;
+                self.composite();
+            }
+
+            tm.sleep(10);
+
+            // If a pinch-zoom happened recently, ask for tiles at the new resolution
+            if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {
+                self.zoom_action = false;
+                self.ask_for_tiles();
+            }
+
+        }
+
+        // Clear out the compositor layers so that painting tasks can destroy the buffers.
+        match self.compositor_layer {
+            None => {}
+            Some(ref mut layer) => layer.forget_all_tiles(),
+        }
+
+        // Drain compositor port, sometimes messages contain channels that are blocking
+        // another task from finishing (i.e. SetIds)
+        while self.port.peek() { self.port.recv(); }
+    }
+
+    fn handle_message(&mut self) {
         // Handle messages
-        while port.peek() {
-            match port.recv() {
-                Exit => done = true,
+        while self.port.peek() {
+            match self.port.recv() {
+                Exit => {
+                    self.done = true
+                },
 
-                ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
+                ChangeReadyState(ready_state) => {
+                    self.window.set_ready_state(ready_state);
+                }
+
                 ChangeRenderState(render_state) => {
-                    window.set_render_state(render_state);
-                    if render_state == IdleRenderState { composite_ready = true; }
+                    self.change_render_state(render_state);
                 }
 
                 SetUnRenderedColor(_id, color) => {
-                    match compositor_layer {
-                        Some(ref mut layer) => {
-                            layer.unrendered_color = color;
-                        }
-                        None => {}
-                    }
+                    self.set_unrendered_color(_id, color);
                 }
 
 
                 SetIds(frame_tree, response_chan, new_constellation_chan) => {
-                    response_chan.send(());
-
-                    // This assumes there is at most one child, which should be the case.
-                    match root_layer.first_child {
-                        Some(old_layer) => root_layer.remove_child(old_layer),
-                        None => {}
-                    }
-
-                    let layer = CompositorLayer::from_frame_tree(frame_tree,
-                                                                 opts.tile_size,
-                                                                 Some(10000000u),
-                                                                 opts.cpu_painting);
-                    root_layer.add_child_start(ContainerLayerKind(layer.root_layer));
-
-                    // If there's already a root layer, destroy it cleanly.
-                    match compositor_layer {
-                        None => {}
-                        Some(ref mut compositor_layer) => compositor_layer.clear_all(),
-                    }
-
-                    compositor_layer = Some(layer);
-
-                    // Initialize the new constellation channel by sending it the root window size.
-                    let window_size = window.size();
-                    let window_size = Size2D(window_size.width as uint,
-                                             window_size.height as uint);
-                    new_constellation_chan.send(ResizedWindowMsg(window_size));
-
-                    constellation_chan = new_constellation_chan;
+                    self.set_ids(frame_tree, response_chan, new_constellation_chan);
                 }
 
-                GetGraphicsMetadata(chan) => chan.send(Some(azure_hl::current_graphics_metadata())),
+                GetGraphicsMetadata(chan) => {
+                    chan.send(Some(azure_hl::current_graphics_metadata()));
+                }
 
                 NewLayer(_id, new_size) => {
-                    // FIXME: This should create an additional layer instead of replacing the current one.
-                    // Once ResizeLayer messages are set up, we can switch to the new functionality.
-
-                    let p = match compositor_layer {
-                        Some(ref compositor_layer) => compositor_layer.pipeline.clone(),
-                        None => fail!("Compositor: Received new layer without initialized pipeline"),
-                    };
-                    let page_size = Size2D(new_size.width as f32, new_size.height as f32);
-                    let new_layer = CompositorLayer::new(p,
-                                                         Some(page_size),
-                                                         opts.tile_size,
-                                                         Some(10000000u),
-                                                         opts.cpu_painting);
-
-                    let current_child = root_layer.first_child;
-                    // This assumes there is at most one child, which should be the case.
-                    match current_child {
-                        Some(old_layer) => root_layer.remove_child(old_layer),
-                        None => {}
-                    }
-                    root_layer.add_child_start(ContainerLayerKind(new_layer.root_layer));
-                    compositor_layer = Some(new_layer);
-
-                    ask_for_tiles();
+                    self.create_new_layer(_id, new_size);
                 }
 
                 SetLayerPageSize(id, new_size, epoch) => {
-                    match compositor_layer {
-                        Some(ref mut layer) => {
-                            let page_window = Size2D(window_size.width as f32 / world_zoom,
-                                                     window_size.height as f32 / world_zoom);
-                            assert!(layer.resize(id, new_size, page_window, epoch));
-                            ask_for_tiles();
-                        }
-                        None => {}
-                    }
+                    self.set_layer_page_size(id, new_size, epoch);
                 }
 
                 SetLayerClipRect(id, new_rect) => {
-                    match compositor_layer {
-                        Some(ref mut layer) => {
-                            assert!(layer.set_clipping_rect(id, new_rect));
-                            ask_for_tiles();
-                        }
-                        None => {}
-                    }
+                    self.set_layer_clip_rect(id, new_rect);
                 }
 
                 DeleteLayer(id) => {
-                    match compositor_layer {
-                        Some(ref mut layer) => {
-                            assert!(layer.delete(&graphics_context, id));
-                            ask_for_tiles();
-                        }
-                        None => {}
-                    }
+                    self.delete_layer(id);
                 }
 
                 Paint(id, new_layer_buffer_set, epoch) => {
-                    debug!("osmain: received new frame");
-
-                    // From now on, if we destroy the buffers, they will leak.
-                    let mut new_layer_buffer_set = new_layer_buffer_set;
-                    new_layer_buffer_set.mark_will_leak();
-
-                    match compositor_layer {
-                        Some(ref mut layer) => {
-                            assert!(layer.add_buffers(&graphics_context,
-                                                      id,
-                                                      new_layer_buffer_set,
-                                                      epoch).is_none());
-                            recomposite = true;
-                        }
-                        None => {
-                            fail!("Compositor: given paint command with no CompositorLayer initialized");
-                        }
-                    }
-                    // TODO: Recycle the old buffers; send them back to the renderer to reuse if
-                    // it wishes.
+                    self.paint(id, new_layer_buffer_set, epoch);
                 }
 
                 InvalidateRect(id, rect) => {
-                    match compositor_layer {
-                        Some(ref mut layer) => {
-                            layer.invalidate_rect(id, Rect(Point2D(rect.origin.x as f32,
-                                                                   rect.origin.y as f32),
-                                                           Size2D(rect.size.width as f32,
-                                                                  rect.size.height as f32)));
-                            ask_for_tiles();
-                        }
-                        None => {} // Nothing to do
-                    }
+                    self.invalidate_rect(id, rect);
                 }
 
                 ScrollFragmentPoint(id, point) => {
-                    let page_window = Size2D(window_size.width as f32 / world_zoom,
-                                             window_size.height as f32 / world_zoom);
-                    match compositor_layer {
-                        Some(ref mut layer) if layer.pipeline.id == id => {
-                            recomposite = layer.move(point, page_window) | recomposite;
-                            ask_for_tiles();
-                        }
-                        Some(_) | None => {}
-                    }
+                    self.scroll_fragment_to_point(id, point);
                 }
             }
         }
-    };
+    }
 
-    let check_for_window_messages: &fn(WindowEvent) = |event| {
+    fn change_render_state(&mut self, render_state: RenderState) {
+        self.window.set_render_state(render_state);
+        if render_state == IdleRenderState {
+            self.composite_ready = true;
+        }
+    }
+
+    fn set_unrendered_color(&mut self, _id: PipelineId, color: Color) {
+        match self.compositor_layer {
+            Some(ref mut layer) => {
+                layer.unrendered_color = color;
+            }
+            None => {}
+        }
+    }
+
+    fn set_ids(&mut self,
+               frame_tree: SendableFrameTree,
+               response_chan: Chan<()>,
+               new_constellation_chan: ConstellationChan) {
+        response_chan.send(());
+
+        // This assumes there is at most one child, which should be the case.
+        match self.root_layer.first_child {
+            Some(old_layer) => self.root_layer.remove_child(old_layer),
+            None => {}
+        }
+
+        let layer = CompositorLayer::from_frame_tree(frame_tree,
+                                                     self.opts.tile_size,
+                                                     Some(10000000u),
+                                                     self.opts.cpu_painting);
+        self.root_layer.add_child_start(ContainerLayerKind(layer.root_layer));
+
+        // If there's already a root layer, destroy it cleanly.
+        match self.compositor_layer {
+            None => {}
+            Some(ref mut compositor_layer) => compositor_layer.clear_all(),
+        }
+
+        self.compositor_layer = Some(layer);
+
+        // Initialize the new constellation channel by sending it the root window size.
+        let window_size = self.window.size();
+        let window_size = Size2D(window_size.width as uint,
+                                 window_size.height as uint);
+        new_constellation_chan.send(ResizedWindowMsg(window_size));
+
+        self.constellation_chan = new_constellation_chan;
+    }
+
+    fn create_new_layer(&mut self, _id: PipelineId, new_size: Size2D<f32>) {
+        // FIXME: This should create an additional layer instead of replacing the current one.
+        // Once ResizeLayer messages are set up, we can switch to the new functionality.
+
+        let p = match self.compositor_layer {
+            Some(ref compositor_layer) => compositor_layer.pipeline.clone(),
+            None => fail!("Compositor: Received new layer without initialized pipeline"),
+        };
+        let page_size = Size2D(new_size.width as f32, new_size.height as f32);
+        let new_layer = CompositorLayer::new(p,
+                                             Some(page_size),
+                                             self.opts.tile_size,
+                                             Some(10000000u),
+                                             self.opts.cpu_painting);
+
+        let current_child = self.root_layer.first_child;
+        // This assumes there is at most one child, which should be the case.
+        match current_child {
+            Some(old_layer) => self.root_layer.remove_child(old_layer),
+            None => {}
+        }
+        self.root_layer.add_child_start(ContainerLayerKind(new_layer.root_layer));
+        self.compositor_layer = Some(new_layer);
+
+        self.ask_for_tiles();
+    }
+
+    fn set_layer_page_size(&mut self,
+                           id: PipelineId,
+                           new_size: Size2D<f32>,
+                           epoch: Epoch) {
+        let ask: bool = match self.compositor_layer {
+            Some(ref mut layer) => {
+                let window_size = &self.window_size;
+                let world_zoom = self.world_zoom;
+                let page_window = Size2D(window_size.width as f32 / world_zoom,
+                                         window_size.height as f32 / world_zoom);
+                assert!(layer.resize(id, new_size, page_window, epoch));
+                true
+            }
+            None => {
+                false
+            }
+        };
+
+        if ask {
+            self.ask_for_tiles();
+        }
+    }
+
+    fn set_layer_clip_rect(&mut self, id: PipelineId, new_rect: Rect<f32>) {
+        let ask: bool = match self.compositor_layer {
+            Some(ref mut layer) => {
+                assert!(layer.set_clipping_rect(id, new_rect));
+                true
+            }
+            None => {
+                false
+            }
+        };
+
+        if ask {
+            self.ask_for_tiles();
+        }
+    }
+
+    fn delete_layer(&mut self, id: PipelineId) {
+        let ask: bool = match self.compositor_layer {
+            Some(ref mut layer) => {
+                assert!(layer.delete(&self.graphics_context, id));
+                true
+            }
+            None => {
+                false
+            }
+        };
+
+        if ask {
+            self.ask_for_tiles();
+        }
+    }
+
+    fn paint(&mut self,
+             id: PipelineId,
+             new_layer_buffer_set: ~LayerBufferSet,
+             epoch: Epoch) {
+        debug!("osmain: received new frame");
+
+        // From now on, if we destroy the buffers, they will leak.
+        let mut new_layer_buffer_set = new_layer_buffer_set;
+        new_layer_buffer_set.mark_will_leak();
+
+        match self.compositor_layer {
+            Some(ref mut layer) => {
+                assert!(layer.add_buffers(&self.graphics_context,
+                                          id,
+                                          new_layer_buffer_set,
+                                          epoch).is_none());
+                self.recomposite = true;
+            }
+            None => {
+                fail!("Compositor: given paint command with no CompositorLayer initialized");
+            }
+        }
+        // TODO: Recycle the old buffers; send them back to the renderer to reuse if
+        // it wishes.
+    }
+
+    fn invalidate_rect(&mut self, id: PipelineId, rect: Rect<uint>) {
+        let ask: bool = match self.compositor_layer {
+            Some(ref mut layer) => {
+                let point = Point2D(rect.origin.x as f32,
+                                    rect.origin.y as f32);
+                let size = Size2D(rect.size.width as f32,
+                                  rect.size.height as f32);
+                layer.invalidate_rect(id, Rect(point, size));
+                true
+            }
+            None => {
+                // Nothing to do
+                false
+            }
+        };
+
+        if ask {
+            self.ask_for_tiles();
+        }
+    }
+
+    fn scroll_fragment_to_point(&mut self, id: PipelineId, point: Point2D<f32>) {
+        let world_zoom = self.world_zoom;
+        let page_window = Size2D(self.window_size.width as f32 / world_zoom,
+                                 self.window_size.height as f32 / world_zoom);
+        let ask: bool = match self.compositor_layer {
+            Some(ref mut layer) if layer.pipeline.id == id => {
+                let recomposite = layer.move(point, page_window) | self.recomposite;
+                self.recomposite = recomposite;
+
+                true
+            }
+            Some(_) | None => {
+                false
+            }
+        };
+
+        if ask {
+            self.ask_for_tiles();
+        }
+    }
+
+    fn handle_window_message(&mut self, event: WindowEvent) {
         match event {
             IdleWindowEvent => {}
 
             RefreshWindowEvent => {
-                recomposite = true;
+                self.recomposite = true;
             }
 
             ResizeWindowEvent(width, height) => {
-                let new_size = Size2D(width, height);
-                if window_size != new_size {
-                    debug!("osmain: window resized to {:u}x{:u}", width, height);
-                    window_size = new_size;
-                    constellation_chan.send(ResizedWindowMsg(new_size))
-                } else {
-                    debug!("osmain: dropping window resize since size is still {:u}x{:u}", width, height);
-                }
+                self.on_resize_window_event(width, height);
             }
 
             LoadUrlWindowEvent(url_string) => {
-                debug!("osmain: loading URL `{:s}`", url_string);
-                let root_pipeline_id = match compositor_layer {
-                    Some(ref layer) => layer.pipeline.id.clone(),
-                    None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor layers"),
-                };
-                constellation_chan.send(LoadUrlMsg(root_pipeline_id,
-                                                   url::make_url(url_string.to_str(), None)))
+                self.on_load_url_window_event(url_string);
             }
 
             MouseWindowEventClass(mouse_window_event) => {
-                let point = match mouse_window_event {
-                    MouseWindowClickEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
-                    MouseWindowMouseDownEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
-                    MouseWindowMouseUpEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
-                };
-                for layer in compositor_layer.iter() {
-                    layer.send_mouse_event(mouse_window_event, point);
-                }
+                self.on_mouse_window_event_class(mouse_window_event);
             }
 
             ScrollWindowEvent(delta, cursor) => {
-                // TODO: modify delta to snap scroll to pixels.
-                let page_delta = Point2D(delta.x as f32 / world_zoom, delta.y as f32 / world_zoom);
-                let page_cursor: Point2D<f32> = Point2D(cursor.x as f32 / world_zoom,
-                                                        cursor.y as f32 / world_zoom);
-                let page_window = Size2D(window_size.width as f32 / world_zoom,
-                                         window_size.height as f32 / world_zoom);
-                for layer in compositor_layer.mut_iter() {
-                    recomposite = layer.scroll(page_delta, page_cursor, page_window) || recomposite;
-                }
-                ask_for_tiles();
+                self.on_scroll_window_event(delta, cursor);
             }
 
             ZoomWindowEvent(magnification) => {
-                zoom_action = true;
-                zoom_time = precise_time_s();
-                let old_world_zoom = world_zoom;
-
-                // Determine zoom amount
-                world_zoom = (world_zoom * magnification).max(&1.0);
-                root_layer.common.set_transform(identity().scale(world_zoom, world_zoom, 1f32));
-
-                // Scroll as needed
-                let page_delta = Point2D(window_size.width as f32 * (1.0 / world_zoom - 1.0 / old_world_zoom) * 0.5,
-                                         window_size.height as f32 * (1.0 / world_zoom - 1.0 / old_world_zoom) * 0.5);
-                // TODO: modify delta to snap scroll to pixels.
-                let page_cursor = Point2D(-1f32, -1f32); // Make sure this hits the base layer
-                let page_window = Size2D(window_size.width as f32 / world_zoom,
-                                         window_size.height as f32 / world_zoom);
-                for layer in compositor_layer.mut_iter() {
-                    layer.scroll(page_delta, page_cursor, page_window);
-                }
-
-                recomposite = true;
+                self.on_zoom_window_event(magnification);
             }
 
             NavigationWindowEvent(direction) => {
-                let direction = match direction {
-                    windowing::Forward => constellation_msg::Forward,
-                    windowing::Back => constellation_msg::Back,
-                };
-                constellation_chan.send(NavigateMsg(direction))
+                self.on_navigation_window_event(direction);
             }
 
             FinishedWindowEvent => {
-                if opts.exit_after_load {
-                    done = true;
+                let exit = self.opts.exit_after_load;
+                if exit {
+                    self.done = true;
                 }
             }
 
             QuitWindowEvent => {
-                done = true;
+                self.done = true;
             }
         }
-    };
+    }
 
+    fn on_resize_window_event(&mut self, width: uint, height: uint) {
+        let new_size = Size2D(width, height);
+        if self.window_size != new_size {
+            debug!("osmain: window resized to {:u}x{:u}", width, height);
+            self.window_size = new_size;
+            self.constellation_chan.send(ResizedWindowMsg(new_size))
+        } else {
+            debug!("osmain: dropping window resize since size is still {:u}x{:u}", width, height);
+        }
+    }
 
-    let profiler_chan = profiler_chan.clone();
-    let write_png = opts.output_file.is_some();
-    let exit = opts.exit_after_load;
-    let composite = || {
-        do profile(time::CompositingCategory, profiler_chan.clone()) {
+    fn on_load_url_window_event(&self, url_string: ~str) {
+        debug!("osmain: loading URL `{:s}`", url_string);
+        let root_pipeline_id = match self.compositor_layer {
+            Some(ref layer) => layer.pipeline.id.clone(),
+            None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor layers"),
+        };
+
+        let msg = LoadUrlMsg(root_pipeline_id, url::make_url(url_string.to_str(), None));
+        self.constellation_chan.send(msg);
+    }
+
+    fn on_mouse_window_event_class(&self, mouse_window_event: MouseWindowEvent) {
+        let world_zoom = self.world_zoom;
+        let point = match mouse_window_event {
+            MouseWindowClickEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
+            MouseWindowMouseDownEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
+            MouseWindowMouseUpEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
+        };
+        for layer in self.compositor_layer.iter() {
+            layer.send_mouse_event(mouse_window_event, point);
+        }
+    }
+
+    fn on_scroll_window_event(&mut self, delta: Point2D<f32>, cursor: Point2D<i32>) {
+        let world_zoom = self.world_zoom;
+        // TODO: modify delta to snap scroll to pixels.
+        let page_delta = Point2D(delta.x as f32 / world_zoom, delta.y as f32 / world_zoom);
+        let page_cursor: Point2D<f32> = Point2D(cursor.x as f32 / world_zoom,
+                                                cursor.y as f32 / world_zoom);
+        let page_window = Size2D(self.window_size.width as f32 / world_zoom,
+                                 self.window_size.height as f32 / world_zoom);
+        for layer in self.compositor_layer.mut_iter() {
+            let recomposite = layer.scroll(page_delta, page_cursor, page_window) || self.recomposite;
+            self.recomposite = recomposite;
+        }
+        self.ask_for_tiles();
+    }
+
+    fn on_zoom_window_event(&mut self, magnification: f32) {
+        self.zoom_action = true;
+        self.zoom_time = precise_time_s();
+        let old_world_zoom = self.world_zoom;
+        let window_size = &self.window_size;
+
+        // Determine zoom amount
+        self.world_zoom = (self.world_zoom * magnification).max(&1.0);
+        let world_zoom = self.world_zoom;
+
+        self.root_layer.common.set_transform(identity().scale(world_zoom, world_zoom, 1f32));
+
+        // Scroll as needed
+        let page_delta = Point2D(window_size.width as f32 * (1.0 / world_zoom - 1.0 / old_world_zoom) * 0.5,
+                                 window_size.height as f32 * (1.0 / world_zoom - 1.0 / old_world_zoom) * 0.5);
+        // TODO: modify delta to snap scroll to pixels.
+        let page_cursor = Point2D(-1f32, -1f32); // Make sure this hits the base layer
+        let page_window = Size2D(window_size.width as f32 / world_zoom,
+                                 window_size.height as f32 / world_zoom);
+        for layer in self.compositor_layer.mut_iter() {
+            layer.scroll(page_delta, page_cursor, page_window);
+        }
+
+        self.recomposite = true;
+    }
+
+    fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
+        let direction = match direction {
+            windowing::Forward => constellation_msg::Forward,
+            windowing::Back => constellation_msg::Back,
+        };
+        self.constellation_chan.send(NavigateMsg(direction))
+    }
+
+    /// Get BufferRequests from each layer.
+    fn ask_for_tiles(&mut self) {
+        let world_zoom = self.world_zoom;
+        let window_size_page = Size2D(self.window_size.width as f32 / world_zoom,
+                                      self.window_size.height as f32 / world_zoom);
+        for layer in self.compositor_layer.mut_iter() {
+            if !layer.hidden {
+                let rect = Rect(Point2D(0f32, 0f32), window_size_page);
+                let recomposite = layer.get_buffer_request(&self.graphics_context, rect, world_zoom) ||
+                                  self.recomposite;
+                self.recomposite = recomposite;
+            } else {
+                debug!("Compositor: root layer is hidden!");
+            }
+        }
+    }
+
+    fn composite(&mut self) {
+        do profile(time::CompositingCategory, self.profiler_chan.clone()) {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
-            scene.size = window.size();
+            self.scene.size = self.window.size();
             // Render the scene.
-            match compositor_layer {
+            match self.compositor_layer {
                 Some(ref mut layer) => {
-                    scene.background_color.r = layer.unrendered_color.r;
-                    scene.background_color.g = layer.unrendered_color.g;
-                    scene.background_color.b = layer.unrendered_color.b;
-                    scene.background_color.a = layer.unrendered_color.a;
+                    self.scene.background_color.r = layer.unrendered_color.r;
+                    self.scene.background_color.g = layer.unrendered_color.g;
+                    self.scene.background_color.b = layer.unrendered_color.b;
+                    self.scene.background_color.a = layer.unrendered_color.a;
                 }
                 None => {}
             }
-            rendergl::render_scene(context, &scene);
+            rendergl::render_scene(self.context, &self.scene);
         }
 
         // Render to PNG. We must read from the back buffer (ie, before
-        // window.present()) as OpenGL ES 2 does not have glReadBuffer().
+        // self.window.present()) as OpenGL ES 2 does not have glReadBuffer().
+        let write_png = self.opts.output_file.is_some();
         if write_png {
-            let (width, height) = (window_size.width as uint, window_size.height as uint);
-            let path = from_str::<Path>(*opts.output_file.get_ref()).unwrap();
+            let (width, height) = (self.window_size.width as uint, self.window_size.height as uint);
+            let path = from_str::<Path>(*self.opts.output_file.get_ref()).unwrap();
             let mut pixels = gl2::read_pixels(0, 0,
                                               width as gl2::GLsizei,
                                               height as gl2::GLsizei,
@@ -397,49 +641,14 @@ pub fn run_compositor(app: &Application,
             let res = png::store_png(&img, &path);
             assert!(res.is_ok());
 
-            done = true;
+            self.done = true;
         }
 
-        window.present();
+        self.window.present();
 
-        if exit { done = true; }
-    };
-
-    // Tell the constellation about the initial window size.
-    constellation_chan.send(ResizedWindowMsg(window_size));
-
-    // Enter the main event loop.
-    let mut tm = Timer::new().unwrap();
-    while !done {
-        // Check for new messages coming from the rendering task.
-        check_for_messages(&port);
-
-        // Check for messages coming from the windowing system.
-        check_for_window_messages(window.recv());
-
-        // If asked to recomposite and renderer has run at least once
-        if recomposite && composite_ready {
-            recomposite = false;
-            composite();
+        let exit = self.opts.exit_after_load;
+        if exit {
+            self.done = true;
         }
-
-        tm.sleep(10);
-
-        // If a pinch-zoom happened recently, ask for tiles at the new resolution
-        if zoom_action && precise_time_s() - zoom_time > 0.3 {
-            zoom_action = false;
-            ask_for_tiles();
-        }
-
     }
-
-    // Clear out the compositor layers so that painting tasks can destroy the buffers.
-    match compositor_layer {
-        None => {}
-        Some(ref mut layer) => layer.forget_all_tiles(),
-    }
-
-    // Drain compositor port, sometimes messages contain channels that are blocking
-    // another task from finishing (i.e. SetIds)
-    while port.peek() { port.recv(); }
 }

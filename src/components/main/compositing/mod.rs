@@ -31,7 +31,6 @@ mod compositor_layer;
 mod run;
 mod run_headless;
 
-
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
 pub struct CompositorChan {
@@ -191,11 +190,11 @@ impl CompositorTask {
 
         match compositor.mode {
             Windowed(ref app) => {
-                run::run_compositor(app,
-                                    opts,
-                                    port,
-                                    &constellation_chan,
-                                    profiler_chan);
+                run::IOCompositor::create(app,
+                                          opts,
+                                          port,
+                                          constellation_chan.clone(),
+                                          profiler_chan);
             }
             Headless => {
                 run_headless::run_compositor(&constellation_chan, port);
