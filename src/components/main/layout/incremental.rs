@@ -47,11 +47,6 @@ impl RestyleDamage {
         restyle_damage!(Repaint, BubbleWidths, Reflow)
     }
 
-    /// Effects of resizing the window.
-    pub fn for_resize() -> RestyleDamage {
-        RestyleDamage::all()
-    }
-
     /// Create a RestyleDamage from the underlying bit field.
     /// We would rather not allow this, but some types in script
     /// need to store RestyleDamage without depending on this crate.
