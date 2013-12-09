@@ -9,6 +9,7 @@ use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
 use dom::node::{AbstractNode, Node, ScriptView};
 use js::jsapi::{JSContext, JSVal};
 use js::JSVAL_NULL;
+use dom::namespace;
 
 pub struct HTMLElement {
     element: Element
@@ -17,7 +18,7 @@ pub struct HTMLElement {
 impl HTMLElement {
     pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> HTMLElement {
         HTMLElement {
-            element: Element::new(type_id, tag_name, document)
+            element: Element::new(type_id, tag_name, namespace::HTML, document)
         }
     }
 

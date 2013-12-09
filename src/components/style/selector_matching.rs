@@ -425,7 +425,11 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
                 element.get_local_name().eq_ignore_ascii_case(name.as_slice())
             }
         }
-        NamespaceSelector(_) => false,  // TODO, when the DOM supports namespaces on elements.
+        NamespaceSelector(ref url) => {
+            do element.with_imm_element_like |element: &E| {
+                str::eq_slice(element.get_namespace(), *url)
+            }
+        }
         // TODO: case-sensitivity depends on the document type and quirks mode
         // TODO: cache and intern IDs on elements.
         IDSelector(ref id) => {
@@ -533,12 +537,12 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
         None => return false
     };
 
-    let mut local_name = "";
+    let mut element_local_name = "";
+    let mut element_namespace = ~"";
     if is_of_type {
-        // FIXME this is wrong
-        // TODO when the DOM supports namespaces on elements
         do element.with_imm_element_like |element: &E| {
-            local_name = element.get_local_name();
+            element_local_name = element.get_local_name();
+            element_namespace = element.get_namespace();
         }
     }
 
@@ -558,10 +562,9 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
 
         if node.is_element() {
             if is_of_type {
-                // FIXME this is wrong
-                // TODO when the DOM supports namespaces on elements
                 do node.with_imm_element_like |node: &E| {
-                    if local_name == node.get_local_name() {
+                    if element_local_name == node.get_local_name() &&
+                       element_namespace == node.get_namespace() {
                         index += 1;
                     }
                 }
