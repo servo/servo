@@ -17,6 +17,7 @@ use extra::arc::{Arc, MutexArc};
 
 /// A struct to store image data. The image will be loaded once the first time it is requested,
 /// and an Arc will be stored.  Clones of this Arc are given out on demand.
+#[deriving(Clone)]
 pub struct ImageHolder {
     url: Url,
     image: Option<Arc<~Image>>,
@@ -59,7 +60,7 @@ impl ImageHolder {
     pub fn size(&self) -> Size2D<int> {
         self.cached_size
     }
-    
+
     /// Query and update the current image size.
     pub fn get_size(&mut self) -> Option<Size2D<int>> {
         debug!("get_size() {}", self.url.to_str());
