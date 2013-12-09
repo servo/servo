@@ -26,7 +26,7 @@ impl TextRunScanner {
         }
     }
 
-    pub fn scan_for_runs(&mut self, ctx: &LayoutContext, flow: &mut Flow) {
+    pub fn scan_for_runs(&mut self, ctx: &mut LayoutContext, flow: &mut Flow) {
         {
             let inline = flow.as_immutable_inline();
             // FIXME: this assertion fails on wikipedia, but doesn't seem
@@ -76,7 +76,7 @@ impl TextRunScanner {
     /// responsible for swapping out the list. It is not clear to me (pcwalton) that this is still
     /// necessary.
     pub fn flush_clump_to_list(&mut self,
-                               ctx: &LayoutContext,
+                               ctx: &mut LayoutContext,
                                flow: &mut Flow,
                                last_whitespace: bool,
                                out_boxes: &mut ~[@Box])

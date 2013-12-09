@@ -1217,6 +1217,20 @@ pub trait PostorderNodeTraversal {
     }
 }
 
+/// A bottom-up, parallelizable traversal.
+pub trait PostorderNodeMutTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&mut self, node: AbstractNode<LayoutView>) -> bool;
+
+    /// Returns true if this node should be pruned. If this returns true, we skip the operation
+    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
+    /// visited. The default implementation never prunes any nodes.
+    fn should_prune(&self, _node: AbstractNode<LayoutView>) -> bool {
+        false
+    }
+}
+
+
 impl AbstractNode<LayoutView> {
     /// Traverses the tree in postorder.
     ///
@@ -1241,4 +1255,29 @@ impl AbstractNode<LayoutView> {
 
         traversal.process(self)
     }
+
+    /// Traverses the tree in postorder.
+    ///
+    /// TODO(pcwalton): Offer a parallel version with a compatible API.
+    pub fn traverse_postorder_mut<T:PostorderNodeMutTraversal>(mut self, traversal: &mut T) -> bool {
+        if traversal.should_prune(self) {
+            return true
+        }
+
+        let mut opt_kid = self.first_child();
+        loop {
+            match opt_kid {
+                None => break,
+                Some(kid) => {
+                    if !kid.traverse_postorder_mut(traversal) {
+                        return false
+                    }
+                    opt_kid = kid.next_sibling()
+                }
+            }
+        }
+
+        traversal.process(self)
+    }
+
 }
