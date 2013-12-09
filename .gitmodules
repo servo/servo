@@ -110,3 +110,6 @@
 	path = src/support/encoding/rust-encoding
 	url = https://github.com/mozilla-servo/rust-encoding.git
 	branch = rust-servo
+[submodule "src/support/egl/rust-egl"]
+	path = src/support/egl/rust-egl
+	url = http://github.com/webconvforge/rust-egl.git
