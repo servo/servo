@@ -18,6 +18,7 @@ struct FreeTypeLibraryHandle {
     ctx: FT_Library,
 }
 
+#[deriving(Clone)]
 pub struct FontContextHandle {
     ctx: Arc<FreeTypeLibraryHandle>,
 }
@@ -35,7 +36,7 @@ impl FontContextHandle {
     pub fn new() -> FontContextHandle {
         unsafe {
             let ctx: FT_Library = ptr::null();
-            let result = FT_Init_FreeType(ptr::to_unsafe_ptr(&ctx));
+            let result = FT_Init_FreeType(&ctx);
             if !result.succeeded() { fail!("Unable to initialize FreeType library"); }
             FontContextHandle {
                 ctx: Arc::new(FreeTypeLibraryHandle { ctx: ctx }),
@@ -45,12 +46,6 @@ impl FontContextHandle {
 }
 
 impl FontContextHandleMethods for FontContextHandle {
-    fn clone(&self) -> FontContextHandle {
-        FontContextHandle {
-            ctx: self.ctx.clone()
-        }
-    }
-
     fn create_font_from_identifier(&self, name: ~str, style: UsedFontStyle)
                                 -> Result<FontHandle, ()> {
         debug!("Creating font handle for {:s}", name);
