@@ -35,26 +35,22 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
             } else {
                 let current_url = current_url.unwrap();
                 debug!("make_url: current_url: {:?}", current_url);
+
+                let mut new_url = current_url.clone();
+                new_url.query = ~[];
+                new_url.fragment = None;
+
                 if str_url.starts_with("//") {
-                    current_url.scheme + ":" + str_url
-                } else if current_url.path.is_empty() ||
-                    str_url.starts_with("/") {
-                    current_url.scheme + "://" +
-                        current_url.host + "/" +
-                        str_url.trim_left_chars(&'/')
+                    new_url.scheme + ":" + str_url
+                } else if current_url.path.is_empty() || str_url.starts_with("/") {
+                    new_url.path = ~"/";
+                    new_url.to_str() + str_url.trim_left_chars(&'/')
                 } else if str_url.starts_with("#") {
-                    current_url.scheme + "://" + current_url.host + current_url.path + str_url
-                } else {
-                    let mut path = ~[];
-                    for p in current_url.path.split_iter('/') {
-                        path.push(p.to_str());
-                    }
-                    let path = path.init();
-                    let mut path = path.iter().map(|x| (*x).clone()).collect::<~[~str]>();
-                    path.push(str_url);
-                    let path = path.connect("/");
-                    
-                    current_url.scheme + "://" + current_url.host + path
+                    new_url.to_str() + str_url
+                } else { // relative path
+                    let base_path = current_url.path.trim_right_chars(&|c: char| c != '/');
+                    new_url.path = base_path.to_owned();
+                    new_url.to_str() + str_url
                 }
             }
         },
@@ -159,6 +155,35 @@ mod make_url_tests {
         assert!(new_url.path == ~"/index.html");
         assert!(new_url.fragment == Some(~"top"));
     }
+
+    #[test]
+    fn should_create_url_based_on_old_url_6() {
+        use extra::url::UserInfo;
+
+        let old_str = ~"http://foo:bar@example.com:8080/index.html";
+        let old_url = make_url(old_str, None);
+        let new_str = ~"#top";
+        let new_url = make_url(new_str, Some(old_url));
+
+        assert!(new_url.scheme == ~"http");
+        assert!(new_url.user == Some(UserInfo { user: ~"foo", pass: Some(~"bar") }));
+        assert!(new_url.host == ~"example.com");
+        assert!(new_url.port == Some(~"8080"));
+        assert!(new_url.path == ~"/index.html");
+        assert!(new_url.fragment == Some(~"top"));
+    }
+
+    #[test]
+    fn should_create_url_based_on_old_url_7() {
+        let old_str = ~"https://example.com/snarf/index.html";
+        let old_url = make_url(old_str, None);
+        let new_str = ~"//example.com/crumpet.html";
+        let new_url = make_url(new_str, Some(old_url));
+        assert!(new_url.scheme == ~"https");
+        assert!(new_url.host == ~"example.com");
+        assert!(new_url.path == ~"/crumpet.html");
+    }
+
 }
 
 pub type UrlMap<T> = HashMap<Url, T>;
