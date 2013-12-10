@@ -22,7 +22,7 @@ use extra::arc::{Arc, RWArc, MutexArc};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::display_list::{DisplayList,DisplayItem,ClipDisplayItemClass};
+use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator, DisplayList};
 use gfx::font_context::FontContext;
 use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
@@ -473,10 +473,6 @@ impl LayoutTask {
 
                 let display_list = Arc::new(display_list.take());
 
-                for i in range(0,display_list.get().list.len()) {
-                    self.display_item_bound_to_node(&display_list.get().list[i]);
-                }
-
                     let mut color = color::rgba(255.0, 255.0, 255.0, 255.0);
 
                     for child in node.traverse_preorder() {
@@ -516,111 +512,62 @@ impl LayoutTask {
         data.script_chan.send(ReflowCompleteMsg(self.id, data.id));
     }
 
-    fn display_item_bound_to_node(&mut self,item: &DisplayItem<AbstractNode<()>>) {
-        let node: AbstractNode<LayoutView> = unsafe {
-            transmute(item.base().extra)
-        };
-
-        match *node.mutate_layout_data().ptr {
-            Some(ref mut layout_data) => {
-                let boxes = &mut layout_data.boxes;
-
-                if boxes.display_bound_list.is_none() {
-                    boxes.display_bound_list = Some(~[]);
-                }
-                match boxes.display_bound_list {
-                    Some(ref mut list) => list.push(item.base().bounds),
-                    None => {}
-                }
-
-                if boxes.display_bound.is_none() {
-                    boxes.display_bound = Some(item.base().bounds);
-                } else {
-                    boxes.display_bound = Some(boxes.display_bound.unwrap().union(&item.base().bounds));
-                }
-            }
-            None => fail!("no layout data"),
-        }
-
-        match *item {
-            ClipDisplayItemClass(ref cc) => {
-                for item in cc.child_list.iter() {
-                    self.display_item_bound_to_node(item);
-                }
-            }
-            _ => {}
-        }
-    }
-
     /// Handles a query from the script task. This is the main routine that DOM functions like
     /// `getClientRects()` or `getBoundingClientRect()` ultimately invoke.
     fn handle_query(&self, query: LayoutQuery) {
         match query {
             ContentBoxQuery(node, reply_chan) => {
                 // FIXME: Isolate this transmutation into a single "bridge" module.
-                let node: AbstractNode<LayoutView> = unsafe {
+                let node: AbstractNode<()> = unsafe {
                     transmute(node)
                 };
 
-                fn box_for_node(node: AbstractNode<LayoutView>) -> Option<Rect<Au>> {
-                    // FIXME(pcwalton): Why are we cloning the display list here?!
-                    let layout_data = node.borrow_layout_data();
-                    let boxes = &layout_data.ptr.as_ref().unwrap().boxes;
-                    match boxes.display_bound {
-                        Some(_) => boxes.display_bound,
-                        _ => {
-                            let mut acc: Option<Rect<Au>> = None;
-                            for child in node.children() {
-                                let rect = box_for_node(child);
-                                match rect {
-                                    None => continue,
-                                    Some(rect) => acc = match acc {
-                                        Some(acc) =>  Some(acc.union(&rect)),
-                                        None => Some(rect)
-                                    }
-                                }
+                fn union_boxes_for_node<'a>(
+                                        accumulator: &mut Option<Rect<Au>>,
+                                        mut iter: DisplayItemIterator<'a,AbstractNode<()>>,
+                                        node: AbstractNode<()>) {
+                    for item in iter {
+                        union_boxes_for_node(accumulator, item.children(), node);
+                        if item.base().extra == node {
+                            match *accumulator {
+                                None => *accumulator = Some(item.base().bounds),
+                                Some(ref mut acc) => *acc = acc.union(&item.base().bounds),
                             }
-                            acc
                         }
                     }
                 }
 
-                let rect = box_for_node(node).unwrap_or(Rect(Point2D(Au(0), Au(0)),
-                                                             Size2D(Au(0), Au(0))));
-                reply_chan.send(ContentBoxResponse(rect))
+                let mut rect = None;
+                let display_list = self.display_list.as_ref().unwrap().get();
+                union_boxes_for_node(&mut rect, display_list.iter(), node);
+                reply_chan.send(ContentBoxResponse(rect.unwrap_or(Au::zero_rect())))
             }
             ContentBoxesQuery(node, reply_chan) => {
                 // FIXME: Isolate this transmutation into a single "bridge" module.
-                let node: AbstractNode<LayoutView> = unsafe {
+                let node: AbstractNode<()> = unsafe {
                     transmute(node)
                 };
 
-                fn boxes_for_node(node: AbstractNode<LayoutView>, mut box_accumulator: ~[Rect<Au>])
-                                  -> ~[Rect<Au>] {
-                    let layout_data = node.borrow_layout_data();
-                    let boxes = &layout_data.ptr.as_ref().unwrap().boxes;
-                    match boxes.display_bound_list {
-                        Some(ref display_bound_list) => {
-                            for item in display_bound_list.iter() {
-                                box_accumulator.push(*item);
-                            }
-                        }
-                        _ => {
-                            for child in node.children() {
-                                box_accumulator = boxes_for_node(child, box_accumulator);
-                            }
+                fn add_boxes_for_node<'a>(
+                                      accumulator: &mut ~[Rect<Au>],
+                                      mut iter: DisplayItemIterator<'a,AbstractNode<()>>,
+                                      node: AbstractNode<()>) {
+                    for item in iter {
+                        add_boxes_for_node(accumulator, item.children(), node);
+                        if item.base().extra == node {
+                            accumulator.push(item.base().bounds)
                         }
                     }
-                    box_accumulator
                 }
 
                 let mut boxes = ~[];
-                boxes = boxes_for_node(node, boxes);
+                let display_list = self.display_list.as_ref().unwrap().get();
+                add_boxes_for_node(&mut boxes, display_list.iter(), node);
                 reply_chan.send(ContentBoxesResponse(boxes))
             }
             HitTestQuery(_, point, reply_chan) => {
-                fn hit_test(x:Au, y:Au, list: &[DisplayItem<AbstractNode<()>>]) -> Option<HitTestResponse> {
-
+                fn hit_test(x: Au, y: Au, list: &[DisplayItem<AbstractNode<()>>])
+                            -> Option<HitTestResponse> {
                     for item in list.rev_iter() {
                         match *item {
                             ClipDisplayItemClass(ref cc) => {
