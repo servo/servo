@@ -120,6 +120,7 @@ impl PreorderFlowTraversal for PropagateDamageTraversal {
         if self.all_style_damage {
             flow::mut_base(flow).restyle_damage.union_in_place(RestyleDamage::all())
         }
+        debug!("restyle damage = {:?}", flow::base(flow).restyle_damage);
 
         let prop = flow::base(flow).restyle_damage.propagate_down();
         if prop.is_nonempty() {
