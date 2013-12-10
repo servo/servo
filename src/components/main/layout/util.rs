@@ -6,7 +6,6 @@ use layout::box::Box;
 use layout::construct::{ConstructionResult, NoConstructionResult};
 
 use extra::arc::Arc;
-use gfx::display_list::DisplayList;
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::range::Range;
 use servo_util::slot::{MutSlotRef, SlotRef};
@@ -15,25 +14,6 @@ use std::cast;
 use std::iter::Enumerate;
 use std::vec::VecIterator;
 use style::{ComputedValues, PropertyDeclaration};
-use geom::rect::Rect;
-use servo_util::geometry::Au;
-
-/// The boxes associated with a node.
-pub struct DisplayBoxes {
-    display_list: Option<Arc<DisplayList<AbstractNode<()>>>>,
-    display_bound_list: Option<~[Rect<Au>]>,
-    display_bound: Option<Rect<Au>>
-}
-
-impl DisplayBoxes {
-    pub fn init() -> DisplayBoxes {
-        DisplayBoxes {
-            display_list: None,
-            display_bound_list: None,
-            display_bound: None,
-        }
-    }
-}
 
 /// A range of nodes.
 pub struct NodeRange {
@@ -152,10 +132,6 @@ pub struct LayoutData {
     /// Description of how to account for recent style changes.
     restyle_damage: Option<int>,
 
-    /// The boxes assosiated with this flow.
-    /// Used for getBoundingClientRect and friends.
-    boxes: DisplayBoxes,
-
     /// The current results of flow construction for this node. This is either a flow or a
     /// `ConstructionItem`. See comments in `construct.rs` for more details.
     flow_construction_result: ConstructionResult,
@@ -168,7 +144,6 @@ impl LayoutData {
             applicable_declarations: ~[],
             style: None,
             restyle_damage: None,
-            boxes: DisplayBoxes::init(),
             flow_construction_result: NoConstructionResult,
         }
     }
