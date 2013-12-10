@@ -350,7 +350,7 @@ pub fn parse_html(cx: *JSContext,
                 // Handle CSS style sheets from <link> elements
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
                     do node.with_imm_element |element| {
-                        match (element.get_attr("rel"), element.get_attr("href")) {
+                        match (element.get_attr(None, "rel"), element.get_attr(None, "href")) {
                             (Some(rel), Some(href)) => {
                                 if "stylesheet" == rel {
                                     debug!("found CSS stylesheet: {:s}", href);
@@ -369,7 +369,7 @@ pub fn parse_html(cx: *JSContext,
                         let iframe_chan = iframe_chan.take();
                         let sandboxed = iframe_element.is_sandboxed();
                         let elem = &mut iframe_element.htmlelement.element;
-                        let src_opt = elem.get_attr("src").map(|x| x.to_str());
+                        let src_opt = elem.get_attr(None, "src").map(|x| x.to_str());
                         for src in src_opt.iter() {
                             let iframe_url = make_url(src.clone(), Some(url2.clone()));
                             iframe_element.frame = Some(iframe_url.clone());
@@ -470,7 +470,7 @@ pub fn parse_html(cx: *JSContext,
             unsafe {
                 let scriptnode: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(script);
                 do scriptnode.with_imm_element |script| {
-                    match script.get_attr("src") {
+                    match script.get_attr(None, "src") {
                         Some(src) => {
                             debug!("found script: {:s}", src);
                             let new_url = make_url(src.to_str(), Some(url3.clone()));

@@ -802,7 +802,7 @@ impl ScriptTask {
                 let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
                 do anchors.find |node| {
                     do node.with_imm_element |elem| {
-                        match elem.get_attr("name") {
+                        match elem.get_attr(None, "name") {
                             Some(name) => eq_slice(name, fragid),
                             None => false
                         }
@@ -901,7 +901,7 @@ impl ScriptTask {
 
     fn load_url_from_element(&self, page: @mut Page, element: &Element) {
         // if the node's element is "a," load url from href attr
-        let attr = element.get_attr("href");
+        let attr = element.get_attr(None, "href");
         for href in attr.iter() {
             debug!("ScriptTask: clicked on link to {:s}", *href);
             let click_frag = href.starts_with("#");

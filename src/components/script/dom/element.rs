@@ -133,8 +133,8 @@ impl ElementLike for Element {
         self.namespace.to_str().unwrap_or("")
     }
 
-    fn get_attr(&self, name: &str) -> Option<~str> {
-        self.get_attribute(None, name).map(|attr| attr.value.clone())
+    fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<~str> {
+        self.get_attribute(ns_url, name).map(|attr| attr.value.clone())
     }
 
     fn get_link(&self) -> Option<~str>{
@@ -144,7 +144,7 @@ impl ElementLike for Element {
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
             ElementNodeTypeId(HTMLAreaElementTypeId) |
             ElementNodeTypeId(HTMLLinkElementTypeId)
-            => self.get_attr("href"),
+            => self.get_attr(None, "href"),
             _ => None,
         }
     }
@@ -304,7 +304,7 @@ impl Element {
     }
 
     pub fn Id(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
-        match self.get_attr(&"id") {
+        match self.get_attr(None, "id") {
             Some(x) => x,
             None => ~""
         }
@@ -327,7 +327,7 @@ impl Element {
     }
 
     pub fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
-        self.get_attr(name).map(|s| s.to_owned())
+        self.get_attr(None, name).map(|s| s.to_owned())
     }
 
     pub fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString> {

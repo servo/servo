@@ -29,7 +29,7 @@ impl HTMLScriptElement {
 
 impl HTMLScriptElement {
     pub fn Src(&self) -> DOMString {
-        match self.htmlelement.element.get_attr("src") {
+        match self.htmlelement.element.get_attr(None, "src") {
             Some(s) => s.to_owned(),
             None => ~""
         }
