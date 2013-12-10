@@ -510,6 +510,114 @@ impl InlineFlow {
         // For now, don't traverse the subtree rooted here
         true
     }
+
+    /// Returns the relative offset from the baseline for this box, taking into account the value
+    /// of the CSS `vertical-align` property.
+    ///
+    /// The extra boolean is set if and only if `biggest_top` and/or `biggest_bottom` were updated.
+    /// That is, if the box has a `top` or `bottom` value, true is returned.
+    fn relative_offset_from_baseline(cur_box: @Box,
+                                     ascent: Au,
+                                     parent_text_top: Au,
+                                     parent_text_bottom: Au,
+                                     top_from_base: &mut Au,
+                                     bottom_from_base: &mut Au,
+                                     biggest_top: &mut Au,
+                                     biggest_bottom: &mut Au)
+                                     -> (Au, bool) {
+        match cur_box.vertical_align() {
+            vertical_align::baseline => (-ascent, false),
+            vertical_align::middle => {
+                // TODO: x-height value should be used from font info.
+                let xheight = Au::new(0);
+                (-(xheight + cur_box.box_height()).scale_by(0.5), false)
+            },
+            vertical_align::sub => {
+                // TODO: The proper position for subscripts should be used.
+                // Lower the baseline to the proper position for subscripts
+                let sub_offset = Au::new(0);
+                (sub_offset - ascent, false)
+            },
+            vertical_align::super_ => {
+                // TODO: The proper position for superscripts should be used.
+                // Raise the baseline to the proper position for superscripts
+                let super_offset = Au::new(0);
+                (-super_offset - ascent, false)
+            },
+            vertical_align::text_top => {
+                let box_height = *top_from_base + *bottom_from_base;
+                let prev_bottom_from_base = *bottom_from_base;
+                *top_from_base = parent_text_top;
+                *bottom_from_base = box_height - *top_from_base;
+                (*bottom_from_base - prev_bottom_from_base - ascent, false)
+            },
+            vertical_align::text_bottom => {
+                let box_height = *top_from_base + *bottom_from_base;
+                let prev_bottom_from_base = *bottom_from_base;
+                *bottom_from_base = parent_text_bottom;
+                *top_from_base = box_height - *bottom_from_base;
+                (*bottom_from_base - prev_bottom_from_base - ascent, false)
+            },
+            vertical_align::top => {
+                if *biggest_top < (*top_from_base + *bottom_from_base) {
+                    *biggest_top = *top_from_base + *bottom_from_base;
+                }
+                let offset_top = *top_from_base - ascent;
+                (offset_top, true)
+            },
+            vertical_align::bottom => {
+                if *biggest_bottom < (*top_from_base + *bottom_from_base) {
+                    *biggest_bottom = *top_from_base + *bottom_from_base;
+                }
+                let offset_bottom = -(*bottom_from_base + ascent);
+                (offset_bottom, true)
+            },
+            vertical_align::Length(length) => (-(length + ascent), false),
+            vertical_align::Percentage(p) => {
+                let pt_size = cur_box.font_style().pt_size; 
+                let line_height = cur_box.calculate_line_height(Au::from_pt(pt_size));
+                let percent_offset = line_height.scale_by(p);
+                (-(percent_offset + ascent), false)
+            }
+        }
+    }
+
+    /// Sets box X positions based on alignment for one line.
+    fn set_horizontal_box_positions(boxes: &[@Box], line: &LineBox) {
+        // Figure out how much width we have.
+        let slack_width = Au::max(Au(0), line.green_zone.width - line.bounds.size.width);
+
+        // Get the text alignment.
+        //
+        // TODO(burg, issue #222): use 'text-align' property from `InlineFlow`'s block container,
+        // not from the style of the first box child.
+        let linebox_align = if line.range.begin() < boxes.len() {
+            let first_box = boxes[line.range.begin()];
+            first_box.nearest_ancestor_element().style().Text.text_align
+        } else {
+            // Nothing to lay out, so assume left alignment.
+            text_align::left
+        };
+
+        // Set the box x positions based on that alignment.
+        let mut offset_x = line.bounds.origin.x;
+        offset_x = offset_x + match linebox_align {
+            // So sorry, but justified text is more complicated than shuffling linebox
+            // coordinates.
+            //
+            // TODO(burg, issue #213): Implement `text-align: justify`.
+            text_align::left | text_align::justify => Au(0),
+            text_align::center => slack_width.scale_by(0.5),
+            text_align::right => slack_width,
+        };
+
+        for i in line.range.eachi() {
+            let box = &boxes[i];
+            let size = box.position.get().size;
+            box.position.set(Rect(Point2D(offset_x, box.position.get().origin.y), size));
+            offset_x = offset_x + size.width;
+        }
+    }
 }
 
 impl Flow for InlineFlow {
@@ -589,7 +697,8 @@ impl Flow for InlineFlow {
     fn assign_height(&mut self, _: &mut LayoutContext) {
         debug!("assign_height_inline: assigning height for flow {}", self.base.id);
 
-        // Divide the boxes into lines
+        // Divide the boxes into lines.
+        //
         // TODO(#226): Get the CSS `line-height` property from the containing block's style to
         // determine minimum linebox height.
         //
@@ -607,68 +716,20 @@ impl Flow for InlineFlow {
 
         let mut line_height_offset = Au::new(0);
 
-        // Now, go through each line and lay out the boxes inside
+        // Now, go through each line and lay out the boxes inside.
         for line in self.lines.mut_iter() {
-            // We need to distribute extra width based on text-align.
-            let mut slack_width = line.green_zone.width - line.bounds.size.width;
-            if slack_width < Au::new(0) {
-                slack_width = Au::new(0);
-            }
-
-            // Get the text alignment.
-            // TODO(Issue #222): use 'text-align' property from InlineFlow's
-            // block container, not from the style of the first box child.
-            let linebox_align = if line.range.begin() < self.boxes.len() {
-                let first_box = self.boxes[line.range.begin()];
-                first_box.nearest_ancestor_element().style().Text.text_align
-            } else {
-                // Nothing to lay out, so assume left alignment.
-                text_align::left
-            };
-
-            // Set the box x positions
-            let mut offset_x = line.bounds.origin.x;
-            match linebox_align {
-                // So sorry, but justified text is more complicated than shuffling linebox coordinates.
-                // TODO(Issue #213): implement `text-align: justify`
-                text_align::left | text_align::justify => {
-                    for i in line.range.eachi() {
-                        let box = &self.boxes[i];
-                        box.position.mutate().ptr.origin.x = offset_x;
-                        offset_x = offset_x + box.position.get().size.width;
-                    }
-                }
-                text_align::center => {
-                    offset_x = offset_x + slack_width.scale_by(0.5);
-                    for i in line.range.eachi() {
-                        let box = &self.boxes[i];
-                        box.position.mutate().ptr.origin.x = offset_x;
-                        offset_x = offset_x + box.position.get().size.width;
-                    }
-                }
-                text_align::right => {
-                    offset_x = offset_x + slack_width;
-                    for i in line.range.eachi() {
-                        let box = &self.boxes[i];
-                        box.position.mutate().ptr.origin.x = offset_x;
-                        offset_x = offset_x + box.position.get().size.width;
-                    }
-                }
-            };
+            // Lay out boxes horizontally.
+            InlineFlow::set_horizontal_box_positions(self.boxes, line);
 
             // Set the top y position of the current linebox.
             // `line_height_offset` is updated at the end of the previous loop.
             line.bounds.origin.y = line.bounds.origin.y + line_height_offset;
 
-            // Calculate the distance from baseline to the top of the linebox.
-            let mut topmost = Au::new(0);
-            // Calculate the distance from baseline to the bottom of the linebox.
-            let mut bottommost = Au::new(0);
-
-            // Calculate the biggest height among boxes with 'top' value.
-            let mut biggest_top = Au::new(0);
-            // Calculate the biggest height among boxes with 'bottom' value.
-            let mut biggest_bottom = Au::new(0);
+            // Calculate the distance from baseline to the top and bottom of the linebox.
+            let (mut topmost, mut bottommost) = (Au(0), Au(0));
+            // Calculate the biggest height among boxes with 'top' and 'bottom' values
+            // respectively.
+            let (mut biggest_top, mut biggest_bottom) = (Au(0), Au(0));
 
             for box_i in line.range.eachi() {
                 let cur_box = self.boxes[box_i];
@@ -678,8 +739,8 @@ impl Flow for InlineFlow {
                     ImageBox(ref image_box) => {
                         let mut height = image_box.image_height(cur_box);
 
-                        // TODO: margin, border, padding's top and bottom should be calculated in advance,
-                        // since baseline of image is bottom margin edge.
+                        // TODO: margin, border, padding's top and bottom should be calculated in
+                        // advance, since baseline of image is bottom margin edge.
                         let mut top;
                         let mut bottom;
                         {
@@ -726,92 +787,45 @@ impl Flow for InlineFlow {
                         fail!("Unscanned text boxes should have been scanned by now.")
                     }
                 };
+
                 let mut top_from_base = top_from_base;
                 let mut bottom_from_base = bottom_from_base;
 
                 // To calculate text-top and text-bottom value of 'vertical-align',
                 //  we should find the top and bottom of the content area of parent box.
-                // The content area is defined in "http://www.w3.org/TR/CSS2/visudet.html#inline-non-replaced". 
-                // TODO: We should extract em-box info from font size of parent
-                //  and calcuate the distances from baseline to the top and the bottom of parent's content area.
+                // The content area is defined in:
+                //      http://www.w3.org/TR/CSS2/visudet.html#inline-non-replaced 
+                //
+                // TODO: We should extract em-box info from the font size of the parent and
+                // calculate the distances from the baseline to the top and the bottom of the
+                // parent's content area.
 
-                // It should calculate the distance from baseline to the top of parent's content area.
-                // But, it is assumed now as font size of parent.
+                // We should calculate the distance from baseline to the top of parent's content
+                // area. But for now we assume it's the parent's font size.
                 let mut parent_text_top;
-                // It should calculate the distance from baseline to the bottom of parent's content area.
-                // But, it is assumed now as 0.
-                let parent_text_bottom  = Au::new(0);
-                // Get parent node
-                let parent = cur_box.node.parent_node();
 
+                // We should calculate the distance from baseline to the bottom of the parent's
+                // content area. But for now we assume it's zero.
+                let parent_text_bottom = Au::new(0);
+
+                let parent = cur_box.node.parent_node();
                 let font_size = parent.unwrap().style().Font.font_size;
                 parent_text_top = font_size;
 
-                // This flag decides whether topmost and bottommost are updated or not.
-                // That is, if the box has top or bottom value, no_update_flag becomes true.
-                let mut no_update_flag = false;
-                // Calculate a relative offset from baseline.
-                let offset = match cur_box.vertical_align() {
-                    vertical_align::baseline => {
-                        -ascent
-                    },
-                    vertical_align::middle => {
-                        // TODO: x-height value should be used from font info.
-                        let xheight = Au::new(0);
-                        -(xheight + cur_box.box_height()).scale_by(0.5)
-                    },
-                    vertical_align::sub => {
-                        // TODO: The proper position for subscripts should be used.
-                        // Lower the baseline to the proper position for subscripts
-                        let sub_offset = Au::new(0);
-                        (sub_offset - ascent)
-                    },
-                    vertical_align::super_ => {
-                        // TODO: The proper position for superscripts should be used.
-                        // Raise the baseline to the proper position for superscripts
-                        let super_offset = Au::new(0);
-                        (-super_offset - ascent)
-                    },
-                    vertical_align::text_top => {
-                        let box_height = top_from_base + bottom_from_base;
-                        let prev_bottom_from_base = bottom_from_base;
-                        top_from_base = parent_text_top;
-                        bottom_from_base = box_height - top_from_base;
-                        (bottom_from_base - prev_bottom_from_base - ascent)
-                    },
-                    vertical_align::text_bottom => {
-                        let box_height = top_from_base + bottom_from_base;
-                        let prev_bottom_from_base = bottom_from_base;
-                        bottom_from_base = parent_text_bottom;
-                        top_from_base = box_height - bottom_from_base;
-                        (bottom_from_base - prev_bottom_from_base - ascent)
-                    },
-                    vertical_align::top => {
-                        if biggest_top < (top_from_base + bottom_from_base) {
-                            biggest_top = top_from_base + bottom_from_base;
-                        }
-                        let offset_top = top_from_base - ascent;
-                        no_update_flag = true;
-                        offset_top
-                    },
-                    vertical_align::bottom => {
-                        if biggest_bottom < (top_from_base + bottom_from_base) {
-                            biggest_bottom = top_from_base + bottom_from_base;
-                        }
-                        let offset_bottom = -(bottom_from_base + ascent);
-                        no_update_flag = true;
-                        offset_bottom
-                    },
-                    vertical_align::Length(length) => {
-                        -(length + ascent)
-                    },
-                    vertical_align::Percentage(p) => {
-                        let pt_size = cur_box.font_style().pt_size; 
-                        let line_height = cur_box.calculate_line_height(Au::from_pt(pt_size));
-                        let percent_offset = line_height.scale_by(p);
-                        -(percent_offset + ascent)
-                    }
-                };
+                // Calculate a relative offset from the baseline.
+                //
+                // The no-update flag decides whether `biggest_top` and `biggest_bottom` are
+                // updated or not. That is, if the box has a `top` or `bottom` value,
+                // `no_update_flag` becomes true.
+                let (offset, no_update_flag) =
+                    InlineFlow::relative_offset_from_baseline(cur_box,
+                                                              ascent,
+                                                              parent_text_top,
+                                                              parent_text_bottom,
+                                                              &mut top_from_base,
+                                                              &mut bottom_from_base,
+                                                              &mut biggest_top,
+                                                              &mut biggest_bottom);
 
                 // If the current box has 'top' or 'bottom' value, no_update_flag is true.
                 // Otherwise, topmost and bottomost are updated.
@@ -825,15 +839,15 @@ impl Flow for InlineFlow {
                 cur_box.position.mutate().ptr.origin.y = line.bounds.origin.y + offset;
             }
 
-            // Calculate the distance from baseline to the top of the biggest box with 'bottom' value.
-            // Then, if necessary, update the topmost.
+            // Calculate the distance from baseline to the top of the biggest box with 'bottom'
+            // value. Then, if necessary, update the topmost.
             let topmost_of_bottom = biggest_bottom - bottommost;
             if topmost_of_bottom > topmost {
                 topmost = topmost_of_bottom;
             }
 
-            // Calculate the distance from baseline to the bottom of the biggest box with 'top' value.
-            // Then, if necessary, update the bottommost.
+            // Calculate the distance from baseline to the bottom of the biggest box with 'top'
+            // value. Then, if necessary, update the bottommost.
             let bottommost_of_top = biggest_top - topmost;
             if bottommost_of_top > bottommost {
                 bottommost = bottommost_of_top;
@@ -856,7 +870,8 @@ impl Flow for InlineFlow {
             }
 
             // This is used to set the top y position of the next linebox in the next loop.
-            line_height_offset = line_height_offset + topmost + bottommost - line.bounds.size.height;
+            line_height_offset = line_height_offset + topmost + bottommost -
+                line.bounds.size.height;
             line.bounds.size.height = topmost + bottommost;
         } // End of `lines.each` loop.
 
