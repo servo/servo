@@ -31,6 +31,7 @@ pub fn dummy_style() -> FontStyle {
 }
 
 pub trait FontContextHandleMethods {
+    fn clone(&self) -> FontContextHandle;
     fn create_font_from_identifier(&self, ~str, UsedFontStyle) -> Result<FontHandle, ()>;
 }
 

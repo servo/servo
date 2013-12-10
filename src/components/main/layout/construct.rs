@@ -33,7 +33,7 @@ use layout::util::LayoutDataAccess;
 use script::dom::element::HTMLImageElementTypeId;
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{DocumentFragmentNodeTypeId, DocumentNodeTypeId, ElementNodeTypeId};
-use script::dom::node::{LayoutView, PostorderNodeMutTraversal, TextNodeTypeId};
+use script::dom::node::{LayoutView, PostorderNodeTraversal, TextNodeTypeId};
 use servo_util::slot::Slot;
 use servo_util::tree::TreeNodeRef;
 use std::util;
@@ -173,7 +173,7 @@ pub struct FlowConstructor<'self> {
     /// The layout context.
     ///
     /// FIXME(pcwalton): Why does this contain `@`??? That destroys parallelism!!!
-    layout_context: &'self mut LayoutContext,
+    layout_context: &'self LayoutContext,
 
     /// The next flow ID to assign.
     ///
@@ -183,7 +183,7 @@ pub struct FlowConstructor<'self> {
 
 impl<'self> FlowConstructor<'self> {
     /// Creates a new flow constructor.
-    pub fn init<'a>(layout_context: &'a mut LayoutContext) -> FlowConstructor<'a> {
+    pub fn init<'a>(layout_context: &'a LayoutContext) -> FlowConstructor<'a> {
         FlowConstructor {
             layout_context: layout_context,
             next_flow_id: Slot::init(0),
@@ -198,7 +198,7 @@ impl<'self> FlowConstructor<'self> {
     }
 
     /// Builds the `ImageBoxInfo` for the given image. This is out of line to guide inlining.
-    fn build_box_info_for_image(&mut self, node: AbstractNode<LayoutView>) -> Option<ImageBoxInfo> {
+    fn build_box_info_for_image(&self, node: AbstractNode<LayoutView>) -> Option<ImageBoxInfo> {
         // FIXME(pcwalton): Don't copy URLs.
         let url = node.with_imm_image_element(|image_element| {
             image_element.image.as_ref().map(|url| (*url).clone())
@@ -215,7 +215,7 @@ impl<'self> FlowConstructor<'self> {
     }
 
     /// Builds a `Box` for the given node.
-    fn build_box_for_node(&mut self, node: AbstractNode<LayoutView>) -> @Box {
+    fn build_box_for_node(&self, node: AbstractNode<LayoutView>) -> @Box {
         let specific = match node.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 match self.build_box_info_for_image(node) {
@@ -234,7 +234,7 @@ impl<'self> FlowConstructor<'self> {
     /// `#[inline(always)]` because this is performance critical and LLVM will not inline it
     /// otherwise.
     #[inline(always)]
-    fn flush_inline_boxes_to_flow(&mut self,
+    fn flush_inline_boxes_to_flow(&self,
                                   boxes: ~[@Box],
                                   flow: &mut ~Flow:,
                                   node: AbstractNode<LayoutView>) {
@@ -248,7 +248,7 @@ impl<'self> FlowConstructor<'self> {
 
     /// Creates an inline flow from a set of inline boxes, if present, and adds it as a child of
     /// the given flow.
-    fn flush_inline_boxes_to_flow_if_necessary(&mut self,
+    fn flush_inline_boxes_to_flow_if_necessary(&self,
                                                opt_boxes: &mut Option<~[@Box]>,
                                                flow: &mut ~Flow:,
                                                node: AbstractNode<LayoutView>) {
@@ -261,7 +261,7 @@ impl<'self> FlowConstructor<'self> {
     /// Builds the children flows underneath a node with `display: block`. After this call,
     /// other `BlockFlow`s or `InlineFlow`s will be populated underneath this node, depending on
     /// whether {ib} splits needed to happen.
-    fn build_children_of_block_flow(&mut self,
+    fn build_children_of_block_flow(&self,
                                     flow: &mut ~Flow:,
                                     node: AbstractNode<LayoutView>) {
         // Gather up boxes for the inline flows we might need to create.
@@ -341,7 +341,7 @@ impl<'self> FlowConstructor<'self> {
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
     /// other `BlockFlow`s or `InlineFlow`s underneath it, depending on whether {ib} splits needed
     /// to happen.
-    fn build_flow_for_block(&mut self, node: AbstractNode<LayoutView>) -> ~Flow: {
+    fn build_flow_for_block(&self, node: AbstractNode<LayoutView>) -> ~Flow: {
         let base = FlowData::new(self.next_flow_id(), node);
         let box = self.build_box_for_node(node);
         let mut flow = ~BlockFlow::from_box(base, box) as ~Flow:;
@@ -351,7 +351,7 @@ impl<'self> FlowConstructor<'self> {
 
     /// Builds the flow for a node with `float: {left|right}`. This yields a float `BlockFlow` with
     /// a `BlockFlow` underneath it.
-    fn build_flow_for_floated_block(&mut self, node: AbstractNode<LayoutView>, float_type: FloatType)
+    fn build_flow_for_floated_block(&self, node: AbstractNode<LayoutView>, float_type: FloatType)
                                     -> ~Flow: {
         let base = FlowData::new(self.next_flow_id(), node);
         let box = self.build_box_for_node(node);
@@ -363,7 +363,7 @@ impl<'self> FlowConstructor<'self> {
     /// Concatenates the boxes of kids, adding in our own borders/padding/margins if necessary.
     /// Returns the `InlineBoxesConstructionResult`, if any. There will be no
     /// `InlineBoxesConstructionResult` if this node consisted entirely of ignorable whitespace.
-    fn build_boxes_for_nonreplaced_inline_content(&mut self, node: AbstractNode<LayoutView>)
+    fn build_boxes_for_nonreplaced_inline_content(&self, node: AbstractNode<LayoutView>)
                                                   -> ConstructionResult {
         let mut opt_inline_block_splits = None;
         let mut opt_box_accumulator = None;
@@ -429,7 +429,7 @@ impl<'self> FlowConstructor<'self> {
 
     /// Creates an `InlineBoxesConstructionResult` for replaced content. Replaced content doesn't
     /// render its children, so this just nukes a child's boxes and creates a `Box`.
-    fn build_boxes_for_replaced_inline_content(&mut self, node: AbstractNode<LayoutView>)
+    fn build_boxes_for_replaced_inline_content(&self, node: AbstractNode<LayoutView>)
                                                -> ConstructionResult {
         for kid in node.children() {
             kid.set_flow_construction_result(NoConstructionResult)
@@ -446,7 +446,7 @@ impl<'self> FlowConstructor<'self> {
 
     /// Builds one or more boxes for a node with `display: inline`. This yields an
     /// `InlineBoxesConstructionResult`.
-    fn build_boxes_for_inline(&mut self, node: AbstractNode<LayoutView>) -> ConstructionResult {
+    fn build_boxes_for_inline(&self, node: AbstractNode<LayoutView>) -> ConstructionResult {
         // Is this node replaced content?
         if !node.is_replaced_content() {
             // Go to a path that concatenates our kids' boxes.
@@ -458,11 +458,11 @@ impl<'self> FlowConstructor<'self> {
     }
 }
 
-impl<'self> PostorderNodeMutTraversal for FlowConstructor<'self> {
+impl<'self> PostorderNodeTraversal for FlowConstructor<'self> {
     // `#[inline(always)]` because this is always called from the traversal function and for some
     // reason LLVM's inlining heuristics go awry here.
     #[inline(always)]
-    fn process(&mut self, node: AbstractNode<LayoutView>) -> bool {
+    fn process(&self, node: AbstractNode<LayoutView>) -> bool {
         // Get the `display` property for this node, and determine whether this node is floated.
         let (display, float) = match node.type_id() {
             ElementNodeTypeId(_) => (node.style().Box.display, node.style().Box.float),

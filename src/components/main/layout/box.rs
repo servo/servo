@@ -5,7 +5,7 @@
 //! The `Box` type, which represents the leaves of the layout tree.
 
 use extra::url::Url;
-use extra::arc::{MutexArc,Arc};
+use extra::arc::MutexArc;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color::rgb;
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
@@ -160,7 +160,7 @@ impl ImageBoxInfo {
 /// object.
 pub struct ScannedTextBoxInfo {
     /// The text run that this represents.
-    run: Arc<~TextRun>,
+    run: @TextRun,
 
     /// The range within the above text run that this represents.
     range: Range,
@@ -168,7 +168,7 @@ pub struct ScannedTextBoxInfo {
 
 impl ScannedTextBoxInfo {
     /// Creates the information specific to a scanned text box from a range and a text run.
-    pub fn new(run: Arc<~TextRun>, range: Range) -> ScannedTextBoxInfo {
+    pub fn new(run: @TextRun, range: Range) -> ScannedTextBoxInfo {
         ScannedTextBoxInfo {
             run: run,
             range: range,
@@ -630,12 +630,21 @@ impl Box {
 
                 // Create the text box.
                 do list.with_mut_ref |list| {
+                    // FIXME(pcwalton): Allocation? Why?!
+                    let run = ~TextRun {
+                        text: text_box.run.text.clone(),
+                        font_descriptor: text_box.run.font_descriptor.clone(),
+                        font_metrics: text_box.run.font_metrics.clone(),
+                        font_style: text_box.run.font_style.clone(),
+                        decoration: text_box.run.decoration.clone(),
+                        glyphs: text_box.run.glyphs.clone()
+                    };
                     let text_display_item = ~TextDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
                             extra: ExtraDisplayListData::new(&self),
                         },
-                        text_run: text_box.run.clone(),
+                        text_run: run,
                         range: text_box.range,
                         color: color,
                     };
@@ -668,7 +677,7 @@ impl Box {
                     // Draw a rectangle representing the baselines.
                     //
                     // TODO(Issue #221): Create and use a Line display item for the baseline.
-                    let ascent = text_box.run.get().metrics_for_range(
+                    let ascent = text_box.run.metrics_for_range(
                         &text_box.range).ascent;
                     let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
                                         Size2D(absolute_box_bounds.size.width, Au(0)));
@@ -781,12 +790,11 @@ impl Box {
             }
             ScannedTextBox(ref text_box_info) => {
                 let range = &text_box_info.range;
-                let text_run = text_box_info.run.get();
-                let min_line_width = text_run.min_width_for_range(range);
+                let min_line_width = text_box_info.run.min_width_for_range(range);
 
                 let mut max_line_width = Au::new(0);
-                for line_range in text_run.iter_natural_lines_for_range(range) {
-                    let line_metrics = text_run.metrics_for_range(&line_range);
+                for line_range in text_box_info.run.iter_natural_lines_for_range(range) {
+                    let line_metrics = text_box_info.run.metrics_for_range(&line_range);
                     max_line_width = Au::max(max_line_width, line_metrics.advance_width);
                 }
 
@@ -816,7 +824,7 @@ impl Box {
             }
             ScannedTextBox(ref text_box_info) => {
                 // Compute the height based on the line-height and font size.
-                let (range, run) = (&text_box_info.range, &text_box_info.run.get());
+                let (range, run) = (&text_box_info.range, &text_box_info.run);
                 let text_bounds = run.metrics_for_range(range).bounding_box;
                 let em_size = text_bounds.size.height;
                 self.calculate_line_height(em_size)
@@ -838,12 +846,11 @@ impl Box {
 
                 debug!("split_to_width: splitting text box (strlen={:u}, range={}, \
                                                             avail_width={})",
-                       text_box_info.run.get().text.get().len(),
+                       text_box_info.run.text.get().len(),
                        text_box_info.range,
                        max_width);
 
-                let text_run = text_box_info.run.get();
-                for (glyphs, offset, slice_range) in text_run.iter_slices_for_range(
+                for (glyphs, offset, slice_range) in text_box_info.run.iter_slices_for_range(
                         &text_box_info.range) {
                     debug!("split_to_width: considering slice (offset={}, range={}, \
                                                                remain_width={})",
@@ -851,7 +858,7 @@ impl Box {
                            slice_range,
                            remaining_width);
 
-                    let metrics = text_run.metrics_for_slice(glyphs, &slice_range);
+                    let metrics = text_box_info.run.metrics_for_slice(glyphs, &slice_range);
                     let advance = metrics.advance_width;
 
                     let should_continue;
@@ -902,23 +909,20 @@ impl Box {
                 }
 
                 let left_box = if left_range.length() > 0 {
-
-                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
-                    let new_size = text_box_info.run.get().
-                        metrics_for_range(&left_range).bounding_box.size;
+                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run, left_range);
                     let new_text_box = @Box::new(self.node, ScannedTextBox(new_text_box_info));
-                    new_text_box.set_size(new_size);
+                    let new_metrics = new_text_box_info.run.metrics_for_range(&left_range);
+                    new_text_box.set_size(new_metrics.bounding_box.size);
                     Some(new_text_box)
                 } else {
                     None
                 };
 
                 let right_box = right_range.map_default(None, |range: Range| {
-                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), range);
-                    let new_size = text_box_info.run.get().
-                        metrics_for_range(&range).bounding_box.size;
+                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run, range);
                     let new_text_box = @Box::new(self.node, ScannedTextBox(new_text_box_info));
-                    new_text_box.set_size(new_size);
+                    let new_metrics = new_text_box_info.run.metrics_for_range(&range);
+                    new_text_box.set_size(new_metrics.bounding_box.size);
                     Some(new_text_box)
                 });
 
@@ -971,7 +975,7 @@ impl Box {
     /// Cleans up all the memory associated with this box.
     pub fn teardown(&self) {
         match self.specific {
-            ScannedTextBox(ref text_box_info) => text_box_info.run.get().teardown(),
+            ScannedTextBox(ref text_box_info) => text_box_info.run.teardown(),
             _ => {}
         }
     }

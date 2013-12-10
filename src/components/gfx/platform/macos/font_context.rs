@@ -8,12 +8,10 @@ use platform::macos::font::FontHandle;
 
 use core_text;
 
-#[deriving(Clone)]
 pub struct FontContextHandle {
     ctx: ()
 }
 
-#[deriving(Clone)]
 impl FontContextHandle {
     // this is a placeholder until NSFontManager or whatever is bound in here.
     pub fn new() -> FontContextHandle {
@@ -22,6 +20,12 @@ impl FontContextHandle {
 }
 
 impl FontContextHandleMethods for FontContextHandle {
+    fn clone(&self) -> FontContextHandle {
+        FontContextHandle {
+            ctx: self.ctx
+        }
+    }
+
     fn create_font_from_identifier(&self,
                                    name: ~str,
                                    style: UsedFontStyle)
