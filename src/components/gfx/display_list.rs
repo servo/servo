@@ -21,6 +21,7 @@ use render_context::RenderContext;
 use text::TextRun;
 
 use std::cast::transmute_region;
+use std::vec::VecIterator;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use servo_net::image::base::Image;
 use servo_util::range::Range;
@@ -55,6 +56,11 @@ impl<E> DisplayList<E> {
             item.draw_into_context(render_context)
         }
         debug!("Ending display list.")
+    }
+
+    /// Returns a preorder iterator over the given display list.
+    pub fn iter<'a>(&'a self) -> DisplayItemIterator<'a,E> {
+        ParentDisplayItemIterator(self.list.iter())
     }
 }
 
@@ -116,6 +122,21 @@ pub struct ClipDisplayItem<E> {
     base: BaseDisplayItem<E>,
     child_list: ~[DisplayItem<E>],
     need_clip: bool
+}
+
+pub enum DisplayItemIterator<'self,E> {
+    EmptyDisplayItemIterator,
+    ParentDisplayItemIterator(VecIterator<'self,DisplayItem<E>>),
+}
+
+impl<'self,E> Iterator<&'self DisplayItem<E>> for DisplayItemIterator<'self,E> {
+    #[inline]
+    fn next(&mut self) -> Option<&'self DisplayItem<E>> {
+        match *self {
+            EmptyDisplayItemIterator => None,
+            ParentDisplayItemIterator(ref mut subiterator) => subiterator.next(),
+        }
+    }
 }
 
 impl<E> DisplayItem<E> {
@@ -211,6 +232,31 @@ impl<E> DisplayItem<E> {
 
     pub fn bounds(&self) -> Rect<Au> {
         self.base().bounds
+    }
+
+    pub fn children<'a>(&'a self) -> DisplayItemIterator<'a,E> {
+        match *self {
+            ClipDisplayItemClass(ref clip) => ParentDisplayItemIterator(clip.child_list.iter()),
+            SolidColorDisplayItemClass(*) |
+            TextDisplayItemClass(*) |
+            ImageDisplayItemClass(*) |
+            BorderDisplayItemClass(*) => EmptyDisplayItemIterator,
+        }
+    }
+
+    pub fn debug_str(&self) -> ~str {
+        let class = match *self {
+            SolidColorDisplayItemClass(_) => "SolidColor",
+            TextDisplayItemClass(_) => "Text",
+            ImageDisplayItemClass(_) => "Image",
+            BorderDisplayItemClass(_) => "Border",
+            ClipDisplayItemClass(_) => "Clip",
+        };
+        let mut string = format!("{} @ {:?}", class, self.base().bounds);
+        for child in self.children() {
+            string = format!("{}\n  {}", string, child.debug_str());
+        }
+        string
     }
 }
 

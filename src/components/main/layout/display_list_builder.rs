@@ -35,12 +35,6 @@ impl ExtraDisplayListData for Nothing {
     }
 }
 
-impl ExtraDisplayListData for @Box {
-    fn new(box: &@Box) -> @Box {
-        *box
-    }
-}
-
 /// A builder object that manages display list builder should mainly hold information about the
 /// initial request and desired result--for example, whether the `DisplayList` is to be used for
 /// painting or hit testing. This can affect which boxes are created.

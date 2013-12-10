@@ -4,7 +4,7 @@
 
 //! Code for managing the layout data in the DOM.
 
-use layout::util::{DisplayBoxes, LayoutData, LayoutDataAccess};
+use layout::util::{LayoutData, LayoutDataAccess};
 
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::tree::TreeNodeRef;
@@ -17,11 +17,13 @@ pub trait LayoutAuxMethods {
 
 impl LayoutAuxMethods for AbstractNode<LayoutView> {
     /// Resets layout data and styles for the node.
+    ///
+    /// FIXME(pcwalton): Do this as part of box building instead of in a traversal.
     fn initialize_layout_data(self) {
         let layout_data_handle = self.mutate_layout_data();
         match *layout_data_handle.ptr {
             None => *layout_data_handle.ptr = Some(~LayoutData::new()),
-            Some(ref mut layout_data) => layout_data.boxes = DisplayBoxes::init(),
+            Some(_) => {}
         }
     }
 
