@@ -37,13 +37,6 @@ impl ApplicationMethods for Application {
     }
 }
 
-impl Drop for Application {
-    fn drop(&mut self) {
-        drop_local_window();
-        glfw::terminate();
-    }
-}
-
 /// The type of a window.
 pub struct Window {
     glfw_window: glfw::Window,
@@ -145,6 +138,8 @@ impl WindowMethods<Application> for Window {
         glfw::poll_events();
 
         if self.glfw_window.should_close() {
+            drop_local_window();
+            glfw::terminate();
             QuitWindowEvent
         } else if !self.event_queue.is_empty() {
             self.event_queue.shift()
