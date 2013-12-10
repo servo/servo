@@ -277,10 +277,56 @@ impl LineboxScanner {
         
     }
 
-    /// Returns false only if we should break the line.
-    fn try_append_to_line(&mut self, in_box: @Box, flow: &mut InlineFlow) -> bool {
-        let line_is_empty: bool = self.pending_line.range.length() == 0;
+    /// Performs float collision avoidance. This is called when adding a box is going to increase
+    /// the height, and because of that we will collide with some floats.
+    ///
+    /// We have two options here:
+    /// 1) Move the entire line so that it doesn't collide any more.
+    /// 2) Break the line and put the new box on the next line.
+    ///
+    /// The problem with option 1 is that we might move the line and then wind up breaking anyway,
+    /// which violates the standard.
+    /// But option 2 is going to look weird sometimes.
+    ///
+    /// So we'll try to move the line whenever we can, but break if we have to.
+    ///
+    /// Returns false if and only if we should break the line.
+    fn avoid_floats(&mut self,
+                    in_box: @Box,
+                    flow: &mut InlineFlow,
+                    new_height: Au,
+                    line_is_empty: bool)
+                    -> bool {
+        debug!("LineboxScanner: entering float collision avoider!");
 
+        // First predict where the next line is going to be.
+        let this_line_y = self.pending_line.bounds.origin.y;
+        let (next_line, first_box_width) = self.initial_line_placement(in_box, this_line_y, flow);
+        let next_green_zone = next_line.size;
+
+        let new_width = self.pending_line.bounds.size.width + first_box_width;
+
+        // Now, see if everything can fit at the new location.
+        if next_green_zone.width >= new_width && next_green_zone.height >= new_height {
+            debug!("LineboxScanner: case=adding box collides vertically with floats: moving line");
+
+            self.pending_line.bounds.origin = next_line.origin;
+            self.pending_line.green_zone = next_green_zone;
+
+            assert!(!line_is_empty, "Non-terminating line breaking");
+            self.work_list.push_front(in_box);
+            return true
+        }
+
+        debug!("LineboxScanner: case=adding box collides vertically with floats: breaking line");
+        self.work_list.push_front(in_box);
+        false
+    }
+
+    /// Tries to append the given box to the line, splitting it if necessary. Returns false only if
+    /// we should break the line.
+    fn try_append_to_line(&mut self, in_box: @Box, flow: &mut InlineFlow) -> bool {
+        let line_is_empty = self.pending_line.range.length() == 0;
         if line_is_empty {
             let (line_bounds, _) = self.initial_line_placement(in_box, self.cur_y, flow);
             self.pending_line.bounds.origin = line_bounds.origin;
@@ -294,132 +340,85 @@ impl LineboxScanner {
                self.pending_line.green_zone,
                in_box.debug_str());
 
-
         let green_zone = self.pending_line.green_zone;
 
-        //assert!(green_zone.width >= self.pending_line.bounds.size.width &&
-        //        green_zone.height >= self.pending_line.bounds.size.height,
-        //        "Committed a line that overlaps with floats");
+        // NB: At this point, if `green_zone.width < self.pending_line.bounds.size.width` or
+        // `green_zone.height < self.pending_line.bounds.size.height`, then we committed a line
+        // that overlaps with floats.
 
         let new_height = self.new_height_for_line(in_box);
         if new_height > green_zone.height {
-            debug!("LineboxScanner: entering float collision avoider!");
-
-            // Uh-oh. Adding this box is going to increase the height,
-            // and because of that we will collide with some floats.
-
-            // We have two options here:
-            // 1) Move the entire line so that it doesn't collide any more.
-            // 2) Break the line and put the new box on the next line.
-
-            // The problem with option 1 is that we might move the line
-            // and then wind up breaking anyway, which violates the standard.
-            // But option 2 is going to look weird sometimes.
-
-            // So we'll try to move the line whenever we can, but break
-            // if we have to.
-
-            // First predict where the next line is going to be
-            let this_line_y = self.pending_line.bounds.origin.y;
-            let (next_line, first_box_width) = self.initial_line_placement(in_box, this_line_y, flow);
-            let next_green_zone = next_line.size;
-
-            let new_width = self.pending_line.bounds.size.width + first_box_width;
-            // Now, see if everything can fit at the new location.
-            if next_green_zone.width >= new_width && next_green_zone.height >= new_height{
-                debug!("LineboxScanner: case=adding box collides vertically with floats: moving line");
-
-                self.pending_line.bounds.origin = next_line.origin;
-                self.pending_line.green_zone = next_green_zone;
-
-                assert!(!line_is_empty, "Non-terminating line breaking");
-                self.work_list.push_front(in_box);
-                return true;
-            } else {
-                debug!("LineboxScanner: case=adding box collides vertically with floats: breaking line");
-                self.work_list.push_front(in_box);
-                return false;
-            }
+            // Uh-oh. Float collision imminent. Enter the float collision avoider…
+            return self.avoid_floats(in_box, flow, new_height, line_is_empty)
         }
 
         // If we're not going to overflow the green zone vertically, we might still do so
-        // horizontally. We'll try to place the whole box on this line and break somewhere
-        // if it doesn't fit.
+        // horizontally. We'll try to place the whole box on this line and break somewhere if it
+        // doesn't fit.
 
         let new_width = self.pending_line.bounds.size.width + in_box.position.get().size.width;
-
         if new_width <= green_zone.width {
             debug!("LineboxScanner: case=box fits without splitting");
             self.push_box_to_line(in_box);
-            return true;
+            return true
         }
 
         if !in_box.can_split() {
-            // TODO(Issue #224): signal that horizontal overflow happened?
+            // TODO(eatkinson, issue #224): Signal that horizontal overflow happened?
             if line_is_empty {
                 debug!("LineboxScanner: case=box can't split and line {:u} is empty, so \
                         overflowing.",
                         self.lines.len());
-                self.push_box_to_line(in_box);
-                return true;
+                self.push_box_to_line(in_box)
             } else {
                 debug!("LineboxScanner: Case=box can't split, not appending.");
-                return false;
             }
-        } else {
-            let available_width = green_zone.width - self.pending_line.bounds.size.width;
-
-            match in_box.split_to_width(available_width, line_is_empty) {
-                CannotSplit(_) => {
-                    error!("LineboxScanner: Tried to split unsplittable render box! {:s}",
-                            in_box.debug_str());
-                    return false;
-                }
-                SplitDidFit(left, right) => {
-                    debug!("LineboxScanner: case=split box did fit; deferring remainder box.");
-                    match (left, right) {
-                        (Some(left_box), Some(right_box)) => {
-                            self.push_box_to_line(left_box);
-                            self.work_list.push_front(right_box);
-                        }
-                        (Some(left_box), None) => self.push_box_to_line(left_box),
-                        (None, Some(right_box)) => self.push_box_to_line(right_box),
-                        (None, None) => error!("LineboxScanner: This split case makes no sense!"),
-                    }
-                    return true;
-                }
-                SplitDidNotFit(left, right) => {
-                    if line_is_empty {
-                        debug!("LineboxScanner: case=split box didn't fit and line {:u} is empty, so overflowing and deferring remainder box.",
-                                self.lines.len());
-                        // TODO(Issue #224): signal that horizontal overflow happened?
-                        match (left, right) {
-                            (Some(left_box), Some(right_box)) => {
-                                self.push_box_to_line(left_box);
-                                self.work_list.push_front(right_box);
-                            }
-                            (Some(left_box), None) => {
-                                self.push_box_to_line(left_box);
-                            }
-                            (None, Some(right_box)) => {
-                                self.push_box_to_line(right_box);
-                            }
-                            (None, None) => {
-                                error!("LineboxScanner: This split case makes no sense!");
-                            }
-                        }
-                        return true;
-                    } else {
-                        debug!("LineboxScanner: case=split box didn't fit, not appending and deferring original box.");
-                        self.work_list.push_front(in_box);
-                        return false;
-                    }
-                }
-            }
+            return line_is_empty
         }
+
+        let available_width = green_zone.width - self.pending_line.bounds.size.width;
+        let split = in_box.split_to_width(available_width, line_is_empty);
+        let (left, right) = match (split, line_is_empty) {
+            (CannotSplit(_), _) => {
+                error!("LineboxScanner: Tried to split unsplittable render box! {:s}",
+                        in_box.debug_str());
+                return false
+            }
+            (SplitDidNotFit(_, _), false) => {
+                debug!("LineboxScanner: case=split box didn't fit, not appending and deferring \
+                        original box.");
+                self.work_list.push_front(in_box);
+                return false
+            }
+            (SplitDidFit(left, right), _) => {
+                debug!("LineboxScanner: case=split box did fit; deferring remainder box.");
+                (left, right)
+                // Fall through to push boxes to the line.
+            }
+            (SplitDidNotFit(left, right), true) => {
+                // TODO(eatkinson, issue #224): Signal that horizontal overflow happened?
+                debug!("LineboxScanner: case=split box didn't fit and line {:u} is empty, so \
+                        overflowing and deferring remainder box.",
+                        self.lines.len());
+                (left, right)
+                // Fall though to push boxes to the line.
+            }
+        };
+
+        match (left, right) {
+            (Some(left_box), Some(right_box)) => {
+                self.push_box_to_line(left_box);
+                self.work_list.push_front(right_box);
+            }
+            (Some(left_box), None) => self.push_box_to_line(left_box),
+            (None, Some(right_box)) => self.push_box_to_line(right_box),
+            (None, None) => error!("LineboxScanner: This split case makes no sense!"),
+        }
+
+        true
     }
 
-    // unconditional push
+    // An unconditional push.
     fn push_box_to_line(&mut self, box: @Box) {
         debug!("LineboxScanner: Pushing box {} to line {:u}", box.debug_id(), self.lines.len());
 
