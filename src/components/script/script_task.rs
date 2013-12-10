@@ -588,9 +588,6 @@ impl ScriptTask {
                                  &rval);
 
         }
-        // We don't know what the script changed, so for now we will do a total redisplay.
-        page.damage(ContentChangedDocumentDamage);
-        page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor);
     }
 
     /// Handles a notification that reflow completed.

@@ -18,7 +18,8 @@ use dom::document;
 use dom::namespace;
 use dom::namespace::Namespace;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
-use layout_interface::{ContentBoxesResponse};
+use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
+use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
 use servo_util::tree::{TreeNodeRef, ElementLike};
 
@@ -293,8 +294,12 @@ impl<'self> Element {
         }
 
         if abstract_self.is_in_doc() {
+            let damage = match local_name.as_slice() {
+                "style" | "id" | "class" => MatchSelectorsDocumentDamage,
+                _ => ContentChangedDocumentDamage
+            };
             let document = self.node.owner_doc();
-            document.document().content_changed();
+            document.document().damage_and_reflow(damage);
         }
     }
 }
