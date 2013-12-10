@@ -5,7 +5,7 @@
 //! The `Box` type, which represents the leaves of the layout tree.
 
 use extra::url::Url;
-use extra::arc::MutexArc;
+use extra::arc::{MutexArc, Arc};
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color::rgb;
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
@@ -55,6 +55,7 @@ use layout::model::{MaybeAuto, specified};
 /// types of boxes may also contain custom data; for example, text boxes contain text.
 ///
 /// FIXME(pcwalton): This can be slimmed down quite a bit.
+#[deriving(Clone)]
 pub struct Box {
     /// The DOM node that this `Box` originates from.
     node: AbstractNode<LayoutView>,
@@ -81,6 +82,7 @@ pub struct Box {
 }
 
 /// Info specific to the kind of box. Keep this enum small.
+#[deriving(Clone)]
 pub enum SpecificBoxInfo {
     GenericBox,
     ImageBox(ImageBoxInfo),
@@ -89,6 +91,7 @@ pub enum SpecificBoxInfo {
 }
 
 /// A box that represents a replaced content image and its accompanying borders, shadows, etc.
+#[deriving(Clone)]
 pub struct ImageBoxInfo {
     /// The image held within this box.
     image: Slot<ImageHolder>,
@@ -158,9 +161,10 @@ impl ImageBoxInfo {
 /// split into two or more boxes across line breaks. Several `TextBox`es may correspond to a single
 /// DOM text node. Split text boxes are implemented by referring to subsets of a single `TextRun`
 /// object.
+#[deriving(Clone)]
 pub struct ScannedTextBoxInfo {
     /// The text run that this represents.
-    run: @TextRun,
+    run: Arc<~TextRun>,
 
     /// The range within the above text run that this represents.
     range: Range,
@@ -168,7 +172,7 @@ pub struct ScannedTextBoxInfo {
 
 impl ScannedTextBoxInfo {
     /// Creates the information specific to a scanned text box from a range and a text run.
-    pub fn new(run: @TextRun, range: Range) -> ScannedTextBoxInfo {
+    pub fn new(run: Arc<~TextRun>, range: Range) -> ScannedTextBoxInfo {
         ScannedTextBoxInfo {
             run: run,
             range: range,
@@ -178,6 +182,7 @@ impl ScannedTextBoxInfo {
 
 /// Data for an unscanned text box. Unscanned text boxes are the results of flow construction that
 /// have not yet had their width determined.
+#[deriving(Clone)]
 pub struct UnscannedTextBoxInfo {
     /// The text inside the box.
     text: ~str,
@@ -197,11 +202,11 @@ impl UnscannedTextBoxInfo {
 
 /// Represents the outcome of attempting to split a box.
 pub enum SplitBoxResult {
-    CannotSplit(@Box),
+    CannotSplit,
     // in general, when splitting the left or right side can
     // be zero length, due to leading/trailing trimmable whitespace
-    SplitDidFit(Option<@Box>, Option<@Box>),
-    SplitDidNotFit(Option<@Box>, Option<@Box>)
+    SplitDidFit(Option<~Box>, Option<~Box>),
+    SplitDidNotFit(Option<~Box>, Option<~Box>)
 }
 
 impl Box {
@@ -264,7 +269,7 @@ impl Box {
         self.position.set(Rect(self.position.get().origin, new_size))
     }
 
-    pub fn calculate_line_height(&self, font_size: Au) -> Au { 
+    pub fn calculate_line_height(&self, font_size: Au) -> Au {
         match self.line_height() {
             line_height::Normal => font_size.scale_by(1.14),
             line_height::Number(l) => font_size.scale_by(l),
@@ -499,7 +504,7 @@ impl Box {
     /// Adds the display items necessary to paint the background of this box to the display list if
     /// necessary.
     pub fn paint_background_if_applicable<E:ExtraDisplayListData>(
-                                          @self,
+                                          &self,
                                           list: &Cell<DisplayList<E>>,
                                           absolute_bounds: &Rect<Au>) {
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
@@ -515,7 +520,7 @@ impl Box {
                 let solid_color_display_item = ~SolidColorDisplayItem {
                     base: BaseDisplayItem {
                         bounds: *absolute_bounds,
-                        extra: ExtraDisplayListData::new(&self),
+                        extra: ExtraDisplayListData::new(self),
                     },
                     color: background_color.to_gfx_color(),
                 };
@@ -528,7 +533,7 @@ impl Box {
     /// Adds the display items necessary to paint the borders of this box to a display list if
     /// necessary.
     pub fn paint_borders_if_applicable<E:ExtraDisplayListData>(
-                                       @self,
+                                       &self,
                                        list: &Cell<DisplayList<E>>,
                                        abs_bounds: &Rect<Au>) {
         // Fast path.
@@ -552,7 +557,7 @@ impl Box {
             let border_display_item = ~BorderDisplayItem {
                 base: BaseDisplayItem {
                     bounds: *abs_bounds,
-                    extra: ExtraDisplayListData::new(&self),
+                    extra: ExtraDisplayListData::new(self),
                 },
                 border: border,
                 color: SideOffsets2D::new(top_color.to_gfx_color(),
@@ -584,7 +589,7 @@ impl Box {
     /// items, each box puts its display items into the correct stack layer according to CSS 2.1
     /// Appendix E. Finally, the builder flattens the list.
     pub fn build_display_list<E:ExtraDisplayListData>(
-                              @self,
+                              &self,
                               _: &DisplayListBuilder,
                               dirty: &Rect<Au>,
                               offset: &Point2D<Au>,
@@ -616,7 +621,7 @@ impl Box {
                     let item = ~ClipDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
-                            extra: ExtraDisplayListData::new(&self),
+                            extra: ExtraDisplayListData::new(self),
                         },
                         child_list: ~[],
                         need_clip: false
@@ -631,18 +636,11 @@ impl Box {
                 // Create the text box.
                 do list.with_mut_ref |list| {
                     // FIXME(pcwalton): Allocation? Why?!
-                    let run = ~TextRun {
-                        text: text_box.run.text.clone(),
-                        font_descriptor: text_box.run.font_descriptor.clone(),
-                        font_metrics: text_box.run.font_metrics.clone(),
-                        font_style: text_box.run.font_style.clone(),
-                        decoration: text_box.run.decoration.clone(),
-                        glyphs: text_box.run.glyphs.clone()
-                    };
+                    let run = text_box.run.clone();
                     let text_display_item = ~TextDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
-                            extra: ExtraDisplayListData::new(&self),
+                            extra: ExtraDisplayListData::new(self),
                         },
                         text_run: run,
                         range: text_box.range,
@@ -664,7 +662,7 @@ impl Box {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: absolute_box_bounds,
-                                extra: ExtraDisplayListData::new(&self),
+                                extra: ExtraDisplayListData::new(self),
                             },
                             border: debug_border,
                             color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
@@ -677,7 +675,7 @@ impl Box {
                     // Draw a rectangle representing the baselines.
                     //
                     // TODO(Issue #221): Create and use a Line display item for the baseline.
-                    let ascent = text_box.run.metrics_for_range(
+                    let ascent = text_box.run.get().metrics_for_range(
                         &text_box.range).ascent;
                     let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
                                         Size2D(absolute_box_bounds.size.width, Au(0)));
@@ -686,7 +684,7 @@ impl Box {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: baseline,
-                                extra: ExtraDisplayListData::new(&self),
+                                extra: ExtraDisplayListData::new(self),
                             },
                             border: debug_border,
                             color: SideOffsets2D::new_all_same(rgb(0, 200, 0)),
@@ -704,7 +702,7 @@ impl Box {
                     let item = ~ClipDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
-                            extra: ExtraDisplayListData::new(&self),
+                            extra: ExtraDisplayListData::new(self),
                         },
                         child_list: ~[],
                         need_clip: self.needs_clip()
@@ -721,7 +719,7 @@ impl Box {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: absolute_box_bounds,
-                                extra: ExtraDisplayListData::new(&self),
+                                extra: ExtraDisplayListData::new(self),
                             },
                             border: debug_border,
                             color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
@@ -739,7 +737,7 @@ impl Box {
                     let item = ~ClipDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
-                            extra: ExtraDisplayListData::new(&self),
+                            extra: ExtraDisplayListData::new(self),
                         },
                         child_list: ~[],
                         need_clip: false
@@ -756,7 +754,7 @@ impl Box {
                             let image_display_item = ~ImageDisplayItem {
                                 base: BaseDisplayItem {
                                     bounds: absolute_box_bounds,
-                                    extra: ExtraDisplayListData::new(&self),
+                                    extra: ExtraDisplayListData::new(self),
                                 },
                                 image: image.clone(),
                             };
@@ -790,11 +788,11 @@ impl Box {
             }
             ScannedTextBox(ref text_box_info) => {
                 let range = &text_box_info.range;
-                let min_line_width = text_box_info.run.min_width_for_range(range);
+                let min_line_width = text_box_info.run.get().min_width_for_range(range);
 
                 let mut max_line_width = Au::new(0);
-                for line_range in text_box_info.run.iter_natural_lines_for_range(range) {
-                    let line_metrics = text_box_info.run.metrics_for_range(&line_range);
+                for line_range in text_box_info.run.get().iter_natural_lines_for_range(range) {
+                    let line_metrics = text_box_info.run.get().metrics_for_range(&line_range);
                     max_line_width = Au::max(max_line_width, line_metrics.advance_width);
                 }
 
@@ -825,7 +823,7 @@ impl Box {
             ScannedTextBox(ref text_box_info) => {
                 // Compute the height based on the line-height and font size.
                 let (range, run) = (&text_box_info.range, &text_box_info.run);
-                let text_bounds = run.metrics_for_range(range).bounding_box;
+                let text_bounds = run.get().metrics_for_range(range).bounding_box;
                 let em_size = text_bounds.size.height;
                 self.calculate_line_height(em_size)
             }
@@ -834,9 +832,9 @@ impl Box {
     }
 
     /// Attempts to split this box so that its width is no more than `max_width`.
-    pub fn split_to_width(@self, max_width: Au, starts_line: bool) -> SplitBoxResult {
+    pub fn split_to_width(&self, max_width: Au, starts_line: bool) -> SplitBoxResult {
         match self.specific {
-            GenericBox | ImageBox(_) => CannotSplit(self),
+            GenericBox | ImageBox(_) => CannotSplit,
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
                 let mut pieces_processed_count: uint = 0;
@@ -846,11 +844,11 @@ impl Box {
 
                 debug!("split_to_width: splitting text box (strlen={:u}, range={}, \
                                                             avail_width={})",
-                       text_box_info.run.text.get().len(),
+                       text_box_info.run.get().text.get().len(),
                        text_box_info.range,
                        max_width);
 
-                for (glyphs, offset, slice_range) in text_box_info.run.iter_slices_for_range(
+                for (glyphs, offset, slice_range) in text_box_info.run.get().iter_slices_for_range(
                         &text_box_info.range) {
                     debug!("split_to_width: considering slice (offset={}, range={}, \
                                                                remain_width={})",
@@ -858,7 +856,7 @@ impl Box {
                            slice_range,
                            remaining_width);
 
-                    let metrics = text_box_info.run.metrics_for_slice(glyphs, &slice_range);
+                    let metrics = text_box_info.run.get().metrics_for_slice(glyphs, &slice_range);
                     let advance = metrics.advance_width;
 
                     let should_continue;
@@ -909,9 +907,9 @@ impl Box {
                 }
 
                 let left_box = if left_range.length() > 0 {
-                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run, left_range);
-                    let new_text_box = @Box::new(self.node, ScannedTextBox(new_text_box_info));
-                    let new_metrics = new_text_box_info.run.metrics_for_range(&left_range);
+                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
+                    let new_metrics = new_text_box_info.run.get().metrics_for_range(&left_range);
+                    let new_text_box = ~Box::new(self.node, ScannedTextBox(new_text_box_info));
                     new_text_box.set_size(new_metrics.bounding_box.size);
                     Some(new_text_box)
                 } else {
@@ -919,9 +917,9 @@ impl Box {
                 };
 
                 let right_box = right_range.map_default(None, |range: Range| {
-                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run, range);
-                    let new_text_box = @Box::new(self.node, ScannedTextBox(new_text_box_info));
-                    let new_metrics = new_text_box_info.run.metrics_for_range(&range);
+                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), range);
+                    let new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
+                    let new_text_box = ~Box::new(self.node, ScannedTextBox(new_text_box_info));
                     new_text_box.set_size(new_metrics.bounding_box.size);
                     Some(new_text_box)
                 });
@@ -975,7 +973,7 @@ impl Box {
     /// Cleans up all the memory associated with this box.
     pub fn teardown(&self) {
         match self.specific {
-            ScannedTextBox(ref text_box_info) => text_box_info.run.teardown(),
+            ScannedTextBox(ref text_box_info) => text_box_info.run.get().teardown(),
             _ => {}
         }
     }

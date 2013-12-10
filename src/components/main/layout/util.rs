@@ -56,7 +56,7 @@ impl ElementMapping {
         self.entries.iter().enumerate()
     }
 
-    pub fn repair_for_box_changes(&mut self, old_boxes: &[@Box], new_boxes: &[@Box]) {
+    pub fn repair_for_box_changes(&mut self, old_boxes: &[~Box], new_boxes: &[~Box]) {
         let entries = &mut self.entries;
 
         debug!("--- Old boxes: ---");
