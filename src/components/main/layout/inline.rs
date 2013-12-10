@@ -29,22 +29,22 @@ use std::util;
 /// as an object that "owns" boxes. Choosing a different set of line
 /// breaks requires a new list of offsets, and possibly some splitting and
 /// merging of TextBoxes.
-/// 
+///
 /// A similar list will keep track of the mapping between CSS boxes and
 /// the corresponding boxes in the inline flow.
-/// 
+///
 /// After line breaks are determined, render boxes in the inline flow may
 /// overlap visually. For example, in the case of nested inline CSS boxes,
 /// outer inlines must be at least as large as the inner inlines, for
 /// purposes of drawing noninherited things like backgrounds, borders,
 /// outlines.
-/// 
+///
 /// N.B. roc has an alternative design where the list instead consists of
 /// things like "start outer box, text, start inner box, text, end inner
 /// box, text, end outer box, text". This seems a little complicated to
 /// serve as the starting point, but the current design doesn't make it
 /// hard to try out that alternative.
-/// 
+///
 /// Line boxes also contain some metadata used during line breaking. The
 /// green zone is the area that the line can expand to before it collides
 /// with a float or a horizontal wall of the containing block. The top
@@ -58,14 +58,12 @@ struct LineBox {
 
 struct LineboxScanner {
     floats: FloatContext,
-    new_boxes: ~[@Box],
-    work_list: RingBuf<@Box>,
+    new_boxes: ~[~Box],
+    work_list: RingBuf<~Box>,
     pending_line: LineBox,
     lines: ~[LineBox],
     cur_y: Au,
 }
-
-local_data_key!(local_linebox_scanner: LineboxScanner)
 
 impl LineboxScanner {
     pub fn new(float_ctx: FloatContext) -> LineboxScanner {
@@ -74,8 +72,8 @@ impl LineboxScanner {
             new_boxes: ~[],
             work_list: RingBuf::new(),
             pending_line: LineBox {
-                range: Range::empty(), 
-                bounds: Rect(Point2D(Au::new(0), Au::new(0)), Size2D(Au::new(0), Au::new(0))), 
+                range: Range::empty(),
+                bounds: Rect(Point2D(Au::new(0), Au::new(0)), Size2D(Au::new(0), Au::new(0))),
                 green_zone: Size2D(Au::new(0), Au::new(0))
             },
             lines: ~[],
@@ -94,7 +92,7 @@ impl LineboxScanner {
         self.lines.truncate(0);
         self.cur_y = Au::new(0);
     }
-    
+
     pub fn floats_out(&mut self) -> FloatContext {
         self.floats.clone()
     }
@@ -116,15 +114,13 @@ impl LineboxScanner {
     pub fn scan_for_lines(&mut self, flow: &mut InlineFlow) {
         self.reset_scanner(flow);
 
-        let mut i = 0u;
-
         loop {
             // acquire the next box to lay out from work list or box list
             let cur_box = if self.work_list.is_empty() {
-                if i == flow.boxes.len() {
-                    break
+                if flow.boxes.is_empty() {
+                    break;
                 }
-                let box = flow.boxes[i]; i += 1;
+                let box = flow.boxes.remove(0); // FIXME: use a linkedlist
                 debug!("LineboxScanner: Working with box from box list: b{}", box.debug_id());
                 box
             } else {
@@ -188,7 +184,7 @@ impl LineboxScanner {
     /// Computes the position of a line that has only the provided box. Returns the bounding rect
     /// of the line's green zone (whose origin coincides with the line's origin) and the actual
     /// width of the first box after splitting.
-    fn initial_line_placement(&self, first_box: @Box, ceiling: Au, flow: &mut InlineFlow)
+    fn initial_line_placement(&self, first_box: &Box, ceiling: Au, flow: &mut InlineFlow)
                               -> (Rect<Au>, Au) {
         debug!("LineboxScanner: Trying to place first box of line {}", self.lines.len());
 
@@ -219,7 +215,7 @@ impl LineboxScanner {
         debug!("LineboxScanner: found position for line: {} using placement_info: {:?}",
                line_bounds,
                info);
-        
+
         // Simple case: if the box fits, then we can stop here
         if line_bounds.size.width > first_box_size.width {
             debug!("LineboxScanner: case=box fits");
@@ -238,7 +234,7 @@ impl LineboxScanner {
         // We should find a better abstraction or merge it with the call in
         // try_append_to_line.
         match first_box.split_to_width(line_bounds.size.width, line_is_empty) {
-            CannotSplit(_) => {
+            CannotSplit => {
                 error!("LineboxScanner: Tried to split unsplittable render box! {:s}",
                         first_box.debug_str());
                 return (line_bounds, first_box_size.width);
@@ -274,7 +270,7 @@ impl LineboxScanner {
                 return (new_bounds, actual_box_width);
             }
         }
-        
+
     }
 
     /// Performs float collision avoidance. This is called when adding a box is going to increase
@@ -292,7 +288,7 @@ impl LineboxScanner {
     ///
     /// Returns false if and only if we should break the line.
     fn avoid_floats(&mut self,
-                    in_box: @Box,
+                    in_box: ~Box,
                     flow: &mut InlineFlow,
                     new_height: Au,
                     line_is_empty: bool)
@@ -325,7 +321,7 @@ impl LineboxScanner {
 
     /// Tries to append the given box to the line, splitting it if necessary. Returns false only if
     /// we should break the line.
-    fn try_append_to_line(&mut self, in_box: @Box, flow: &mut InlineFlow) -> bool {
+    fn try_append_to_line(&mut self, in_box: ~Box, flow: &mut InlineFlow) -> bool {
         let line_is_empty = self.pending_line.range.length() == 0;
         if line_is_empty {
             let (line_bounds, _) = self.initial_line_placement(in_box, self.cur_y, flow);
@@ -348,7 +344,7 @@ impl LineboxScanner {
 
         let new_height = self.new_height_for_line(in_box);
         if new_height > green_zone.height {
-            // Uh-oh. Float collision imminent. Enter the float collision avoider…
+            // Uh-oh. Float collision imminent. Enter the float collision avoider
             return self.avoid_floats(in_box, flow, new_height, line_is_empty)
         }
 
@@ -379,7 +375,7 @@ impl LineboxScanner {
         let available_width = green_zone.width - self.pending_line.bounds.size.width;
         let split = in_box.split_to_width(available_width, line_is_empty);
         let (left, right) = match (split, line_is_empty) {
-            (CannotSplit(_), _) => {
+            (CannotSplit, _) => {
                 error!("LineboxScanner: Tried to split unsplittable render box! {:s}",
                         in_box.debug_str());
                 return false
@@ -418,8 +414,8 @@ impl LineboxScanner {
         true
     }
 
-    // An unconditional push.
-    fn push_box_to_line(&mut self, box: @Box) {
+    // An unconditional push
+    fn push_box_to_line(&mut self, box: ~Box) {
         debug!("LineboxScanner: Pushing box {} to line {:u}", box.debug_id(), self.lines.len());
 
         if self.pending_line.range.length() == 0 {
@@ -429,7 +425,7 @@ impl LineboxScanner {
         self.pending_line.range.extend_by(1);
         self.pending_line.bounds.size.width = self.pending_line.bounds.size.width +
             box.position.get().size.width;
-        self.pending_line.bounds.size.height = Au::max(self.pending_line.bounds.size.height, 
+        self.pending_line.bounds.size.height = Au::max(self.pending_line.bounds.size.height,
                                                        box.position.get().size.height);
         self.new_boxes.push(box);
     }
@@ -440,7 +436,7 @@ pub struct InlineFlow {
     base: FlowData,
 
     /// A vector of all inline render boxes. Several boxes may correspond to one node/element.
-    boxes: ~[@Box],
+    boxes: ~[~Box],
 
     // vec of ranges into boxes that represents line positions.
     // these ranges are disjoint, and are the result of inline layout.
@@ -462,7 +458,7 @@ impl InlineFlow {
         }
     }
 
-    pub fn from_boxes(base: FlowData, boxes: ~[@Box]) -> InlineFlow {
+    pub fn from_boxes(base: FlowData, boxes: ~[~Box]) -> InlineFlow {
         InlineFlow {
             base: base,
             boxes: boxes,
@@ -506,7 +502,7 @@ impl InlineFlow {
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
         // should the flow be nested inside the box somehow?
-        
+
         // For now, don't traverse the subtree rooted here
         true
     }
@@ -516,7 +512,7 @@ impl InlineFlow {
     ///
     /// The extra boolean is set if and only if `biggest_top` and/or `biggest_bottom` were updated.
     /// That is, if the box has a `top` or `bottom` value, true is returned.
-    fn relative_offset_from_baseline(cur_box: @Box,
+    fn relative_offset_from_baseline(cur_box: &Box,
                                      ascent: Au,
                                      parent_text_top: Au,
                                      parent_text_bottom: Au,
@@ -574,7 +570,7 @@ impl InlineFlow {
             },
             vertical_align::Length(length) => (-(length + ascent), false),
             vertical_align::Percentage(p) => {
-                let pt_size = cur_box.font_style().pt_size; 
+                let pt_size = cur_box.font_style().pt_size;
                 let line_height = cur_box.calculate_line_height(Au::from_pt(pt_size));
                 let percent_offset = line_height.scale_by(p);
                 (-(percent_offset + ascent), false)
@@ -583,7 +579,7 @@ impl InlineFlow {
     }
 
     /// Sets box X positions based on alignment for one line.
-    fn set_horizontal_box_positions(boxes: &[@Box], line: &LineBox) {
+    fn set_horizontal_box_positions(boxes: &[~Box], line: &LineBox) {
         // Figure out how much width we have.
         let slack_width = Au::max(Au(0), line.green_zone.width - line.bounds.size.width);
 
@@ -592,7 +588,7 @@ impl InlineFlow {
         // TODO(burg, issue #222): use 'text-align' property from `InlineFlow`'s block container,
         // not from the style of the first box child.
         let linebox_align = if line.range.begin() < boxes.len() {
-            let first_box = boxes[line.range.begin()];
+            let first_box = &boxes[line.range.begin()];
             first_box.nearest_ancestor_element().style().Text.text_align
         } else {
             // Nothing to lay out, so assume left alignment.
@@ -668,7 +664,7 @@ impl Flow for InlineFlow {
         debug!("assign_widths_inline: floats_in: {:?}", self.base.floats_in);
         {
             let this = &mut *self;
-            for &box in this.boxes.iter() {
+            for box in this.boxes.iter() {
                 box.assign_width();
             }
         }
@@ -732,12 +728,12 @@ impl Flow for InlineFlow {
             let (mut biggest_top, mut biggest_bottom) = (Au(0), Au(0));
 
             for box_i in line.range.eachi() {
-                let cur_box = self.boxes[box_i];
+                let cur_box = &self.boxes[box_i];
 
                 // FIXME(pcwalton): Move into `box.rs` like the rest of box-specific layout code?
                 let (top_from_base, bottom_from_base, ascent) = match cur_box.specific {
                     ImageBox(ref image_box) => {
-                        let mut height = image_box.image_height(cur_box);
+                        let mut height = image_box.image_height(*cur_box);
 
                         // TODO: margin, border, padding's top and bottom should be calculated in
                         // advance, since baseline of image is bottom margin edge.
@@ -763,16 +759,16 @@ impl Flow for InlineFlow {
                     ScannedTextBox(ref text_box) => {
                         let range = &text_box.range;
                         let run = &text_box.run;
-                        
+
                         // Compute the height based on the line-height and font size
-                        let text_bounds = run.metrics_for_range(range).bounding_box;
+                        let text_bounds = run.get().metrics_for_range(range).bounding_box;
                         let em_size = text_bounds.size.height;
                         let line_height = cur_box.calculate_line_height(em_size);
 
                         // Find the top and bottom of the content area.
                         // Those are used in text-top and text-bottom value of 'vertical-align'
-                        let text_ascent = text_box.run.font_metrics.ascent;
-                       
+                        let text_ascent = text_box.run.get().font_metrics.ascent;
+
                         // Offset from the top of the box is 1/2 of the leading + ascent
                         let text_offset = text_ascent + (line_height - em_size).scale_by(0.5);
                         text_bounds.translate(&Point2D(cur_box.position.get().origin.x, Au(0)));
@@ -794,7 +790,7 @@ impl Flow for InlineFlow {
                 // To calculate text-top and text-bottom value of 'vertical-align',
                 //  we should find the top and bottom of the content area of parent box.
                 // The content area is defined in:
-                //      http://www.w3.org/TR/CSS2/visudet.html#inline-non-replaced 
+                //      http://www.w3.org/TR/CSS2/visudet.html#inline-non-replaced
                 //
                 // TODO: We should extract em-box info from the font size of the parent and
                 // calculate the distances from the baseline to the top and the bottom of the
@@ -818,7 +814,7 @@ impl Flow for InlineFlow {
                 // updated or not. That is, if the box has a `top` or `bottom` value,
                 // `no_update_flag` becomes true.
                 let (offset, no_update_flag) =
-                    InlineFlow::relative_offset_from_baseline(cur_box,
+                    InlineFlow::relative_offset_from_baseline(*cur_box,
                                                               ascent,
                                                               parent_text_top,
                                                               parent_text_bottom,
@@ -858,7 +854,7 @@ impl Flow for InlineFlow {
 
             // All boxes' y position is updated following the new baseline offset.
             for box_i in line.range.eachi() {
-                let cur_box = self.boxes[box_i];
+                let cur_box = &self.boxes[box_i];
                 let adjust_offset = match cur_box.vertical_align() {
                     vertical_align::top => Au::new(0),
                     vertical_align::bottom => baseline_offset + bottommost,
@@ -875,7 +871,7 @@ impl Flow for InlineFlow {
             line.bounds.size.height = topmost + bottommost;
         } // End of `lines.each` loop.
 
-        self.base.position.size.height = 
+        self.base.position.size.height =
             if self.lines.len() > 0 {
                 self.lines.last().bounds.origin.y + self.lines.last().bounds.size.height
             } else {

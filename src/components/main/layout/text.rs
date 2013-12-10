@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Text layout.
-
+use extra::arc::Arc;
 use layout::box::{Box, ScannedTextBox, ScannedTextBoxInfo, UnscannedTextBox};
 use layout::context::LayoutContext;
 use layout::flow::Flow;
@@ -56,7 +56,7 @@ impl TextRunScanner {
         flow.as_inline().boxes = out_boxes;
 
         // A helper function.
-        fn can_coalesce_text_nodes(boxes: &[@Box], left_i: uint, right_i: uint) -> bool {
+        fn can_coalesce_text_nodes(boxes: &[~Box], left_i: uint, right_i: uint) -> bool {
             assert!(left_i < boxes.len());
             assert!(right_i > 0 && right_i < boxes.len());
             assert!(left_i != right_i);
@@ -78,17 +78,17 @@ impl TextRunScanner {
                                ctx: &LayoutContext,
                                flow: &mut Flow,
                                last_whitespace: bool,
-                               out_boxes: &mut ~[@Box])
+                               out_boxes: &mut ~[~Box])
                                -> bool {
         let inline = flow.as_inline();
-        let in_boxes = &inline.boxes;
+        let in_boxes = &mut inline.boxes;
 
         assert!(self.clump.length() > 0);
 
         debug!("TextRunScanner: flushing boxes in range={}", self.clump);
         let is_singleton = self.clump.length() == 1;
-        let possible_text_clump = in_boxes[self.clump.begin()]; // FIXME(pcwalton): Rust bug
-        let is_text_clump = match possible_text_clump.specific {
+
+        let is_text_clump = match in_boxes[self.clump.begin()].specific {
             UnscannedTextBox(_) => true,
             _ => false,
         };
@@ -100,10 +100,12 @@ impl TextRunScanner {
             }
             (true, false) => {
                 debug!("TextRunScanner: pushing single non-text box in range: {}", self.clump);
-                out_boxes.push(in_boxes[self.clump.begin()]);
+                // out_boxes.push(in_boxes[self.clump.begin()]);
+                let first_box = in_boxes.remove(self.clump.begin());
+                out_boxes.push(first_box);
             },
             (true, true)  => {
-                let old_box = in_boxes[self.clump.begin()];
+                let old_box = &in_boxes[self.clump.begin()];
                 let text = match old_box.specific {
                     UnscannedTextBox(ref text_box_info) => &text_box_info.text,
                     _ => fail!("Expected an unscanned text box!"),
@@ -125,15 +127,15 @@ impl TextRunScanner {
                     // font group fonts. This is probably achieved by creating the font group above
                     // and then letting `FontGroup` decide which `Font` to stick into the text run.
                     let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
-                    let run = @fontgroup.with_borrow(|fg| fg.create_textrun(transformed_text.clone(), decoration));
+                    let run = ~fontgroup.with_borrow(|fg| fg.create_textrun(transformed_text.clone(), decoration));
 
                     debug!("TextRunScanner: pushing single text box in range: {} ({})",
                            self.clump,
                            *text);
                     let range = Range::new(0, run.char_len());
-                    let new_text_box_info = ScannedTextBoxInfo::new(run, range);
                     let new_metrics = run.metrics_for_range(&range);
-                    let new_box = @old_box.transform(new_metrics.bounding_box.size,
+                    let new_text_box_info = ScannedTextBoxInfo::new(Arc::new(run), range);
+                    let new_box = ~old_box.transform(new_metrics.bounding_box.size,
                                                      ScannedTextBox(new_text_box_info));
                     out_boxes.push(new_box)
                 }
@@ -179,7 +181,7 @@ impl TextRunScanner {
                 // TODO(#177): Text run creation must account for the renderability of text by
                 // font group fonts. This is probably achieved by creating the font group above
                 // and then letting `FontGroup` decide which `Font` to stick into the text run.
-                let in_box = in_boxes[self.clump.begin()];
+                let in_box = &in_boxes[self.clump.begin()];
                 let font_style = in_box.font_style();
                 let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
                 let decoration = in_box.text_decoration();
@@ -190,7 +192,7 @@ impl TextRunScanner {
                 let run = if clump.length() != 0 && run_str.len() > 0 {
                     fontgroup.with_borrow( |fg| {
                         fg.fonts[0].with_mut_borrow( |font| {
-                            Some(@TextRun::new(font, run_str.clone(), decoration))
+                            Some(Arc::new(~TextRun::new(font, run_str.clone(), decoration)))
                         })
                     })
                 } else {
@@ -208,9 +210,9 @@ impl TextRunScanner {
                         continue
                     }
 
-                    let new_text_box_info = ScannedTextBoxInfo::new(run.unwrap(), range);
-                    let new_metrics = new_text_box_info.run.metrics_for_range(&range);
-                    let new_box = @in_boxes[i].transform(new_metrics.bounding_box.size,
+                    let new_text_box_info = ScannedTextBoxInfo::new(run.get_ref().clone(), range);
+                    let new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
+                    let new_box = ~in_boxes[i].transform(new_metrics.bounding_box.size,
                                                          ScannedTextBox(new_text_box_info));
                     out_boxes.push(new_box)
                 }

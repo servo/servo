@@ -53,7 +53,7 @@ pub struct BlockFlow {
     base: FlowData,
 
     /// The associated box.
-    box: Option<@Box>,
+    box: Option<~Box>,
 
     /// Whether this block flow is the root flow.
     is_root: bool,
@@ -72,7 +72,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn from_box(base: FlowData, box: @Box) -> BlockFlow {
+    pub fn from_box(base: FlowData, box: ~Box) -> BlockFlow {
         BlockFlow {
             base: base,
             box: Some(box),
@@ -81,7 +81,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn float_from_box(base: FlowData, float_type: FloatType, box: @Box) -> BlockFlow {
+    pub fn float_from_box(base: FlowData, float_type: FloatType, box: ~Box) -> BlockFlow {
         BlockFlow {
             base: base,
             box: Some(box),
@@ -123,9 +123,9 @@ impl BlockFlow {
     /// Computes left and right margins and width based on CSS 2.1 section 10.3.3.
     /// Requires borders and padding to already be computed.
     fn compute_horiz(&self,
-                     width: MaybeAuto, 
-                     left_margin: MaybeAuto, 
-                     right_margin: MaybeAuto, 
+                     width: MaybeAuto,
+                     left_margin: MaybeAuto,
+                     right_margin: MaybeAuto,
                      available_width: Au)
                      -> (Au, Au, Au) {
         // If width is not 'auto', and width + margins > available_width, all 'auto' margins are
@@ -135,7 +135,7 @@ impl BlockFlow {
             Specified(width) => {
                 let left = left_margin.specified_or_zero();
                 let right = right_margin.specified_or_zero();
-                
+
                 if((left + right + width) > available_width) {
                     (Specified(left), Specified(right))
                 } else {
@@ -147,7 +147,7 @@ impl BlockFlow {
         //Invariant: left_margin_Au + width_Au + right_margin_Au == available_width
         let (left_margin_Au, width_Au, right_margin_Au) = match (left_margin, width, right_margin) {
             //If all have a computed value other than 'auto', the system is over-constrained and we need to discard a margin.
-            //if direction is ltr, ignore the specified right margin and solve for it. If it is rtl, ignore the specified 
+            //if direction is ltr, ignore the specified right margin and solve for it. If it is rtl, ignore the specified
             //left margin. FIXME(eatkinson): this assumes the direction is ltr
             (Specified(margin_l), Specified(width), Specified(_margin_r)) => (margin_l, width, available_width - (margin_l + width )),
 
@@ -172,7 +172,7 @@ impl BlockFlow {
         (width_Au, left_margin_Au, right_margin_Au)
     }
 
-    fn compute_block_margins(&self, box: @Box, remaining_width: Au, available_width: Au)
+    fn compute_block_margins(&self, box: &Box, remaining_width: Au, available_width: Au)
                              -> (Au, Au, Au) {
         let style = box.style();
 
@@ -215,7 +215,7 @@ impl BlockFlow {
         return (width, margin_left, margin_right);
     }
 
-    fn compute_float_margins(&self, box: @Box, remaining_width: Au) -> (Au, Au, Au) {
+    fn compute_float_margins(&self, box: &Box, remaining_width: Au) -> (Au, Au, Au) {
         let style = box.style();
         let margin_left = MaybeAuto::from_style(style.Margin.margin_left,
                                                 remaining_width).specified_or_zero();
@@ -240,7 +240,7 @@ impl BlockFlow {
         let mut left_offset = Au::new(0);
         let mut float_ctx = Invalid;
 
-        for &box in self.box.iter() {
+        for box in self.box.iter() {
             clearance = match box.clear() {
                 None => Au::new(0),
                 Some(clear) => {
@@ -279,7 +279,7 @@ impl BlockFlow {
         let mut top_margin_collapsible = false;
         let mut bottom_margin_collapsible = false;
         let mut first_in_flow = true;
-        for &box in self.box.iter() {
+        for box in self.box.iter() {
             if !self.is_root && box.border.get().top == Au(0) && box.padding.get().top == Au(0) {
                 collapsible = box.margin.get().top;
                 top_margin_collapsible = true;
@@ -316,7 +316,7 @@ impl BlockFlow {
         } else {
             Au::new(0)
         };
-        
+
         // TODO: A box's own margins collapse if the 'min-height' property is zero, and it has neither
         // top or bottom borders nor top or bottom padding, and it has a 'height' of either 0 or 'auto',
         // and it does not contain a line box, and all of its in-flow children's margins (if any) collapse.
@@ -328,7 +328,7 @@ impl BlockFlow {
             cur_y - top_offset - collapsing
         };
 
-        for &box in self.box.iter() {
+        for box in self.box.iter() {
             let style = box.style();
             height = match MaybeAuto::from_style(style.Box.height, Au::new(0)) {
                 Auto => height,
@@ -360,7 +360,7 @@ impl BlockFlow {
         self.base.position.size.height = height + noncontent_height;
 
         if inorder {
-            let extra_height = height - (cur_y - top_offset) + bottom_offset; 
+            let extra_height = height - (cur_y - top_offset) + bottom_offset;
             self.base.floats_out = float_ctx.translate(Point2D(left_offset, -extra_height));
         } else {
             self.base.floats_out = self.base.floats_in.clone();
@@ -419,7 +419,7 @@ impl BlockFlow {
         let mut cur_y = Au(0);
         let mut top_offset = Au(0);
 
-        for &box in self.box.iter() {
+        for box in self.box.iter() {
             top_offset = box.margin.get().top + box.border.get().top + box.padding.get().top;
             cur_y = cur_y + top_offset;
         }
@@ -441,7 +441,7 @@ impl BlockFlow {
 
         noncontent_height = box.padding.get().top + box.padding.get().bottom +
             box.border.get().top + box.border.get().bottom;
-    
+
         //TODO(eatkinson): compute heights properly using the 'height' property.
         let height_prop = MaybeAuto::from_style(box.style().Box.height,
                                                 Au::new(0)).specified_or_zero();
@@ -456,24 +456,24 @@ impl BlockFlow {
     pub fn build_display_list_block<E:ExtraDisplayListData>(
                                     &mut self,
                                     builder: &DisplayListBuilder,
-                                    dirty: &Rect<Au>, 
-                                    list: &Cell<DisplayList<E>>) 
+                                    dirty: &Rect<Au>,
+                                    list: &Cell<DisplayList<E>>)
                                     -> bool {
         if self.is_float() {
             return self.build_display_list_float(builder, dirty, list);
         }
 
         if self.base.node.is_iframe_element() {
-            let x = self.base.abs_position.x + do self.box.map_default(Au::new(0)) |box| {
+            let x = self.base.abs_position.x + do self.box.as_ref().map_default(Au::new(0)) |box| {
                 box.margin.get().left + box.border.get().left + box.padding.get().left
             };
-            let y = self.base.abs_position.y + do self.box.map_default(Au::new(0)) |box| {
+            let y = self.base.abs_position.y + do self.box.as_ref().map_default(Au::new(0)) |box| {
                 box.margin.get().top + box.border.get().top + box.padding.get().top
             };
-            let w = self.base.position.size.width - do self.box.map_default(Au::new(0)) |box| {
+            let w = self.base.position.size.width - do self.box.as_ref().map_default(Au::new(0)) |box| {
                 box.noncontent_width()
             };
-            let h = self.base.position.size.height - do self.box.map_default(Au::new(0)) |box| {
+            let h = self.base.position.size.height - do self.box.as_ref().map_default(Au::new(0)) |box| {
                 box.noncontent_height()
             };
             do self.base.node.with_mut_iframe_element |iframe_element| {
@@ -508,8 +508,8 @@ impl BlockFlow {
 
     pub fn build_display_list_float<E:ExtraDisplayListData>(&mut self,
                                                             builder: &DisplayListBuilder,
-                                                            dirty: &Rect<Au>, 
-                                                            list: &Cell<DisplayList<E>>) 
+                                                            dirty: &Rect<Au>,
+                                                            list: &Cell<DisplayList<E>>)
                                                             -> bool {
         //TODO: implement iframe size messaging
         if self.base.node.is_iframe_element() {
@@ -627,7 +627,7 @@ impl Flow for BlockFlow {
             self.base.is_inorder = false;
         }
 
-        for &box in self.box.iter() {
+        for box in self.box.iter() {
             let style = box.style();
 
             // Can compute padding here since we know containing block width.
@@ -643,9 +643,9 @@ impl Flow for BlockFlow {
                                                       remaining_width).specified_or_zero();
 
             let (width, margin_left, margin_right) = if self.is_float() {
-                self.compute_float_margins(box, remaining_width)
+                self.compute_float_margins(*box, remaining_width)
             } else {
-                self.compute_block_margins(box, remaining_width, available_width)
+                self.compute_block_margins(*box, remaining_width, available_width)
             };
 
             box.margin.set(SideOffsets2D::new(margin_top,
@@ -727,11 +727,11 @@ impl Flow for BlockFlow {
             return;
         }
 
-        for &box in self.box.iter() {
+        for box in self.box.iter() {
             // The top margin collapses with its first in-flow block-level child's
             // top margin if the parent has no top border, no top padding.
             if *first_in_flow && top_margin_collapsible {
-                // If top-margin of parent is less than top-margin of its first child, 
+                // If top-margin of parent is less than top-margin of its first child,
                 // the parent box goes down until its top is aligned with the child.
                 if *margin_top < box.margin.get().top {
                     // TODO: The position of child floats should be updated and this
@@ -741,7 +741,7 @@ impl Flow for BlockFlow {
                     *margin_top = box.margin.get().top;
                 }
             }
-            // The bottom margin of an in-flow block-level element collapses 
+            // The bottom margin of an in-flow block-level element collapses
             // with the top margin of its next in-flow block-level sibling.
             *collapsing = geometry::min(box.margin.get().top, *collapsible);
             *collapsible = box.margin.get().bottom;
@@ -760,7 +760,7 @@ impl Flow for BlockFlow {
         } else {
             let txt = if self.is_float() { ~"FloatFlow: " } else { ~"BlockFlow: " };
             txt.append(match self.box {
-                Some(rb) => {
+                Some(ref rb) => {
                     rb.debug_str()
                 }
                 None => { ~"" }
