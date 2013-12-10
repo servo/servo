@@ -8,7 +8,6 @@ use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle, FontWeight100};
 use font::{FontWeight200, FontWeight300, FontWeight400, FontWeight500, FontWeight600};
 use font::{FontWeight700, FontWeight800, FontWeight900};
-use font_context::FontContextHandleMethods;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use platform::font_context::FontContextHandle;
@@ -79,7 +78,7 @@ impl FontHandleMethods for FontHandle {
                            buf: ~[u8],
                            style: &SpecifiedFontStyle)
                         -> Result<FontHandle, ()> {
-        let ft_ctx: FT_Library = fctx.ctx.ctx;
+        let ft_ctx: FT_Library = fctx.ctx.get().ctx;
         if ft_ctx.is_null() { return Err(()); }
 
         let face_result = do buf.as_imm_buf |bytes: *u8, len: uint| {
@@ -292,7 +291,7 @@ impl<'self> FontHandle {
     pub fn new_from_file(fctx: &FontContextHandle, file: &str,
                          style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
         unsafe {
-            let ft_ctx: FT_Library = fctx.ctx.ctx;
+            let ft_ctx: FT_Library = fctx.ctx.get().ctx;
             if ft_ctx.is_null() { return Err(()); }
 
             let mut face: FT_Face = ptr::null();
@@ -320,7 +319,7 @@ impl<'self> FontHandle {
     pub fn new_from_file_unstyled(fctx: &FontContextHandle, file: ~str)
                                -> Result<FontHandle, ()> {
         unsafe {
-            let ft_ctx: FT_Library = fctx.ctx.ctx;
+            let ft_ctx: FT_Library = fctx.ctx.get().ctx;
             if ft_ctx.is_null() { return Err(()); }
 
             let mut face: FT_Face = ptr::null();
