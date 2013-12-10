@@ -224,8 +224,11 @@ impl<'self> Iterator<@mut Page> for PageTreeIterator<'self> {
 
 impl Page {
     /// Adds the given damage.
-    fn damage(&mut self, level: DocumentDamageLevel) {
-        let root = self.frame.get_ref().document.document().GetDocumentElement();
+    pub fn damage(&mut self, level: DocumentDamageLevel) {
+        let root = match self.frame {
+            None => return,
+            Some(ref frame) => frame.document.document().GetDocumentElement()
+        };
         match root {
             None => {},
             Some(root) => {
@@ -282,7 +285,7 @@ impl Page {
     /// computation to finish.
     ///
     /// This function fails if there is no root frame.
-    fn reflow(&mut self, goal: ReflowGoal, script_chan: ScriptChan, compositor: @ScriptListener) {
+    pub fn reflow(&mut self, goal: ReflowGoal, script_chan: ScriptChan, compositor: @ScriptListener) {
         let root = match self.frame {
             None => return,
             Some(ref frame) => {
@@ -323,19 +326,6 @@ impl Page {
                 debug!("script: layout forked")
             }
         }
-    }
-
-    /// Reflows the entire document.
-    ///
-    /// FIXME: This should basically never be used.
-    pub fn reflow_all(&mut self, goal: ReflowGoal, script_chan: ScriptChan, compositor: @ScriptListener) {
-        if self.frame.is_some() {
-            self.damage(ContentChangedDocumentDamage);
-        }
-
-        //FIXME: In the case where an initial reflow is required, we should always
-        //       ReflowForDisplay, regardless of the original goal.
-        self.reflow(goal, script_chan, compositor)
     }
 
     pub fn initialize_js_info(&mut self, js_context: @Cx, global: *JSObject) {
@@ -599,7 +589,8 @@ impl ScriptTask {
 
         }
         // We don't know what the script changed, so for now we will do a total redisplay.
-        page.reflow_all(ReflowForDisplay, self.chan.clone(), self.compositor);
+        page.damage(ContentChangedDocumentDamage);
+        page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor);
     }
 
     /// Handles a notification that reflow completed.
@@ -683,7 +674,8 @@ impl ScriptTask {
             if *loaded == url {
                 page.url = Some((loaded.clone(), false));
                 if needs_reflow {
-                    page.reflow_all(ReflowForDisplay, self.chan.clone(), self.compositor);
+                    page.damage(ContentChangedDocumentDamage);
+                    page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor);
                 }
                 return;
             }

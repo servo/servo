@@ -12,7 +12,7 @@ use dom::node::{AbstractNode, ScriptView};
 use dom::location::Location;
 use dom::navigator::Navigator;
 
-use layout_interface::ReflowForDisplay;
+use layout_interface::{ReflowForDisplay, ContentChangedDocumentDamage};
 use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan};
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -189,7 +189,8 @@ impl Window {
         // FIXME This should probably be ReflowForQuery, not Display. All queries currently
         // currently rely on the display list, which means we can't destroy it by
         // doing a query reflow.
-        self.page.reflow_all(ReflowForDisplay, self.script_chan.clone(), self.compositor);
+        self.page.damage(ContentChangedDocumentDamage);
+        self.page.reflow(ReflowForDisplay, self.script_chan.clone(), self.compositor);
     }
 
     pub fn wait_until_safe_to_modify_dom(&self) {
