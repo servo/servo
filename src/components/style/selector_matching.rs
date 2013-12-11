@@ -74,13 +74,13 @@ impl SelectorMap {
         let init_len = matching_rules_list[list_index].len();
         static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
         do node.with_imm_element_like |element: &E| {
-            match element.get_attr("id") {
+            match element.get_attr(None, "id") {
                 Some(id) => SelectorMap::get_matching_rules_from_hash(
                     node, pseudo_element, &self.id_hash, id, &mut matching_rules_list[list_index]),
                 None => {}
             }
 
-            match element.get_attr("class") {
+            match element.get_attr(None, "class") {
                 Some(ref class_attr) => {
                     for class in class_attr.split_iter(WHITESPACE) {
                         SelectorMap::get_matching_rules_from_hash(
@@ -434,7 +434,7 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
         // TODO: cache and intern IDs on elements.
         IDSelector(ref id) => {
             do element.with_imm_element_like |element: &E| {
-                match element.get_attr("id") {
+                match element.get_attr(None, "id") {
                     Some(attr) => str::eq_slice(attr, *id),
                     None => false
                 }
@@ -443,7 +443,7 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
         // TODO: cache and intern classe names on elements.
         ClassSelector(ref class) => {
             do element.with_imm_element_like |element: &E| {
-                match element.get_attr("class") {
+                match element.get_attr(None, "class") {
                     None => false,
                     // TODO: case-sensitivity depends on the document type and quirks mode
                     Some(ref class_attr)
@@ -642,12 +642,10 @@ fn matches_last_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementL
 fn match_attribute<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         attr: &AttrSelector, element: &T, f: &fn(&str)-> bool) -> bool {
     do element.with_imm_element_like |element: &E| {
-        match attr.namespace {
-            Some(_) => false,  // TODO, when the DOM supports namespaces on attributes
-            None => match element.get_attr(attr.name) {
-                None => false,
-                Some(ref value) => f(value.as_slice())
-            }
+        // FIXME: avoid .clone() here? See #1367
+        match element.get_attr(attr.namespace.clone(), attr.name) {
+            None => false,
+            Some(value) => f(value)
         }
     }
 }

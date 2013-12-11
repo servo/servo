@@ -112,7 +112,7 @@ impl ImageBoxInfo {
     // TODO: This could probably go somewhere else
     pub fn image_width(&self, base: &Box) -> Au {
         let attr_width: Option<int> = do base.node.with_imm_element |elt| {
-            match elt.get_attr("width") {
+            match elt.get_attr(None, "width") {
                 Some(width) => {
                     FromStr::from_str(width)
                 }
@@ -136,7 +136,7 @@ impl ImageBoxInfo {
     // TODO: This could probably go somewhere else
     pub fn image_height(&self, base: &Box) -> Au {
         let attr_height: Option<int> = do base.node.with_imm_element |elt| {
-            match elt.get_attr("height") {
+            match elt.get_attr(None, "height") {
                 Some(height) => {
                     FromStr::from_str(height)
                 }

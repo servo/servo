@@ -296,7 +296,7 @@ impl Document {
 
     pub fn GetElementsByName(&self, name: DOMString) -> @mut HTMLCollection {
         self.createHTMLCollection(|elem|
-            elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), name))
+            elem.get_attr(None, "name").is_some() && eq_slice(elem.get_attr(None, "name").unwrap(), name))
     }
 
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
@@ -374,7 +374,7 @@ fn foreach_ided_elements(root: &AbstractNode<ScriptView>,
         }
 
         do node.with_imm_element |element| {
-            match element.get_attr("id") {
+            match element.get_attr(None, "id") {
                 Some(id) => {
                     callback(&id.to_str(), &node);
                 }
