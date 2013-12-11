@@ -982,10 +982,13 @@ impl Box {
     }
 
     /// Returns a debugging string describing this box.
-    ///
-    /// TODO(pcwalton): Reimplement.
     pub fn debug_str(&self) -> ~str {
-        ~"(Box)"
+        match self.specific {
+            GenericBox => "(GenericBox)",
+            ImageBox(_) => "(ImageBox)",
+            ScannedTextBox(_) => "(ScannedTextBox)",
+            UnscannedTextBox(_) => "(UnscannedTextBox)",
+        }.to_str()
     }
 }
 

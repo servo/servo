@@ -28,9 +28,6 @@ impl TextRunScanner {
     pub fn scan_for_runs(&mut self, ctx: &mut LayoutContext, flow: &mut Flow) {
         {
             let inline = flow.as_immutable_inline();
-            // FIXME: this assertion fails on wikipedia, but doesn't seem
-            // to cause problems.
-            // assert!(inline.boxes.len() > 0);
             debug!("TextRunScanner: scanning {:u} boxes for text runs...", inline.boxes.len());
         }
 
@@ -71,9 +68,8 @@ impl TextRunScanner {
     /// for correct painting order. Since we compress several leaf boxes here, the mapping must be
     /// adjusted.
     ///
-    /// N.B. `in_boxes` is passed by reference, since the old code used a `DVec`. The caller is
-    /// responsible for swapping out the list. It is not clear to me (pcwalton) that this is still
-    /// necessary.
+    /// FIXME(pcwalton): Stop cloning boxes. Instead we will need to consume the `in_box`es as we
+    /// iterate over them.
     pub fn flush_clump_to_list(&mut self,
                                ctx: &mut LayoutContext,
                                flow: &mut Flow,
@@ -99,10 +95,9 @@ impl TextRunScanner {
                 fail!(~"WAT: can't coalesce non-text nodes in flush_clump_to_list()!")
             }
             (true, false) => {
+                // FIXME(pcwalton): Stop cloning boxes, as above.
                 debug!("TextRunScanner: pushing single non-text box in range: {}", self.clump);
-                // out_boxes.push(in_boxes[self.clump.begin()]);
-                let first_box = in_boxes.remove(self.clump.begin());
-                out_boxes.push(first_box);
+                out_boxes.push(in_boxes[self.clump.begin()].clone());
             },
             (true, true)  => {
                 let old_box = &in_boxes[self.clump.begin()];
