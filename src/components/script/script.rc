@@ -15,6 +15,7 @@
 
 extern mod geom = "rust-geom";
 extern mod hubbub;
+extern mod encoding;
 extern mod js;
 extern mod servo_net (name = "net");
 extern mod servo_util (name = "util");

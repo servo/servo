@@ -8,8 +8,10 @@ use std::cell::Cell;
 use std::comm;
 use std::comm::Port;
 use std::task;
+use encoding::EncodingObj;
+use encoding::all::UTF_8;
 use style::Stylesheet;
-use servo_net::resource_task::{Load, ProgressMsg, Payload, Done, ResourceTask};
+use servo_net::resource_task::{Load, LoadResponse, ProgressMsg, Payload, Done, ResourceTask};
 use extra::url::Url;
 
 /// Where a style sheet comes from.
@@ -22,6 +24,9 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
                         resource_task: ResourceTask)
                      -> Port<Stylesheet> {
     let (result_port, result_chan) = comm::stream();
+
+    // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
+    let environment_encoding = UTF_8 as EncodingObj;
 
     let provenance_cell = Cell::new(provenance);
     do task::spawn {
@@ -38,12 +43,15 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
                 debug!("cssparse: loading style sheet at {:s}", url.to_str());
                 let (input_port, input_chan) = comm::stream();
                 resource_task.send(Load(url, input_chan));
-                Stylesheet::from_iter(ProgressMsgPortIterator {
-                    progress_port: input_port.recv().progress_port
-                })
+                let LoadResponse { metadata: metadata, progress_port: progress_port }
+                    = input_port.recv();
+                let protocol_encoding_label = metadata.charset.as_ref().map(|s| s.as_slice());
+                let iter = ProgressMsgPortIterator { progress_port: progress_port };
+                Stylesheet::from_bytes_iter(
+                    iter, protocol_encoding_label, Some(environment_encoding))
             }
             InlineProvenance(_, data) => {
-                Stylesheet::from_str(data)
+                Stylesheet::from_str(data, environment_encoding)
             }
         };
         result_chan.send(sheet);

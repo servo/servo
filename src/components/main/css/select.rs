@@ -8,7 +8,7 @@ use style::{Stylesheet, Stylist, UserAgentOrigin, with_errors_silenced};
 pub fn new_stylist() -> Stylist {
     let mut stylist = Stylist::new();
     let ua_stylesheet = with_errors_silenced(
-        || Stylesheet::from_str(include_str!("user-agent.css")));
+        || Stylesheet::from_bytes(include_bin!("user-agent.css"), None, None));
     stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin);
     stylist
 }
