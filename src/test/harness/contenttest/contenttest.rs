@@ -16,7 +16,7 @@ use std::{os, str};
 use std::cell::Cell;
 use std::os::list_dir_path;
 use std::rt::io::Reader;
-use std::rt::io::process::{Process, ProcessConfig, Ignored, CreatePipe};
+use std::rt::io::process::{Process, ProcessConfig, Ignored, CreatePipe, InheritFd};
 
 #[deriving(Clone)]
 struct Config {
@@ -88,14 +88,15 @@ fn run_test(file: ~str) {
     let path = os::make_absolute(&Path::new(file));
     // FIXME (#1094): not the right way to transform a path
     let infile = ~"file://" + path.display().to_str();
-    let create_pipe = CreatePipe(true, false); // rustc #10228
+    let stdout = CreatePipe(true, false); // rustc #10228
+    let stderr = InheritFd(2);
 
     let config = ProcessConfig {
         program: "./servo",
         args: [~"-z", infile.clone()],
         env: None,
         cwd: None,
-        io: [Ignored, create_pipe, Ignored]
+        io: [Ignored, stdout, stderr]
     };
 
     let mut prc = Process::new(config).unwrap();
