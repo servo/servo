@@ -93,7 +93,7 @@ fn run_test(file: ~str) {
 
     let config = ProcessConfig {
         program: "./servo",
-        args: [~"-z", infile.clone()],
+        args: [~"-z", ~"-f", infile.clone()],
         env: None,
         cwd: None,
         io: [Ignored, stdout, stderr]
