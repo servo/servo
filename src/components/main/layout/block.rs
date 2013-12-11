@@ -323,6 +323,10 @@ impl BlockFlow {
 
 
         let mut height = if self.is_root {
+            // FIXME(pcwalton): The max is taken here so that you can scroll the page, but this is
+            // not correct behavior according to CSS 2.1 § 10.5. Instead I think we should treat
+            // the root element as having `overflow: scroll` and use the layers-based scrolling
+            // infrastructure to make it scrollable.
             Au::max(ctx.screen_size.size.height, cur_y)
         } else {
             cur_y - top_offset - collapsing
@@ -330,7 +334,11 @@ impl BlockFlow {
 
         for box in self.box.iter() {
             let style = box.style();
-            height = match MaybeAuto::from_style(style.Box.height, Au::new(0)) {
+
+            // At this point, `height` is the height of the containing block, so passing `height`
+            // as the second argument here effectively makes percentages relative to the containing
+            // block per CSS 2.1 § 10.5.
+            height = match MaybeAuto::from_style(style.Box.height, height) {
                 Auto => height,
                 Specified(value) => value
             };
