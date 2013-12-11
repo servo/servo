@@ -11,30 +11,23 @@ use freetype::freetype::{FTErrorMethods, FT_Library};
 use freetype::freetype::{FT_Done_FreeType, FT_Init_FreeType};
 
 use std::ptr;
+use std::rc::Rc;
 
 #[deriving(Clone)]
 struct FreeTypeLibraryHandle {
     ctx: FT_Library,
 }
 
-// FIXME(ksh8281) this value have to use atomic operation for counting ref
-static mut font_context_ref_count: uint = 0;
-static mut ft_pointer: Option<FT_Library> = None;
+#[deriving(Clone)]
 pub struct FontContextHandle {
-    ctx: FreeTypeLibraryHandle,
+    ctx: Rc<FreeTypeLibraryHandle>,
 }
 
-impl Drop for FontContextHandle {
+impl Drop for FreeTypeLibraryHandle {
     #[fixed_stack_segment]
     fn drop(&mut self) {
-        assert!(self.ctx.ctx.is_not_null());
-        unsafe {
-            assert!(font_context_ref_count >= 1);
-            font_context_ref_count = font_context_ref_count - 1;
-            if font_context_ref_count == 0 {
-                FT_Done_FreeType(self.ctx.ctx);
-            }
-        }
+        assert!(self.ctx.is_not_null());
+        unsafe { FT_Done_FreeType(self.ctx) };
     }
 }
 
@@ -42,38 +35,17 @@ impl FontContextHandle {
     #[fixed_stack_segment]
     pub fn new() -> FontContextHandle {
         unsafe {
-            match ft_pointer {
-                Some(ref ctx) => {
-                    font_context_ref_count = font_context_ref_count + 1;
-                    FontContextHandle {
-                        ctx: FreeTypeLibraryHandle { ctx: ctx.clone() },
-                    }
-                },
-                None => {
-                    let ctx: FT_Library = ptr::null();
-                    let result = FT_Init_FreeType(ptr::to_unsafe_ptr(&ctx));
-                    if !result.succeeded() { fail!("Unable to initialize FreeType library"); }
-                    ft_pointer = Some(ctx);
-                    font_context_ref_count = font_context_ref_count + 1;
-                    FontContextHandle {
-                        ctx: FreeTypeLibraryHandle { ctx: ctx },
-                    }
-                }
+            let ctx: FT_Library = ptr::null();
+            let result = FT_Init_FreeType(&ctx);
+            if !result.succeeded() { fail!("Unable to initialize FreeType library"); }
+            FontContextHandle {
+                ctx: Rc::new(FreeTypeLibraryHandle { ctx: ctx }),
             }
         }
     }
 }
 
 impl FontContextHandleMethods for FontContextHandle {
-    fn clone(&self) -> FontContextHandle {
-        unsafe {
-            font_context_ref_count = font_context_ref_count + 1;
-            FontContextHandle {
-                ctx: self.ctx.clone()
-            }
-        }
-    }
-
     fn create_font_from_identifier(&self, name: ~str, style: UsedFontStyle)
                                 -> Result<FontHandle, ()> {
         debug!("Creating font handle for {:s}", name);

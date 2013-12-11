@@ -635,14 +635,12 @@ impl Box {
 
                 // Create the text box.
                 do list.with_mut_ref |list| {
-                    // FIXME(pcwalton): Allocation? Why?!
-                    let run = text_box.run.clone();
                     let text_display_item = ~TextDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
                             extra: ExtraDisplayListData::new(self),
                         },
-                        text_run: run,
+                        text_run: text_box.run.clone(),
                         range: text_box.range,
                         color: color,
                     };
