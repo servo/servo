@@ -205,8 +205,8 @@ pub enum SplitBoxResult {
     CannotSplit,
     // in general, when splitting the left or right side can
     // be zero length, due to leading/trailing trimmable whitespace
-    SplitDidFit(Option<~Box>, Option<~Box>),
-    SplitDidNotFit(Option<~Box>, Option<~Box>)
+    SplitDidFit(Option<Box>, Option<Box>),
+    SplitDidNotFit(Option<Box>, Option<Box>)
 }
 
 impl Box {
@@ -909,7 +909,7 @@ impl Box {
                 let left_box = if left_range.length() > 0 {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
                     let new_metrics = new_text_box_info.run.get().metrics_for_range(&left_range);
-                    let new_text_box = ~Box::new(self.node, ScannedTextBox(new_text_box_info));
+                    let new_text_box = Box::new(self.node, ScannedTextBox(new_text_box_info));
                     new_text_box.set_size(new_metrics.bounding_box.size);
                     Some(new_text_box)
                 } else {
@@ -919,7 +919,7 @@ impl Box {
                 let right_box = right_range.map_default(None, |range: Range| {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), range);
                     let new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
-                    let new_text_box = ~Box::new(self.node, ScannedTextBox(new_text_box_info));
+                    let new_text_box = Box::new(self.node, ScannedTextBox(new_text_box_info));
                     new_text_box.set_size(new_metrics.bounding_box.size);
                     Some(new_text_box)
                 });

@@ -17,8 +17,8 @@
 /// * `BlockFlow`: A flow that establishes a block context. It has several child flows, each of
 ///   which are positioned according to block formatting context rules (CSS block boxes). Block
 ///   flows also contain a single `GenericBox` to represent their rendered borders, padding, etc.
-///   (In the future, this box may be folded into `BlockFlow` to save space.) The BlockFlow at the
-///   root of the tree has special behavior: it stretches to the boundaries of the viewport.
+///   The BlockFlow at the root of the tree has special behavior: it stretches to the boundaries of
+///   the viewport.
 ///   
 /// * `InlineFlow`: A flow that establishes an inline context. It has a flat list of child
 ///   boxes/flows that are subject to inline layout and line breaking and structs to represent

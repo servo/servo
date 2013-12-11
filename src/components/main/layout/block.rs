@@ -53,7 +53,7 @@ pub struct BlockFlow {
     base: FlowData,
 
     /// The associated box.
-    box: Option<~Box>,
+    box: Option<Box>,
 
     /// Whether this block flow is the root flow.
     is_root: bool,
@@ -72,7 +72,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn from_box(base: FlowData, box: ~Box) -> BlockFlow {
+    pub fn from_box(base: FlowData, box: Box) -> BlockFlow {
         BlockFlow {
             base: base,
             box: Some(box),
@@ -81,7 +81,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn float_from_box(base: FlowData, float_type: FloatType, box: ~Box) -> BlockFlow {
+    pub fn float_from_box(base: FlowData, float_type: FloatType, box: Box) -> BlockFlow {
         BlockFlow {
             base: base,
             box: Some(box),
@@ -643,9 +643,9 @@ impl Flow for BlockFlow {
                                                       remaining_width).specified_or_zero();
 
             let (width, margin_left, margin_right) = if self.is_float() {
-                self.compute_float_margins(*box, remaining_width)
+                self.compute_float_margins(box, remaining_width)
             } else {
-                self.compute_block_margins(*box, remaining_width, available_width)
+                self.compute_block_margins(box, remaining_width, available_width)
             };
 
             box.margin.set(SideOffsets2D::new(margin_top,
