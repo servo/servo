@@ -48,10 +48,11 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
                 let protocol_encoding_label = metadata.charset.as_ref().map(|s| s.as_slice());
                 let iter = ProgressMsgPortIterator { progress_port: progress_port };
                 Stylesheet::from_bytes_iter(
-                    iter, protocol_encoding_label, Some(environment_encoding))
+                    iter, metadata.final_url,
+                    protocol_encoding_label, Some(environment_encoding))
             }
-            InlineProvenance(_, data) => {
-                Stylesheet::from_str(data, environment_encoding)
+            InlineProvenance(base_url, data) => {
+                Stylesheet::from_str(data, base_url, environment_encoding)
             }
         };
         result_chan.send(sheet);
