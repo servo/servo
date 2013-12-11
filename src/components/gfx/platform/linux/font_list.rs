@@ -19,7 +19,6 @@ use fontconfig::fontconfig::{
 
 
 use font::{FontHandleMethods, UsedFontStyle};
-use font_context::FontContextHandleMethods;
 use font_list::{FontEntry, FontFamily, FontFamilyMap};
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
