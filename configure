@@ -498,6 +498,7 @@ CFG_SUBMODULES="\
     support/alert/rust-alert \
     support/azure/rust-azure \
     support/css/rust-cssparser \
+    support/encoding/rust-encoding \
     support/harfbuzz/rust-harfbuzz \
     support/http/rust-http \
     support/hubbub/libhubbub \

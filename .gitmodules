@@ -106,3 +106,7 @@
 [submodule "src/support/http/rust-http"]
 	path = src/support/http/rust-http
 	url = https://github.com/mozilla-servo/rust-http
+[submodule "src/support/encoding/rust-encoding"]
+	path = src/support/encoding/rust-encoding
+	url = https://github.com/mozilla-servo/rust-encoding.git
+	branch = rust-servo

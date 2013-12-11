@@ -50,6 +50,15 @@ DEPS_rust-azure += \
 	rust \
 	$(NULL)
 
+DEPS_rust-cssparser += \
+	rust-encoding \
+	rust \
+	$(NULL)
+
+DEPS_rust-encoding += \
+	rust \
+	$(NULL)
+
 DEPS_glfw-rs += \
 	glfw \
 	rust \
