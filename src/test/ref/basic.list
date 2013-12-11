@@ -14,3 +14,4 @@
 == only_of_type_pseudo_a.html only_of_type_pseudo_b.html
 == visibility_hidden.html visibility_hidden_ref.html
 == root_height_a.html root_height_b.html
+== png_rgba_colorspace_a.html png_rgba_colorspace_b.html
