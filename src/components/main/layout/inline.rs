@@ -58,8 +58,8 @@ struct LineBox {
 
 struct LineboxScanner {
     floats: FloatContext,
-    new_boxes: ~[~Box],
-    work_list: RingBuf<~Box>,
+    new_boxes: ~[Box],
+    work_list: RingBuf<Box>,
     pending_line: LineBox,
     lines: ~[LineBox],
     cur_y: Au,
@@ -288,7 +288,7 @@ impl LineboxScanner {
     ///
     /// Returns false if and only if we should break the line.
     fn avoid_floats(&mut self,
-                    in_box: ~Box,
+                    in_box: Box,
                     flow: &mut InlineFlow,
                     new_height: Au,
                     line_is_empty: bool)
@@ -297,7 +297,7 @@ impl LineboxScanner {
 
         // First predict where the next line is going to be.
         let this_line_y = self.pending_line.bounds.origin.y;
-        let (next_line, first_box_width) = self.initial_line_placement(in_box, this_line_y, flow);
+        let (next_line, first_box_width) = self.initial_line_placement(&in_box, this_line_y, flow);
         let next_green_zone = next_line.size;
 
         let new_width = self.pending_line.bounds.size.width + first_box_width;
@@ -321,10 +321,10 @@ impl LineboxScanner {
 
     /// Tries to append the given box to the line, splitting it if necessary. Returns false only if
     /// we should break the line.
-    fn try_append_to_line(&mut self, in_box: ~Box, flow: &mut InlineFlow) -> bool {
+    fn try_append_to_line(&mut self, in_box: Box, flow: &mut InlineFlow) -> bool {
         let line_is_empty = self.pending_line.range.length() == 0;
         if line_is_empty {
-            let (line_bounds, _) = self.initial_line_placement(in_box, self.cur_y, flow);
+            let (line_bounds, _) = self.initial_line_placement(&in_box, self.cur_y, flow);
             self.pending_line.bounds.origin = line_bounds.origin;
             self.pending_line.green_zone = line_bounds.size;
         }
@@ -342,7 +342,7 @@ impl LineboxScanner {
         // `green_zone.height < self.pending_line.bounds.size.height`, then we committed a line
         // that overlaps with floats.
 
-        let new_height = self.new_height_for_line(in_box);
+        let new_height = self.new_height_for_line(&in_box);
         if new_height > green_zone.height {
             // Uh-oh. Float collision imminent. Enter the float collision avoider
             return self.avoid_floats(in_box, flow, new_height, line_is_empty)
@@ -415,7 +415,7 @@ impl LineboxScanner {
     }
 
     // An unconditional push
-    fn push_box_to_line(&mut self, box: ~Box) {
+    fn push_box_to_line(&mut self, box: Box) {
         debug!("LineboxScanner: Pushing box {} to line {:u}", box.debug_id(), self.lines.len());
 
         if self.pending_line.range.length() == 0 {
@@ -436,7 +436,7 @@ pub struct InlineFlow {
     base: FlowData,
 
     /// A vector of all inline render boxes. Several boxes may correspond to one node/element.
-    boxes: ~[~Box],
+    boxes: ~[Box],
 
     // vec of ranges into boxes that represents line positions.
     // these ranges are disjoint, and are the result of inline layout.
@@ -458,7 +458,7 @@ impl InlineFlow {
         }
     }
 
-    pub fn from_boxes(base: FlowData, boxes: ~[~Box]) -> InlineFlow {
+    pub fn from_boxes(base: FlowData, boxes: ~[Box]) -> InlineFlow {
         InlineFlow {
             base: base,
             boxes: boxes,
@@ -579,7 +579,7 @@ impl InlineFlow {
     }
 
     /// Sets box X positions based on alignment for one line.
-    fn set_horizontal_box_positions(boxes: &[~Box], line: &LineBox) {
+    fn set_horizontal_box_positions(boxes: &[Box], line: &LineBox) {
         // Figure out how much width we have.
         let slack_width = Au::max(Au(0), line.green_zone.width - line.bounds.size.width);
 
@@ -733,7 +733,7 @@ impl Flow for InlineFlow {
                 // FIXME(pcwalton): Move into `box.rs` like the rest of box-specific layout code?
                 let (top_from_base, bottom_from_base, ascent) = match cur_box.specific {
                     ImageBox(ref image_box) => {
-                        let mut height = image_box.image_height(*cur_box);
+                        let mut height = image_box.image_height(cur_box);
 
                         // TODO: margin, border, padding's top and bottom should be calculated in
                         // advance, since baseline of image is bottom margin edge.
@@ -814,7 +814,7 @@ impl Flow for InlineFlow {
                 // updated or not. That is, if the box has a `top` or `bottom` value,
                 // `no_update_flag` becomes true.
                 let (offset, no_update_flag) =
-                    InlineFlow::relative_offset_from_baseline(*cur_box,
+                    InlineFlow::relative_offset_from_baseline(cur_box,
                                                               ascent,
                                                               parent_text_top,
                                                               parent_text_bottom,

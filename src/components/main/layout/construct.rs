@@ -70,7 +70,7 @@ struct InlineBoxesConstructionResult {
     splits: Option<~[InlineBlockSplit]>,
 
     /// Any boxes that succeed the {ib} splits.
-    boxes: ~[~Box],
+    boxes: ~[Box],
 }
 
 /// Represents an {ib} split that has not yet found the containing block that it belongs to. This
@@ -99,7 +99,7 @@ struct InlineBlockSplit {
     /// The inline boxes that precede the flow.
     ///
     /// TODO(pcwalton): Small vector optimization.
-    predecessor_boxes: ~[~Box],
+    predecessor_boxes: ~[Box],
 
     /// The flow that caused this {ib} split.
     flow: ~Flow:,
@@ -215,7 +215,7 @@ impl<'self> FlowConstructor<'self> {
     }
 
     /// Builds a `Box` for the given node.
-    fn build_box_for_node(&self, node: AbstractNode<LayoutView>) -> ~Box {
+    fn build_box_for_node(&self, node: AbstractNode<LayoutView>) -> Box {
         let specific = match node.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 match self.build_box_info_for_image(node) {
@@ -226,7 +226,7 @@ impl<'self> FlowConstructor<'self> {
             TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(&node)),
             _ => GenericBox,
         };
-        ~Box::new(node, specific)
+        Box::new(node, specific)
     }
 
     /// Creates an inline flow from a set of inline boxes and adds it as a child of the given flow.
@@ -235,7 +235,7 @@ impl<'self> FlowConstructor<'self> {
     /// otherwise.
     #[inline(always)]
     fn flush_inline_boxes_to_flow(&self,
-                                  boxes: ~[~Box],
+                                  boxes: ~[Box],
                                   flow: &mut ~Flow:,
                                   node: AbstractNode<LayoutView>) {
         if boxes.len() > 0 {
@@ -249,7 +249,7 @@ impl<'self> FlowConstructor<'self> {
     /// Creates an inline flow from a set of inline boxes, if present, and adds it as a child of
     /// the given flow.
     fn flush_inline_boxes_to_flow_if_necessary(&self,
-                                               opt_boxes: &mut Option<~[~Box]>,
+                                               opt_boxes: &mut Option<~[Box]>,
                                                flow: &mut ~Flow:,
                                                node: AbstractNode<LayoutView>) {
         let opt_boxes = util::replace(opt_boxes, None);
@@ -564,7 +564,7 @@ impl NodeUtils for AbstractNode<LayoutView> {
 }
 
 /// Strips ignorable whitespace from the start of a list of boxes.
-fn strip_ignorable_whitespace_from_start(opt_boxes: &mut Option<~[~Box]>) {
+fn strip_ignorable_whitespace_from_start(opt_boxes: &mut Option<~[Box]>) {
     match util::replace(opt_boxes, None) {
         None => return,
         Some(boxes) => {
@@ -586,7 +586,7 @@ fn strip_ignorable_whitespace_from_start(opt_boxes: &mut Option<~[~Box]>) {
 }
 
 /// Strips ignorable whitespace from the end of a list of boxes.
-fn strip_ignorable_whitespace_from_end(opt_boxes: &mut Option<~[~Box]>) {
+fn strip_ignorable_whitespace_from_end(opt_boxes: &mut Option<~[Box]>) {
     match *opt_boxes {
         None => {}
         Some(ref mut boxes) => {

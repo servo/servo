@@ -56,11 +56,11 @@ impl TextRunScanner {
         flow.as_inline().boxes = out_boxes;
 
         // A helper function.
-        fn can_coalesce_text_nodes(boxes: &[~Box], left_i: uint, right_i: uint) -> bool {
+        fn can_coalesce_text_nodes(boxes: &[Box], left_i: uint, right_i: uint) -> bool {
             assert!(left_i < boxes.len());
             assert!(right_i > 0 && right_i < boxes.len());
             assert!(left_i != right_i);
-            boxes[left_i].can_merge_with_box(boxes[right_i])
+            boxes[left_i].can_merge_with_box(&boxes[right_i])
         }
     }
 
@@ -78,7 +78,7 @@ impl TextRunScanner {
                                ctx: &LayoutContext,
                                flow: &mut Flow,
                                last_whitespace: bool,
-                               out_boxes: &mut ~[~Box])
+                               out_boxes: &mut ~[Box])
                                -> bool {
         let inline = flow.as_inline();
         let in_boxes = &mut inline.boxes;
@@ -135,8 +135,8 @@ impl TextRunScanner {
                     let range = Range::new(0, run.char_len());
                     let new_metrics = run.metrics_for_range(&range);
                     let new_text_box_info = ScannedTextBoxInfo::new(Arc::new(run), range);
-                    let new_box = ~old_box.transform(new_metrics.bounding_box.size,
-                                                     ScannedTextBox(new_text_box_info));
+                    let new_box = old_box.transform(new_metrics.bounding_box.size,
+                                                    ScannedTextBox(new_text_box_info));
                     out_boxes.push(new_box)
                 }
             },
@@ -212,8 +212,8 @@ impl TextRunScanner {
 
                     let new_text_box_info = ScannedTextBoxInfo::new(run.get_ref().clone(), range);
                     let new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
-                    let new_box = ~in_boxes[i].transform(new_metrics.bounding_box.size,
-                                                         ScannedTextBox(new_text_box_info));
+                    let new_box = in_boxes[i].transform(new_metrics.bounding_box.size,
+                                                        ScannedTextBox(new_text_box_info));
                     out_boxes.push(new_box)
                 }
             }
