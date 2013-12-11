@@ -11,7 +11,7 @@ use freetype::freetype::{FTErrorMethods, FT_Library};
 use freetype::freetype::{FT_Done_FreeType, FT_Init_FreeType};
 
 use std::ptr;
-use extra::arc::Arc;
+use std::rc::Rc;
 
 #[deriving(Clone)]
 struct FreeTypeLibraryHandle {
@@ -20,7 +20,7 @@ struct FreeTypeLibraryHandle {
 
 #[deriving(Clone)]
 pub struct FontContextHandle {
-    ctx: Arc<FreeTypeLibraryHandle>,
+    ctx: Rc<FreeTypeLibraryHandle>,
 }
 
 impl Drop for FreeTypeLibraryHandle {
@@ -39,7 +39,7 @@ impl FontContextHandle {
             let result = FT_Init_FreeType(&ctx);
             if !result.succeeded() { fail!("Unable to initialize FreeType library"); }
             FontContextHandle {
-                ctx: Arc::new(FreeTypeLibraryHandle { ctx: ctx }),
+                ctx: Rc::new(FreeTypeLibraryHandle { ctx: ctx }),
             }
         }
     }

@@ -78,7 +78,7 @@ impl FontHandleMethods for FontHandle {
                            buf: ~[u8],
                            style: &SpecifiedFontStyle)
                         -> Result<FontHandle, ()> {
-        let ft_ctx: FT_Library = fctx.ctx.get().ctx;
+        let ft_ctx: FT_Library = fctx.ctx.borrow().ctx;
         if ft_ctx.is_null() { return Err(()); }
 
         let face_result = do buf.as_imm_buf |bytes: *u8, len: uint| {
@@ -291,7 +291,7 @@ impl<'self> FontHandle {
     pub fn new_from_file(fctx: &FontContextHandle, file: &str,
                          style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
         unsafe {
-            let ft_ctx: FT_Library = fctx.ctx.get().ctx;
+            let ft_ctx: FT_Library = fctx.ctx.borrow().ctx;
             if ft_ctx.is_null() { return Err(()); }
 
             let mut face: FT_Face = ptr::null();
@@ -319,7 +319,7 @@ impl<'self> FontHandle {
     pub fn new_from_file_unstyled(fctx: &FontContextHandle, file: ~str)
                                -> Result<FontHandle, ()> {
         unsafe {
-            let ft_ctx: FT_Library = fctx.ctx.get().ctx;
+            let ft_ctx: FT_Library = fctx.ctx.borrow().ctx;
             if ft_ctx.is_null() { return Err(()); }
 
             let mut face: FT_Face = ptr::null();
