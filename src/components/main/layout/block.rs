@@ -58,6 +58,8 @@ pub struct BlockFlow {
     /// Whether this block flow is the root flow.
     is_root: bool,
 
+    is_fixed: bool,
+
     /// Additional floating flow members.
     float: Option<~FloatedBlockInfo>
 }
@@ -68,15 +70,17 @@ impl BlockFlow {
             base: base,
             box_: None,
             is_root: false,
+            is_fixed: false,
             float: None
         }
     }
 
-    pub fn from_box(base: BaseFlow, box_: Box) -> BlockFlow {
+    pub fn from_box(base: BaseFlow, box_: Box, is_fixed: bool) -> BlockFlow {
         BlockFlow {
             base: base,
             box_: Some(box_),
             is_root: false,
+            is_fixed: is_fixed,
             float: None
         }
     }
@@ -86,6 +90,7 @@ impl BlockFlow {
             base: base,
             box_: Some(box_),
             is_root: false,
+            is_fixed: false,
             float: Some(~FloatedBlockInfo::new(float_type))
         }
     }
@@ -95,6 +100,7 @@ impl BlockFlow {
             base: base,
             box_: None,
             is_root: true,
+            is_fixed: false,
             float: None
         }
     }
@@ -104,6 +110,7 @@ impl BlockFlow {
             base: base,
             box_: None,
             is_root: false,
+            is_fixed: false,
             float: Some(~FloatedBlockInfo::new(float_type))
         }
     }
@@ -593,7 +600,7 @@ impl Flow for BlockFlow {
                },
                self.base.id);
 
-        if self.is_root {
+        if self.is_root || self.is_fixed {
             debug!("Setting root position");
             self.base.position.origin = Au::zero_point();
             self.base.position.size.width = ctx.screen_size.size.width;

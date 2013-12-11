@@ -378,7 +378,7 @@ impl LayoutTask {
         };
         flow.mark_as_root();
         flow
-    }
+                           }
 
     /// Performs layout constraint solving.
     ///
@@ -399,7 +399,7 @@ impl LayoutTask {
         // For now, this is an inorder traversal
         // FIXME: prune this traversal as well
         let _ = layout_root.traverse_postorder(&mut
-            AssignHeightsAndStoreOverflowTraversal(layout_context));
+                                               AssignHeightsAndStoreOverflowTraversal(layout_context));
     }
 
     /// The high-level routine that performs layout tasks.
