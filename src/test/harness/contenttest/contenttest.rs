@@ -100,10 +100,9 @@ fn run_test(file: ~str) {
     };
 
     let mut prc = Process::new(config).unwrap();
-    let stdout = prc.io[1].get_mut_ref();
     let mut output = ~[];
     loop {
-        let byte = stdout.read_byte();
+        let byte = prc.io[1].get_mut_ref().read_byte();
         match byte {
             Some(byte) => {
                 print!("{}", byte as char);
@@ -119,5 +118,10 @@ fn run_test(file: ~str) {
         if line.contains("TEST-UNEXPECTED-FAIL") {
             fail!(line);
         }
+    }
+
+    let retval = prc.wait();
+    if retval != 0 {
+        fail!("Servo exited with non-zero status {}", retval);
     }
 }
