@@ -13,7 +13,6 @@ NO_TESTS += \
 
 # These submodules will not be cleaned by the `make clean-fast` target.
 SLOW_BUILDS += \
-	libcss \
 	libparserutils \
 	mozjs \
 	sharegl \
@@ -22,7 +21,6 @@ SLOW_BUILDS += \
 
 # Builds that do not require rustc
 NATIVE_BUILDS += \
-	libcss \
 	libhubbub \
 	libparserutils \
 	mozjs \
