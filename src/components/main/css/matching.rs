@@ -8,7 +8,7 @@ use std::cell::Cell;
 use std::comm;
 use std::task;
 use std::vec;
-use extra::arc::RWArc;
+use extra::arc::{Arc, RWArc};
 
 use css::node_style::StyledNode;
 use layout::incremental;
@@ -85,13 +85,16 @@ impl MatchMethods for AbstractNode<LayoutView> {
 
     fn cascade_node(&self, parent: Option<AbstractNode<LayoutView>>) {
         let parent_style = match parent {
-            Some(parent) => Some(parent.style()),
+            Some(ref parent) => Some(parent.style()),
             None => None
         };
 
         let computed_values = unsafe {
-            cascade(self.borrow_layout_data_unchecked().as_ref().unwrap().applicable_declarations,
-                    parent_style)
+            Arc::new(cascade(self.borrow_layout_data_unchecked()
+                                 .as_ref()
+                                 .unwrap()
+                                 .applicable_declarations,
+                             parent_style.map(|parent_style| parent_style.get())))
         };
 
         match *self.mutate_layout_data().ptr {
@@ -102,8 +105,8 @@ impl MatchMethods for AbstractNode<LayoutView> {
                     None => (),
                     Some(ref previous_style) => {
                         layout_data.restyle_damage =
-                            Some(incremental::compute_damage(previous_style,
-                                                             &computed_values).to_int())
+                            Some(incremental::compute_damage(previous_style.get(),
+                                                             computed_values.get()).to_int())
                     }
                 }
                 *style = Some(computed_values)
