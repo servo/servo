@@ -190,6 +190,7 @@ pub mod longhands {
     pub fn parse_border_width(component_value: &ComponentValue) -> Option<specified::Length> {
         match component_value {
             &Ident(ref value) => {
+                // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
                 let value_lower = value.to_ascii_lower(); 
                 match value_lower.as_slice() {
                     "thin" => Some(specified::Length::from_px(1.)),
@@ -336,6 +337,7 @@ pub mod longhands {
         pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
             match input {
                 &Ident(ref value) => {
+                    // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
                     let value_lower = value.to_ascii_lower(); 
                     match value_lower.as_slice() {
                         % for keyword in vertical_align_keywords:
@@ -460,6 +462,7 @@ pub mod longhands {
                     // TODO: avoid copying strings?
                     Some(&String(ref value)) => add!(FamilyName(value.to_owned())),
                     Some(&Ident(ref value)) => {
+                        // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
                         let value = value.as_slice();
                         let value_lower = value.to_ascii_lower(); 
                         match value_lower.as_slice() {
@@ -511,6 +514,7 @@ pub mod longhands {
         pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
             match input {
                 &Ident(ref value) => {
+                    // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
                     let value_lower = value.to_ascii_lower();  
                     match value_lower.as_slice() {
                         "bold" => Some(SpecifiedWeight700),

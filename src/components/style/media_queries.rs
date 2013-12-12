@@ -82,6 +82,7 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
     loop {
         let mq = match next {
             Some(&Ident(ref value)) => {
+                // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
                 let value_lower = value.to_ascii_lower(); 
                 match value_lower.as_slice() {
                     "screen" => Some(MediaQuery{ media_type: MediaType(Screen) }),

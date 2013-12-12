@@ -116,6 +116,7 @@ impl HTMLIFrameElement {
         if "sandbox" == name {
             let mut modes = AllowNothing as u8;
             for word in value.split_iter(' ') {
+                // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
                 let word_lower = word.to_ascii_lower();
                 modes |= match word_lower.as_slice() {
                     "allow-same-origin" => AllowSameOrigin,
