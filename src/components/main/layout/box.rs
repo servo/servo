@@ -60,6 +60,9 @@ pub struct Box {
     /// The DOM node that this `Box` originates from.
     node: AbstractNode<LayoutView>,
 
+    /// The CSS style of this box.
+    style: Arc<ComputedValues>,
+
     /// The position of this box relative to its owning flow.
     position: Slot<Rect<Au>>,
 
@@ -209,8 +212,27 @@ pub enum SplitBoxResult {
 impl Box {
     /// Constructs a new `Box` instance.
     pub fn new(node: AbstractNode<LayoutView>, specific: SpecificBoxInfo) -> Box {
+        // Find the nearest ancestor element and take its style. (It should be either that node or
+        // its immediate parent.)
+        //
+        // FIXME(pcwalton): This is incorrect for non-inherited properties on anonymous boxes. For
+        // example:
+        //
+        //     <div style="border: solid">
+        //         <p>Foo</p>
+        //         Bar
+        //         <p>Baz</p>
+        //     </div>
+        //
+        // An anonymous block box is generated around `Bar`, but it shouldn't inherit the border.
+        let mut nearest_ancestor_element = node;
+        while !nearest_ancestor_element.is_element() {
+            nearest_ancestor_element = node.parent_node().expect("no nearest element?!");
+        }
+
         Box {
             node: node,
+            style: (*nearest_ancestor_element.style()).clone(),
             position: Slot::init(Au::zero_rect()),
             border: Slot::init(Zero::zero()),
             padding: Slot::init(Zero::zero()),
@@ -232,6 +254,7 @@ impl Box {
     pub fn transform(&self, size: Size2D<Au>, specific: SpecificBoxInfo) -> Box {
         Box {
             node: self.node,
+            style: self.style.clone(),
             position: Slot::init(Rect(self.position.get().origin, size)),
             border: Slot::init(self.border.get()),
             padding: Slot::init(self.padding.get()),
@@ -373,7 +396,7 @@ impl Box {
     /// FIXME(pcwalton): Just replace with the clear type from the style module for speed?
     #[inline(always)]
     pub fn clear(&self) -> Option<ClearType> {
-        let style = self.node.style();
+        let style = self.style();
         match style.Box.clear {
             clear::none => None,
             clear::left => Some(ClearLeft),
@@ -387,7 +410,7 @@ impl Box {
     /// FIXME(pcwalton): This should not be necessary; just make the font part of style sharable
     /// with the display list somehow. (Perhaps we should use an ARC.)
     pub fn font_style(&self) -> FontStyle {
-        let my_style = self.nearest_ancestor_element().style();
+        let my_style = self.style();
 
         debug!("(font style) start: {:?}", self.nearest_ancestor_element().type_id());
 
@@ -418,24 +441,23 @@ impl Box {
         }
     }
 
-    // FIXME(pcwalton): Why &'static??? Isn't that wildly unsafe?
     #[inline(always)]
-    pub fn style(&self) -> &'static ComputedValues {
-        self.node.style()
+    pub fn style<'a>(&'a self) -> &'a ComputedValues {
+        self.style.get()
     }
 
     /// Returns the text alignment of the computed style of the nearest ancestor-or-self `Element`
     /// node.
     pub fn text_align(&self) -> text_align::T {
-        self.nearest_ancestor_element().style().Text.text_align
+        self.style().Text.text_align
     }
 
     pub fn line_height(&self) -> line_height::T {
-        self.nearest_ancestor_element().style().Box.line_height
+        self.style().Box.line_height
     }
 
     pub fn vertical_align(&self) -> vertical_align::T {
-        self.nearest_ancestor_element().style().Box.vertical_align
+        self.style().Box.vertical_align
     }
 
     /// Returns the text decoration of the computed style of the nearest `Element` node
@@ -455,13 +477,13 @@ impl Box {
             // FIXME: Implement correctly.
             let display_in_flow = true;
 
-            let position = element.style().Box.position;
-            let float = element.style().Box.float;
+            let position = element.style().get().Box.position;
+            let float = element.style().get().Box.float;
 
             let in_flow = (position == position::static_) && (float == float::none) &&
                 display_in_flow;
 
-            let text_decoration = element.style().Text.text_decoration;
+            let text_decoration = element.style().get().Text.text_decoration;
 
             if text_decoration == text_decoration::none && in_flow {
                 match element.parent_node() {
@@ -521,9 +543,7 @@ impl Box {
         // needed. We could use display list optimization to clean this up, but it still seems
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a box".
-        let nearest_ancestor_element = self.nearest_ancestor_element();
-
-        let style = nearest_ancestor_element.style();
+        let style = self.style();
         let background_color = style.resolve_color(style.Background.background_color);
         if !background_color.alpha.approx_eq(&0.0) {
             list.with_mut_ref(|list| {
@@ -610,7 +630,7 @@ impl Box {
                box_bounds, absolute_box_bounds, self.debug_str());
         debug!("Box::build_display_list: dirty={}, offset={}", *dirty, *offset);
 
-        if self.nearest_ancestor_element().style().Box.visibility != visibility::visible {
+        if self.style().Box.visibility != visibility::visible {
             return;
         }
 
@@ -639,9 +659,7 @@ impl Box {
                     list.append_item(ClipDisplayItemClass(item));
                 }
 
-
-                let nearest_ancestor_element = self.nearest_ancestor_element();
-                let color = nearest_ancestor_element.style().Color.color.to_gfx_color();
+                let color = self.style().Color.color.to_gfx_color();
 
                 // Create the text box.
                 do list.with_mut_ref |list| {
@@ -988,7 +1006,7 @@ impl Box {
 
     /// Returns true if the contents should be clipped (i.e. if `overflow` is `hidden`).
     pub fn needs_clip(&self) -> bool {
-        self.node.style().Box.overflow == overflow::hidden
+        self.style().Box.overflow == overflow::hidden
     }
 
     /// Returns a debugging string describing this box.

@@ -589,7 +589,7 @@ impl InlineFlow {
         // not from the style of the first box child.
         let linebox_align = if line.range.begin() < boxes.len() {
             let first_box = &boxes[line.range.begin()];
-            first_box.nearest_ancestor_element().style().Text.text_align
+            first_box.style().Text.text_align
         } else {
             // Nothing to lay out, so assume left alignment.
             text_align::left
@@ -804,8 +804,9 @@ impl Flow for InlineFlow {
                 // content area. But for now we assume it's zero.
                 let parent_text_bottom = Au::new(0);
 
-                let parent = cur_box.node.parent_node();
-                let font_size = parent.unwrap().style().Font.font_size;
+                let parent = cur_box.node.parent_node().unwrap();
+                let parent_style = parent.style();
+                let font_size = parent_style.get().Font.font_size;
                 parent_text_top = font_size;
 
                 // Calculate a relative offset from the baseline.

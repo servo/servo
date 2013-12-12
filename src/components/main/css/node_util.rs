@@ -5,30 +5,28 @@
 use layout::incremental::RestyleDamage;
 use layout::util::LayoutDataAccess;
 
+use extra::arc::Arc;
 use std::cast;
 use style::ComputedValues;
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::tree::TreeNodeRef;
 
-pub trait NodeUtil<'self> {
-    fn get_css_select_results(self) -> &'self ComputedValues;
-    fn set_css_select_results(self, decl: ComputedValues);
+pub trait NodeUtil {
+    fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;
     fn have_css_select_results(self) -> bool;
 
     fn get_restyle_damage(self) -> RestyleDamage;
     fn set_restyle_damage(self, damage: RestyleDamage);
 }
 
-impl<'self> NodeUtil<'self> for AbstractNode<LayoutView> {
+impl NodeUtil for AbstractNode<LayoutView> {
     /** 
      * Provides the computed style for the given node. If CSS selector
      * Returns the style results for the given node. If CSS selector
      * matching has not yet been performed, fails.
-     * FIXME: This isn't completely memory safe since the style is
-     * stored in a box that can be overwritten
      */
     #[inline]
-    fn get_css_select_results(self) -> &'self ComputedValues {
+    fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues> {
         unsafe {
             cast::transmute_region(self.borrow_layout_data_unchecked()
                                        .as_ref()
@@ -42,14 +40,6 @@ impl<'self> NodeUtil<'self> for AbstractNode<LayoutView> {
     /// Does this node have a computed style yet?
     fn have_css_select_results(self) -> bool {
         self.borrow_layout_data().ptr.as_ref().unwrap().style.is_some()
-    }
-
-    /// Update the computed style of an HTML element with a style specified by CSS.
-    fn set_css_select_results(self, decl: ComputedValues) {
-        match *self.mutate_layout_data().ptr {
-            Some(ref mut data) => data.style = Some(decl),
-            _ => fail!("no layout data for this node"),
-        }
     }
 
     /// Get the description of how to account for recent style changes.
