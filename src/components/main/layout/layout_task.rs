@@ -15,7 +15,7 @@ use layout::extra::LayoutAuxMethods;
 use layout::flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
 use layout::flow::{PostorderFlowTraversal};
 use layout::flow;
-use layout::incremental::{RestyleDamage, BubbleWidths};
+use layout::incremental::{RestyleDamage};
 use layout::util::{LayoutData, LayoutDataAccess};
 
 use extra::arc::{Arc, RWArc, MutexArc};
@@ -143,10 +143,13 @@ impl<'self> PostorderFlowTraversal for BubbleWidthsTraversal<'self> {
         true
     }
 
+    // FIXME: We can't prune until we start reusing flows
+    /*
     #[inline]
     fn should_prune(&mut self, flow: &mut Flow) -> bool {
         flow::mut_base(flow).restyle_damage.lacks(BubbleWidths)
     }
+    */
 }
 
 /// The assign-widths traversal. In Gecko this corresponds to `Reflow`.
@@ -372,10 +375,9 @@ impl LayoutTask {
                          layout_context: &mut LayoutContext) {
         let _ = layout_root.traverse_postorder(&mut BubbleWidthsTraversal(layout_context));
 
-        // FIXME(kmc): We want to do
-        //     for flow in layout_root.traverse_preorder_prune(|f|
-        //          f.restyle_damage().lacks(Reflow)) 
-        // but FloatContext values can't be reused, so we need to recompute them every time.
+        // FIXME(kmc): We want to prune nodes without the Reflow restyle damage
+        // bit, but FloatContext values can't be reused, so we need to
+        // recompute them every time.
         // NOTE: this currently computes borders, so any pruning should separate that operation out.
         let _ = layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
 
