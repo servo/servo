@@ -42,8 +42,8 @@ interface Document : Node {
 
   [Creator, Throws]
   Element createElement(DOMString localName);
-  // [Creator, Throws]
-  // Element createElementNS(DOMString? namespace, DOMString qualifiedName);
+  [Creator, Throws]
+  Element createElementNS(DOMString? namespace, DOMString qualifiedName);
   [Creator]
   DocumentFragment createDocumentFragment();
   [Creator]

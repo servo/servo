@@ -3,18 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::comment::Comment;
+use dom::bindings::codegen::ElementBinding;
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable, reflect_dom_object};
-use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
+use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter, NamespaceError};
 use dom::bindings::utils::DOMString;
-use dom::bindings::utils::{xml_name_type, InvalidXMLName};
+use dom::bindings::utils::{xml_name_type, InvalidXMLName, Name, QName};
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
-use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
+use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId, nonHTMLTypeId};
 use dom::event::{AbstractEvent, Event};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::mouseevent::MouseEvent;
+use dom::namespace;
+use dom::namespace::Namespace;
 use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId, DocumentNodeTypeId};
 use dom::text::Text;
 use dom::uievent::UIEvent;
@@ -199,6 +202,56 @@ impl Document {
         }
         let local_name = local_name.to_ascii_lower();
         Ok(build_element_from_tag(local_name, abstract_self))
+    }
+
+    pub fn CreateElementNS(&self, abstract_self: AbstractDocument, namespace: Option<DOMString>, qualified_name: DOMString) -> Fallible<AbstractNode<ScriptView>> {
+        let ns: Namespace = Namespace::from_str(namespace);
+        let mut local_name;
+        match xml_name_type(qualified_name) {
+            InvalidXMLName => {
+                debug!("Not a valid element name");
+                return Err(InvalidCharacter);
+            },
+            Name => {
+                debug!("Not a valid qualified element name");
+                return Err(NamespaceError);
+            },
+            QName => {
+                let (prefix_from_qname, local_name_from_qname) = if qualified_name.contains(":")  {
+                    let parts: ~[&str] = qualified_name.splitn_iter(':', 1).collect();
+                    (Some(parts[0].to_owned()), parts[1].to_owned())
+                } else {
+                    (None, qualified_name.clone())
+                };
+                match (ns.clone(), prefix_from_qname, local_name_from_qname.clone()) {
+                    (namespace::Null, None, _) => {},
+                    (namespace::Null, _, _) => {
+                        debug!("Namespace can't be null with a non-null prefix");
+                        return Err(NamespaceError);
+                    },
+                    (namespace::XML, Some(~"xml"), _) => {},
+                    (namespace::XML, _, _) => {
+                        debug!("Namespace must be the xml namespace if the prefix is 'xml'");
+                        return Err(NamespaceError);
+                    },
+                    (namespace::XMLNS, Some(~"xmlns"), _) | (namespace::XMLNS, _, ~"xmlns") => {},
+                    (_, Some(~"xmlns"), _) | (_, _, ~"xmlns") => {
+                        debug!("Namespace must be the xmlns namespace if the prefix or the qualified name is 'xmlns'");
+                        return Err(NamespaceError);
+                    },
+                    _ => {}
+                }
+                local_name = local_name_from_qname;
+            }
+        }
+            
+        if ns == namespace::HTML {
+            local_name = local_name.to_ascii_lower();
+            Ok(build_element_from_tag(local_name, abstract_self))
+        } else {
+            let element = Element::new(nonHTMLTypeId, local_name, ns, abstract_self);
+            Ok(Node::reflect_node(@mut element, abstract_self, ElementBinding::Wrap))
+        }
     }
 
     pub fn CreateDocumentFragment(&self, abstract_self: AbstractDocument) -> AbstractNode<ScriptView> {
