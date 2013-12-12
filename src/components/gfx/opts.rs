@@ -39,6 +39,7 @@ pub struct Opts {
 
     output_file: Option<~str>,
     headless: bool,
+    hard_fail: bool,
 }
 
 fn print_usage(app: &str, opts: &[groups::OptGroup]) {
@@ -59,6 +60,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         groups::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
         groups::optflag("x", "exit", "Exit after load flag"),
         groups::optflag("z", "headless", "Headless mode"),
+        groups::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
         groups::optflag("h", "help", "Print this message")
     ];
 
@@ -127,5 +129,6 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         exit_after_load: opt_match.opt_present("x"),
         output_file: opt_match.opt_str("o"),
         headless: opt_match.opt_present("z"),
+        hard_fail: opt_match.opt_present("f"),
     }
 }
