@@ -448,14 +448,14 @@ impl LayoutTask {
         });
         layout_root.traverse_postorder(&mut ComputeDamageTraversal.clone());
 
-        debug!("layout: constructed Flow tree");
-        debug!("{:?}", layout_root.dump());
-
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         do profile(time::LayoutMainCategory, self.profiler_chan.clone()) {
             self.solve_constraints(layout_root, &mut layout_ctx)
         }
+
+        debug!("layout: constraint solving done:");
+        debug!("{:?}", layout_root.dump());
 
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {

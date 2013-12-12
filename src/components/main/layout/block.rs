@@ -763,17 +763,17 @@ impl Flow for BlockFlow {
     }
 
     fn debug_str(&self) -> ~str {
-        if self.is_root {
-            ~"BlockFlow(root)"
+        let txt = if self.is_float() {
+            ~"FloatFlow: "
+        } else if self.is_root {
+            ~"RootFlow: "
         } else {
-            let txt = if self.is_float() { ~"FloatFlow: " } else { ~"BlockFlow: " };
-            txt.append(match self.box {
-                Some(ref rb) => {
-                    rb.debug_str()
-                }
-                None => { ~"" }
-            })
-        }
+            ~"BlockFlow: "
+        };
+        txt.append(match self.box {
+            Some(ref rb) => rb.debug_str(),
+            None => ~"",
+        })
     }
 }
 
