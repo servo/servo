@@ -189,11 +189,14 @@ pub mod longhands {
 
     pub fn parse_border_width(component_value: &ComponentValue) -> Option<specified::Length> {
         match component_value {
-            &Ident(ref value) => match value.to_ascii_lower().as_slice() {
-                "thin" => Some(specified::Length::from_px(1.)),
-                "medium" => Some(specified::Length::from_px(3.)),
-                "thick" => Some(specified::Length::from_px(5.)),
-                _ => None
+            &Ident(ref value) => {
+                let value_lower = value.to_ascii_lower(); 
+                match value_lower.as_slice() {
+                    "thin" => Some(specified::Length::from_px(1.)),
+                    "medium" => Some(specified::Length::from_px(3.)),
+                    "thick" => Some(specified::Length::from_px(5.)),
+                    _ => None
+                }
             },
             _ => specified::Length::parse_non_negative(component_value)
         }
@@ -332,11 +335,14 @@ pub mod longhands {
         /// | <percentage> | <length>
         pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
             match input {
-                &Ident(ref value) => match value.to_ascii_lower().as_slice() {
-                    % for keyword in vertical_align_keywords:
+                &Ident(ref value) => {
+                    let value_lower = value.to_ascii_lower(); 
+                    match value_lower.as_slice() {
+                        % for keyword in vertical_align_keywords:
                         "${keyword}" => Some(Specified_${to_rust_ident(keyword)}),
-                    % endfor
-                    _ => None,
+                        % endfor
+                        _ => None,
+                    }
                 },
                 _ => specified::LengthOrPercentage::parse_non_negative(input)
                      .map(SpecifiedLengthOrPercentage)
@@ -455,7 +461,8 @@ pub mod longhands {
                     Some(&String(ref value)) => add!(FamilyName(value.to_owned())),
                     Some(&Ident(ref value)) => {
                         let value = value.as_slice();
-                        match value.to_ascii_lower().as_slice() {
+                        let value_lower = value.to_ascii_lower(); 
+                        match value_lower.as_slice() {
 //                            "serif" => add!(Serif),
 //                            "sans-serif" => add!(SansSerif),
 //                            "cursive" => add!(Cursive),
@@ -503,12 +510,15 @@ pub mod longhands {
         /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
         pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
             match input {
-                &Ident(ref value) => match value.to_ascii_lower().as_slice() {
-                    "bold" => Some(SpecifiedWeight700),
-                    "normal" => Some(SpecifiedWeight400),
-                    "bolder" => Some(Bolder),
-                    "lighter" => Some(Lighther),
-                    _ => None,
+                &Ident(ref value) => {
+                    let value_lower = value.to_ascii_lower();  
+                    match value_lower.as_slice() {
+                        "bold" => Some(SpecifiedWeight700),
+                        "normal" => Some(SpecifiedWeight400),
+                        "bolder" => Some(Bolder),
+                        "lighter" => Some(Lighther),
+                        _ => None,
+                    }
                 },
                 &Number(ref value) => match value.int_value {
                     Some(100) => Some(SpecifiedWeight100),

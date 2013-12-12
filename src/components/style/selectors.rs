@@ -308,14 +308,17 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
             iter.next();
             match iter.next() {
                 Some(Ident(name)) => match parse_simple_pseudo_class(name) {
-                    None => match name.to_ascii_lower().as_slice() {
-                        // Supported CSS 2.1 pseudo-elements only.
-                        // ** Do not add to this list! **
-                        "before" => PseudoElementResult(Before),
-                        "after" => PseudoElementResult(After),
-                        "first-line" => PseudoElementResult(FirstLine),
-                        "first-letter" => PseudoElementResult(FirstLetter),
-                        _ => InvalidSimpleSelector
+                    None => {
+                        let name_lower = name.to_ascii_lower(); 
+                        match name_lower.as_slice() {
+                            // Supported CSS 2.1 pseudo-elements only.
+                            // ** Do not add to this list! **
+                            "before" => PseudoElementResult(Before),
+                            "after" => PseudoElementResult(After),
+                            "first-line" => PseudoElementResult(FirstLine),
+                            "first-letter" => PseudoElementResult(FirstLetter),
+                            _ => InvalidSimpleSelector
+                        }
                     },
                     Some(result) => SimpleSelectorResult(result),
                 },
@@ -443,7 +446,8 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
 
 
 fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
-    match name.to_ascii_lower().as_slice() {
+    let name_lower = name.to_ascii_lower(); 
+    match name_lower.as_slice() {
         "any-link" => Some(AnyLink),
         "link" => Some(Link),
         "visited" => Some(Visited),
@@ -463,7 +467,8 @@ fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
 fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
                                  namespaces: &NamespaceMap, inside_negation: bool)
                                  -> Option<SimpleSelector> {
-    match name.to_ascii_lower().as_slice() {
+    let name_lower = name.to_ascii_lower(); 
+    match name_lower.as_slice() {
 //        "lang" => parse_lang(arguments),
         "nth-child"        => parse_nth(arguments).map(|(a, b)| NthChild(a, b)),
         "nth-last-child"   => parse_nth(arguments).map(|(a, b)| NthLastChild(a, b)),
@@ -476,7 +481,8 @@ fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
 
 
 fn parse_pseudo_element(name: ~str) -> Option<PseudoElement> {
-    match name.to_ascii_lower().as_slice() {
+    let name_lower = name.to_ascii_lower();  
+    match name_lower.as_slice() {
         // All supported pseudo-elements
         "before" => Some(Before),
         "after" => Some(After),
