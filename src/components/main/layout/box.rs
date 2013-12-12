@@ -281,10 +281,23 @@ impl Box {
     ///
     /// FIXME(pcwalton): This should not be necessary. Just go to the style.
     pub fn compute_borders(&self, style: &ComputedValues) {
-        self.border.set(SideOffsets2D::new(style.Border.border_top_width,
-                                           style.Border.border_right_width,
-                                           style.Border.border_bottom_width,
-                                           style.Border.border_left_width))
+        #[inline]
+        fn width(width: Au, style: border_style::T) -> Au {
+            if style == border_style::none {
+                Au(0)
+            } else {
+                width
+            }
+        }
+
+        self.border.set(SideOffsets2D::new(width(style.Border.border_top_width,
+                                                 style.Border.border_top_style),
+                                           width(style.Border.border_right_width,
+                                                 style.Border.border_right_style),
+                                           width(style.Border.border_bottom_width,
+                                                 style.Border.border_bottom_style),
+                                           width(style.Border.border_left_width,
+                                                 style.Border.border_left_style)))
     }
 
     /// Populates the box model padding parameters from the given computed style.
@@ -983,12 +996,33 @@ impl Box {
 
     /// Returns a debugging string describing this box.
     pub fn debug_str(&self) -> ~str {
-        match self.specific {
-            GenericBox => "(GenericBox)",
-            ImageBox(_) => "(ImageBox)",
-            ScannedTextBox(_) => "(ScannedTextBox)",
-            UnscannedTextBox(_) => "(UnscannedTextBox)",
-        }.to_str()
+        let class_name = match self.specific {
+            GenericBox => "GenericBox",
+            ImageBox(_) => "ImageBox",
+            ScannedTextBox(_) => "ScannedTextBox",
+            UnscannedTextBox(_) => "UnscannedTextBox",
+        };
+
+        format!("({}{}{}{})",
+                class_name,
+                self.side_offsets_debug_string("b", self.border.get()),
+                self.side_offsets_debug_string("p", self.padding.get()),
+                self.side_offsets_debug_string("m", self.margin.get()))
     }
+
+    /// A helper function to return a debug string describing the side offsets for one of the rect
+    /// box model properties (border, padding, or margin).
+    fn side_offsets_debug_string(&self, name: &str, value: SideOffsets2D<Au>) -> ~str {
+        let zero: SideOffsets2D<Au> = Zero::zero();
+        if value == zero {
+            return "".to_str()
+        }
+        format!(" {}{},{},{},{}",
+                name,
+                *value.top,
+                *value.right,
+                *value.bottom,
+                *value.left)
+    } 
 }
 
