@@ -24,7 +24,7 @@ impl DocumentType {
                          document: AbstractDocument)
             -> DocumentType {
         DocumentType {
-            node: Node::new(DoctypeNodeTypeId, document),
+            node: Node::new_inherited(DoctypeNodeTypeId, document),
             name: name,
             public_id: public_id.unwrap_or(~""),
             system_id: system_id.unwrap_or(~""),

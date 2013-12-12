@@ -17,7 +17,7 @@ pub struct Text {
 impl Text {
     pub fn new_inherited(text: ~str, document: AbstractDocument) -> Text {
         Text {
-            element: CharacterData::new(TextNodeTypeId, text, document)
+            element: CharacterData::new_inherited(TextNodeTypeId, text, document)
         }
     }
 
