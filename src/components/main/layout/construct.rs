@@ -472,7 +472,10 @@ impl<'self> PostorderNodeMutTraversal for FlowConstructor<'self> {
     fn process(&mut self, node: AbstractNode<LayoutView>) -> bool {
         // Get the `display` property for this node, and determine whether this node is floated.
         let (display, float) = match node.type_id() {
-            ElementNodeTypeId(_) => (node.style().Box.display, node.style().Box.float),
+            ElementNodeTypeId(_) => {
+                let style = node.style().get();
+                (style.Box.display, style.Box.float)
+            }
             TextNodeTypeId => (display::inline, float::none),
             CommentNodeTypeId |
             DoctypeNodeTypeId |

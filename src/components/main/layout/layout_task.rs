@@ -477,8 +477,8 @@ impl LayoutTask {
                     for child in node.traverse_preorder() {
                       if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) || 
                          child.type_id() == ElementNodeTypeId(HTMLBodyElementTypeId) {
-                             let element_bg_color = child.style().resolve_color(
-                                 child.style().Background.background_color
+                             let element_bg_color = child.style().get().resolve_color(
+                                 child.style().get().Background.background_color
                              ).to_gfx_color();
                              match element_bg_color {
                                  color::rgba(0., 0., 0., 0.) => {}
