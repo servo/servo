@@ -23,6 +23,7 @@ use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
 use js::jsapi::{JSObject, JSContext, JSTracer};
 use servo_util::tree::{TreeNodeRef, ElementLike};
+use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 
 use std::hashmap::HashMap;
 
@@ -319,7 +320,11 @@ impl Document {
     }
 
     pub fn content_changed(&self) {
-        self.window.content_changed();
+        self.damage_and_reflow(ContentChangedDocumentDamage);
+    }
+
+    pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
+        self.window.damage_and_reflow(damage);
     }
 
     pub fn wait_until_safe_to_modify_dom(&self) {

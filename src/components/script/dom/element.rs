@@ -18,7 +18,8 @@ use dom::document;
 use dom::namespace;
 use dom::namespace::Namespace;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
-use layout_interface::{ContentBoxesResponse};
+use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
+use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
 use servo_util::tree::{TreeNodeRef, ElementLike};
 
@@ -252,19 +253,20 @@ impl<'self> Element {
                               }
                           });
 
-        self.after_set_attr(abstract_self, &namespace, local_name, value, old_raw_value);
+        if namespace == namespace::Null {
+            self.after_set_attr(abstract_self, local_name, value, old_raw_value);
+        }
         Ok(())
     }
 
     fn after_set_attr(&mut self,
                       abstract_self: AbstractNode<ScriptView>,
-                      namespace: &Namespace,
                       local_name: DOMString,
                       value: DOMString,
                       old_value: Option<DOMString>) {
 
         match local_name.as_slice() {
-            "style" if *namespace == namespace::Null => {
+            "style" => {
                 self.style_attribute = Some(style::parse_style_attribute(value))
             }
             "id" => {
@@ -292,8 +294,12 @@ impl<'self> Element {
         }
 
         if abstract_self.is_in_doc() {
+            let damage = match local_name.as_slice() {
+                "style" | "id" | "class" => MatchSelectorsDocumentDamage,
+                _ => ContentChangedDocumentDamage
+            };
             let document = self.node.owner_doc();
-            document.document().content_changed();
+            document.document().damage_and_reflow(damage);
         }
     }
 }
