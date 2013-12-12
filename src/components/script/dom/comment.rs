@@ -17,7 +17,7 @@ pub struct Comment {
 impl Comment {
     pub fn new_inherited(text: ~str, document: AbstractDocument) -> Comment {
         Comment {
-            element: CharacterData::new(CommentNodeTypeId, text, document)
+            element: CharacterData::new_inherited(CommentNodeTypeId, text, document)
         }
     }
 

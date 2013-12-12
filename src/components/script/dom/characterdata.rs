@@ -15,9 +15,9 @@ pub struct CharacterData {
 }
 
 impl CharacterData {
-    pub fn new(id: NodeTypeId, data: ~str, document: AbstractDocument) -> CharacterData {
+    pub fn new_inherited(id: NodeTypeId, data: ~str, document: AbstractDocument) -> CharacterData {
         CharacterData {
-            node: Node::new(id, document),
+            node: Node::new_inherited(id, document),
             data: data
         }
     }

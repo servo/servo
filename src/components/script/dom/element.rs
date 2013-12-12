@@ -151,9 +151,9 @@ impl ElementLike for Element {
 }
 
 impl<'self> Element {
-    pub fn new(type_id: ElementTypeId, tag_name: ~str, namespace: Namespace, document: AbstractDocument) -> Element {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, namespace: Namespace, document: AbstractDocument) -> Element {
         Element {
-            node: Node::new(ElementNodeTypeId(type_id), document),
+            node: Node::new_inherited(ElementNodeTypeId(type_id), document),
             tag_name: tag_name,
             namespace: namespace,
             attrs: HashMap::new(),
