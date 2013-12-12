@@ -252,19 +252,20 @@ impl<'self> Element {
                               }
                           });
 
-        self.after_set_attr(abstract_self, &namespace, local_name, value, old_raw_value);
+        if namespace == namespace::Null {
+            self.after_set_attr(abstract_self, local_name, value, old_raw_value);
+        }
         Ok(())
     }
 
     fn after_set_attr(&mut self,
                       abstract_self: AbstractNode<ScriptView>,
-                      namespace: &Namespace,
                       local_name: DOMString,
                       value: DOMString,
                       old_value: Option<DOMString>) {
 
         match local_name.as_slice() {
-            "style" if *namespace == namespace::Null => {
+            "style" => {
                 self.style_attribute = Some(style::parse_style_attribute(value))
             }
             "id" => {
