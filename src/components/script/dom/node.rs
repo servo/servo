@@ -625,7 +625,7 @@ impl Node<ScriptView> {
         }
     }
 
-    pub fn new(type_id: NodeTypeId, doc: AbstractDocument) -> Node<ScriptView> {
+    pub fn new_inherited(type_id: NodeTypeId, doc: AbstractDocument) -> Node<ScriptView> {
         Node::new_(type_id, Some(doc))
     }
 
