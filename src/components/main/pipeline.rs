@@ -100,6 +100,7 @@ impl Pipeline {
 
         // Wrap task creation within a supervised task so that failure will
         // only tear down those tasks instead of ours.
+        let hard_fail = opts.hard_fail;
         let failure_chan = constellation_chan.clone();
         let mut supervised_task = task::task();
         let task_port = supervised_task.future_result();
@@ -139,6 +140,9 @@ impl Pipeline {
             match task_port.recv() {
                 Ok(*) => (),
                 Err(*) => {
+                    if hard_fail {
+                        fail!("Pipeline failed in hard-fail mode");
+                    }
                     failure_chan.send(FailureMsg(id, subpage_id));
                 }
             }

@@ -16,7 +16,7 @@ use std::{os, str};
 use std::cell::Cell;
 use std::os::list_dir_path;
 use std::rt::io::Reader;
-use std::rt::io::process::{Process, ProcessConfig, Ignored, CreatePipe};
+use std::rt::io::process::{Process, ProcessConfig, Ignored, CreatePipe, InheritFd};
 
 #[deriving(Clone)]
 struct Config {
@@ -88,21 +88,21 @@ fn run_test(file: ~str) {
     let path = os::make_absolute(&Path::new(file));
     // FIXME (#1094): not the right way to transform a path
     let infile = ~"file://" + path.display().to_str();
-    let create_pipe = CreatePipe(true, false); // rustc #10228
+    let stdout = CreatePipe(true, false); // rustc #10228
+    let stderr = InheritFd(2);
 
     let config = ProcessConfig {
         program: "./servo",
-        args: [~"-z", infile.clone()],
+        args: [~"-z", ~"-f", infile.clone()],
         env: None,
         cwd: None,
-        io: [Ignored, create_pipe, Ignored]
+        io: [Ignored, stdout, stderr]
     };
 
     let mut prc = Process::new(config).unwrap();
-    let stdout = prc.io[1].get_mut_ref();
     let mut output = ~[];
     loop {
-        let byte = stdout.read_byte();
+        let byte = prc.io[1].get_mut_ref().read_byte();
         match byte {
             Some(byte) => {
                 print!("{}", byte as char);
@@ -118,5 +118,10 @@ fn run_test(file: ~str) {
         if line.contains("TEST-UNEXPECTED-FAIL") {
             fail!(line);
         }
+    }
+
+    let retval = prc.wait();
+    if retval != 0 {
+        fail!("Servo exited with non-zero status {}", retval);
     }
 }
