@@ -98,7 +98,9 @@ impl HTMLIFrameElement {
         if "sandbox" == name {
             let mut modes = AllowNothing as u8;
             for word in value.split_iter(' ') {
-                modes |= match word.to_ascii_lower().as_slice() {
+                // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
+                let word_lower = word.to_ascii_lower();
+                modes |= match word_lower.as_slice() {
                     "allow-same-origin" => AllowSameOrigin,
                     "allow-forms" => AllowForms,
                     "allow-pointer-lock" => AllowPointerLock,
