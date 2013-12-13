@@ -295,7 +295,9 @@ impl LayoutTask {
                 }
             }
             PrepareToExitMsg(response_chan) => {
-                self.prepare_to_exit(response_chan)
+                debug!("layout: PrepareToExitMsg received");
+                self.prepare_to_exit(response_chan);
+                return false
             }
             ExitNowMsg => {
                 debug!("layout: ExitNowMsg received");
@@ -312,15 +314,21 @@ impl LayoutTask {
     /// response channel.
     fn prepare_to_exit(&mut self, response_chan: Chan<()>) {
         response_chan.send(());
-        match self.port.recv() {
-            ReapLayoutDataMsg(dead_layout_data) => {
-                unsafe {
-                    self.handle_reap_layout_data(dead_layout_data)
+        loop {
+            match self.port.recv() {
+                ReapLayoutDataMsg(dead_layout_data) => {
+                    unsafe {
+                        self.handle_reap_layout_data(dead_layout_data)
+                    }
                 }
-            }
-            ExitNowMsg => self.exit_now(),
-            _ => {
-                fail!("layout: message that wasn't `ExitNowMsg` received after `PrepareToExitMsg`")
+                ExitNowMsg => {
+                    self.exit_now();
+                    break
+                }
+                _ => {
+                    fail!("layout: message that wasn't `ExitNowMsg` received after \
+                           `PrepareToExitMsg`")
+                }
             }
         }
     }
