@@ -22,7 +22,8 @@
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box::{Box, GenericBox, ImageBox, ImageBoxInfo, UnscannedTextBox, UnscannedTextBoxInfo};
+use layout::box::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo};
+use layout::box::{UnscannedTextBox, UnscannedTextBoxInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
 use layout::flow::{Flow, FlowData, MutableFlowUtils};
@@ -30,7 +31,7 @@ use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::LayoutDataAccess;
 
-use script::dom::element::HTMLImageElementTypeId;
+use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{DocumentFragmentNodeTypeId, DocumentNodeTypeId, ElementNodeTypeId};
 use script::dom::node::{LayoutView, PostorderNodeMutTraversal, TextNodeTypeId};
@@ -223,6 +224,7 @@ impl<'self> FlowConstructor<'self> {
                     Some(image_box_info) => ImageBox(image_box_info),
                 }
             }
+            ElementNodeTypeId(HTMLIframeElementTypeId) => IframeBox(IframeBoxInfo::new(&node)),
             TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(&node)),
             _ => GenericBox,
         };

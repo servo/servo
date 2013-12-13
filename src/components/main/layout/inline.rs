@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use css::node_style::StyledNode;
-use layout::box::{Box, CannotSplit, GenericBox, ImageBox, ScannedTextBox, SplitDidFit};
+use layout::box::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox, SplitDidFit};
 use layout::box::{SplitDidNotFit, UnscannedTextBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
@@ -474,17 +474,12 @@ impl InlineFlow {
         self.boxes = ~[];
     }
 
-    pub fn build_display_list_inline<E:ExtraDisplayListData>(&self,
-                                                             builder: &DisplayListBuilder,
-                                                             dirty: &Rect<Au>,
-                                                             list: &Cell<DisplayList<E>>)
-                                                             -> bool {
-
-        //TODO: implement inline iframe size messaging
-        if self.base.node.is_iframe_element() {
-            error!("inline iframe size messaging not implemented yet");
-        }
-
+    pub fn build_display_list_inline<E:ExtraDisplayListData>(
+                                     &self,
+                                     builder: &DisplayListBuilder,
+                                     dirty: &Rect<Au>,
+                                     list: &Cell<DisplayList<E>>)
+                                     -> bool {
         let abs_rect = Rect(self.base.abs_position, self.base.position.size);
         if !abs_rect.intersects(dirty) {
             return true;
@@ -766,7 +761,7 @@ impl Flow for InlineFlow {
 
                         (text_offset, line_height - text_offset, text_ascent)
                     },
-                    GenericBox => {
+                    GenericBox | IframeBox(_) => {
                         let height = cur_box.position.get().size.height;
                         (height, Au::new(0), height)
                     },

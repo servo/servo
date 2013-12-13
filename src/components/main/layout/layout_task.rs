@@ -269,6 +269,7 @@ impl LayoutTask {
             image_cache: image_cache,
             font_ctx: font_ctx,
             screen_size: Rect(Point2D(Au(0), Au(0)), screen_size),
+            constellation_chan: self.constellation_chan.clone(),
         }
     }
 
