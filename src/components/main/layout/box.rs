@@ -284,9 +284,12 @@ impl Box {
         }
     }
 
+    /// Returns the shared part of the width for computation of minimum and preferred width per
+    /// CSS 2.1.
     fn guess_width(&self) -> Au {
-        if !self.node.is_element() {
-            return Au(0)
+        match self.specific {
+            GenericBox | ImageBox(_) => {}
+            ScannedTextBox(_) | UnscannedTextBox(_) => return Au(0),
         }
 
         let style = self.style();
