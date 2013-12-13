@@ -5,6 +5,7 @@
 //! Element nodes.
 
 use dom::attrlist::AttrList;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, DOMString, ErrorResult, Fallible, Reflector};
 use dom::bindings::utils::{null_str_as_empty, NamespaceError};
 use dom::bindings::utils::{InvalidCharacter, QName, Name, InvalidXMLName, xml_name_type};
@@ -32,7 +33,7 @@ pub struct Element {
     node: Node<ScriptView>,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     namespace: Namespace,
-    attrs: HashMap<~str, ~[@mut Attr]>,
+    attrs: HashMap<~str, ~[JSManaged<Attr>]>,
     attrs_insert_order: ~[(~str, Namespace)], // store an order of attributes.
     style_attribute: Option<style::PropertyDeclarationBlock>,
     attr_list: Option<@mut AttrList>
@@ -135,7 +136,7 @@ impl ElementLike for Element {
     }
 
     fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<~str> {
-        self.get_attribute(ns_url, name).map(|attr| attr.value.clone())
+        self.get_attribute(ns_url, name).map(|attr| attr.value().value.clone())
     }
 
     fn get_link(&self) -> Option<~str>{
@@ -176,12 +177,13 @@ impl<'self> Element {
 
     pub fn get_attribute(&self,
                          namespace_url: Option<DOMString>,
-                         name: &str) -> Option<@mut Attr> {
+                         name: &str) -> Option<JSManaged<Attr>> {
         let namespace = Namespace::from_str(namespace_url);
         // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
         let name = name.to_ascii_lower();
         self.attrs.find_equiv(&name).and_then(|attrs| {
             do attrs.iter().find |attr| {
+                let attr = attr.value();
                 eq_slice(attr.local_name, name) && attr.namespace == namespace
             }.map(|x| *x)
         })
@@ -227,29 +229,37 @@ impl<'self> Element {
                                     name.clone(), namespace.clone(), prefix);
         let mut old_raw_value: Option<DOMString> = None;
         self.attrs.mangle(local_name.clone(), new_attr,
-                          |new_name: &~str, new_value: @mut Attr| {
+                          |new_name: &~str, new_value: JSManaged<Attr>| {
                               // register to the ordered list.
-                              let order_value = (new_name.clone(), new_value.namespace.clone());
+                              let order_value = (new_name.clone(), new_value.value().namespace.clone());
                               self.attrs_insert_order.push(order_value);
                               ~[new_value]
                           },
-                          |name, old_value: &mut ~[@mut Attr], new_value: @mut Attr| {
+                          |name, old_value: &mut ~[JSManaged<Attr>], new_value: JSManaged<Attr>| {
                               // update value.
-                              let mut found = false;
-                              for attr in old_value.mut_iter() {
-                                  if eq_slice(attr.local_name, *name) &&
-                                     attr.namespace == new_value.namespace {
-                                      old_raw_value = Some(attr.Value());
-                                      *attr = new_value;
-                                      found = true;
+                              let mut replace = None;
+                              let new_namespace = &new_value.value().namespace;
+                              for (index, attr) in old_value.iter().enumerate() {
+                                  let (local_name, namespace) = {
+                                      let attr = attr.value();
+                                      (&attr.local_name, &attr.namespace)
+                                  };
+                                  if eq_slice(*local_name, *name) &&
+                                     namespace == new_namespace {
+                                      old_raw_value = Some(attr.value().Value());
+                                      replace = Some(index);
                                       break;
                                   }
 
                               }
-                              if !found {
-                                  old_value.push(new_value);
-                                  let order_value = (name.clone(), new_value.namespace.clone());
-                                  self.attrs_insert_order.push(order_value);
+
+                              match replace {
+                                  Some(index) => old_value[index] = new_value,
+                                  None => {
+                                      old_value.push(new_value);
+                                      let order_value = (name.clone(), new_value.value().namespace.clone());
+                                      self.attrs_insert_order.push(order_value);
+                                  }
                               }
                           });
 
@@ -338,7 +348,7 @@ impl Element {
 
     pub fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString> {
         self.get_attribute(namespace, local_name)
-            .map(|attr| attr.value.clone())
+            .map(|attr| attr.value().value.clone())
     }
 
     pub fn SetAttribute(&mut self,
