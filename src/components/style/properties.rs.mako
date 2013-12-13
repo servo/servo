@@ -223,6 +223,13 @@ pub mod longhands {
         </%self:longhand>
     % endfor
 
+    ${new_style_struct("PositionOffsets")}
+
+    % for side in ["top", "right", "bottom", "left"]:
+        ${predefined_type(side, "LengthOrPercentageOrAuto",
+                          "computed::LPA_Auto")}
+    % endfor
+
     // CSS 2.1, Section 9 - Visual formatting model
 
     ${new_style_struct("Box")}
@@ -278,6 +285,7 @@ pub mod longhands {
     ${predefined_type("max-width", "LengthOrPercentageOrNone",
                       "computed::LPN_None",
                       "parse_non_negative")}
+
 
     <%self:single_component_value name="line-height">
         #[deriving(Clone)]
