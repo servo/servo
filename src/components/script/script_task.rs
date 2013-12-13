@@ -78,6 +78,8 @@ pub enum ScriptMsg {
     ExitPipelineMsg(PipelineId),
     /// Notifies the script that a window associated with a particular pipeline should be closed.
     ExitWindowMsg(PipelineId),
+    /// Notifies the script that loading is finished.
+    LoadCompleteMsg(PipelineId),
 }
 
 pub struct NewLayoutInfo {
@@ -540,6 +542,7 @@ impl ScriptTask {
                 ExitPipelineMsg(id) => if self.handle_exit_pipeline_msg(id) { return false },
                 ExitWindowMsg(id) => if self.handle_exit_window_msg(id) { return false },
                 ResizeMsg(*) => fail!("should have handled ResizeMsg already"),
+                LoadCompleteMsg(id) => self.handle_load_complete_msg(id),
             }
         }
 
@@ -600,6 +603,19 @@ impl ScriptTask {
             page_tree.page.layout_join_port = None;
         }
         self.compositor.set_ready_state(FinishedLoading);
+    }
+
+    fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId) {
+        let page = self.page_tree.find(pipeline_id).expect(
+            "ScriptTask: received a load message for a layout channel that is not associated \
+             with this script task. This is a bug.").page;
+
+        let frame = page.frame.unwrap();
+        let event = Event::new(frame.window);
+        event.mut_event().InitEvent(~"load", false, false);
+        let doctarget = AbstractEventTarget::from_document(frame.document);
+        let wintarget = AbstractEventTarget::from_window(frame.window);
+        frame.window.eventtarget.dispatch_event_with_target(wintarget, Some(doctarget), event);        
     }
 
     /// Handles a navigate forward or backward message.
@@ -769,15 +785,6 @@ impl ScriptTask {
                                        file.url.to_str(),
                                        1);
         }
-
-        // We have no concept of a document loader right now, so just dispatch the
-        // "load" event as soon as we've finished executing all scripts parsed during
-        // the initial load.
-        let event = Event::new(window);
-        event.mut_event().InitEvent(~"load", false, false);
-        let doctarget = AbstractEventTarget::from_document(document);
-        let wintarget = AbstractEventTarget::from_window(window);
-        window.eventtarget.dispatch_event_with_target(wintarget, Some(doctarget), event);
 
         page.fragment_node = fragment.map_default(None, |fragid| self.find_fragment_node(page, fragid));
     }

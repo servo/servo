@@ -38,6 +38,7 @@ use compositing::compositor_layer::CompositorLayer;
 
 use compositing::*;
 
+use script::script_task::LoadCompleteMsg;
 /// Starts the compositor, which listens for messages on the specified port.
 pub fn run_compositor(compositor: &CompositorTask) {
     let app: Application = ApplicationMethods::new();
@@ -401,6 +402,11 @@ pub fn run_compositor(compositor: &CompositorTask) {
         window.present();
 
         if exit { done = true; }
+
+        match compositor_layer {
+            Some(ref layer) => { layer.pipeline.script_chan.send(LoadCompleteMsg(layer.pipeline.id.clone())); },
+            None => fail!("Compositor: Received new layer without initialized pipeline"),
+        }
     };
 
     // Enter the main event loop.
