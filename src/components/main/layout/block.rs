@@ -501,7 +501,7 @@ impl BlockFlow {
 
         // add box that starts block context
         for box in self.box.iter() {
-            box.build_display_list(builder, dirty, &self.base.abs_position, list)
+            box.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, list)
         }
 
         // TODO: handle any out-of-flow elements
@@ -532,7 +532,7 @@ impl BlockFlow {
         let offset = self.base.abs_position + self.float.get_ref().rel_pos;
         // add box that starts block context
         for box in self.box.iter() {
-            box.build_display_list(builder, dirty, &offset, list)
+            box.build_display_list(builder, dirty, offset, (&*self) as &Flow, list)
         }
 
 
@@ -621,10 +621,10 @@ impl Flow for BlockFlow {
             self.base.position.origin = Au::zero_point();
             self.base.position.size.width = ctx.screen_size.size.width;
             self.base.floats_in = FloatContext::new(self.base.num_floats);
-            self.base.is_inorder = false;
+            self.base.flags.set_inorder(false);
         }
 
-        //position was set to the containing block by the flow's parent
+        // The position was set to the containing block by the flow's parent.
         let mut remaining_width = self.base.position.size.width;
         let mut x_offset = Au::new(0);
 
@@ -632,7 +632,7 @@ impl Flow for BlockFlow {
             self.float.get_mut_ref().containing_width = remaining_width;
 
             // Parent usually sets this, but floats are never inorder
-            self.base.is_inorder = false;
+            self.base.flags.set_inorder(false);
         }
 
         for box in self.box.iter() {
@@ -677,10 +677,10 @@ impl Flow for BlockFlow {
         }
 
         let has_inorder_children = if self.is_float() {
-                self.base.num_floats > 0
-            } else {
-                self.base.is_inorder || self.base.num_floats > 0
-            };
+            self.base.num_floats > 0
+        } else {
+            self.base.flags.inorder() || self.base.num_floats > 0
+        };
 
         for kid in self.base.child_iter() {
             assert!(kid.starts_block_flow() || kid.starts_inline_flow());
@@ -688,11 +688,16 @@ impl Flow for BlockFlow {
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;
             child_base.position.size.width = remaining_width;
-            child_base.is_inorder = has_inorder_children;
+            child_base.flags.set_inorder(has_inorder_children);
 
-            if !child_base.is_inorder {
+            if !child_base.flags.inorder() {
                 child_base.floats_in = FloatContext::new(0);
             }
+
+            // Per CSS 2.1 § 16.3.1, text decoration propagates to all children in flow.
+            //
+            // TODO(pcwalton): When we have out-of-flow children, don't unconditionally propagate.
+            child_base.flags.propagate_text_decoration_from_parent(self.base.flags)
         }
     }
 

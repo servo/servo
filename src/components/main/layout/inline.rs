@@ -497,7 +497,7 @@ impl InlineFlow {
                self.boxes.len());
 
         for box in self.boxes.iter() {
-            box.build_display_list(builder, dirty, &self.base.abs_position, list)
+            box.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, list)
         }
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
@@ -672,7 +672,7 @@ impl Flow for InlineFlow {
         for kid in self.base.child_iter() {
             let child_base = flow::mut_base(*kid);
             child_base.position.size.width = self.base.position.size.width;
-            child_base.is_inorder = self.base.is_inorder;
+            child_base.flags.set_inorder(self.base.flags.inorder());
         }
         // There are no child contexts, so stop here.
 

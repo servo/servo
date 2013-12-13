@@ -11,7 +11,8 @@ use gfx::color::rgb;
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
 use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextDisplayItem};
-use gfx::display_list::{TextDisplayItemClass, ClipDisplayItem, ClipDisplayItemClass};
+use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags, ClipDisplayItem};
+use gfx::display_list::{ClipDisplayItemClass};
 use gfx::font::{FontStyle, FontWeight300};
 use gfx::text::text_run::TextRun;
 use script::dom::node::{AbstractNode, LayoutView};
@@ -27,12 +28,14 @@ use std::cmp::ApproxEq;
 use std::num::Zero;
 use style::ComputedValues;
 use style::computed_values::{LengthOrPercentage, overflow};
-use style::computed_values::{border_style, clear, float, font_family, font_style, line_height};
-use style::computed_values::{position, text_align, text_decoration, vertical_align, visibility};
+use style::computed_values::{border_style, clear, font_family, font_style, line_height};
+use style::computed_values::{text_align, text_decoration, vertical_align, visibility};
 
 use css::node_style::StyledNode;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
+use layout::flow::Flow;
+use layout::flow;
 use layout::model::{MaybeAuto, specified};
 
 /// Boxes (`struct Box`) are the leaves of the layout tree. They cannot position themselves. In
@@ -331,10 +334,7 @@ impl Box {
         self.padding.set(padding)
     }
 
-    pub fn compute_padding_length(&self,
-                                  padding: LengthOrPercentage,
-                                  content_box_width: Au)
-                                  -> Au {
+    fn compute_padding_length(&self, padding: LengthOrPercentage, content_box_width: Au) -> Au {
         specified(padding, content_box_width)
     }
 
@@ -349,46 +349,6 @@ impl Box {
         let bottom = self.margin.get().bottom + self.border.get().bottom +
             self.padding.get().bottom;
         top + bottom
-    }
-
-    /// The box formed by the content edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
-    /// the owning flow.
-    pub fn content_box(&self) -> Rect<Au> {
-        let position = self.position.get();
-        let origin = Point2D(position.origin.x + self.border.get().left + self.padding.get().left,
-                             position.origin.y);
-        let noncontent_width = self.border.get().left + self.padding.get().left +
-            self.border.get().right + self.padding.get().right;
-        let size = Size2D(position.size.width - noncontent_width, position.size.height);
-        Rect(origin, size)
-    }
-
-    /// The box formed by the border edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
-    /// the owning flow.
-    pub fn border_box(&self) -> Rect<Au> {
-        // TODO: Actually compute the content box, padding, and border.
-        self.content_box()
-    }
-
-    /// The box formed by the margin edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
-    /// the owning flow.
-    pub fn margin_box(&self) -> Rect<Au> {
-        // TODO: Actually compute the content_box, padding, border, and margin.
-        self.content_box()
-    }
-
-    /// Returns the nearest ancestor-or-self `Element` to the DOM node that this box represents.
-    ///
-    /// If there is no ancestor-or-self `Element` node, fails.
-    pub fn nearest_ancestor_element(&self) -> AbstractNode<LayoutView> {
-        let mut node = self.node;
-        while !node.is_element() {
-            match node.parent_node() {
-                None => fail!("no nearest element?!"),
-                Some(parent) => node = parent,
-            }
-        }
-        node
     }
 
     /// Always inline for SCCP.
@@ -412,7 +372,7 @@ impl Box {
     pub fn font_style(&self) -> FontStyle {
         let my_style = self.style();
 
-        debug!("(font style) start: {:?}", self.nearest_ancestor_element().type_id());
+        debug!("(font style) start");
 
         // FIXME: Too much allocation here.
         let font_families = do my_style.Font.font_family.map |family| {
@@ -460,41 +420,15 @@ impl Box {
         self.style().Box.vertical_align
     }
 
-    /// Returns the text decoration of the computed style of the nearest `Element` node
+    /// Returns the text decoration of this box, according to the style of the nearest ancestor
+    /// element.
+    ///
+    /// NB: This may not be the actual text decoration, because of the override rules specified in
+    /// CSS 2.1 § 16.3.1. Unfortunately, computing this properly doesn't really fit into Servo's
+    /// model. Therefore, this is a best lower bound approximation, but the end result may actually
+    /// have the various decoration flags turned on afterward.
     pub fn text_decoration(&self) -> text_decoration::T {
-        /// Computes the propagated value of text-decoration, as specified in CSS 2.1 § 16.3.1
-        /// TODO: make sure this works with anonymous box generation.
-        fn get_propagated_text_decoration(element: AbstractNode<LayoutView>)
-                                          -> text_decoration::T {
-            //Skip over non-element nodes in the DOM
-            if !element.is_element() {
-                return match element.parent_node() {
-                    None => text_decoration::none,
-                    Some(parent) => get_propagated_text_decoration(parent),
-                };
-            }
-
-            // FIXME: Implement correctly.
-            let display_in_flow = true;
-
-            let position = element.style().get().Box.position;
-            let float = element.style().get().Box.float;
-
-            let in_flow = (position == position::static_) && (float == float::none) &&
-                display_in_flow;
-
-            let text_decoration = element.style().get().Text.text_decoration;
-
-            if text_decoration == text_decoration::none && in_flow {
-                match element.parent_node() {
-                    None => text_decoration::none,
-                    Some(parent) => get_propagated_text_decoration(parent),
-                }
-            } else {
-                text_decoration
-            }
-        }
-        get_propagated_text_decoration(self.nearest_ancestor_element())
+        self.style().Text.text_decoration
     }
 
     /// Returns the sum of margin, border, and padding on the left.
@@ -622,13 +556,14 @@ impl Box {
                               &self,
                               _: &DisplayListBuilder,
                               dirty: &Rect<Au>,
-                              offset: &Point2D<Au>,
+                              offset: Point2D<Au>,
+                              flow: &Flow,
                               list: &Cell<DisplayList<E>>) {
         let box_bounds = self.position.get();
-        let absolute_box_bounds = box_bounds.translate(offset);
+        let absolute_box_bounds = box_bounds.translate(&offset);
         debug!("Box::build_display_list at rel={}, abs={}: {:s}",
                box_bounds, absolute_box_bounds, self.debug_str());
-        debug!("Box::build_display_list: dirty={}, offset={}", *dirty, *offset);
+        debug!("Box::build_display_list: dirty={}, offset={}", *dirty, offset);
 
         if self.style().Box.visibility != visibility::visible {
             return;
@@ -661,6 +596,13 @@ impl Box {
 
                 let color = self.style().Color.color.to_gfx_color();
 
+                // Set the various text display item flags.
+                let flow_flags = flow::base(flow).flags;
+                let mut text_flags = TextDisplayItemFlags::new();
+                text_flags.set_override_underline(flow_flags.override_underline());
+                text_flags.set_override_overline(flow_flags.override_overline());
+                text_flags.set_override_line_through(flow_flags.override_line_through());
+
                 // Create the text box.
                 do list.with_mut_ref |list| {
                     let text_display_item = ~TextDisplayItem {
@@ -671,6 +613,7 @@ impl Box {
                         text_run: text_box.run.clone(),
                         range: text_box.range,
                         color: color,
+                        flags: text_flags,
                     };
 
                     list.append_item(TextDisplayItemClass(text_display_item))

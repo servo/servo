@@ -42,7 +42,7 @@ impl ExtraDisplayListData for Nothing {
 /// Right now, the builder isn't used for much, but it establishes the pattern we'll need once we
 /// support display-list-based hit testing and so forth.
 pub struct DisplayListBuilder<'self> {
-    ctx:  &'self LayoutContext,
+    ctx: &'self LayoutContext,
 }
 
 //

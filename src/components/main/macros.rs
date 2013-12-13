@@ -22,3 +22,20 @@ macro_rules! spawn_with(
         do ($task).spawn_with(( $($var),+ , () )) |( $($var),+ , () )| $body
     )
 )
+
+macro_rules! bitfield(
+    ($bitfieldname:ident, $getter:ident, $setter:ident, $value:expr) => (
+        impl $bitfieldname {
+            #[inline]
+            pub fn $getter(self) -> bool {
+                (*self & $value) != 0
+            }
+
+            #[inline]
+            pub fn $setter(&mut self, value: bool) {
+                *self = $bitfieldname((**self & !$value) | (if value { $value } else { 0 }))
+            }
+        }
+    )
+)
+
