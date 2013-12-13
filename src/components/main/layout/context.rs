@@ -4,16 +4,19 @@
 
 //! Data needed by the layout task.
 
+use extra::arc::MutexArc;
 use geom::rect::Rect;
 use gfx::font_context::FontContext;
-use servo_util::geometry::Au;
+use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::local_image_cache::LocalImageCache;
-
-use extra::arc::MutexArc;
+use servo_util::geometry::Au;
 
 /// Data needed by the layout task.
 pub struct LayoutContext {
     font_ctx: ~FontContext,
     image_cache: MutexArc<LocalImageCache>,
-    screen_size: Rect<Au>
+    screen_size: Rect<Au>,
+
+    /// A channel up to the constellation.
+    constellation_chan: ConstellationChan,
 }

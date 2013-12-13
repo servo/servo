@@ -16,9 +16,11 @@ use gfx::display_list::{ClipDisplayItemClass};
 use gfx::font::{FontStyle, FontWeight300};
 use gfx::text::text_run::TextRun;
 use script::dom::node::{AbstractNode, LayoutView};
+use servo_msg::constellation_msg::{FrameRectMsg, PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
+use servo_util::geometry;
 use servo_util::range::*;
 use servo_util::slot::Slot;
 use servo_util::tree::{TreeNodeRef, ElementLike};
@@ -32,6 +34,7 @@ use style::computed_values::{border_style, clear, font_family, font_style, line_
 use style::computed_values::{text_align, text_decoration, vertical_align, visibility};
 
 use css::node_style::StyledNode;
+use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
 use layout::flow::Flow;
@@ -89,6 +92,7 @@ pub struct Box {
 pub enum SpecificBoxInfo {
     GenericBox,
     ImageBox(ImageBoxInfo),
+    IframeBox(IframeBoxInfo),
     ScannedTextBox(ScannedTextBoxInfo),
     UnscannedTextBox(UnscannedTextBoxInfo),
 }
@@ -142,6 +146,29 @@ impl ImageBoxInfo {
         // TODO(brson): Consult margins and borders?
         self.dom_height.unwrap_or_else(|| {
             Au::from_px(self.image.mutate().ptr.get_size().unwrap_or(Size2D(0, 0)).height)
+        })
+    }
+}
+
+/// A box that represents an inline frame (iframe). This stores the pipeline ID so that the size
+/// of this iframe can be communicated via the constellation to the iframe's own layout task.
+#[deriving(Clone)]
+pub struct IframeBoxInfo {
+    /// The pipeline ID of this iframe.
+    pipeline_id: PipelineId,
+    /// The subpage ID of this iframe.
+    subpage_id: SubpageId,
+}
+
+impl IframeBoxInfo {
+    /// Creates the information specific to an iframe box.
+    pub fn new(node: &AbstractNode<LayoutView>) -> IframeBoxInfo {
+        node.with_imm_iframe_element(|iframe_element| {
+            let size = iframe_element.size.unwrap();
+            IframeBoxInfo {
+                pipeline_id: size.pipeline_id,
+                subpage_id: size.subpage_id,
+            }
         })
     }
 }
@@ -540,7 +567,7 @@ impl Box {
     /// Appendix E. Finally, the builder flattens the list.
     pub fn build_display_list<E:ExtraDisplayListData>(
                               &self,
-                              _: &DisplayListBuilder,
+                              builder: &DisplayListBuilder,
                               dirty: &Rect<Au>,
                               offset: Point2D<Au>,
                               flow: &Flow,
@@ -652,7 +679,7 @@ impl Box {
                     ()
                 });
             },
-            GenericBox => {
+            GenericBox | IframeBox(_) => {
                 do list.with_mut_ref |list| {
                     let item = ~ClipDisplayItem {
                         base: BaseDisplayItem {
@@ -726,6 +753,23 @@ impl Box {
             }
         }
 
+        // If this is an iframe, then send its position and size up to the constellation.
+        //
+        // FIXME(pcwalton): Doing this during display list construction seems potentially
+        // problematic if iframes are outside the area we're computing the display list for, since
+        // they won't be able to reflow at all until the user scrolls to them. Perhaps we should
+        // separate this into two parts: first we should send the size only to the constellation
+        // once that's computed during assign-heights, and second we should should send the origin
+        // to the constellation here during display list construction. This should work because
+        // layout for the iframe only needs to know size, and origin is only relevant if the
+        // iframe is actually going to be displayed.
+        match self.specific {
+            IframeBox(ref iframe_box) => {
+                self.finalize_position_and_size_of_iframe(iframe_box, offset, builder.ctx)
+            }
+            GenericBox | ImageBox(_) | ScannedTextBox(_) | UnscannedTextBox(_) => {}
+        }
+
         // Add a border, if applicable.
         //
         // TODO: Outlines.
@@ -736,7 +780,7 @@ impl Box {
     pub fn minimum_and_preferred_widths(&self) -> (Au, Au) {
         let guessed_width = self.guess_width();
         let (additional_minimum, additional_preferred) = match self.specific {
-            GenericBox => (Au(0), Au(0)),
+            GenericBox | IframeBox(_) => (Au(0), Au(0)),
             ImageBox(ref image_box_info) => {
                 let image_width = image_box_info.image_width();
                 (image_width, image_width)
@@ -764,7 +808,7 @@ impl Box {
     /// FIXME(pcwalton): This function *mutates* the height? Gross! Refactor please.
     pub fn box_height(&self) -> Au {
         match self.specific {
-            GenericBox => Au(0),
+            GenericBox | IframeBox(_) => Au(0),
             ImageBox(ref image_box_info) => {
                 let size = image_box_info.image.mutate().ptr.get_size();
                 let height = Au::from_px(size.unwrap_or(Size2D(0, 0)).height);
@@ -789,7 +833,7 @@ impl Box {
     /// Attempts to split this box so that its width is no more than `max_width`.
     pub fn split_to_width(&self, max_width: Au, starts_line: bool) -> SplitBoxResult {
         match self.specific {
-            GenericBox | ImageBox(_) => CannotSplit,
+            GenericBox | IframeBox(_) | ImageBox(_) => CannotSplit,
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
                 let mut pieces_processed_count: uint = 0;
@@ -899,7 +943,7 @@ impl Box {
     /// Assigns the appropriate width to this box.
     pub fn assign_width(&self) {
         match self.specific {
-            GenericBox => {
+            GenericBox | IframeBox(_) => {
                 // FIXME(pcwalton): This seems clownshoes; can we remove?
                 self.position.mutate().ptr.size.width = Au::from_px(45)
             }
@@ -942,6 +986,7 @@ impl Box {
     pub fn debug_str(&self) -> ~str {
         let class_name = match self.specific {
             GenericBox => "GenericBox",
+            IframeBox(_) => "IframeBox",
             ImageBox(_) => "ImageBox",
             ScannedTextBox(_) => "ScannedTextBox",
             UnscannedTextBox(_) => "UnscannedTextBox",
@@ -968,5 +1013,29 @@ impl Box {
                 *value.bottom,
                 *value.left)
     } 
+
+    /// Sends the size and position of this iframe box to the constellation. This is out of line to
+    /// guide inlining.
+    #[inline(never)]
+    fn finalize_position_and_size_of_iframe(&self,
+                                            iframe_box: &IframeBoxInfo,
+                                            offset: Point2D<Au>,
+                                            layout_context: &LayoutContext) {
+        let left = offset.x + self.margin.get().left + self.border.get().left +
+            self.padding.get().left;
+        let top = offset.y + self.margin.get().top + self.border.get().top +
+            self.padding.get().top;
+        let width = self.position.get().size.width - self.noncontent_width();
+        let height = self.position.get().size.height - self.noncontent_height();
+        let origin = Point2D(geometry::to_frac_px(left) as f32, geometry::to_frac_px(top) as f32);
+        let size = Size2D(geometry::to_frac_px(width) as f32, geometry::to_frac_px(height) as f32);
+        let rect = Rect(origin, size);
+
+        debug!("finalizing position and size of iframe for {:?},{:?}",
+               iframe_box.pipeline_id,
+               iframe_box.subpage_id);
+        let msg = FrameRectMsg(iframe_box.pipeline_id, iframe_box.subpage_id, rect);
+        layout_context.constellation_chan.send(msg)
+    }
 }
 
