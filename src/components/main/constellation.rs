@@ -10,7 +10,7 @@ use geom::size::Size2D;
 use gfx::opts::Opts;
 use pipeline::{Pipeline, CompositionPipeline};
 use script::script_task::{ResizeMsg, ResizeInactiveMsg};
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, FrameRectMsg};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
 use servo_msg::constellation_msg::{LoadCompleteMsg, LoadIframeUrlMsg, LoadUrlMsg, Msg, NavigateMsg};
 use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
@@ -321,7 +321,7 @@ impl Constellation {
                 self.handle_exit();
                 return false;
             }
-            FailureMsg(pipeline_id, subpage_id) => {
+            FailureMsg(Failure { pipeline_id, subpage_id }) => {
                 self.handle_failure_msg(pipeline_id, subpage_id);
             }
             // This should only be called once per constellation, and only by the browser
