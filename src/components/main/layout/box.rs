@@ -334,10 +334,7 @@ impl Box {
         self.padding.set(padding)
     }
 
-    pub fn compute_padding_length(&self,
-                                  padding: LengthOrPercentage,
-                                  content_box_width: Au)
-                                  -> Au {
+    fn compute_padding_length(&self, padding: LengthOrPercentage, content_box_width: Au) -> Au {
         specified(padding, content_box_width)
     }
 
@@ -352,46 +349,6 @@ impl Box {
         let bottom = self.margin.get().bottom + self.border.get().bottom +
             self.padding.get().bottom;
         top + bottom
-    }
-
-    /// The box formed by the content edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
-    /// the owning flow.
-    pub fn content_box(&self) -> Rect<Au> {
-        let position = self.position.get();
-        let origin = Point2D(position.origin.x + self.border.get().left + self.padding.get().left,
-                             position.origin.y);
-        let noncontent_width = self.border.get().left + self.padding.get().left +
-            self.border.get().right + self.padding.get().right;
-        let size = Size2D(position.size.width - noncontent_width, position.size.height);
-        Rect(origin, size)
-    }
-
-    /// The box formed by the border edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
-    /// the owning flow.
-    pub fn border_box(&self) -> Rect<Au> {
-        // TODO: Actually compute the content box, padding, and border.
-        self.content_box()
-    }
-
-    /// The box formed by the margin edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
-    /// the owning flow.
-    pub fn margin_box(&self) -> Rect<Au> {
-        // TODO: Actually compute the content_box, padding, border, and margin.
-        self.content_box()
-    }
-
-    /// Returns the nearest ancestor-or-self `Element` to the DOM node that this box represents.
-    ///
-    /// If there is no ancestor-or-self `Element` node, fails.
-    pub fn nearest_ancestor_element(&self) -> AbstractNode<LayoutView> {
-        let mut node = self.node;
-        while !node.is_element() {
-            match node.parent_node() {
-                None => fail!("no nearest element?!"),
-                Some(parent) => node = parent,
-            }
-        }
-        node
     }
 
     /// Always inline for SCCP.
@@ -415,7 +372,7 @@ impl Box {
     pub fn font_style(&self) -> FontStyle {
         let my_style = self.style();
 
-        debug!("(font style) start: {:?}", self.nearest_ancestor_element().type_id());
+        debug!("(font style) start");
 
         // FIXME: Too much allocation here.
         let font_families = do my_style.Font.font_family.map |family| {
