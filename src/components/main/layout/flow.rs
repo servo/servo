@@ -33,17 +33,17 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
-use gfx::display_list::{ClipDisplayItemClass};
 
 use extra::dlist::{DList, DListIterator, MutDListIterator};
 use extra::container::Deque;
 use geom::point::Point2D;
 use geom::rect::Rect;
-use gfx::display_list::DisplayList;
-use servo_util::geometry::Au;
+use gfx::display_list::{ClipDisplayItemClass, DisplayList};
 use script::dom::node::{AbstractNode, LayoutView};
+use servo_util::geometry::Au;
 use std::cast;
 use std::cell::Cell;
+use style::ComputedValues;
 
 /// Virtual methods that make up a float context.
 ///
@@ -305,6 +305,49 @@ pub trait PostorderFlowTraversal {
     }
 }
 
+/// Flags used in flows, tightly packed to save space.
+pub struct FlowFlags(u8);
+
+/// The bitmask of flags that represent text decoration fields that get propagated downward.
+///
+/// NB: If you update this field, you must update the bitfields below.
+static TEXT_DECORATION_OVERRIDE_BITMASK: u8 = 0b00001110;
+
+impl FlowFlags {
+    /// Creates a new set of flow flags from the given style.
+    fn new(style: &ComputedValues) -> FlowFlags {
+        let text_decoration = style.Text.text_decoration;
+        let mut flags = FlowFlags(0);
+        flags.set_override_underline(text_decoration.underline);
+        flags.set_override_overline(text_decoration.overline);
+        flags.set_override_line_through(text_decoration.line_through);
+        flags
+    }
+
+    /// Propagates text decoration flags from an appropriate parent flow per CSS 2.1 § 16.3.1.
+    pub fn propagate_text_decoration_from_parent(&mut self, parent: FlowFlags) {
+        *self = FlowFlags(**self | (*parent & TEXT_DECORATION_OVERRIDE_BITMASK))
+    }
+}
+
+// Whether we need an in-order traversal.
+bitfield!(FlowFlags, inorder, set_inorder, 0x01)
+
+// Whether this flow forces `text-decoration: underline` on.
+//
+// NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
+bitfield!(FlowFlags, override_underline, set_override_underline, 0x02)
+
+// Whether this flow forces `text-decoration: overline` on.
+//
+// NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
+bitfield!(FlowFlags, override_overline, set_override_overline, 0x04)
+
+// Whether this flow forces `text-decoration: line-through` on.
+//
+// NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
+bitfield!(FlowFlags, override_line_through, set_override_line_through, 0x08)
+
 /// Data common to all flows.
 ///
 /// FIXME: We need a naming convention for pseudo-inheritance like this. How about
@@ -313,6 +356,7 @@ pub struct FlowData {
     node: AbstractNode<LayoutView>,
     restyle_damage: RestyleDamage,
 
+    /// The children of this flow.
     children: DList<~Flow:>,
 
     /* TODO (Issue #87): debug only */
@@ -336,7 +380,9 @@ pub struct FlowData {
     floats_out: FloatContext,
     num_floats: uint,
     abs_position: Point2D<Au>,
-    is_inorder: bool,
+
+    /// Various flags for flows, tightly packed to save space.
+    flags: FlowFlags,
 }
 
 pub struct BoxIterator {
@@ -359,6 +405,7 @@ impl Iterator<@Box> for BoxIterator {
 impl FlowData {
     #[inline]
     pub fn new(id: int, node: AbstractNode<LayoutView>) -> FlowData {
+        let style = node.style();
         FlowData {
             node: node,
             restyle_damage: node.restyle_damage(),
@@ -375,7 +422,8 @@ impl FlowData {
             floats_out: Invalid,
             num_floats: 0,
             abs_position: Point2D(Au::new(0), Au::new(0)),
-            is_inorder: false
+
+            flags: FlowFlags::new(style.get()),
         }
     }
 
