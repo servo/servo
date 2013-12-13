@@ -733,7 +733,7 @@ impl Flow for InlineFlow {
                 // FIXME(pcwalton): Move into `box.rs` like the rest of box-specific layout code?
                 let (top_from_base, bottom_from_base, ascent) = match cur_box.specific {
                     ImageBox(ref image_box) => {
-                        let mut height = image_box.image_height(cur_box);
+                        let mut height = image_box.image_height();
 
                         // TODO: margin, border, padding's top and bottom should be calculated in
                         // advance, since baseline of image is bottom margin edge.

@@ -95,6 +95,10 @@ pub enum SpecificBoxInfo {
 pub struct ImageBoxInfo {
     /// The image held within this box.
     image: Slot<ImageHolder>,
+    /// The width attribute supplied by the DOM, if any.
+    dom_width: Option<Au>,
+    /// The height attribute supplied by the DOM, if any.
+    dom_height: Option<Au>,
 }
 
 impl ImageBoxInfo {
@@ -102,58 +106,40 @@ impl ImageBoxInfo {
     ///
     /// FIXME(pcwalton): The fact that image boxes store the cache in the box makes little sense to
     /// me.
-    pub fn new(image_url: Url, local_image_cache: MutexArc<LocalImageCache>) -> ImageBoxInfo {
+    pub fn new(node: &AbstractNode<LayoutView>,
+               image_url: Url,
+               local_image_cache: MutexArc<LocalImageCache>)
+               -> ImageBoxInfo {
+        fn convert_length(node: &AbstractNode<LayoutView>, name: &str) -> Option<Au> {
+            node.with_imm_element(|element| {
+                element.get_attr(None, name).and_then(|string| {
+                    let n: Option<int> = FromStr::from_str(string);
+                    n
+                }).and_then(|pixels| Some(Au::from_px(pixels)))
+            })
+        }
+
         ImageBoxInfo {
             image: Slot::init(ImageHolder::new(image_url, local_image_cache)),
+            dom_width: convert_length(node, "width"),
+            dom_height: convert_length(node, "height"),
         }
     }
 
-    // Calculate the width of an image, accounting for the width attribute
-    // TODO: This could probably go somewhere else
-    pub fn image_width(&self, base: &Box) -> Au {
-        let attr_width: Option<int> = do base.node.with_imm_element |elt| {
-            match elt.get_attr(None, "width") {
-                Some(width) => {
-                    FromStr::from_str(width)
-                }
-                None => {
-                    None
-                }
-            }
-        };
-
-        // TODO: Consult margins and borders?
-        let px_width = if attr_width.is_some() {
-            attr_width.unwrap()
-        } else {
-            self.image.mutate().ptr.get_size().unwrap_or(Size2D(0, 0)).width
-        };
-
-        Au::from_px(px_width)
+    // Calculates the width of an image, accounting for the width attribute.
+    fn image_width(&self) -> Au {
+        // TODO(brson): Consult margins and borders?
+        self.dom_width.unwrap_or_else(|| {
+            Au::from_px(self.image.mutate().ptr.get_size().unwrap_or(Size2D(0, 0)).width)
+        })
     }
 
-    // Calculate the height of an image, accounting for the height attribute
-    // TODO: This could probably go somewhere else
-    pub fn image_height(&self, base: &Box) -> Au {
-        let attr_height: Option<int> = do base.node.with_imm_element |elt| {
-            match elt.get_attr(None, "height") {
-                Some(height) => {
-                    FromStr::from_str(height)
-                }
-                None => {
-                    None
-                }
-            }
-        };
-
-        // TODO: Consult margins and borders?
-        let px_height = if attr_height.is_some() {
-            attr_height.unwrap()
-        } else {
-            self.image.mutate().ptr.get_size().unwrap_or(Size2D(0, 0)).height
-        };
-
-        Au::from_px(px_height)
+    // Calculate the height of an image, accounting for the height attribute.
+    pub fn image_height(&self) -> Au {
+        // TODO(brson): Consult margins and borders?
+        self.dom_height.unwrap_or_else(|| {
+            Au::from_px(self.image.mutate().ptr.get_size().unwrap_or(Size2D(0, 0)).height)
+        })
     }
 }
 
@@ -809,7 +795,7 @@ impl Box {
         let (additional_minimum, additional_preferred) = match self.specific {
             GenericBox => (Au(0), Au(0)),
             ImageBox(ref image_box_info) => {
-                let image_width = image_box_info.image_width(self);
+                let image_width = image_box_info.image_width();
                 (image_width, image_width)
             }
             ScannedTextBox(ref text_box_info) => {
@@ -975,7 +961,7 @@ impl Box {
                 self.position.mutate().ptr.size.width = Au::from_px(45)
             }
             ImageBox(ref image_box_info) => {
-                let image_width = image_box_info.image_width(self);
+                let image_width = image_box_info.image_width();
                 self.position.mutate().ptr.size.width = image_width
             }
             ScannedTextBox(_) => {
