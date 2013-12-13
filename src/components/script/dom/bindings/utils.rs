@@ -207,6 +207,16 @@ pub fn unwrap_object<T>(obj: *JSObject, proto_id: PrototypeList::id::ID, proto_d
     }
 }
 
+pub fn unwrap_jsmanaged<T: Reflectable>(obj: *JSObject,
+                                        proto_id: PrototypeList::id::ID,
+                                        proto_depth: uint) -> Result<JSManaged<T>, ()> {
+    let result: Result<*mut Box<T>, ()> = unwrap_object(obj, proto_id, proto_depth);
+    match result {
+        Ok(unwrapped) => unsafe { Ok(JSManaged::from_box(unwrapped)) },
+        Err(err) => Err(err)
+    }
+}
+
 #[fixed_stack_segment]
 pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
     unsafe {

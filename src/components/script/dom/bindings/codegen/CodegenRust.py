@@ -102,7 +102,8 @@ class CastableObjectUnwrapper():
                               "source" : source,
                               "target" : target,
                               "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define(),
-                              "unwrapped_val" : "Some(val)" if isOptional else "val" }
+                              "unwrapped_val" : "Some(val)" if isOptional else "val",
+                              "unwrapFn" : "unwrap_jsmanaged" if DOMObjectIsMoved(descriptor) else "unwrap_object"}
         if descriptor.hasXPConnectImpls:
             # We don't use xpc_qsUnwrapThis because it will always throw on
             # unwrap failure, whereas we want to control whether we throw or
@@ -123,7 +124,7 @@ class CastableObjectUnwrapper():
 
     def __str__(self):
         return string.Template(
-"""match unwrap_object(${source}, ${prototype}, ${depth}) {
+"""match ${unwrapFn}(${source}, ${prototype}, ${depth}) {
   Ok(val) => ${target} = ${unwrapped_val},
   Err(()) => {
     ${codeOnFailure}
@@ -406,7 +407,7 @@ class FakeCastableDescriptor():
     def __init__(self, descriptor):
         self.castable = True
         self.workers = descriptor.workers
-        self.nativeType = descriptor.nativeType
+        self.nativeType = "*Box<%s>" % descriptor.concreteType
         self.pointerType = descriptor.pointerType
         self.name = descriptor.name
         self.hasXPConnectImpls = descriptor.hasXPConnectImpls

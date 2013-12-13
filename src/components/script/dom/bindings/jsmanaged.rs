@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cast;
+use std::unstable::raw::Box;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::window;
 use js::jsapi::{JSContext, JSObject};
- 
+
 pub struct JSManaged<T> {
     ptr: *mut T
 }
@@ -23,6 +24,12 @@ impl<T: Reflectable> JSManaged<T> {
         }
         JSManaged {
             ptr: raw
+        }
+    }
+
+    pub unsafe fn from_box(box: *mut Box<T>) -> JSManaged<T> {
+        JSManaged {
+            ptr: &mut (*box).data
         }
     }
 }
