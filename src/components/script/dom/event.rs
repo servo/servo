@@ -48,7 +48,8 @@ pub struct Event {
     bubbles: bool,
     trusted: bool,
     dispatching: bool,
-    initialized: bool
+    initialized: bool,
+    force_box_layout: @int
 }
 
 impl Event {
@@ -68,6 +69,7 @@ impl Event {
             stop_propagation: false,
             stop_immediate: false,
             initialized: false,
+            force_box_layout: @1
         }
     }
 
