@@ -92,11 +92,37 @@ pub struct SolidColorDisplayItem<E> {
 
 /// Renders text.
 pub struct TextDisplayItem<E> {
+    /// Fields common to all display items.
     base: BaseDisplayItem<E>,
+
+    /// The text run.
     text_run: Arc<~TextRun>,
+
+    /// The range of text within the text run.
     range: Range,
+
+    /// The color of the text.
     color: Color,
+
+    /// A bitfield of flags for text display items.
+    flags: TextDisplayItemFlags,
 }
+
+/// Flags for text display items.
+pub struct TextDisplayItemFlags(u8);
+
+impl TextDisplayItemFlags {
+    pub fn new() -> TextDisplayItemFlags {
+        TextDisplayItemFlags(0)
+    }
+}
+
+// Whether underlining is forced on.
+bitfield!(TextDisplayItemFlags, override_underline, set_override_underline, 0x01)
+// Whether overlining is forced on.
+bitfield!(TextDisplayItemFlags, override_overline, set_override_overline, 0x02)
+// Whether line-through is forced on.
+bitfield!(TextDisplayItemFlags, override_line_through, set_override_line_through, 0x04)
 
 /// Renders an image.
 pub struct ImageDisplayItem<E> {
@@ -184,18 +210,18 @@ impl<E> DisplayItem<E> {
                 let strikeout_size = font_metrics.strikeout_size;
                 let strikeout_offset = font_metrics.strikeout_offset;
 
-                if text_run.decoration.underline {
+                if text_run.decoration.underline || text.flags.override_underline() {
                     let underline_y = baseline_origin.y - underline_offset;
                     let underline_bounds = Rect(Point2D(baseline_origin.x, underline_y),
                                                 Size2D(width, underline_size));
                     render_context.draw_solid_color(&underline_bounds, text.color);
                 }
-                if text_run.decoration.overline {
+                if text_run.decoration.overline || text.flags.override_overline() {
                     let overline_bounds = Rect(Point2D(baseline_origin.x, origin.y),
                                                Size2D(width, underline_size));
                     render_context.draw_solid_color(&overline_bounds, text.color);
                 }
-                if text_run.decoration.line_through {
+                if text_run.decoration.line_through || text.flags.override_line_through() {
                     let strikeout_y = baseline_origin.y - strikeout_offset;
                     let strikeout_bounds = Rect(Point2D(baseline_origin.x, strikeout_y),
                                                 Size2D(width, strikeout_size));
