@@ -6,6 +6,7 @@
 
 use dom::attr::Attr;
 use dom::attrlist::AttrList;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, DOMString, ErrorResult, Fallible, Reflector};
 use dom::bindings::utils::{null_str_as_empty, NamespaceError};
 use dom::bindings::utils::{InvalidCharacter, QName, Name, InvalidXMLName, xml_name_type};
@@ -29,7 +30,7 @@ pub struct Element {
     node: Node,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     namespace: Namespace,
-    attrs: ~[@mut Attr],
+    attrs: ~[JSManaged<Attr>],
     style_attribute: Option<style::PropertyDeclarationBlock>,
     attr_list: Option<@mut AttrList>
 }
@@ -121,7 +122,6 @@ pub enum ElementTypeId {
 // Element methods
 //
 
-
 impl Element {
     pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, namespace: Namespace, document: AbstractDocument) -> Element {
         Element {
@@ -146,17 +146,18 @@ impl Element {
 
     pub fn get_attribute(&self,
                          namespace: Namespace,
-                         name: &str) -> Option<@mut Attr> {
+                         name: &str) -> Option<JSManaged<Attr>> {
         // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
         let name = name.to_ascii_lower();
         self.attrs.iter().find(|attr| {
+            let attr = attr.value();
             name == attr.local_name && attr.namespace == namespace
         }).map(|&x| x)
     }
 
     // FIXME(pcwalton): This is kind of confusingly named relative to the above...
     pub fn get_attr(&self, namespace: Namespace, name: &str) -> Option<~str> {
-        self.get_attribute(namespace, name).map(|attr| attr.value.clone())
+        self.get_attribute(namespace, name).map(|attr| attr.value().value.clone())
     }
 
     pub fn set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
@@ -187,7 +188,8 @@ impl Element {
 
         // FIXME: reduce the time of `value.clone()`.
         let mut old_raw_value: Option<DOMString> = None;
-        for attr in self.attrs.iter() {
+        for attr in self.attrs.mut_iter() {
+            let attr = attr.mut_value();
             if attr.local_name == local_name {
                 old_raw_value = Some(attr.set_value(value.clone()));
                 break;
@@ -255,15 +257,15 @@ impl Element {
 
         self.node.wait_until_safe_to_modify_dom();
 
-        let idx = self.attrs.iter().position(|attr: &@mut Attr| -> bool {
-            attr.local_name == local_name
+        let idx = self.attrs.iter().position(|attr: &JSManaged<Attr>| -> bool {
+            attr.value().local_name == local_name
         });
 
         match idx {
             None => (),
             Some(idx) => {
                 let removed = self.attrs.remove(idx);
-                let removed_raw_value = Some(removed.Value());
+                let removed_raw_value = Some(removed.value().Value());
 
                 if namespace == namespace::Null {
                     self.after_remove_attr(abstract_self, local_name, removed_raw_value);
@@ -381,7 +383,7 @@ impl Element {
     pub fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString> {
         let namespace = Namespace::from_str(namespace);
         self.get_attribute(namespace, local_name)
-            .map(|attr| attr.value.clone())
+            .map(|attr| attr.value().value.clone())
     }
 
     pub fn SetAttribute(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)

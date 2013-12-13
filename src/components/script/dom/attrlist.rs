@@ -4,6 +4,7 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::AttrListBinding;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{AbstractNode};
 use dom::window::Window;
@@ -32,13 +33,13 @@ impl AttrList {
         self.owner.with_imm_element(|elem| elem.attrs.len() as u32)
     }
 
-    pub fn Item(&self, index: u32) -> Option<@mut Attr> {
+    pub fn Item(&self, index: u32) -> Option<JSManaged<Attr>> {
         self.owner.with_imm_element(|elem| {
             elem.attrs.get_opt(index as uint).map(|&x| x)
         })
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<@mut Attr> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JSManaged<Attr>> {
         let item = self.Item(index);
         *found = item.is_some();
         item
