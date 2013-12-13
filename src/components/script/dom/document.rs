@@ -31,6 +31,7 @@ use std::cast;
 use std::str::eq_slice;
 use std::ascii::StrAsciiExt;
 use std::unstable::raw::Box;
+use extra::url::Url;
 
 #[deriving(Eq)]
 pub enum DocumentTypeId {
@@ -97,6 +98,12 @@ pub struct Document {
 }
 
 impl Document {
+
+    //Fetches url from page in script_task.rs
+    pub fn get_url(&self) -> Url {
+       self.window.page.get_url()
+    }
+
     pub fn reflect_document<D: Reflectable>
             (document:  @mut D,
              window:    @mut Window,

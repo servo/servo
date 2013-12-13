@@ -11,11 +11,21 @@ use std::task;
 use style::Stylesheet;
 use servo_net::resource_task::{Load, ProgressMsg, Payload, Done, ResourceTask};
 use extra::url::Url;
+use std::comm::{Port, SharedChan};
+use std::option::Option;
+use style::Stylesheet;
 
 /// Where a style sheet comes from.
 pub enum StylesheetProvenance {
     UrlProvenance(Url),
     InlineProvenance(Url, ~str),
+}
+
+// Parses the style data and returns the stylesheet
+pub fn parse_inline_css(url: Url, data: ~str)-> Stylesheet{
+        let resource_task = ResourceTask(); //Resource task is not used for inline parsing 
+        let port =  spawn_css_parser(InlineProvenance(url, data), resource_task.clone());
+        port.recv()
 }
 
 pub fn spawn_css_parser(provenance: StylesheetProvenance,

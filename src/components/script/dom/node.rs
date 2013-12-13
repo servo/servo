@@ -27,6 +27,13 @@ use std::cast;
 use std::unstable::raw::Box;
 use std::util;
 
+use script_task::{Page};
+use std::option::Option;
+use layout_interface::{AddStylesheetMsg};
+use style::Stylesheet;
+use extra::url::Url;
+use html::cssparse::{parse_inline_css};
+
 //
 // The basic Node structure
 //
@@ -1133,6 +1140,16 @@ impl Node<ScriptView> {
     pub fn AppendChild(&self,
                        abstract_self: AbstractNode<ScriptView>,
                        node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
+ 
+        //Recognize a style element, parse it and send it to layout task via AddStylesheet.
+        if node.type_id() == ElementNodeTypeId(HTMLStyleElementTypeId) {
+            let win = self.owner_doc().document().window;
+            let url = win.page.get_url();
+            let data = node.node().GetTextContent(node);
+            let sheet = parse_inline_css(url, data.unwrap_or_else(|| ~" "));
+            win.page.layout_chan.send(AddStylesheetMsg(sheet));
+        }
+    
         Node::pre_insert(node, abstract_self, None)
     }
 
