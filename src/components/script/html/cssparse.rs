@@ -8,7 +8,7 @@ use std::cell::Cell;
 use std::comm;
 use std::comm::Port;
 use std::task;
-use encoding::EncodingObj;
+use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use style::Stylesheet;
 use servo_net::resource_task::{Load, LoadResponse, ProgressMsg, Payload, Done, ResourceTask};
@@ -26,7 +26,7 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
     let (result_port, result_chan) = comm::stream();
 
     // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
-    let environment_encoding = UTF_8 as EncodingObj;
+    let environment_encoding = UTF_8 as EncodingRef;
 
     let provenance_cell = Cell::new(provenance);
     do task::spawn {

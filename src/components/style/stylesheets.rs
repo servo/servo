@@ -6,7 +6,7 @@ use std::iter::Iterator;
 use std::ascii::StrAsciiExt;
 use extra::url::Url;
 
-use encoding::EncodingObj;
+use encoding::EncodingRef;
 
 use cssparser::{decode_stylesheet_bytes, tokenize, parse_stylesheet_rules, ToCss};
 use cssparser::ast::*;
@@ -23,7 +23,7 @@ pub struct Stylesheet {
     /// cascading order)
     rules: ~[CSSRule],
     namespaces: NamespaceMap,
-    encoding: EncodingObj,
+    encoding: EncodingRef,
     base_url: Url,
 }
 
@@ -43,7 +43,7 @@ pub struct StyleRule {
 impl Stylesheet {
     pub fn from_bytes_iter<I: Iterator<~[u8]>>(
             mut input: I, base_url: Url, protocol_encoding_label: Option<&str>,
-            environment_encoding: Option<EncodingObj>) -> Stylesheet {
+            environment_encoding: Option<EncodingRef>) -> Stylesheet {
         let mut bytes = ~[];
         // TODO: incremental decoding and tokinization/parsing
         for chunk in input {
@@ -54,13 +54,13 @@ impl Stylesheet {
 
     pub fn from_bytes(
             bytes: &[u8], base_url: Url, protocol_encoding_label: Option<&str>,
-            environment_encoding: Option<EncodingObj>) -> Stylesheet {
+            environment_encoding: Option<EncodingRef>) -> Stylesheet {
         let (string, used_encoding) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
         Stylesheet::from_str(string, base_url, used_encoding)
     }
 
-    pub fn from_str(css: &str, base_url: Url, encoding: EncodingObj) -> Stylesheet {
+    pub fn from_str(css: &str, base_url: Url, encoding: EncodingRef) -> Stylesheet {
         static STATE_CHARSET: uint = 1;
         static STATE_IMPORTS: uint = 2;
         static STATE_NAMESPACES: uint = 3;
