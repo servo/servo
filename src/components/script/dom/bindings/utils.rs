@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::window;
 
 use std::libc::c_uint;
@@ -206,6 +207,16 @@ pub fn unwrap_object<T>(obj: *JSObject, proto_id: PrototypeList::id::ID, proto_d
     }
 }
 
+pub fn unwrap_jsmanaged<T: Reflectable>(obj: *JSObject,
+                                        proto_id: PrototypeList::id::ID,
+                                        proto_depth: uint) -> Result<JSManaged<T>, ()> {
+    let result: Result<*mut Box<T>, ()> = unwrap_object(obj, proto_id, proto_depth);
+    match result {
+        Ok(unwrapped) => unsafe { Ok(JSManaged::from_box(unwrapped)) },
+        Err(err) => Err(err)
+    }
+}
+
 #[fixed_stack_segment]
 pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
     unsafe {
@@ -218,6 +229,10 @@ pub unsafe fn squirrel_away<T>(x: @mut T) -> *Box<T> {
     let y: *Box<T> = cast::transmute(x);
     cast::forget(x);
     y
+}
+
+pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *Box<T> {
+    cast::transmute(x)
 }
 
 #[fixed_stack_segment]
@@ -640,6 +655,14 @@ pub fn reflect_dom_object<T: Reflectable>
     }
     assert!(obj.reflector().get_jsobject().is_not_null());
     obj
+}
+
+pub fn reflect_dom_object2<T: Reflectable>
+        (obj:     ~T,
+         window:  &window::Window,
+         wrap_fn: extern "Rust" fn(*JSContext, *JSObject, ~T) -> *JSObject)
+         ->       JSManaged<T> {
+    JSManaged::new(obj, window, wrap_fn)
 }
 
 pub struct Reflector {

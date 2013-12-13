@@ -3,16 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::MouseEventBinding;
+use dom::bindings::codegen::InheritTypes::MouseEventDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{AbstractEvent, Event, MouseEventTypeId};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
+use dom::event::{Event, MouseEventTypeId};
 use dom::eventtarget::AbstractEventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 
 pub struct MouseEvent {
-    parent: UIEvent,
+    mouseevent: UIEvent,
     screen_x: i32,
     screen_y: i32,
     client_x: i32,
@@ -25,10 +27,16 @@ pub struct MouseEvent {
     related_target: Option<AbstractEventTarget>
 }
 
+impl MouseEventDerived for Event {
+    fn is_mouseevent(&self) -> bool {
+        self.type_id == MouseEventTypeId
+    }
+}
+
 impl MouseEvent {
     pub fn new_inherited() -> MouseEvent {
         MouseEvent {
-            parent: UIEvent::new_inherited(MouseEventTypeId),
+            mouseevent: UIEvent::new_inherited(MouseEventTypeId),
             screen_x: 0,
             screen_y: 0,
             client_x: 0,
@@ -42,21 +50,21 @@ impl MouseEvent {
         }
     }
 
-    pub fn new(window: @mut Window) -> AbstractEvent {
-        Event::as_abstract(reflect_dom_object(@mut MouseEvent::new_inherited(),
-                                              window,
-                                              MouseEventBinding::Wrap))
+    pub fn new(window: @mut Window) -> JSManaged<MouseEvent> {
+        reflect_dom_object2(~MouseEvent::new_inherited(),
+                            window,
+                            MouseEventBinding::Wrap)
     }
 
     pub fn Constructor(owner: @mut Window,
                        type_: DOMString,
-                       init: &MouseEventBinding::MouseEventInit) -> Fallible<AbstractEvent> {
-        let ev = MouseEvent::new(owner);
-        ev.mut_mouseevent().InitMouseEvent(type_, init.bubbles, init.cancelable, init.view,
-                                           init.detail, init.screenX, init.screenY,
-                                           init.clientX, init.clientY, init.ctrlKey,
-                                           init.altKey, init.shiftKey, init.metaKey,
-                                           init.button, init.relatedTarget);
+                       init: &MouseEventBinding::MouseEventInit) -> Fallible<JSManaged<MouseEvent>> {
+        let mut ev = MouseEvent::new(owner);
+        ev.mut_value().InitMouseEvent(type_, init.bubbles, init.cancelable, init.view,
+                                      init.detail, init.screenX, init.screenY,
+                                      init.clientX, init.clientY, init.ctrlKey,
+                                      init.altKey, init.shiftKey, init.metaKey,
+                                      init.button, init.relatedTarget);
         Ok(ev)
     }
 
@@ -126,7 +134,7 @@ impl MouseEvent {
                           metaKeyArg: bool,
                           buttonArg: u16,
                           relatedTargetArg: Option<AbstractEventTarget>) -> ErrorResult {
-        self.parent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
+        self.mouseevent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x = screenXArg;
         self.screen_y = screenYArg;
         self.client_x = clientXArg;
@@ -143,10 +151,10 @@ impl MouseEvent {
 
 impl Reflectable for MouseEvent {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.parent.reflector()
+        self.mouseevent.reflector()
     }
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.parent.mut_reflector()
+        self.mouseevent.mut_reflector()
     }
 }

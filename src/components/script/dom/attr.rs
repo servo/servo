@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::AttrBinding;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, DOMString};
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::utils::reflect_dom_object2;
 use dom::namespace::{Namespace, Null};
 use dom::window::Window;
 
@@ -14,7 +15,8 @@ pub struct Attr {
     value: DOMString,
     name: DOMString,
     namespace: Namespace,
-    prefix: Option<DOMString>
+    prefix: Option<DOMString>,
+    force_box_layout: @int
 }
 
 impl Reflectable for Attr {
@@ -37,25 +39,26 @@ impl Attr {
             value: value,
             name: name, //TODO: Intern attribute names
             namespace: namespace,
-            prefix: prefix
+            prefix: prefix,
+            force_box_layout: @1
         }
     }
 
-    pub fn new(window: &Window, local_name: DOMString, value: DOMString) -> @mut Attr {
+    pub fn new(window: &Window, local_name: DOMString, value: DOMString) -> JSManaged<Attr> {
         let name = local_name.clone();
         Attr::new_helper(window, local_name, value, name, Null, None)
     }
 
     pub fn new_ns(window: &Window, local_name: DOMString, value: DOMString,
                   name: DOMString, namespace: Namespace,
-                  prefix: Option<DOMString>) -> @mut Attr {
+                  prefix: Option<DOMString>) -> JSManaged<Attr> {
         Attr::new_helper(window, name, value, local_name, namespace, prefix)
     }
 
     fn new_helper(window: &Window, name: DOMString, value: DOMString, local_name: DOMString,
-                  namespace: Namespace, prefix: Option<DOMString>) -> @mut Attr {
+                  namespace: Namespace, prefix: Option<DOMString>) -> JSManaged<Attr> {
         let attr = Attr::new_inherited(name, value, local_name, namespace, prefix);
-        reflect_dom_object(@mut attr, window, AttrBinding::Wrap)
+        reflect_dom_object2(~attr, window, AttrBinding::Wrap)
     }
 
     pub fn LocalName(&self) -> DOMString {

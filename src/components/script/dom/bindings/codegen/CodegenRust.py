@@ -102,7 +102,8 @@ class CastableObjectUnwrapper():
                               "source" : source,
                               "target" : target,
                               "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define(),
-                              "unwrapped_val" : "Some(val)" if isOptional else "val" }
+                              "unwrapped_val" : "Some(val)" if isOptional else "val",
+                              "unwrapFn" : "unwrap_jsmanaged" if DOMObjectIsMoved(descriptor) else "unwrap_object"}
         if descriptor.hasXPConnectImpls:
             # We don't use xpc_qsUnwrapThis because it will always throw on
             # unwrap failure, whereas we want to control whether we throw or
@@ -123,7 +124,7 @@ class CastableObjectUnwrapper():
 
     def __str__(self):
         return string.Template(
-"""match unwrap_object(${source}, ${prototype}, ${depth}) {
+"""match ${unwrapFn}(${source}, ${prototype}, ${depth}) {
   Ok(val) => ${target} = ${unwrapped_val},
   Err(()) => {
     ${codeOnFailure}
@@ -406,7 +407,7 @@ class FakeCastableDescriptor():
     def __init__(self, descriptor):
         self.castable = True
         self.workers = descriptor.workers
-        self.nativeType = descriptor.nativeType
+        self.nativeType = "*Box<%s>" % descriptor.concreteType
         self.pointerType = descriptor.pointerType
         self.name = descriptor.name
         self.hasXPConnectImpls = descriptor.hasXPConnectImpls
@@ -2499,41 +2500,54 @@ class CGAbstractMethod(CGThing):
     def definition_body(self):
         assert(False) # Override me!
 
+def DOMObjectIsMoved(descriptor):
+    return descriptor.nativeType.find('JSManaged') is not -1
+
+def DOMObjectPointerType(descriptor):
+    return "~" if DOMObjectIsMoved(descriptor) else "@mut "
+
+def DOMObjectPointerArg(descriptor):
+    return DOMObjectPointerType(descriptor) + descriptor.concreteType
+
 def CreateBindingJSObject(descriptor, parent=None):
+    func = "squirrel_away_unique" if DOMObjectIsMoved(descriptor) else "squirrel_away"
+    create = ""
+    if DOMObjectIsMoved(descriptor):
+        create += "  let raw: *mut %s = &mut *aObject;\n" % descriptor.concreteType;
     if descriptor.proxy:
         assert not descriptor.createGlobal
         handler = """
   let page = page_from_context(aCx);
   let handler = (*page).js_info.get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
-        create = handler + """  let obj = NewProxyObject(aCx, *handler,
-                           ptr::to_unsafe_ptr(&RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void)),
+        create += handler + """  let obj = NewProxyObject(aCx, *handler,
+                           ptr::to_unsafe_ptr(&RUST_PRIVATE_TO_JSVAL(%s(aObject) as *libc::c_void)),
                            proto, %s,
                            ptr::null(), ptr::null());
   if obj.is_null() {
     return ptr::null();
   }
 
-""" % parent
+""" % (func, parent)
     else:
         if descriptor.createGlobal:
-            create = "  let obj = CreateDOMGlobal(aCx, &Class.base);\n"
+            create += "  let obj = CreateDOMGlobal(aCx, &Class.base);\n"
         else:
-            create = "  let obj = JS_NewObject(aCx, &Class.base, proto, %s);\n" % parent
+            create += "  let obj = JS_NewObject(aCx, &Class.base, proto, %s);\n" % parent
         create += """  if obj.is_null() {
     return ptr::null();
   }
 
   JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                     RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void));
-"""
+                     RUST_PRIVATE_TO_JSVAL(%s(aObject) as *libc::c_void));
+""" % func
     return create
 
 class CGWrapWithCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('@mut ' + descriptor.concreteType, 'aObject')]
+                Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap_', '*JSObject', args)
 
     def definition_body(self):
@@ -2550,28 +2564,30 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
   if proto.is_null() {
     return ptr::null();
   }
+
 %s
 
-  //NS_ADDREF(aObject);
+  %s.mut_reflector().set_jsobject(obj);
 
-  aObject.mut_reflector().set_jsobject(obj);
-
-  return obj;""" % (CreateBindingJSObject(self.descriptor, "aScope"))
+  return obj;""" % (CreateBindingJSObject(self.descriptor, "aScope"),
+                    "(*raw)" if DOMObjectIsMoved(self.descriptor) else "aObject")
         else:
             return """
   assert!(aScope.is_null());
+
 %s
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);
-  aObject.mut_reflector().set_jsobject(obj);
-  return obj;""" % CreateBindingJSObject(self.descriptor)
+  %s.mut_reflector().set_jsobject(obj);
+  return obj;""" % (CreateBindingJSObject(self.descriptor),
+                    "(*raw)" if DOMObjectIsMoved(self.descriptor) else "aObject")
 
 class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         # XXX can we wrap if we don't have an interface prototype object?
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('@mut ' + descriptor.concreteType, 'aObject')]
+                Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, inline=True, pub=True)
 
     def definition_body(self):
@@ -4483,9 +4499,9 @@ def finalizeHook(descriptor, hookName, context):
     else:
         assert descriptor.nativeIsISupports
         release = """let val = JS_GetReservedSlot(obj, dom_object_slot(obj));
-let _: @mut %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
+let _: %s %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
 debug!("%s finalize: {:p}", this);
-""" % (descriptor.concreteType, descriptor.concreteType)
+""" % (DOMObjectPointerType(descriptor), descriptor.concreteType, descriptor.concreteType)
     #return clearWrapper + release
     return release
 
@@ -5153,6 +5169,7 @@ class CGBindingRoot(CGThing):
                           'js::jsfriendapi::bindgen::*',
                           'js::glue::*',
                           'dom::types::*',
+                          'dom::bindings::jsmanaged::JSManaged',
                           'dom::bindings::utils::*',
                           'dom::bindings::callback::*',
                           'dom::bindings::conversions::*',
@@ -5163,7 +5180,6 @@ class CGBindingRoot(CGThing):
                           'dom::document::AbstractDocument',
                           'dom::node::{AbstractNode, ScriptView}',
                           'dom::eventtarget::AbstractEventTarget',
-                          'dom::event::AbstractEvent',
                           'servo_util::vec::zip_copies',
                           'std::cast',
                           'std::libc',
@@ -6175,5 +6191,60 @@ class GlobalGenRoots():
 
         descriptors = [d.name for d in config.getDescriptors(register=True)]
         curr = CGList([CGGeneric(declare="pub mod %sBinding;\n" % name) for name in descriptors])
+        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
+        return curr
+
+    @staticmethod
+    def InheritTypes(config):
+
+        descriptors = config.getDescriptors(register=True, hasInterfaceObject=True)
+        allprotos = [CGGeneric(declare="#[allow(unused_imports)];\n"),
+                     CGGeneric(declare="use dom::types::*;\n"),
+                     CGGeneric(declare="use dom::node::ScriptView;\n"),
+                     CGGeneric(declare="use dom::bindings::jsmanaged::JSManaged;\n\n")]
+        for descriptor in descriptors:
+            if not DOMObjectIsMoved(descriptor):
+                continue
+
+            name = descriptor.name
+            protos = [CGGeneric(declare='pub trait %s {}\n' % (name + 'Base'))]
+            for proto in descriptor.prototypeChain:
+                protos += [CGGeneric(declare='impl %s for %s {}\n' % (proto + 'Base',
+                                                                      descriptor.concreteType))]
+            derived = [CGGeneric(declare='pub trait %s { fn %s(&self) -> bool; }\n' %
+                                 (name + 'Derived', 'is_' + name.lower()))]
+            for protoName in descriptor.prototypeChain[1:-1]:
+                protoDescriptor = config.getDescriptor(protoName, False)
+                delegate = string.Template('''impl ${selfName} for ${baseName} {
+  fn ${fname}(&self) -> bool {
+    self.${parentName}.${fname}()
+  }
+}
+''').substitute({'fname': 'is_' + name.lower(),
+                 'selfName': name + 'Derived',
+                 'baseName': protoDescriptor.concreteType,
+                 'parentName': protoDescriptor.prototypeChain[-2].lower()})
+                derived += [CGGeneric(declare=delegate)]
+            derived += [CGGeneric(declare='\n')]
+
+            cast = [CGGeneric(declare=string.Template('''pub trait ${castTraitName} {
+  fn from<T: ${fromBound}>(derived: JSManaged<T>) -> JSManaged<Self> {
+    unsafe { derived.transmute() }
+  }
+
+  fn to<T: ${toBound}>(base: JSManaged<T>) -> JSManaged<Self> {
+    assert!(base.value().${checkFn}());
+    unsafe { base.transmute() }
+  }
+}
+''').substitute({'checkFn': 'is_' + name.lower(),
+                 'castTraitName': name + 'Cast',
+                 'fromBound': name + 'Base',
+                 'toBound': name + 'Derived'})),
+                    CGGeneric(declare="impl %s for %s {}\n\n" % (name + 'Cast', name))]
+
+            allprotos += protos + derived + cast
+
+        curr = CGList(allprotos)
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
