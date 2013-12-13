@@ -2,23 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use extra::url::Url;
 use compositing::CompositorChan;
-use gfx::render_task::{RenderChan, RenderTask};
-use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
-use gfx::opts::Opts;
 use layout::layout_task::LayoutTask;
+
+use extra::url::Url;
+use gfx::opts::Opts;
+use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
+use gfx::render_task::{RenderChan, RenderTask};
+use script::dom::node::AbstractNode;
 use script::layout_interface::LayoutChan;
 use script::script_task::LoadMsg;
-use servo_msg::constellation_msg::{ConstellationChan, FailureMsg, PipelineId, SubpageId};
-use script::dom::node::AbstractNode;
 use script::script_task::{AttachLayoutMsg, NewLayoutInfo, ScriptTask, ScriptChan};
 use script::script_task;
+use servo_msg::constellation_msg::{ConstellationChan, FailureMsg, PipelineId, SubpageId};
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::ProfilerChan;
-use geom::size::Size2D;
-use extra::future::Future;
 use std::task;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and render task. 
@@ -34,7 +33,8 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    /// Starts a render task, layout task, and script task. Returns the channels wrapped in a struct.
+    /// Starts a render task, layout task, and script task. Returns the channels wrapped in a
+    /// struct.
     pub fn with_script(id: PipelineId,
                        subpage_id: Option<SubpageId>,
                        constellation_chan: ConstellationChan,
@@ -42,8 +42,8 @@ impl Pipeline {
                        image_cache_task: ImageCacheTask,
                        profiler_chan: ProfilerChan,
                        opts: Opts,
-                       script_pipeline: &Pipeline,
-                       size_future: Future<Size2D<uint>>) -> Pipeline {
+                       script_pipeline: &Pipeline)
+                       -> Pipeline {
         let (layout_port, layout_chan) = special_stream!(LayoutChan);
         let (render_port, render_chan) = special_stream!(RenderChan);
 
@@ -67,7 +67,6 @@ impl Pipeline {
             old_id: script_pipeline.id.clone(),
             new_id: id,
             layout_chan: layout_chan.clone(),
-            size_future: size_future,
         };
 
         script_pipeline.script_chan.send(AttachLayoutMsg(new_layout_info));
@@ -86,9 +85,8 @@ impl Pipeline {
                   image_cache_task: ImageCacheTask,
                   resource_task: ResourceTask,
                   profiler_chan: ProfilerChan,
-                  opts: Opts,
-                  size: Future<Size2D<uint>>) -> Pipeline {
-
+                  opts: Opts)
+                  -> Pipeline {
         let (script_port, script_chan) = special_stream!(ScriptChan);
         let (layout_port, layout_chan) = special_stream!(LayoutChan);
         let (render_port, render_chan) = special_stream!(RenderChan);
@@ -106,9 +104,15 @@ impl Pipeline {
         let task_port = supervised_task.future_result();
         supervised_task.supervised();
 
-        spawn_with!(supervised_task, [script_port, resource_task, size, render_port,
-                                      layout_port, constellation_chan, image_cache_task,
-                                      profiler_chan], {
+        spawn_with!(supervised_task, [
+                    script_port,
+                    resource_task,
+                    render_port,
+                    layout_port,
+                    constellation_chan,
+                    image_cache_task,
+                    profiler_chan
+                ], {
             ScriptTask::create(id,
                                compositor_chan.clone(),
                                layout_chan.clone(),
@@ -116,8 +120,7 @@ impl Pipeline {
                                script_chan.clone(),
                                constellation_chan.clone(),
                                resource_task,
-                               image_cache_task.clone(),
-                               size);
+                               image_cache_task.clone());
 
             RenderTask::create(id,
                                render_port,
@@ -187,8 +190,7 @@ impl Pipeline {
     }
 
     pub fn exit(&self) {
-        // Script task handles shutting down layout, 
-        // and layout handles shutting down the renderer.
+        // Script task handles shutting down layout, and layout handles shutting down the renderer.
         self.script_chan.try_send(script_task::ExitPipelineMsg(self.id));
     }
 }

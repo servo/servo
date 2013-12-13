@@ -27,11 +27,9 @@ use layout_interface::ContentChangedDocumentDamage;
 use layout_interface;
 
 use dom::node::ScriptView;
-use extra::future::Future;
 use extra::url::Url;
-use std::str::eq_slice;
-use geom::size::Size2D;
 use geom::point::Point2D;
+use geom::size::Size2D;
 use js::JSVAL_NULL;
 use js::global::debug_fns;
 use js::glue::RUST_JSVAL_TO_OBJECT;
@@ -53,6 +51,7 @@ use std::cell::Cell;
 use std::comm::{Port, SharedChan};
 use std::comm;
 use std::ptr;
+use std::str::eq_slice;
 use std::task::{spawn_sched, SingleThreaded};
 use std::util::replace;
 
@@ -84,7 +83,6 @@ pub struct NewLayoutInfo {
     old_id: PipelineId,
     new_id: PipelineId,
     layout_chan: LayoutChan,
-    size_future: Future<Size2D<uint>>,
 }
 
 /// Encapsulates external communication with the script task.
@@ -118,8 +116,8 @@ pub struct Page {
     /// What parts of the document are dirty, if any.
     damage: Option<DocumentDamage>,
 
-    /// The current size of the window, in pixels.
-    window_size: Future<Size2D<uint>>,
+    /// The current size of the window, in pixels. If `None`, we do not know the window size yet.
+    window_size: Option<Size2D<uint>>,
 
     js_info: Option<JSPageInfo>,
 
@@ -148,7 +146,7 @@ pub struct PageTreeIterator<'self> {
 }
 
 impl PageTree {
-    fn new(id: PipelineId, layout_chan: LayoutChan, size_future: Future<Size2D<uint>>) -> PageTree {
+    fn new(id: PipelineId, layout_chan: LayoutChan) -> PageTree {
         PageTree {
             page: @mut Page {
                 id: id,
@@ -156,7 +154,7 @@ impl PageTree {
                 layout_chan: layout_chan,
                 layout_join_port: None,
                 damage: None,
-                window_size: size_future,
+                window_size: None,
                 js_info: None,
                 url: None,
                 next_subpage_id: SubpageId(0),
@@ -280,18 +278,32 @@ impl Page {
         response_port.recv()
     }
 
-    /// This method will wait until the layout task has completed its current action, join the
-    /// layout task, and then request a new layout run. It won't wait for the new layout
-    /// computation to finish.
+    /// Reflows the page if it's possible to do so. This method will wait until the layout task has
+    /// completed its current action, join the layout task, and then request a new layout run. It
+    /// won't wait for the new layout computation to finish.
+    ///
+    /// If there is no window size yet, the page is presumed invisible and no reflow is performed.
     ///
     /// This function fails if there is no root frame.
-    pub fn reflow(&mut self, goal: ReflowGoal, script_chan: ScriptChan, compositor: @ScriptListener) {
+    pub fn reflow(&mut self,
+                  goal: ReflowGoal,
+                  script_chan: ScriptChan,
+                  compositor: @ScriptListener) {
         let root = match self.frame {
             None => return,
             Some(ref frame) => {
                 frame.document.document().GetDocumentElement()
             }
         };
+
+        let window_size = match self.window_size {
+            None => {
+                debug!("not reflowing due to lack of a window size");
+                return
+            }
+            Some(window_size) => window_size,
+        };
+
         match root {
             None => {},
             Some(root) => {
@@ -314,7 +326,7 @@ impl Page {
                     document_root: root,
                     url: self.url.get_ref().first().clone(),
                     goal: goal,
-                    window_size: self.window_size.get(),
+                    window_size: window_size,
                     script_chan: script_chan,
                     script_join_chan: join_chan,
                     damage: replace(&mut self.damage, None).unwrap(),
@@ -329,8 +341,8 @@ impl Page {
     }
 
     pub fn initialize_js_info(&mut self, js_context: @Cx, global: *JSObject) {
-        // Note that the order that these variables are initialized is _not_ arbitrary. Switching them around
-        // can -- and likely will -- lead to things breaking.
+        // Note that the order that these variables are initialized is _not_ arbitrary. Switching
+        // them around can -- and likely will -- lead to things breaking.
 
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
@@ -425,13 +437,12 @@ impl ScriptTask {
                chan: ScriptChan,
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
-               img_cache_task: ImageCacheTask,
-               initial_size: Future<Size2D<uint>>)
+               img_cache_task: ImageCacheTask)
                -> @mut ScriptTask {
         let js_runtime = js::rust::rt();
 
         let script_task = @mut ScriptTask {
-            page_tree: PageTree::new(id, layout_chan, initial_size),
+            page_tree: PageTree::new(id, layout_chan),
 
             image_cache_task: img_cache_task,
             resource_task: resource_task,
@@ -463,25 +474,33 @@ impl ScriptTask {
                   chan: ScriptChan,
                   constellation_chan: ConstellationChan,
                   resource_task: ResourceTask,
-                  image_cache_task: ImageCacheTask,
-                  initial_size: Future<Size2D<uint>>) {
-        let parms = Cell::new((compositor, layout_chan, port, chan, constellation_chan,
-                               resource_task, image_cache_task, initial_size));
+                  image_cache_task: ImageCacheTask) {
+        let parms = Cell::new((compositor,
+                               layout_chan,
+                               port,
+                               chan,
+                               constellation_chan,
+                               resource_task,
+                               image_cache_task));
         // Since SpiderMonkey is blocking it needs to run in its own thread.
         // If we don't do this then we'll just end up with a bunch of SpiderMonkeys
         // starving all the other tasks.
         do spawn_sched(SingleThreaded) {
-            let (compositor, layout_chan, port, chan, constellation_chan,
-                 resource_task, image_cache_task, initial_size) = parms.take();
+            let (compositor,
+                 layout_chan,
+                 port,
+                 chan,
+                 constellation_chan,
+                 resource_task,
+                 image_cache_task) = parms.take();
             let script_task = ScriptTask::new(id,
-                @compositor as @ScriptListener,
-                layout_chan,
-                port,
-                chan,
-                constellation_chan,
-                resource_task,
-                image_cache_task,
-                initial_size);
+                                              @compositor as @ScriptListener,
+                                              layout_chan,
+                                              port,
+                                              chan,
+                                              constellation_chan,
+                                              resource_task,
+                                              image_cache_task);
             script_task.start();
         }
     }
@@ -512,6 +531,7 @@ impl ScriptTask {
             let event = self.port.recv();
             match event {
                 ResizeMsg(id, size) => {
+                    debug!("script got resize message");
                     let page = self.page_tree.find(id).expect("resize sent to nonexistent pipeline").page;
                     page.resize_event = Some(size);
                 }
@@ -538,7 +558,10 @@ impl ScriptTask {
                 ReflowCompleteMsg(id, reflow_id) => self.handle_reflow_complete_msg(id, reflow_id),
                 ResizeInactiveMsg(id, new_size) => self.handle_resize_inactive_msg(id, new_size),
                 ExitPipelineMsg(id) => if self.handle_exit_pipeline_msg(id) { return false },
-                ExitWindowMsg(id) => if self.handle_exit_window_msg(id) { return false },
+                ExitWindowMsg(id) => {
+                    self.handle_exit_window_msg(id);
+                    return false
+                },
                 ResizeMsg(*) => fail!("should have handled ResizeMsg already"),
             }
         }
@@ -551,14 +574,13 @@ impl ScriptTask {
         let NewLayoutInfo {
             old_id,
             new_id,
-            layout_chan,
-            size_future
+            layout_chan
         } = new_layout_info;
 
         let parent_page_tree = self.page_tree.find(old_id).expect("ScriptTask: received a layout
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
-        let new_page_tree = PageTree::new(new_id, layout_chan, size_future);
+        let new_page_tree = PageTree::new(new_id, layout_chan);
         parent_page_tree.inner.push(new_page_tree);
     }
 
@@ -612,23 +634,22 @@ impl ScriptTask {
     fn handle_resize_inactive_msg(&mut self, id: PipelineId, new_size: Size2D<uint>) {
         let page = self.page_tree.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.").page;
-        page.window_size = Future::from_value(new_size);
+        page.window_size = Some(new_size);
         let last_loaded_url = replace(&mut page.url, None);
         for url in last_loaded_url.iter() {
             page.url = Some((url.first(), true));
         }
     }
 
-    fn handle_exit_window_msg(&mut self, id: PipelineId) -> bool {
+    fn handle_exit_window_msg(&mut self, id: PipelineId) {
+        debug!("script task handling exit window msg");
         self.handle_exit_pipeline_msg(id);
 
         // TODO(tkuehn): currently there is only one window,
         // so this can afford to be naive and just shut down the
         // compositor. In the future it'll need to be smarter.
         self.compositor.close();
-        true
     }
-
 
     /// Handles a request to exit the script task and shut down layout.
     /// Returns true if the script task should shut down and false otherwise.
@@ -636,6 +657,7 @@ impl ScriptTask {
         // If root is being exited, shut down all pages
         if self.page_tree.page.id == id {
             for page in self.page_tree.iter() {
+                debug!("shutting down layout for root page {:?}", page.id);
                 shut_down_layout(page)
             }
             return true
@@ -645,6 +667,7 @@ impl ScriptTask {
         match self.page_tree.remove(id) {
             Some(ref mut page_tree) => {
                 for page in page_tree.iter() {
+                    debug!("shutting down layout for page {:?}", page.id);
                     shut_down_layout(page)
                 }
                 false
@@ -727,7 +750,7 @@ impl ScriptTask {
                 Some(HtmlDiscoveredStyle(sheet)) => {
                     page.layout_chan.send(AddStylesheetMsg(sheet));
                 }
-                Some(HtmlDiscoveredIFrame((iframe_url, subpage_id, size_future, sandboxed))) => {
+                Some(HtmlDiscoveredIFrame((iframe_url, subpage_id, sandboxed))) => {
                     page.next_subpage_id = SubpageId(*subpage_id + 1);
                     let sandboxed = if sandboxed {
                         IFrameSandboxed
@@ -737,7 +760,6 @@ impl ScriptTask {
                     self.constellation_chan.send(LoadIframeUrlMsg(iframe_url,
                                                                   pipeline_id,
                                                                   subpage_id,
-                                                                  size_future,
                                                                   sandboxed));
                 }
                 None => break
@@ -824,7 +846,7 @@ impl ScriptTask {
             ResizeEvent(new_width, new_height) => {
                 debug!("script got resize event: {:u}, {:u}", new_width, new_height);
 
-                page.window_size = Future::from_value(Size2D(new_width, new_height));
+                page.window_size = Some(Size2D(new_width, new_height));
 
                 if page.frame.is_some() {
                     page.damage(ReflowDocumentDamage);
@@ -906,7 +928,7 @@ impl ScriptTask {
                     None => {}
                 }
             } else {
-                self.constellation_chan.send(LoadUrlMsg(page.id, url, Future::from_value(page.window_size.get())));
+                self.constellation_chan.send(LoadUrlMsg(page.id, url));
             } 
         }
     }

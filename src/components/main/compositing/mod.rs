@@ -148,6 +148,7 @@ pub enum Msg {
 pub struct CompositorTask {
     opts: Opts,
     port: Port<Msg>,
+    constellation_chan: ConstellationChan,
     profiler_chan: ProfilerChan,
     shutdown_chan: SharedChan<()>,
 }
@@ -155,12 +156,14 @@ pub struct CompositorTask {
 impl CompositorTask {
     pub fn new(opts: Opts,
                port: Port<Msg>,
+               constellation_chan: ConstellationChan,
                profiler_chan: ProfilerChan,
                shutdown_chan: Chan<()>)
                -> CompositorTask {
         CompositorTask {
             opts: opts,
             port: port,
+            constellation_chan: constellation_chan,
             profiler_chan: profiler_chan,
             shutdown_chan: SharedChan::new(shutdown_chan),
         }

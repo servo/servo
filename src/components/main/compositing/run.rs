@@ -2,41 +2,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use compositing::compositor_layer::CompositorLayer;
+use compositing::*;
 use platform::{Application, Window};
-
 use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
 use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
 use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
 use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 
-use servo_msg::constellation_msg::{ConstellationChan, NavigateMsg, ResizedWindowMsg, LoadUrlMsg};
-use servo_msg::constellation_msg;
-
 use azure::azure_hl::SourceSurfaceMethods;
 use azure::azure_hl;
-use std::comm::Port;
-use std::num::Orderable;
-use std::vec;
-use std::path::Path;
-use std::rt::io::timer::Timer;
+use extra::time::precise_time_s;
 use geom::matrix::identity;
 use geom::point::Point2D;
-use geom::size::Size2D;
 use geom::rect::Rect;
+use geom::size::Size2D;
 use layers::layers::{ContainerLayer, ContainerLayerKind};
 use layers::rendergl;
 use layers::scene::Scene;
 use opengles::gl2;
 use png;
-use servo_util::{time, url};
+use servo_msg::constellation_msg::{ConstellationChan, NavigateMsg, ResizedWindowMsg, LoadUrlMsg};
+use servo_msg::constellation_msg;
 use servo_util::time::profile;
-
-use extra::future::Future;
-use extra::time::precise_time_s;
-
-use compositing::compositor_layer::CompositorLayer;
-
-use compositing::*;
+use servo_util::{time, url};
+use std::comm::Port;
+use std::num::Orderable;
+use std::path::Path;
+use std::rt::io::timer::Timer;
+use std::vec;
 
 /// Starts the compositor, which listens for messages on the specified port.
 pub fn run_compositor(compositor: &CompositorTask) {
@@ -63,7 +57,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
 
     // The root CompositorLayer
     let mut compositor_layer: Option<CompositorLayer> = None;
-    let mut constellation_chan: Option<ConstellationChan> = None;
+    let mut constellation_chan: ConstellationChan = compositor.constellation_chan.clone();
 
     // Get BufferRequests from each layer.
     let ask_for_tiles = || {
@@ -128,7 +122,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
                                              window_size.height as uint);
                     new_constellation_chan.send(ResizedWindowMsg(window_size));
 
-                    constellation_chan = Some(new_constellation_chan);
+                    constellation_chan = new_constellation_chan;
                 }
 
                 GetGraphicsMetadata(chan) => chan.send(Some(azure_hl::current_graphics_metadata())),
@@ -252,10 +246,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
                 if window_size != new_size {
                     debug!("osmain: window resized to {:u}x{:u}", width, height);
                     window_size = new_size;
-                    match constellation_chan {
-                        Some(ref chan) => chan.send(ResizedWindowMsg(new_size)),
-                        None => error!("Compositor: Received resize event without initialized layout chan"),
-                    }
+                    constellation_chan.send(ResizedWindowMsg(new_size))
                 } else {
                     debug!("osmain: dropping window resize since size is still {:u}x{:u}", width, height);
                 }
@@ -267,12 +258,8 @@ pub fn run_compositor(compositor: &CompositorTask) {
                     Some(ref layer) => layer.pipeline.id.clone(),
                     None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor layers"),
                 };
-                match constellation_chan {
-                    Some(ref chan) => chan.send(LoadUrlMsg(root_pipeline_id,
-                                                           url::make_url(url_string.to_str(), None),
-                                                           Future::from_value(window_size))),
-                    None => error!("Compositor: Received loadurl event without initialized layout chan"),
-                }
+                constellation_chan.send(LoadUrlMsg(root_pipeline_id,
+                                                   url::make_url(url_string.to_str(), None)))
             }
 
             MouseWindowEventClass(mouse_window_event) => {
@@ -327,10 +314,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
                     windowing::Forward => constellation_msg::Forward,
                     windowing::Back => constellation_msg::Back,
                 };
-                match constellation_chan {
-                    Some(ref chan) => chan.send(NavigateMsg(direction)),
-                    None => error!("Compositor: Received navigation event without initialized layout chan"),
-                }
+                constellation_chan.send(NavigateMsg(direction))
             }
 
             FinishedWindowEvent => {
@@ -402,6 +386,9 @@ pub fn run_compositor(compositor: &CompositorTask) {
 
         if exit { done = true; }
     };
+
+    // Tell the constellation about the initial window size.
+    constellation_chan.send(ResizedWindowMsg(window_size));
 
     // Enter the main event loop.
     let mut tm = Timer::new().unwrap();

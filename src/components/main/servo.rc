@@ -41,7 +41,7 @@ extern mod core_text = "rust-core-text";
 
 use compositing::{CompositorChan, CompositorTask};
 use constellation::Constellation;
-use servo_msg::constellation_msg::{ExitMsg, InitLoadUrlMsg};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, InitLoadUrlMsg};
 
 #[cfg(not(test))]
 use gfx::opts;
@@ -127,21 +127,32 @@ fn run(opts: Opts) {
     let (shutdown_port, shutdown_chan) = comm::stream();
     let (profiler_port, profiler_chan) = special_stream!(ProfilerChan);
     let (compositor_port, compositor_chan) = special_stream!(CompositorChan);
+    let (constellation_port, constellation_chan) = special_stream!(ConstellationChan);
 
     Profiler::create(profiler_port, profiler_chan.clone(), opts.profiler_period);
 
-    do spawn_with((profiler_chan.clone(), compositor_chan, opts.clone()))
-        |(profiler_chan, compositor_chan, opts)| {
-
+    do spawn_with((constellation_port,
+                   constellation_chan.clone(),
+                   profiler_chan.clone(),
+                   compositor_chan,
+                   opts.clone()))
+            |(constellation_port,
+              constellation_chan,
+              profiler_chan,
+              compositor_chan,
+              opts)| {
         let opts = &opts;
+
         // Create a Servo instance.
         let resource_task = ResourceTask();
         let image_cache_task = ImageCacheTask(resource_task.clone());
-        let constellation_chan = Constellation::start(compositor_chan,
-                                                      opts,
-                                                      resource_task,
-                                                      image_cache_task,
-                                                      profiler_chan.clone());
+        Constellation::start(constellation_port,
+                             constellation_chan.clone(),
+                             compositor_chan,
+                             opts,
+                             resource_task,
+                             image_cache_task,
+                             profiler_chan.clone());
 
         // Send the URL command to the constellation.
         for filename in opts.urls.iter() {
@@ -158,11 +169,12 @@ fn run(opts: Opts) {
         exit_response_from_constellation.recv();
     }
 
-
     let compositor_task = CompositorTask::new(opts,
                                               compositor_port,
+                                              constellation_chan,
                                               profiler_chan,
                                               shutdown_chan);
+
     debug!("preparing to enter main loop");
     compositor_task.run();
 }
