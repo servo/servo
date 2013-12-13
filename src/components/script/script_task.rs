@@ -723,11 +723,11 @@ impl ScriptTask {
                                                                  url.clone(),
                                                                  self.resource_task.clone(),
                                                                  self.image_cache_task.clone(),
-                                                                 page.next_subpage_id.clone(),
-                                                                 self.constellation_chan.clone());
+                                                                 page.next_subpage_id.clone());
 
-
-        let HtmlParserResult {discovery_port} = html_parsing_result;
+        let HtmlParserResult {
+            discovery_port
+        } = html_parsing_result;
 
         // Create the root frame.
         page.frame = Some(Frame {

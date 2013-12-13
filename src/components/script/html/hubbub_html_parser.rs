@@ -17,7 +17,7 @@ use script_task::page_from_context;
 use extra::url::Url;
 use hubbub::hubbub;
 use js::jsapi::JSContext;
-use servo_msg::constellation_msg::{ConstellationChan, SubpageId};
+use servo_msg::constellation_msg::SubpageId;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
 use servo_util::tree::{TreeNodeRef, ElementLike};
@@ -248,8 +248,8 @@ pub fn parse_html(cx: *JSContext,
                   url: Url,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
-                  next_subpage_id: SubpageId,
-                  constellation_chan: ConstellationChan) -> HtmlParserResult {
+                  next_subpage_id: SubpageId)
+                  -> HtmlParserResult {
     debug!("Hubbub: parsing {:?}", url);
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
@@ -385,7 +385,6 @@ pub fn parse_html(cx: *JSContext,
                             iframe_element.size = Some(IFrameSize {
                                 pipeline_id: pipeline_id,
                                 subpage_id: subpage_id,
-                                constellation_chan: constellation_chan.clone(),
                             });
                             iframe_chan.send(HtmlDiscoveredIFrame((iframe_url,
                                                                    subpage_id,

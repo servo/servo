@@ -11,8 +11,7 @@ use dom::node::{AbstractNode, Node, ScriptView};
 use dom::windowproxy::WindowProxy;
 
 use extra::url::Url;
-use geom::rect::Rect;
-use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
+use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use std::ascii::StrAsciiExt;
 
 enum SandboxAllowance {
@@ -32,16 +31,9 @@ pub struct HTMLIFrameElement {
     sandbox: Option<u8>
 }
 
-struct IFrameSize {
+pub struct IFrameSize {
     pipeline_id: PipelineId,
     subpage_id: SubpageId,
-    constellation_chan: ConstellationChan,
-}
-
-impl IFrameSize {
-    pub fn set_rect(&mut self, rect: Rect<f32>) {
-        self.constellation_chan.send(FrameRectMsg(self.pipeline_id, self.subpage_id, rect));
-    }
 }
 
 impl HTMLIFrameElement {

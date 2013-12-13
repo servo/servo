@@ -13,9 +13,9 @@ use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
 use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
 
 use std::cell::Cell;
-use geom::{Point2D, Rect, SideOffsets2D, Size2D};
+use geom::{Point2D, Rect, SideOffsets2D};
 use gfx::display_list::DisplayList;
-use servo_util::geometry::{Au, to_frac_px};
+use servo_util::geometry::Au;
 use servo_util::geometry;
 
 /// Information specific to floated blocks.
@@ -58,7 +58,7 @@ pub struct BlockFlow {
     /// Whether this block flow is the root flow.
     is_root: bool,
 
-    // Additional floating flow members.
+    /// Additional floating flow members.
     float: Option<~FloatedBlockInfo>
 }
 
@@ -471,27 +471,6 @@ impl BlockFlow {
             return self.build_display_list_float(builder, dirty, list);
         }
 
-        if self.base.node.is_iframe_element() {
-            let x = self.base.abs_position.x + do self.box.as_ref().map_default(Au::new(0)) |box| {
-                box.margin.get().left + box.border.get().left + box.padding.get().left
-            };
-            let y = self.base.abs_position.y + do self.box.as_ref().map_default(Au::new(0)) |box| {
-                box.margin.get().top + box.border.get().top + box.padding.get().top
-            };
-            let w = self.base.position.size.width - do self.box.as_ref().map_default(Au::new(0)) |box| {
-                box.noncontent_width()
-            };
-            let h = self.base.position.size.height - do self.box.as_ref().map_default(Au::new(0)) |box| {
-                box.noncontent_height()
-            };
-            do self.base.node.with_mut_iframe_element |iframe_element| {
-                iframe_element.size.get_mut_ref().set_rect(Rect(Point2D(to_frac_px(x) as f32,
-                                                                        to_frac_px(y) as f32),
-                                                                Size2D(to_frac_px(w) as f32,
-                                                                       to_frac_px(h) as f32)));
-            }
-        }
-
         let abs_rect = Rect(self.base.abs_position, self.base.position.size);
         if !abs_rect.intersects(dirty) {
             return true;
@@ -514,20 +493,16 @@ impl BlockFlow {
         false
     }
 
-    pub fn build_display_list_float<E:ExtraDisplayListData>(&mut self,
-                                                            builder: &DisplayListBuilder,
-                                                            dirty: &Rect<Au>,
-                                                            list: &Cell<DisplayList<E>>)
-                                                            -> bool {
-        //TODO: implement iframe size messaging
-        if self.base.node.is_iframe_element() {
-            error!("float iframe size messaging not implemented yet");
-        }
+    pub fn build_display_list_float<E:ExtraDisplayListData>(
+                                    &mut self,
+                                    builder: &DisplayListBuilder,
+                                    dirty: &Rect<Au>,
+                                    list: &Cell<DisplayList<E>>)
+                                    -> bool {
         let abs_rect = Rect(self.base.abs_position, self.base.position.size);
         if !abs_rect.intersects(dirty) {
-            return true;
+            return true
         }
-
 
         let offset = self.base.abs_position + self.float.get_ref().rel_pos;
         // add box that starts block context
