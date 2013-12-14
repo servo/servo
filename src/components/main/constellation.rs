@@ -388,6 +388,7 @@ impl Constellation {
                                              self.image_cache_task.clone(),
                                              self.resource_task.clone(),
                                              self.profiler_chan.clone(),
+                                             self.window_size,
                                              self.opts.clone());
         let failure = ~"about:failure";
         let url = make_url(failure, None);
@@ -409,6 +410,7 @@ impl Constellation {
                                              self.image_cache_task.clone(),
                                              self.resource_task.clone(),
                                              self.profiler_chan.clone(),
+                                             self.window_size,
                                              self.opts.clone());
         pipeline.load(url);
 
@@ -545,6 +547,7 @@ impl Constellation {
                              self.image_cache_task.clone(),
                              self.resource_task.clone(),
                              self.profiler_chan.clone(),
+                             self.window_size,
                              self.opts.clone())
         };
 
@@ -598,6 +601,7 @@ impl Constellation {
                                              self.image_cache_task.clone(),
                                              self.resource_task.clone(),
                                              self.profiler_chan.clone(),
+                                             self.window_size,
                                              self.opts.clone());
 
         pipeline.load(url);
