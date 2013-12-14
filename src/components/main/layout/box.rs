@@ -40,6 +40,7 @@ use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
 use layout::flow::Flow;
 use layout::flow;
 use layout::model::{MaybeAuto, specified};
+use layout::util::OpaqueNode;
 
 /// Boxes (`struct Box`) are the leaves of the layout tree. They cannot position themselves. In
 /// general, boxes do not have a simple correspondence with CSS boxes in the specification:
@@ -63,8 +64,8 @@ use layout::model::{MaybeAuto, specified};
 /// FIXME(pcwalton): This can be slimmed down quite a bit.
 #[deriving(Clone)]
 pub struct Box {
-    /// The DOM node that this `Box` originates from.
-    node: AbstractNode<LayoutView>,
+    /// An opaque reference to the DOM node that this `Box` originates from.
+    node: OpaqueNode,
 
     /// The CSS style of this box.
     style: Arc<ComputedValues>,
@@ -250,7 +251,7 @@ impl Box {
         }
 
         Box {
-            node: node,
+            node: OpaqueNode::from_node(&node),
             style: (*nearest_ancestor_element.style()).clone(),
             position: Slot::init(Au::zero_rect()),
             border: Slot::init(Zero::zero()),
@@ -288,7 +289,7 @@ impl Box {
     /// CSS 2.1.
     fn guess_width(&self) -> Au {
         match self.specific {
-            GenericBox | ImageBox(_) => {}
+            GenericBox | IframeBox(_) | ImageBox(_) => {}
             ScannedTextBox(_) | UnscannedTextBox(_) => return Au(0),
         }
 

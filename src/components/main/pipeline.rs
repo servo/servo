@@ -9,7 +9,7 @@ use extra::url::Url;
 use gfx::opts::Opts;
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::render_task::{RenderChan, RenderTask};
-use script::dom::node::AbstractNode;
+use layout::util::OpaqueNode;
 use script::layout_interface::LayoutChan;
 use script::script_task::LoadMsg;
 use script::script_task::{AttachLayoutMsg, NewLayoutInfo, ScriptTask, ScriptChan};
@@ -27,19 +27,19 @@ pub struct Pipeline {
     subpage_id: Option<SubpageId>,
     script_chan: ScriptChan,
     layout_chan: LayoutChan,
-    render_chan: RenderChan<AbstractNode<()>>,
+    render_chan: RenderChan<OpaqueNode>,
     layout_shutdown_port: Port<()>,
     render_shutdown_port: Port<()>,
     /// The most recently loaded url
     url: Option<Url>,
 }
 
-/// A subset of the Pipeline nthat is eeded for layer composition
+/// The subset of the pipeline that is needed for layer composition.
 #[deriving(Clone)]
 pub struct CompositionPipeline {
     id: PipelineId,
     script_chan: ScriptChan,
-    render_chan: RenderChan<AbstractNode<()>>,
+    render_chan: RenderChan<OpaqueNode>,
 }
 
 impl Pipeline {
@@ -182,7 +182,7 @@ impl Pipeline {
                subpage_id: Option<SubpageId>,
                script_chan: ScriptChan,
                layout_chan: LayoutChan,
-               render_chan: RenderChan<AbstractNode<()>>,
+               render_chan: RenderChan<OpaqueNode>,
                layout_shutdown_port: Port<()>,
                render_shutdown_port: Port<()>)
                -> Pipeline {
