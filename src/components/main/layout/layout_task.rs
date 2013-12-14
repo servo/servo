@@ -207,18 +207,23 @@ impl LayoutTask {
                   render_chan: RenderChan<AbstractNode<()>>,
                   img_cache_task: ImageCacheTask,
                   opts: Opts,
-                  profiler_chan: ProfilerChan) {
+                  profiler_chan: ProfilerChan,
+                  shutdown_chan: Chan<()>) {
         spawn_with!(task::task(), [port, constellation_chan, script_chan,
-                                   render_chan, img_cache_task, profiler_chan], {
-            let mut layout = LayoutTask::new(id,
-                                             port,
-                                             constellation_chan,
-                                             script_chan,
-                                             render_chan,
-                                             img_cache_task,
-                                             &opts,
-                                             profiler_chan);
-            layout.start();
+                                   render_chan, img_cache_task, profiler_chan, shutdown_chan], {
+            { // Ensures LayoutTask gets destroyed before we send the shutdown message
+                let mut layout = LayoutTask::new(id,
+                                                 port,
+                                                 constellation_chan,
+                                                 script_chan,
+                                                 render_chan,
+                                                 img_cache_task,
+                                                 &opts,
+                                                 profiler_chan);
+                layout.start();
+            }
+
+            shutdown_chan.send(());
         });
     }
 

@@ -8,7 +8,7 @@ use extra::url::Url;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::opts::Opts;
-use pipeline::Pipeline;
+use pipeline::{Pipeline, CompositionPipeline};
 use script::script_task::{ResizeMsg, ResizeInactiveMsg};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
@@ -81,7 +81,7 @@ impl Clone for ChildFrameTree {
 }
 
 pub struct SendableFrameTree {
-    pipeline: Pipeline,
+    pipeline: CompositionPipeline,
     children: ~[SendableChildFrameTree],
 }
 
@@ -129,7 +129,7 @@ impl FrameTree {
 
     fn to_sendable(&self) -> SendableFrameTree {
         let sendable_frame_tree = SendableFrameTree {
-            pipeline: (*self.pipeline).clone(),
+            pipeline: self.pipeline.to_sendable(),
             children: self.children.iter().map(|frame_tree| frame_tree.to_sendable()).collect(),
         };
         sendable_frame_tree

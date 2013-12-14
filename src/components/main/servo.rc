@@ -124,7 +124,7 @@ fn start(argc: int, argv: **u8) -> int {
 }
 
 fn run(opts: Opts) {
-    let (shutdown_port, shutdown_chan) = comm::stream();
+    let (exit_response_from_constellation, exit_chan) = comm::stream();
     let (profiler_port, profiler_chan) = special_stream!(ProfilerChan);
     let (compositor_port, compositor_chan) = special_stream!(CompositorChan);
     let (constellation_port, constellation_chan) = special_stream!(ConstellationChan);
@@ -158,24 +158,20 @@ fn run(opts: Opts) {
         for filename in opts.urls.iter() {
             constellation_chan.send(InitLoadUrlMsg(make_url(filename.clone(), None)))
         }
-
-        // Wait for the compositor to shut down.
-        shutdown_port.recv();
-
-        // Shut the constellation down.
-        debug!("master: Shut down");
-        let (exit_response_from_constellation, exit_chan) = comm::stream();
-        constellation_chan.send(ExitMsg(exit_chan));
-        exit_response_from_constellation.recv();
     }
 
     let compositor_task = CompositorTask::new(opts,
                                               compositor_port,
-                                              constellation_chan,
-                                              profiler_chan,
-                                              shutdown_chan);
+                                              constellation_chan.clone(),
+                                              profiler_chan);
 
     debug!("preparing to enter main loop");
     compositor_task.run();
+
+    // Constellation has to be shut down before the compositor goes out of
+    // scope, as the compositor manages setup/teardown of global subsystems
+    debug!("shutting down the constellation");
+    constellation_chan.send(ExitMsg(exit_chan));
+    exit_response_from_constellation.recv();
 }
 
