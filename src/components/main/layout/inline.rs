@@ -785,17 +785,15 @@ impl Flow for InlineFlow {
                 // parent's content area.
 
                 // We should calculate the distance from baseline to the top of parent's content
-                // area. But for now we assume it's the parent's font size.
-                let mut parent_text_top;
+                // area. But for now we assume it's the font size.
+                //
+                // The spec does not state which font to use. Previous versions of the code used
+                // the parent's font; this code uses the current font.
+                let parent_text_top = cur_box.style().Font.font_size;
 
                 // We should calculate the distance from baseline to the bottom of the parent's
                 // content area. But for now we assume it's zero.
                 let parent_text_bottom = Au::new(0);
-
-                let parent = cur_box.node.parent_node().unwrap();
-                let parent_style = parent.style();
-                let font_size = parent_style.get().Font.font_size;
-                parent_text_top = font_size;
 
                 // Calculate a relative offset from the baseline.
                 //
