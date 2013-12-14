@@ -17,13 +17,13 @@ use extra::container::Deque;
 use extra::ringbuf::RingBuf;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
-use style::computed_values::text_align;
-use style::computed_values::vertical_align;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use std::cell::Cell;
 use std::u16;
 use std::util;
+use style::computed_values::text_align;
+use style::computed_values::vertical_align;
 
 /// Lineboxes are represented as offsets into the child list, rather than
 /// as an object that "owns" boxes. Choosing a different set of line
@@ -644,7 +644,8 @@ impl Flow for InlineFlow {
         //
         // TODO: Combine this with `LineboxScanner`'s walk in the box list, or put this into `Box`.
 
-        debug!("assign_widths_inline: floats_in: {:?}", self.base.floats_in);
+        debug!("InlineFlow::assign_widths: floats_in: {:?}", self.base.floats_in);
+
         {
             let this = &mut *self;
             for box in this.boxes.iter() {
@@ -656,6 +657,7 @@ impl Flow for InlineFlow {
             let child_base = flow::mut_base(*kid);
             child_base.position.size.width = self.base.position.size.width;
             child_base.flags.set_inorder(self.base.flags.inorder());
+            child_base.flags.propagate_text_alignment_from_parent(self.base.flags)
         }
         // There are no child contexts, so stop here.
 
@@ -695,8 +697,8 @@ impl Flow for InlineFlow {
 
         let mut line_height_offset = Au::new(0);
 
-        // All lines use text alignment from base (non-inline) node
-        let text_align = self.base.node.style().get().Text.text_align;
+        // All lines use text alignment of the flow.
+        let text_align = self.base.flags.text_align();
 
         // Now, go through each line and lay out the boxes inside.
         for line in self.lines.mut_iter() {

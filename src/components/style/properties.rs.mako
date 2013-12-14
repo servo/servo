@@ -106,7 +106,7 @@ pub mod longhands {
         <%self:single_component_value name="${name}" inherited="${inherited}">
             ${caller.body()}
             pub mod computed_value {
-                #[deriving(Eq, Clone)]
+                #[deriving(Eq, Clone, FromPrimitive)]
                 pub enum T {
                     % for value in values.split():
                         ${to_rust_ident(value)},
