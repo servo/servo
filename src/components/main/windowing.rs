@@ -26,6 +26,8 @@ pub enum WindowEvent {
     /// FIXME: This is a bogus event and is only used because we don't have the new
     /// scheduler integrated with the platform event loop.
     IdleWindowEvent,
+    /// Sent when part of the window is marked dirty and needs to be redrawn.
+    RefreshWindowEvent,
     /// Sent when the window is resized.
     ResizeWindowEvent(uint, uint),
     /// Sent when a new URL is to be loaded.
