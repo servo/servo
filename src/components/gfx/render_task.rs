@@ -136,47 +136,52 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                   compositor: C,
                   constellation_chan: ConstellationChan,
                   opts: Opts,
-                  profiler_chan: ProfilerChan) {
-        do spawn_with((port, compositor, constellation_chan, opts, profiler_chan))
-            |(port, compositor, constellation_chan, opts, profiler_chan)| {
+                  profiler_chan: ProfilerChan,
+                  shutdown_chan: Chan<()>) {
+        do spawn_with((port, compositor, constellation_chan, opts, profiler_chan, shutdown_chan))
+            |(port, compositor, constellation_chan, opts, profiler_chan, shutdown_chan)| {
 
-            let native_graphics_context = compositor.get_graphics_metadata().map(
-                |md| NativePaintingGraphicsContext::from_metadata(&md));
-            let cpu_painting = opts.cpu_painting;
+            { // Ensures RenderTask and graphics context are destroyed before shutdown msg
+                let native_graphics_context = compositor.get_graphics_metadata().map(
+                    |md| NativePaintingGraphicsContext::from_metadata(&md));
+                let cpu_painting = opts.cpu_painting;
 
-            // FIXME: rust/#5967
-            let mut render_task = RenderTask {
-                id: id,
-                port: port,
-                compositor: compositor,
-                constellation_chan: constellation_chan,
-                font_ctx: ~FontContext::new(opts.render_backend.clone(),
-                                                false,
-                                                profiler_chan.clone()),
-                opts: opts,
-                profiler_chan: profiler_chan,
+                // FIXME: rust/#5967
+                let mut render_task = RenderTask {
+                    id: id,
+                    port: port,
+                    compositor: compositor,
+                    constellation_chan: constellation_chan,
+                    font_ctx: ~FontContext::new(opts.render_backend.clone(),
+                                                    false,
+                                                    profiler_chan.clone()),
+                    opts: opts,
+                    profiler_chan: profiler_chan,
 
-                graphics_context: if cpu_painting {
-                    CpuGraphicsContext
-                } else {
-                    GpuGraphicsContext
-                },
+                    graphics_context: if cpu_painting {
+                        CpuGraphicsContext
+                    } else {
+                        GpuGraphicsContext
+                    },
 
-                native_graphics_context: native_graphics_context,
+                    native_graphics_context: native_graphics_context,
 
-                render_layer: None,
+                    render_layer: None,
 
-                paint_permission: false,
-                epoch: Epoch(0),
-                buffer_map: BufferMap::new(10000000),
-            };
+                    paint_permission: false,
+                    epoch: Epoch(0),
+                    buffer_map: BufferMap::new(10000000),
+                };
 
-            render_task.start();
+                render_task.start();
 
-            // Destroy all the buffers.
-            render_task.native_graphics_context.as_ref().map(|ctx|
-                render_task.buffer_map.clear(ctx)
-            );
+                // Destroy all the buffers.
+                render_task.native_graphics_context.as_ref().map(|ctx|
+                    render_task.buffer_map.clear(ctx)
+                );
+            }
+
+            shutdown_chan.send(());
         }
     }
 

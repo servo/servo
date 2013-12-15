@@ -15,7 +15,7 @@ use layers::layers::TextureLayerKind;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceMethods};
 use layers::texturegl::{Texture, TextureTarget};
 #[cfg(target_os="macos")] use layers::texturegl::TextureTargetRectangle;
-use pipeline::Pipeline;
+use pipeline::CompositionPipeline;
 use script::dom::event::{ClickEvent, MouseDownEvent, MouseUpEvent};
 use script::script_task::SendEventMsg;
 use servo_msg::compositor_msg::{LayerBuffer, LayerBufferSet, Epoch, Tile};
@@ -34,7 +34,7 @@ use layers::texturegl::TextureTarget2D;
 /// Each layer can also have child layers.
 pub struct CompositorLayer {
     /// This layer's pipeline. BufferRequests and mouse events will be sent through this.
-    pipeline: Pipeline,
+    pipeline: CompositionPipeline,
 
     /// The size of the underlying page in page coordinates. This is an option
     /// because we may not know the size of the page until layout is finished completely.
@@ -104,7 +104,7 @@ enum ScrollBehavior {
 impl CompositorLayer {
     /// Creates a new CompositorLayer with an optional page size. If no page size is given,
     /// the layer is initially hidden and initialized without a quadtree.
-    pub fn new(pipeline: Pipeline,
+    pub fn new(pipeline: CompositionPipeline,
                page_size: Option<Size2D<f32>>,
                tile_size: uint,
                max_mem: Option<uint>,
@@ -669,7 +669,7 @@ impl CompositorLayer {
     }
     
     // Adds a child.
-    pub fn add_child(&mut self, pipeline: Pipeline, page_size: Option<Size2D<f32>>, tile_size: uint,
+    pub fn add_child(&mut self, pipeline: CompositionPipeline, page_size: Option<Size2D<f32>>, tile_size: uint,
                      max_mem: Option<uint>, clipping_rect: Rect<f32>) {
         let container = @mut ContainerLayer();
         container.scissor = Some(clipping_rect);
