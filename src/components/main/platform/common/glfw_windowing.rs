@@ -8,6 +8,7 @@ use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
 use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
 use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
 use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
+use windowing::RefreshWindowEvent;
 use windowing::{Forward, Back};
 
 use alert::{Alert, AlertMethods};
@@ -91,6 +92,9 @@ impl WindowMethods<Application> for Window {
         // Register event handlers.
         do window.glfw_window.set_framebuffer_size_callback |_win, width, height| {
             local_window().event_queue.push(ResizeWindowEvent(width as uint, height as uint))
+        }
+        do window.glfw_window.set_refresh_callback |_win| {
+            local_window().event_queue.push(RefreshWindowEvent)
         }
         do window.glfw_window.set_key_callback |_win, key, _scancode, action, mods| {
             if action == glfw::Press {
