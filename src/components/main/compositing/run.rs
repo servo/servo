@@ -426,4 +426,8 @@ pub fn run_compositor(compositor: &CompositorTask) {
         None => {}
         Some(ref mut layer) => layer.forget_all_tiles(),
     }
+
+    // Drain compositor port, sometimes messages contain channels that are blocking
+    // another task from finishing (i.e. SetIds)
+    while compositor.port.peek() { compositor.port.recv(); }
 }
