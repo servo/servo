@@ -4,8 +4,10 @@
 
 use compositing::compositor_layer::CompositorLayer;
 use compositing::*;
+
 use platform::{Application, Window};
-use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
+
+use windowing::{WindowEvent, WindowMethods};
 use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
 use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
 use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
@@ -34,9 +36,8 @@ use std::rt::io::timer::Timer;
 use std::vec;
 
 /// Starts the compositor, which listens for messages on the specified port.
-pub fn run_compositor(compositor: &CompositorTask) {
-    let app: Application = ApplicationMethods::new();
-    let window: @mut Window = WindowMethods::new(&app);
+pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
+    let window: @mut Window = WindowMethods::new(app);
 
     // Create an initial layer tree.
     //
@@ -418,8 +419,6 @@ pub fn run_compositor(compositor: &CompositorTask) {
         }
 
     }
-
-    compositor.shutdown_chan.send(());
 
     // Clear out the compositor layers so that painting tasks can destroy the buffers.
     match compositor_layer {

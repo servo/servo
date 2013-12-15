@@ -5,7 +5,8 @@
 pub use windowing;
 
 use constellation::SendableFrameTree;
-use windowing::WindowMethods;
+use windowing::{ApplicationMethods, WindowMethods};
+use platform::Application;
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
 use geom::point::Point2D;
@@ -145,27 +146,38 @@ pub enum Msg {
     SetUnRenderedColor(PipelineId, Color),
 }
 
+pub enum CompositorMode {
+    Windowed(Application),
+    Headless
+}
+
 pub struct CompositorTask {
+    mode: CompositorMode,
     opts: Opts,
     port: Port<Msg>,
     constellation_chan: ConstellationChan,
     profiler_chan: ProfilerChan,
-    shutdown_chan: SharedChan<()>,
 }
 
 impl CompositorTask {
     pub fn new(opts: Opts,
                port: Port<Msg>,
                constellation_chan: ConstellationChan,
-               profiler_chan: ProfilerChan,
-               shutdown_chan: Chan<()>)
+               profiler_chan: ProfilerChan)
                -> CompositorTask {
+
+        let mode: CompositorMode = if opts.headless {
+            Headless
+        } else {
+            Windowed(ApplicationMethods::new())
+        };
+
         CompositorTask {
+            mode: mode,
             opts: opts,
             port: port,
             constellation_chan: constellation_chan,
-            profiler_chan: profiler_chan,
-            shutdown_chan: SharedChan::new(shutdown_chan),
+            profiler_chan: profiler_chan
         }
     }
 
@@ -182,10 +194,9 @@ impl CompositorTask {
     }
 
     pub fn run(&self) {
-        if self.opts.headless {
-            run_headless::run_compositor(self);
-        } else {
-            run::run_compositor(self);
+        match self.mode {
+            Windowed(ref app) => run::run_compositor(self, app),
+            Headless => run_headless::run_compositor(self),
         }
     }
 }

@@ -37,5 +37,4 @@ pub fn run_compositor(compositor: &CompositorTask) {
                 => ()
         }
     }
-    compositor.shutdown_chan.send(())
 }
