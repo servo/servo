@@ -9,6 +9,7 @@ use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
 use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
 use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
 use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
+use windowing::RefreshWindowEvent;
 
 use azure::azure_hl::SourceSurfaceMethods;
 use azure::azure_hl;
@@ -240,6 +241,10 @@ pub fn run_compositor(compositor: &CompositorTask) {
     let check_for_window_messages: &fn(WindowEvent) = |event| {
         match event {
             IdleWindowEvent => {}
+
+            RefreshWindowEvent => {
+                recomposite = true;
+            }
 
             ResizeWindowEvent(width, height) => {
                 let new_size = Size2D(width, height);
