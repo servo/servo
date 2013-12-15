@@ -21,6 +21,8 @@ pub enum StylesheetOrigin {
     UserOrigin,
 }
 
+/// The definition of whitespace per CSS Selectors Level 3 § 4.
+static SELECTOR_WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
 
 /// Map node attributes to Rules whose last simple selector starts with them.
 ///
@@ -65,67 +67,84 @@ impl SelectorMap {
     ///
     /// Extract matching rules as per node's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
-    fn get_all_matching_rules<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        &self, node: &T,
-        pseudo_element: Option<PseudoElement>,
-        matching_rules_list: &mut [~[Rule]],
-        list_index: uint) {
-
-        let init_len = matching_rules_list[list_index].len();
-        static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
-        do node.with_imm_element_like |element: &E| {
+    fn get_all_matching_rules<N:TreeNode<T>,
+                              T:TreeNodeRefAsElement<N,E>,
+                              E:ElementLike>(
+                              &self,
+                              node: &T,
+                              pseudo_element: Option<PseudoElement>,
+                              matching_rules_list: &mut ~[Rule]) {
+        // At the end, we're going to sort the rules that we added, so remember where we began.
+        let init_len = matching_rules_list.len();
+        node.with_imm_element_like(|element: &E| {
             match element.get_attr(None, "id") {
-                Some(id) => SelectorMap::get_matching_rules_from_hash(
-                    node, pseudo_element, &self.id_hash, id, &mut matching_rules_list[list_index]),
+                Some(id) => {
+                    SelectorMap::get_matching_rules_from_hash(node,
+                                                              pseudo_element,
+                                                              &self.id_hash,
+                                                              id,
+                                                              matching_rules_list)
+                }
                 None => {}
             }
 
             match element.get_attr(None, "class") {
                 Some(ref class_attr) => {
-                    for class in class_attr.split_iter(WHITESPACE) {
-                        SelectorMap::get_matching_rules_from_hash(
-                            node, pseudo_element, &self.class_hash, class, &mut matching_rules_list[list_index]);
+                    for class in class_attr.split_iter(SELECTOR_WHITESPACE) {
+                        SelectorMap::get_matching_rules_from_hash(node,
+                                                                  pseudo_element,
+                                                                  &self.class_hash,
+                                                                  class,
+                                                                  matching_rules_list)
                     }
                 }
                 None => {}
             }
 
-            SelectorMap::get_matching_rules_from_hash(
-                node, pseudo_element, &self.element_hash,
-                // HTML elements in HTML documents must be matched case-insensitively
-                // TODO: case-sensitivity depends on the document type
-                element.get_local_name().to_ascii_lower(),
-                &mut matching_rules_list[list_index]);
-            SelectorMap::get_matching_rules(
-                node, pseudo_element, self.universal_rules, &mut matching_rules_list[list_index]);
-        }
+            // HTML elements in HTML documents must be matched case-insensitively.
+            // TODO(pradeep): Case-sensitivity depends on the document type.
+            SelectorMap::get_matching_rules_from_hash(node,
+                                                      pseudo_element,
+                                                      &self.element_hash,
+                                                      element.get_local_name().to_ascii_lower(),
+                                                      matching_rules_list);
+            SelectorMap::get_matching_rules(node,
+                                            pseudo_element,
+                                            self.universal_rules,
+                                            matching_rules_list);
+        });
 
         // Sort only the rules we just added.
-        tim_sort(matching_rules_list[list_index].mut_slice_from(init_len));
+        tim_sort(matching_rules_list.mut_slice_from(init_len));
     }
 
-    fn get_matching_rules_from_hash<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        node: &T,
-        pseudo_element: Option<PseudoElement>,
-        hash: &HashMap<~str, ~[Rule]>, 
-        key: &str,
-        matching_rules: &mut ~[Rule]) {
+    fn get_matching_rules_from_hash<N:TreeNode<T>,
+                                    T:TreeNodeRefAsElement<N,E>,
+                                    E:ElementLike>(
+                                    node: &T,
+                                    pseudo_element: Option<PseudoElement>,
+                                    hash: &HashMap<~str,~[Rule]>, 
+                                    key: &str,
+                                    matching_rules: &mut ~[Rule]) {
         match hash.find(&key.to_str()) {
-            Some(rules) => SelectorMap::get_matching_rules(node, pseudo_element, *rules,
-                                                           matching_rules),
+            Some(rules) => {
+                SelectorMap::get_matching_rules(node, pseudo_element, *rules, matching_rules)
+            }
             None => {}
-        };
+        }
     }
     
-    /// Return rules in `rules` that match `node`.
-    fn get_matching_rules<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        node: &T,
-        pseudo_element: Option<PseudoElement>,
-        rules: &[Rule],
-        matching_rules: &mut ~[Rule]) {
+    /// Adds rules in `rules` that match `node` to the `matching_rules` list.
+    fn get_matching_rules<N:TreeNode<T>,
+                          T:TreeNodeRefAsElement<N,E>,
+                          E:ElementLike>(
+                          node: &T,
+                          pseudo_element: Option<PseudoElement>,
+                          rules: &[Rule],
+                          matching_rules: &mut ~[Rule]) {
         for rule in rules.iter() {
             if matches_selector(rule.selector.get(), node, pseudo_element) {
-                // TODO: Is the cloning inefficient?
+                // TODO(pradeep): Is the cloning inefficient?
                 matching_rules.push(rule.clone());
             }
         }
@@ -186,7 +205,8 @@ impl SelectorMap {
         let simple_selector_sequence = &rule.selector.get().compound_selectors.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
-                // TODO: Implement case-sensitivity based on the document type and quirks mode
+                // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
+                // mode.
                 IDSelector(ref id) => return Some(id.clone()),
                 _ => {}
             }
@@ -199,7 +219,8 @@ impl SelectorMap {
         let simple_selector_sequence = &rule.selector.get().compound_selectors.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
-                // TODO: Implement case-sensitivity based on the document type and quirks mode
+                // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
+                // mode.
                 ClassSelector(ref class) => return Some(class.clone()),
                 _ => {}
             }
@@ -278,44 +299,83 @@ impl Stylist {
         self.stylesheet_index += 1;
     }
 
-    pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-            &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>,
-            pseudo_element: Option<PseudoElement>) -> ~[Arc<~[PropertyDeclaration]>] {
+    /// Returns the applicable CSS declarations for the given element. This corresponds to
+    /// `ElementRuleCollector` in WebKit.
+    pub fn get_applicable_declarations<N:TreeNode<T>,
+                                       T:TreeNodeRefAsElement<N,E>,
+                                       E:ElementLike>(
+                                       &self,
+                                       element: &T,
+                                       style_attribute: Option<&PropertyDeclarationBlock>,
+                                       pseudo_element: Option<PseudoElement>)
+                                       -> ~[Arc<~[PropertyDeclaration]>] {
         assert!(element.is_element());
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
             
-        // In cascading order
-        let rule_map_list = [&self.ua_rule_map.normal,
-                             &self.user_rule_map.normal,
-                             &self.author_rule_map.normal,
-                             &self.author_rule_map.important,
-                             &self.user_rule_map.important,
-                             &self.ua_rule_map.important];
+        // In cascading order:
+        let rule_map_list = [
+            &self.ua_rule_map.normal,
+            &self.user_rule_map.normal,
+            &self.author_rule_map.normal,
+            &self.author_rule_map.important,
+            &self.user_rule_map.important,
+            &self.ua_rule_map.important
+        ];
 
-        let mut matching_rules_list: [~[Rule], ..6] = [~[], ~[], ~[], ~[], ~[], ~[]];
+        // We keep track of the indices of each of the rule maps in the list we're building so that
+        // we have the indices straight at the end.
+        let mut rule_map_indices = [ 0, ..6 ];
+
+        // TODO(pcwalton): Small vector optimization.
+        let mut matching_rules_list = ~[];
+
         for (i, rule_map) in rule_map_list.iter().enumerate() {
-            rule_map.get_all_matching_rules(element, pseudo_element, matching_rules_list, i);
+            rule_map_indices[i] = matching_rules_list.len();
+            rule_map.get_all_matching_rules(element, pseudo_element, &mut matching_rules_list);
         }
         
-        // Keeping this as a separate step because we will need it for further
-        // optimizations regarding grouping of Rules having the same Selector.
-        let declarations_list: ~[~[Arc<~[PropertyDeclaration]>]] = matching_rules_list.iter().map(
-            |rules| rules.iter().map(|r| r.declarations.clone()).collect()).collect();
+        let count = matching_rules_list.len();
 
+        let mut declaration_iter = matching_rules_list.move_iter().map(|rule| {
+            let Rule {
+                declarations,
+                _
+            } = rule;
+            declarations
+        });
+
+        // Gather up all rules.
         let mut applicable_declarations = ~[];
-        applicable_declarations.push_all_move(declarations_list.slice(0, 3).concat_vec());
-        // Style attributes have author origin but higher specificity than style rules.
-        // TODO: avoid copying?
+        let mut i = 0;
+
+        // Step 1: Normal rules.
+        while i < rule_map_indices[3] {
+            applicable_declarations.push(declaration_iter.next().unwrap());
+            i += 1
+        }
+
+        // Step 2: Normal style attributes.
         style_attribute.map(|sa| applicable_declarations.push(sa.normal.clone()));
-        applicable_declarations.push_all_move(declarations_list.slice(3, 4).concat_vec());
+
+        // Step 3: Author-supplied `!important` rules.
+        while i < rule_map_indices[4] {
+            applicable_declarations.push(declaration_iter.next().unwrap());
+            i += 1
+        }
+
+        // Step 4: `!important` style attributes.
         style_attribute.map(|sa| applicable_declarations.push(sa.important.clone()));
-        applicable_declarations.push_all_move(declarations_list.slice(4, 6).concat_vec());
+
+        // Step 5: User and UA `!important` rules.
+        while i < count {
+            applicable_declarations.push(declaration_iter.next().unwrap());
+            i += 1
+        }
 
         applicable_declarations
     }
 }
-
 
 struct PerOriginRules {
     normal: ~[Rule],
@@ -325,7 +385,10 @@ struct PerOriginRules {
 impl PerOriginRules {
     #[inline]
     fn new() -> PerOriginRules {
-        PerOriginRules { normal: ~[], important: ~[] }
+        PerOriginRules {
+            normal: ~[],
+            important: ~[],
+        }
     }
 }
 
@@ -337,7 +400,10 @@ struct PerOriginSelectorMap {
 impl PerOriginSelectorMap {
     #[inline]
     fn new() -> PerOriginSelectorMap {
-        PerOriginSelectorMap { normal: SelectorMap::new(), important:SelectorMap::new() }
+        PerOriginSelectorMap {
+            normal: SelectorMap::new(),
+            important: SelectorMap::new(),
+        }
     }
 }
 
@@ -415,8 +481,6 @@ fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
 #[inline]
 fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
         selector: &SimpleSelector, element: &T) -> bool {
-    static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
-
     match *selector {
         // TODO: case-sensitivity depends on the document type
         // TODO: intern element names
@@ -447,7 +511,7 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
                     None => false,
                     // TODO: case-sensitivity depends on the document type and quirks mode
                     Some(ref class_attr)
-                    => class_attr.split_iter(WHITESPACE).any(|c| c == class.as_slice()),
+                    => class_attr.split_iter(SELECTOR_WHITESPACE).any(|c| c == class.as_slice()),
                 }
             }
         }
@@ -455,7 +519,7 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
         AttrExists(ref attr) => match_attribute(attr, element, |_| true),
         AttrEqual(ref attr, ref value) => match_attribute(attr, element, |v| v == value.as_slice()),
         AttrIncludes(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
-            attr_value.split_iter(WHITESPACE).any(|v| v == value.as_slice())
+            attr_value.split_iter(SELECTOR_WHITESPACE).any(|v| v == value.as_slice())
         },
         AttrDashMatch(ref attr, ref value, ref dashing_value)
         => do match_attribute(attr, element) |attr_value| {
