@@ -23,6 +23,7 @@ use layers::rendergl;
 use layers::scene::Scene;
 use opengles::gl2;
 use png;
+use servo_msg::compositor_msg::IdleRenderState;
 use servo_msg::constellation_msg::{ConstellationChan, NavigateMsg, ResizedWindowMsg, LoadUrlMsg};
 use servo_msg::constellation_msg;
 use servo_util::time::profile;
@@ -49,6 +50,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
     let mut window_size = Size2D(window_size.width as uint, window_size.height as uint);
     let mut done = false;
     let mut recomposite = false;
+    let mut composite_ready = false;
     let graphics_context = CompositorTask::create_graphics_context();
 
     // Keeps track of the current zoom factor
@@ -82,7 +84,13 @@ pub fn run_compositor(compositor: &CompositorTask) {
                 Exit => done = true,
 
                 ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
-                ChangeRenderState(render_state) => window.set_render_state(render_state),
+                ChangeRenderState(render_state) => {
+                    window.set_render_state(render_state);
+                    composite_ready = match render_state {
+                        IdleRenderState => true,
+                        _ => false,
+                    }
+                }
 
                 SetUnRenderedColor(_id, color) => {
                     match compositor_layer {
@@ -404,7 +412,7 @@ pub fn run_compositor(compositor: &CompositorTask) {
         // Check for messages coming from the windowing system.
         check_for_window_messages(window.recv());
 
-        if recomposite {
+        if recomposite && composite_ready {
             recomposite = false;
             composite();
         }
