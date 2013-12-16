@@ -585,11 +585,13 @@ impl Flow for BlockFlow {
     /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
     /// contexts.
     fn assign_widths(&mut self, ctx: &mut LayoutContext) {
-        if self.is_float() {
-            debug!("assign_widths_float: assigning width for flow {}",  self.base.id);
-        } else {
-            debug!("assign_widths_block: assigning width for flow {}",  self.base.id);
-        }
+        debug!("assign_widths({}): assigning width for flow {}",
+               if self.is_float() {
+                   "float"
+               } else {
+                   "block"
+               },
+               self.base.id);
 
         if self.is_root {
             debug!("Setting root position");
@@ -612,6 +614,9 @@ impl Flow for BlockFlow {
 
         for box in self.box.iter() {
             let style = box.style();
+
+            // The text alignment of a block flow is the text alignment of its box's style.
+            self.base.flags.set_text_align(style.Text.text_align);
 
             // Can compute padding here since we know containing block width.
             box.compute_padding(style, remaining_width);
@@ -672,7 +677,9 @@ impl Flow for BlockFlow {
             // Per CSS 2.1 § 16.3.1, text decoration propagates to all children in flow.
             //
             // TODO(pcwalton): When we have out-of-flow children, don't unconditionally propagate.
-            child_base.flags.propagate_text_decoration_from_parent(self.base.flags)
+            child_base.flags.propagate_text_decoration_from_parent(self.base.flags);
+
+            child_base.flags.propagate_text_alignment_from_parent(self.base.flags)
         }
     }
 

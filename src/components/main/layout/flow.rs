@@ -44,6 +44,7 @@ use servo_util::geometry::Au;
 use std::cast;
 use std::cell::Cell;
 use style::ComputedValues;
+use style::computed_values::text_align;
 
 /// Virtual methods that make up a float context.
 ///
@@ -313,6 +314,16 @@ pub struct FlowFlags(u8);
 /// NB: If you update this field, you must update the bitfields below.
 static TEXT_DECORATION_OVERRIDE_BITMASK: u8 = 0b00001110;
 
+/// The bitmask of flags that represent the text alignment field.
+///
+/// NB: If you update this field, you must update the bitfields below.
+static TEXT_ALIGN_BITMASK: u8 = 0b00110000;
+
+/// The number of bits we must shift off to handle the text alignment field.
+///
+/// NB: If you update this field, you must update the bitfields below.
+static TEXT_ALIGN_SHIFT: u8 = 4;
+
 impl FlowFlags {
     /// Creates a new set of flow flags from the given style.
     fn new(style: &ComputedValues) -> FlowFlags {
@@ -327,6 +338,11 @@ impl FlowFlags {
     /// Propagates text decoration flags from an appropriate parent flow per CSS 2.1 § 16.3.1.
     pub fn propagate_text_decoration_from_parent(&mut self, parent: FlowFlags) {
         *self = FlowFlags(**self | (*parent & TEXT_DECORATION_OVERRIDE_BITMASK))
+    }
+
+    /// Propagates text alignment flags from an appropriate parent flow per CSS 2.1.
+    pub fn propagate_text_alignment_from_parent(&mut self, parent: FlowFlags) {
+        *self = FlowFlags(**self | (*parent & TEXT_ALIGN_BITMASK))
     }
 }
 
@@ -347,6 +363,19 @@ bitfield!(FlowFlags, override_overline, set_override_overline, 0x04)
 //
 // NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
 bitfield!(FlowFlags, override_line_through, set_override_line_through, 0x08)
+
+// The text alignment for this flow.
+impl FlowFlags {
+    #[inline]
+    pub fn text_align(self) -> text_align::T {
+        FromPrimitive::from_u8((*self & TEXT_ALIGN_BITMASK) >> TEXT_ALIGN_SHIFT).unwrap()
+    }
+
+    #[inline]
+    pub fn set_text_align(&mut self, value: text_align::T) {
+        *self = FlowFlags((**self & !TEXT_ALIGN_BITMASK) | ((value as u8) << TEXT_ALIGN_SHIFT))
+    }
+}
 
 /// Data common to all flows.
 ///
