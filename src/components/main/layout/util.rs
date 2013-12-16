@@ -12,6 +12,7 @@ use servo_util::slot::{MutSlotRef, SlotRef};
 use servo_util::tree::TreeNodeRef;
 use std::cast;
 use std::iter::Enumerate;
+use std::libc::uintptr_t;
 use std::vec::VecIterator;
 use style::{ComputedValues, PropertyDeclaration};
 
@@ -179,6 +180,38 @@ impl LayoutDataAccess for AbstractNode<LayoutView> {
         unsafe {
             cast::transmute(self.node().layout_data.mutate())
         }
+    }
+}
+
+/// An opaque handle to a node. The only safe operation that can be performed on this node is to
+/// compare it to another opaque handle or to another node.
+///
+/// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
+/// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
+/// locality reasons. Using `OpaqueNode` enforces this invariant.
+#[deriving(Clone, Eq)]
+pub struct OpaqueNode(uintptr_t);
+
+impl<T> Equiv<AbstractNode<T>> for OpaqueNode {
+    fn equiv(&self, node: &AbstractNode<T>) -> bool {
+        unsafe {
+            **self == cast::transmute_copy::<AbstractNode<T>,uintptr_t>(node)
+        }
+    }
+}
+
+impl OpaqueNode {
+    /// Converts a DOM node to an `OpaqueNode`.
+    pub fn from_node<T>(node: &AbstractNode<T>) -> OpaqueNode {
+        unsafe {
+            OpaqueNode(cast::transmute_copy(node))
+        }
+    }
+
+    /// Unsafely converts an `OpaqueNode` to a DOM node. Use this only if you absolutely know what
+    /// you're doing.
+    pub unsafe fn to_node<T>(&self) -> AbstractNode<T> {
+        cast::transmute(**self)
     }
 }
 

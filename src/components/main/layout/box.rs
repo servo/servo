@@ -40,6 +40,7 @@ use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
 use layout::flow::Flow;
 use layout::flow;
 use layout::model::{MaybeAuto, specified};
+use layout::util::OpaqueNode;
 
 /// Boxes (`struct Box`) are the leaves of the layout tree. They cannot position themselves. In
 /// general, boxes do not have a simple correspondence with CSS boxes in the specification:
@@ -63,8 +64,8 @@ use layout::model::{MaybeAuto, specified};
 /// FIXME(pcwalton): This can be slimmed down quite a bit.
 #[deriving(Clone)]
 pub struct Box {
-    /// The DOM node that this `Box` originates from.
-    node: AbstractNode<LayoutView>,
+    /// An opaque reference to the DOM node that this `Box` originates from.
+    node: OpaqueNode,
 
     /// The CSS style of this box.
     style: Arc<ComputedValues>,
@@ -250,7 +251,7 @@ impl Box {
         }
 
         Box {
-            node: node,
+            node: OpaqueNode::from_node(&node),
             style: (*nearest_ancestor_element.style()).clone(),
             position: Slot::init(Au::zero_rect()),
             border: Slot::init(Zero::zero()),
@@ -284,9 +285,12 @@ impl Box {
         }
     }
 
+    /// Returns the shared part of the width for computation of minimum and preferred width per
+    /// CSS 2.1.
     fn guess_width(&self) -> Au {
-        if !self.node.is_element() {
-            return Au(0)
+        match self.specific {
+            GenericBox | IframeBox(_) | ImageBox(_) => {}
+            ScannedTextBox(_) | UnscannedTextBox(_) => return Au(0),
         }
 
         let style = self.style();
@@ -921,9 +925,8 @@ impl Box {
                 let left_box = if left_range.length() > 0 {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
                     let new_metrics = new_text_box_info.run.get().metrics_for_range(&left_range);
-                    let new_text_box = Box::new(self.node, ScannedTextBox(new_text_box_info));
-                    new_text_box.set_size(new_metrics.bounding_box.size);
-                    Some(new_text_box)
+                    Some(self.transform(new_metrics.bounding_box.size,
+                                        ScannedTextBox(new_text_box_info)))
                 } else {
                     None
                 };
@@ -931,9 +934,8 @@ impl Box {
                 let right_box = right_range.map_default(None, |range: Range| {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), range);
                     let new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
-                    let new_text_box = Box::new(self.node, ScannedTextBox(new_text_box_info));
-                    new_text_box.set_size(new_metrics.bounding_box.size);
-                    Some(new_text_box)
+                    Some(self.transform(new_metrics.bounding_box.size,
+                                        ScannedTextBox(new_text_box_info)))
                 });
 
                 if pieces_processed_count == 1 || left_box.is_none() {

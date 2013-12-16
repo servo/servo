@@ -16,7 +16,7 @@ use layout::flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTrave
 use layout::flow::{PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::{RestyleDamage};
-use layout::util::{LayoutData, LayoutDataAccess};
+use layout::util::{LayoutData, LayoutDataAccess, OpaqueNode};
 
 use extra::arc::{Arc, RWArc, MutexArc};
 use geom::point::Point2D;
@@ -69,7 +69,7 @@ struct LayoutTask {
     script_chan: ScriptChan,
 
     /// The channel on which messages can be sent to the painting task.
-    render_chan: RenderChan<AbstractNode<()>>,
+    render_chan: RenderChan<OpaqueNode>,
 
     /// The channel on which messages can be sent to the image cache.
     image_cache_task: ImageCacheTask,
@@ -81,7 +81,7 @@ struct LayoutTask {
     screen_size: Option<Size2D<Au>>,
 
     /// A cached display list.
-    display_list: Option<Arc<DisplayList<AbstractNode<()>>>>,
+    display_list: Option<Arc<DisplayList<OpaqueNode>>>,
 
     stylist: RWArc<Stylist>,
 
@@ -204,7 +204,7 @@ impl LayoutTask {
                   port: Port<Msg>,
                   constellation_chan: ConstellationChan,
                   script_chan: ScriptChan,
-                  render_chan: RenderChan<AbstractNode<()>>,
+                  render_chan: RenderChan<OpaqueNode>,
                   img_cache_task: ImageCacheTask,
                   opts: Opts,
                   profiler_chan: ProfilerChan,
@@ -232,7 +232,7 @@ impl LayoutTask {
            port: Port<Msg>,
            constellation_chan: ConstellationChan,
            script_chan: ScriptChan,
-           render_chan: RenderChan<AbstractNode<()>>, 
+           render_chan: RenderChan<OpaqueNode>, 
            image_cache_task: ImageCacheTask,
            opts: &Opts,
            profiler_chan: ProfilerChan)
@@ -478,34 +478,36 @@ impl LayoutTask {
         if data.goal == ReflowForDisplay {
             do profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone()) {
                 let root_size = flow::base(layout_root).position.size;
-                let display_list= ~Cell::new(DisplayList::<AbstractNode<()>>::new());
+                let display_list = ~Cell::new(DisplayList::<OpaqueNode>::new());
                 let dirty = flow::base(layout_root).position.clone();
-                layout_root.build_display_list(
-                    &DisplayListBuilder {
-                        ctx: &layout_ctx,
-                    },
-                    &dirty,
-                    display_list);
+                let display_list_builder = DisplayListBuilder {
+                    ctx: &layout_ctx,
+                };
+                layout_root.build_display_list(&display_list_builder, &dirty, display_list);
 
                 let display_list = Arc::new(display_list.take());
 
-                    let mut color = color::rgba(255.0, 255.0, 255.0, 255.0);
+                let mut color = color::rgba(255.0, 255.0, 255.0, 255.0);
 
-                    for child in node.traverse_preorder() {
-                      if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) || 
-                         child.type_id() == ElementNodeTypeId(HTMLBodyElementTypeId) {
-                             let element_bg_color = child.style().get().resolve_color(
-                                 child.style().get().Background.background_color
-                             ).to_gfx_color();
-                             match element_bg_color {
-                                 color::rgba(0., 0., 0., 0.) => {}
-                                 _ => {
-                                   color = element_bg_color;
-                                   break;
-                               }
-                             }
-                      }
+                for child in node.traverse_preorder() {
+                    if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) || 
+                            child.type_id() == ElementNodeTypeId(HTMLBodyElementTypeId) {
+                        let element_bg_color = child.style()
+                                                    .get()
+                                                    .resolve_color(child.style()
+                                                                        .get()
+                                                                        .Background
+                                                                        .background_color)
+                                                    .to_gfx_color();
+                        match element_bg_color {
+                            color::rgba(0., 0., 0., 0.) => {}
+                            _ => {
+                                color = element_bg_color;
+                                break;
+                           }
+                        }
                     }
+                }
 
                 let render_layer = RenderLayer {
                     display_list: display_list.clone(),
@@ -532,16 +534,15 @@ impl LayoutTask {
     /// `getClientRects()` or `getBoundingClientRect()` ultimately invoke.
     fn handle_query(&self, query: LayoutQuery) {
         match query {
+            // The neat thing here is that in order to answer the following two queries we only
+            // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
             ContentBoxQuery(node, reply_chan) => {
-                // FIXME: Isolate this transmutation into a single "bridge" module.
-                let node: AbstractNode<()> = unsafe {
-                    transmute(node)
-                };
+                let node = OpaqueNode::from_node(&node);
 
                 fn union_boxes_for_node<'a>(
                                         accumulator: &mut Option<Rect<Au>>,
-                                        mut iter: DisplayItemIterator<'a,AbstractNode<()>>,
-                                        node: AbstractNode<()>) {
+                                        mut iter: DisplayItemIterator<'a,OpaqueNode>,
+                                        node: OpaqueNode) {
                     for item in iter {
                         union_boxes_for_node(accumulator, item.children(), node);
                         if item.base().extra == node {
@@ -559,15 +560,12 @@ impl LayoutTask {
                 reply_chan.send(ContentBoxResponse(rect.unwrap_or(Au::zero_rect())))
             }
             ContentBoxesQuery(node, reply_chan) => {
-                // FIXME: Isolate this transmutation into a single "bridge" module.
-                let node: AbstractNode<()> = unsafe {
-                    transmute(node)
-                };
+                let node = OpaqueNode::from_node(&node);
 
                 fn add_boxes_for_node<'a>(
                                       accumulator: &mut ~[Rect<Au>],
-                                      mut iter: DisplayItemIterator<'a,AbstractNode<()>>,
-                                      node: AbstractNode<()>) {
+                                      mut iter: DisplayItemIterator<'a,OpaqueNode>,
+                                      node: OpaqueNode) {
                     for item in iter {
                         add_boxes_for_node(accumulator, item.children(), node);
                         if item.base().extra == node {
@@ -582,7 +580,7 @@ impl LayoutTask {
                 reply_chan.send(ContentBoxesResponse(boxes))
             }
             HitTestQuery(_, point, reply_chan) => {
-                fn hit_test(x: Au, y: Au, list: &[DisplayItem<AbstractNode<()>>])
+                fn hit_test(x: Au, y: Au, list: &[DisplayItem<OpaqueNode>])
                             -> Option<HitTestResponse> {
                     for item in list.rev_iter() {
                         match *item {
@@ -602,13 +600,19 @@ impl LayoutTask {
                             _ => {}
                         }
                         let bounds = item.bounds();
-                        // TODO this check should really be performed by a method of DisplayItem
+
+                        // TODO(tikue): This check should really be performed by a method of
+                        // DisplayItem.
                         if x < bounds.origin.x + bounds.size.width &&
-                            bounds.origin.x <= x &&
-                            y < bounds.origin.y + bounds.size.height &&
-                            bounds.origin.y <= y {
+                                bounds.origin.x <= x &&
+                                y < bounds.origin.y + bounds.size.height &&
+                                bounds.origin.y <= y {
+                            // FIXME(pcwalton): This `unsafe` block is too unsafe, since incorrect
+                            // incremental flow construction could create this. Paranoid validation
+                            // against the set of valid nodes should occur in the script task to
+                            // ensure that this is a valid address instead of transmuting here.
                             let node: AbstractNode<LayoutView> = unsafe {
-                                transmute(item.base().extra)
+                                item.base().extra.to_node()
                             };
                             let resp = Some(HitTestResponse(node));
                             return resp;
