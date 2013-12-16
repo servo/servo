@@ -344,10 +344,10 @@ impl<'fc> FlowConstructor<'fc> {
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
     /// other `BlockFlow`s or `InlineFlow`s underneath it, depending on whether {ib} splits needed
     /// to happen.
-    fn build_flow_for_block(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow: {
+    fn build_flow_for_block(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = self.build_box_for_node(node);
-        let mut flow = ~BlockFlow::from_box(base, box_, is_fixed) as ~Flow:;
+        let mut flow = ~BlockFlow::from_box(base, box_, is_fixed) as ~Flow;
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }

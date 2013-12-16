@@ -37,7 +37,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToG
 use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
 use layout::flow::Flow;
 use layout::flow;
-use layout::model::{MaybeAuto, specified};
+use layout::model::{MaybeAuto, Auto, specified};
 use layout::util::OpaqueNode;
 use layout::wrapper::LayoutNode;
 
@@ -306,6 +306,71 @@ impl Box {
         }
     }
 
+    //TODO(ibnc) take into account padding.
+    pub fn get_y_coord_and_new_height_if_fixed(&self, 
+                                               screen_height: Au,
+                                               mut height: Au,
+                                               mut y: Au,
+                                               is_fixed: bool)
+                                               -> (Au, Au) {
+        if is_fixed { 
+            let position_offsets = self.position_offsets.get();
+            match (position_offsets.top, position_offsets.bottom) {
+                (Au(0), Au(0)) => {}
+                (Au(0), _) => {
+                    y = screen_height - position_offsets.bottom - height;
+                }
+                (_, Au(0)) => {
+                    y = position_offsets.top;
+                }
+                (_, _) => {
+                    y = position_offsets.top;
+                    match MaybeAuto::from_style(self.style().Box.height, Au(0)) {
+                        Auto => {
+                            height = screen_height - position_offsets.top - position_offsets.bottom;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        return (y, height);
+    }
+
+    //TODO(ibnc) removing padding when width needs to be stretched.
+    pub fn get_x_coord_and_new_width_if_fixed(&self,
+                                              screen_width: Au,
+                                              screen_height: Au,
+                                              mut width: Au,
+                                              mut x: Au,
+                                              is_fixed: bool)
+                                              -> (Au, Au) {
+        if is_fixed {
+            self.compute_positioned_offsets(self.style(), screen_width, screen_height);
+            let position_offsets = self.position_offsets.get();
+
+            match (position_offsets.left, position_offsets.right) {
+                (Au(0), Au(0)) => {}
+                (_, Au(0)) => {
+                   x = position_offsets.left;
+                }
+                (Au(0), _) => {
+                    x = screen_width - position_offsets.right - width;
+                }
+                (_, _) => {
+                    x = position_offsets.left;
+                    match MaybeAuto::from_style(self.style().Box.width, Au(0)) {
+                        Auto => {
+                            width = screen_width - position_offsets.left - position_offsets.right;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        return (x, width);
+    }
+
     /// Transforms this box into another box of the given type, with the given size, preserving all
     /// the other data.
     pub fn transform(&self, size: Size2D<Au>, specific: SpecificBoxInfo) -> Box {
@@ -375,12 +440,16 @@ impl Box {
                                                  style.Border.border_left_style)))
     }
 
-    pub fn compute_positioned_offset(&self, style: &ComputedValues) {
+    pub fn compute_positioned_offsets(&self, style: &ComputedValues, containing_width: Au, containing_height: Au) {
         self.position_offsets.set(SideOffsets2D::new(
-                MaybeAuto::from_style(style.PositionOffsets.top, Au::new(0)).specified_or_zero(),
-                MaybeAuto::from_style(style.PositionOffsets.right, Au::new(0)).specified_or_zero(),
-                MaybeAuto::from_style(style.PositionOffsets.bottom, Au::new(0)).specified_or_zero(),
-                MaybeAuto::from_style(style.PositionOffsets.left, Au::new(0)).specified_or_zero()));
+                MaybeAuto::from_style(style.PositionOffsets.top, containing_height)
+                .specified_or_zero(),
+                MaybeAuto::from_style(style.PositionOffsets.right, containing_width)
+                .specified_or_zero(),
+                MaybeAuto::from_style(style.PositionOffsets.bottom, containing_height)
+                .specified_or_zero(),
+                MaybeAuto::from_style(style.PositionOffsets.left, containing_width)
+                .specified_or_zero()));
     }
 
     /// Populates the box model padding parameters from the given computed style.
