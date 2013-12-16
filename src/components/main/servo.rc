@@ -41,7 +41,7 @@ extern mod core_text = "rust-core-text";
 
 use compositing::{CompositorChan, CompositorTask};
 use constellation::Constellation;
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, InitLoadUrlMsg};
+use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
 
 #[cfg(not(test))]
 use gfx::opts;
@@ -160,18 +160,13 @@ fn run(opts: Opts) {
         }
     }
 
-    let compositor_task = CompositorTask::new(opts,
-                                              compositor_port,
-                                              constellation_chan.clone(),
-                                              profiler_chan);
 
     debug!("preparing to enter main loop");
-    compositor_task.run();
-
-    // Constellation has to be shut down before the compositor goes out of
-    // scope, as the compositor manages setup/teardown of global subsystems
-    debug!("shutting down the constellation");
-    constellation_chan.send(ExitMsg(exit_chan));
-    exit_response_from_constellation.recv();
+    CompositorTask::create(opts,
+                           compositor_port,
+                           constellation_chan.clone(),
+                           profiler_chan,
+                           exit_chan,
+                           exit_response_from_constellation);
 }
 
