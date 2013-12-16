@@ -25,6 +25,7 @@ use layers::rendergl;
 use layers::scene::Scene;
 use opengles::gl2;
 use png;
+use servo_msg::compositor_msg::IdleRenderState;
 use servo_msg::constellation_msg::{ConstellationChan, NavigateMsg, ResizedWindowMsg, LoadUrlMsg};
 use servo_msg::constellation_msg;
 use servo_util::time::profile;
@@ -51,6 +52,9 @@ pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
     let mut done = false;
     let mut recomposite = false;
     let graphics_context = CompositorTask::create_graphics_context();
+
+    // Tracks whether the renderer has finished its first rendering
+    let mut composite_ready = false;
 
     // Keeps track of the current zoom factor
     let mut world_zoom = 1f32;
@@ -83,7 +87,10 @@ pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
                 Exit => done = true,
 
                 ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
-                ChangeRenderState(render_state) => window.set_render_state(render_state),
+                ChangeRenderState(render_state) => {
+                    window.set_render_state(render_state);
+                    if render_state == IdleRenderState { composite_ready = true; }
+                }
 
                 SetUnRenderedColor(_id, color) => {
                     match compositor_layer {
@@ -405,7 +412,8 @@ pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
         // Check for messages coming from the windowing system.
         check_for_window_messages(window.recv());
 
-        if recomposite {
+        // If asked to recomposite and renderer has run at least once
+        if recomposite && composite_ready {
             recomposite = false;
             composite();
         }
