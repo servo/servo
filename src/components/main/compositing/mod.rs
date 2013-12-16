@@ -16,7 +16,7 @@ use gfx::opts::Opts;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use servo_msg::compositor_msg::{Epoch, RenderListener, LayerBufferSet, RenderState, ReadyState};
 use servo_msg::compositor_msg::{ScriptListener, Tile};
-use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
+use servo_msg::constellation_msg::{ConstellationChan, PipelineId, ExitMsg};
 use servo_util::time::ProfilerChan;
 use std::comm::{Chan, SharedChan, Port};
 use std::comm;
@@ -160,11 +160,11 @@ pub struct CompositorTask {
 }
 
 impl CompositorTask {
-    pub fn new(opts: Opts,
-               port: Port<Msg>,
-               constellation_chan: ConstellationChan,
-               profiler_chan: ProfilerChan)
-               -> CompositorTask {
+    fn new(opts: Opts,
+           port: Port<Msg>,
+           constellation_chan: ConstellationChan,
+           profiler_chan: ProfilerChan)
+           -> CompositorTask {
 
         let mode: CompositorMode = if opts.headless {
             Headless
@@ -193,10 +193,31 @@ impl CompositorTask {
         NativeCompositingGraphicsContext::new()
     }
 
-    pub fn run(&self) {
+    pub fn create(opts: Opts,
+                  port: Port<Msg>,
+                  constellation_chan: ConstellationChan,
+                  profiler_chan: ProfilerChan,
+                  exit_chan: Chan<()>,
+                  exit_response_from_constellation: Port<()>) {
+        let compositor = CompositorTask::new(opts,
+                                             port,
+                                             constellation_chan,
+                                             profiler_chan);
+        compositor.run(exit_chan, exit_response_from_constellation);
+    }
+
+    fn run(&self,
+           exit_chan: Chan<()>,
+           exit_response_from_constellation: Port<()>) {
         match self.mode {
             Windowed(ref app) => run::run_compositor(self, app),
             Headless => run_headless::run_compositor(self),
         }
+
+        // Constellation has to be shut down before the compositor goes out of
+        // scope, as the compositor manages setup/teardown of global subsystems
+        debug!("shutting down the constellation");
+        self.constellation_chan.send(ExitMsg(exit_chan));
+        exit_response_from_constellation.recv();
     }
 }
