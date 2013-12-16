@@ -20,6 +20,7 @@ use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use gfx::opts::Opts;
 use layers::layers::{ContainerLayer, ContainerLayerKind};
 use layers::rendergl;
 use layers::scene::Scene;
@@ -28,7 +29,7 @@ use png;
 use servo_msg::compositor_msg::IdleRenderState;
 use servo_msg::constellation_msg::{ConstellationChan, NavigateMsg, ResizedWindowMsg, LoadUrlMsg};
 use servo_msg::constellation_msg;
-use servo_util::time::profile;
+use servo_util::time::{profile, ProfilerChan};
 use servo_util::{time, url};
 use std::comm::Port;
 use std::num::Orderable;
@@ -37,7 +38,11 @@ use std::rt::io::timer::Timer;
 use std::vec;
 
 /// Starts the compositor, which listens for messages on the specified port.
-pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
+pub fn run_compositor(app: &Application,
+                      opts: Opts,
+                      port: Port<Msg>,
+                      constellation_chan: &ConstellationChan,
+                      profiler_chan: ProfilerChan) {
     let window: @mut Window = WindowMethods::new(app);
 
     // Create an initial layer tree.
@@ -63,7 +68,7 @@ pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
 
     // The root CompositorLayer
     let mut compositor_layer: Option<CompositorLayer> = None;
-    let mut constellation_chan: ConstellationChan = compositor.constellation_chan.clone();
+    let mut constellation_chan: ConstellationChan = constellation_chan.clone();
 
     // Get BufferRequests from each layer.
     let ask_for_tiles = || {
@@ -112,9 +117,9 @@ pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
                     }
 
                     let layer = CompositorLayer::from_frame_tree(frame_tree,
-                                                                 compositor.opts.tile_size,
+                                                                 opts.tile_size,
                                                                  Some(10000000u),
-                                                                 compositor.opts.cpu_painting);
+                                                                 opts.cpu_painting);
                     root_layer.add_child_start(ContainerLayerKind(layer.root_layer));
 
                     // If there's already a root layer, destroy it cleanly.
@@ -147,9 +152,9 @@ pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
                     let page_size = Size2D(new_size.width as f32, new_size.height as f32);
                     let new_layer = CompositorLayer::new(p,
                                                          Some(page_size),
-                                                         compositor.opts.tile_size,
+                                                         opts.tile_size,
                                                          Some(10000000u),
-                                                         compositor.opts.cpu_painting);
+                                                         opts.cpu_painting);
 
                     let current_child = root_layer.first_child;
                     // This assumes there is at most one child, which should be the case.
@@ -331,7 +336,7 @@ pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
             }
 
             FinishedWindowEvent => {
-                if compositor.opts.exit_after_load {
+                if opts.exit_after_load {
                     done = true;
                 }
             }
@@ -343,9 +348,9 @@ pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
     };
 
 
-    let profiler_chan = compositor.profiler_chan.clone();
-    let write_png = compositor.opts.output_file.is_some();
-    let exit = compositor.opts.exit_after_load;
+    let profiler_chan = profiler_chan.clone();
+    let write_png = opts.output_file.is_some();
+    let exit = opts.exit_after_load;
     let composite = || {
         do profile(time::CompositingCategory, profiler_chan.clone()) {
             debug!("compositor: compositing");
@@ -368,7 +373,7 @@ pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
         // window.present()) as OpenGL ES 2 does not have glReadBuffer().
         if write_png {
             let (width, height) = (window_size.width as uint, window_size.height as uint);
-            let path = from_str::<Path>(*compositor.opts.output_file.get_ref()).unwrap();
+            let path = from_str::<Path>(*opts.output_file.get_ref()).unwrap();
             let mut pixels = gl2::read_pixels(0, 0,
                                               width as gl2::GLsizei,
                                               height as gl2::GLsizei,
@@ -407,7 +412,7 @@ pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
     let mut tm = Timer::new().unwrap();
     while !done {
         // Check for new messages coming from the rendering task.
-        check_for_messages(&compositor.port);
+        check_for_messages(&port);
 
         // Check for messages coming from the windowing system.
         check_for_window_messages(window.recv());
@@ -436,5 +441,5 @@ pub fn run_compositor(compositor: &CompositorTask, app: &Application) {
 
     // Drain compositor port, sometimes messages contain channels that are blocking
     // another task from finishing (i.e. SetIds)
-    while compositor.port.peek() { compositor.port.recv(); }
+    while port.peek() { port.recv(); }
 }

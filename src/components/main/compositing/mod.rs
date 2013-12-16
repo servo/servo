@@ -153,31 +153,18 @@ pub enum CompositorMode {
 
 pub struct CompositorTask {
     mode: CompositorMode,
-    opts: Opts,
-    port: Port<Msg>,
-    constellation_chan: ConstellationChan,
-    profiler_chan: ProfilerChan,
 }
 
 impl CompositorTask {
-    fn new(opts: Opts,
-           port: Port<Msg>,
-           constellation_chan: ConstellationChan,
-           profiler_chan: ProfilerChan)
-           -> CompositorTask {
-
-        let mode: CompositorMode = if opts.headless {
+    fn new(is_headless: bool) -> CompositorTask {
+        let mode: CompositorMode = if is_headless {
             Headless
         } else {
             Windowed(ApplicationMethods::new())
         };
 
         CompositorTask {
-            mode: mode,
-            opts: opts,
-            port: port,
-            constellation_chan: constellation_chan,
-            profiler_chan: profiler_chan
+            mode: mode
         }
     }
 
@@ -199,25 +186,26 @@ impl CompositorTask {
                   profiler_chan: ProfilerChan,
                   exit_chan: Chan<()>,
                   exit_response_from_constellation: Port<()>) {
-        let compositor = CompositorTask::new(opts,
-                                             port,
-                                             constellation_chan,
-                                             profiler_chan);
-        compositor.run(exit_chan, exit_response_from_constellation);
-    }
 
-    fn run(&self,
-           exit_chan: Chan<()>,
-           exit_response_from_constellation: Port<()>) {
-        match self.mode {
-            Windowed(ref app) => run::run_compositor(self, app),
-            Headless => run_headless::run_compositor(self),
+        let compositor = CompositorTask::new(opts.headless);
+
+        match compositor.mode {
+            Windowed(ref app) => {
+                run::run_compositor(app,
+                                    opts,
+                                    port,
+                                    &constellation_chan,
+                                    profiler_chan);
+            }
+            Headless => {
+                run_headless::run_compositor(&constellation_chan, port);
+            }
         }
 
         // Constellation has to be shut down before the compositor goes out of
         // scope, as the compositor manages setup/teardown of global subsystems
         debug!("shutting down the constellation");
-        self.constellation_chan.send(ExitMsg(exit_chan));
+        constellation_chan.send(ExitMsg(exit_chan));
         exit_response_from_constellation.recv();
     }
 }

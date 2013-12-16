@@ -5,18 +5,19 @@
 use compositing::*;
 
 use geom::size::Size2D;
-use servo_msg::constellation_msg::ResizedWindowMsg;
+use servo_msg::constellation_msg::{ConstellationChan, ResizedWindowMsg};
+use std::comm::Port;
 
 /// Starts the compositor, which listens for messages on the specified port.
 ///
 /// This is the null compositor which doesn't draw anything to the screen.
 /// It's intended for headless testing.
-pub fn run_compositor(compositor: &CompositorTask) {
+pub fn run_compositor(constellation_chan: &ConstellationChan, port: Port<Msg>) {
     // Tell the constellation about the initial fake size.
-    compositor.constellation_chan.send(ResizedWindowMsg(Size2D(640u, 480u)));
+    constellation_chan.send(ResizedWindowMsg(Size2D(640u, 480u)));
 
     loop {
-        match compositor.port.recv() {
+        match port.recv() {
             Exit => break,
 
             GetGraphicsMetadata(chan) => {
