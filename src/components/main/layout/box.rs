@@ -85,6 +85,9 @@ pub struct Box {
 
     /// Info specific to the kind of box. Keep this enum small.
     specific: SpecificBoxInfo,
+
+    /// positioned box offsets
+    position_offsets: Slot<SideOffsets2D<Au>>,
 }
 
 /// Info specific to the kind of box. Keep this enum small.
@@ -254,6 +257,7 @@ impl Box {
             padding: Slot::init(Zero::zero()),
             margin: Slot::init(Zero::zero()),
             specific: specific,
+            position_offsets: Slot::init(Zero::zero()),
         }
     }
 
@@ -276,6 +280,7 @@ impl Box {
             padding: Slot::init(self.padding.get()),
             margin: Slot::init(self.margin.get()),
             specific: specific,
+            position_offsets: Slot::init(Zero::zero())
         }
     }
 
@@ -332,6 +337,14 @@ impl Box {
                                                  style.Border.border_bottom_style),
                                            width(style.Border.border_left_width,
                                                  style.Border.border_left_style)))
+    }
+
+    pub fn compute_positioned_offset(&self, style: &ComputedValues) {
+        self.position_offsets.set(SideOffsets2D::new(
+                MaybeAuto::from_style(style.PositionOffsets.top, Au::new(0)).specified_or_zero(),
+                MaybeAuto::from_style(style.PositionOffsets.right, Au::new(0)).specified_or_zero(),
+                MaybeAuto::from_style(style.PositionOffsets.bottom, Au::new(0)).specified_or_zero(),
+                MaybeAuto::from_style(style.PositionOffsets.left, Au::new(0)).specified_or_zero()));
     }
 
     /// Populates the box model padding parameters from the given computed style.
