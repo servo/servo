@@ -713,28 +713,27 @@ fn match_attribute<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike
         }
     }
 }
-fn get_rules(css_string: &str) -> ~[~[Rule]] {
-    let device = &Device { media_type: Screen };
-    let sheet = Stylesheet::from_str(css_string);
-    let mut index = 0u;
-    let mut results = ~[];
-    do iter_style_rules(sheet.rules.as_slice(), device) |style_rule| {
-        results.push(style_rule.selectors.iter().map(|s| Rule {
-                    selector: Arc::new(s.clone()),
-                    declarations: style_rule.declarations.normal.clone(),
-                    index: index,
-                    stylesheet_index: 0u,
-                }).collect());
-        index += 1u;
-    }
-    results
-}
+
 
 /// Helper method to get some Rules from selector strings.
 /// Each sublist of the result contains the Rules for one StyleRule.
 fn get_mock_rules(css_selectors: &[&str]) -> ~[~[Rule]] {
-    let css_string = css_selectors.map(|s| s + " { color: red; } ").concat();
-    get_rules(css_string)
+    use namespaces::NamespaceMap;
+    use selectors::parse_selector_list;
+    use cssparser::tokenize;
+
+    let namespaces = NamespaceMap::new();
+    css_selectors.iter().enumerate().map(|(i, selectors)| {
+        parse_selector_list(tokenize(*selectors).map(|(c, _)| c).to_owned_vec(), &namespaces)
+        .unwrap().move_iter().map(|s| {
+            Rule {
+                selector: Arc::new(s),
+                declarations: Arc::new(~[]),
+                index: i,
+                stylesheet_index: 0u,
+            }
+        }).to_owned_vec()
+    }).to_owned_vec()
 }
 
 #[test]
