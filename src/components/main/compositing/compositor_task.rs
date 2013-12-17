@@ -28,8 +28,8 @@ use azure::azure_hl;
 mod quadtree;
 mod compositor_layer;
 
-mod run;
-mod run_headless;
+mod compositor;
+mod headless;
 
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
@@ -190,15 +190,15 @@ impl CompositorTask {
 
         match compositor.mode {
             Windowed(ref app) => {
-                run::IOCompositor::create(app,
-                                          opts,
-                                          port,
-                                          constellation_chan.clone(),
-                                          profiler_chan);
+                compositor::IOCompositor::create(app,
+                                                 opts,
+                                                 port,
+                                                 constellation_chan.clone(),
+                                                 profiler_chan);
             }
             Headless => {
-                run_headless::NullCompositor::create(port,
-                                                     constellation_chan.clone());
+                headless::NullCompositor::create(port,
+                                                 constellation_chan.clone());
             }
         }
 
