@@ -189,7 +189,6 @@ impl IOCompositor {
     }
 
     fn handle_message(&mut self) {
-        // Handle messages
         while self.port.peek() {
             match self.port.recv() {
                 Exit => {
