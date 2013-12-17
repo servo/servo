@@ -5,8 +5,7 @@
 //! Code for managing the layout data in the DOM.
 
 use layout::util::{LayoutData, LayoutDataAccess};
-
-use script::dom::node::LayoutNode;
+use layout::wrapper::LayoutNode;
 
 /// Functionality useful for querying the layout-specific data on DOM nodes.
 pub trait LayoutAuxMethods {

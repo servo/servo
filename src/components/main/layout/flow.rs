@@ -33,13 +33,13 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
+use layout::wrapper::LayoutNode;
 
 use extra::dlist::{DList, DListIterator, MutDListIterator};
 use extra::container::Deque;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::{ClipDisplayItemClass, DisplayList};
-use script::dom::node::LayoutNode;
 use servo_util::geometry::Au;
 use std::cast;
 use std::cell::Cell;

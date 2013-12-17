@@ -4,11 +4,11 @@
 
 use layout::incremental::RestyleDamage;
 use layout::util::LayoutDataAccess;
+use layout::wrapper::LayoutNode;
 
 use extra::arc::Arc;
 use std::cast;
 use style::{ComputedValues, TNode};
-use script::dom::node::LayoutNode;
 
 pub trait NodeUtil {
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;

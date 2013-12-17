@@ -7,9 +7,9 @@
 use css::node_style::StyledNode;
 use layout::incremental;
 use layout::util::LayoutDataAccess;
+use layout::wrapper::LayoutNode;
 
 use extra::arc::{Arc, RWArc};
-use script::dom::node::LayoutNode;
 use std::cast;
 use std::cell::Cell;
 use std::comm;

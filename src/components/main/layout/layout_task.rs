@@ -17,6 +17,7 @@ use layout::flow::{PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::{RestyleDamage};
 use layout::util::{LayoutData, LayoutDataAccess, OpaqueNode};
+use layout::wrapper::LayoutNode;
 
 use extra::arc::{Arc, RWArc, MutexArc};
 use geom::point::Point2D;
@@ -28,7 +29,7 @@ use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use script::dom::event::ReflowEvent;
-use script::dom::node::{AbstractNode, ElementNodeTypeId, LayoutDataRef, LayoutNode};
+use script::dom::node::{AbstractNode, ElementNodeTypeId, LayoutDataRef};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
 use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitNowMsg, LayoutQuery};

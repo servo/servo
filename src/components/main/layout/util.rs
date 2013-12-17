@@ -4,9 +4,10 @@
 
 use layout::box::Box;
 use layout::construct::{ConstructionResult, NoConstructionResult};
+use layout::wrapper::LayoutNode;
 
 use extra::arc::Arc;
-use script::dom::node::{AbstractNode, LayoutNode};
+use script::dom::node::AbstractNode;
 use servo_util::range::Range;
 use servo_util::slot::{MutSlotRef, SlotRef};
 use std::cast;

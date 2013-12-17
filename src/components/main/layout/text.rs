@@ -3,15 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Text layout.
-use extra::arc::Arc;
+
 use layout::box::{Box, ScannedTextBox, ScannedTextBoxInfo, UnscannedTextBox};
 use layout::context::LayoutContext;
 use layout::flow::Flow;
 
+use extra::arc::Arc;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{CompressWhitespaceNewline, transform_text};
-use std::vec;
 use servo_util::range::Range;
+use std::vec;
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
 struct TextRunScanner {

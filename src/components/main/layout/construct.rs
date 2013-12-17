@@ -30,11 +30,11 @@ use layout::flow::{Flow, FlowData, MutableFlowUtils};
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::LayoutDataAccess;
+use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal};
 
 use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
-use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, LayoutNode};
-use script::dom::node::{PostorderNodeMutTraversal, TextNodeTypeId};
+use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, TextNodeTypeId};
 use servo_util::slot::Slot;
 use std::util;
 use style::computed_values::{display, float};

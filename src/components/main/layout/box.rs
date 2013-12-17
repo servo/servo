@@ -15,7 +15,6 @@ use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags, ClipDisplayI
 use gfx::display_list::{ClipDisplayItemClass};
 use gfx::font::{FontStyle, FontWeight300};
 use gfx::text::text_run::TextRun;
-use script::dom::node::LayoutNode;
 use servo_msg::constellation_msg::{FrameRectMsg, PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
@@ -40,6 +39,7 @@ use layout::flow::Flow;
 use layout::flow;
 use layout::model::{MaybeAuto, specified};
 use layout::util::OpaqueNode;
+use layout::wrapper::LayoutNode;
 
 /// Boxes (`struct Box`) are the leaves of the layout tree. They cannot position themselves. In
 /// general, boxes do not have a simple correspondence with CSS boxes in the specification:
