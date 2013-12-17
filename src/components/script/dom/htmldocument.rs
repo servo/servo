@@ -11,10 +11,8 @@ use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
 use dom::window::Window;
 
 use js::jsapi::JSTracer;
-
-use servo_util::tree::{TreeNodeRef, ElementLike};
-
 use std::str::eq_slice;
+use style::TElement;
 
 pub struct HTMLDocument {
     parent: Document

@@ -7,9 +7,8 @@ use layout::util::LayoutDataAccess;
 
 use extra::arc::Arc;
 use std::cast;
-use style::ComputedValues;
+use style::{ComputedValues, TNode};
 use script::dom::node::{AbstractNode, LayoutView};
-use servo_util::tree::TreeNodeRef;
 
 pub trait NodeUtil {
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;

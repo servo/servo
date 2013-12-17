@@ -9,7 +9,6 @@ use extra::arc::Arc;
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::range::Range;
 use servo_util::slot::{MutSlotRef, SlotRef};
-use servo_util::tree::TreeNodeRef;
 use std::cast;
 use std::iter::Enumerate;
 use std::libc::uintptr_t;

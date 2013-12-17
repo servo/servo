@@ -8,7 +8,7 @@ use dom::document::AbstractDocument;
 use dom::element::HTMLScriptElementTypeId;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Node, ScriptView};
-use servo_util::tree::ElementLike;
+use style::TElement;
 
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,

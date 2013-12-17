@@ -20,8 +20,8 @@ use dom::namespace::Namespace;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
+use style::{TElement, TNode};
 use style;
-use servo_util::tree::{TreeNodeRef, ElementLike};
 
 use std::comm;
 use std::hashmap::HashMap;
@@ -125,7 +125,7 @@ pub enum ElementTypeId {
 // Element methods
 //
 
-impl ElementLike for Element {
+impl TElement for Element {
     fn get_local_name<'a>(&'a self) -> &'a str {
         self.tag_name.as_slice()
     }

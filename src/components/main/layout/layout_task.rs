@@ -43,16 +43,13 @@ use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
-use servo_util::tree::TreeNodeRef;
 use std::cast::transmute;
 use std::cast;
 use std::cell::Cell;
 use std::comm::Port;
 use std::task;
 use std::util;
-use style::AuthorOrigin;
-use style::Stylesheet;
-use style::Stylist;
+use style::{AuthorOrigin, Stylesheet, Stylist};
 
 /// Information needed by the layout task.
 struct LayoutTask {

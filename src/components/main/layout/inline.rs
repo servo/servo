@@ -22,8 +22,7 @@ use servo_util::range::Range;
 use std::cell::Cell;
 use std::u16;
 use std::util;
-use style::computed_values::text_align;
-use style::computed_values::vertical_align;
+use style::computed_values::{text_align, vertical_align};
 
 /// Lineboxes are represented as offsets into the child list, rather than
 /// as an object that "owns" boxes. Choosing a different set of line
