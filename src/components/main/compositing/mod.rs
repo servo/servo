@@ -197,7 +197,8 @@ impl CompositorTask {
                                           profiler_chan);
             }
             Headless => {
-                run_headless::run_compositor(&constellation_chan, port);
+                run_headless::NullCompositor::create(port,
+                                                     constellation_chan.clone());
             }
         }
 
