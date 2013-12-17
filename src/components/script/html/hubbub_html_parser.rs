@@ -20,7 +20,6 @@ use js::jsapi::JSContext;
 use servo_msg::constellation_msg::SubpageId;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
-use servo_util::tree::{TreeNodeRef, ElementLike};
 use servo_util::url::make_url;
 use std::cast;
 use std::cell::Cell;
@@ -29,7 +28,7 @@ use std::comm;
 use std::from_str::FromStr;
 use std::str::eq_slice;
 use std::str;
-use style::Stylesheet;
+use style::{Stylesheet, TElement};
 
 macro_rules! handle_element(
     ($document: expr,

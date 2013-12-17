@@ -36,7 +36,6 @@ use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{DocumentFragmentNodeTypeId, DocumentNodeTypeId, ElementNodeTypeId};
 use script::dom::node::{LayoutView, PostorderNodeMutTraversal, TextNodeTypeId};
 use servo_util::slot::Slot;
-use servo_util::tree::TreeNodeRef;
 use std::util;
 use style::computed_values::{display, float};
 

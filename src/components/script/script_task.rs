@@ -45,7 +45,6 @@ use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
-use servo_util::tree::{TreeNode, TreeNodeRef, ElementLike};
 use servo_util::url::make_url;
 use std::cell::Cell;
 use std::comm::{Port, SharedChan};
@@ -54,6 +53,7 @@ use std::ptr;
 use std::str::eq_slice;
 use std::task::{spawn_sched, SingleThreaded};
 use std::util::replace;
+use style::{TElement, TNode};
 
 /// Messages used to control the script task.
 pub enum ScriptMsg {

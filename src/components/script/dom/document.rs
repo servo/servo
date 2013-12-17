@@ -21,16 +21,15 @@ use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
-use js::jsapi::{JSObject, JSContext, JSTracer};
-use servo_util::tree::{TreeNodeRef, ElementLike};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 
-use std::hashmap::HashMap;
-
-use std::cast;
-use std::str::eq_slice;
+use js::jsapi::{JSObject, JSContext, JSTracer};
 use std::ascii::StrAsciiExt;
+use std::cast;
+use std::hashmap::HashMap;
+use std::str::eq_slice;
 use std::unstable::raw::Box;
+use style::{TElement, TNode};
 
 #[deriving(Eq)]
 pub enum DocumentTypeId {

@@ -6,7 +6,6 @@ use dom::bindings::callback::eReportExceptions;
 use dom::eventtarget::{AbstractEventTarget, Capturing, Bubbling};
 use dom::event::{AbstractEvent, Phase_At_Target, Phase_None, Phase_Bubbling, Phase_Capturing};
 use dom::node::AbstractNode;
-use servo_util::tree::{TreeNodeRef};
 
 // See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
 pub fn dispatch_event(target: AbstractEventTarget,

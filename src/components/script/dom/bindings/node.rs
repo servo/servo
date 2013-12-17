@@ -10,7 +10,6 @@ use std::cast;
 use std::libc;
 use std::ptr;
 use js::jsapi::{JSTracer, JSTRACE_OBJECT, JS_CallTracer};
-use servo_util::tree::TreeNodeRef;
 
 impl Reflectable for AbstractNode<ScriptView> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
