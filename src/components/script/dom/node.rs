@@ -19,7 +19,9 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::text::Text;
 
+use extra::url::Url;
 use js::jsapi::{JSObject, JSContext};
+use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::slot::{MutSlotRef, Slot, SlotRef};
 use std::cast::transmute;
 use std::cast;
@@ -39,20 +41,19 @@ pub struct LayoutNode {
 }
 
 impl LayoutNode {
-    // NB: Do not make this public.
-    //
-    // FIXME(pcwalton): Probably this should be marked `unsafe`.
-    fn new(node: AbstractNode) -> LayoutNode {
+    /// NB: Do not make this public.
+    ///
+    /// FIXME(pcwalton): Probably this should be marked `unsafe`.
+    /*PRIVATE-FOR-SECURITY-REASONS*/ fn new(node: AbstractNode) -> LayoutNode {
         LayoutNode {
             node: node,
         }
     }
 
-    /// FIXME(pcwalton): This isn't safe, as it exposes guts, and should be deprecated.
-    pub fn get<'a>(&'a self) -> &'a Node<LayoutView> {
-        unsafe {
-            cast::transmute(self.node.node())
-        }
+    /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
+    /// and as such is marked `unsafe`.
+    pub unsafe fn get<'a>(&'a self) -> &'a Node<LayoutView> {
+        cast::transmute(self.node.node())
     }
 
     /// Returns the first child of this node.
@@ -86,24 +87,50 @@ impl LayoutNode {
         self.node.type_id()
     }
 
+    /// If this is an image element, returns its URL. If this is not an image element, fails.
+    ///
+    /// FIXME(pcwalton): Don't copy URLs.
+    pub fn image_url(&self) -> Option<Url> {
+        self.with_image_element(|image_element| {
+            image_element.image.as_ref().map(|url| (*url).clone())
+        })
+    }
+
     /// Downcasts this node to an image element and calls the given closure.
     ///
+    /// NB: Do not make this public, as layout will be able to do unsafe things with `AbstractNode`
+    /// otherwise.
+    ///
     /// FIXME(pcwalton): RAII.
-    /// FIXME(pcwalton): This isn't safe, as it allows layout to access `AbstractNode`s, and should
-    /// be deprecated.
-    pub fn with_image_element<R>(self, f: &fn(&HTMLImageElement) -> R) -> R {
+    /*PRIVATE-FOR-SECURITY-REASONS*/ fn with_image_element<R>(
+                                                           self,
+                                                           f: &fn(&HTMLImageElement) -> R)
+                                                           -> R {
         if !self.node.is_image_element() {
             fail!(~"node is not an image element");
         }
         self.node.transmute(f)
     }
 
+    /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
+    /// not an iframe element, fails.
+    pub fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
+        self.with_iframe_element(|iframe_element| {
+            let size = iframe_element.size.unwrap();
+            (size.pipeline_id, size.subpage_id)
+        })
+    }
+
     /// Downcasts this node to an iframe element and calls the given closure.
     ///
+    /// NB: Do not make this public, as layout will be able to do unsafe things with `AbstractNode`
+    /// otherwise.
+    ///
     /// FIXME(pcwalton): RAII.
-    /// FIXME(pcwalton): This isn't safe, as it allows layout to access `AbstractNode`s, and should
-    /// be deprecated.
-    pub fn with_iframe_element<R>(self, f: &fn(&HTMLIFrameElement) -> R) -> R {
+    /*PRIVATE-FOR-SECURITY-REASONS*/ fn with_iframe_element<R>(
+                                                            self,
+                                                            f: &fn(&HTMLIFrameElement) -> R)
+                                                            -> R {
         if !self.node.is_iframe_element() {
             fail!(~"node is not an iframe element");
         }
@@ -116,12 +143,26 @@ impl LayoutNode {
         self.node.is_text()
     }
 
+    /// Returns true if this node consists entirely of ignorable whitespace and false otherwise.
+    /// Ignorable whitespace is defined as whitespace that would be removed per CSS 2.1 § 16.6.1.
+    pub fn is_ignorable_whitespace(&self) -> bool {
+        self.is_text() && self.with_text(|text| text.element.data.is_whitespace())
+    }
+
+    /// If this is a text node, copies out the text. If this is not a text node, fails.
+    ///
+    /// FIXME(pcwalton): Don't copy text. Atomically reference count instead.
+    pub fn text(&self) -> ~str {
+        self.with_text(|text| text.element.data.to_str())
+    }
+
     /// Downcasts this node to a text node and calls the given closure.
     ///
+    /// NB: Do not make this public, as layout will be able to do unsafe things with `AbstractNode`
+    /// otherwise.
+    ///
     /// FIXME(pcwalton): RAII.
-    /// FIXME(pcwalton): This isn't safe, as it allows layout to access `AbstractNode`s, and should
-    /// be deprecated.
-    pub fn with_text<R>(self, f: &fn(&Text) -> R) -> R {
+    /*PRIVATE-FOR-SECURITY-REASONS*/ fn with_text<R>(self, f: &fn(&Text) -> R) -> R {
         self.node.with_imm_text(f)
     }
 

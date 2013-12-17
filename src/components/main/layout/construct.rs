@@ -200,11 +200,7 @@ impl<'self> FlowConstructor<'self> {
     /// Builds the `ImageBoxInfo` for the given image. This is out of line to guide inlining.
     fn build_box_info_for_image(&mut self, node: LayoutNode) -> Option<ImageBoxInfo> {
         // FIXME(pcwalton): Don't copy URLs.
-        let url = node.with_image_element(|image_element| {
-            image_element.image.as_ref().map(|url| (*url).clone())
-        });
-
-        match url {
+        match node.image_url() {
             None => None,
             Some(url) => {
                 // FIXME(pcwalton): The fact that image boxes store the cache within them makes
@@ -530,10 +526,6 @@ trait NodeUtils {
     /// Replaces the flow construction result in a node with `NoConstructionResult` and returns the
     /// old value.
     fn swap_out_construction_result(self) -> ConstructionResult;
-
-    /// Returns true if this node consists entirely of ignorable whitespace and false otherwise.
-    /// Ignorable whitespace is defined as whitespace that would be removed per CSS 2.1 § 16.6.1.
-    fn is_ignorable_whitespace(self) -> bool;
 }
 
 impl NodeUtils for LayoutNode {
@@ -565,10 +557,6 @@ impl NodeUtils for LayoutNode {
             }
             None => fail!("no layout data"),
         }
-    }
-
-    fn is_ignorable_whitespace(self) -> bool {
-        self.is_text() && self.with_text(|text| text.element.data.is_whitespace())
     }
 }
 

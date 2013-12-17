@@ -164,13 +164,11 @@ pub struct IframeBoxInfo {
 impl IframeBoxInfo {
     /// Creates the information specific to an iframe box.
     pub fn new(node: &LayoutNode) -> IframeBoxInfo {
-        node.with_iframe_element(|iframe_element| {
-            let size = iframe_element.size.unwrap();
-            IframeBoxInfo {
-                pipeline_id: size.pipeline_id,
-                subpage_id: size.subpage_id,
-            }
-        })
+        let (pipeline_id, subpage_id) = node.iframe_pipeline_and_subpage_ids();
+        IframeBoxInfo {
+            pipeline_id: pipeline_id,
+            subpage_id: subpage_id,
+        }
     }
 }
 
@@ -208,12 +206,10 @@ pub struct UnscannedTextBoxInfo {
 impl UnscannedTextBoxInfo {
     /// Creates a new instance of `UnscannedTextBoxInfo` from the given DOM node.
     pub fn new(node: &LayoutNode) -> UnscannedTextBoxInfo {
-        node.with_text(|text_node| {
-            // FIXME(pcwalton): Don't copy text; atomically reference count it instead.
-            UnscannedTextBoxInfo {
-                text: text_node.element.data.to_str(),
-            }
-        })
+        // FIXME(pcwalton): Don't copy text; atomically reference count it instead.
+        UnscannedTextBoxInfo {
+            text: node.text(),
+        }
     }
 }
 
