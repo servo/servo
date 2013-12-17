@@ -2,18 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::ascii::StrAsciiExt;
-use std::hashmap::HashMap;
 use extra::arc::Arc;
 use extra::sort::tim_sort;
+use std::ascii::StrAsciiExt;
+use std::hashmap::HashMap;
+use std::str;
 
+use media_queries::{Device, Screen};
+use node::{TElement, TNode};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use selectors::*;
 use stylesheets::{Stylesheet, iter_style_rules};
-use media_queries::{Device, Screen};
-use properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use servo_util::tree::{TreeNodeRefAsElement, TreeNode, ElementLike};
-
-use std::str;
 
 pub enum StylesheetOrigin {
     UserAgentOrigin,
@@ -67,16 +66,15 @@ impl SelectorMap {
     ///
     /// Extract matching rules as per node's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
-    fn get_all_matching_rules<N:TreeNode<T>,
-                              T:TreeNodeRefAsElement<N,E>,
-                              E:ElementLike>(
+    fn get_all_matching_rules<E:TElement,
+                              N:TNode<E>>(
                               &self,
-                              node: &T,
+                              node: &N,
                               pseudo_element: Option<PseudoElement>,
                               matching_rules_list: &mut ~[Rule]) {
         // At the end, we're going to sort the rules that we added, so remember where we began.
         let init_len = matching_rules_list.len();
-        node.with_imm_element_like(|element: &E| {
+        node.with_element(|element: &E| {
             match element.get_attr(None, "id") {
                 Some(id) => {
                     SelectorMap::get_matching_rules_from_hash(node,
@@ -118,10 +116,9 @@ impl SelectorMap {
         tim_sort(matching_rules_list.mut_slice_from(init_len));
     }
 
-    fn get_matching_rules_from_hash<N:TreeNode<T>,
-                                    T:TreeNodeRefAsElement<N,E>,
-                                    E:ElementLike>(
-                                    node: &T,
+    fn get_matching_rules_from_hash<E:TElement,
+                                    N:TNode<E>>(
+                                    node: &N,
                                     pseudo_element: Option<PseudoElement>,
                                     hash: &HashMap<~str,~[Rule]>, 
                                     key: &str,
@@ -135,10 +132,9 @@ impl SelectorMap {
     }
     
     /// Adds rules in `rules` that match `node` to the `matching_rules` list.
-    fn get_matching_rules<N:TreeNode<T>,
-                          T:TreeNodeRefAsElement<N,E>,
-                          E:ElementLike>(
-                          node: &T,
+    fn get_matching_rules<E:TElement,
+                          N:TNode<E>>(
+                          node: &N,
                           pseudo_element: Option<PseudoElement>,
                           rules: &[Rule],
                           matching_rules: &mut ~[Rule]) {
@@ -301,11 +297,10 @@ impl Stylist {
 
     /// Returns the applicable CSS declarations for the given element. This corresponds to
     /// `ElementRuleCollector` in WebKit.
-    pub fn get_applicable_declarations<N:TreeNode<T>,
-                                       T:TreeNodeRefAsElement<N,E>,
-                                       E:ElementLike>(
+    pub fn get_applicable_declarations<E:TElement,
+                                       N:TNode<E>>(
                                        &self,
-                                       element: &T,
+                                       element: &N,
                                        style_attribute: Option<&PropertyDeclarationBlock>,
                                        pseudo_element: Option<PseudoElement>)
                                        -> ~[Arc<~[PropertyDeclaration]>] {
@@ -421,7 +416,6 @@ struct Rule {
     stylesheet_index: uint,
 }
 
-
 impl Ord for Rule {
     #[inline]
     fn lt(&self, other: &Rule) -> bool {
@@ -431,16 +425,19 @@ impl Ord for Rule {
     }
 }
 
-
 #[inline]
-fn matches_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        selector: &Selector, element: &T, pseudo_element: Option<PseudoElement>) -> bool {
+fn matches_selector<E:TElement,
+                    N:TNode<E>>(
+                    selector: &Selector,
+                    element: &N,
+                    pseudo_element: Option<PseudoElement>)
+                    -> bool {
     selector.pseudo_element == pseudo_element &&
-        matches_compound_selector::<N, T, E>(&selector.compound_selectors, element)
+        matches_compound_selector::<E,N>(&selector.compound_selectors, element)
 }
 
-fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        selector: &CompoundSelector, element: &T) -> bool {
+fn matches_compound_selector<E:TElement,N:TNode<E>>(selector: &CompoundSelector, element: &N)
+                             -> bool {
     if !do selector.simple_selectors.iter().all |simple_selector| {
             matches_simple_selector(simple_selector, element)
     } {
@@ -455,12 +452,12 @@ fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
                 NextSibling => (true, true),
                 LaterSibling => (true, false),
             };
-            let mut node = element.clone();
+            let mut node = (*element).clone();
             loop {
                 let next_node = if siblings {
-                    node.node().prev_sibling()
+                    node.prev_sibling()
                 } else {
-                    node.node().parent_node()
+                    node.parent_node()
                 };
                 match next_node {
                     None => return false,
@@ -479,25 +476,24 @@ fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
 }
 
 #[inline]
-fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        selector: &SimpleSelector, element: &T) -> bool {
+fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, element: &N) -> bool {
     match *selector {
         // TODO: case-sensitivity depends on the document type
         // TODO: intern element names
         LocalNameSelector(ref name) => {
-            do element.with_imm_element_like |element: &E| {
+            do element.with_element |element: &E| {
                 element.get_local_name().eq_ignore_ascii_case(name.as_slice())
             }
         }
         NamespaceSelector(ref url) => {
-            do element.with_imm_element_like |element: &E| {
+            do element.with_element |element: &E| {
                 element.get_namespace_url() == url.as_slice()
             }
         }
         // TODO: case-sensitivity depends on the document type and quirks mode
         // TODO: cache and intern IDs on elements.
         IDSelector(ref id) => {
-            do element.with_imm_element_like |element: &E| {
+            do element.with_element |element: &E| {
                 match element.get_attr(None, "id") {
                     Some(attr) => str::eq_slice(attr, *id),
                     None => false
@@ -506,7 +502,7 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
         }
         // TODO: cache and intern classe names on elements.
         ClassSelector(ref class) => {
-            do element.with_imm_element_like |element: &E| {
+            do element.with_element |element: &E| {
                 match element.get_attr(None, "class") {
                     None => false,
                     // TODO: case-sensitivity depends on the document type and quirks mode
@@ -537,12 +533,12 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
 
 
         AnyLink => {
-            do element.with_imm_element_like |element: &E| {
+            do element.with_element |element: &E| {
                 element.get_link().is_some()
             }
         }
         Link => {
-            do element.with_imm_element_like |element: &E| {
+            do element.with_element |element: &E| {
                 match element.get_link() {
                     Some(url) => !url_is_visited(url),
                     None => false,
@@ -550,7 +546,7 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
             }
         }
         Visited => {
-            do element.with_imm_element_like |element: &E| {
+            do element.with_element |element: &E| {
                 match element.get_link() {
                     Some(url) => url_is_visited(url),
                     None => false,
@@ -589,12 +585,18 @@ fn url_is_visited(_url: &str) -> bool {
 }
 
 #[inline]
-fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        element: &T, a: i32, b: i32, is_of_type: bool, is_from_end: bool) -> bool {
+fn matches_generic_nth_child<E:TElement,
+                             N:TNode<E>>(
+                             element: &N,
+                             a: i32,
+                             b: i32,
+                             is_of_type: bool,
+                             is_from_end: bool)
+                             -> bool {
     let mut node = element.clone();
     // fail if we can't find a parent or if the node is the root element
     // of the document (Cf. Selectors Level 3)
-    match node.node().parent_node() {
+    match node.parent_node() {
         Some(parent) => if parent.is_document() {
             return false;
         },
@@ -604,7 +606,7 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
     let mut element_local_name = "";
     let mut element_namespace = "";
     if is_of_type {
-        do element.with_imm_element_like |element: &E| {
+        do element.with_element |element: &E| {
             element_local_name = element.get_local_name();
             element_namespace = element.get_namespace_url();
         }
@@ -613,12 +615,12 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
     let mut index = 1;
     loop {
         if is_from_end {
-            match node.node().next_sibling() {
+            match node.next_sibling() {
                 None => break,
                 Some(next_sibling) => node = next_sibling
             }
         } else {
-            match node.node().prev_sibling() {
+            match node.prev_sibling() {
                 None => break,
                 Some(prev_sibling) => node = prev_sibling
             }
@@ -626,7 +628,7 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
 
         if node.is_element() {
             if is_of_type {
-                do node.with_imm_element_like |node: &E| {
+                do node.with_element |node: &E| {
                     if element_local_name == node.get_local_name() &&
                        element_namespace == node.get_namespace_url() {
                         index += 1;
@@ -648,27 +650,25 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
 }
 
 #[inline]
-fn matches_root<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        element: &T) -> bool {
-    match element.node().parent_node() {
+fn matches_root<E:TElement,N:TNode<E>>(element: &N) -> bool {
+    match element.parent_node() {
         Some(parent) => parent.is_document(),
         None => false
     }
 }
 
 #[inline]
-fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        element: &T) -> bool {
+fn matches_first_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
     let mut node = element.clone();
     loop {
-        match node.node().prev_sibling() {
+        match node.prev_sibling() {
             Some(prev_sibling) => {
                 node = prev_sibling;
                 if node.is_element() {
                     return false
                 }
             },
-            None => match node.node().parent_node() {
+            None => match node.parent_node() {
                 // Selectors level 3 says :first-child does not match the
                 // root of the document; Warning, level 4 says, for the time
                 // being, the contrary...
@@ -680,18 +680,17 @@ fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Element
 }
 
 #[inline]
-fn matches_last_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        element: &T) -> bool {
+fn matches_last_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
     let mut node = element.clone();
     loop {
-        match node.node().next_sibling() {
+        match node.next_sibling() {
             Some(next_sibling) => {
                 node = next_sibling;
                 if node.is_element() {
                     return false
                 }
             },
-            None => match node.node().parent_node() {
+            None => match node.parent_node() {
                 // Selectors level 3 says :last-child does not match the
                 // root of the document; Warning, level 4 says, for the time
                 // being, the contrary...
@@ -703,9 +702,13 @@ fn matches_last_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementL
 }
 
 #[inline]
-fn match_attribute<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        attr: &AttrSelector, element: &T, f: &fn(&str)-> bool) -> bool {
-    do element.with_imm_element_like |element: &E| {
+fn match_attribute<E:TElement,
+                   N:TNode<E>>(
+                   attr: &AttrSelector,
+                   element: &N,
+                   f: &fn(&str) -> bool)
+                   -> bool {
+    do element.with_element |element: &E| {
         // FIXME: avoid .clone() here? See #1367
         match element.get_attr(attr.namespace.clone(), attr.name) {
             None => false,

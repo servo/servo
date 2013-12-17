@@ -18,7 +18,6 @@ pub mod geometry;
 pub mod range;
 pub mod slot;
 pub mod time;
-pub mod tree;
 pub mod url;
 pub mod vec;
 pub mod debug;

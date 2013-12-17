@@ -14,7 +14,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::url::make_url;
-use servo_util::tree::ElementLike;
+use style::TElement;
 
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,

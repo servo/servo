@@ -15,9 +15,7 @@ use layout::incremental;
 use layout::util::LayoutDataAccess;
 
 use script::dom::node::{AbstractNode, LayoutView};
-use style::Stylist;
-use style::cascade;
-use servo_util::tree::TreeNodeRef;
+use style::{TNode, Stylist, cascade};
 
 pub trait MatchMethods {
     fn match_node(&self, stylist: &Stylist);

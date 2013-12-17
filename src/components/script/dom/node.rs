@@ -21,11 +21,11 @@ use dom::text::Text;
 
 use js::jsapi::{JSObject, JSContext};
 use servo_util::slot::{MutSlotRef, Slot, SlotRef};
-use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement};
 use std::cast::transmute;
 use std::cast;
 use std::unstable::raw::Box;
 use std::util;
+use style::TNode;
 
 //
 // The basic Node structure
@@ -210,59 +210,17 @@ impl<View> Clone for AbstractNode<View> {
     }
 }
 
-impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
-    fn node<'a>(&'a self) -> &'a Node<View> {
-        unsafe {
-            &(*self.obj).data
-        }
+impl<View> TNode<Element> for AbstractNode<View> {
+    fn parent_node(&self) -> Option<AbstractNode<View>> {
+        self.node().parent_node
     }
 
-    fn mut_node<'a>(&'a self) -> &'a mut Node<View> {
-        unsafe {
-            &mut (*self.obj).data
-        }
+    fn prev_sibling(&self) -> Option<AbstractNode<View>> {
+        self.node().prev_sibling
     }
-
-    fn parent_node(node: &Node<View>) -> Option<AbstractNode<View>> {
-        node.parent_node
-    }
-    fn first_child(node: &Node<View>) -> Option<AbstractNode<View>> {
-        node.first_child
-    }
-    fn last_child(node: &Node<View>) -> Option<AbstractNode<View>> {
-        node.last_child
-    }
-    fn prev_sibling(node: &Node<View>) -> Option<AbstractNode<View>> {
-        node.prev_sibling
-    }
-    fn next_sibling(node: &Node<View>) -> Option<AbstractNode<View>> {
-        node.next_sibling
-    }
-
-    fn set_parent_node(node: &mut Node<View>, new_parent_node: Option<AbstractNode<View>>) {
-        let doc = node.owner_doc();
-        doc.document().wait_until_safe_to_modify_dom();
-        node.parent_node = new_parent_node
-    }
-    fn set_first_child(node: &mut Node<View>, new_first_child: Option<AbstractNode<View>>) {
-        let doc = node.owner_doc();
-        doc.document().wait_until_safe_to_modify_dom();
-        node.first_child = new_first_child
-    }
-    fn set_last_child(node: &mut Node<View>, new_last_child: Option<AbstractNode<View>>) {
-        let doc = node.owner_doc();
-        doc.document().wait_until_safe_to_modify_dom();
-        node.last_child = new_last_child
-    }
-    fn set_prev_sibling(node: &mut Node<View>, new_prev_sibling: Option<AbstractNode<View>>) {
-        let doc = node.owner_doc();
-        doc.document().wait_until_safe_to_modify_dom();
-        node.prev_sibling = new_prev_sibling
-    }
-    fn set_next_sibling(node: &mut Node<View>, new_next_sibling: Option<AbstractNode<View>>) {
-        let doc = node.owner_doc();
-        doc.document().wait_until_safe_to_modify_dom();
-        node.next_sibling = new_next_sibling
+    
+    fn next_sibling(&self) -> Option<AbstractNode<View>> {
+        self.node().next_sibling
     }
 
     fn is_element(&self) -> bool {
@@ -278,17 +236,34 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
             _ => false
         }
     }
-}
 
-impl<View> TreeNodeRefAsElement<Node<View>, Element> for AbstractNode<View> {
     #[inline]
-    fn with_imm_element_like<R>(&self, f: &fn(&Element) -> R) -> R {
+    fn with_element<R>(&self, f: &fn(&Element) -> R) -> R {
         self.with_imm_element(f)
     }
 }
 
+impl<View> AbstractNode<View> {
+    pub fn node<'a>(&'a self) -> &'a Node<View> {
+        unsafe {
+            &(*self.obj).data
+        }
+    }
 
-impl<View> TreeNode<AbstractNode<View>> for Node<View> { }
+    pub fn mut_node<'a>(&'a self) -> &'a mut Node<View> {
+        unsafe {
+            &mut (*self.obj).data
+        }
+    }
+
+    pub fn first_child(&self) -> Option<AbstractNode<View>> {
+        self.node().first_child
+    }
+
+    pub fn last_child(&self) -> Option<AbstractNode<View>> {
+        self.node().last_child
+    }
+}
 
 impl<'self, View> AbstractNode<View> {
     // Unsafe accessors
@@ -333,21 +308,6 @@ impl<'self, View> AbstractNode<View> {
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
     pub fn type_id(self) -> NodeTypeId {
         self.node().type_id
-    }
-
-    /// Returns the parent node of this node. Fails if this node is borrowed mutably.
-    pub fn parent_node(self) -> Option<AbstractNode<View>> {
-        self.node().parent_node
-    }
-
-    /// Returns the first child of this node. Fails if this node is borrowed mutably.
-    pub fn first_child(self) -> Option<AbstractNode<View>> {
-        self.node().first_child
-    }
-
-    /// Returns the last child of this node. Fails if this node is borrowed mutably.
-    pub fn last_child(self) -> Option<AbstractNode<View>> {
-        self.node().last_child
     }
 
     /// Returns the previous sibling of this node. Fails if this node is borrowed mutably.
@@ -562,6 +522,14 @@ impl<'self, View> AbstractNode<View> {
         format!("{:?}", self.type_id())
     }
 
+    //
+    // Convenience accessors
+    //
+
+    fn is_leaf(&self) -> bool {
+        self.first_child().is_none()
+    }
+
     pub fn children(&self) -> AbstractNodeChildrenIterator<View> {
         self.node().children()
     }
@@ -601,7 +569,122 @@ impl AbstractNode<ScriptView> {
 
         document.document().content_changed();
     }
+
+    //
+    // Pointer stitching
+    //
+
+    /// Adds a new child to the end of this node's list of children.
+    ///
+    /// Fails unless `new_child` is disconnected from the tree.
+    fn add_child(&self,
+                 new_child: AbstractNode<ScriptView>,
+                 before: Option<AbstractNode<ScriptView>>) {
+        let this_node = self.mut_node();
+        let new_child_node = new_child.mut_node();
+        assert!(new_child_node.parent_node.is_none());
+        assert!(new_child_node.prev_sibling.is_none());
+        assert!(new_child_node.next_sibling.is_none());
+        match before {
+            Some(before) => {
+                let before_node = before.mut_node();
+                // XXX Should assert that parent is self.
+                assert!(before_node.parent_node.is_some());
+                before_node.set_prev_sibling(Some(new_child.clone()));
+                new_child_node.set_next_sibling(Some(before.clone()));
+                match before_node.prev_sibling {
+                    None => {
+                        // XXX Should assert that before is the first child of
+                        //     self.
+                        this_node.set_first_child(Some(new_child.clone()));
+                    },
+                    Some(prev_sibling) => {
+                        let prev_sibling_node = prev_sibling.mut_node();
+                        prev_sibling_node.set_next_sibling(Some(new_child.clone()));
+                        new_child_node.set_prev_sibling(Some(prev_sibling.clone()));
+                    },
+                }
+            },
+            None => {
+                match this_node.last_child {
+                    None => this_node.set_first_child(Some(new_child.clone())),
+                    Some(last_child) => {
+                        let last_child_node = last_child.mut_node();
+                        assert!(last_child_node.next_sibling.is_none());
+                        last_child_node.set_next_sibling(Some(new_child.clone()));
+                        new_child_node.set_prev_sibling(Some(last_child.clone()));
+                    }
+                }
+
+                this_node.set_last_child(Some(new_child.clone()));
+            },
+        }
+
+        new_child_node.set_parent_node(Some((*self).clone()));
+    }
+
+    /// Removes the given child from this node's list of children.
+    ///
+    /// Fails unless `child` is a child of this node. (FIXME: This is not yet checked.)
+    fn remove_child(&self, child: AbstractNode<ScriptView>) {
+        let this_node = self.mut_node();
+        let child_node = child.mut_node();
+        assert!(child_node.parent_node.is_some());
+
+        match child_node.prev_sibling {
+            None => this_node.set_first_child(child_node.next_sibling),
+            Some(prev_sibling) => {
+                let prev_sibling_node = prev_sibling.mut_node();
+                prev_sibling_node.set_next_sibling(child_node.next_sibling);
+            }
+        }
+
+        match child_node.next_sibling {
+            None => this_node.set_last_child(child_node.prev_sibling),
+            Some(next_sibling) => {
+                let next_sibling_node = next_sibling.mut_node();
+                next_sibling_node.set_prev_sibling(child_node.prev_sibling);
+            }
+        }
+
+        child_node.set_prev_sibling(None);
+        child_node.set_next_sibling(None);
+        child_node.set_parent_node(None);
+    }
+
+    //
+    // Low-level pointer stitching wrappers
+    //
+
+    fn set_parent_node(&self, new_parent_node: Option<AbstractNode<ScriptView>>) {
+        let node = self.mut_node();
+        node.set_parent_node(new_parent_node)
+    }
+
+    fn set_first_child(&self, new_first_child: Option<AbstractNode<ScriptView>>) {
+        let node = self.mut_node();
+        node.set_first_child(new_first_child)
+    }
+
+    fn set_last_child(&self, new_last_child: Option<AbstractNode<ScriptView>>) {
+        let node = self.mut_node();
+        node.set_last_child(new_last_child)
+    }
+    
+    fn set_prev_sibling(&self, new_prev_sibling: Option<AbstractNode<ScriptView>>) {
+        let node = self.mut_node();
+        node.set_prev_sibling(new_prev_sibling)
+    }
+    
+    fn set_next_sibling(&self, new_next_sibling: Option<AbstractNode<ScriptView>>) {
+        let node = self.mut_node();
+        node.set_next_sibling(new_next_sibling)
+    }
 }
+
+//
+// Iteration and traversal
+//
 
 impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
     fn next(&mut self) -> Option<AbstractNode<View>> {
@@ -610,6 +693,86 @@ impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
             node.next_sibling()
         };
         node
+    }
+}
+
+pub struct AncestorIterator<View> {
+    priv current: Option<AbstractNode<View>>,
+}
+
+impl<View> Iterator<AbstractNode<View>> for AncestorIterator<View> {
+    fn next(&mut self) -> Option<AbstractNode<View>> {
+        if self.current.is_none() {
+            return None;
+        }
+
+        // FIXME: Do we need two clones here?
+        let x = self.current.get_ref().clone();
+        self.current = x.parent_node();
+        Some(x.clone())
+    }
+}
+
+// FIXME: Do this without precomputing a vector of refs.
+// Easy for preorder; harder for postorder.
+pub struct TreeIterator<View> {
+    priv nodes: ~[AbstractNode<View>],
+    priv index: uint,
+}
+
+impl<View> TreeIterator<View> {
+    fn new(nodes: ~[AbstractNode<View>]) -> TreeIterator<View> {
+        TreeIterator {
+            nodes: nodes,
+            index: 0,
+        }
+    }
+}
+
+impl<View> Iterator<AbstractNode<View>> for TreeIterator<View> {
+    fn next(&mut self) -> Option<AbstractNode<View>> {
+        if self.index >= self.nodes.len() {
+            None
+        } else {
+            let v = self.nodes[self.index].clone();
+            self.index += 1;
+            Some(v)
+        }
+    }
+}
+
+fn gather<View>(cur: &AbstractNode<View>, refs: &mut ~[AbstractNode<View>], postorder: bool) {
+    if !postorder {
+        refs.push(cur.clone());
+    }
+    for kid in cur.children() {
+        gather(&kid, refs, postorder)
+    }
+    if postorder {
+        refs.push(cur.clone());
+    }
+}
+
+impl<View> AbstractNode<View> {
+    /// Iterates over all ancestors of this node.
+    pub fn ancestors(&self) -> AncestorIterator<View> {
+        AncestorIterator {
+            current: self.parent_node(),
+        }
+    }
+
+    /// Iterates over this node and all its descendants, in preorder.
+    pub fn traverse_preorder(&self) -> TreeIterator<View> {
+        let mut nodes = ~[];
+        gather(self, &mut nodes, false);
+        TreeIterator::new(nodes)
+    }
+
+    /// Iterates over this node and all its descendants, in postorder.
+    pub fn sequential_traverse_postorder(&self) -> TreeIterator<View> {
+        let mut nodes = ~[];
+        gather(self, &mut nodes, true);
+        TreeIterator::new(nodes)
     }
 }
 
@@ -1214,6 +1377,41 @@ impl Node<ScriptView> {
 
     pub fn HasAttributes(&self) -> bool {
         false
+    }
+
+
+    //
+    // Low-level pointer stitching
+    //
+
+    pub fn set_parent_node(&mut self, new_parent_node: Option<AbstractNode<ScriptView>>) {
+        let doc = self.owner_doc();
+        doc.document().wait_until_safe_to_modify_dom();
+        self.parent_node = new_parent_node
+    }
+
+    pub fn set_first_child(&mut self, new_first_child: Option<AbstractNode<ScriptView>>) {
+        let doc = self.owner_doc();
+        doc.document().wait_until_safe_to_modify_dom();
+        self.first_child = new_first_child
+    }
+
+    pub fn set_last_child(&mut self, new_last_child: Option<AbstractNode<ScriptView>>) {
+        let doc = self.owner_doc();
+        doc.document().wait_until_safe_to_modify_dom();
+        self.last_child = new_last_child
+    }
+
+    pub fn set_prev_sibling(&mut self, new_prev_sibling: Option<AbstractNode<ScriptView>>) {
+        let doc = self.owner_doc();
+        doc.document().wait_until_safe_to_modify_dom();
+        self.prev_sibling = new_prev_sibling
+    }
+
+    pub fn set_next_sibling(&mut self, new_next_sibling: Option<AbstractNode<ScriptView>>) {
+        let doc = self.owner_doc();
+        doc.document().wait_until_safe_to_modify_dom();
+        self.next_sibling = new_next_sibling
     }
 }
 

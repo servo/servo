@@ -25,6 +25,7 @@ pub use selector_matching::{Stylist, StylesheetOrigin, UserAgentOrigin, AuthorOr
 pub use properties::{cascade, PropertyDeclaration, ComputedValues, computed_values};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 pub use errors::with_errors_silenced;
+pub use node::{TElement, TNode};
 
 mod stylesheets;
 mod errors;
@@ -32,5 +33,6 @@ mod selectors;
 mod selector_matching;
 mod properties;
 mod namespaces;
+mod node;
 mod media_queries;
 mod parsing_utils;
