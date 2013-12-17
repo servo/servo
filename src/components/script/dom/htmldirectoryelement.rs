@@ -7,7 +7,7 @@ use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLDirectoryElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 
 pub struct HTMLDirectoryElement {
     htmlelement: HTMLElement
@@ -20,7 +20,7 @@ impl HTMLDirectoryElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLDirectoryElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLDirectoryElementBinding::Wrap)
     }

@@ -28,7 +28,7 @@ use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use script::dom::event::ReflowEvent;
-use script::dom::node::{AbstractNode, LayoutDataRef, LayoutView, ElementNodeTypeId};
+use script::dom::node::{AbstractNode, ElementNodeTypeId, LayoutDataRef, LayoutNode};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
 use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitNowMsg, LayoutQuery};
@@ -358,8 +358,7 @@ impl LayoutTask {
     /// is intertwined with selector matching, making it difficult to compare directly. It is
     /// marked `#[inline(never)]` to aid benchmarking in sampling profilers.
     #[inline(never)]
-    fn construct_flow_tree(&self, layout_context: &mut LayoutContext, node: AbstractNode<LayoutView>)
-                           -> ~Flow: {
+    fn construct_flow_tree(&self, layout_context: &mut LayoutContext, node: LayoutNode) -> ~Flow: {
         node.traverse_postorder_mut(&mut FlowConstructor::init(layout_context));
 
         let result = match *node.mutate_layout_data().ptr {
@@ -401,7 +400,7 @@ impl LayoutTask {
     /// The high-level routine that performs layout tasks.
     fn handle_reflow(&mut self, data: &Reflow) {
         // FIXME: Isolate this transmutation into a "bridge" module.
-        let node: &AbstractNode<LayoutView> = unsafe {
+        let node: &LayoutNode = unsafe {
             transmute(&data.document_root)
         };
 
@@ -534,7 +533,7 @@ impl LayoutTask {
             // The neat thing here is that in order to answer the following two queries we only
             // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
             ContentBoxQuery(node, reply_chan) => {
-                let node = OpaqueNode::from_node(&node);
+                let node = OpaqueNode::from_script_node(&node);
 
                 fn union_boxes_for_node<'a>(
                                         accumulator: &mut Option<Rect<Au>>,
@@ -557,7 +556,7 @@ impl LayoutTask {
                 reply_chan.send(ContentBoxResponse(rect.unwrap_or(Au::zero_rect())))
             }
             ContentBoxesQuery(node, reply_chan) => {
-                let node = OpaqueNode::from_node(&node);
+                let node = OpaqueNode::from_script_node(&node);
 
                 fn add_boxes_for_node<'a>(
                                       accumulator: &mut ~[Rect<Au>],
@@ -608,8 +607,8 @@ impl LayoutTask {
                             // incremental flow construction could create this. Paranoid validation
                             // against the set of valid nodes should occur in the script task to
                             // ensure that this is a valid address instead of transmuting here.
-                            let node: AbstractNode<LayoutView> = unsafe {
-                                item.base().extra.to_node()
+                            let node: AbstractNode = unsafe {
+                                item.base().extra.to_script_node()
                             };
                             let resp = Some(HitTestResponse(node));
                             return resp;

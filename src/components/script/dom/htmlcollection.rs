@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLCollectionBinding;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, Fallible};
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::AbstractNode;
 use dom::window::Window;
 
 use js::jsapi::{JSObject, JSContext};
@@ -13,14 +13,13 @@ use js::jsapi::{JSObject, JSContext};
 use std::ptr;
 
 pub struct HTMLCollection {
-    elements: ~[AbstractNode<ScriptView>],
+    elements: ~[AbstractNode],
     reflector_: Reflector,
     window: @mut Window,
 }
 
 impl HTMLCollection {
-    pub fn new_inherited(window: @mut Window,
-                         elements: ~[AbstractNode<ScriptView>]) -> HTMLCollection {
+    pub fn new_inherited(window: @mut Window, elements: ~[AbstractNode]) -> HTMLCollection {
         HTMLCollection {
             elements: elements,
             reflector_: Reflector::new(),
@@ -28,8 +27,7 @@ impl HTMLCollection {
         }
     }
 
-    pub fn new(window: @mut Window,
-               elements: ~[AbstractNode<ScriptView>]) -> @mut HTMLCollection {
+    pub fn new(window: @mut Window, elements: ~[AbstractNode]) -> @mut HTMLCollection {
         reflect_dom_object(@mut HTMLCollection::new_inherited(window, elements),
                            window, HTMLCollectionBinding::Wrap)
     }
@@ -38,7 +36,7 @@ impl HTMLCollection {
         self.elements.len() as u32
     }
 
-    pub fn Item(&self, index: u32) -> Option<AbstractNode<ScriptView>> {
+    pub fn Item(&self, index: u32) -> Option<AbstractNode> {
         if index < self.Length() {
             Some(self.elements[index])
         } else {
@@ -50,7 +48,7 @@ impl HTMLCollection {
         Ok(ptr::null())
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<AbstractNode<ScriptView>> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<AbstractNode> {
         *found = true;
         self.Item(index)
     }

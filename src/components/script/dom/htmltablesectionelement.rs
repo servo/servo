@@ -7,7 +7,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLTableSectionElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 
 pub struct HTMLTableSectionElement {
     htmlelement: HTMLElement,
@@ -20,7 +20,7 @@ impl HTMLTableSectionElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLTableSectionElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLTableSectionElementBinding::Wrap)
     }

@@ -6,7 +6,7 @@ use layout::box::Box;
 use layout::construct::{ConstructionResult, NoConstructionResult};
 
 use extra::arc::Arc;
-use script::dom::node::{AbstractNode, LayoutView};
+use script::dom::node::{AbstractNode, LayoutNode};
 use servo_util::range::Range;
 use servo_util::slot::{MutSlotRef, SlotRef};
 use std::cast;
@@ -163,23 +163,23 @@ pub trait LayoutDataAccess {
     fn mutate_layout_data<'a>(&'a self) -> MutSlotRef<'a,Option<~LayoutData>>;
 }
 
-impl LayoutDataAccess for AbstractNode<LayoutView> {
+impl LayoutDataAccess for LayoutNode {
     #[inline(always)]
     unsafe fn borrow_layout_data_unchecked<'a>(&'a self) -> &'a Option<~LayoutData> {
-        cast::transmute(self.node().layout_data.borrow_unchecked())
+        cast::transmute(self.get().layout_data.borrow_unchecked())
     }
 
     #[inline(always)]
     fn borrow_layout_data<'a>(&'a self) -> SlotRef<'a,Option<~LayoutData>> {
         unsafe {
-            cast::transmute(self.node().layout_data.borrow())
+            cast::transmute(self.get().layout_data.borrow())
         }
     }
 
     #[inline(always)]
     fn mutate_layout_data<'a>(&'a self) -> MutSlotRef<'a,Option<~LayoutData>> {
         unsafe {
-            cast::transmute(self.node().layout_data.mutate())
+            cast::transmute(self.get().layout_data.mutate())
         }
     }
 }
@@ -193,25 +193,24 @@ impl LayoutDataAccess for AbstractNode<LayoutView> {
 #[deriving(Clone, Eq)]
 pub struct OpaqueNode(uintptr_t);
 
-impl<T> Equiv<AbstractNode<T>> for OpaqueNode {
-    fn equiv(&self, node: &AbstractNode<T>) -> bool {
-        unsafe {
-            **self == cast::transmute_copy::<AbstractNode<T>,uintptr_t>(node)
-        }
-    }
-}
-
 impl OpaqueNode {
-    /// Converts a DOM node to an `OpaqueNode`.
-    pub fn from_node<T>(node: &AbstractNode<T>) -> OpaqueNode {
+    /// Converts a DOM node (layout view) to an `OpaqueNode`.
+    pub fn from_layout_node(node: &LayoutNode) -> OpaqueNode {
         unsafe {
             OpaqueNode(cast::transmute_copy(node))
         }
     }
 
-    /// Unsafely converts an `OpaqueNode` to a DOM node. Use this only if you absolutely know what
-    /// you're doing.
-    pub unsafe fn to_node<T>(&self) -> AbstractNode<T> {
+    /// Converts a DOM node (script view) to an `OpaqueNode`.
+    pub fn from_script_node(node: &AbstractNode) -> OpaqueNode {
+        unsafe {
+            OpaqueNode(cast::transmute_copy(node))
+        }
+    }
+
+    /// Unsafely converts an `OpaqueNode` to a DOM node (script view). Use this only if you
+    /// absolutely know what you're doing.
+    pub unsafe fn to_script_node(&self) -> AbstractNode {
         cast::transmute(**self)
     }
 

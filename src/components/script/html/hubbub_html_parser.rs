@@ -9,7 +9,7 @@ use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, 
 use dom::htmliframeelement::IFrameSize;
 use dom::htmlformelement::HTMLFormElement;
 use dom::namespace;
-use dom::node::{AbstractNode, ElementNodeTypeId, ScriptView};
+use dom::node::{AbstractNode, ElementNodeTypeId};
 use dom::types::*;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use script_task::page_from_context;
@@ -77,11 +77,11 @@ trait NodeWrapping {
     unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> Self;
 }
 
-impl NodeWrapping for AbstractNode<ScriptView> {
+impl NodeWrapping for AbstractNode {
     unsafe fn to_hubbub_node(self) -> hubbub::NodeDataPtr {
         cast::transmute(self)
     }
-    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> AbstractNode<ScriptView> {
+    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> AbstractNode {
         cast::transmute(n)
     }
 }
@@ -159,7 +159,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-pub fn build_element_from_tag(tag: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+pub fn build_element_from_tag(tag: ~str, document: AbstractDocument) -> AbstractNode {
     // TODO (Issue #85): use atoms
     handle_element!(document, tag, "a",         HTMLAnchorElement);
     handle_element!(document, tag, "applet",    HTMLAppletElement);
@@ -299,7 +299,7 @@ pub fn parse_html(cx: *JSContext,
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
 
-    let document_node = AbstractNode::<ScriptView>::from_document(document);
+    let document_node = AbstractNode::from_document(document);
     parser.set_document_node(unsafe { document_node.to_hubbub_node() });
     parser.enable_scripting(true);
     parser.enable_styling(true);
@@ -415,8 +415,8 @@ pub fn parse_html(cx: *JSContext,
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
             unsafe {
                 debug!("append child {:x} {:x}", parent, child);
-                let parent: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(parent);
-                let child: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(child);
+                let parent: AbstractNode = NodeWrapping::from_hubbub_node(parent);
+                let child: AbstractNode = NodeWrapping::from_hubbub_node(child);
                 parent.AppendChild(child);
             }
             child
@@ -460,7 +460,7 @@ pub fn parse_html(cx: *JSContext,
         },
         complete_script: |script| {
             unsafe {
-                let scriptnode: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(script);
+                let scriptnode: AbstractNode = NodeWrapping::from_hubbub_node(script);
                 do scriptnode.with_imm_element |script| {
                     match script.get_attr(None, "src") {
                         Some(src) => {
@@ -489,7 +489,7 @@ pub fn parse_html(cx: *JSContext,
         complete_style: |style| {
             // We've reached the end of a <style> so we can submit all the text to the parser.
             unsafe {
-                let style: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(style);
+                let style: AbstractNode = NodeWrapping::from_hubbub_node(style);
                 let url = FromStr::from_str("http://example.com/"); // FIXME
                 let url_cell = Cell::new(url);
 

@@ -15,7 +15,7 @@ use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags, ClipDisplayI
 use gfx::display_list::{ClipDisplayItemClass};
 use gfx::font::{FontStyle, FontWeight300};
 use gfx::text::text_run::TextRun;
-use script::dom::node::{AbstractNode, LayoutView};
+use script::dom::node::LayoutNode;
 use servo_msg::constellation_msg::{FrameRectMsg, PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
@@ -116,12 +116,10 @@ impl ImageBoxInfo {
     ///
     /// FIXME(pcwalton): The fact that image boxes store the cache in the box makes little sense to
     /// me.
-    pub fn new(node: &AbstractNode<LayoutView>,
-               image_url: Url,
-               local_image_cache: MutexArc<LocalImageCache>)
+    pub fn new(node: &LayoutNode, image_url: Url, local_image_cache: MutexArc<LocalImageCache>)
                -> ImageBoxInfo {
-        fn convert_length(node: &AbstractNode<LayoutView>, name: &str) -> Option<Au> {
-            node.with_imm_element(|element| {
+        fn convert_length(node: &LayoutNode, name: &str) -> Option<Au> {
+            node.with_element(|element| {
                 element.get_attr(None, name).and_then(|string| {
                     let n: Option<int> = FromStr::from_str(string);
                     n
@@ -165,8 +163,8 @@ pub struct IframeBoxInfo {
 
 impl IframeBoxInfo {
     /// Creates the information specific to an iframe box.
-    pub fn new(node: &AbstractNode<LayoutView>) -> IframeBoxInfo {
-        node.with_imm_iframe_element(|iframe_element| {
+    pub fn new(node: &LayoutNode) -> IframeBoxInfo {
+        node.with_iframe_element(|iframe_element| {
             let size = iframe_element.size.unwrap();
             IframeBoxInfo {
                 pipeline_id: size.pipeline_id,
@@ -209,8 +207,8 @@ pub struct UnscannedTextBoxInfo {
 
 impl UnscannedTextBoxInfo {
     /// Creates a new instance of `UnscannedTextBoxInfo` from the given DOM node.
-    pub fn new(node: &AbstractNode<LayoutView>) -> UnscannedTextBoxInfo {
-        node.with_imm_text(|text_node| {
+    pub fn new(node: &LayoutNode) -> UnscannedTextBoxInfo {
+        node.with_text(|text_node| {
             // FIXME(pcwalton): Don't copy text; atomically reference count it instead.
             UnscannedTextBoxInfo {
                 text: text_node.element.data.to_str(),
@@ -230,7 +228,7 @@ pub enum SplitBoxResult {
 
 impl Box {
     /// Constructs a new `Box` instance.
-    pub fn new(node: AbstractNode<LayoutView>, specific: SpecificBoxInfo) -> Box {
+    pub fn new(node: LayoutNode, specific: SpecificBoxInfo) -> Box {
         // Find the nearest ancestor element and take its style. (It should be either that node or
         // its immediate parent.)
         //
@@ -250,7 +248,7 @@ impl Box {
         }
 
         Box {
-            node: OpaqueNode::from_node(&node),
+            node: OpaqueNode::from_layout_node(&node),
             style: (*nearest_ancestor_element.style()).clone(),
             position: Slot::init(Au::zero_rect()),
             border: Slot::init(Zero::zero()),

@@ -36,7 +36,8 @@ impl DocumentType {
                public_id: Option<~str>,
                system_id: Option<~str>,
                force_quirks: bool,
-               document: AbstractDocument) -> AbstractNode<ScriptView> {
+               document: AbstractDocument)
+               -> AbstractNode {
         let documenttype = DocumentType::new_inherited(name,
                                                        public_id,
                                                        system_id,

@@ -6,7 +6,7 @@
 
 use layout::util::{LayoutData, LayoutDataAccess};
 
-use script::dom::node::{AbstractNode, LayoutView};
+use script::dom::node::LayoutNode;
 
 /// Functionality useful for querying the layout-specific data on DOM nodes.
 pub trait LayoutAuxMethods {
@@ -14,7 +14,7 @@ pub trait LayoutAuxMethods {
     fn initialize_style_for_subtree(self);
 }
 
-impl LayoutAuxMethods for AbstractNode<LayoutView> {
+impl LayoutAuxMethods for LayoutNode {
     /// Resets layout data and styles for the node.
     ///
     /// FIXME(pcwalton): Do this as part of box building instead of in a traversal.

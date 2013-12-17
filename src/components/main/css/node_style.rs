@@ -9,7 +9,7 @@ use layout::incremental::RestyleDamage;
 
 use extra::arc::Arc;
 use style::ComputedValues;
-use script::dom::node::{AbstractNode, LayoutView};
+use script::dom::node::LayoutNode;
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
@@ -17,7 +17,7 @@ pub trait StyledNode {
     fn restyle_damage(&self) -> RestyleDamage;
 }
 
-impl StyledNode for AbstractNode<LayoutView> {
+impl StyledNode for LayoutNode {
     #[inline]
     fn style<'a>(&'a self) -> &'a Arc<ComputedValues> {
         self.get_css_select_results()

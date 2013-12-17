@@ -21,14 +21,14 @@ impl DocumentFragment {
         }
     }
 
-    pub fn new(document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(document: AbstractDocument) -> AbstractNode {
         let node = DocumentFragment::new_inherited(document);
         Node::reflect_node(@mut node, document, DocumentFragmentBinding::Wrap)
     }
 }
 
 impl DocumentFragment {
-    pub fn Constructor(owner: @mut Window) -> Fallible<AbstractNode<ScriptView>> {
+    pub fn Constructor(owner: @mut Window) -> Fallible<AbstractNode> {
         Ok(DocumentFragment::new(owner.Document()))
     }
 }

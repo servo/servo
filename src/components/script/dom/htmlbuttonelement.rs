@@ -7,7 +7,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLButtonElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use dom::validitystate::ValidityState;
 
 pub struct HTMLButtonElement {
@@ -21,7 +21,7 @@ impl HTMLButtonElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLButtonElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLButtonElementBinding::Wrap)
     }
@@ -44,7 +44,7 @@ impl HTMLButtonElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetForm(&self) -> Option<AbstractNode> {
         None
     }
 

@@ -11,7 +11,7 @@ use std::libc;
 use std::ptr;
 use js::jsapi::{JSTracer, JSTRACE_OBJECT, JS_CallTracer};
 
-impl Reflectable for AbstractNode<ScriptView> {
+impl Reflectable for AbstractNode {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.node().reflector()
     }
@@ -24,7 +24,7 @@ impl Reflectable for AbstractNode<ScriptView> {
 impl Traceable for Node<ScriptView> {
     fn trace(&self, tracer: *mut JSTracer) {
         #[fixed_stack_segment]
-        fn trace_node(tracer: *mut JSTracer, node: Option<AbstractNode<ScriptView>>, name: &str) {
+        fn trace_node(tracer: *mut JSTracer, node: Option<AbstractNode>, name: &str) {
             if node.is_none() {
                 return;
             }

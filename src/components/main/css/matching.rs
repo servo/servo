@@ -15,20 +15,20 @@ use css::node_style::StyledNode;
 use layout::incremental;
 use layout::util::LayoutDataAccess;
 
-use script::dom::node::{AbstractNode, LayoutView};
+use script::dom::node::LayoutNode;
 use style::{TNode, Stylist, cascade};
 
 pub trait MatchMethods {
     fn match_node(&self, stylist: &Stylist);
     fn match_subtree(&self, stylist: RWArc<Stylist>);
 
-    fn cascade_node(&self, parent: Option<AbstractNode<LayoutView>>);
-    fn cascade_subtree(&self, parent: Option<AbstractNode<LayoutView>>);
+    fn cascade_node(&self, parent: Option<LayoutNode>);
+    fn cascade_subtree(&self, parent: Option<LayoutNode>);
 }
 
-impl MatchMethods for AbstractNode<LayoutView> {
+impl MatchMethods for LayoutNode {
     fn match_node(&self, stylist: &Stylist) {
-        let applicable_declarations = do self.with_imm_element |element| {
+        let applicable_declarations = do self.with_element |element| {
             let style_attribute = match element.style_attribute {
                 None => None,
                 Some(ref style_attribute) => Some(style_attribute)
@@ -80,7 +80,7 @@ impl MatchMethods for AbstractNode<LayoutView> {
         }
     }
 
-    fn cascade_node(&self, parent: Option<AbstractNode<LayoutView>>) {
+    fn cascade_node(&self, parent: Option<LayoutNode>) {
         let parent_style = match parent {
             Some(ref parent) => Some(parent.style()),
             None => None
@@ -111,7 +111,7 @@ impl MatchMethods for AbstractNode<LayoutView> {
         }
     }
 
-    fn cascade_subtree(&self, parent: Option<AbstractNode<LayoutView>>) {
+    fn cascade_subtree(&self, parent: Option<LayoutNode>) {
         self.cascade_node(parent);
 
         for kid in self.children() {

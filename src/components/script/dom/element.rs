@@ -187,15 +187,13 @@ impl<'self> Element {
         })
     }
 
-    pub fn set_attr(&mut self,
-                    abstract_self: AbstractNode<ScriptView>,
-                    name: DOMString,
-                    value: DOMString) -> ErrorResult {
+    pub fn set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
+                    -> ErrorResult {
         self.set_attribute(abstract_self, namespace::Null, name, value)
     }
 
     pub fn set_attribute(&mut self,
-                         abstract_self: AbstractNode<ScriptView>,
+                         abstract_self: AbstractNode,
                          namespace: Namespace,
                          raw_name: DOMString,
                          value: DOMString) -> ErrorResult {
@@ -260,7 +258,7 @@ impl<'self> Element {
     }
 
     fn after_set_attr(&mut self,
-                      abstract_self: AbstractNode<ScriptView>,
+                      abstract_self: AbstractNode,
                       local_name: DOMString,
                       value: DOMString,
                       old_value: Option<DOMString>) {
@@ -309,18 +307,18 @@ impl Element {
         self.tag_name.to_ascii_upper()
     }
 
-    pub fn Id(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn Id(&self, _abstract_self: AbstractNode) -> DOMString {
         match self.get_attr(None, "id") {
             Some(x) => x,
             None => ~""
         }
     }
 
-    pub fn SetId(&mut self, abstract_self: AbstractNode<ScriptView>, id: DOMString) {
+    pub fn SetId(&mut self, abstract_self: AbstractNode, id: DOMString) {
         self.set_attribute(abstract_self, namespace::Null, ~"id", id);
     }
 
-    pub fn Attributes(&mut self, abstract_self: AbstractNode<ScriptView>) -> @mut AttrList {
+    pub fn Attributes(&mut self, abstract_self: AbstractNode) -> @mut AttrList {
         match self.attr_list {
             None => {
                 let window = self.node.owner_doc().document().window;
@@ -341,16 +339,14 @@ impl Element {
             .map(|attr| attr.value.clone())
     }
 
-    pub fn SetAttribute(&mut self,
-                        abstract_self: AbstractNode<ScriptView>,
-                        name: DOMString,
-                        value: DOMString) -> ErrorResult {
+    pub fn SetAttribute(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
+                        -> ErrorResult {
         self.set_attr(abstract_self, name, value);
         Ok(())
     }
 
     pub fn SetAttributeNS(&mut self,
-                          abstract_self: AbstractNode<ScriptView>,
+                          abstract_self: AbstractNode,
                           namespace_url: Option<DOMString>,
                           name: DOMString,
                           value: DOMString) -> ErrorResult {
@@ -409,7 +405,7 @@ impl Element {
     pub fn MozRequestPointerLock(&self) {
     }
 
-    pub fn GetClientRects(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRectList {
+    pub fn GetClientRects(&self, abstract_self: AbstractNode) -> @mut ClientRectList {
         let win = self.node.owner_doc().document().window;
         let node = abstract_self;
         assert!(node.is_element());
@@ -431,7 +427,7 @@ impl Element {
         ClientRectList::new(win, rects)
     }
 
-    pub fn GetBoundingClientRect(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRect {
+    pub fn GetBoundingClientRect(&self, abstract_self: AbstractNode) -> @mut ClientRect {
         let win = self.node.owner_doc().document().window;
         let node = abstract_self;
         assert!(node.is_element());
@@ -509,7 +505,7 @@ impl Element {
         Ok(())
     }
 
-    pub fn QuerySelector(&self, _selectors: DOMString) -> Fallible<Option<AbstractNode<ScriptView>>> {
+    pub fn QuerySelector(&self, _selectors: DOMString) -> Fallible<Option<AbstractNode>> {
         Ok(None)
     }
 }
