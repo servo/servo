@@ -18,7 +18,7 @@ pub trait NodeUtil {
     fn set_restyle_damage(self, damage: RestyleDamage);
 }
 
-impl NodeUtil for LayoutNode {
+impl<'self> NodeUtil for LayoutNode<'self> {
     /** 
      * Provides the computed style for the given node. If CSS selector
      * Returns the style results for the given node. If CSS selector

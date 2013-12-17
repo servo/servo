@@ -30,23 +30,33 @@ use std::util;
 use style::TNode;
 
 //
-// The basic Node structure
+// Layout's immutable, sanitized view of nodes.
 //
 
-/// A wrapper so that layout can access only the properties that it should have access to. Layout
-/// should only ever see this.
+/// A nonsense constant for layout nodes to point to just to establish a lifetime.
+///
+/// FIXME(pcwalton): Phantom lifetimes in Rust would be useful...
+static HEAVY_IRON_BALL: () = ();
+
+/// A wrapper so that layout can access only the methods that it should have access to. Layout must
+/// only ever see these and must never see instances of `AbstractNode`.
 #[deriving(Clone, Eq)]
-pub struct LayoutNode {
+pub struct LayoutNode<'self> {
+    /// The wrapped node.
     priv node: AbstractNode,
+
+    /// Being chained to a `HEAVY_IRON_BALL` prevents `LayoutNode`s from escaping.
+    priv chain: &'self (),
 }
 
-impl LayoutNode {
+impl<'self> LayoutNode<'self> {
     /// NB: Do not make this public.
     ///
     /// FIXME(pcwalton): Probably this should be marked `unsafe`.
-    /*PRIVATE-FOR-SECURITY-REASONS*/ fn new(node: AbstractNode) -> LayoutNode {
+    /*PRIVATE-FOR-SECURITY-REASONS*/ fn new(node: AbstractNode) -> LayoutNode<'static> {
         LayoutNode {
             node: node,
+            chain: &HEAVY_IRON_BALL,
         }
     }
 
@@ -57,26 +67,26 @@ impl LayoutNode {
     }
 
     /// Returns the first child of this node.
-    pub fn first_child(&self) -> Option<LayoutNode> {
+    pub fn first_child(&self) -> Option<LayoutNode<'self>> {
         self.node.first_child().map(|node| LayoutNode::new(node))
     }
 
     /// Returns the first child of this node.
-    pub fn last_child(&self) -> Option<LayoutNode> {
+    pub fn last_child(&self) -> Option<LayoutNode<'self>> {
         self.node.last_child().map(|node| LayoutNode::new(node))
     }
 
     /// Iterates over this node and all its descendants, in preorder.
     ///
     /// FIXME(pcwalton): Terribly inefficient. We should use parallelism.
-    pub fn traverse_preorder(&self) -> LayoutTreeIterator {
+    pub fn traverse_preorder(&self) -> LayoutTreeIterator<'self> {
         let mut nodes = ~[];
         gather_layout_nodes(self, &mut nodes, false);
         LayoutTreeIterator::new(nodes)
     }
 
     /// Returns an iterator over this node's children.
-    pub fn children(&self) -> LayoutNodeChildrenIterator {
+    pub fn children(&self) -> LayoutNodeChildrenIterator<'self> {
         LayoutNodeChildrenIterator {
             current_node: self.first_child(),
         }
@@ -177,16 +187,16 @@ impl LayoutNode {
     }
 }
 
-impl TNode<Element> for LayoutNode {
-    fn parent_node(&self) -> Option<LayoutNode> {
+impl<'self> TNode<Element> for LayoutNode<'self> {
+    fn parent_node(&self) -> Option<LayoutNode<'self>> {
         self.node.node().parent_node.map(|node| LayoutNode::new(node))
     }
 
-    fn prev_sibling(&self) -> Option<LayoutNode> {
+    fn prev_sibling(&self) -> Option<LayoutNode<'self>> {
         self.node.node().prev_sibling.map(|node| LayoutNode::new(node))
     }
     
-    fn next_sibling(&self) -> Option<LayoutNode> {
+    fn next_sibling(&self) -> Option<LayoutNode<'self>> {
         self.node.node().next_sibling.map(|node| LayoutNode::new(node))
     }
 
@@ -204,11 +214,16 @@ impl TNode<Element> for LayoutNode {
         }
     }
 
+    /// FIXME(pcwalton): Unsafe!
     #[inline]
     fn with_element<R>(&self, f: &fn(&Element) -> R) -> R {
         self.node.with_imm_element(f)
     }
 }
+
+//
+// The basic Node structure
+//
 
 /// This is what a Node looks like if you do not know what kind of node it is. To unpack it, use
 /// downcast().
@@ -836,12 +851,12 @@ impl Iterator<AbstractNode> for AbstractNodeChildrenIterator {
     }
 }
 
-pub struct LayoutNodeChildrenIterator {
-    priv current_node: Option<LayoutNode>,
+pub struct LayoutNodeChildrenIterator<'self> {
+    priv current_node: Option<LayoutNode<'self>>,
 }
 
-impl Iterator<LayoutNode> for LayoutNodeChildrenIterator {
-    fn next(&mut self) -> Option<LayoutNode> {
+impl<'self> Iterator<LayoutNode<'self>> for LayoutNodeChildrenIterator<'self> {
+    fn next(&mut self) -> Option<LayoutNode<'self>> {
         let node = self.current_node;
         self.current_node = do self.current_node.and_then |node| {
             node.next_sibling()
@@ -911,13 +926,13 @@ fn gather_abstract_nodes(cur: &AbstractNode, refs: &mut ~[AbstractNode], postord
 // Easy for preorder; harder for postorder.
 //
 // FIXME(pcwalton): Parallelism! Eventually this should just be nuked.
-pub struct LayoutTreeIterator {
-    priv nodes: ~[LayoutNode],
+pub struct LayoutTreeIterator<'self> {
+    priv nodes: ~[LayoutNode<'self>],
     priv index: uint,
 }
 
-impl LayoutTreeIterator {
-    fn new(nodes: ~[LayoutNode]) -> LayoutTreeIterator {
+impl<'self> LayoutTreeIterator<'self> {
+    fn new(nodes: ~[LayoutNode<'self>]) -> LayoutTreeIterator<'self> {
         LayoutTreeIterator {
             nodes: nodes,
             index: 0,
@@ -925,8 +940,8 @@ impl LayoutTreeIterator {
     }
 }
 
-impl Iterator<LayoutNode> for LayoutTreeIterator {
-    fn next(&mut self) -> Option<LayoutNode> {
+impl<'self> Iterator<LayoutNode<'self>> for LayoutTreeIterator<'self> {
+    fn next(&mut self) -> Option<LayoutNode<'self>> {
         if self.index >= self.nodes.len() {
             None
         } else {
@@ -938,7 +953,7 @@ impl Iterator<LayoutNode> for LayoutTreeIterator {
 }
 
 /// FIXME(pcwalton): This is super inefficient.
-fn gather_layout_nodes(cur: &LayoutNode, refs: &mut ~[LayoutNode], postorder: bool) {
+fn gather_layout_nodes<'a>(cur: &LayoutNode<'a>, refs: &mut ~[LayoutNode<'a>], postorder: bool) {
     if !postorder {
         refs.push(cur.clone());
     }
@@ -1617,12 +1632,12 @@ impl Reflectable for Node<ScriptView> {
 /// A bottom-up, parallelizable traversal.
 pub trait PostorderNodeTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, node: LayoutNode) -> bool;
+    fn process<'a>(&'a self, node: LayoutNode<'a>) -> bool;
 
     /// Returns true if this node should be pruned. If this returns true, we skip the operation
     /// entirely and do not process any descendant nodes. This is called *before* child nodes are
     /// visited. The default implementation never prunes any nodes.
-    fn should_prune(&self, _node: LayoutNode) -> bool {
+    fn should_prune<'a>(&'a self, _node: LayoutNode<'a>) -> bool {
         false
     }
 }
@@ -1630,17 +1645,17 @@ pub trait PostorderNodeTraversal {
 /// A bottom-up, parallelizable traversal.
 pub trait PostorderNodeMutTraversal {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&mut self, node: LayoutNode) -> bool;
+    fn process<'a>(&'a mut self, node: LayoutNode<'a>) -> bool;
 
     /// Returns true if this node should be pruned. If this returns true, we skip the operation
     /// entirely and do not process any descendant nodes. This is called *before* child nodes are
     /// visited. The default implementation never prunes any nodes.
-    fn should_prune(&self, _node: LayoutNode) -> bool {
+    fn should_prune<'a>(&'a self, _node: LayoutNode<'a>) -> bool {
         false
     }
 }
 
-impl LayoutNode {
+impl<'self> LayoutNode<'self> {
     /// Traverses the tree in postorder.
     ///
     /// TODO(pcwalton): Offer a parallel version with a compatible API.
@@ -1668,7 +1683,8 @@ impl LayoutNode {
     /// Traverses the tree in postorder.
     ///
     /// TODO(pcwalton): Offer a parallel version with a compatible API.
-    pub fn traverse_postorder_mut<T:PostorderNodeMutTraversal>(mut self, traversal: &mut T) -> bool {
+    pub fn traverse_postorder_mut<T:PostorderNodeMutTraversal>(mut self, traversal: &mut T)
+                                  -> bool {
         if traversal.should_prune(self) {
             return true
         }

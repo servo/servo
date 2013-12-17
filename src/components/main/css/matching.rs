@@ -4,18 +4,19 @@
 
 // High-level interface to CSS selector matching.
 
-use std::cell::Cell;
-use std::comm;
-use std::task;
-use std::vec;
-use std::rt;
-use extra::arc::{Arc, RWArc};
-
 use css::node_style::StyledNode;
 use layout::incremental;
 use layout::util::LayoutDataAccess;
 
+use extra::arc::{Arc, RWArc};
 use script::dom::node::LayoutNode;
+use std::cast;
+use std::cell::Cell;
+use std::comm;
+use std::libc::uintptr_t;
+use std::rt;
+use std::task;
+use std::vec;
 use style::{TNode, Stylist, cascade};
 
 pub trait MatchMethods {
@@ -26,7 +27,7 @@ pub trait MatchMethods {
     fn cascade_subtree(&self, parent: Option<LayoutNode>);
 }
 
-impl MatchMethods for LayoutNode {
+impl<'self> MatchMethods for LayoutNode<'self> {
     fn match_node(&self, stylist: &Stylist) {
         let applicable_declarations = do self.with_element |element| {
             let style_attribute = match element.style_attribute {
@@ -63,7 +64,20 @@ impl MatchMethods for LayoutNode {
             if nodes.len() > 0 {
                 let chan = chan.clone();
                 let stylist = stylist.clone();
-                do task::spawn_with((nodes, stylist)) |(nodes, stylist)| {
+               
+                // FIXME(pcwalton): This transmute is to work around the fact that we have no
+                // mechanism for safe fork/join parallelism. If we had such a thing, then we could
+                // close over the lifetime-bounded `LayoutNode`. But we can't, so we force it with
+                // a transmute.
+                let evil: uintptr_t = unsafe {
+                    cast::transmute(nodes)
+                };
+
+                do task::spawn_with((evil, stylist)) |(evil, stylist)| {
+                    let nodes: ~[LayoutNode] = unsafe {
+                        cast::transmute(evil)
+                    };
+
                     let nodes = Cell::new(nodes);
                     do stylist.read |stylist| {
                         for node in nodes.take().move_iter() {

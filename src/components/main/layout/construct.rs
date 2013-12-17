@@ -528,7 +528,7 @@ trait NodeUtils {
     fn swap_out_construction_result(self) -> ConstructionResult;
 }
 
-impl NodeUtils for LayoutNode {
+impl<'self> NodeUtils for LayoutNode<'self> {
     fn is_replaced_content(self) -> bool {
         match self.type_id() {
             TextNodeTypeId |

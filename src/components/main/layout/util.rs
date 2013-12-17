@@ -163,7 +163,7 @@ pub trait LayoutDataAccess {
     fn mutate_layout_data<'a>(&'a self) -> MutSlotRef<'a,Option<~LayoutData>>;
 }
 
-impl LayoutDataAccess for LayoutNode {
+impl<'self> LayoutDataAccess for LayoutNode<'self> {
     #[inline(always)]
     unsafe fn borrow_layout_data_unchecked<'a>(&'a self) -> &'a Option<~LayoutData> {
         cast::transmute(self.get().layout_data.borrow_unchecked())
