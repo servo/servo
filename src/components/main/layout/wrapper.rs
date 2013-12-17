@@ -15,7 +15,8 @@
 //!     onto these objects and cause use-after-free.
 
 use extra::url::Url;
-use script::dom::element::Element;
+use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
+use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::HTMLImageElement;
 use script::dom::node::{AbstractNode, DocumentNodeTypeId, ElementNodeTypeId, LayoutView, Node};
@@ -23,7 +24,7 @@ use script::dom::node::{NodeTypeId};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use std::cast;
-use style::TNode;
+use style::{PropertyDeclarationBlock, TElement, TNode};
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `AbstractNode`.
@@ -227,7 +228,7 @@ impl<'self> LayoutNode<'self> {
     }
 }
 
-impl<'self> TNode<Element> for LayoutNode<'self> {
+impl<'self> TNode<LayoutElement<'self>> for LayoutNode<'self> {
     fn parent_node(&self) -> Option<LayoutNode<'self>> {
         unsafe {
             self.node.node().parent_node.map(|node| self.new_with_this_lifetime(node))
@@ -260,10 +261,18 @@ impl<'self> TNode<Element> for LayoutNode<'self> {
         }
     }
 
-    /// FIXME(pcwalton): Unsafe!
+    /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
-    fn with_element<R>(&self, f: &fn(&Element) -> R) -> R {
-        self.node.with_imm_element(f)
+    fn with_element<R>(&self, f: &fn(&LayoutElement<'self>) -> R) -> R {
+        self.node.with_imm_element(|element| {
+            // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
+            // implementations.
+            unsafe {
+                f(&LayoutElement {
+                    element: cast::transmute_region(element),
+                })
+            }
+        })
     }
 }
 
@@ -347,6 +356,43 @@ pub trait PostorderNodeMutTraversal {
     /// visited. The default implementation never prunes any nodes.
     fn should_prune<'a>(&'a self, _node: LayoutNode<'a>) -> bool {
         false
+    }
+}
+
+/// A wrapper around elements that ensures layout can only ever access safe properties.
+pub struct LayoutElement<'self> {
+    priv element: &'self Element,
+}
+
+impl<'self> LayoutElement<'self> {
+    pub fn style_attribute(&self) -> &'self Option<PropertyDeclarationBlock> {
+        &self.element.style_attribute
+    }
+}
+
+impl<'self> TElement for LayoutElement<'self> {
+    fn get_local_name<'a>(&'a self) -> &'a str {
+        self.element.tag_name.as_slice()
+    }
+
+    fn get_namespace_url<'a>(&'a self) -> &'a str {
+        self.element.namespace.to_str().unwrap_or("")
+    }
+
+    fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<~str> {
+        self.element.get_attr(ns_url, name)
+    }
+
+    fn get_link(&self) -> Option<~str> {
+        // FIXME: This is HTML only.
+        match self.element.node.type_id {
+            // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
+            // selector-link
+            ElementNodeTypeId(HTMLAnchorElementTypeId) |
+            ElementNodeTypeId(HTMLAreaElementTypeId) |
+            ElementNodeTypeId(HTMLLinkElementTypeId) => self.get_attr(None, "href"),
+            _ => None,
+        }
     }
 }
 

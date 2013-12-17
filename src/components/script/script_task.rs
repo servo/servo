@@ -52,7 +52,6 @@ use std::ptr;
 use std::str::eq_slice;
 use std::task::{spawn_sched, SingleThreaded};
 use std::util::replace;
-use style::{TElement, TNode};
 
 /// Messages used to control the script task.
 pub enum ScriptMsg {

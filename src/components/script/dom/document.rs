@@ -29,7 +29,6 @@ use std::cast;
 use std::hashmap::HashMap;
 use std::str::eq_slice;
 use std::unstable::raw::Box;
-use style::{TElement, TNode};
 
 #[deriving(Eq)]
 pub enum DocumentTypeId {

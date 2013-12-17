@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Traits that nodes must implement. Breaks the otherwise-cyclic dependency between script and
+//! Traits that nodes must implement. Breaks the otherwise-cyclic dependency between layout and
 //! style.
 
-/// FIXME(pcwalton): Should not require `Clone` and should instead return references. When this
-/// happens this will need to only be implemented for `AbstractNode<LayoutView>`.
 pub trait TNode<E:TElement> : Clone {
     fn parent_node(&self) -> Option<Self>;
     fn prev_sibling(&self) -> Option<Self>;

@@ -30,7 +30,7 @@ pub trait MatchMethods {
 impl<'self> MatchMethods for LayoutNode<'self> {
     fn match_node(&self, stylist: &Stylist) {
         let applicable_declarations = do self.with_element |element| {
-            let style_attribute = match element.style_attribute {
+            let style_attribute = match *element.style_attribute() {
                 None => None,
                 Some(ref style_attribute) => Some(style_attribute)
             };

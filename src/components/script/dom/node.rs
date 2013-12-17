@@ -25,7 +25,6 @@ use std::cast::transmute;
 use std::cast;
 use std::unstable::raw::Box;
 use std::util;
-use style::TNode;
 
 //
 // The basic Node structure

@@ -20,7 +20,6 @@ use dom::namespace::Namespace;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
-use style::{TElement, TNode};
 use style;
 
 use std::comm;
@@ -125,31 +124,6 @@ pub enum ElementTypeId {
 // Element methods
 //
 
-impl TElement for Element {
-    fn get_local_name<'a>(&'a self) -> &'a str {
-        self.tag_name.as_slice()
-    }
-
-    fn get_namespace_url<'a>(&'a self) -> &'a str {
-        self.namespace.to_str().unwrap_or("")
-    }
-
-    fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<~str> {
-        self.get_attribute(ns_url, name).map(|attr| attr.value.clone())
-    }
-
-    fn get_link(&self) -> Option<~str>{
-        // FIXME: This is HTML only.
-        match self.node.type_id {
-            // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#selector-link
-            ElementNodeTypeId(HTMLAnchorElementTypeId) |
-            ElementNodeTypeId(HTMLAreaElementTypeId) |
-            ElementNodeTypeId(HTMLLinkElementTypeId)
-            => self.get_attr(None, "href"),
-            _ => None,
-        }
-    }
-}
 
 impl<'self> Element {
     pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, namespace: Namespace, document: AbstractDocument) -> Element {
@@ -185,6 +159,11 @@ impl<'self> Element {
                 eq_slice(attr.local_name, name) && attr.namespace == namespace
             }.map(|x| *x)
         })
+    }
+
+    // FIXME(pcwalton): This is kind of confusingly named relative to the above...
+    pub fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<~str> {
+        self.get_attribute(ns_url, name).map(|attr| attr.value.clone())
     }
 
     pub fn set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
