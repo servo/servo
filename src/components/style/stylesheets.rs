@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::str;
 use std::iter::Iterator;
 use std::ascii::StrAsciiExt;
-use cssparser::{tokenize, parse_stylesheet_rules, ToCss};
+use extra::url::Url;
+
+use encoding::EncodingRef;
+
+use cssparser::{decode_stylesheet_bytes, tokenize, parse_stylesheet_rules, ToCss};
 use cssparser::ast::*;
 use selectors;
 use properties;
@@ -20,6 +23,8 @@ pub struct Stylesheet {
     /// cascading order)
     rules: ~[CSSRule],
     namespaces: NamespaceMap,
+    encoding: EncodingRef,
+    base_url: Url,
 }
 
 
@@ -36,19 +41,26 @@ pub struct StyleRule {
 
 
 impl Stylesheet {
-    pub fn from_iter<I: Iterator<~[u8]>>(input: I) -> Stylesheet {
-        let mut string = ~"";
-        let mut input = input;
-        // TODO: incremental tokinization/parsing
+    pub fn from_bytes_iter<I: Iterator<~[u8]>>(
+            mut input: I, base_url: Url, protocol_encoding_label: Option<&str>,
+            environment_encoding: Option<EncodingRef>) -> Stylesheet {
+        let mut bytes = ~[];
+        // TODO: incremental decoding and tokinization/parsing
         for chunk in input {
-            // Assume UTF-8. This fails on invalid UTF-8
-            // TODO: support character encodings (use rust-encodings in rust-cssparser)
-            string.push_str(str::from_utf8_owned(chunk))
+            bytes.push_all(chunk)
         }
-        Stylesheet::from_str(string)
+        Stylesheet::from_bytes(bytes, base_url, protocol_encoding_label, environment_encoding)
     }
 
-    pub fn from_str(css: &str) -> Stylesheet {
+    pub fn from_bytes(
+            bytes: &[u8], base_url: Url, protocol_encoding_label: Option<&str>,
+            environment_encoding: Option<EncodingRef>) -> Stylesheet {
+        let (string, used_encoding) = decode_stylesheet_bytes(
+            bytes, protocol_encoding_label, environment_encoding);
+        Stylesheet::from_str(string, base_url, used_encoding)
+    }
+
+    pub fn from_str(css: &str, base_url: Url, encoding: EncodingRef) -> Stylesheet {
         static STATE_CHARSET: uint = 1;
         static STATE_IMPORTS: uint = 2;
         static STATE_NAMESPACES: uint = 3;
@@ -107,7 +119,7 @@ impl Stylesheet {
             }
             state = next_state;
         }
-        Stylesheet{ rules: rules, namespaces: namespaces }
+        Stylesheet{ rules: rules, namespaces: namespaces, encoding: encoding, base_url: base_url }
     }
 }
 
