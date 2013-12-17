@@ -228,7 +228,7 @@ impl TextRunScanner {
 
         debug!("--- Elem ranges: ---");
         for (i, nr) in inline.elems.eachi() {
-            debug!("{:u}: {} --> {:s}", i, nr.range, nr.node.debug_str()); ()
+            debug!("{:u}: {} --> {:?}", i, nr.range, nr.node.id()); ()
         }
         debug!("--------------------");
 
