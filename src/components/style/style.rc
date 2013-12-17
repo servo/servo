@@ -34,6 +34,3 @@ mod properties;
 mod namespaces;
 mod media_queries;
 mod parsing_utils;
-
-#[cfg(test)]
-mod tests;
