@@ -91,12 +91,32 @@ pub struct Node<View> {
     /// The live list of children return by .childNodes.
     child_list: Option<@mut NodeList>,
 
+    /// A bitfield of flags for node items.
+    priv flags: NodeFlags,
+
     /// Layout information. Only the layout task may touch this data.
     ///
     /// FIXME(pcwalton): We need to send these back to the layout task to be destroyed when this
     /// node is finalized.
     layout_data: LayoutDataRef,
 }
+
+/// Flags for node items.
+pub struct NodeFlags(u8);
+
+impl NodeFlags {
+    pub fn new(type_id: NodeTypeId) -> NodeFlags {
+        let mut flags = NodeFlags(0);
+        match type_id {
+            DocumentNodeTypeId(_) => { flags.set_is_in_doc(true); }
+            _ => {}
+        }
+        flags
+    }
+}
+
+/// Specifies whether this node is in a document.
+bitfield!(NodeFlags, is_in_doc, set_is_in_doc, 0x01)
 
 #[unsafe_destructor]
 impl<T> Drop for Node<T> {
@@ -546,9 +566,8 @@ impl<'self, View> AbstractNode<View> {
         self.node().children()
     }
 
-    // Issue #1030: should not walk the tree
     pub fn is_in_doc(&self) -> bool {
-        self.ancestors().any(|node| node.is_document())
+        self.node().flags.is_in_doc()
     }
 }
 
@@ -648,6 +667,8 @@ impl Node<ScriptView> {
 
             owner_doc: doc,
             child_list: None,
+
+            flags: NodeFlags::new(type_id),
 
             layout_data: LayoutDataRef::init(),
         }
@@ -1002,6 +1023,7 @@ impl Node<ScriptView> {
         // Step 8.
         for node in nodes.iter() {
             parent.add_child(*node, child);
+            node.mut_node().flags.set_is_in_doc(parent.is_in_doc());
         }
 
         // Step 9.
@@ -1080,6 +1102,7 @@ impl Node<ScriptView> {
         // Step 6-7: mutation observers.
         // Step 8.
         parent.remove_child(node);
+        node.mut_node().flags.set_is_in_doc(false);
 
         // Step 9.
         if !suppress_observers {

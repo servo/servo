@@ -23,6 +23,9 @@ extern mod style;
 extern mod servo_msg (name = "msg");
 extern mod extra;
 
+// Macros
+mod macros;
+
 pub mod dom {
     pub mod bindings {
         pub mod element;
