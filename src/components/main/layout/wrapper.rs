@@ -19,8 +19,7 @@ use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementType
 use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::HTMLImageElement;
-use script::dom::node::{AbstractNode, DocumentNodeTypeId, ElementNodeTypeId, LayoutView, Node};
-use script::dom::node::{NodeTypeId};
+use script::dom::node::{AbstractNode, DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use std::cast;
@@ -57,7 +56,7 @@ impl<'self> LayoutNode<'self> {
 
     /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
     /// and as such is marked `unsafe`.
-    pub unsafe fn get<'a>(&'a self) -> &'a Node<LayoutView> {
+    pub unsafe fn get<'a>(&'a self) -> &'a Node {
         cast::transmute(self.node.node())
     }
 

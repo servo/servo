@@ -36,17 +36,11 @@ use std::util;
 /// FIXME: This should be replaced with a trait once they can inherit from structs.
 #[deriving(Eq)]
 pub struct AbstractNode {
-    priv obj: *mut Box<Node<ScriptView>>,
+    priv obj: *mut Box<Node>,
 }
 
-/// The script task's mutable view of a node.
-pub struct ScriptView;
-
-/// The layout task's mutable view of a node.
-pub struct LayoutView;
-
 /// An HTML node.
-pub struct Node<View> {
+pub struct Node {
     /// The JavaScript reflector for this node.
     eventtarget: EventTarget,
 
@@ -104,10 +98,10 @@ impl NodeFlags {
 bitfield!(NodeFlags, is_in_doc, set_is_in_doc, 0x01)
 
 #[unsafe_destructor]
-impl<T> Drop for Node<T> {
+impl Drop for Node {
     fn drop(&mut self) {
         unsafe {
-            let this: &mut Node<ScriptView> = cast::transmute(self);
+            let this: &mut Node = cast::transmute(self);
             this.reap_layout_data()
         }
     }
@@ -196,13 +190,13 @@ impl Clone for AbstractNode {
 }
 
 impl AbstractNode {
-    pub fn node<'a>(&'a self) -> &'a Node<ScriptView> {
+    pub fn node<'a>(&'a self) -> &'a Node {
         unsafe {
             &(*self.obj).data
         }
     }
 
-    pub fn mut_node<'a>(&'a self) -> &'a mut Node<ScriptView> {
+    pub fn mut_node<'a>(&'a self) -> &'a mut Node {
         unsafe {
             &mut (*self.obj).data
         }
@@ -257,7 +251,7 @@ impl<'self> AbstractNode {
     /// FIXME(pcwalton): Mark unsafe?
     pub fn from_box<T>(ptr: *mut Box<T>) -> AbstractNode {
         AbstractNode {
-            obj: ptr as *mut Box<Node<ScriptView>>
+            obj: ptr as *mut Box<Node>
         }
     }
 
@@ -298,7 +292,7 @@ impl<'self> AbstractNode {
 
     pub fn transmute<T, R>(self, f: &fn(&T) -> R) -> R {
         unsafe {
-            let node_box: *mut Box<Node<ScriptView>> = transmute(self.obj);
+            let node_box: *mut Box<Node> = transmute(self.obj);
             let node = &mut (*node_box).data;
             let old = node.abstract;
             node.abstract = Some(self);
@@ -311,7 +305,7 @@ impl<'self> AbstractNode {
 
     pub fn transmute_mut<T, R>(self, f: &fn(&mut T) -> R) -> R {
         unsafe {
-            let node_box: *mut Box<Node<ScriptView>> = transmute(self.obj);
+            let node_box: *mut Box<Node> = transmute(self.obj);
             let node = &mut (*node_box).data;
             let old = node.abstract;
             node.abstract = Some(self);
@@ -444,11 +438,11 @@ impl<'self> AbstractNode {
         self.type_id() == ElementNodeTypeId(HTMLAnchorElementTypeId)
     }
 
-    pub unsafe fn raw_object(self) -> *mut Box<Node<ScriptView>> {
+    pub unsafe fn raw_object(self) -> *mut Box<Node> {
         self.obj
     }
 
-    pub fn from_raw(raw: *mut Box<Node<ScriptView>>) -> AbstractNode {
+    pub fn from_raw(raw: *mut Box<Node>) -> AbstractNode {
         AbstractNode {
             obj: raw
         }
@@ -736,13 +730,11 @@ impl AbstractNode {
     }
 }
 
-impl<View> Node<View> {
+impl Node {
     pub fn owner_doc(&self) -> AbstractDocument {
         self.owner_doc.unwrap()
     }
-}
 
-impl Node<ScriptView> {
     pub fn set_owner_doc(&mut self, document: AbstractDocument) {
         self.owner_doc = Some(document);
     }
@@ -767,15 +759,15 @@ impl Node<ScriptView> {
         }
     }
 
-    pub fn new_inherited(type_id: NodeTypeId, doc: AbstractDocument) -> Node<ScriptView> {
+    pub fn new_inherited(type_id: NodeTypeId, doc: AbstractDocument) -> Node {
         Node::new_(type_id, Some(doc))
     }
 
-    pub fn new_without_doc(type_id: NodeTypeId) -> Node<ScriptView> {
+    pub fn new_without_doc(type_id: NodeTypeId) -> Node {
         Node::new_(type_id, None)
     }
 
-    fn new_(type_id: NodeTypeId, doc: Option<AbstractDocument>) -> Node<ScriptView> {
+    fn new_(type_id: NodeTypeId, doc: Option<AbstractDocument>) -> Node {
         Node {
             eventtarget: EventTarget::new_inherited(NodeTypeId),
             type_id: type_id,
@@ -805,9 +797,7 @@ impl Node<ScriptView> {
             (*js_window).data.page.reap_dead_layout_data(layout_data)
         }
     }
-}
 
-impl Node<ScriptView> {
     // http://dom.spec.whatwg.org/#dom-node-nodetype
     pub fn NodeType(&self) -> u16 {
         match self.type_id {
@@ -1367,7 +1357,7 @@ impl Node<ScriptView> {
     }
 }
 
-impl Reflectable for Node<ScriptView> {
+impl Reflectable for Node {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.eventtarget.reflector()
     }

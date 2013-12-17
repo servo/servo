@@ -5,11 +5,11 @@
 use dom::bindings::codegen::DocumentTypeBinding;
 use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
-use dom::node::{AbstractNode, ScriptView, Node, DoctypeNodeTypeId};
+use dom::node::{AbstractNode, Node, DoctypeNodeTypeId};
 
 /// The `DOCTYPE` tag.
 pub struct DocumentType {
-    node: Node<ScriptView>,
+    node: Node,
     name: DOMString,
     public_id: DOMString,
     system_id: DOMString,

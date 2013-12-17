@@ -15,7 +15,7 @@ use dom::event::{AbstractEvent, Event};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::mouseevent::MouseEvent;
-use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId, DocumentNodeTypeId};
+use dom::node::{AbstractNode, Node, ElementNodeTypeId, DocumentNodeTypeId};
 use dom::text::Text;
 use dom::uievent::UIEvent;
 use dom::window::Window;
@@ -86,7 +86,7 @@ pub enum DocumentType {
 }
 
 pub struct Document {
-    node: Node<ScriptView>,
+    node: Node,
     reflector_: Reflector,
     window: @mut Window,
     doctype: DocumentType,

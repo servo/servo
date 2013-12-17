@@ -4,6 +4,7 @@
 
 //! Element nodes.
 
+use dom::attr::Attr;
 use dom::attrlist::AttrList;
 use dom::bindings::utils::{Reflectable, DOMString, ErrorResult, Fallible, Reflector};
 use dom::bindings::utils::{null_str_as_empty, NamespaceError};
@@ -12,8 +13,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::document::AbstractDocument;
-use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
-use dom::attr:: Attr;
+use dom::node::{AbstractNode, ElementNodeTypeId, Node};
 use dom::document;
 use dom::namespace;
 use dom::namespace::Namespace;
@@ -28,7 +28,7 @@ use std::str::{eq, eq_slice};
 use std::ascii::StrAsciiExt;
 
 pub struct Element {
-    node: Node<ScriptView>,
+    node: Node,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     namespace: Namespace,
     attrs: HashMap<~str, ~[@mut Attr]>,

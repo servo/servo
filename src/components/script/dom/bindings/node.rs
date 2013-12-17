@@ -4,7 +4,7 @@
 
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::types::*;
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::AbstractNode;
 
 use std::cast;
 use std::libc;
@@ -21,7 +21,7 @@ impl Reflectable for AbstractNode {
     }
 }
 
-impl Traceable for Node<ScriptView> {
+impl Traceable for Node {
     fn trace(&self, tracer: *mut JSTracer) {
         #[fixed_stack_segment]
         fn trace_node(tracer: *mut JSTracer, node: Option<AbstractNode>, name: &str) {
