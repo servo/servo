@@ -58,7 +58,7 @@ use std::comm;
 use std::os;
 use std::task::spawn_with;
 
-#[path="compositing/mod.rs"]
+#[path="compositing/compositor_task.rs"]
 pub mod compositing;
 
 pub mod macros;
