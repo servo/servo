@@ -18,12 +18,12 @@ use style::{ComputedValues, PropertyDeclaration};
 
 /// A range of nodes.
 pub struct NodeRange {
-    node: AbstractNode<LayoutView>,
+    node: OpaqueNode,
     range: Range,
 }
 
 impl NodeRange {
-    pub fn new(node: AbstractNode<LayoutView>, range: &Range) -> NodeRange {
+    pub fn new(node: OpaqueNode, range: &Range) -> NodeRange {
         NodeRange {
             node: node,
             range: (*range).clone()
@@ -37,10 +37,12 @@ struct ElementMapping {
 
 impl ElementMapping {
     pub fn new() -> ElementMapping {
-        ElementMapping { entries: ~[] }
+        ElementMapping {
+            entries: ~[],
+        }
     }
 
-    pub fn add_mapping(&mut self, node: AbstractNode<LayoutView>, range: &Range) {
+    pub fn add_mapping(&mut self, node: OpaqueNode, range: &Range) {
         self.entries.push(NodeRange::new(node, range))
     }
 
@@ -74,7 +76,7 @@ impl ElementMapping {
 
         debug!("--- Elem ranges before repair: ---");
         for (i, nr) in entries.iter().enumerate() {
-            debug!("{:u}: {} --> {:s}", i, nr.range, nr.node.debug_str());
+            debug!("{:u}: {} --> {:?}", i, nr.range, nr.node.id());
         }
         debug!("----------------------------------");
 
@@ -116,7 +118,7 @@ impl ElementMapping {
             }
         debug!("--- Elem ranges after repair: ---");
         for (i, nr) in entries.iter().enumerate() {
-            debug!("{:u}: {} --> {:s}", i, nr.range, nr.node.debug_str());
+            debug!("{:u}: {} --> {:?}", i, nr.range, nr.node.id());
         }
         debug!("----------------------------------");
     }
@@ -212,6 +214,13 @@ impl OpaqueNode {
     /// you're doing.
     pub unsafe fn to_node<T>(&self) -> AbstractNode<T> {
         cast::transmute(**self)
+    }
+
+    /// Returns the address of this node, for debugging purposes.
+    pub fn id(&self) -> uintptr_t {
+        unsafe {
+            cast::transmute_copy(self)
+        }
     }
 }
 
