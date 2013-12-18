@@ -7,7 +7,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLOutputElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use dom::validitystate::ValidityState;
 
 pub struct HTMLOutputElement {
@@ -21,14 +21,14 @@ impl HTMLOutputElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLOutputElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLOutputElementBinding::Wrap)
     }
 }
 
 impl HTMLOutputElement {
-    pub fn GetForm(&self) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetForm(&self) -> Option<AbstractNode> {
         None
     }
 

@@ -6,7 +6,7 @@
 /// coupling between these two components, and enables the DOM to be placed in a separate crate
 /// from layout.
 
-use dom::node::{AbstractNode, LayoutDataRef, LayoutView, ScriptView};
+use dom::node::{AbstractNode, LayoutDataRef};
 
 use extra::url::Url;
 use geom::point::Point2D;
@@ -51,16 +51,16 @@ pub enum Msg {
 /// Synchronous messages that script can send to layout.
 pub enum LayoutQuery {
     /// Requests the dimensions of the content box, as in the `getBoundingClientRect()` call.
-    ContentBoxQuery(AbstractNode<ScriptView>, Chan<ContentBoxResponse>),
+    ContentBoxQuery(AbstractNode, Chan<ContentBoxResponse>),
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
-    ContentBoxesQuery(AbstractNode<ScriptView>, Chan<ContentBoxesResponse>),
+    ContentBoxesQuery(AbstractNode, Chan<ContentBoxesResponse>),
     /// Requests the node containing the point of interest
-    HitTestQuery(AbstractNode<ScriptView>, Point2D<f32>, Chan<Result<HitTestResponse, ()>>),
+    HitTestQuery(AbstractNode, Point2D<f32>, Chan<Result<HitTestResponse, ()>>),
 }
 
 pub struct ContentBoxResponse(Rect<Au>);
 pub struct ContentBoxesResponse(~[Rect<Au>]);
-pub struct HitTestResponse(AbstractNode<LayoutView>);
+pub struct HitTestResponse(AbstractNode);
 
 /// Determines which part of the 
 #[deriving(Eq, Ord)]
@@ -85,7 +85,7 @@ impl DocumentDamageLevel {
 /// Note that this is fairly coarse-grained and is separate from layout's notion of the document
 pub struct DocumentDamage {
     /// The topmost node in the tree that has changed.
-    root: AbstractNode<ScriptView>,
+    root: AbstractNode,
     /// The amount of damage that occurred.
     level: DocumentDamageLevel,
 }
@@ -102,7 +102,7 @@ pub enum ReflowGoal {
 /// Information needed for a reflow.
 pub struct Reflow {
     /// The document node.
-    document_root: AbstractNode<ScriptView>,
+    document_root: AbstractNode,
     /// The style changes that need to be done.
     damage: DocumentDamage,
     /// The goal of reflow: either to render to the screen or to flush layout info for script.

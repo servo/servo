@@ -8,7 +8,7 @@ use dom::bindings::codegen::EventListenerBinding::EventListener;
 use dom::document::AbstractDocument;
 use dom::event::AbstractEvent;
 use dom::eventdispatcher::dispatch_event;
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::AbstractNode;
 use dom::window::Window;
 
 use std::cast;
@@ -50,7 +50,7 @@ impl AbstractEventTarget {
         }
     }
 
-    pub fn from_node(node: AbstractNode<ScriptView>) -> AbstractEventTarget {
+    pub fn from_node(node: AbstractNode) -> AbstractEventTarget {
         unsafe {
             cast::transmute(node)
         }

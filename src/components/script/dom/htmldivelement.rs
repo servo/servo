@@ -7,7 +7,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLDivElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 
 pub struct HTMLDivElement {
     htmlelement: HTMLElement
@@ -20,7 +20,7 @@ impl HTMLDivElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLDivElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLDivElementBinding::Wrap)
     }

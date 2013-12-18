@@ -8,7 +8,7 @@ use dom::document::AbstractDocument;
 use dom::element::HTMLFieldSetElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use dom::validitystate::ValidityState;
 
 pub struct HTMLFieldSetElement {
@@ -22,7 +22,7 @@ impl HTMLFieldSetElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLFieldSetElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLFieldSetElementBinding::Wrap)
     }
@@ -37,7 +37,7 @@ impl HTMLFieldSetElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetForm(&self) -> Option<AbstractNode> {
         None
     }
 

@@ -8,7 +8,7 @@ use dom::bindings::utils::{trace_option, trace_reflector};
 use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::eventtarget::{EventTarget, WindowTypeId};
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::AbstractNode;
 use dom::location::Location;
 use dom::navigator::Navigator;
 
@@ -114,7 +114,7 @@ impl Window {
     pub fn Blur(&self) {
     }
 
-    pub fn GetFrameElement(&self) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetFrameElement(&self) -> Option<AbstractNode> {
         None
     }
 

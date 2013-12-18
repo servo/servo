@@ -441,10 +441,11 @@ pub struct InlineFlow {
     // these ranges are disjoint, and are the result of inline layout.
     // also some metadata used for positioning lines
     lines: ~[LineBox],
+
     // vec of ranges into boxes that represent elements. These ranges
     // must be well-nested, and are only related to the content of
     // boxes (not lines). Ranges are only kept for non-leaf elements.
-    elems: ElementMapping
+    elems: ElementMapping,
 }
 
 impl InlineFlow {

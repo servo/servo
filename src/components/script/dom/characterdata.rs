@@ -7,10 +7,10 @@
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::AbstractDocument;
-use dom::node::{Node, NodeTypeId, ScriptView};
+use dom::node::{Node, NodeTypeId};
 
 pub struct CharacterData {
-    node: Node<ScriptView>,
+    node: Node,
     data: ~str
 }
 

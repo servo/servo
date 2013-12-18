@@ -33,13 +33,13 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
+use layout::wrapper::LayoutNode;
 
 use extra::dlist::{DList, DListIterator, MutDListIterator};
 use extra::container::Deque;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::{ClipDisplayItemClass, DisplayList};
-use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::geometry::Au;
 use std::cast;
 use std::cell::Cell;
@@ -382,7 +382,6 @@ impl FlowFlags {
 /// FIXME: We need a naming convention for pseudo-inheritance like this. How about
 /// `CommonFlowInfo`?
 pub struct FlowData {
-    node: AbstractNode<LayoutView>,
     restyle_damage: RestyleDamage,
 
     /// The children of this flow.
@@ -433,10 +432,9 @@ impl Iterator<@Box> for BoxIterator {
 
 impl FlowData {
     #[inline]
-    pub fn new(id: int, node: AbstractNode<LayoutView>) -> FlowData {
+    pub fn new(id: int, node: LayoutNode) -> FlowData {
         let style = node.style();
         FlowData {
-            node: node,
             restyle_damage: node.restyle_damage(),
 
             children: DList::new(),

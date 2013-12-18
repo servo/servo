@@ -7,7 +7,7 @@ use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::element::HTMLHeadingElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 
 pub enum HeadingLevel {
     Heading1,
@@ -31,7 +31,7 @@ impl HTMLHeadingElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument, level: HeadingLevel) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument, level: HeadingLevel) -> AbstractNode {
         let element = HTMLHeadingElement::new_inherited(localName, document, level);
         Node::reflect_node(@mut element, document, HTMLHeadingElementBinding::Wrap)
     }

@@ -7,7 +7,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLIframeElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use dom::windowproxy::WindowProxy;
 
 use extra::url::Url;
@@ -52,7 +52,7 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLIFrameElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLIFrameElementBinding::Wrap)
     }
@@ -83,14 +83,14 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn Sandbox(&self, _abstract_self: AbstractNode) -> DOMString {
         match self.htmlelement.element.GetAttribute(~"sandbox") {
             Some(s) => s.to_owned(),
             None => ~"",
         }
     }
 
-    pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: DOMString) {
+    pub fn SetSandbox(&mut self, abstract_self: AbstractNode, sandbox: DOMString) {
         self.htmlelement.element.SetAttribute(abstract_self, ~"sandbox", sandbox);
     }
 

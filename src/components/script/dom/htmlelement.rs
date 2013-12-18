@@ -6,7 +6,7 @@ use dom::bindings::codegen::HTMLElementBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use js::jsapi::{JSContext, JSVal};
 use js::JSVAL_NULL;
 use dom::namespace;
@@ -22,7 +22,7 @@ impl HTMLElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document);
         Node::reflect_node(@mut element, document, HTMLElementBinding::Wrap)
     }
@@ -133,7 +133,7 @@ impl HTMLElement {
     pub fn SetClassName(&self, _class: DOMString) {
     }
 
-    pub fn GetOffsetParent(&self) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetOffsetParent(&self) -> Option<AbstractNode> {
         None
     }
 

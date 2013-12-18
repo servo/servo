@@ -7,7 +7,7 @@ use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::document::AbstractDocument;
 use dom::element::HTMLTextAreaElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
@@ -20,7 +20,7 @@ impl HTMLTextAreaElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLTextAreaElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLTextAreaElementBinding::Wrap)
     }

@@ -7,7 +7,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLObjectElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use dom::validitystate::ValidityState;
 use dom::windowproxy::WindowProxy;
 
@@ -22,7 +22,7 @@ impl HTMLObjectElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLObjectElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLObjectElementBinding::Wrap)
     }
@@ -61,7 +61,7 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetForm(&self) -> Option<AbstractNode> {
         None
     }
 

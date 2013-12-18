@@ -4,12 +4,12 @@
 
 use dom::bindings::codegen::NodeListBinding;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::AbstractNode;
 use dom::window::Window;
 
 enum NodeListType {
-    Simple(~[AbstractNode<ScriptView>]),
-    Children(AbstractNode<ScriptView>)
+    Simple(~[AbstractNode]),
+    Children(AbstractNode)
 }
 
 pub struct NodeList {
@@ -34,11 +34,11 @@ impl NodeList {
                            window, NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list(window: @mut Window, elements: ~[AbstractNode<ScriptView>]) -> @mut NodeList {
+    pub fn new_simple_list(window: @mut Window, elements: ~[AbstractNode]) -> @mut NodeList {
         NodeList::new(window, Simple(elements))
     }
 
-    pub fn new_child_list(window: @mut Window, node: AbstractNode<ScriptView>) -> @mut NodeList {
+    pub fn new_child_list(window: @mut Window, node: AbstractNode) -> @mut NodeList {
         NodeList::new(window, Children(node))
     }
 
@@ -49,7 +49,7 @@ impl NodeList {
         }
     }
 
-    pub fn Item(&self, index: u32) -> Option<AbstractNode<ScriptView>> {
+    pub fn Item(&self, index: u32) -> Option<AbstractNode> {
         match self.list_type {
             _ if index >= self.Length() => None,
             Simple(ref elems) => Some(elems[index]),
@@ -57,7 +57,7 @@ impl NodeList {
         }
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<AbstractNode<ScriptView>> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<AbstractNode> {
         let item = self.Item(index);
         *found = item.is_some();
         item
