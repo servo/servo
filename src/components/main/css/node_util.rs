@@ -4,11 +4,11 @@
 
 use layout::incremental::RestyleDamage;
 use layout::util::LayoutDataAccess;
+use layout::wrapper::LayoutNode;
 
 use extra::arc::Arc;
 use std::cast;
 use style::{ComputedValues, TNode};
-use script::dom::node::{AbstractNode, LayoutView};
 
 pub trait NodeUtil {
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;
@@ -18,7 +18,7 @@ pub trait NodeUtil {
     fn set_restyle_damage(self, damage: RestyleDamage);
 }
 
-impl NodeUtil for AbstractNode<LayoutView> {
+impl<'self> NodeUtil for LayoutNode<'self> {
     /** 
      * Provides the computed style for the given node. If CSS selector
      * Returns the style results for the given node. If CSS selector

@@ -6,7 +6,7 @@ use dom::bindings::codegen::HTMLUnknownElementBinding;
 use dom::document::AbstractDocument;
 use dom::element::HTMLUnknownElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 
 pub struct HTMLUnknownElement {
     htmlelement: HTMLElement
@@ -19,7 +19,7 @@ impl HTMLUnknownElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLUnknownElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLUnknownElementBinding::Wrap)
     }

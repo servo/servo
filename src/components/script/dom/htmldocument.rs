@@ -7,7 +7,7 @@ use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::document::{AbstractDocument, Document, HTML};
 use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
-use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
+use dom::node::{AbstractNode, ElementNodeTypeId};
 use dom::window::Window;
 
 use js::jsapi::JSTracer;
@@ -32,7 +32,7 @@ impl HTMLDocument {
 }
 
 impl HTMLDocument {
-    pub fn GetHead(&self) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetHead(&self) -> Option<AbstractNode> {
         match self.parent.GetDocumentElement() {
             None => None,
             Some(root) => root.traverse_preorder().find(|child| {

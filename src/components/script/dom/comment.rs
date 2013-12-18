@@ -6,7 +6,7 @@ use dom::bindings::codegen::CommentBinding;
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
-use dom::node::{AbstractNode, ScriptView, CommentNodeTypeId, Node};
+use dom::node::{AbstractNode, CommentNodeTypeId, Node};
 use dom::window::Window;
 
 /// An HTML comment.
@@ -21,12 +21,12 @@ impl Comment {
         }
     }
 
-    pub fn new(text: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(text: ~str, document: AbstractDocument) -> AbstractNode {
         let node = Comment::new_inherited(text, document);
         Node::reflect_node(@mut node, document, CommentBinding::Wrap)
     }
 
-    pub fn Constructor(owner: @mut Window, data: DOMString) -> Fallible<AbstractNode<ScriptView>> {
+    pub fn Constructor(owner: @mut Window, data: DOMString) -> Fallible<AbstractNode> {
         Ok(Comment::new(data, owner.Document()))
     }
 }

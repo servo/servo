@@ -5161,7 +5161,7 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::proxyhandler',
                           'dom::bindings::proxyhandler::*',
                           'dom::document::AbstractDocument',
-                          'dom::node::{AbstractNode, ScriptView}',
+                          'dom::node::AbstractNode',
                           'dom::eventtarget::AbstractEventTarget',
                           'dom::event::AbstractEvent',
                           'servo_util::vec::zip_copies',

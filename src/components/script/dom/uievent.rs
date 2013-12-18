@@ -5,7 +5,7 @@
 use dom::bindings::codegen::UIEventBinding;
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::AbstractNode;
 use dom::event::{AbstractEvent, Event, EventTypeId, UIEventTypeId};
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
@@ -85,7 +85,7 @@ impl UIEvent {
         0
     }
 
-    pub fn GetRangeParent(&self) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetRangeParent(&self) -> Option<AbstractNode> {
         //TODO
         None
     }

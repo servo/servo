@@ -6,10 +6,10 @@
 
 use css::node_util::NodeUtil;
 use layout::incremental::RestyleDamage;
+use layout::wrapper::LayoutNode;
 
 use extra::arc::Arc;
 use style::ComputedValues;
-use script::dom::node::{AbstractNode, LayoutView};
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
@@ -17,7 +17,7 @@ pub trait StyledNode {
     fn restyle_damage(&self) -> RestyleDamage;
 }
 
-impl StyledNode for AbstractNode<LayoutView> {
+impl<'self> StyledNode for LayoutNode<'self> {
     #[inline]
     fn style<'a>(&'a self) -> &'a Arc<ComputedValues> {
         self.get_css_select_results()

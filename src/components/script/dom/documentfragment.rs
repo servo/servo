@@ -5,12 +5,11 @@
 use dom::bindings::codegen::DocumentFragmentBinding;
 use dom::bindings::utils::Fallible;
 use dom::document::AbstractDocument;
-use dom::node::{ScriptView, Node, DocumentFragmentNodeTypeId};
-use dom::node::{AbstractNode};
+use dom::node::{AbstractNode, DocumentFragmentNodeTypeId, Node};
 use dom::window::Window;
 
 pub struct DocumentFragment {
-    node: Node<ScriptView>,
+    node: Node,
 }
 
 impl DocumentFragment {
@@ -21,14 +20,14 @@ impl DocumentFragment {
         }
     }
 
-    pub fn new(document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(document: AbstractDocument) -> AbstractNode {
         let node = DocumentFragment::new_inherited(document);
         Node::reflect_node(@mut node, document, DocumentFragmentBinding::Wrap)
     }
 }
 
 impl DocumentFragment {
-    pub fn Constructor(owner: @mut Window) -> Fallible<AbstractNode<ScriptView>> {
+    pub fn Constructor(owner: @mut Window) -> Fallible<AbstractNode> {
         Ok(DocumentFragment::new(owner.Document()))
     }
 }

@@ -8,7 +8,7 @@ use dom::document::AbstractDocument;
 use dom::element::HTMLFormElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 
 pub struct HTMLFormElement {
     htmlelement: HTMLElement
@@ -21,7 +21,7 @@ impl HTMLFormElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLFormElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLFormElementBinding::Wrap)
     }
@@ -120,7 +120,7 @@ impl HTMLFormElement {
         false
     }
 
-    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> AbstractNode<ScriptView> {
+    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> AbstractNode {
         fail!("Not implemented.")
     }
 }

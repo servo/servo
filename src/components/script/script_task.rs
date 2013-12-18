@@ -26,7 +26,6 @@ use layout_interface::{Reflow, ReflowDocumentDamage, ReflowForDisplay, ReflowGoa
 use layout_interface::ContentChangedDocumentDamage;
 use layout_interface;
 
-use dom::node::ScriptView;
 use extra::url::Url;
 use geom::point::Point2D;
 use geom::size::Size2D;
@@ -53,7 +52,6 @@ use std::ptr;
 use std::str::eq_slice;
 use std::task::{spawn_sched, SingleThreaded};
 use std::util::replace;
-use style::{TElement, TNode};
 
 /// Messages used to control the script task.
 pub enum ScriptMsg {
@@ -133,7 +131,7 @@ pub struct Page {
     resize_event: Option<Size2D<uint>>,
 
     /// Pending scroll to fragment event, if any
-    fragment_node: Option<AbstractNode<ScriptView>>
+    fragment_node: Option<AbstractNode>
 }
 
 pub struct PageTree {
@@ -804,7 +802,7 @@ impl ScriptTask {
         page.fragment_node = fragment.map_default(None, |fragid| self.find_fragment_node(page, fragid));
     }
 
-    fn find_fragment_node(&self, page: &mut Page, fragid: ~str) -> Option<AbstractNode<ScriptView>> {
+    fn find_fragment_node(&self, page: &mut Page, fragid: ~str) -> Option<AbstractNode> {
         let document = page.frame.expect("root frame is None").document; 
         match document.document().GetElementById(fragid.to_owned()) {
             Some(node) => Some(node),
@@ -823,7 +821,7 @@ impl ScriptTask {
         }
     }
 
-    fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &mut Page, node: AbstractNode<ScriptView>) {
+    fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &mut Page, node: AbstractNode) {
         let (port, chan) = comm::stream();
         match page.query_layout(ContentBoxQuery(node, chan), port) {
             ContentBoxResponse(rect) => {

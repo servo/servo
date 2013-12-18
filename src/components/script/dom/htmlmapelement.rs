@@ -8,7 +8,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::document::AbstractDocument;
 use dom::element::HTMLMapElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 
 pub struct HTMLMapElement {
     htmlelement: HTMLElement
@@ -21,7 +21,7 @@ impl HTMLMapElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLMapElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLMapElementBinding::Wrap)
     }

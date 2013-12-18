@@ -7,7 +7,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLLinkElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
@@ -20,7 +20,7 @@ impl HTMLLinkElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLLinkElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLLinkElementBinding::Wrap)
     }

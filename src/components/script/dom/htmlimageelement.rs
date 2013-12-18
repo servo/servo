@@ -7,7 +7,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLImageElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use extra::url::Url;
 use servo_util::geometry::to_px;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
@@ -29,7 +29,7 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLImageElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLImageElementBinding::Wrap)
     }
@@ -74,13 +74,11 @@ impl HTMLImageElement {
         Ok(())
     }
 
-    pub fn Src(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn Src(&self, _abstract_self: AbstractNode) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self,
-                  abstract_self: AbstractNode<ScriptView>,
-                  src: DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, abstract_self: AbstractNode, src: DOMString) -> ErrorResult {
         let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self, ~"src", src.clone());
         Ok(())
@@ -110,7 +108,7 @@ impl HTMLImageElement {
         Ok(())
     }
 
-    pub fn Width(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
+    pub fn Width(&self, abstract_self: AbstractNode) -> u32 {
         let node = &self.htmlelement.element.node;
         let page = node.owner_doc().document().window.page;
         let (port, chan) = stream();
@@ -121,15 +119,13 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn SetWidth(&mut self,
-                    abstract_self: AbstractNode<ScriptView>,
-                    width: u32) -> ErrorResult {
+    pub fn SetWidth(&mut self, abstract_self: AbstractNode, width: u32) -> ErrorResult {
         let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self, ~"width", width.to_str());
         Ok(())
     }
 
-    pub fn Height(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
+    pub fn Height(&self, abstract_self: AbstractNode) -> u32 {
         let node = &self.htmlelement.element.node;
         let page = node.owner_doc().document().window.page;
         let (port, chan) = stream();
@@ -140,9 +136,7 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn SetHeight(&mut self,
-                     abstract_self: AbstractNode<ScriptView>,
-                     height: u32) -> ErrorResult {
+    pub fn SetHeight(&mut self, abstract_self: AbstractNode, height: u32) -> ErrorResult {
         let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self, ~"height", height.to_str());
         Ok(())

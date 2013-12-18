@@ -6,7 +6,7 @@ use dom::bindings::codegen::HTMLSpanElementBinding;
 use dom::document::AbstractDocument;
 use dom::element::HTMLSpanElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 
 pub struct HTMLSpanElement {
     htmlelement: HTMLElement
@@ -19,7 +19,7 @@ impl HTMLSpanElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
         let element = HTMLSpanElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLSpanElementBinding::Wrap)
     }
