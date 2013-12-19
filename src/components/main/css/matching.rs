@@ -8,15 +8,16 @@ use css::node_style::StyledNode;
 use layout::incremental;
 use layout::util::LayoutDataAccess;
 use layout::wrapper::LayoutNode;
+// FIXME(ksh8281) this is from upstream rust. if rust in servo is upgrade, we should change this
+use servo_util::deque;
+use servo_util::deque::Data;
 
 use extra::arc::{Arc, RWArc};
 use std::cast;
 use std::cell::Cell;
 use std::comm;
-use std::libc::uintptr_t;
 use std::rt;
 use std::task;
-use std::vec;
 use style::{TNode, Stylist, cascade};
 
 pub trait MatchMethods {
@@ -45,51 +46,98 @@ impl<'self> MatchMethods for LayoutNode<'self> {
         }
     }
     fn match_subtree(&self, stylist: RWArc<Stylist>) {
-        let num_tasks = rt::default_sched_threads() * 2;
-        let mut node_count = 0;
-        let mut nodes_per_task = vec::from_elem(num_tasks, ~[]);
+        let num_tasks = rt::default_sched_threads();
+
+        let mut pool = deque::BufferPool::new();
+        let mut worker_list = ~[];
+        let mut stealer_list = ~[];
+        let mut node_list = ~[];
+
+        for _ in range(0,num_tasks) {
+            let (worker,stealer) = pool.deque();
+            worker_list.push(worker);
+            stealer_list.push(stealer);
+        }
 
         for node in self.traverse_preorder() {
             if node.is_element() {
-                nodes_per_task[node_count % num_tasks].push(node);
-                node_count += 1;
+                node_list.push(node);
             }
+        }
+
+        let mut worker_count = 0;
+        let split_count = 16;
+        let mut split_index = 0;
+        while split_index < node_list.len() {
+            let end_index = if split_index + split_count > node_list.len() {
+                node_list.len()
+            } else {
+                split_index + split_count
+            };
+
+            // FIXME(pcwalton): This transmute is to work around the fact that we have no
+            // mechanism for safe fork/join parallelism. If we had such a thing, then we could
+            // close over the lifetime-bounded `LayoutNode`. But we can't, so we force it with
+            // a transmute.
+            let evil: (int,int) = unsafe {
+                cast::transmute(node_list.slice(split_index, end_index))
+            };
+
+            worker_list[worker_count % num_tasks].push(evil);
+            worker_count += 1;
+            split_index = end_index;
         }
 
         let (port, chan) = comm::stream();
         let chan = comm::SharedChan::new(chan);
-        let mut num_spawned = 0;
 
-        for nodes in nodes_per_task.move_iter() {
-            if nodes.len() > 0 {
-                let chan = chan.clone();
-                let stylist = stylist.clone();
-               
-                // FIXME(pcwalton): This transmute is to work around the fact that we have no
-                // mechanism for safe fork/join parallelism. If we had such a thing, then we could
-                // close over the lifetime-bounded `LayoutNode`. But we can't, so we force it with
-                // a transmute.
-                let evil: uintptr_t = unsafe {
-                    cast::transmute(nodes)
-                };
-
-                do task::spawn_with((evil, stylist)) |(evil, stylist)| {
-                    let nodes: ~[LayoutNode] = unsafe {
-                        cast::transmute(evil)
-                    };
-
-                    let nodes = Cell::new(nodes);
+        for _ in range(0, num_tasks) {
+            let chan = chan.clone();
+            let stylist = stylist.clone();
+            let worker_data =
+                Cell::new((worker_list.remove(0), stealer_list.clone(), stylist, chan));
+            do task::spawn_sched(task::SingleThreaded) {
+                    let (mut worker, mut stealer_list, stylist, chan) = worker_data.take();
                     do stylist.read |stylist| {
-                        for node in nodes.take().move_iter() {
-                            node.match_node(stylist);
+                        loop {
+                            let mut is_processed = false;
+                            match worker.pop() {
+                                Some(evil) => {
+                                    let node_list: &[LayoutNode] = unsafe {
+                                        cast::transmute(evil)
+                                    };
+                                    for node in node_list.iter() {
+                                        node.match_node(stylist);
+                                    }
+                                    is_processed = true;
+                                },
+                                None => {
+                                    for stealer in stealer_list.mut_iter() {
+                                        match stealer.steal() {
+                                            Data(evil) => {
+                                                is_processed = true;
+                                                let node_list: &[LayoutNode] = unsafe {
+                                                    cast::transmute(evil)
+                                                };
+                                                for node in node_list.iter() {
+                                                    node.match_node(stylist);
+                                                }
+                                            },
+                                            _ => { }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if !is_processed {
+                                break;
+                            }
                         }
                     }
                     chan.send(());
                 }
-                num_spawned += 1;
-            }
         }
-        for _ in range(0, num_spawned) {
+        for _ in range(0, num_tasks) {
             port.recv();
         }
     }
