@@ -1140,7 +1140,12 @@ pub fn cascade(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
         % for style_struct, longhands in LONGHANDS_PER_STYLE_STRUCT:
             ${style_struct}: style_structs::${style_struct} {
                 % for longhand in longhands:
-                    ${longhand.ident}: get_computed!(${style_struct}, ${longhand.ident}),
+                    ${longhand.ident}:
+                    % if longhand.ident == 'font_size':
+                        context.font_size,
+                    % else:
+                        get_computed!(${style_struct}, ${longhand.ident}),
+                    % endif
                 % endfor
             },
         % endfor
