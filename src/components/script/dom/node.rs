@@ -496,6 +496,10 @@ impl AbstractNode {
         self.node().AppendChild(self, node)
     }
 
+    pub fn ReplaceChild(self, node: AbstractNode, child: AbstractNode) -> Fallible<AbstractNode> {
+        self.mut_node().ReplaceChild(node, child)
+    }
+
     pub fn RemoveChild(self, node: AbstractNode) -> Fallible<AbstractNode> {
         self.node().RemoveChild(self, node)
     }

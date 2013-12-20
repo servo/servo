@@ -100,7 +100,7 @@ partial interface Document {
            [SetterThrows]
            attribute DOMString title;
   //          attribute DOMString dir;
-  //(HTML only)         attribute HTMLElement? body;
+           attribute HTMLElement? body;
   //(HTML only)readonly attribute HTMLHeadElement? head;
   //(HTML only)readonly attribute HTMLCollection images;
   //(HTML only)readonly attribute HTMLCollection embeds;
