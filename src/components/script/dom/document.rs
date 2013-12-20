@@ -5,12 +5,12 @@
 use dom::comment::Comment;
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable, reflect_dom_object};
-use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
+use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest};
 use dom::bindings::utils::DOMString;
 use dom::bindings::utils::{xml_name_type, InvalidXMLName};
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
-use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
+use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId, HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::{AbstractEvent, Event};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
@@ -289,6 +289,63 @@ impl Document {
                             break;
                         }
                     }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn get_html_element(&self) -> Option<AbstractNode> {
+        do self.GetDocumentElement().filtered |root| {
+            match root.type_id() {
+                ElementNodeTypeId(HTMLHtmlElementTypeId) => true,
+                _ => false
+            }
+        }
+    }
+
+    pub fn GetBody(&self, _: AbstractDocument) -> Option<AbstractNode> {
+        match self.get_html_element() {
+            None => None,
+            Some(root) => {
+                do root.children().find |child| {
+                    match child.type_id() {
+                        ElementNodeTypeId(HTMLBodyElementTypeId) |
+                        ElementNodeTypeId(HTMLFrameSetElementTypeId) => true,
+                        _ => false
+                    }
+                }
+            }
+        }
+    }
+
+    // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
+    pub fn SetBody(&self, abstract_self: AbstractDocument, new_body: Option<AbstractNode>) -> ErrorResult {
+        // Step 1.
+        match new_body {
+            Some(node) => {
+                match node.type_id() {
+                    ElementNodeTypeId(HTMLBodyElementTypeId) | ElementNodeTypeId(HTMLFrameSetElementTypeId) => {}
+                    _ => return Err(HierarchyRequest)
+                }
+            }
+            None => return Err(HierarchyRequest)
+        }
+
+        // Step 2.
+        let old_body: Option<AbstractNode> = self.GetBody(abstract_self);
+        if old_body == new_body {
+            return Ok(());
+        }
+
+        // Step 3.
+        match self.get_html_element() {
+            // Step 4.
+            None => return Err(HierarchyRequest),
+            Some(root) => {
+                match old_body {
+                    Some(child) => { root.ReplaceChild(new_body.unwrap(), child); }
+                    None => { root.AppendChild(new_body.unwrap()); }
                 }
             }
         }

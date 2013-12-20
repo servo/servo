@@ -1,0 +1,75 @@
+<html>
+    <head>
+        <script src="harness.js"></script>
+    </head>
+    <body>
+        <script>
+            // test1: existing document's body
+            {
+                isnot(document.body, null, "test1-0, existing document's body");
+                is_a(document.body, HTMLBodyElement, "test1-1, exising document's body");
+                is(document.body && document.body.tagName, "BODY", "test1-2, existing document's body");
+            }
+
+            /* TODO: Depends on https://github.com/mozilla/servo/issues/1430
+            // test2: replace document's body with new body
+            {
+                let new_body = document.createElement("body");
+                isnot(new_body, null, "test2-0, replace document's body with new body");
+                document.body = new_body;
+                is(new_body, document.body, "test2-1, replace document's body with new body");
+            }
+
+            // test3: replace document's body with new frameset
+            {
+                let new_frameset = document.createElement("frameset");
+                isnot(new_frameset, null, "test2-0, replace document's body with new frameset");
+                document.body = new_frameset;
+                is(new_frameset, document.body, "test2-1, replace document's body with new frameset");
+            }
+            */
+
+            // test4: append an invalid element to a new document
+            {
+                let new_document = new Document();
+                new_document.appendChild(new_document.createElement("html"));
+                let new_div = new_document.createElement("div");
+
+                isnot(new_div, null, "test4-0, append an invalid element to a new document");
+
+                new_document.body = new_div;
+                is(new_document.body, null, "test4-1, append an invalid element to a new document");
+            }
+
+            // test5: append body to a new document
+            {
+                let new_document = new Document();
+                new_document.appendChild(new_document.createElement("html"));
+                let new_body = new_document.createElement("body");
+
+                isnot(new_body, null, "test5-0, append body to a new document");
+                is_a(new_body, HTMLBodyElement, "test5-1, append body to a new document");
+                is(new_body && new_body.tagName, "BODY", "test5-2, append body to a new document");
+
+                new_document.body = new_body;
+                is(new_document.body, new_body, "test5-3, append body to a new document");
+            }
+
+            // test6: append frameset to a new document
+            {
+                let new_document = new Document();
+                new_document.appendChild(new_document.createElement("html"));
+                let new_frameset = new_document.createElement("frameset");
+
+                isnot(new_frameset, null, "test6-0, append frameset to a new document");
+                is_a(new_frameset, HTMLFrameSetElement, "test6-1, append frameset to a new document");
+                is(new_frameset && new_frameset.tagName, "FRAMESET", "test6-2, append frameset to a new document");
+
+                new_document.body = new_frameset;
+                is(new_document.body, new_frameset, "test6-3, append frameset to a new document");
+            }
+
+            finish();
+        </script>
+    </body>
+</html>
