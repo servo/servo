@@ -31,7 +31,7 @@ pub fn log_css_error(location: SourceLocation, message: &str) {
 }
 
 
-pub fn with_errors_silenced<T>(f: &fn() -> T) -> T {
+pub fn with_errors_silenced<T>(f: || -> T) -> T {
     local_data::set(silence_errors, ());
     let result = f();
     local_data::pop(silence_errors);

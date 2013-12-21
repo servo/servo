@@ -24,7 +24,7 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
     let mut out_str: ~str = ~"";
     let out_whitespace = match mode {
         CompressNone | DiscardNewline => {
-            for ch in text.iter() {
+            for ch in text.chars() {
                 if is_discardable_char(ch, mode) {
                     // TODO: record skipped char
                 } else {
@@ -40,7 +40,7 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
 
         CompressWhitespace | CompressWhitespaceNewline => {
             let mut in_whitespace: bool = incoming_whitespace;
-            for ch in text.iter() {
+            for ch in text.chars() {
                 // TODO: discard newlines between CJK chars
                 let mut next_in_whitespace: bool = is_in_whitespace(ch, mode);
                 

@@ -35,9 +35,9 @@ pub enum EventPhase {
 }
 
 impl AbstractEvent {
-    pub fn from_box(box: *mut Box<Event>) -> AbstractEvent {
+    pub fn from_box(box_: *mut Box<Event>) -> AbstractEvent {
         AbstractEvent {
-            event: box
+            event: box_
         }
     }
 
@@ -47,15 +47,15 @@ impl AbstractEvent {
 
     fn transmute<'a, T>(&'a self) -> &'a T {
         unsafe {
-            let box: *Box<T> = self.event as *Box<T>;
-            &(*box).data
+            let box_: *Box<T> = self.event as *Box<T>;
+            &(*box_).data
         }
     }
 
     fn transmute_mut<'a, T>(&'a self) -> &'a mut T {
         unsafe {
-            let box: *mut Box<T> = self.event as *mut Box<T>;
-            &mut (*box).data
+            let box_: *mut Box<T> = self.event as *mut Box<T>;
+            &mut (*box_).data
         }
     }
 

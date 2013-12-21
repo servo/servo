@@ -121,12 +121,12 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
 
 impl MediaQueryList {
     pub fn evaluate(&self, device: &Device) -> bool {
-        do self.media_queries.iter().any |mq| {
+        self.media_queries.iter().any(|mq| {
             match mq.media_type {
                 MediaType(media_type) => media_type == device.media_type,
                 All => true,
             }
             // TODO: match Level 3 expressions
-        }
+        })
     }
 }

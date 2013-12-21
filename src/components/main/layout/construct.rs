@@ -22,8 +22,8 @@
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo};
-use layout::box::{UnscannedTextBox, UnscannedTextBoxInfo};
+use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo};
+use layout::box_::{UnscannedTextBox, UnscannedTextBoxInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
 use layout::flow::{Flow, FlowData, MutableFlowUtils};
@@ -35,9 +35,10 @@ use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal};
 use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, TextNodeTypeId};
-use servo_util::slot::Slot;
-use std::util;
 use style::computed_values::{display, float};
+
+use std::cell::RefCell;
+use std::util;
 
 /// The results of flow construction for a DOM node.
 pub enum ConstructionResult {
@@ -47,7 +48,7 @@ pub enum ConstructionResult {
 
     /// This node contributed a flow at the proper position in the tree. Nothing more needs to be
     /// done for this node.
-    FlowConstructionResult(~Flow:),
+    FlowConstructionResult(~Flow),
 
     /// This node contributed some object or objects that will be needed to construct a proper flow
     /// later up the tree, but these objects have not yet found their home.
@@ -102,7 +103,7 @@ struct InlineBlockSplit {
     predecessor_boxes: ~[Box],
 
     /// The flow that caused this {ib} split.
-    flow: ~Flow:,
+    flow: ~Flow,
 }
 
 /// Methods on optional vectors.
@@ -169,24 +170,24 @@ impl<T> OptVector<T> for Option<~[T]> {
 }
 
 /// An object that knows how to create flows.
-pub struct FlowConstructor<'self> {
+pub struct FlowConstructor<'a> {
     /// The layout context.
     ///
     /// FIXME(pcwalton): Why does this contain `@`??? That destroys parallelism!!!
-    layout_context: &'self mut LayoutContext,
+    layout_context: &'a mut LayoutContext,
 
     /// The next flow ID to assign.
     ///
     /// FIXME(pcwalton): This is going to have to be atomic; can't we do something better?
-    next_flow_id: Slot<int>,
+    next_flow_id: RefCell<int>,
 }
 
-impl<'self> FlowConstructor<'self> {
+impl<'fc> FlowConstructor<'fc> {
     /// Creates a new flow constructor.
     pub fn init<'a>(layout_context: &'a mut LayoutContext) -> FlowConstructor<'a> {
         FlowConstructor {
             layout_context: layout_context,
-            next_flow_id: Slot::init(0),
+            next_flow_id: RefCell::new(0),
         }
     }
 
@@ -231,10 +232,10 @@ impl<'self> FlowConstructor<'self> {
     /// `#[inline(always)]` because this is performance critical and LLVM will not inline it
     /// otherwise.
     #[inline(always)]
-    fn flush_inline_boxes_to_flow(&mut self, boxes: ~[Box], flow: &mut ~Flow:, node: LayoutNode) {
+    fn flush_inline_boxes_to_flow(&mut self, boxes: ~[Box], flow: &mut ~Flow, node: LayoutNode) {
         if boxes.len() > 0 {
             let inline_base = FlowData::new(self.next_flow_id(), node);
-            let mut inline_flow = ~InlineFlow::from_boxes(inline_base, boxes) as ~Flow:;
+            let mut inline_flow = ~InlineFlow::from_boxes(inline_base, boxes) as ~Flow;
             TextRunScanner::new().scan_for_runs(self.layout_context, inline_flow);
             flow.add_new_child(inline_flow)
         }
@@ -244,7 +245,7 @@ impl<'self> FlowConstructor<'self> {
     /// the given flow.
     fn flush_inline_boxes_to_flow_if_necessary(&mut self,
                                                opt_boxes: &mut Option<~[Box]>,
-                                               flow: &mut ~Flow:,
+                                               flow: &mut ~Flow,
                                                node: LayoutNode) {
         let opt_boxes = util::replace(opt_boxes, None);
         if opt_boxes.len() > 0 {
@@ -256,7 +257,7 @@ impl<'self> FlowConstructor<'self> {
     /// other `BlockFlow`s or `InlineFlow`s will be populated underneath this node, depending on
     /// whether {ib} splits needed to happen.
     fn build_children_of_block_flow(&mut self,
-                                    flow: &mut ~Flow:,
+                                    flow: &mut ~Flow,
                                     node: LayoutNode) {
         // Gather up boxes for the inline flows we might need to create.
         let mut opt_boxes_for_inline_flow = None;
@@ -342,10 +343,10 @@ impl<'self> FlowConstructor<'self> {
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
     /// other `BlockFlow`s or `InlineFlow`s underneath it, depending on whether {ib} splits needed
     /// to happen.
-    fn build_flow_for_block(&mut self, node: LayoutNode) -> ~Flow: {
+    fn build_flow_for_block(&mut self, node: LayoutNode) -> ~Flow {
         let base = FlowData::new(self.next_flow_id(), node);
-        let box = self.build_box_for_node(node);
-        let mut flow = ~BlockFlow::from_box(base, box) as ~Flow:;
+        let box_ = self.build_box_for_node(node);
+        let mut flow = ~BlockFlow::from_box(base, box_) as ~Flow;
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }
@@ -353,10 +354,10 @@ impl<'self> FlowConstructor<'self> {
     /// Builds the flow for a node with `float: {left|right}`. This yields a float `BlockFlow` with
     /// a `BlockFlow` underneath it.
     fn build_flow_for_floated_block(&mut self, node: LayoutNode, float_type: FloatType)
-                                    -> ~Flow: {
+                                    -> ~Flow {
         let base = FlowData::new(self.next_flow_id(), node);
-        let box = self.build_box_for_node(node);
-        let mut flow = ~BlockFlow::float_from_box(base, float_type, box) as ~Flow:;
+        let box_ = self.build_box_for_node(node);
+        let mut flow = ~BlockFlow::float_from_box(base, float_type, box_) as ~Flow;
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }
@@ -458,7 +459,7 @@ impl<'self> FlowConstructor<'self> {
     }
 }
 
-impl<'self> PostorderNodeMutTraversal for FlowConstructor<'self> {
+impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
     // `#[inline(always)]` because this is always called from the traversal function and for some
     // reason LLVM's inlining heuristics go awry here.
     #[inline(always)]
@@ -528,7 +529,7 @@ trait NodeUtils {
     fn swap_out_construction_result(self) -> ConstructionResult;
 }
 
-impl<'self> NodeUtils for LayoutNode<'self> {
+impl<'ln> NodeUtils for LayoutNode<'ln> {
     fn is_replaced_content(self) -> bool {
         match self.type_id() {
             TextNodeTypeId |
@@ -543,17 +544,19 @@ impl<'self> NodeUtils for LayoutNode<'self> {
 
     #[inline(always)]
     fn set_flow_construction_result(self, result: ConstructionResult) {
-        match *self.mutate_layout_data().ptr {
-            Some(ref mut layout_data) => layout_data.flow_construction_result = result,
+        let mut layout_data_ref = self.mutate_layout_data();
+        match *layout_data_ref.get() {
+            Some(ref mut layout_data) => layout_data.data.flow_construction_result = result,
             None => fail!("no layout data"),
         }
     }
 
     #[inline(always)]
     fn swap_out_construction_result(self) -> ConstructionResult {
-        match *self.mutate_layout_data().ptr {
+        let mut layout_data_ref = self.mutate_layout_data();
+        match *layout_data_ref.get() {
             Some(ref mut layout_data) => {
-                util::replace(&mut layout_data.flow_construction_result, NoConstructionResult)
+                util::replace(&mut layout_data.data.flow_construction_result, NoConstructionResult)
             }
             None => fail!("no layout data"),
         }
@@ -568,14 +571,14 @@ fn strip_ignorable_whitespace_from_start(opt_boxes: &mut Option<~[Box]>) {
             // FIXME(pcwalton): This is slow because vector shift is broken. :(
             let mut found_nonwhitespace = false;
             let mut result = ~[];
-            for box in boxes.move_iter() {
-                if !found_nonwhitespace && box.is_whitespace_only() {
+            for box_ in boxes.move_iter() {
+                if !found_nonwhitespace && box_.is_whitespace_only() {
                     debug!("stripping ignorable whitespace from start");
                     continue
                 }
 
                 found_nonwhitespace = true;
-                result.push(box)
+                result.push(box_)
             }
 
             *opt_boxes = Some(result)

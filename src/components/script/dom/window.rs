@@ -18,24 +18,45 @@ use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 
 use js::glue::*;
-use js::jsapi::{JSObject, JSContext, JS_DefineProperty};
-use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JSTracer};
+use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JSTracer, JSVal};
 use js::{JSVAL_NULL, JSPROP_ENUMERATE};
 
-use std::cell::Cell;
-use std::comm;
+use std::cast;
 use std::comm::SharedChan;
+use std::comm::Select;
 use std::hashmap::HashSet;
+use std::io::timer::Timer;
+use std::num;
 use std::ptr;
-use std::int;
-use std::rt::io::timer::Timer;
-use std::task::spawn_with;
-use js::jsapi::JSVal;
+use std::to_bytes::Cb;
 
 pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
     TimerMessage_Close,
     TimerMessage_TriggerExit //XXXjdm this is just a quick hack to talk to the script task
+}
+
+pub struct TimerHandle {
+    handle: i32,
+    cancel_chan: Option<Chan<()>>,
+}
+
+impl IterBytes for TimerHandle {
+    fn iter_bytes(&self, lsb0: bool, f: Cb) -> bool {
+        self.handle.iter_bytes(lsb0, f)
+    }
+}
+
+impl Eq for TimerHandle {
+    fn eq(&self, other: &TimerHandle) -> bool {
+        self.handle == other.handle
+    }
+}
+
+impl TimerHandle {
+    fn cancel(&self) {
+        self.cancel_chan.as_ref().map(|chan| chan.send(()));
+    }
 }
 
 pub struct Window {
@@ -47,7 +68,7 @@ pub struct Window {
     location: Option<@mut Location>,
     navigator: Option<@mut Navigator>,
     image_cache_task: ImageCacheTask,
-    active_timers: ~HashSet<i32>,
+    active_timers: ~HashSet<TimerHandle>,
     next_timer_handle: i32,
 }
 
@@ -61,6 +82,9 @@ impl Window {
 impl Drop for Window {
     fn drop(&mut self) {
         self.timer_chan.send(TimerMessage_Close);
+        for handle in self.active_timers.iter() {
+            handle.cancel();
+        }
     }
 }
 
@@ -160,29 +184,40 @@ impl Reflectable for Window {
 
 impl Window {
     pub fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
-        let timeout = int::max(0, timeout) as u64;
+        let timeout = num::max(0, timeout) as u64;
         let handle = self.next_timer_handle;
         self.next_timer_handle += 1;
 
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant script handler that will deal with it.
-        let tm = Cell::new(Timer::new().unwrap());
+        let tm = Timer::new().unwrap();
+        let (cancel_port, cancel_chan) = Chan::new();
         let chan = self.timer_chan.clone();
-        do spawn {
-            let mut tm = tm.take();
-            tm.sleep(timeout);
-            chan.send(TimerMessage_Fire(~TimerData {
-                handle: handle,
-                funval: callback,
-                args: ~[]
-            }));
-        }
-        self.active_timers.insert(handle);
+        spawn(proc() {
+            let mut tm = tm;
+            let mut timeout_port = tm.oneshot(timeout);
+            let mut cancel_port = cancel_port;
+
+            let select = Select::new();
+            let timeout_handle = select.add(&mut timeout_port);
+            let _cancel_handle = select.add(&mut cancel_port);
+            let id = select.wait();
+            if id == timeout_handle.id {
+                chan.send(TimerMessage_Fire(~TimerData {
+                    handle: handle,
+                    funval: callback,
+                    args: ~[],
+                }));
+            }
+        });
+        self.active_timers.insert(TimerHandle { handle: handle, cancel_chan: Some(cancel_chan) });
         handle
     }
 
     pub fn ClearTimeout(&mut self, handle: i32) {
-        self.active_timers.remove(&handle);
+        // FIXME(#1477): active_timers should be a HashMap and this should
+        // cancel the removed timer.
+        self.active_timers.remove(&TimerHandle { handle: handle, cancel_chan: None });
     }
 
     pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
@@ -199,7 +234,6 @@ impl Window {
         self.page.join_layout();
     }
 
-    #[fixed_stack_segment]
     pub fn new(cx: *JSContext,
                page: @mut Page,
                script_chan: ScriptChan,
@@ -212,9 +246,9 @@ impl Window {
             script_chan: script_chan.clone(),
             compositor: compositor,
             timer_chan: {
-                let (timer_port, timer_chan) = comm::stream::<TimerControlMsg>();
+                let (timer_port, timer_chan): (Port<TimerControlMsg>, SharedChan<TimerControlMsg>) = SharedChan::new();
                 let id = page.id.clone();
-                do spawn_with(script_chan) |script_chan| {
+                spawn(proc() {
                     loop {
                         match timer_port.recv() {
                             TimerMessage_Close => break,
@@ -222,8 +256,8 @@ impl Window {
                             TimerMessage_TriggerExit => script_chan.send(ExitWindowMsg(id)),
                         }
                     }
-                }
-                SharedChan::new(timer_chan)
+                });
+                timer_chan
             },
             location: None,
             navigator: None,
@@ -236,13 +270,13 @@ impl Window {
         unsafe {
             let fn_names = ["window","self"];
             for str in fn_names.iter() {
-                do (*str).to_c_str().with_ref |name| {
+                (*str).to_c_str().with_ref(|name| {
                     JS_DefineProperty(cx, global,  name,
                                       RUST_OBJECT_TO_JSVAL(global),
-                                      Some(GetJSClassHookStubPointer(PROPERTY_STUB) as JSPropertyOp),
-                                      Some(GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as JSStrictPropertyOp),
+                                      Some(cast::transmute(GetJSClassHookStubPointer(PROPERTY_STUB))),
+                                      Some(cast::transmute(GetJSClassHookStubPointer(STRICT_PROPERTY_STUB))),
                                       JSPROP_ENUMERATE);
-                }
+                })
 
             }
 

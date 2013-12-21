@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[link(name = "util",
-       vers = "0.1",
-       uuid = "48421f49-17cf-41c5-a68e-ff669ff2ecd5",
-       url = "http://servo.org/")];
+#[crate_id = "github.com/mozilla/servo#util:0.1"];
 #[crate_type = "lib"];
 
 #[feature(macro_rules, managed_boxes)];
@@ -16,7 +13,6 @@ extern mod geom;
 pub mod cache;
 pub mod geometry;
 pub mod range;
-pub mod slot;
 pub mod time;
 pub mod url;
 pub mod vec;

@@ -43,6 +43,7 @@ pub mod specified {
                 _ => None
             }
         }
+        #[allow(dead_code)]
         pub fn parse(input: &ComponentValue) -> Option<Length> {
             Length::parse_internal(input, /* negative_ok = */ true)
         }
@@ -87,6 +88,7 @@ pub mod specified {
                 _ => None
             }
         }
+        #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &ComponentValue) -> Option<LengthOrPercentage> {
             LengthOrPercentage::parse_internal(input, /* negative_ok = */ true)
@@ -145,6 +147,7 @@ pub mod specified {
                 _ => None
             }
         }
+        #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &ComponentValue) -> Option<LengthOrPercentageOrNone> {
             LengthOrPercentageOrNone::parse_internal(input, /* negative_ok = */ true)

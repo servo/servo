@@ -10,12 +10,11 @@
 extern mod std;
 extern mod extra;
 
-use std::cell::Cell;
-use std::rt::io;
-use std::rt::io::file;
-use std::rt::io::Reader;
+use std::io;
+use std::io::{File, Reader};
+use std::io::process::ExitStatus;
 use std::os;
-use std::run;
+use std::run::{Process, ProcessOptions};
 use std::str;
 use extra::test::{DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};
 use extra::test::run_tests_console;
@@ -64,13 +63,13 @@ fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
     let mut next_id = 0;
     for file in filenames.iter() {
         let file_path = Path::new(file.clone());
-        let contents = match file::open(&file_path, io::Open, io::Read) {
-            Some(mut f) => str::from_utf8(f.read_to_end()),
+        let contents = match File::open_mode(&file_path, io::Open, io::Read) {
+            Some(mut f) => str::from_utf8_owned(f.read_to_end()),
             None => fail!("Could not open file")
         };
 
-        for line in contents.line_iter() {
-            let parts: ~[&str] = line.split_iter(' ').filter(|p| !p.is_empty()).collect();
+        for line in contents.lines() {
+            let parts: ~[&str] = line.split(' ').filter(|p| !p.is_empty()).collect();
 
             if parts.len() != 3 {
                 fail!("reftest line: '{:s}' doesn't match 'KIND LEFT RIGHT'", line);
@@ -105,15 +104,14 @@ fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
 
 fn make_test(reftest: Reftest) -> TestDescAndFn {
     let name = reftest.name.clone();
-    let reftest = Cell::new(reftest);
     TestDescAndFn {
         desc: TestDesc {
             name: DynTestName(name),
             ignore: false,
             should_fail: false,
         },
-        testfn: DynTestFn(|| {
-            check_reftest(reftest.take());
+        testfn: DynTestFn(proc() {
+            check_reftest(reftest);
         }),
     }
 }
@@ -123,22 +121,22 @@ fn check_reftest(reftest: Reftest) {
     let right_filename = format!("/tmp/servo-reftest-{:06u}-right.png", reftest.id);
 
     let args = ~[~"-o", left_filename.clone(), reftest.left.clone()];
-    let mut process = run::Process::new("./servo", args, run::ProcessOptions::new());
+    let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
     let _retval = process.finish();
     // assert!(retval == 0);
 
     let args = ~[~"-o", right_filename.clone(), reftest.right.clone()];
-    let mut process = run::Process::new("./servo", args, run::ProcessOptions::new());
+    let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
     let _retval = process.finish();
     // assert!(retval == 0);
 
     // check the pngs are bit equal
     let args = ~[left_filename.clone(), right_filename.clone()];
-    let mut process = run::Process::new("cmp", args, run::ProcessOptions::new());
+    let mut process = Process::new("cmp", args, ProcessOptions::new()).unwrap();
     let retval = process.finish();
 
     match reftest.kind {
-        Same => assert!(retval == 0),
-        Different => assert!(retval != 0),
+        Same => assert!(retval == ExitStatus(0)),
+        Different => assert!(retval != ExitStatus(0)),
     }
 }

@@ -30,9 +30,7 @@ impl ApplicationMethods for Application {
     fn new() -> Application {
         // Per GLFW docs it's safe to set the error callback before calling
         // glfwInit(), and this way we notice errors from init too.
-        do glfw::set_error_callback |_error_code, description| {
-            error!("GLFW error: {:s}", description);
-        };
+        glfw::set_error_callback(~glfw::LogErrorHandler);
         glfw::init();
         Application
     }
@@ -44,6 +42,38 @@ impl Drop for Application {
         glfw::terminate();
     }
 }
+
+macro_rules! glfw_callback(
+    (
+        $callback:path ($($arg:ident: $arg_ty:ty),*) $block:expr
+    ) => ({
+        struct GlfwCallback;
+        impl $callback for GlfwCallback {
+            fn call(&self $(, $arg: $arg_ty)*) {
+                $block
+            }
+        }
+        ~GlfwCallback
+    });
+
+    (
+        [$($state:ident: $state_ty:ty),*],
+        $callback:path ($($arg:ident: $arg_ty:ty),*) $block:expr
+    ) => ({
+        struct GlfwCallback {
+            $($state: $state_ty,)*
+        }
+        impl $callback for GlfwCallback {
+            fn call(&self $(, $arg: $arg_ty)*) {
+                $block
+            }
+        }
+        ~GlfwCallback {
+            $($state: $state,)*
+        }
+    });
+)
+
 
 /// The type of a window.
 pub struct Window {
@@ -90,43 +120,50 @@ impl WindowMethods<Application> for Window {
         install_local_window(window);
 
         // Register event handlers.
-        do window.glfw_window.set_framebuffer_size_callback |_win, width, height| {
-            local_window().event_queue.push(ResizeWindowEvent(width as uint, height as uint))
-        }
-        do window.glfw_window.set_refresh_callback |_win| {
-            local_window().event_queue.push(RefreshWindowEvent)
-        }
-        do window.glfw_window.set_key_callback |_win, key, _scancode, action, mods| {
-            if action == glfw::Press {
-                local_window().handle_key(key, mods)
-            }
-        }
-        do window.glfw_window.set_mouse_button_callback |win, button, action, _mods| {
-            let (x, y) = win.get_cursor_pos();
-            //handle hidpi displays, since GLFW returns non-hi-def coordinates.
-            let (backing_size, _) = win.get_framebuffer_size();
-            let (window_size, _) = win.get_size();
-            let hidpi = (backing_size as f32) / (window_size as f32);
-            let x = x as f32 * hidpi;
-            let y = y as f32 * hidpi;
-            if button == glfw::MouseButtonLeft || button == glfw::MouseButtonRight {
-                local_window().handle_mouse(button, action, x as i32, y as i32);
-            }
-        }
-        do window.glfw_window.set_scroll_callback |win, x_offset, y_offset| {
-            let dx = (x_offset as f32) * 30.0;
-            let dy = (y_offset as f32) * 30.0;
+        window.glfw_window.set_framebuffer_size_callback(
+            glfw_callback!(glfw::FramebufferSizeCallback(_win: &glfw::Window, width: i32, height: i32) {
+                local_window().event_queue.push(ResizeWindowEvent(width as uint, height as uint));
+            }));
+        window.glfw_window.set_refresh_callback(
+            glfw_callback!(glfw::WindowRefreshCallback(_win: &glfw::Window) {
+                local_window().event_queue.push(RefreshWindowEvent);
+            }));
+        window.glfw_window.set_key_callback(
+            glfw_callback!(glfw::KeyCallback(_win: &glfw::Window, key: glfw::Key, _scancode: c_int,
+                                             action: glfw::Action, mods: glfw::Modifiers) {
+                if action == glfw::Press {
+                    local_window().handle_key(key, mods)
+                }
+            }));
+        window.glfw_window.set_mouse_button_callback(
+            glfw_callback!(glfw::MouseButtonCallback(win: &glfw::Window, button: glfw::MouseButton,
+                                                     action: glfw::Action, _mods: glfw::Modifiers) {
+                let (x, y) = win.get_cursor_pos();
+                //handle hidpi displays, since GLFW returns non-hi-def coordinates.
+                let (backing_size, _) = win.get_framebuffer_size();
+                let (window_size, _) = win.get_size();
+                let hidpi = (backing_size as f32) / (window_size as f32);
+                let x = x as f32 * hidpi;
+                let y = y as f32 * hidpi;
+                if button == glfw::MouseButtonLeft || button == glfw::MouseButtonRight {
+                    local_window().handle_mouse(button, action, x as i32, y as i32);
+                }
+            }));
+        window.glfw_window.set_scroll_callback(
+            glfw_callback!(glfw::ScrollCallback(win: &glfw::Window, xpos: f64, ypos: f64) {
+                let dx = (xpos as f32) * 30.0;
+                let dy = (ypos as f32) * 30.0;
             
-            let (x, y) = win.get_cursor_pos();
-            //handle hidpi displays, since GLFW returns non-hi-def coordinates.
-            let (backing_size, _) = win.get_framebuffer_size();
-            let (window_size, _) = win.get_size();
-            let hidpi = (backing_size as f32) / (window_size as f32);
-            let x = x as f32 * hidpi;
-            let y = y as f32 * hidpi;
+                let (x, y) = win.get_cursor_pos();
+                //handle hidpi displays, since GLFW returns non-hi-def coordinates.
+                let (backing_size, _) = win.get_framebuffer_size();
+                let (window_size, _) = win.get_size();
+                let hidpi = (backing_size as f32) / (window_size as f32);
+                let x = x as f32 * hidpi;
+                let y = y as f32 * hidpi;
 
-            local_window().event_queue.push(ScrollWindowEvent(Point2D(dx, dy), Point2D(x as i32, y as i32)));
-        }
+                local_window().event_queue.push(ScrollWindowEvent(Point2D(dx, dy), Point2D(x as i32, y as i32)));
+            }));
 
         window
     }

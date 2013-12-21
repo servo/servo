@@ -29,17 +29,17 @@ use style::{PropertyDeclarationBlock, TElement, TNode};
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `AbstractNode`.
 #[deriving(Clone, Eq)]
-pub struct LayoutNode<'self> {
+pub struct LayoutNode<'a> {
     /// The wrapped node.
     priv node: AbstractNode,
 
     /// Being chained to a value prevents `LayoutNode`s from escaping.
-    priv chain: &'self (),
+    priv chain: &'a (),
 }
 
-impl<'self> LayoutNode<'self> {
+impl<'ln> LayoutNode<'ln> {
     /// Creates a new layout node, scoped to the given closure.
-    pub unsafe fn with_layout_node<R>(node: AbstractNode, f: &fn<'a>(LayoutNode<'a>) -> R) -> R {
+    pub unsafe fn with_layout_node<R>(node: AbstractNode, f: <'a> |LayoutNode<'a>| -> R) -> R {
         let heavy_iron_ball = ();
         f(LayoutNode {
             node: node,
@@ -48,7 +48,7 @@ impl<'self> LayoutNode<'self> {
     }
 
     /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> LayoutNode<'self> {
+    unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> LayoutNode<'ln> {
         LayoutNode {
             node: node,
             chain: self.chain,
@@ -62,14 +62,14 @@ impl<'self> LayoutNode<'self> {
     }
 
     /// Returns the first child of this node.
-    pub fn first_child(&self) -> Option<LayoutNode<'self>> {
+    pub fn first_child(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.first_child().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
     /// Returns the first child of this node.
-    pub fn last_child(&self) -> Option<LayoutNode<'self>> {
+    pub fn last_child(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.last_child().map(|node| self.new_with_this_lifetime(node))
         }
@@ -78,14 +78,14 @@ impl<'self> LayoutNode<'self> {
     /// Iterates over this node and all its descendants, in preorder.
     ///
     /// FIXME(pcwalton): Terribly inefficient. We should use parallelism.
-    pub fn traverse_preorder(&self) -> LayoutTreeIterator<'self> {
+    pub fn traverse_preorder(&self) -> LayoutTreeIterator<'ln> {
         let mut nodes = ~[];
         gather_layout_nodes(self, &mut nodes, false);
         LayoutTreeIterator::new(nodes)
     }
 
     /// Returns an iterator over this node's children.
-    pub fn children(&self) -> LayoutNodeChildrenIterator<'self> {
+    pub fn children(&self) -> LayoutNodeChildrenIterator<'ln> {
         LayoutNodeChildrenIterator {
             current_node: self.first_child(),
         }
@@ -110,7 +110,7 @@ impl<'self> LayoutNode<'self> {
     /// Downcasts this node to an image element and calls the given closure.
     ///
     /// FIXME(pcwalton): RAII.
-    unsafe fn with_image_element<R>(self, f: &fn(&HTMLImageElement) -> R) -> R {
+    unsafe fn with_image_element<R>(self, f: |&HTMLImageElement| -> R) -> R {
         if !self.node.is_image_element() {
             fail!(~"node is not an image element");
         }
@@ -131,7 +131,7 @@ impl<'self> LayoutNode<'self> {
     /// Downcasts this node to an iframe element and calls the given closure.
     ///
     /// FIXME(pcwalton): RAII.
-    unsafe fn with_iframe_element<R>(self, f: &fn(&HTMLIFrameElement) -> R) -> R {
+    unsafe fn with_iframe_element<R>(self, f: |&HTMLIFrameElement| -> R) -> R {
         if !self.node.is_iframe_element() {
             fail!(~"node is not an iframe element");
         }
@@ -164,7 +164,7 @@ impl<'self> LayoutNode<'self> {
     /// Downcasts this node to a text node and calls the given closure.
     ///
     /// FIXME(pcwalton): RAII.
-    unsafe fn with_text<R>(self, f: &fn(&Text) -> R) -> R {
+    unsafe fn with_text<R>(self, f: |&Text| -> R) -> R {
         self.node.with_imm_text(f)
     }
 
@@ -228,20 +228,20 @@ impl<'self> LayoutNode<'self> {
     }
 }
 
-impl<'self> TNode<LayoutElement<'self>> for LayoutNode<'self> {
-    fn parent_node(&self) -> Option<LayoutNode<'self>> {
+impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
+    fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.node().parent_node.map(|node| self.new_with_this_lifetime(node))
         }
     }
 
-    fn prev_sibling(&self) -> Option<LayoutNode<'self>> {
+    fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
         }
     }
     
-    fn next_sibling(&self) -> Option<LayoutNode<'self>> {
+    fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
         }
@@ -249,21 +249,21 @@ impl<'self> TNode<LayoutElement<'self>> for LayoutNode<'self> {
 
     fn is_element(&self) -> bool {
         match self.node.type_id() {
-            ElementNodeTypeId(*) => true,
+            ElementNodeTypeId(..) => true,
             _ => false
         }
     }
 
     fn is_document(&self) -> bool {
         match self.node.type_id() {
-            DocumentNodeTypeId(*) => true,
+            DocumentNodeTypeId(..) => true,
             _ => false
         }
     }
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
-    fn with_element<R>(&self, f: &fn(&LayoutElement<'self>) -> R) -> R {
+    fn with_element<R>(&self, f: |&LayoutElement<'ln>| -> R) -> R {
         self.node.with_imm_element(|element| {
             // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
             // implementations.
@@ -276,16 +276,16 @@ impl<'self> TNode<LayoutElement<'self>> for LayoutNode<'self> {
     }
 }
 
-pub struct LayoutNodeChildrenIterator<'self> {
-    priv current_node: Option<LayoutNode<'self>>,
+pub struct LayoutNodeChildrenIterator<'a> {
+    priv current_node: Option<LayoutNode<'a>>,
 }
 
-impl<'self> Iterator<LayoutNode<'self>> for LayoutNodeChildrenIterator<'self> {
-    fn next(&mut self) -> Option<LayoutNode<'self>> {
+impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeChildrenIterator<'a> {
+    fn next(&mut self) -> Option<LayoutNode<'a>> {
         let node = self.current_node;
-        self.current_node = do self.current_node.and_then |node| {
+        self.current_node = self.current_node.and_then(|node| {
             node.next_sibling()
-        };
+        });
         node
     }
 }
@@ -294,13 +294,13 @@ impl<'self> Iterator<LayoutNode<'self>> for LayoutNodeChildrenIterator<'self> {
 // Easy for preorder; harder for postorder.
 //
 // FIXME(pcwalton): Parallelism! Eventually this should just be nuked.
-pub struct LayoutTreeIterator<'self> {
-    priv nodes: ~[LayoutNode<'self>],
+pub struct LayoutTreeIterator<'a> {
+    priv nodes: ~[LayoutNode<'a>],
     priv index: uint,
 }
 
-impl<'self> LayoutTreeIterator<'self> {
-    fn new(nodes: ~[LayoutNode<'self>]) -> LayoutTreeIterator<'self> {
+impl<'a> LayoutTreeIterator<'a> {
+    fn new(nodes: ~[LayoutNode<'a>]) -> LayoutTreeIterator<'a> {
         LayoutTreeIterator {
             nodes: nodes,
             index: 0,
@@ -308,8 +308,8 @@ impl<'self> LayoutTreeIterator<'self> {
     }
 }
 
-impl<'self> Iterator<LayoutNode<'self>> for LayoutTreeIterator<'self> {
-    fn next(&mut self) -> Option<LayoutNode<'self>> {
+impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
+    fn next(&mut self) -> Option<LayoutNode<'a>> {
         if self.index >= self.nodes.len() {
             None
         } else {
@@ -360,17 +360,17 @@ pub trait PostorderNodeMutTraversal {
 }
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
-pub struct LayoutElement<'self> {
-    priv element: &'self Element,
+pub struct LayoutElement<'le> {
+    priv element: &'le Element,
 }
 
-impl<'self> LayoutElement<'self> {
-    pub fn style_attribute(&self) -> &'self Option<PropertyDeclarationBlock> {
+impl<'le> LayoutElement<'le> {
+    pub fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
         &self.element.style_attribute
     }
 }
 
-impl<'self> TElement for LayoutElement<'self> {
+impl<'le> TElement for LayoutElement<'le> {
     fn get_local_name<'a>(&'a self) -> &'a str {
         self.element.tag_name.as_slice()
     }

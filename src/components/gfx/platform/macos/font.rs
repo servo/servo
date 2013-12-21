@@ -29,7 +29,6 @@ use core_text::font_descriptor::{kCTFontDefaultOrientation};
 use core_text;
 
 use std::ptr;
-use std::vec;
 
 pub struct FontTable {
     data: CFData,
@@ -47,8 +46,8 @@ impl FontTable {
 }
 
 impl FontTableMethods for FontTable {
-    fn with_buffer(&self, blk: &fn(*u8, uint)) {
-        blk(vec::raw::to_ptr(self.data.bytes()), self.data.len() as uint);
+    fn with_buffer(&self, blk: |*u8, uint|) {
+        blk(self.data.bytes().as_ptr(), self.data.len() as uint);
     }
 }
 
@@ -185,9 +184,9 @@ impl FontHandleMethods for FontHandle {
 
     fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result: Option<CFData> = self.ctfont.get_font_table(tag);
-        do result.and_then |data| {
+        result.and_then(|data| {
             Some(FontTable::wrap(data))
-        }
+        })
     }
 
     fn face_identifier(&self) -> ~str {

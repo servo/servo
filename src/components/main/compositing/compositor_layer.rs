@@ -22,7 +22,6 @@ use script::dom::event::{ClickEvent, MouseDownEvent, MouseUpEvent};
 use script::script_task::SendEventMsg;
 use servo_msg::compositor_msg::{LayerBuffer, LayerBufferSet, Epoch, Tile};
 use servo_msg::constellation_msg::PipelineId;
-use std::cell::Cell;
 use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use windowing::{MouseWindowMouseUpEvent};
 use azure::azure_hl::Color;
@@ -141,7 +140,7 @@ impl CompositorLayer {
                            -> CompositorLayer {
         let SendableFrameTree { pipeline, children } = frame_tree;
         let mut layer = CompositorLayer::new(pipeline, None, tile_size, max_mem, cpu_painting);
-        layer.children = (do children.move_iter().map |child| {
+        layer.children = (children.move_iter().map(|child| {
             let SendableChildFrameTree { frame_tree, rect } = child;
             let container = @mut ContainerLayer();
             match rect {
@@ -165,7 +164,7 @@ impl CompositorLayer {
                 child: child_layer,
                 container: container,
             }
-        }).collect();
+        })).collect();
         layer.set_occlusions();
         layer
     }
@@ -267,7 +266,7 @@ impl CompositorLayer {
         let mut redisplay: bool;
         { // block here to prevent double mutable borrow of self
             let quadtree = match self.quadtree {
-                NoTree(*) => fail!("CompositorLayer: cannot get buffer request for {:?},
+                NoTree(..) => fail!("CompositorLayer: cannot get buffer request for {:?},
                                    no quadtree initialized", self.pipeline.id),
                 Tree(ref mut quadtree) => quadtree,
             };
@@ -327,7 +326,7 @@ impl CompositorLayer {
                 let old_rect = con.scissor;
                 con.scissor = Some(new_rect);
                 match self.quadtree {
-                    NoTree(*) => {} // Nothing to do
+                    NoTree(..) => {} // Nothing to do
                         Tree(ref mut quadtree) => {
                         match old_rect {
                             Some(old_rect) => {
@@ -494,15 +493,15 @@ impl CompositorLayer {
         // Delete old layer.
         while current_layer_child.is_some() {
             let trash = current_layer_child.unwrap();
-            do current_layer_child.unwrap().with_common |common| {
+            current_layer_child.unwrap().with_common(|common| {
                 current_layer_child = common.next_sibling;
-            }
+            });
             self.root_layer.remove_child(trash);
         }
 
         // Add new tiles.
         let quadtree = match self.quadtree {
-            NoTree(*) => fail!("CompositorLayer: cannot build layer tree for {:?},
+            NoTree(..) => fail!("CompositorLayer: cannot build layer tree for {:?},
                                no quadtree initialized", self.pipeline.id),
             Tree(ref mut quadtree) => quadtree,
         };
@@ -544,9 +543,9 @@ impl CompositorLayer {
                     buffer.native_surface.bind_to_texture(graphics_context, texture, size);
 
                     // Move on to the next sibling.
-                    do current_layer_child.unwrap().with_common |common| {
+                    current_layer_child.unwrap().with_common(|common| {
                         common.next_sibling
-                    }
+                    })
                 }
                 Some(_) => fail!(~"found unexpected layer kind"),
             };
@@ -584,29 +583,29 @@ impl CompositorLayer {
     pub fn add_buffers(&mut self,
                        graphics_context: &NativeCompositingGraphicsContext,
                        pipeline_id: PipelineId,
-                       new_buffers: ~LayerBufferSet,
+                       mut new_buffers: ~LayerBufferSet,
                        epoch: Epoch)
                        -> Option<~LayerBufferSet> {
-        let cell = Cell::new(new_buffers);
         if self.pipeline.id == pipeline_id {
             if self.epoch != epoch {
                 debug!("compositor epoch mismatch: {:?} != {:?}, id: {:?}",
                        self.epoch,
                        epoch,
                        self.pipeline.id);
-                self.pipeline.render_chan.send(UnusedBufferMsg(cell.take().buffers));
+                self.pipeline.render_chan.send(UnusedBufferMsg(new_buffers.buffers));
                 return None;
             }
+
             {
                 // Block here to prevent double mutable borrow of self.
                 let quadtree = match self.quadtree {
-                    NoTree(*) => fail!("CompositorLayer: cannot add buffers, no quadtree initialized"),
+                    NoTree(..) => fail!("CompositorLayer: cannot add buffers, no quadtree initialized"),
                     Tree(ref mut quadtree) => quadtree,
                 };
                 
                 let mut unused_tiles = ~[];
                 // move_rev_iter is more efficient
-                for buffer in cell.take().buffers.move_rev_iter() {
+                for buffer in new_buffers.buffers.move_rev_iter() {
                     unused_tiles.push_all_move(quadtree.add_tile_pixel(buffer.screen_pos.origin.x,
                                                                        buffer.screen_pos.origin.y,
                                                                        buffer.resolution, buffer));
@@ -623,15 +622,15 @@ impl CompositorLayer {
         for child_layer in self.children.mut_iter() {
             match child_layer.child.add_buffers(graphics_context,
                                                 pipeline_id,
-                                                cell.take(),
+                                                new_buffers,
                                                 epoch) {
                 None => return None,
-                Some(buffers) => cell.put_back(buffers),
+                Some(buffers) => new_buffers = buffers,
             }
         }
 
         // Not found. Give the caller the buffers back.
-        Some(cell.take())
+        Some(new_buffers)
     }
 
     // Deletes a specified sublayer, including hidden children. Returns false if the layer is not found.
@@ -643,7 +642,7 @@ impl CompositorLayer {
             Some(i) => {
                 let mut child = self.children.remove(i);
                 match self.quadtree {
-                    NoTree(*) => {} // Nothing to do
+                    NoTree(..) => {} // Nothing to do
                     Tree(ref mut quadtree) => {
                         match child.container.scissor {
                             Some(rect) => {
@@ -670,7 +669,7 @@ impl CompositorLayer {
     pub fn invalidate_rect(&mut self, pipeline_id: PipelineId, rect: Rect<f32>) -> bool {
         if self.pipeline.id == pipeline_id {
             let quadtree = match self.quadtree {
-                NoTree(*) => return true, // Nothing to do
+                NoTree(..) => return true, // Nothing to do
                 Tree(ref mut quadtree) => quadtree,
             };
             quadtree.set_status_page(rect, Invalid, true);
@@ -681,32 +680,11 @@ impl CompositorLayer {
         }
     }
     
-    // Adds a child.
-    pub fn add_child(&mut self, pipeline: CompositionPipeline, page_size: Option<Size2D<f32>>, tile_size: uint,
-                     max_mem: Option<uint>, clipping_rect: Rect<f32>) {
-        let container = @mut ContainerLayer();
-        container.scissor = Some(clipping_rect);
-        container.common.set_transform(identity().translate(clipping_rect.origin.x,
-                                                            clipping_rect.origin.y,
-                                                            0.0));
-        let child = ~CompositorLayer::new(pipeline,
-                                          page_size,
-                                          tile_size,
-                                          max_mem,
-                                          self.cpu_painting);
-        container.add_child_start(ContainerLayerKind(child.root_layer));
-        self.children.push(CompositorLayerChild {
-            child: child,
-            container: container,
-        });
-        self.set_occlusions();
-    }
-
     // Recursively sets occluded portions of quadtrees to Hidden, so that they do not ask for
     // tile requests. If layers are moved, resized, or deleted, these portions may be updated.
     fn set_occlusions(&mut self) {
         let quadtree = match self.quadtree {
-            NoTree(*) => return, // Cannot calculate occlusions
+            NoTree(..) => return, // Cannot calculate occlusions
             Tree(ref mut quadtree) => quadtree,
         };
         for child in self.children.iter().filter(|x| !x.child.hidden) {
@@ -726,7 +704,7 @@ impl CompositorLayer {
     /// reused.
     fn clear(&mut self) {
         match self.quadtree {
-            NoTree(*) => {}
+            NoTree(..) => {}
             Tree(ref mut quadtree) => {
                 let mut tiles = quadtree.collect_tiles();
 
@@ -759,7 +737,7 @@ impl CompositorLayer {
     /// This is used during shutdown, when we know the render task is going away.
     pub fn forget_all_tiles(&mut self) {
         match self.quadtree {
-            NoTree(*) => {}
+            NoTree(..) => {}
             Tree(ref mut quadtree) => {
                 let tiles = quadtree.collect_tiles();
                 for tile in tiles.move_iter() {

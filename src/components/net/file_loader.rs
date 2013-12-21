@@ -5,45 +5,44 @@
 use resource_task::{ProgressMsg, Metadata, Payload, Done, LoaderTask, start_sending};
 use servo_util::io::result;
 
-use std::comm::Chan;
-use std::rt::io::file;
-use std::rt::io::{FileStream, Reader, EndOfFile, Open, Read, ignore_io_error};
-use std::task;
+use std::io;
+use std::io::File;
 
 static READ_SIZE: uint = 1024;
 
-fn read_all(reader: &mut FileStream, progress_chan: &Chan<ProgressMsg>)
+fn read_all(reader: &mut io::Stream, progress_chan: &SharedChan<ProgressMsg>)
         -> Result<(), ()> {
     loop {
-        match (do result {
+        match (result(|| {
             let data = reader.read_bytes(READ_SIZE);
             progress_chan.send(Payload(data));
-        }) {
+        })) {
             Ok(()) => (),
             Err(e) => match e.kind {
-                EndOfFile => return Ok(()),
-                _         => return Err(()),
+                io::EndOfFile => return Ok(()),
+                _ => return Err(()),
             }
         }
     }
 }
 
 pub fn factory() -> LoaderTask {
-    let f: LoaderTask = |url, start_chan| {
+    let f: LoaderTask = proc(url, start_chan) {
         assert!("file" == url.scheme);
         let progress_chan = start_sending(start_chan, Metadata::default(url.clone()));
-        do task::spawn {
+        spawn(proc() {
             // ignore_io_error causes us to get None instead of a task failure.
-            match ignore_io_error(|| file::open(&url.path.as_slice(), Open, Read)) {
+            let _guard = io::ignore_io_error();
+            match File::open_mode(&Path::new(url.path), io::Open, io::Read) {
                 Some(ref mut reader) => {
-                    let res = read_all(reader, &progress_chan);
+                    let res = read_all(reader as &mut io::Stream, &progress_chan);
                     progress_chan.send(Done(res));
                 }
                 None => {
                     progress_chan.send(Done(Err(())));
                 }
-            }
-        }
+            };
+        });
     };
     f
 }

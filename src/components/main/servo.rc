@@ -2,21 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[link(name = "servo",
-       vers = "0.1",
-       uuid = "637ffc98-9058-471d-9de7-abfc49ef0549",
-       url = "http://servo.org/")];
-
+#[crate_id = "github.com/mozilla/servo"];
 #[comment = "The Servo Parallel Browser Project"];
 #[license = "MPL"];
-#[crate_type = "lib"];
 
 #[feature(globs, macro_rules, managed_boxes)];
 
 extern mod alert;
 extern mod azure;
 extern mod geom;
-extern mod gfx (name = "gfx");
+extern mod gfx;
 #[cfg(not(target_os="android"))]
 extern mod glfw;
 #[cfg(target_os="android")]
@@ -26,39 +21,50 @@ extern mod layers;
 extern mod opengles;
 extern mod png;
 extern mod script;
-extern mod servo_net (name = "net");
-extern mod servo_msg (name = "msg");
-extern mod servo_util (name = "util");
+extern mod servo_net = "net";
+extern mod servo_msg = "msg";
+extern mod servo_util = "util";
 extern mod style;
 extern mod sharegl;
 extern mod stb_image;
+
 extern mod extra;
+extern mod green;
+extern mod native;
 
 #[cfg(target_os="macos")]
 extern mod core_graphics;
 #[cfg(target_os="macos")]
 extern mod core_text;
 
+#[cfg(not(test))]
 use compositing::{CompositorChan, CompositorTask};
+#[cfg(not(test))]
 use constellation::Constellation;
-use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
+#[cfg(not(test))]
+use servo_msg::constellation_msg::InitLoadUrlMsg;
 
 #[cfg(not(test))]
 use gfx::opts;
 
+#[cfg(not(test))]
 use servo_net::image_cache_task::ImageCacheTask;
+#[cfg(not(test))]
 use servo_net::resource_task::ResourceTask;
-use servo_util::time::{Profiler, ProfilerChan};
+#[cfg(not(test))]
+use servo_util::time::Profiler;
 
 pub use gfx::opts::Opts;
 pub use gfx::text;
 pub use servo_util::url::make_url;
-use std::comm;
+
 #[cfg(not(test))]
 use std::os;
 #[cfg(not(test), target_os="android")]
 use std::str;
-use std::task::spawn_with;
+#[cfg(not(test))]
+use std::task::TaskOpts;
+
 
 #[path="compositing/compositor_task.rs"]
 pub mod compositing;
@@ -78,7 +84,7 @@ pub mod pipeline;
 
 pub mod layout {
     pub mod block;
-    pub mod box;
+    pub mod box_;
     pub mod construct;
     pub mod context;
     pub mod display_list_builder;
@@ -106,15 +112,15 @@ pub mod util;
 #[cfg(not(test), target_os="macos")]
 #[start]
 fn start(argc: int, argv: **u8) -> int {
-    do std::rt::start_on_main_thread(argc, argv) {
+    native::start(argc, argv, proc() {
         run(opts::from_cmdline_args(os::args()))
-    }
+    })
 }
 
 #[cfg(not(test), target_os="android")]
 #[no_mangle]
 pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
-    do std::rt::start_on_main_thread(argc, argv) {
+    native::start(argc, argv, proc() {
         let mut args:~[~str] = ~[];
         for i in range(0u, argc as uint) {
             unsafe {
@@ -122,53 +128,51 @@ pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
             }
         }
         run(opts::from_cmdline_args(args))
-    }
+    })
 }
 
+#[cfg(not(test))]
 fn run(opts: Opts) {
-    let (exit_response_from_constellation, exit_chan) = comm::stream();
-    let (profiler_port, profiler_chan) = special_stream!(ProfilerChan);
-    let (compositor_port, compositor_chan) = special_stream!(CompositorChan);
-    let (constellation_port, constellation_chan) = special_stream!(ConstellationChan);
+    let mut pool = green::SchedPool::new(green::PoolConfig::new());
 
-    Profiler::create(profiler_port, profiler_chan.clone(), opts.profiler_period);
+    let (exit_response_from_constellation, exit_chan) = Chan::new();
+    let (compositor_port, compositor_chan) = CompositorChan::new();
+    let profiler_chan = Profiler::create(opts.profiler_period);
 
-    do spawn_with((constellation_port,
-                   constellation_chan.clone(),
-                   profiler_chan.clone(),
-                   compositor_chan,
-                   opts.clone()))
-            |(constellation_port,
-              constellation_chan,
-              profiler_chan,
-              compositor_chan,
-              opts)| {
-        let opts = &opts;
+    let opts_clone = opts.clone();
+    let profiler_chan_clone = profiler_chan.clone();
 
+    let (result_port, result_chan) = Chan::new();
+    pool.spawn(TaskOpts::new(), proc() {
+        let opts = &opts_clone;
         // Create a Servo instance.
         let resource_task = ResourceTask();
         let image_cache_task = ImageCacheTask(resource_task.clone());
-        Constellation::start(constellation_port,
-                             constellation_chan.clone(),
-                             compositor_chan,
-                             opts,
-                             resource_task,
-                             image_cache_task,
-                             profiler_chan.clone());
+        let constellation_chan = Constellation::start(compositor_chan,
+                                                      opts,
+                                                      resource_task,
+                                                      image_cache_task,
+                                                      profiler_chan_clone);
+
+        // Send the constallation Chan as the result
+        result_chan.send(constellation_chan.clone());
 
         // Send the URL command to the constellation.
         for filename in opts.urls.iter() {
             constellation_chan.send(InitLoadUrlMsg(make_url(filename.clone(), None)))
         }
-    }
+    });
 
+    let constellation_chan = result_port.recv();
 
     debug!("preparing to enter main loop");
     CompositorTask::create(opts,
                            compositor_port,
-                           constellation_chan.clone(),
+                           constellation_chan,
                            profiler_chan,
                            exit_chan,
                            exit_response_from_constellation);
+
+    pool.shutdown();
 }
 

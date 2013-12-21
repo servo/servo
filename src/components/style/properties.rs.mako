@@ -74,8 +74,8 @@ pub mod longhands {
             pub fn parse_declared(input: &[ComponentValue])
                                -> Option<DeclaredValue<SpecifiedValue>> {
                 match CSSWideKeyword::parse(input) {
-                    Some(Left(keyword)) => Some(CSSWideKeyword(keyword)),
-                    Some(Right(Unset)) => Some(CSSWideKeyword(${
+                    Some(Some(keyword)) => Some(CSSWideKeyword(keyword)),
+                    Some(None) => Some(CSSWideKeyword(${
                         "Inherit" if inherited else "Initial"})),
                     None => parse_specified(input),
                 }
@@ -118,14 +118,14 @@ pub mod longhands {
                 ${to_rust_ident(values.split()[0])}
             }
             pub fn from_component_value(v: &ComponentValue) -> Option<SpecifiedValue> {
-                do get_ident_lower(v).and_then |keyword| {
+                get_ident_lower(v).and_then(|keyword| {
                     match keyword.as_slice() {
                         % for value in values.split():
                             "${value}" => Some(${to_rust_ident(value)}),
                         % endfor
                         _ => None,
                     }
-                }
+                })
             }
         </%self:single_component_value>
     </%def>
@@ -648,12 +648,12 @@ pub mod longhands {
         /// <length> | <percentage>
         /// TODO: support <absolute-size> and <relative-size>
         pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
-            do specified::LengthOrPercentage::parse_non_negative(input).map |value| {
+            specified::LengthOrPercentage::parse_non_negative(input).map(|value| {
                 match value {
                     specified::LP_Length(value) => value,
                     specified::LP_Percentage(value) => specified::Em(value),
                 }
-            }
+            })
         }
     </%self:single_component_value>
 
@@ -767,9 +767,9 @@ pub mod shorthands {
 
     // TODO: other background-* properties
     <%self:shorthand name="background" sub_properties="background-color">
-        do one_component_value(input).and_then(specified::CSSColor::parse).map |color| {
+        one_component_value(input).and_then(specified::CSSColor::parse).map(|color| {
             Longhands { background_color: Some(color) }
-        }
+        })
     </%self:shorthand>
 
     ${four_sides_shorthand("margin", "margin-%s", "margin_top::from_component_value")}
@@ -818,13 +818,13 @@ pub mod shorthands {
             'border-%s-%s' % (side, prop)
             for prop in ['color', 'style', 'width']
         )}">
-            do parse_border(input).map |(color, style, width)| {
+            parse_border(input).map(|(color, style, width)| {
                 Longhands {
                     % for prop in ["color", "style", "width"]:
                         ${"border_%s_%s: %s," % (side, prop, prop)}
                     % endfor
                 }
-            }
+            })
         </%self:shorthand>
     % endfor
 
@@ -833,7 +833,7 @@ pub mod shorthands {
         for side in ['top', 'right', 'bottom', 'left']
         for prop in ['color', 'style', 'width']
     )}">
-        do parse_border(input).map |(color, style, width)| {
+        parse_border(input).map(|(color, style, width)| {
             Longhands {
                 % for side in ["top", "right", "bottom", "left"]:
                     % for prop in ["color", "style", "width"]:
@@ -841,7 +841,7 @@ pub mod shorthands {
                     % endfor
                 % endfor
             }
-        }
+        })
     </%self:shorthand>
 
     <%self:shorthand name="font" sub_properties="font-style font-variant font-weight
@@ -966,18 +966,16 @@ pub enum CSSWideKeyword {
     Inherit,
 }
 
-struct Unset;
-
 impl CSSWideKeyword {
-    pub fn parse(input: &[ComponentValue]) -> Option<Either<CSSWideKeyword, Unset>> {
-        do one_component_value(input).and_then(get_ident_lower).and_then |keyword| {
+    pub fn parse(input: &[ComponentValue]) -> Option<Option<CSSWideKeyword>> {
+        one_component_value(input).and_then(get_ident_lower).and_then(|keyword| {
             match keyword.as_slice() {
-                "initial" => Some(Left(Initial)),
-                "inherit" => Some(Left(Inherit)),
-                "unset" => Some(Right(Unset)),
+                "initial" => Some(Some(Initial)),
+                "inherit" => Some(Some(Inherit)),
+                "unset" => Some(None),
                 _ => None
             }
-        }
+        })
     }
 }
 
@@ -1018,14 +1016,14 @@ impl PropertyDeclaration {
             % endfor
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => match CSSWideKeyword::parse(value) {
-                    Some(Left(keyword)) => {
+                    Some(Some(keyword)) => {
                         % for sub_property in shorthand.sub_properties:
                             result_list.push(${sub_property.ident}_declaration(
                                 CSSWideKeyword(keyword)
                             ));
                         % endfor
                     },
-                    Some(Right(Unset)) => {
+                    Some(None) => {
                         % for sub_property in shorthand.sub_properties:
                             result_list.push(${sub_property.ident}_declaration(
                                 CSSWideKeyword(${

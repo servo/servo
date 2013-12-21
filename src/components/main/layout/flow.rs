@@ -27,7 +27,7 @@
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box::Box;
+use layout::box_::Box;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::float_context::{FloatContext, Invalid};
@@ -42,7 +42,7 @@ use geom::rect::Rect;
 use gfx::display_list::{ClipDisplayItemClass, DisplayList};
 use servo_util::geometry::Au;
 use std::cast;
-use std::cell::Cell;
+use std::cell::RefCell;
 use style::ComputedValues;
 use style::computed_values::text_align;
 
@@ -127,7 +127,7 @@ pub fn base<'a>(this: &'a Flow) -> &'a FlowData {
 }
 
 /// Iterates over the children of this immutable flow.
-pub fn imm_child_iter<'a>(flow: &'a Flow) -> DListIterator<'a,~Flow:> {
+pub fn imm_child_iter<'a>(flow: &'a Flow) -> DListIterator<'a,~Flow> {
     base(flow).children.iter()
 }
 
@@ -140,12 +140,12 @@ pub fn mut_base<'a>(this: &'a mut Flow) -> &'a mut FlowData {
 }
 
 /// Returns the last child of this flow.
-pub fn last_child<'a>(flow: &'a mut Flow) -> Option<&'a mut ~Flow:> {
+pub fn last_child<'a>(flow: &'a mut Flow) -> Option<&'a mut ~Flow> {
     mut_base(flow).children.back_mut()
 }
 
 /// Iterates over the children of this flow.
-pub fn child_iter<'a>(flow: &'a mut Flow) -> MutDListIterator<'a,~Flow:> {
+pub fn child_iter<'a>(flow: &'a mut Flow) -> MutDListIterator<'a,~Flow> {
     mut_base(flow).children.mut_iter()
 }
 
@@ -183,13 +183,13 @@ pub trait MutableFlowUtils {
     // Mutators
 
     /// Adds a new flow as a child of this flow.
-    fn add_new_child(self, new_child: ~Flow:);
+    fn add_new_child(self, new_child: ~Flow);
 
     /// Invokes a closure with the first child of this flow.
-    fn with_first_child<R>(self, f: &fn(Option<&mut ~Flow:>) -> R) -> R;
+    fn with_first_child<R>(self, f: |Option<&mut ~Flow>| -> R) -> R;
 
     /// Invokes a closure with the last child of this flow.
-    fn with_last_child<R>(self, f: &fn(Option<&mut ~Flow:>) -> R) -> R;
+    fn with_last_child<R>(self, f: |Option<&mut ~Flow>| -> R) -> R;
 
     /// Removes the first child of this flow and destroys it.
     fn remove_first(self);
@@ -205,7 +205,7 @@ pub trait MutableFlowUtils {
                           self,
                           builder: &DisplayListBuilder,
                           dirty: &Rect<Au>,
-                          list: &Cell<DisplayList<E>>)
+                          list: &RefCell<DisplayList<E>>)
                           -> bool;
 }
 
@@ -385,7 +385,7 @@ pub struct FlowData {
     restyle_damage: RestyleDamage,
 
     /// The children of this flow.
-    children: DList<~Flow:>,
+    children: DList<~Flow>,
 
     /* TODO (Issue #87): debug only */
     id: int,
@@ -454,12 +454,12 @@ impl FlowData {
         }
     }
 
-    pub fn child_iter<'a>(&'a mut self) -> MutDListIterator<'a,~Flow:> {
+    pub fn child_iter<'a>(&'a mut self) -> MutDListIterator<'a,~Flow> {
         self.children.mut_iter()
     }
 }
 
-impl<'self> ImmutableFlowUtils for &'self Flow {
+impl<'a> ImmutableFlowUtils for &'a Flow {
     /// Returns true if this flow is a block or a float flow.
     fn is_block_like(self) -> bool {
         match self.class() {
@@ -508,7 +508,7 @@ impl<'self> ImmutableFlowUtils for &'self Flow {
     }
 }
 
-impl<'self> MutableFlowUtils for &'self mut Flow {
+impl<'a> MutableFlowUtils for &'a mut Flow {
     /// Traverses the tree in preorder.
     fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &mut T) -> bool {
         if traversal.should_prune(self) {
@@ -548,17 +548,17 @@ impl<'self> MutableFlowUtils for &'self mut Flow {
     }
 
     /// Adds a new flow as a child of this flow.
-    fn add_new_child(self, new_child: ~Flow:) {
+    fn add_new_child(self, new_child: ~Flow) {
         mut_base(self).children.push_back(new_child)
     }
 
     /// Invokes a closure with the first child of this flow.
-    fn with_first_child<R>(self, f: &fn(Option<&mut ~Flow:>) -> R) -> R {
+    fn with_first_child<R>(self, f: |Option<&mut ~Flow>| -> R) -> R {
         f(mut_base(self).children.front_mut())
     }
 
     /// Invokes a closure with the last child of this flow.
-    fn with_last_child<R>(self, f: &fn(Option<&mut ~Flow:>) -> R) -> R {
+    fn with_last_child<R>(self, f: |Option<&mut ~Flow>| -> R) -> R {
         f(mut_base(self).children.back_mut())
     }
 
@@ -587,7 +587,7 @@ impl<'self> MutableFlowUtils for &'self mut Flow {
                           self,
                           builder: &DisplayListBuilder,
                           dirty: &Rect<Au>,
-                          list: &Cell<DisplayList<E>>)
+                          list: &RefCell<DisplayList<E>>)
                           -> bool {
         debug!("Flow: building display list for f{}", base(self).id);
         match self.class() {
@@ -596,20 +596,21 @@ impl<'self> MutableFlowUtils for &'self mut Flow {
             _ => fail!("Tried to build_display_list_recurse of flow: {:?}", self),
         };
 
-        if list.with_mut_ref(|list| list.list.len() == 0) {
+        if list.with_mut(|list| list.list.len() == 0) {
             return true;
         }
 
-        let child_list = ~Cell::new(DisplayList::new());
+        let child_list = ~RefCell::new(DisplayList::new());
         for kid in child_iter(self) {
             kid.build_display_list(builder,dirty,child_list);
         }
 
-        do list.with_mut_ref |list| {
+        let mut child_list = Some(child_list.unwrap());
+        list.with_mut(|list| {
             let result = list.list.mut_rev_iter().position(|item| {
                 match *item {
                     ClipDisplayItemClass(ref mut item) => {
-                        item.child_list.push_all_move(child_list.take().list);
+                        item.child_list.push_all_move(child_list.take_unwrap().list);
                         true
                     },
                     _ => false,
@@ -620,7 +621,7 @@ impl<'self> MutableFlowUtils for &'self mut Flow {
                 fail!("fail to find parent item");
             }
 
-        }
+        });
         true
     }
 }

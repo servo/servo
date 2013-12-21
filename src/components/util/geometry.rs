@@ -124,10 +124,6 @@ impl ToPrimitive for Au {
     }
 }
 
-pub fn box<T:Clone + Ord + Add<T,T> + Sub<T,T>>(x: T, y: T, w: T, h: T) -> Rect<T> {
-    Rect(Point2D(x, y), Size2D(w, h))
-}
-
 impl Au {
     /// FIXME(pcwalton): Workaround for lack of cross crate inlining of newtype structs!
     #[inline]

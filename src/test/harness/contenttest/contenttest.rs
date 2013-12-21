@@ -13,10 +13,9 @@ extern mod extra;
 use extra::test::{TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
 use extra::getopts::{getopts, reqopt};
 use std::{os, str};
-use std::cell::Cell;
-use std::os::list_dir_path;
-use std::rt::io::Reader;
-use std::rt::io::process::{Process, ProcessConfig, Ignored, CreatePipe, InheritFd};
+use std::io::fs;
+use std::io::Reader;
+use std::io::process::{Process, ProcessConfig, Ignored, CreatePipe, InheritFd, ExitStatus};
 
 #[deriving(Clone)]
 struct Config {
@@ -67,20 +66,19 @@ fn test_options(config: Config) -> TestOpts {
 }
 
 fn find_tests(config: Config) -> ~[TestDescAndFn] {
-    let mut files = list_dir_path(&Path::new(config.source_dir));
+    let mut files = fs::readdir(&Path::new(config.source_dir));
     files.retain(|file| file.extension_str() == Some("html") );
     return files.map(|file| make_test(file.display().to_str()) );
 }
 
 fn make_test(file: ~str) -> TestDescAndFn {
-    let f = Cell::new(file.clone());
     TestDescAndFn {
         desc: TestDesc {
-            name: DynTestName(file),
+            name: DynTestName(file.clone()),
             ignore: false,
             should_fail: false
         },
-        testfn: DynTestFn(|| { run_test(f.take()) })
+        testfn: DynTestFn(proc() { run_test(file) })
     }
 }
 
@@ -113,15 +111,15 @@ fn run_test(file: ~str) {
     }
 
     let out = str::from_utf8(output);
-    let lines: ~[&str] = out.split_iter('\n').collect();
+    let lines: ~[&str] = out.split('\n').collect();
     for &line in lines.iter() {
         if line.contains("TEST-UNEXPECTED-FAIL") {
-            fail!(line);
+            fail!(line.to_owned());
         }
     }
 
     let retval = prc.wait();
-    if retval != 0 {
+    if retval != ExitStatus(0) {
         fail!("Servo exited with non-zero status {}", retval);
     }
 }

@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[link(name = "msg",
-       vers = "0.1",
-       uuid = "4c6054e4-2a7b-4fae-b0c8-6d04416b2bf2",
-       url = "http://servo.org/")];
+#[crate_id = "github.com/mozilla/servo#msg:0.1"];
 #[crate_type = "lib"];
 
 extern mod azure;
