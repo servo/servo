@@ -15,6 +15,7 @@ use dom::event::{AbstractEvent, Event};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::mouseevent::MouseEvent;
+use dom::namespace::Null;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, DocumentNodeTypeId};
 use dom::text::Text;
 use dom::uievent::UIEvent;
@@ -354,7 +355,7 @@ impl Document {
 
     pub fn GetElementsByName(&self, name: DOMString) -> @mut HTMLCollection {
         self.createHTMLCollection(|elem|
-            elem.get_attr(None, "name").is_some() && eq_slice(elem.get_attr(None, "name").unwrap(), name))
+            elem.get_attr(Null, "name").is_some() && eq_slice(elem.get_attr(Null, "name").unwrap(), name))
     }
 
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
@@ -434,7 +435,7 @@ fn foreach_ided_elements(root: &AbstractNode, callback: &fn(&DOMString, &Abstrac
         }
 
         do node.with_imm_element |element| {
-            match element.get_attr(None, "id") {
+            match element.get_attr(Null, "id") {
                 Some(id) => {
                     callback(&id.to_str(), &node);
                 }
