@@ -7,6 +7,7 @@ use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::document::{AbstractDocument, Document, HTML};
 use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
+use dom::namespace::Null;
 use dom::node::{AbstractNode, ElementNodeTypeId};
 use dom::window::Window;
 
@@ -56,7 +57,7 @@ impl HTMLDocument {
     pub fn Links(&self) -> @mut HTMLCollection {
         self.parent.createHTMLCollection(|elem|
             (eq_slice(elem.tag_name, "a") || eq_slice(elem.tag_name, "area"))
-            && elem.get_attr(None, "href").is_some())
+            && elem.get_attr(Null, "href").is_some())
     }
 
     pub fn Forms(&self) -> @mut HTMLCollection {
@@ -69,7 +70,7 @@ impl HTMLDocument {
 
     pub fn Anchors(&self) -> @mut HTMLCollection {
         self.parent.createHTMLCollection(|elem|
-            eq_slice(elem.tag_name, "a") && elem.get_attr(None, "name").is_some())
+            eq_slice(elem.tag_name, "a") && elem.get_attr(Null, "name").is_some())
     }
 
     pub fn Applets(&self) -> @mut HTMLCollection {

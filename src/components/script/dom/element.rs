@@ -16,7 +16,7 @@ use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ElementNodeTypeId, Node};
 use dom::document;
 use dom::namespace;
-use dom::namespace::Namespace;
+use dom::namespace::{Namespace, Null};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
@@ -161,8 +161,7 @@ impl<'self> Element {
     }
 
     // FIXME(pcwalton): This is kind of confusingly named relative to the above...
-    pub fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<~str> {
-        let namespace = Namespace::from_str(ns_url);
+    pub fn get_attr(&self, namespace: Namespace, name: &str) -> Option<~str> {
         self.get_attribute(namespace, name).map(|attr| attr.value.clone())
     }
 
@@ -287,7 +286,7 @@ impl Element {
     }
 
     pub fn Id(&self, _abstract_self: AbstractNode) -> DOMString {
-        match self.get_attr(None, "id") {
+        match self.get_attr(Null, "id") {
             Some(x) => x,
             None => ~""
         }
@@ -310,7 +309,7 @@ impl Element {
     }
 
     pub fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
-        self.get_attr(None, name).map(|s| s.to_owned())
+        self.get_attr(Null, name).map(|s| s.to_owned())
     }
 
     pub fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString> {

@@ -7,6 +7,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLImageElementTypeId;
 use dom::htmlelement::HTMLElement;
+use dom::namespace::Null;
 use dom::node::{AbstractNode, Node};
 use extra::url::Url;
 use servo_util::geometry::to_px;
@@ -40,7 +41,7 @@ impl HTMLImageElement {
     /// prefetching the image. This method must be called after `src` is changed.
     pub fn update_image(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
         let elem = &mut self.htmlelement.element;
-        let src_opt = elem.get_attr(None, "src").map(|x| x.to_str());
+        let src_opt = elem.get_attr(Null, "src").map(|x| x.to_str());
         match src_opt {
             None => {}
             Some(src) => {
