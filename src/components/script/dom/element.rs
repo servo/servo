@@ -280,20 +280,40 @@ impl<'self> Element {
     }
 }
 
+// http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
+impl Element {
+    pub fn get_url_attribute(&self, name: &str) -> DOMString {
+        // XXX Resolve URL.
+        self.get_string_attribute(name)
+    }
+    pub fn set_url_attribute(&mut self, abstract_self: AbstractNode,
+                             name: &str, value: DOMString) {
+        self.set_string_attribute(abstract_self, name, value);
+    }
+
+    pub fn get_string_attribute(&self, name: &str) -> DOMString {
+        match self.get_attr(Null, name) {
+            Some(x) => x,
+            None => ~""
+        }
+    }
+    pub fn set_string_attribute(&mut self, abstract_self: AbstractNode,
+                                name: &str, value: DOMString) {
+        self.set_attribute(abstract_self, Null, name.to_owned(), value);
+    }
+}
+
 impl Element {
     pub fn TagName(&self) -> DOMString {
         self.tag_name.to_ascii_upper()
     }
 
     pub fn Id(&self, _abstract_self: AbstractNode) -> DOMString {
-        match self.get_attr(Null, "id") {
-            Some(x) => x,
-            None => ~""
-        }
+        self.get_string_attribute("id")
     }
 
     pub fn SetId(&mut self, abstract_self: AbstractNode, id: DOMString) {
-        self.set_attribute(abstract_self, namespace::Null, ~"id", id);
+        self.set_string_attribute(abstract_self, "id", id);
     }
 
     pub fn Attributes(&mut self, abstract_self: AbstractNode) -> @mut AttrList {
