@@ -13,6 +13,7 @@ use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, M
 use dom::event::Event;
 use dom::eventtarget::AbstractEventTarget;
 use dom::htmldocument::HTMLDocument;
+use dom::namespace::Null;
 use dom::node::{AbstractNode, LayoutDataRef};
 use dom::window::{TimerData, Window};
 use html::hubbub_html_parser::HtmlParserResult;
@@ -811,7 +812,7 @@ impl ScriptTask {
                 let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
                 do anchors.find |node| {
                     do node.with_imm_element |elem| {
-                        match elem.get_attr(None, "name") {
+                        match elem.get_attr(Null, "name") {
                             Some(name) => eq_slice(name, fragid),
                             None => false
                         }
@@ -910,7 +911,7 @@ impl ScriptTask {
 
     fn load_url_from_element(&self, page: @mut Page, element: &Element) {
         // if the node's element is "a," load url from href attr
-        let attr = element.get_attr(None, "href");
+        let attr = element.get_attr(Null, "href");
         for href in attr.iter() {
             debug!("ScriptTask: clicked on link to {:s}", *href);
             let click_frag = href.starts_with("#");

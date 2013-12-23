@@ -19,6 +19,7 @@ use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementType
 use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::HTMLImageElement;
+use script::dom::namespace::Namespace;
 use script::dom::node::{AbstractNode, DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
@@ -379,7 +380,8 @@ impl<'self> TElement for LayoutElement<'self> {
     }
 
     fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<~str> {
-        self.element.get_attr(ns_url, name)
+        let namespace = Namespace::from_str(ns_url);
+        self.element.get_attr(namespace, name)
     }
 
     fn get_link(&self) -> Option<~str> {
