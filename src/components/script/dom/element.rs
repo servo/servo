@@ -149,9 +149,8 @@ impl<'self> Element {
     }
 
     pub fn get_attribute(&self,
-                         namespace_url: Option<DOMString>,
+                         namespace: Namespace,
                          name: &str) -> Option<@mut Attr> {
-        let namespace = Namespace::from_str(namespace_url);
         // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
         let name = name.to_ascii_lower();
         self.attrs.find_equiv(&name).and_then(|attrs| {
@@ -163,7 +162,8 @@ impl<'self> Element {
 
     // FIXME(pcwalton): This is kind of confusingly named relative to the above...
     pub fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<~str> {
-        self.get_attribute(ns_url, name).map(|attr| attr.value.clone())
+        let namespace = Namespace::from_str(ns_url);
+        self.get_attribute(namespace, name).map(|attr| attr.value.clone())
     }
 
     pub fn set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
@@ -314,6 +314,7 @@ impl Element {
     }
 
     pub fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString> {
+        let namespace = Namespace::from_str(namespace);
         self.get_attribute(namespace, local_name)
             .map(|attr| attr.value.clone())
     }
