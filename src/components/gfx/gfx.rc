@@ -12,8 +12,8 @@
 
 extern mod azure;
 extern mod extra;
-extern mod geom = "rust-geom";
-extern mod layers = "rust-layers";
+extern mod geom;
+extern mod layers;
 extern mod stb_image;
 extern mod png;
 extern mod servo_net (name = "net");
@@ -30,9 +30,9 @@ extern mod harfbuzz;
 #[cfg(target_os="linux")] #[cfg(target_os="android")] extern mod freetype;
 
 // Mac OS-specific library dependencies
-#[cfg(target_os="macos")] extern mod core_foundation = "rust-core-foundation";
-#[cfg(target_os="macos")] extern mod core_graphics = "rust-core-graphics";
-#[cfg(target_os="macos")] extern mod core_text = "rust-core-text";
+#[cfg(target_os="macos")] extern mod core_foundation;
+#[cfg(target_os="macos")] extern mod core_graphics;
+#[cfg(target_os="macos")] extern mod core_text;
 
 pub use gfx_font = font;
 pub use gfx_font_context = font_context;
