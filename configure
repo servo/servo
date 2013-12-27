@@ -402,7 +402,6 @@ probe CFG_CLANG            clang++
 
 CFG_BUILD_DIR="${CFG_BUILD_HOME}${CFG_TARGET_TRIPLES}/"
 make_dir "${CFG_BUILD_DIR}"
-make_dir "${CFG_BUILD_HOME}/workspace/src"
 
 if [ ! -z "$CFG_LOCAL_RUST_ROOT" ]
 then
@@ -411,7 +410,6 @@ then
         LRV=`${CFG_LOCAL_RUST_ROOT}/bin/rustc --version`
         step_msg "using rustc at: ${CFG_LOCAL_RUST_ROOT} with version: $LRV"
         CFG_RUSTC=${CFG_LOCAL_RUST_ROOT}/bin/rustc
-        CFG_RUSTPKG=${CFG_LOCAL_RUST_ROOT}/bin/rustpkg
         CFG_RUST_HOME=${CFG_LOCAL_RUST_ROOT}
         CFG_LOCAL_RUSTC=1
     else
@@ -421,7 +419,6 @@ else
     step_msg "using in-tree rust compiler"
     # The Rust compiler we're going to build
     CFG_RUSTC="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET_TRIPLE}/stage2/bin/rustc"
-    CFG_RUSTPKG="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET_TRIPLE}/stage2/bin/rustpkg"
     CFG_RUST_HOME="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET_TRIPLE}/stage2"
 fi
 
@@ -488,12 +485,6 @@ then
     done
 fi
 
-CFG_SUBMODULES_RUSTPKG="\
-    support/geom/rust-geom \
-    support/layers/rust-layers \
-    support/opengles/rust-opengles \
-    support/sharegl/sharegl"
-
 CFG_SUBMODULES="\
     support/alert/rust-alert \
     support/azure/rust-azure \
@@ -511,17 +502,19 @@ CFG_SUBMODULES="\
     support/spidermonkey/rust-mozjs \
     support/stb-image/rust-stb-image \
     support/png/libpng \
-    support/png/rust-png"
+    support/png/rust-png \
+    support/geom/rust-geom \
+    support/layers/rust-layers \
+    support/opengles/rust-opengles \
+    support/sharegl/sharegl"
 
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then
-CFG_SUBMODULES_RUSTPKG="\
+CFG_SUBMODULES="\
     platform/macos/rust-core-foundation \
     platform/macos/rust-core-graphics \
     platform/macos/rust-core-text \
     platform/macos/rust-io-surface \
-    ${CFG_SUBMODULES_RUSTPKG}"
-CFG_SUBMODULES="\
     support/glfw/glfw \
     support/glfw/glfw-rs \
     platform/macos/rust-cocoa \
@@ -530,10 +523,8 @@ fi
 
 if [ $CFG_OSTYPE = "unknown-linux-gnu" ]
 then
-CFG_SUBMODULES_RUSTPKG="\
-    platform/linux/rust-xlib \
-    ${CFG_SUBMODULES_RUSTPKG}"
 CFG_SUBMODULES="\
+    platform/linux/rust-xlib \
     support/glfw/glfw \
     support/glfw/glfw-rs \
     platform/linux/rust-fontconfig \
@@ -563,10 +554,8 @@ putvar CFG_BUILD_HOME
 putvar CFG_BUILD_DIR
 putvar CFG_CONFIGURE_ARGS
 putvar CFG_SUBMODULES
-putvar CFG_SUBMODULES_RUSTPKG
 putvar CFG_DISABLE_MANAGE_SUBMODULES
 putvar CFG_RUSTC
-putvar CFG_RUSTPKG
 putvar CFG_RUSTC_FLAGS
 putvar CFG_RUST_HOME
 putvar CFG_PATH
