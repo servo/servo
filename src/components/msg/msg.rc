@@ -10,14 +10,14 @@
 
 extern mod azure;
 extern mod extra;
-extern mod geom = "rust-geom";
-extern mod layers = "rust-layers";
+extern mod geom;
+extern mod layers;
 extern mod std;
 
 #[cfg(target_os="macos")]
-extern mod core_foundation = "rust-core-foundation";
+extern mod core_foundation;
 #[cfg(target_os="macos")]
-extern mod io_surface = "rust-io-surface";
+extern mod io_surface;
 
 pub mod compositor_msg;
 pub mod constellation_msg;

@@ -13,7 +13,7 @@
 
 #[feature(globs, macro_rules, struct_variant, managed_boxes)];
 
-extern mod geom = "rust-geom";
+extern mod geom;
 extern mod hubbub;
 extern mod encoding;
 extern mod js;
