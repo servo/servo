@@ -12,6 +12,7 @@ use windowing::{Forward, Back};
 
 use alert::{Alert, AlertMethods};
 use std::libc::c_int;
+use std::local_data;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
@@ -35,7 +36,7 @@ impl ApplicationMethods for Application {
 }
 
 impl Drop for Application {
-    fn drop(&self) {
+    fn drop(&mut self) {
     }
 }
 
@@ -78,26 +79,31 @@ impl WindowMethods<Application> for Window {
             throbber_frame: 0,
         };
 
-        let event_queue = window.event_queue;
+        install_local_window(window);
 
         // Register event handlers.
+
+        //Added dummy display callback to freeglut. According to freeglut ref, we should register some kind of display callback after freeglut 3.0.
+        do glut::display_func || {
+            debug!("GLUT display func registered");
+        }
         do glut::reshape_func(window.glut_window) |width, height| {
-            event_queue.push(ResizeWindowEvent(width as uint, height as uint))
+            local_window().event_queue.push(ResizeWindowEvent(width as uint, height as uint))
         }
         do glut::keyboard_func |key, _, _| {
-            window.handle_key(key)
+            local_window().handle_key(key)
         }
         do glut::mouse_func |button, state, x, y| {
             if button < 3 {
-                window.handle_mouse(button, state, x, y);
+                local_window().handle_mouse(button, state, x, y);
             }
             else {
                 match button {
                     3 => {
-                        event_queue.push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32)));
+                        local_window().event_queue.push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32)));
                     },
                     4 => {
-                        event_queue.push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32)));
+                        local_window().event_queue.push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32)));
                     },
                     _ => {}
                 }
@@ -206,7 +212,7 @@ impl Window {
     /// Helper function to handle a click
     fn handle_mouse(&self, button: c_int, state: c_int, x: c_int, y: c_int) {
         // FIXME(tkuehn): max pixel dist should be based on pixel density
-        let max_pixel_dist = 10f64;
+        let max_pixel_dist = 10f32;
         let event = match state {
             glut::MOUSE_DOWN => {
                 *self.mouse_down_point = Point2D(x, y);
@@ -217,7 +223,7 @@ impl Window {
                 if *self.mouse_down_button == button {
                     let pixel_dist = *self.mouse_down_point - Point2D(x, y);
                     let pixel_dist = ((pixel_dist.x * pixel_dist.x +
-                                       pixel_dist.y * pixel_dist.y) as float).sqrt();
+                                       pixel_dist.y * pixel_dist.y) as f32).sqrt();
                     if pixel_dist < max_pixel_dist {
                         let click_event = MouseWindowClickEvent(button as uint,
                                                            Point2D(x as f32, y as f32));
@@ -245,3 +251,16 @@ impl Window {
     }
 }
 
+static TLS_KEY: local_data::Key<@mut Window> = &local_data::Key;
+
+fn install_local_window(window: @mut Window) {
+    local_data::set(TLS_KEY, window);
+}
+
+fn drop_local_window() {
+    local_data::pop(TLS_KEY);
+}
+
+fn local_window() -> @mut Window {
+    local_data::get(TLS_KEY, |v| *v.unwrap())
+}
