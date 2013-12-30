@@ -29,11 +29,11 @@ use std::cast;
 use std::ptr;
 use std::str;
 
-fn float_to_fixed_ft(f: float) -> i32 {
+fn float_to_fixed_ft(f: f64) -> i32 {
     float_to_fixed(6, f)
 }
 
-fn fixed_to_float_ft(f: i32) -> float {
+fn fixed_to_float_ft(f: i32) -> f64 {
     fixed_to_float(6, f)
 }
 
@@ -63,7 +63,7 @@ pub struct FontHandle {
 #[unsafe_destructor]
 impl Drop for FontHandle {
     #[fixed_stack_segment]
-    fn drop(&self) {
+    fn drop(&mut self) {
         assert!(self.face.is_not_null());
         unsafe {
             if !FT_Done_Face(self.face).succeeded() {
@@ -78,7 +78,7 @@ impl FontHandleMethods for FontHandle {
                            buf: ~[u8],
                            style: &SpecifiedFontStyle)
                         -> Result<FontHandle, ()> {
-        let ft_ctx: FT_Library = fctx.ctx.ctx;
+        let ft_ctx: FT_Library = fctx.ctx.borrow().ctx;
         if ft_ctx.is_null() { return Err(()); }
 
         let face_result = do buf.as_imm_buf |bytes: *u8, len: uint| {
@@ -93,7 +93,7 @@ impl FontHandleMethods for FontHandle {
               let handle = FontHandle {
                   face: face,
                   source: FontSourceMem(buf),
-                  handle: *fctx
+                  handle: fctx.clone()
               };
               Ok(handle)
             }
@@ -101,10 +101,8 @@ impl FontHandleMethods for FontHandle {
         };
 
         #[fixed_stack_segment]
-         fn create_face_from_buffer(lib: FT_Library,
-                                    cbuf: *u8, cbuflen: uint, pt_size: float) 
-             -> Result<FT_Face, ()> {
-
+         fn create_face_from_buffer(lib: FT_Library, cbuf: *u8, cbuflen: uint, pt_size: f64)
+                                    -> Result<FT_Face, ()> {
              unsafe {
                  let mut face: FT_Face = ptr::null();
                  let face_index = 0 as FT_Long;
@@ -207,7 +205,7 @@ impl FontHandleMethods for FontHandle {
                 let void_glyph = (*self.face).glyph;
                 let slot: FT_GlyphSlot = cast::transmute(void_glyph);
                 assert!(slot.is_not_null());
-                debug!("metrics: {}", (*slot).metrics);
+                debug!("metrics: {:?}", (*slot).metrics);
                 let advance = (*slot).metrics.horiAdvance;
                 debug!("h_advance for {} is {}", glyph, advance);
                 let advance = advance as i32;
@@ -224,12 +222,12 @@ impl FontHandleMethods for FontHandle {
         /* TODO(Issue #76): complete me */
         let face = self.get_face_rec();
 
-        let underline_size = self.font_units_to_au(face.underline_thickness as float);
-        let underline_offset = self.font_units_to_au(face.underline_position as float);
-        let em_size = self.font_units_to_au(face.units_per_EM as float);
-        let ascent = self.font_units_to_au(face.ascender as float);
-        let descent = self.font_units_to_au(face.descender as float);
-        let max_advance = self.font_units_to_au(face.max_advance_width as float);
+        let underline_size = self.font_units_to_au(face.underline_thickness as f64);
+        let underline_offset = self.font_units_to_au(face.underline_position as f64);
+        let em_size = self.font_units_to_au(face.units_per_EM as f64);
+        let ascent = self.font_units_to_au(face.ascender as f64);
+        let descent = self.font_units_to_au(face.descender as f64);
+        let max_advance = self.font_units_to_au(face.max_advance_width as f64);
 
         // 'leading' is supposed to be the vertical distance between two baselines,
         // reflected by the height attibute in freetype.  On OS X (w/ CTFont),
@@ -237,7 +235,7 @@ impl FontHandleMethods for FontHandle {
         // the top of the next line's ascent or: (line_height - ascent - descent),
         // see http://stackoverflow.com/a/5635981 for CTFont implementation.
         // Convert using a formular similar to what CTFont returns for consistency.
-        let height = self.font_units_to_au(face.height as float);
+        let height = self.font_units_to_au(face.height as f64);
         let leading = height - (ascent + descent);
 
         let mut strikeout_size = geometry::from_pt(0.0);
@@ -247,9 +245,9 @@ impl FontHandleMethods for FontHandle {
             let os2 = FT_Get_Sfnt_Table(face, ft_sfnt_os2) as *TT_OS2;
             let valid = os2.is_not_null() && (*os2).version != 0xffff;
             if valid {
-               strikeout_size = self.font_units_to_au((*os2).yStrikeoutSize as float);
-               strikeout_offset = self.font_units_to_au((*os2).yStrikeoutPosition as float);
-               x_height = self.font_units_to_au((*os2).sxHeight as float);
+               strikeout_size = self.font_units_to_au((*os2).yStrikeoutSize as f64);
+               strikeout_offset = self.font_units_to_au((*os2).yStrikeoutPosition as f64);
+               x_height = self.font_units_to_au((*os2).sxHeight as f64);
             }
         }
 
@@ -277,7 +275,7 @@ impl FontHandleMethods for FontHandle {
 
 impl<'self> FontHandle {
     #[fixed_stack_segment]
-    fn set_char_size(face: FT_Face, pt_size: float) -> Result<(), ()>{
+    fn set_char_size(face: FT_Face, pt_size: f64) -> Result<(), ()>{
         let char_width = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let char_height = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let h_dpi = 72;
@@ -290,10 +288,10 @@ impl<'self> FontHandle {
     }
 
     #[fixed_stack_segment]
-    pub fn new_from_file(fctx: &FontContextHandle, file: ~str,
+    pub fn new_from_file(fctx: &FontContextHandle, file: &str,
                          style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
         unsafe {
-            let ft_ctx: FT_Library = fctx.ctx.ctx;
+            let ft_ctx: FT_Library = fctx.ctx.borrow().ctx;
             if ft_ctx.is_null() { return Err(()); }
 
             let mut face: FT_Face = ptr::null();
@@ -307,9 +305,9 @@ impl<'self> FontHandle {
             }
             if FontHandle::set_char_size(face, style.pt_size).is_ok() {
                 Ok(FontHandle {
-                    source: FontSourceFile(file),
+                    source: FontSourceFile(file.to_str()),
                     face: face,
-                    handle: *fctx
+                    handle: fctx.clone()
                 })
             } else {
                 Err(())
@@ -321,7 +319,7 @@ impl<'self> FontHandle {
     pub fn new_from_file_unstyled(fctx: &FontContextHandle, file: ~str)
                                -> Result<FontHandle, ()> {
         unsafe {
-            let ft_ctx: FT_Library = fctx.ctx.ctx;
+            let ft_ctx: FT_Library = fctx.ctx.borrow().ctx;
             if ft_ctx.is_null() { return Err(()); }
 
             let mut face: FT_Face = ptr::null();
@@ -337,7 +335,7 @@ impl<'self> FontHandle {
             Ok(FontHandle {
                 source: FontSourceFile(file),
                 face: face,
-                handle: *fctx
+                handle: fctx.clone()
             })
         }
     }
@@ -348,7 +346,7 @@ impl<'self> FontHandle {
         }
     }
 
-    fn font_units_to_au(&self, value: float) -> Au {
+    fn font_units_to_au(&self, value: f64) -> Au {
         let face = self.get_face_rec();
 
         // face.size is a *c_void in the bindings, presumably to avoid
@@ -356,8 +354,8 @@ impl<'self> FontHandle {
         let size: &FT_SizeRec = unsafe { cast::transmute(&(*face.size)) };
         let metrics: &FT_Size_Metrics = &(*size).metrics;
 
-        let em_size = face.units_per_EM as float;
-        let x_scale = (metrics.x_ppem as float) / em_size as float;
+        let em_size = face.units_per_EM as f64;
+        let x_scale = (metrics.x_ppem as f64) / em_size as f64;
 
         // If this isn't true then we're scaling one of the axes wrong
         assert!(metrics.x_ppem == metrics.y_ppem);
