@@ -93,7 +93,10 @@ pub struct IOCompositor {
     constellation_chan: ConstellationChan,
 
     /// The channel on which messages can be sent to the profiler.
-    profiler_chan: ProfilerChan
+    profiler_chan: ProfilerChan,
+
+    /// Pending scroll to fragment event, if any 
+    fragment_point: Option<Point2D<f32>>
 }
 
 impl IOCompositor {
@@ -129,7 +132,8 @@ impl IOCompositor {
             zoom_time: 0f64,
             compositor_layer: None,
             constellation_chan: constellation_chan.clone(),
-            profiler_chan: profiler_chan
+            profiler_chan: profiler_chan,
+            fragment_point: None
         }
     }
 
@@ -336,6 +340,13 @@ impl IOCompositor {
                 let page_window = Size2D(window_size.width as f32 / world_zoom,
                                          window_size.height as f32 / world_zoom);
                 assert!(layer.resize(id, new_size, page_window, epoch));
+                match self.fragment_point.take() { 
+                    Some(point) => {
+                        let recomposite = layer.move(point, page_window) | self.recomposite;
+                        self.recomposite = recomposite;
+                    },
+                    None => {}
+                }
                 true
             }
             None => {
@@ -432,13 +443,15 @@ impl IOCompositor {
         let page_window = Size2D(self.window_size.width as f32 / world_zoom,
                                  self.window_size.height as f32 / world_zoom);
         let ask: bool = match self.compositor_layer {
-            Some(ref mut layer) if layer.pipeline.id == id => {
+            Some(ref mut layer) if layer.pipeline.id == id && !layer.hidden => {
                 let recomposite = layer.move(point, page_window) | self.recomposite;
                 self.recomposite = recomposite;
 
                 true
             }
             Some(_) | None => {
+                self.fragment_point = Some(point);
+
                 false
             }
         };
