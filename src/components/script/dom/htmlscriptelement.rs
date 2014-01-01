@@ -7,9 +7,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLScriptElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::namespace::Null;
 use dom::node::{AbstractNode, Node};
-use style::TElement;
 
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
@@ -30,10 +28,7 @@ impl HTMLScriptElement {
 
 impl HTMLScriptElement {
     pub fn Src(&self) -> DOMString {
-        match self.htmlelement.element.get_attr(Null, "src") {
-            Some(s) => s.to_owned(),
-            None => ~""
-        }
+        self.htmlelement.element.get_url_attribute("src")
     }
 
     pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
