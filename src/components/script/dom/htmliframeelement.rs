@@ -84,14 +84,12 @@ impl HTMLIFrameElement {
     }
 
     pub fn Sandbox(&self, _abstract_self: AbstractNode) -> DOMString {
-        match self.htmlelement.element.GetAttribute(~"sandbox") {
-            Some(s) => s.to_owned(),
-            None => ~"",
-        }
+        self.htmlelement.element.get_string_attribute("sandbox")
     }
 
     pub fn SetSandbox(&mut self, abstract_self: AbstractNode, sandbox: DOMString) {
-        self.htmlelement.element.SetAttribute(abstract_self, ~"sandbox", sandbox);
+        self.htmlelement.element.set_string_attribute(abstract_self, "sandbox",
+                                                      sandbox);
     }
 
     pub fn AfterSetAttr(&mut self, name: DOMString, value: DOMString) {
