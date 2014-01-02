@@ -221,7 +221,7 @@ impl Element {
             "id" => {
                 let doc = self.node.owner_doc();
                 let doc = doc.mut_document();
-                doc.update_idmap(abstract_self, value.clone(), old_value);
+                doc.update_idmap(abstract_self, Some(value.clone()), old_value);
             }
             _ => ()
         }

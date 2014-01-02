@@ -59,6 +59,11 @@
 
       let old = document.getElementById(TEST_ID);
       is(old, null, "test3-1, the method shouldn't get the element by the old id.");
+
+      // remove id.
+      test.removeAttribute("id");
+      let e2 = document.getElementById(UPDATED_ID);
+      is(e2, null, "test3-2, the method should return null when the passed id is none in document.");
     }
 
     // TODO:
