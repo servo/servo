@@ -37,6 +37,7 @@ impl ApplicationMethods for Application {
 
 impl Drop for Application {
     fn drop(&mut self) {
+        drop_local_window();
     }
 }
 
