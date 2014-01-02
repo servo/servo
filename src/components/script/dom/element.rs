@@ -171,14 +171,7 @@ impl Element {
                          namespace: Namespace,
                          name: DOMString,
                          value: DOMString) -> ErrorResult {
-        //FIXME: Throw for XML-invalid names
-        //FIXME: Throw for XMLNS-invalid names
-        let (prefix, local_name) = if name.contains(":")  {
-            let parts: ~[&str] = name.splitn(':', 1).collect();
-            (Some(parts[0].to_owned()), parts[1].to_owned())
-        } else {
-            (None, name.clone())
-        };
+        let (prefix, local_name) = get_attribute_parts(name.clone());
         match prefix {
             Some(ref prefix_str) => {
                 if (namespace == namespace::Null ||
@@ -487,4 +480,18 @@ impl Element {
     pub fn QuerySelector(&self, _selectors: DOMString) -> Fallible<Option<AbstractNode>> {
         Ok(None)
     }
+}
+
+
+fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
+    //FIXME: Throw for XML-invalid names
+    //FIXME: Throw for XMLNS-invalid names
+    let (prefix, local_name) = if name.contains(":")  {
+        let parts: ~[&str] = name.splitn(':', 1).collect();
+        (Some(parts[0].to_owned()), parts[1].to_owned())
+    } else {
+        (None, name)
+    };
+
+    (prefix, local_name)
 }
