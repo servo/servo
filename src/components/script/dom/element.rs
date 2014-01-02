@@ -321,8 +321,7 @@ impl Element {
 
     pub fn SetAttribute(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
                         -> ErrorResult {
-        self.set_attr(abstract_self, name, value);
-        Ok(())
+        self.set_attr(abstract_self, name, value)
     }
 
     pub fn SetAttributeNS(&mut self,
