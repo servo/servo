@@ -684,6 +684,85 @@ impl Iterator<AbstractNode> for TreeIterator {
     }
 }
 
+pub struct NodeIterator {
+    start_node: AbstractNode,
+    current_node: Option<AbstractNode>,
+    depth: uint,
+    priv include_start: bool,
+    priv include_descendants_of_void: bool
+}
+
+impl NodeIterator {
+    pub fn new(start_node: AbstractNode, include_start: bool, include_descendants_of_void: bool) -> NodeIterator {
+        NodeIterator {
+            start_node: start_node,
+            current_node: None,
+            depth: 0,
+            include_start: include_start,
+            include_descendants_of_void: include_descendants_of_void
+        }
+    }
+
+    fn next_child(&self, node: AbstractNode) -> Option<AbstractNode> {
+        if !self.include_descendants_of_void &&
+           node.is_element() {
+            node.with_imm_element(|elem| {
+                if elem.is_void() {
+                    None
+                } else {
+                    node.first_child()
+                }
+            })
+        } else {
+            node.first_child()
+        }
+    }
+}
+
+impl Iterator<AbstractNode> for NodeIterator {
+    fn next(&mut self) -> Option<AbstractNode> {
+         self.current_node = match self.current_node {
+            None => {
+                if self.include_start {
+                    Some(self.start_node)
+                } else {
+                    self.next_child(self.start_node)
+                }
+            },
+            Some(node) => {
+                match self.next_child(node) {
+                    Some(child) => {
+                        self.depth += 1;
+                        Some(child)
+                    },
+                    None if node == self.start_node => None,
+                    None => {
+                        match node.next_sibling() {
+                            Some(sibling) => Some(sibling),
+                            None => {
+                                let mut candidate = node;
+                                while candidate.next_sibling().is_none() {
+                                    candidate = candidate.parent_node().expect("Got to root without reaching start node");
+                                    self.depth -= 1;
+                                    if candidate == self.start_node {
+                                        break;
+                                    }
+                                }
+                                if candidate != self.start_node {
+                                    candidate.next_sibling()
+                                } else {
+                                    None
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        self.current_node
+    }
+}
+
 fn gather_abstract_nodes(cur: &AbstractNode, refs: &mut ~[AbstractNode], postorder: bool) {
     if !postorder {
         refs.push(cur.clone());
