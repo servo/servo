@@ -456,9 +456,8 @@ then
     need_ok "git failed"
 
     msg "git: submodule clobber"
-    "${CFG_GIT}" submodule foreach --recursive git clean -dxf
-    need_ok "git failed"
-    "${CFG_GIT}" submodule foreach --recursive git checkout .
+    "${CFG_GIT}" submodule foreach --recursive \
+      'if [ -n "$(git status --porcelain)" ] ; then echo "Refusing to clobber $path" ; else git clean -dxf ; git checkout . ; fi'
     need_ok "git failed"
 
     cd ${CFG_BUILD_DIR}
