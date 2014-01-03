@@ -333,28 +333,22 @@ impl IOCompositor {
                            id: PipelineId,
                            new_size: Size2D<f32>,
                            epoch: Epoch) {
-        let ask: bool = match self.compositor_layer {
+        let (ask, move): (bool, bool) = match self.compositor_layer {
             Some(ref mut layer) => {
                 let window_size = &self.window_size;
                 let world_zoom = self.world_zoom;
                 let page_window = Size2D(window_size.width as f32 / world_zoom,
                                          window_size.height as f32 / world_zoom);
                 assert!(layer.resize(id, new_size, page_window, epoch));
-                match self.fragment_point.take() { 
-                    Some(point) => {
-                        let recomposite = layer.move(point, page_window) | self.recomposite;
-                        self.recomposite = recomposite;
-                    },
-                    None => {}
-                }
-                true
+                let move = self.fragment_point.take().map_default(false, |point| layer.move(point, page_window));
+
+                (true, move)
             }
-            None => {
-                false
-            }
+            None => (false, false)
         };
 
         if ask {
+            self.recomposite_if(move);
             self.ask_for_tiles();
         }
     }
@@ -442,21 +436,20 @@ impl IOCompositor {
         let world_zoom = self.world_zoom;
         let page_window = Size2D(self.window_size.width as f32 / world_zoom,
                                  self.window_size.height as f32 / world_zoom);
-        let ask: bool = match self.compositor_layer {
+        let (ask, move): (bool, bool) = match self.compositor_layer {
             Some(ref mut layer) if layer.pipeline.id == id && !layer.hidden => {
-                let recomposite = layer.move(point, page_window) | self.recomposite;
-                self.recomposite = recomposite;
 
-                true
+                (true, layer.move(point, page_window))
             }
             Some(_) | None => {
                 self.fragment_point = Some(point);
 
-                false
+                (false, false)
             }
         };
 
         if ask {
+            self.recomposite_if(move);
             self.ask_for_tiles();
         }
     }
@@ -548,10 +541,11 @@ impl IOCompositor {
                                                 cursor.y as f32 / world_zoom);
         let page_window = Size2D(self.window_size.width as f32 / world_zoom,
                                  self.window_size.height as f32 / world_zoom);
+        let mut scroll = false;
         for layer in self.compositor_layer.mut_iter() {
-            let recomposite = layer.scroll(page_delta, page_cursor, page_window) || self.recomposite;
-            self.recomposite = recomposite;
+            scroll = layer.scroll(page_delta, page_cursor, page_window) || scroll;
         }
+        self.recomposite_if(scroll);
         self.ask_for_tiles();
     }
 
@@ -662,5 +656,9 @@ impl IOCompositor {
         if exit {
             self.done = true;
         }
+    }
+
+    fn recomposite_if(&mut self, result: bool) {
+        self.recomposite = result || self.recomposite;
     }
 }
