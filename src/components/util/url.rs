@@ -18,6 +18,7 @@ Create a URL object from a string. Does various helpful browsery things like
 */
 // TODO: about:failure->
 pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
+    let str_url = str_url.trim_chars(& &[' ', '\t', '\n', '\r', '\x0C']).to_owned();
     let schm = url::get_scheme(str_url);
     let str_url = match schm {
         Err(_) => {
