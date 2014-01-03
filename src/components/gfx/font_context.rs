@@ -99,12 +99,10 @@ impl<'self> FontContext {
         }
     }
 
-    fn transform_family(&self, family: &str) -> ~str {
-        // FIXME: Need a find_like() in HashMap.
-        let family = family.to_str();
-        debug!("(transform family) searching for `{:s}`", family);
-        match self.generic_fonts.find(&family) {
-            None => family,
+    fn transform_family(&self, family: &~str) -> ~str {
+        debug!("(transform family) searching for `{:s}`", family.as_slice());
+        match self.generic_fonts.find(family) {
+            None => family.to_owned(),
             Some(mapped_family) => (*mapped_family).clone()
         }
     }
@@ -115,9 +113,8 @@ impl<'self> FontContext {
         debug!("(create font group) --- starting ---");
 
         // TODO(Issue #193): make iteration over 'font-family' more robust.
-        for family in style.families.split_iter(',') {
-            let family_name = family.trim();
-            let transformed_family_name = self.transform_family(family_name);
+        for family in style.families.iter() {
+            let transformed_family_name = self.transform_family(family);
             debug!("(create font group) transformed family is `{:s}`", transformed_family_name);
             let mut found = false;
 
@@ -197,7 +194,7 @@ impl<'self> FontContext {
 
         debug!("(create font group) --- finished ---");
 
-        unsafe { RcMut::new_unchecked(FontGroup::new(style.families.to_owned(), &used_style, fonts)) }
+        unsafe { RcMut::new_unchecked(FontGroup::new(style.families.clone(), &used_style, fonts)) }
     }
 
     fn create_font_instance(&self, desc: &FontDescriptor) -> Result<RcMut<Font>, ()> {
