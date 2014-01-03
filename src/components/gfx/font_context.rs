@@ -38,7 +38,7 @@ impl<'self> FontContext {
            profiler_chan: ProfilerChan)
            -> FontContext {
         let handle = FontContextHandle::new();
-        let font_list = if needs_font_list { 
+        let font_list = if needs_font_list {
                             Some(FontList::new(&handle, profiler_chan.clone())) }
                         else { None };
 
@@ -50,7 +50,7 @@ impl<'self> FontContext {
         generic_fonts.insert(~"fantasy", ~"Papyrus");
         generic_fonts.insert(~"monospace", ~"Menlo");
 
-        FontContext { 
+        FontContext {
             instance_cache: LRUCache::new(10),
             font_list: font_list,
             group_cache: LRUCache::new(10),
@@ -86,7 +86,7 @@ impl<'self> FontContext {
                 debug!("font cache hit");
                 Ok(f)
             },
-            None => { 
+            None => {
                 debug!("font cache miss");
                 let result = self.create_font_instance(desc);
                 match result.clone() {
@@ -142,7 +142,7 @@ impl<'self> FontContext {
                     let instance = self.get_font_by_descriptor(result);
 
                     for font in instance.iter() { fonts.push(font.clone()); }
-                }, 
+                },
                 _ => {}
             }
 
@@ -200,7 +200,7 @@ impl<'self> FontContext {
     fn create_font_instance(&self, desc: &FontDescriptor) -> Result<RcMut<Font>, ()> {
         return match &desc.selector {
             // TODO(Issue #174): implement by-platform-name font selectors.
-            &SelectorPlatformIdentifier(ref identifier) => { 
+            &SelectorPlatformIdentifier(ref identifier) => {
                 let result_handle = self.handle.create_font_from_identifier((*identifier).clone(),
                                                                             desc.style.clone());
                 do result_handle.and_then |handle| {

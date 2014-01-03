@@ -191,7 +191,7 @@ pub mod longhands {
         match component_value {
             &Ident(ref value) => {
                 // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                let value_lower = value.to_ascii_lower(); 
+                let value_lower = value.to_ascii_lower();
                 match value_lower.as_slice() {
                     "thin" => Some(specified::Length::from_px(1.)),
                     "medium" => Some(specified::Length::from_px(3.)),
@@ -236,7 +236,7 @@ pub mod longhands {
 
     // TODO: don't parse values we don't support
     <%self:single_keyword_computed name="display"
-            values="inline block inline-block 
+            values="inline block inline-block
             table inline-table table-row-group table-header-group table-footer-group
             table-row table-column-group table-column table-cell table-caption
             list-item
@@ -346,7 +346,7 @@ pub mod longhands {
             match input {
                 &Ident(ref value) => {
                     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                    let value_lower = value.to_ascii_lower(); 
+                    let value_lower = value.to_ascii_lower();
                     match value_lower.as_slice() {
                         % for keyword in vertical_align_keywords:
                         "${keyword}" => Some(Specified_${to_rust_ident(keyword)}),
@@ -472,7 +472,7 @@ pub mod longhands {
                     Some(&Ident(ref value)) => {
                         // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
                         let value = value.as_slice();
-                        let value_lower = value.to_ascii_lower(); 
+                        let value_lower = value.to_ascii_lower();
                         match value_lower.as_slice() {
 //                            "serif" => add!(Serif),
 //                            "sans-serif" => add!(SansSerif),
@@ -523,7 +523,7 @@ pub mod longhands {
             match input {
                 &Ident(ref value) => {
                     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                    let value_lower = value.to_ascii_lower();  
+                    let value_lower = value.to_ascii_lower();
                     match value_lower.as_slice() {
                         "bold" => Some(SpecifiedWeight700),
                         "normal" => Some(SpecifiedWeight400),

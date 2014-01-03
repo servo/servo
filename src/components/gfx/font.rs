@@ -198,7 +198,7 @@ impl RunMetrics {
         // ascent+descent and advance is sometimes too generous and
         // looking at actual glyph extents can yield a tighter box.
 
-        RunMetrics { 
+        RunMetrics {
             advance_width: advance,
             bounding_box: bounds,
             ascent: ascent,
@@ -287,9 +287,9 @@ impl<'self> Font {
     fn make_shaper(&'self mut self) -> &'self Shaper {
         // fast path: already created a shaper
         match self.shaper {
-            Some(ref shaper) => { 
+            Some(ref shaper) => {
                 let s: &'self Shaper = shaper;
-                return s; 
+                return s;
             },
             None => {}
         }
@@ -400,7 +400,7 @@ impl Font {
 
         let glyphbuf = struct__AzGlyphBuffer {
             mGlyphs: vec::raw::to_ptr(azglyphs),
-            mNumGlyphs: azglyph_buf_len as uint32_t            
+            mNumGlyphs: azglyph_buf_len as uint32_t
         };
 
         unsafe {
