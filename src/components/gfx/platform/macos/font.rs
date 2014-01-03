@@ -8,14 +8,14 @@ extern mod core_foundation;
 extern mod core_graphics;
 extern mod core_text;
 
-use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
-use font::{FontTableTag, FontWeight100, FontWeight200, FontWeight300, FontWeight400};
-use font::{FontWeight500, FontWeight600, FontWeight700, FontWeight800, FontWeight900};
+use font::{FontHandleMethods, FontMetrics, FontTableMethods};
+use font::FontTableTag;
 use font::{FractionalPixel, SpecifiedFontStyle};
 use servo_util::geometry::{Au, px_to_pt};
 use servo_util::geometry;
 use platform::macos::font_context::FontContextHandle;
 use text::glyph::GlyphIndex;
+use style::computed_values::font_weight;
 
 use core_foundation::base::CFIndex;
 use core_foundation::data::CFData;
@@ -104,20 +104,20 @@ impl FontHandleMethods for FontHandle {
         self.ctfont.symbolic_traits().is_italic()
     }
 
-    fn boldness(&self) -> CSSFontWeight {
+    fn boldness(&self) -> font_weight::T {
         // -1.0 to 1.0
         let normalized = self.ctfont.all_traits().normalized_weight();
         // 0.0 to 9.0
         let normalized = (normalized + 1.0) / 2.0 * 9.0;
-        if normalized < 1.0 { return FontWeight100; }
-        if normalized < 2.0 { return FontWeight200; }
-        if normalized < 3.0 { return FontWeight300; }
-        if normalized < 4.0 { return FontWeight400; }
-        if normalized < 5.0 { return FontWeight500; }
-        if normalized < 6.0 { return FontWeight600; }
-        if normalized < 7.0 { return FontWeight700; }
-        if normalized < 8.0 { return FontWeight800; }
-        return FontWeight900;
+        if normalized < 1.0 { return font_weight::Weight100; }
+        if normalized < 2.0 { return font_weight::Weight200; }
+        if normalized < 3.0 { return font_weight::Weight300; }
+        if normalized < 4.0 { return font_weight::Weight400; }
+        if normalized < 5.0 { return font_weight::Weight500; }
+        if normalized < 6.0 { return font_weight::Weight600; }
+        if normalized < 7.0 { return font_weight::Weight700; }
+        if normalized < 8.0 { return font_weight::Weight800; }
+        return font_weight::Weight900;
     }
 
     fn clone_with_style(&self, fctx: &FontContextHandle, style: &SpecifiedFontStyle)

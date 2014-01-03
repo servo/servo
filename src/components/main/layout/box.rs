@@ -13,7 +13,8 @@ use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextDisplayItem};
 use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags, ClipDisplayItem};
 use gfx::display_list::{ClipDisplayItemClass};
-use gfx::font::{FontStyle, FontWeight300};
+use gfx::font::FontStyle;
+
 use gfx::text::text_run::TextRun;
 use servo_msg::constellation_msg::{FrameRectMsg, PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
@@ -415,9 +416,11 @@ impl Box {
             font_style::oblique => (false, true),
         };
 
+        let font_weight = my_style.Font.font_weight;
+
         FontStyle {
             pt_size: font_size,
-            weight: FontWeight300,
+            weight: font_weight,
             italic: italic,
             oblique: oblique,
             families: font_families,

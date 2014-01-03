@@ -11,6 +11,7 @@ use servo_util::time::ProfilerChan;
 
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
+use style::computed_values::font_weight;
 
 use azure::azure_hl::BackendType;
 use std::hashmap::HashMap;
@@ -20,10 +21,9 @@ use std::rc::RcMut;
 // TODO(Rust #3934): creating lots of new dummy styles is a workaround
 // for not being able to store symbolic enums in top-level constants.
 pub fn dummy_style() -> FontStyle {
-    use font::FontWeight300;
     return FontStyle {
         pt_size: 20f64,
-        weight: FontWeight300,
+        weight: font_weight::Weight300,
         italic: false,
         oblique: false,
         families: ~"serif, sans-serif",

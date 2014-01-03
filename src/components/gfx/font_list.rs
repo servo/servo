@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use font::{CSSFontWeight, SpecifiedFontStyle};
+use font::SpecifiedFontStyle;
 use gfx_font::FontHandleMethods;
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
@@ -10,6 +10,7 @@ use platform::font_list::FontListHandle;
 use servo_util::time;
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
+use style::computed_values::font_weight;
 
 use std::hashmap::HashMap;
 
@@ -132,7 +133,7 @@ impl<'self> FontFamily {
 /// standard four faces: Normal, Bold, Italic, BoldItalic.
 pub struct FontEntry {
     face_name: ~str,
-    priv weight: CSSFontWeight,
+    priv weight: font_weight::T,
     priv italic: bool,
     handle: FontHandle,
     // TODO: array of OpenType features, etc.
