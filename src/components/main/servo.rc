@@ -56,6 +56,8 @@ pub use servo_util::url::make_url;
 use std::comm;
 #[cfg(not(test))]
 use std::os;
+#[cfg(not(test))]
+use std::str;
 use std::task::spawn_with;
 
 #[path="compositing/compositor_task.rs"]
@@ -100,27 +102,26 @@ pub mod platform;
 #[path = "util/mod.rs"]
 pub mod util;
 
-#[cfg(not(test))]
+#[cfg(not(test), target_os="linux")]
+#[cfg(not(test), target_os="macos")]
 #[start]
 fn start(argc: int, argv: **u8) -> int {
-    #[cfg(target_os="linux")]
-    #[cfg(target_os="macos")]
-    fn getopts() -> Opts {
-        opts::from_cmdline_args(os::args())
-    }
-    #[cfg(target_os="android")]
-    fn getopts() -> Opts {
-        let mut args:~[~str] = ~[];
-        args.push(~"servo");
-        let servo_url = os::getenv(~"SERVO_URL");
-        match servo_url {
-            Some(s) => { args.push(s); },
-            None => { fail!("No url input"); }
-        }
-        opts::from_cmdline_args(args)
-    }
     do std::rt::start_on_main_thread(argc, argv) {
-        run(getopts())
+        run(opts::from_cmdline_args(os::args()))
+    }
+}
+
+#[cfg(not(test), target_os="android")]
+#[no_mangle]
+pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
+    do std::rt::start_on_main_thread(argc, argv) {
+        let mut args:~[~str] = ~[];
+        for i in range(0u, argc as uint) {
+            unsafe {
+                args.push(str::raw::from_c_str(*argv.offset(i as int) as *i8));
+            }
+        }
+        run(opts::from_cmdline_args(args))
     }
 }
 
