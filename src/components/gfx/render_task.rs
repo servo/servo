@@ -18,6 +18,7 @@ use servo_msg::constellation_msg::{ConstellationChan, PipelineId, RendererReadyM
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
+use servo_util::task::spawn_named;
 
 use std::comm::{Chan, Port, SharedChan};
 use extra::arc::Arc;
@@ -145,7 +146,8 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                   opts: Opts,
                   profiler_chan: ProfilerChan,
                   shutdown_chan: Chan<()>) {
-        spawn(proc() {
+        spawn_named("RenderTask", proc() {
+
             { // Ensures RenderTask and graphics context are destroyed before shutdown msg
                 let native_graphics_context = compositor.get_graphics_metadata().map(
                     |md| NativePaintingGraphicsContext::from_metadata(&md));

@@ -10,10 +10,11 @@ use http::client::RequestWriter;
 use http::method::Get;
 use http::headers::HeaderEnum;
 use std::io::Reader;
+use servo_util::task::spawn_named;
 
 pub fn factory() -> LoaderTask {
     let f: LoaderTask = proc(url, start_chan) {
-        spawn(proc() load(url, start_chan))
+        spawn_named("http_loader", proc() load(url, start_chan))
     };
     f
 }

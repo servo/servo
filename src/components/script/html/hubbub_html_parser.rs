@@ -21,6 +21,7 @@ use servo_msg::constellation_msg::SubpageId;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
 use servo_util::url::make_url;
+use servo_util::task::spawn_named;
 use std::cast;
 use std::cell::RefCell;
 use std::comm::{Port, SharedChan};
@@ -255,7 +256,7 @@ pub fn parse_html(cx: *JSContext,
     let (discovery_port, discovery_chan) = SharedChan::new();
     let stylesheet_chan = discovery_chan.clone();
     let (css_msg_port, css_chan) = SharedChan::new();
-    spawn(proc() {
+    spawn_named("parse_html:css", proc() {
         css_link_listener(stylesheet_chan, css_msg_port, resource_task2.clone());
     });
 
@@ -263,7 +264,7 @@ pub fn parse_html(cx: *JSContext,
     let resource_task2 = resource_task.clone();
     let js_result_chan = discovery_chan.clone();
     let (js_msg_port, js_chan) = SharedChan::new();
-    spawn(proc() {
+    spawn_named("parse_html:js", proc() {
         js_script_listener(js_result_chan, js_msg_port, resource_task2.clone());
     });
 

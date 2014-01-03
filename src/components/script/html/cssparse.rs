@@ -9,6 +9,7 @@ use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use style::Stylesheet;
 use servo_net::resource_task::{Load, LoadResponse, ProgressMsg, Payload, Done, ResourceTask};
+use servo_util::task::spawn_named;
 use extra::url::Url;
 
 /// Where a style sheet comes from.
@@ -25,7 +26,7 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
     // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
     let environment_encoding = UTF_8 as EncodingRef;
 
-    spawn(proc() {
+    spawn_named("cssparser", proc() {
         // TODO: CSS parsing should take a base URL.
         let _url = match provenance {
             UrlProvenance(ref the_url) => (*the_url).clone(),

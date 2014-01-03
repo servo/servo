@@ -12,9 +12,9 @@ use image_cache_task::{Decode, GetImage, ImageCacheTask, ImageFailed, ImageNotRe
 use image_cache_task::{ImageResponseMsg, Prefetch, WaitForImage};
 
 use std::comm::Port;
-use std::task;
 use servo_util::url::{UrlMap, url_map};
 use extra::url::Url;
+use servo_util::task::spawn_named;
 
 pub trait ImageResponder {
     fn respond(&self) -> proc(ImageResponseMsg);
@@ -126,7 +126,7 @@ impl LocalImageCache {
                 assert!(self.on_image_available.is_some());
                 let on_image_available = self.on_image_available.as_ref().unwrap().respond();
                 let url = (*url).clone();
-                do task::spawn {
+                do spawn_named("LocalImageCache") {
                     let (response_port, response_chan) = Chan::new();
                     image_cache_task.send(WaitForImage(url.clone(), response_chan));
                     on_image_available(response_port.recv());

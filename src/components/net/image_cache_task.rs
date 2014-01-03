@@ -492,7 +492,7 @@ mod tests {
     use servo_util::url::make_url;
 
     fn mock_resource_task(on_load: proc(resource: SharedChan<resource_task::ProgressMsg>)) -> ResourceTask {
-        spawn_listener(proc(port: Port<resource_task::ControlMsg>) {
+        spawn_listener("mock_resource_task", proc(port: Port<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
@@ -658,7 +658,7 @@ mod tests {
 
         let (resource_task_exited, resource_task_exited_chan) = Chan::new();
 
-        let mock_resource_task = spawn_listener(proc(port: Port<resource_task::ControlMsg>) {
+        let mock_resource_task = spawn_listener("should_not...already_available", proc(port: Port<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
@@ -701,7 +701,7 @@ mod tests {
 
         let (resource_task_exited, resource_task_exited_chan) = Chan::new();
 
-        let mock_resource_task = spawn_listener(proc(port: Port<resource_task::ControlMsg>) {
+        let mock_resource_task = spawn_listener("should_not...already_failed", proc(port: Port<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
