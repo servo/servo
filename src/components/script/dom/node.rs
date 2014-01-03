@@ -25,6 +25,7 @@ use std::cast::transmute;
 use std::cast;
 use std::unstable::raw::Box;
 use std::util;
+use std::iter::Filter;
 
 //
 // The basic Node structure
@@ -486,6 +487,10 @@ impl<'self> AbstractNode {
         self.node().children()
     }
 
+    pub fn child_elements(&self) -> Filter<AbstractNode, AbstractNodeChildrenIterator> {
+        self.node().child_elements()
+    }
+
     pub fn is_in_doc(&self) -> bool {
         self.node().flags.is_in_doc()
     }
@@ -747,6 +752,10 @@ impl Node {
         AbstractNodeChildrenIterator {
             current_node: self.first_child,
         }
+    }
+
+    pub fn child_elements(&self) -> Filter<AbstractNode, AbstractNodeChildrenIterator> {
+        self.children().filter(|node| node.is_element())
     }
 
     pub fn reflect_node<N: Reflectable>
@@ -1041,11 +1050,13 @@ impl Node {
                         if node.children().any(|c| c.is_text()) {
                             return Err(HierarchyRequest);
                         }
-                        match node.children().count(|c| c.is_element()) {
+                        match node.child_elements().len() {
                             0 => (),
                             // Step 6.1.2
                             1 => {
-                                if parent.children().any(|c| c.is_element()) {
+                                // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
+                                // will be fixed
+                                if parent.child_elements().len() > 0 {
                                     return Err(HierarchyRequest);
                                 }
                                 if inclusively_followed_by_doctype(child) {
@@ -1058,7 +1069,9 @@ impl Node {
                     },
                     // Step 6.2
                     ElementNodeTypeId(_) => {
-                        if parent.children().any(|c| c.is_element()) {
+                        // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
+                        // will be fixed
+                        if parent.child_elements().len() > 0 {
                             return Err(HierarchyRequest);
                         }
                         if inclusively_followed_by_doctype(child) {
@@ -1079,7 +1092,9 @@ impl Node {
                                 }
                             },
                             None => {
-                                if parent.children().any(|c| c.is_element()) {
+                                // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
+                                // will be fixed
+                                if parent.child_elements().len() > 0 {
                                     return Err(HierarchyRequest);
                                 }
                             },
