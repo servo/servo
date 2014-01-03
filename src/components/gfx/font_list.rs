@@ -10,7 +10,7 @@ use platform::font_list::FontListHandle;
 use servo_util::time;
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
-use style::computed_values::font_weight;
+use style::computed_values::{font_weight, font_style};
 
 use std::hashmap::HashMap;
 
@@ -54,7 +54,7 @@ impl<'self> FontList {
     }
 
     pub fn find_font_in_family(&'self mut self,
-                           family_name: &~str, 
+                           family_name: &~str,
                            style: &SpecifiedFontStyle) -> Option<&'self FontEntry> {
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
@@ -82,7 +82,7 @@ impl<'self> FontList {
     }
 }
 
-// Holds a specific font family, and the various 
+// Holds a specific font family, and the various
 pub struct FontFamily<'self> {
     family_name: ~str,
     entries: ~[FontEntry],
@@ -115,8 +115,8 @@ impl<'self> FontFamily {
         // TODO(Issue #190): if not in the fast path above, do
         // expensive matching of weights, etc.
         for entry in self.entries.iter() {
-            if (style.weight.is_bold() == entry.is_bold()) && 
-               (style.italic == entry.is_italic()) {
+            if (style.weight.is_bold() == entry.is_bold()) &&
+               ((style.style == font_style::italic) == entry.is_italic()) {
 
                 return Some(entry);
             }

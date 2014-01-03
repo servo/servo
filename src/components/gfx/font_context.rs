@@ -38,7 +38,7 @@ impl<'self> FontContext {
            profiler_chan: ProfilerChan)
            -> FontContext {
         let handle = FontContextHandle::new();
-        let font_list = if needs_font_list { 
+        let font_list = if needs_font_list {
                             Some(FontList::new(&handle, profiler_chan.clone())) }
                         else { None };
 
@@ -50,7 +50,7 @@ impl<'self> FontContext {
         generic_fonts.insert(~"fantasy", ~"Papyrus");
         generic_fonts.insert(~"monospace", ~"Menlo");
 
-        FontContext { 
+        FontContext {
             instance_cache: LRUCache::new(10),
             font_list: font_list,
             group_cache: LRUCache::new(10),
@@ -86,7 +86,7 @@ impl<'self> FontContext {
                 debug!("font cache hit");
                 Ok(f)
             },
-            None => { 
+            None => {
                 debug!("font cache miss");
                 let result = self.create_font_instance(desc);
                 match result.clone() {
@@ -99,12 +99,10 @@ impl<'self> FontContext {
         }
     }
 
-    fn transform_family(&self, family: &str) -> ~str {
-        // FIXME: Need a find_like() in HashMap.
-        let family = family.to_str();
-        debug!("(transform family) searching for `{:s}`", family);
-        match self.generic_fonts.find(&family) {
-            None => family,
+    fn transform_family(&self, family: &~str) -> ~str {
+        debug!("(transform family) searching for `{:s}`", family.as_slice());
+        match self.generic_fonts.find(family) {
+            None => family.to_owned(),
             Some(mapped_family) => (*mapped_family).clone()
         }
     }
@@ -115,9 +113,8 @@ impl<'self> FontContext {
         debug!("(create font group) --- starting ---");
 
         // TODO(Issue #193): make iteration over 'font-family' more robust.
-        for family in style.families.split_iter(',') {
-            let family_name = family.trim();
-            let transformed_family_name = self.transform_family(family_name);
+        for family in style.families.iter() {
+            let transformed_family_name = self.transform_family(family);
             debug!("(create font group) transformed family is `{:s}`", transformed_family_name);
             let mut found = false;
 
@@ -145,7 +142,7 @@ impl<'self> FontContext {
                     let instance = self.get_font_by_descriptor(result);
 
                     for font in instance.iter() { fonts.push(font.clone()); }
-                }, 
+                },
                 _ => {}
             }
 
@@ -197,13 +194,13 @@ impl<'self> FontContext {
 
         debug!("(create font group) --- finished ---");
 
-        unsafe { RcMut::new_unchecked(FontGroup::new(style.families.to_owned(), &used_style, fonts)) }
+        unsafe { RcMut::new_unchecked(FontGroup::new(style.families.clone(), &used_style, fonts)) }
     }
 
     fn create_font_instance(&self, desc: &FontDescriptor) -> Result<RcMut<Font>, ()> {
         return match &desc.selector {
             // TODO(Issue #174): implement by-platform-name font selectors.
-            &SelectorPlatformIdentifier(ref identifier) => { 
+            &SelectorPlatformIdentifier(ref identifier) => {
                 let result_handle = self.handle.create_font_from_identifier((*identifier).clone(),
                                                                             desc.style.clone());
                 do result_handle.and_then |handle| {

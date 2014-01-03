@@ -17,6 +17,8 @@ use fontconfig::fontconfig::{
     FcObjectSetAdd, FcPatternGetInteger
 };
 
+use style::computed_values::font_style;
+
 
 use font::{FontHandleMethods, UsedFontStyle};
 use font_list::{FontEntry, FontFamily, FontFamilyMap};
@@ -163,23 +165,25 @@ pub fn path_from_identifier(name: ~str, style: &UsedFontStyle) -> Result<~str, (
             return Err(());
         }
 
-        if style.italic {
-            let res = do "slant".to_c_str().with_ref |FC_SLANT| {
-                FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ITALIC)
-            };
-            if res != 1 {
-                debug!("adding slant(italic) to pattern failed");
-                return Err(());
-            }
-        }
-
-        if style.oblique {
-            let res = do "slant".to_c_str().with_ref |FC_SLANT| {
-                FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_OBLIQUE)
-            };
-            if res != 1 {
-                debug!("adding slant(oblique) to pattern failed");
-                return Err(());
+        match style.style {
+            font_style::normal => (),
+            font_style::italic => {
+                let res = do "slant".to_c_str().with_ref |FC_SLANT| {
+                    FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ITALIC)
+                };
+                if res != 1 {
+                    debug!("adding slant to pattern failed");
+                    return Err(());
+                }
+            },
+            font_style::oblique => {
+                let res = do "slant".to_c_str().with_ref |FC_SLANT| {
+                    FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_OBLIQUE)
+                };
+                if res != 1 {
+                    debug!("adding slant(oblique) to pattern failed");
+                    return Err(());
+                }
             }
         }
 

@@ -15,7 +15,7 @@ use std::rc::RcMut;
 use servo_util::cache::{Cache, HashCache};
 use servo_util::range::Range;
 use servo_util::time::ProfilerChan;
-use style::computed_values::{text_decoration, font_weight};
+use style::computed_values::{text_decoration, font_weight, font_style};
 
 use color::Color;
 use font_context::FontContext;
@@ -100,9 +100,8 @@ pub struct FontMetrics {
 pub struct FontStyle {
     pt_size: f64,
     weight: font_weight::T,
-    italic: bool,
-    oblique: bool,
-    families: ~str,
+    style: font_style::T,
+    families: ~[~str],
     // TODO(Issue #198): font-stretch, text-decoration, font-variant, size-adjust
 }
 
@@ -150,7 +149,7 @@ pub enum FontSelector {
 // The ordering of font instances is mainly decided by the CSS
 // 'font-family' property. The last font is a system fallback font.
 pub struct FontGroup {
-    families: ~str,
+    families: ~[~str],
     // style of the first western font in group, which is
     // used for purposes of calculating text run metrics.
     style: UsedFontStyle,
@@ -158,7 +157,7 @@ pub struct FontGroup {
 }
 
 impl FontGroup {
-    pub fn new(families: ~str, style: &UsedFontStyle, fonts: ~[RcMut<Font>]) -> FontGroup {
+    pub fn new(families: ~[~str], style: &UsedFontStyle, fonts: ~[RcMut<Font>]) -> FontGroup {
         FontGroup {
             families: families,
             style: (*style).clone(),
@@ -199,7 +198,7 @@ impl RunMetrics {
         // ascent+descent and advance is sometimes too generous and
         // looking at actual glyph extents can yield a tighter box.
 
-        RunMetrics { 
+        RunMetrics {
             advance_width: advance,
             bounding_box: bounds,
             ascent: ascent,
@@ -288,9 +287,9 @@ impl<'self> Font {
     fn make_shaper(&'self mut self) -> &'self Shaper {
         // fast path: already created a shaper
         match self.shaper {
-            Some(ref shaper) => { 
+            Some(ref shaper) => {
                 let s: &'self Shaper = shaper;
-                return s; 
+                return s;
             },
             None => {}
         }
@@ -401,7 +400,7 @@ impl Font {
 
         let glyphbuf = struct__AzGlyphBuffer {
             mGlyphs: vec::raw::to_ptr(azglyphs),
-            mNumGlyphs: azglyph_buf_len as uint32_t            
+            mNumGlyphs: azglyph_buf_len as uint32_t
         };
 
         unsafe {
