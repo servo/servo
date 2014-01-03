@@ -7,7 +7,7 @@ extern mod fontconfig;
 
 use fontconfig::fontconfig::{
     FcChar8, FcResultMatch, FcSetSystem, FcPattern,
-    FcResultNoMatch, FcMatchPattern, FC_SLANT_ITALIC, FC_WEIGHT_BOLD
+    FcResultNoMatch, FcMatchPattern, FC_SLANT_ITALIC, FC_WEIGHT_BOLD, FC_SLANT_OBLIQUE
 };
 use fontconfig::fontconfig::{
     FcConfigGetCurrent, FcConfigGetFonts, FcPatternGetString,
@@ -168,10 +168,21 @@ pub fn path_from_identifier(name: ~str, style: &UsedFontStyle) -> Result<~str, (
                 FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ITALIC)
             };
             if res != 1 {
-                debug!("adding slant to pattern failed");
+                debug!("adding slant(italic) to pattern failed");
                 return Err(());
             }
         }
+
+        if style.oblique {
+            let res = do "slant".to_c_str().with_ref |FC_SLANT| {
+                FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_OBLIQUE)
+            };
+            if res != 1 {
+                debug!("adding slant(oblique) to pattern failed");
+                return Err(());
+            }
+        }
+
         if style.weight.is_bold() {
             let res = do "weight".to_c_str().with_ref |FC_WEIGHT| {
                 FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_BOLD)
