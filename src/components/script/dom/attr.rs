@@ -8,6 +8,8 @@ use dom::bindings::utils::reflect_dom_object;
 use dom::namespace::{Namespace, Null};
 use dom::window::Window;
 
+use std::util;
+
 pub struct Attr {
     reflector_: Reflector,
     local_name: DOMString,
@@ -58,6 +60,13 @@ impl Attr {
         reflect_dom_object(@mut attr, window, AttrBinding::Wrap)
     }
 
+    pub fn set_value(&mut self, mut value: DOMString) -> DOMString {
+        util::swap(&mut self.value, &mut value);
+        value
+    }
+}
+
+impl Attr {
     pub fn LocalName(&self) -> DOMString {
         self.local_name.clone()
     }
