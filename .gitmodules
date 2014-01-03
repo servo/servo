@@ -110,3 +110,9 @@
 	path = src/support/encoding/rust-encoding
 	url = https://github.com/mozilla-servo/rust-encoding.git
 	branch = rust-servo
+[submodule "src/support/egl/rust-egl"]
+	path = src/support/egl/rust-egl
+	url = https://github.com/webconvforge/rust-egl.git
+[submodule "src/platform/android/servo-android-glue"]
+	path = src/platform/android/servo-android-glue
+	url = https://github.com/webconvforge/servo-android-glue.git

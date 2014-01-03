@@ -171,6 +171,7 @@ endif
 
 ifeq ($(CFG_OSTYPE),linux-androideabi)
 DEPS_rust-azure += \
+	rust-egl \
 	rust-freetype \
 	rust-fontconfig \
 	fontconfig \
@@ -181,6 +182,7 @@ DEPS_rust-azure += \
 
 # See note at top of file
 DEPS_rust-layers += \
+	rust-egl \
 	rust-freetype \
 	rust-fontconfig \
 	rust-xlib \
