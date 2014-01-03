@@ -15,7 +15,7 @@ use std::rc::RcMut;
 use servo_util::cache::{Cache, HashCache};
 use servo_util::range::Range;
 use servo_util::time::ProfilerChan;
-use style::computed_values::text_decoration;
+use style::computed_values::{text_decoration, font_weight};
 
 use color::Color;
 use font_context::FontContext;
@@ -41,7 +41,7 @@ pub trait FontHandleMethods {
     fn family_name(&self) -> ~str;
     fn face_name(&self) -> ~str;
     fn is_italic(&self) -> bool;
-    fn boldness(&self) -> CSSFontWeight;
+    fn boldness(&self) -> font_weight::T;
 
     fn clone_with_style(&self, fctx: &FontContextHandle, style: &UsedFontStyle)
                      -> Result<FontHandle, ()>;
@@ -90,29 +90,6 @@ pub struct FontMetrics {
     max_advance:      Au
 }
 
-// TODO(Issue #200): use enum from CSS bindings for 'font-weight'
-#[deriving(Clone, Eq)]
-pub enum CSSFontWeight {
-    FontWeight100,
-    FontWeight200,
-    FontWeight300,
-    FontWeight400,
-    FontWeight500,
-    FontWeight600,
-    FontWeight700,
-    FontWeight800,
-    FontWeight900,
-}
-
-impl CSSFontWeight {
-    pub fn is_bold(self) -> bool {
-        match self {
-            FontWeight900 | FontWeight800 | FontWeight700 | FontWeight600 => true,
-            _ => false
-        }
-    }
-}
-
 // TODO(Issue #179): eventually this will be split into the specified
 // and used font styles.  specified contains uninterpreted CSS font
 // property values, while 'used' is attached to gfx::Font to descript
@@ -122,7 +99,7 @@ impl CSSFontWeight {
 #[deriving(Clone, Eq)]
 pub struct FontStyle {
     pt_size: f64,
-    weight: CSSFontWeight,
+    weight: font_weight::T,
     italic: bool,
     oblique: bool,
     families: ~str,

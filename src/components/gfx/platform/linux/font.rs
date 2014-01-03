@@ -4,15 +4,14 @@
 
 extern mod freetype;
 
-use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
-use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle, FontWeight100};
-use font::{FontWeight200, FontWeight300, FontWeight400, FontWeight500, FontWeight600};
-use font::{FontWeight700, FontWeight800, FontWeight900};
+use font::{FontHandleMethods, FontMetrics, FontTableMethods};
+use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use platform::font_context::FontContextHandle;
 use text::glyph::GlyphIndex;
 use text::util::{float_to_fixed, fixed_to_float};
+use style::computed_values::font_weight;
 
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
 use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
@@ -138,8 +137,8 @@ impl FontHandleMethods for FontHandle {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
     }
     #[fixed_stack_segment]
-    fn boldness(&self) -> CSSFontWeight {
-        let default_weight = FontWeight400;
+    fn boldness(&self) -> font_weight::T {
+        let default_weight = font_weight::Weight400;
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD == 0 } {
             default_weight
         } else {
@@ -149,15 +148,15 @@ impl FontHandleMethods for FontHandle {
                 if valid {
                     let weight =(*os2).usWeightClass;
                     match weight {
-                        1 | 100..199 => FontWeight100,
-                        2 | 200..299 => FontWeight200,
-                        3 | 300..399 => FontWeight300,
-                        4 | 400..499 => FontWeight400,
-                        5 | 500..599 => FontWeight500,
-                        6 | 600..699 => FontWeight600,
-                        7 | 700..799 => FontWeight700,
-                        8 | 800..899 => FontWeight800,
-                        9 | 900..999 => FontWeight900,
+                        1 | 100..199 => font_weight::Weight100,
+                        2 | 200..299 => font_weight::Weight200,
+                        3 | 300..399 => font_weight::Weight300,
+                        4 | 400..499 => font_weight::Weight400,
+                        5 | 500..599 => font_weight::Weight500,
+                        6 | 600..699 => font_weight::Weight600,
+                        7 | 700..799 => font_weight::Weight700,
+                        8 | 800..899 => font_weight::Weight800,
+                        9 | 900..999 => font_weight::Weight900,
                         _ => default_weight
                     }
                 } else {
