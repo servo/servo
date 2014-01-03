@@ -162,9 +162,7 @@ impl Reflectable for Document {
 
 impl Document {
     pub fn GetDocumentElement(&self) -> Option<AbstractNode> {
-        do self.node.children().find |c| {
-            c.is_element()
-        }
+        self.node.child_elements().next()
     }
 
     fn get_cx(&self) -> *JSContext {
