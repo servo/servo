@@ -554,6 +554,14 @@ pub mod longhands {
                     Weight${weight},
                 % endfor
             }
+            impl T {
+                pub fn is_bold(self) -> bool {
+                    match self {
+                        Weight900 | Weight800 | Weight700 | Weight600 => true,
+                        _ => false
+                    }
+                }
+            }
         }
         #[inline] pub fn get_initial_value() -> computed_value::T { Weight400 }  // normal
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
