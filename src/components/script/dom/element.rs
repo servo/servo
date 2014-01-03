@@ -415,10 +415,10 @@ impl Element {
                     do rects.map |r| {
                         ClientRect::new(
                             win,
-                            r.origin.y.to_f32().unwrap(),
-                            (r.origin.y + r.size.height).to_f32().unwrap(),
-                            r.origin.x.to_f32().unwrap(),
-                            (r.origin.x + r.size.width).to_f32().unwrap())
+                            r.origin.y,
+                            r.origin.y + r.size.height,
+                            r.origin.x,
+                            r.origin.x + r.size.width)
                     }
                 },
             };
@@ -435,10 +435,10 @@ impl Element {
             ContentBoxResponse(rect) => {
                 ClientRect::new(
                     win,
-                    rect.origin.y.to_f32().unwrap(),
-                    (rect.origin.y + rect.size.height).to_f32().unwrap(),
-                    rect.origin.x.to_f32().unwrap(),
-                    (rect.origin.x + rect.size.width).to_f32().unwrap())
+                    rect.origin.y,
+                    rect.origin.y + rect.size.height,
+                    rect.origin.x,
+                    rect.origin.x + rect.size.width)
             }
         }
     }
