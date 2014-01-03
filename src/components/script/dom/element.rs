@@ -23,16 +23,14 @@ use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
 
 use std::comm;
-use std::hashmap::HashMap;
-use std::str::{eq, eq_slice};
+use std::str::eq;
 use std::ascii::StrAsciiExt;
 
 pub struct Element {
     node: Node,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     namespace: Namespace,
-    attrs: HashMap<~str, ~[@mut Attr]>,
-    attrs_insert_order: ~[(~str, Namespace)], // store an order of attributes.
+    attrs: ~[@mut Attr],
     style_attribute: Option<style::PropertyDeclarationBlock>,
     attr_list: Option<@mut AttrList>
 }
@@ -131,8 +129,7 @@ impl<'self> Element {
             node: Node::new_inherited(ElementNodeTypeId(type_id), document),
             tag_name: tag_name,
             namespace: namespace,
-            attrs: HashMap::new(),
-            attrs_insert_order: ~[],
+            attrs: ~[],
             attr_list: None,
             style_attribute: None,
         }
@@ -153,11 +150,9 @@ impl<'self> Element {
                          name: &str) -> Option<@mut Attr> {
         // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
         let name = name.to_ascii_lower();
-        self.attrs.find_equiv(&name).and_then(|attrs| {
-            do attrs.iter().find |attr| {
-                eq_slice(attr.local_name, name) && attr.namespace == namespace
-            }.map(|x| *x)
-        })
+        self.attrs.iter().find(|attr| {
+            name == attr.local_name && attr.namespace == namespace
+        }).map(|&x| x)
     }
 
     // FIXME(pcwalton): This is kind of confusingly named relative to the above...
@@ -198,36 +193,21 @@ impl<'self> Element {
         self.node.wait_until_safe_to_modify_dom();
 
         // FIXME: reduce the time of `value.clone()`.
-        let win = self.node.owner_doc().document().window;
-        let new_attr = Attr::new_ns(win, local_name.clone(), value.clone(),
-                                    name.clone(), namespace.clone(), prefix);
         let mut old_raw_value: Option<DOMString> = None;
-        self.attrs.mangle(local_name.clone(), new_attr,
-                          |new_name: &~str, new_value: @mut Attr| {
-                              // register to the ordered list.
-                              let order_value = (new_name.clone(), new_value.namespace.clone());
-                              self.attrs_insert_order.push(order_value);
-                              ~[new_value]
-                          },
-                          |name, old_value: &mut ~[@mut Attr], new_value: @mut Attr| {
-                              // update value.
-                              let mut found = false;
-                              for attr in old_value.mut_iter() {
-                                  if eq_slice(attr.local_name, *name) &&
-                                     attr.namespace == new_value.namespace {
-                                      old_raw_value = Some(attr.Value());
-                                      *attr = new_value;
-                                      found = true;
-                                      break;
-                                  }
+        for attr in self.attrs.iter() {
+            if attr.local_name == local_name {
+                old_raw_value = Some(attr.set_value(value.clone()));
+                break;
+            }
+        }
 
-                              }
-                              if !found {
-                                  old_value.push(new_value);
-                                  let order_value = (name.clone(), new_value.namespace.clone());
-                                  self.attrs_insert_order.push(order_value);
-                              }
-                          });
+        if old_raw_value.is_none() {
+            let win = self.node.owner_doc().document().window;
+            let new_attr = Attr::new_ns(win, local_name.clone(), value.clone(),
+                                        name.clone(), namespace.clone(),
+                                        prefix);
+            self.attrs.push(new_attr);
+        }
 
         if namespace == namespace::Null {
             self.after_set_attr(abstract_self, local_name, value, old_raw_value);
