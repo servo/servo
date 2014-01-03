@@ -29,7 +29,7 @@ use std::cmp::ApproxEq;
 use std::num::Zero;
 use style::{ComputedValues, TElement, TNode};
 use style::computed_values::{LengthOrPercentage, overflow};
-use style::computed_values::{border_style, clear, font_family, font_style, line_height};
+use style::computed_values::{border_style, clear, font_family, line_height};
 use style::computed_values::{text_align, text_decoration, vertical_align, visibility};
 
 use css::node_style::StyledNode;
@@ -404,25 +404,15 @@ impl Box {
                 font_family::FamilyName(ref name) => (*name).clone(),
             }
         };
-        let font_families = font_families.connect(", ");
-        debug!("(font style) font families: `{:s}`", font_families);
+        debug!("(font style) font families: `{:?}`", font_families);
 
         let font_size = my_style.Font.font_size.to_f64().unwrap() / 60.0;
         debug!("(font style) font size: `{:f}px`", font_size);
 
-        let (italic, oblique) = match my_style.Font.font_style {
-            font_style::normal => (false, false),
-            font_style::italic => (true, false),
-            font_style::oblique => (false, true),
-        };
-
-        let font_weight = my_style.Font.font_weight;
-
         FontStyle {
             pt_size: font_size,
-            weight: font_weight,
-            italic: italic,
-            oblique: oblique,
+            weight: my_style.Font.font_weight,
+            style: my_style.Font.font_style,
             families: font_families,
         }
     }
