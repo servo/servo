@@ -29,22 +29,13 @@ impl AttrList {
     }
 
     pub fn Length(&self) -> u32 {
-        self.owner.with_imm_element(|elem| elem.attrs_insert_order.len() as u32)
+        self.owner.with_imm_element(|elem| elem.attrs.len() as u32)
     }
 
     pub fn Item(&self, index: u32) -> Option<@mut Attr> {
-        if index >= self.Length() {
-            None
-        } else {
-            do self.owner.with_imm_element |elem| {
-                let insert_order = &elem.attrs_insert_order[index];
-                do elem.attrs.find_equiv(&insert_order.first()).and_then |attrs| {
-                    attrs.iter()
-                         .find(|attr| attr.namespace == insert_order.second())
-                         .map(|attr| *attr)
-                }
-            }
-        }
+        self.owner.with_imm_element(|elem| {
+            elem.attrs.get_opt(index as uint).map(|&x| x)
+        })
     }
 
     pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<@mut Attr> {
