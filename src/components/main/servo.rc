@@ -56,7 +56,7 @@ pub use servo_util::url::make_url;
 use std::comm;
 #[cfg(not(test))]
 use std::os;
-#[cfg(not(test))]
+#[cfg(not(test), target_os="android")]
 use std::str;
 use std::task::spawn_with;
 
