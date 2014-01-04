@@ -51,12 +51,13 @@ impl Attr {
     pub fn new_ns(window: &Window, local_name: DOMString, value: DOMString,
                   name: DOMString, namespace: Namespace,
                   prefix: Option<DOMString>) -> @mut Attr {
-        Attr::new_helper(window, name, value, local_name, namespace, prefix)
+        Attr::new_helper(window, local_name, value, name, namespace, prefix)
     }
 
-    fn new_helper(window: &Window, name: DOMString, value: DOMString, local_name: DOMString,
-                  namespace: Namespace, prefix: Option<DOMString>) -> @mut Attr {
-        let attr = Attr::new_inherited(name, value, local_name, namespace, prefix);
+    fn new_helper(window: &Window, local_name: DOMString, value: DOMString,
+                  name: DOMString, namespace: Namespace,
+                  prefix: Option<DOMString>) -> @mut Attr {
+        let attr = Attr::new_inherited(local_name, value, name, namespace, prefix);
         reflect_dom_object(@mut attr, window, AttrBinding::Wrap)
     }
 
