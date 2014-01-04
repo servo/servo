@@ -162,17 +162,18 @@ impl<'self> Element {
 
     pub fn set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
                     -> ErrorResult {
+        // FIXME: HTML-in-HTML only.
+        let name = name.to_ascii_lower();
         self.set_attribute(abstract_self, namespace::Null, name, value)
     }
 
     pub fn set_attribute(&mut self,
                          abstract_self: AbstractNode,
                          namespace: Namespace,
-                         raw_name: DOMString,
+                         name: DOMString,
                          value: DOMString) -> ErrorResult {
         //FIXME: Throw for XML-invalid names
         //FIXME: Throw for XMLNS-invalid names
-        let name = raw_name.to_ascii_lower();
         let (prefix, local_name) = if name.contains(":")  {
             let parts: ~[&str] = name.splitn_iter(':', 1).collect();
             (Some(parts[0].to_owned()), parts[1].to_owned())
@@ -279,6 +280,7 @@ impl Element {
     }
     pub fn set_string_attribute(&mut self, abstract_self: AbstractNode,
                                 name: &str, value: DOMString) {
+        assert!(name == name.to_ascii_lower());
         self.set_attribute(abstract_self, Null, name.to_owned(), value);
     }
 }
