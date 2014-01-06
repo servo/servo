@@ -1,0 +1,31 @@
+<html>
+    <head>
+        <script src="harness.js"></script>
+    </head>
+    <body>
+        <script>
+            // test1: 1-to-1
+            {
+                var root = document.createElement("div");
+                var elem = document.createElement("div");
+                var foo = document.createTextNode("foo");
+                var bar = document.createTextNode("bar");
+
+                elem.appendChild(bar);
+                elem.replaceChild(bar, bar);
+                is(elem.childNodes[0], bar, "test1-0, 1-to-1");
+
+                root.appendChild(foo);
+                root.replaceChild(bar, foo);
+                is(elem.childNodes.length, 0, "test1-1, 1-to-1");
+                is(root.childNodes[0], bar, "test1-2, 1-to-1");
+
+                elem.appendChild(foo);
+                root.replaceChild(elem, bar);
+                is(root.childNodes[0].childNodes[0], foo, "test1-3, 1-to-1");
+            }
+
+            finish();
+        </script>
+    </body>
+</html>
