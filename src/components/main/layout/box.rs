@@ -27,7 +27,7 @@ use std::cast;
 use std::cell::Cell;
 use std::cmp::ApproxEq;
 use std::num::Zero;
-use style::{ComputedValues, TElement, TNode};
+use style::{ComputedValues, TElement, TNode, cascade};
 use style::computed_values::{LengthOrPercentage, overflow};
 use style::computed_values::{border_style, clear, font_family, line_height};
 use style::computed_values::{text_align, text_decoration, vertical_align, visibility};
@@ -228,8 +228,7 @@ impl Box {
     pub fn new(node: LayoutNode, specific: SpecificBoxInfo) -> Box {
         // Find the nearest ancestor element and take its style. (It should be either that node or
         // its immediate parent.)
-        //
-        // FIXME(pcwalton): This is incorrect for non-inherited properties on anonymous boxes. For
+        // CSS 2.1 § 9.2.1.1,9.2.2.1 This is for non-inherited properties on anonymous boxes
         // example:
         //
         //     <div style="border: solid">
@@ -239,14 +238,24 @@ impl Box {
         //     </div>
         //
         // An anonymous block box is generated around `Bar`, but it shouldn't inherit the border.
-        let mut nearest_ancestor_element = node;
-        while !nearest_ancestor_element.is_element() {
-            nearest_ancestor_element = node.parent_node().expect("no nearest element?!");
-        }
+
+        let node_style = if node.is_element() {
+            node.style().clone()
+        } else {
+            let mut nearest_ancestor_element = node;
+            while !nearest_ancestor_element.is_element() {
+                nearest_ancestor_element =
+                    nearest_ancestor_element.parent_node().expect("no nearest element?!");
+            }
+
+            // Anonymous box: inheriting from the ancestor with no specified declarations.
+            Arc::new(cascade(&[Arc::new(~[])],
+                             Some(nearest_ancestor_element.style().get())))
+        };
 
         Box {
             node: OpaqueNode::from_layout_node(&node),
-            style: (*nearest_ancestor_element.style()).clone(),
+            style: node_style,
             position: Slot::init(Au::zero_rect()),
             border: Slot::init(Zero::zero()),
             padding: Slot::init(Zero::zero()),
