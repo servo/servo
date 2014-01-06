@@ -228,7 +228,7 @@ impl Box {
     pub fn new(node: LayoutNode, specific: SpecificBoxInfo) -> Box {
         // Find the nearest ancestor element and take its style. (It should be either that node or
         // its immediate parent.)
-        // CSS 2.1 § 9.2.1.1 This is for non-inherited properties on anonymous block boxes
+        // CSS 2.1 § 9.2.1.1,9.2.2.1 This is for non-inherited properties on anonymous boxes
         // example:
         //
         //     <div style="border: solid">
