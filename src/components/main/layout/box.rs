@@ -248,6 +248,7 @@ impl Box {
                     nearest_ancestor_element.parent_node().expect("no nearest element?!");
             }
 
+            // Anonymous box: inheriting from the ancestor with no specified declarations.
             Arc::new(cascade(&[Arc::new(~[])],
                              Some(nearest_ancestor_element.style().get())))
         };
