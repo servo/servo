@@ -248,12 +248,8 @@ impl Box {
                     nearest_ancestor_element.parent_node().expect("no nearest element?!");
             }
 
-            if nearest_ancestor_element.style().get().Box.display == display::block {
-                Arc::new(cascade(&[Arc::new(~[])],
-                                 Some(nearest_ancestor_element.style().get())))
-            } else {
-                nearest_ancestor_element.style().clone()
-            }
+            Arc::new(cascade(&[Arc::new(~[])],
+                             Some(nearest_ancestor_element.style().get())))
         };
 
         Box {
