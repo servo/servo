@@ -115,8 +115,8 @@ pub struct Page {
     /// What parts of the document are dirty, if any.
     damage: Option<DocumentDamage>,
 
-    /// The current size of the window, in pixels. If `None`, we do not know the window size yet.
-    window_size: Option<Size2D<uint>>,
+    /// The current size of the window, in pixels.
+    window_size: Size2D<uint>,
 
     js_info: Option<JSPageInfo>,
 
@@ -145,7 +145,7 @@ pub struct PageTreeIterator<'self> {
 }
 
 impl PageTree {
-    fn new(id: PipelineId, layout_chan: LayoutChan) -> PageTree {
+    fn new(id: PipelineId, layout_chan: LayoutChan, window_size: Size2D<uint>) -> PageTree {
         PageTree {
             page: @mut Page {
                 id: id,
@@ -153,7 +153,7 @@ impl PageTree {
                 layout_chan: layout_chan,
                 layout_join_port: None,
                 damage: None,
-                window_size: None,
+                window_size: window_size,
                 js_info: None,
                 url: None,
                 next_subpage_id: SubpageId(0),
@@ -295,14 +295,6 @@ impl Page {
             }
         };
 
-        let window_size = match self.window_size {
-            None => {
-                debug!("not reflowing due to lack of a window size");
-                return
-            }
-            Some(window_size) => window_size,
-        };
-
         match root {
             None => {},
             Some(root) => {
@@ -325,7 +317,7 @@ impl Page {
                     document_root: root,
                     url: self.url.get_ref().first().clone(),
                     goal: goal,
-                    window_size: window_size,
+                    window_size: self.window_size,
                     script_chan: script_chan,
                     script_join_chan: join_chan,
                     damage: replace(&mut self.damage, None).unwrap(),
@@ -436,12 +428,13 @@ impl ScriptTask {
                chan: ScriptChan,
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
-               img_cache_task: ImageCacheTask)
+               img_cache_task: ImageCacheTask,
+               window_size: Size2D<uint>)
                -> @mut ScriptTask {
         let js_runtime = js::rust::rt();
 
         let script_task = @mut ScriptTask {
-            page_tree: PageTree::new(id, layout_chan),
+            page_tree: PageTree::new(id, layout_chan, window_size),
 
             image_cache_task: img_cache_task,
             resource_task: resource_task,
@@ -473,7 +466,8 @@ impl ScriptTask {
                   chan: ScriptChan,
                   constellation_chan: ConstellationChan,
                   resource_task: ResourceTask,
-                  image_cache_task: ImageCacheTask) {
+                  image_cache_task: ImageCacheTask,
+                  window_size: Size2D<uint>) {
         let parms = Cell::new((compositor,
                                layout_chan,
                                port,
@@ -499,7 +493,8 @@ impl ScriptTask {
                                               chan,
                                               constellation_chan,
                                               resource_task,
-                                              image_cache_task);
+                                              image_cache_task,
+                                              window_size);
             script_task.start();
         }
     }
@@ -579,7 +574,7 @@ impl ScriptTask {
         let parent_page_tree = self.page_tree.find(old_id).expect("ScriptTask: received a layout
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
-        let new_page_tree = PageTree::new(new_id, layout_chan);
+        let new_page_tree = PageTree::new(new_id, layout_chan, parent_page_tree.page.window_size);
         parent_page_tree.inner.push(new_page_tree);
     }
 
@@ -633,7 +628,7 @@ impl ScriptTask {
     fn handle_resize_inactive_msg(&mut self, id: PipelineId, new_size: Size2D<uint>) {
         let page = self.page_tree.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.").page;
-        page.window_size = Some(new_size);
+        page.window_size = new_size;
         let last_loaded_url = replace(&mut page.url, None);
         for url in last_loaded_url.iter() {
             page.url = Some((url.first(), true));
@@ -845,7 +840,7 @@ impl ScriptTask {
             ResizeEvent(new_width, new_height) => {
                 debug!("script got resize event: {:u}, {:u}", new_width, new_height);
 
-                page.window_size = Some(Size2D(new_width, new_height));
+                page.window_size = Size2D(new_width, new_height);
 
                 if page.frame.is_some() {
                     page.damage(ReflowDocumentDamage);

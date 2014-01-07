@@ -6,6 +6,7 @@ use compositing::CompositorChan;
 use layout::layout_task::LayoutTask;
 
 use extra::url::Url;
+use geom::size::Size2D;
 use gfx::opts::Opts;
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::render_task::{RenderChan, RenderTask};
@@ -101,6 +102,7 @@ impl Pipeline {
                   image_cache_task: ImageCacheTask,
                   resource_task: ResourceTask,
                   profiler_chan: ProfilerChan,
+                  window_size: Size2D<uint>,
                   opts: Opts)
                   -> Pipeline {
         let (script_port, script_chan) = special_stream!(ScriptChan);
@@ -142,7 +144,8 @@ impl Pipeline {
                                script_chan.clone(),
                                constellation_chan.clone(),
                                resource_task,
-                               image_cache_task.clone());
+                               image_cache_task.clone(),
+                               window_size);
 
             RenderTask::create(id,
                                render_port,
