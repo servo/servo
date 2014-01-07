@@ -101,7 +101,7 @@ partial interface Document {
            attribute DOMString title;
   //          attribute DOMString dir;
            attribute HTMLElement? body;
-  //(HTML only)readonly attribute HTMLHeadElement? head;
+  readonly attribute HTMLHeadElement? head;
   //(HTML only)readonly attribute HTMLCollection images;
   //(HTML only)readonly attribute HTMLCollection embeds;
   //(HTML only)readonly attribute HTMLCollection plugins;
