@@ -34,12 +34,11 @@ impl HTMLDocument {
 
 impl HTMLDocument {
     pub fn GetHead(&self) -> Option<AbstractNode> {
-        match self.parent.GetDocumentElement() {
-            None => None,
-            Some(root) => root.traverse_preorder().find(|child| {
+        self.parent.GetDocumentElement().and_then(|root| {
+            root.traverse_preorder().find(|child| {
                 child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
             })
-        }
+        })
     }
 
     pub fn Images(&self) -> @mut HTMLCollection {

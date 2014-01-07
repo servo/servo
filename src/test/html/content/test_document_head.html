@@ -1,0 +1,35 @@
+<html>
+    <head>
+        <script src="harness.js"></script>
+    </head>
+    <body>
+        <script>
+            // test1: existing document's head
+            {
+                isnot(document.head, null, "test1-0, existing document's head");
+                is_a(document.head, HTMLHeadElement, "test1-1, exising document's head");
+                is(document.head && document.head.tagName, "HEAD", "test1-2, existing document's head");
+            }
+
+            // test2: append head to a new document
+            {
+                let new_document = new Document();
+                new_document.appendChild(new_document.createElement("html"));
+                let new_head = new_document.createElement("head");
+
+                isnot(new_head, null, "test2-0, append head to a new document");
+                is_a(new_head, HTMLHeadElement, "test2-1, append head to a new document");
+                is(new_head && new_head.tagName, "HEAD", "test2-2, append head to a new document");
+
+                // Document::head is read-only.
+                new_document.head = new_head;
+                is(new_document.head, null, "test2-3, append head to a new document");
+
+                new_document.documentElement.appendChild(new_head);
+                is(new_document.head, new_head, "test2-4, append head to a new document");
+            }
+
+            finish();
+        </script>
+    </body>
+</html>
