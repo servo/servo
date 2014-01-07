@@ -647,20 +647,28 @@ impl AbstractNode {
 
 pub struct AbstractNodeChildrenIterator {
     priv current_node: Option<AbstractNode>,
+    priv elements_only: bool,
 }
 
 impl Iterator<AbstractNode> for AbstractNodeChildrenIterator {
     fn next(&mut self) -> Option<AbstractNode> {
         let node = self.current_node;
-        self.current_node = do self.current_node.and_then |node| {
-            node.next_sibling()
-        };
+        if self.elements_only {
+           self.current_node = do self.current_node.and_then |node| {
+              node.next_sibling().filtered(|n| n.is_element())
+           };
+        } else {
+           self.current_node = do self.current_node.and_then |node| {
+              node.next_sibling()
+           };
+        }
         node
     }
 }
 
 pub struct AncestorIterator {
     priv current: Option<AbstractNode>,
+    priv elements_only: bool,
 }
 
 impl Iterator<AbstractNode> for AncestorIterator {
@@ -671,7 +679,11 @@ impl Iterator<AbstractNode> for AncestorIterator {
 
         // FIXME: Do we need two clones here?
         let x = self.current.get_ref().clone();
-        self.current = x.parent_node();
+        if self.elements_only == true {
+           self.current = x.parent_node().filtered(|n| n.is_element());
+        } else {
+           self.current = x.parent_node();
+        }
         Some(x.clone())
     }
 }
@@ -721,6 +733,14 @@ impl AbstractNode {
     pub fn ancestors(&self) -> AncestorIterator {
         AncestorIterator {
             current: self.parent_node(),
+            elements_only: false,
+        }
+    }
+
+    pub fn ancestors_elements(&self) -> AncestorIterator {
+        AncestorIterator {
+            current: self.parent_node().filtered(|n| n.is_element()),
+            elements_only: true,
         }
     }
 
@@ -751,6 +771,14 @@ impl Node {
     pub fn children(&self) -> AbstractNodeChildrenIterator {
         AbstractNodeChildrenIterator {
             current_node: self.first_child,
+            elements_only: false,
+        }
+    }
+
+    pub fn children_elements(&self) -> AbstractNodeChildrenIterator {
+        AbstractNodeChildrenIterator {
+            current_node: self.first_child.filtered(|child| child.is_element()),
+            elements_only: true,
         }
     }
 
