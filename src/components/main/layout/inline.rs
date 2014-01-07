@@ -364,19 +364,18 @@ impl LineboxScanner {
                 debug!("LineboxScanner: case=box can't split and line {:u} is empty, so \
                         overflowing.",
                         self.lines.len());
-                self.push_box_to_line(in_box)
-            } else {
-                debug!("LineboxScanner: Case=box can't split, not appending.");
+                self.push_box_to_line(in_box);
+                return true
             }
-            return line_is_empty
         }
 
         let available_width = green_zone.width - self.pending_line.bounds.size.width;
         let split = in_box.split_to_width(available_width, line_is_empty);
         let (left, right) = match (split, line_is_empty) {
             (CannotSplit, _) => {
-                error!("LineboxScanner: Tried to split unsplittable render box! {:s}",
+                debug!("LineboxScanner: Tried to split unsplittable render box! {:s}",
                         in_box.debug_str());
+                self.work_list.push_front(in_box);
                 return false
             }
             (SplitDidNotFit(_, _), false) => {
