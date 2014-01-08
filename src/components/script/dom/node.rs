@@ -228,6 +228,37 @@ impl AbstractNode {
             _ => false
         }
     }
+
+    pub fn is_inclusive_ancestor_of(&self, parent: AbstractNode) -> bool {
+        *self == parent || parent.ancestors().any(|ancestor| ancestor == *self)
+    }
+
+    pub fn is_parent_of(&self, child: AbstractNode) -> bool {
+        child.parent_node() == Some(*self)
+    }
+
+    fn followed_by_doctype(child: AbstractNode) -> bool {
+        let mut iter = child;
+        loop {
+            match iter.next_sibling() {
+                Some(sibling) => {
+                    if sibling.is_doctype() {
+                        return true;
+                    }
+                    iter = sibling;
+                },
+                    None => return false,
+            }
+        }
+    }
+
+    fn inclusively_followed_by_doctype(child: Option<AbstractNode>) -> bool {
+        match child {
+            Some(child) if child.is_doctype() => true,
+            Some(child) => AbstractNode::followed_by_doctype(child),
+            None => false,
+        }
+    }
 }
 
 impl<'self> AbstractNode {
@@ -502,7 +533,7 @@ impl AbstractNode {
     }
 
     pub fn ReplaceChild(self, node: AbstractNode, child: AbstractNode) -> Fallible<AbstractNode> {
-        self.mut_node().ReplaceChild(node, child)
+        self.node().ReplaceChild(self, node, child)
     }
 
     pub fn RemoveChild(self, node: AbstractNode) -> Fallible<AbstractNode> {
@@ -962,87 +993,50 @@ impl Node {
     // http://dom.spec.whatwg.org/#concept-node-pre-insert
     fn pre_insert(node: AbstractNode, parent: AbstractNode, child: Option<AbstractNode>)
                   -> Fallible<AbstractNode> {
-        fn is_inclusive_ancestor_of(node: AbstractNode, parent: AbstractNode) -> bool {
-            node == parent || parent.ancestors().any(|ancestor| ancestor == node)
-        }
-
         // Step 1.
         match parent.type_id() {
             DocumentNodeTypeId(*) |
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(*) => (),
-            _ => {
-                return Err(HierarchyRequest);
-            },
+            _ => return Err(HierarchyRequest)
         }
 
         // Step 2.
-        if is_inclusive_ancestor_of(node, parent) {
+        if node.is_inclusive_ancestor_of(parent) {
             return Err(HierarchyRequest);
         }
 
         // Step 3.
         match child {
-            Some(child) => {
-                if child.parent_node() != Some(parent) {
-                    return Err(NotFound);
-                }
-            },
-            None => (),
+            Some(child) if parent.is_parent_of(child) == false => return Err(NotFound),
+            _ => ()
         }
 
         // Step 4.
         match node.type_id() {
-            DocumentFragmentNodeTypeId |
-            DoctypeNodeTypeId |
-            ElementNodeTypeId(_) |
-            TextNodeTypeId |
-            // ProcessingInstructionNodeTypeId |
-            CommentNodeTypeId => (),
-            DocumentNodeTypeId(*) => return Err(HierarchyRequest),
-        }
-        
-        // Step 5.
-        match node.type_id() {
+            // Step 5.
             TextNodeTypeId => {
                 match node.parent_node() {
                     Some(parent) if parent.is_document() => return Err(HierarchyRequest),
                     _ => ()
                 }
-            },
+            }
             DoctypeNodeTypeId => {
                 match node.parent_node() {
                     Some(parent) if !parent.is_document() => return Err(HierarchyRequest),
                     _ => ()
                 }
-            },
-            _ => (),
+            }
+            DocumentFragmentNodeTypeId |
+            ElementNodeTypeId(_) |
+            // ProcessingInstructionNodeTypeId |
+            CommentNodeTypeId => (),
+            DocumentNodeTypeId(_) => return Err(HierarchyRequest)
         }
 
         // Step 6.
         match parent.type_id() {
             DocumentNodeTypeId(_) => {
-                fn inclusively_followed_by_doctype(child: Option<AbstractNode>) -> bool{
-                    match child {
-                        Some(child) if child.is_doctype() => true,
-                        Some(child) => {
-                            let mut iter = child;
-                            loop {
-                                match iter.next_sibling() {
-                                    Some(sibling) => {
-                                        if sibling.is_doctype() {
-                                            return true;
-                                        }
-                                        iter = sibling;
-                                    },
-                                    None => return false,
-                                }
-                            }
-                        },
-                        None => false,
-                    }
-                }
-
                 match node.type_id() {
                     // Step 6.1
                     DocumentFragmentNodeTypeId => {
@@ -1059,7 +1053,7 @@ impl Node {
                                 if parent.child_elements().len() > 0 {
                                     return Err(HierarchyRequest);
                                 }
-                                if inclusively_followed_by_doctype(child) {
+                                if AbstractNode::inclusively_followed_by_doctype(child) {
                                     return Err(HierarchyRequest);
                                 }
                             },
@@ -1074,7 +1068,7 @@ impl Node {
                         if parent.child_elements().len() > 0 {
                             return Err(HierarchyRequest);
                         }
-                        if inclusively_followed_by_doctype(child) {
+                        if AbstractNode::inclusively_followed_by_doctype(child) {
                             return Err(HierarchyRequest);
                         }
                     },
@@ -1283,9 +1277,139 @@ impl Node {
         Node::pre_insert(node, abstract_self, None)
     }
 
-    pub fn ReplaceChild(&mut self, _node: AbstractNode, _child: AbstractNode)
+    // http://dom.spec.whatwg.org/#concept-node-replace
+    pub fn ReplaceChild(&self, parent: AbstractNode, node: AbstractNode, child: AbstractNode)
                         -> Fallible<AbstractNode> {
-        fail!("stub")
+        if (node == child) {
+            return Ok(child);
+        }
+
+        // Step 1.
+        match parent.type_id() {
+            DocumentNodeTypeId(*) |
+            DocumentFragmentNodeTypeId |
+            ElementNodeTypeId(*) => (),
+            _ => return Err(HierarchyRequest)
+        }
+
+        // Step 2.
+        if node.is_inclusive_ancestor_of(parent) {
+            return Err(HierarchyRequest);
+        }
+
+        // Step 3.
+        if parent.is_parent_of(child) == false {
+            return Err(NotFound);
+        }
+
+        // Step 4.
+        match node.type_id() {
+            // Step 5.
+            TextNodeTypeId => {
+                match node.parent_node() {
+                    Some(parent) if parent.is_document() => return Err(HierarchyRequest),
+                    _ => ()
+                }
+            }
+            DoctypeNodeTypeId => {
+                match node.parent_node() {
+                    Some(parent) if !parent.is_document() => return Err(HierarchyRequest),
+                    _ => ()
+                }
+            }
+            DocumentFragmentNodeTypeId |
+            ElementNodeTypeId(_) |
+            // ProcessingInstructionNodeTypeId |
+            CommentNodeTypeId => (),
+            DocumentNodeTypeId(_) => return Err(HierarchyRequest)
+        }
+
+        // Step 6.
+        match parent.type_id() {
+            DocumentNodeTypeId(_) => {
+                match node.type_id() {
+                    // Step 6.1
+                    DocumentFragmentNodeTypeId => {
+                        // Step 6.1.1(b)
+                        if node.children().any(|c| c.is_text()) {
+                            return Err(HierarchyRequest);
+                        }
+                        match node.child_elements().len() {
+                            0 => (),
+                            // Step 6.1.2
+                            1 => {
+                                if parent.children().any(|c| c.is_element() && c != child) {
+                                    return Err(HierarchyRequest);
+                                }
+                                if AbstractNode::followed_by_doctype(child) {
+                                    return Err(HierarchyRequest);
+                                }
+                            },
+                            // Step 6.1.1(a)
+                            _ => return Err(HierarchyRequest),
+                        }
+                    },
+                    // Step 6.2
+                    ElementNodeTypeId(_) => {
+                        if parent.children().any(|c| c.is_element() && c != child) {
+                            return Err(HierarchyRequest);
+                        }
+                        if AbstractNode::followed_by_doctype(child) {
+                            return Err(HierarchyRequest);
+                        }
+                    },
+                    // Step 6.3
+                    DoctypeNodeTypeId => {
+                        if parent.children().any(|c| c.is_doctype() && c != child) {
+                            return Err(HierarchyRequest);
+                        }
+                        match child.prev_sibling() {
+                            Some(sibling) if sibling.is_element() => return Err(HierarchyRequest),
+                            _ => ()
+                        }
+                    },
+                    TextNodeTypeId |
+                    // ProcessingInstructionNodeTypeId |
+                    CommentNodeTypeId => (),
+                    DocumentNodeTypeId(_) => unreachable!(),
+                }
+            },
+            _ => (),
+        }
+
+        // Step 7-8.
+        let referenceChild = if child.next_sibling() != Some(node) {
+            child.next_sibling()
+        } else {
+            node.next_sibling()
+        };
+
+        // Step 9.
+        Node::adopt(node, parent.node().owner_doc());
+
+        {
+            let suppress_observers = true;
+
+            // Step 10.
+            Node::remove(child, parent, suppress_observers);
+
+            // Step 11.
+            Node::insert(node, parent, referenceChild, suppress_observers);
+        }
+
+        // Step 12.
+        // Step 13: mutation records.
+        if node.type_id() == DocumentFragmentNodeTypeId {
+            // Step 14.
+            for child_node in node.children() {
+                child_node.node_inserted();
+            }
+        } else {
+            node.node_inserted();
+        }
+
+        // Step 15.
+        Ok(child)
     }
 
     pub fn RemoveChild(&self, abstract_self: AbstractNode, node: AbstractNode)
