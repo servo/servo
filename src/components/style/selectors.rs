@@ -4,14 +4,25 @@
 
 use std::{vec, iter};
 use std::ascii::StrAsciiExt;
+use extra::arc::Arc;
+
 use cssparser::ast::*;
 use cssparser::parse_nth;
+
 use namespaces::NamespaceMap;
+
+
+// Only used in tests
+impl Eq for Arc<CompoundSelector> {
+    fn eq(&self, other: &Arc<CompoundSelector>) -> bool {
+        self.get() == other.get()
+    }
+}
 
 
 #[deriving(Eq, Clone)]
 pub struct Selector {
-    compound_selectors: CompoundSelector,
+    compound_selectors: Arc<CompoundSelector>,
     pseudo_element: Option<PseudoElement>,
     specificity: u32,
 }
@@ -23,8 +34,8 @@ pub static STYLE_ATTRIBUTE_SPECIFICITY: u32 = 1 << 31;
 pub enum PseudoElement {
     Before,
     After,
-    FirstLine,
-    FirstLetter,
+//    FirstLine,
+//    FirstLetter,
 }
 
 
@@ -157,7 +168,7 @@ fn parse_selector(iter: &mut Iter, namespaces: &NamespaceMap)
     }
     Some(Selector {
         specificity: compute_specificity(&compound, &pseudo_element),
-        compound_selectors: compound,
+        compound_selectors: Arc::new(compound),
         pseudo_element: pseudo_element,
     })
 }
@@ -310,14 +321,14 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
                 Some(Ident(name)) => match parse_simple_pseudo_class(name) {
                     None => {
                         // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                        let name_lower = name.to_ascii_lower(); 
+                        let name_lower = name.to_ascii_lower();
                         match name_lower.as_slice() {
                             // Supported CSS 2.1 pseudo-elements only.
                             // ** Do not add to this list! **
                             "before" => PseudoElementResult(Before),
                             "after" => PseudoElementResult(After),
-                            "first-line" => PseudoElementResult(FirstLine),
-                            "first-letter" => PseudoElementResult(FirstLetter),
+//                            "first-line" => PseudoElementResult(FirstLine),
+//                            "first-letter" => PseudoElementResult(FirstLetter),
                             _ => InvalidSimpleSelector
                         }
                     },
@@ -470,7 +481,7 @@ fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
                                  namespaces: &NamespaceMap, inside_negation: bool)
                                  -> Option<SimpleSelector> {
     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-    let name_lower = name.to_ascii_lower(); 
+    let name_lower = name.to_ascii_lower();
     match name_lower.as_slice() {
 //        "lang" => parse_lang(arguments),
         "nth-child"        => parse_nth(arguments).map(|(a, b)| NthChild(a, b)),
@@ -485,13 +496,13 @@ fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
 
 fn parse_pseudo_element(name: ~str) -> Option<PseudoElement> {
     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-    let name_lower = name.to_ascii_lower();  
+    let name_lower = name.to_ascii_lower();
     match name_lower.as_slice() {
         // All supported pseudo-elements
         "before" => Some(Before),
         "after" => Some(After),
-        "first-line" => Some(FirstLine),
-        "first-letter" => Some(FirstLetter),
+//        "first-line" => Some(FirstLine),
+//        "first-letter" => Some(FirstLetter),
         _ => None
     }
 }
@@ -549,6 +560,7 @@ fn skip_whitespace(iter: &mut Iter) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use extra::arc::Arc;
     use cssparser;
     use namespaces::NamespaceMap;
     use super::*;
@@ -567,48 +579,48 @@ mod tests {
     fn test_parsing() {
         assert_eq!(parse(""), None)
         assert_eq!(parse("e"), Some(~[Selector{
-            compound_selectors: CompoundSelector {
+            compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[LocalNameSelector(~"e")],
                 next: None,
-            },
+            }),
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
         }]))
         assert_eq!(parse(".foo"), Some(~[Selector{
-            compound_selectors: CompoundSelector {
+            compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[ClassSelector(~"foo")],
                 next: None,
-            },
+            }),
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
         }]))
         assert_eq!(parse("#bar"), Some(~[Selector{
-            compound_selectors: CompoundSelector {
+            compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[IDSelector(~"bar")],
                 next: None,
-            },
+            }),
             pseudo_element: None,
             specificity: specificity(1, 0, 0),
         }]))
         assert_eq!(parse("e.foo#bar"), Some(~[Selector{
-            compound_selectors: CompoundSelector {
+            compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[LocalNameSelector(~"e"),
                                     ClassSelector(~"foo"),
                                     IDSelector(~"bar")],
                 next: None,
-            },
+            }),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
         }]))
         assert_eq!(parse("e.foo #bar"), Some(~[Selector{
-            compound_selectors: CompoundSelector {
+            compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[IDSelector(~"bar")],
                 next: Some((~CompoundSelector {
                     simple_selectors: ~[LocalNameSelector(~"e"),
                                         ClassSelector(~"foo")],
                     next: None,
                 }, Descendant)),
-            },
+            }),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
         }]))

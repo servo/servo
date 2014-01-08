@@ -42,14 +42,14 @@ static SELECTOR_WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '
 /// Hence, the union of the rules keyed on each of node's classes, ID,
 /// element name, etc. will contain the Rules that actually match that
 /// node.
-pub struct SelectorMap {
+struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
     // FIXME: Use interned strings
-    priv id_hash: HashMap<~str, ~[Rule]>,
-    priv class_hash: HashMap<~str, ~[Rule]>,
-    priv element_hash: HashMap<~str, ~[Rule]>,
+    id_hash: HashMap<~str, ~[Rule]>,
+    class_hash: HashMap<~str, ~[Rule]>,
+    element_hash: HashMap<~str, ~[Rule]>,
     // For Rules that don't have ID, class, or element selectors.
-    priv universal_rules: ~[Rule],
+    universal_rules: ~[Rule],
 }
 
 impl SelectorMap {
@@ -70,7 +70,6 @@ impl SelectorMap {
                               N:TNode<E>>(
                               &self,
                               node: &N,
-                              pseudo_element: Option<PseudoElement>,
                               matching_rules_list: &mut ~[Rule]) {
         // At the end, we're going to sort the rules that we added, so remember where we began.
         let init_len = matching_rules_list.len();
@@ -78,7 +77,6 @@ impl SelectorMap {
             match element.get_attr(None, "id") {
                 Some(id) => {
                     SelectorMap::get_matching_rules_from_hash(node,
-                                                              pseudo_element,
                                                               &self.id_hash,
                                                               id,
                                                               matching_rules_list)
@@ -90,7 +88,6 @@ impl SelectorMap {
                 Some(ref class_attr) => {
                     for class in class_attr.split_iter(SELECTOR_WHITESPACE) {
                         SelectorMap::get_matching_rules_from_hash(node,
-                                                                  pseudo_element,
                                                                   &self.class_hash,
                                                                   class,
                                                                   matching_rules_list)
@@ -102,12 +99,10 @@ impl SelectorMap {
             // HTML elements in HTML documents must be matched case-insensitively.
             // TODO(pradeep): Case-sensitivity depends on the document type.
             SelectorMap::get_matching_rules_from_hash(node,
-                                                      pseudo_element,
                                                       &self.element_hash,
                                                       element.get_local_name().to_ascii_lower(),
                                                       matching_rules_list);
             SelectorMap::get_matching_rules(node,
-                                            pseudo_element,
                                             self.universal_rules,
                                             matching_rules_list);
         });
@@ -119,27 +114,25 @@ impl SelectorMap {
     fn get_matching_rules_from_hash<E:TElement,
                                     N:TNode<E>>(
                                     node: &N,
-                                    pseudo_element: Option<PseudoElement>,
-                                    hash: &HashMap<~str,~[Rule]>, 
+                                    hash: &HashMap<~str,~[Rule]>,
                                     key: &str,
                                     matching_rules: &mut ~[Rule]) {
         match hash.find(&key.to_str()) {
             Some(rules) => {
-                SelectorMap::get_matching_rules(node, pseudo_element, *rules, matching_rules)
+                SelectorMap::get_matching_rules(node, *rules, matching_rules)
             }
             None => {}
         }
     }
-    
+
     /// Adds rules in `rules` that match `node` to the `matching_rules` list.
     fn get_matching_rules<E:TElement,
                           N:TNode<E>>(
                           node: &N,
-                          pseudo_element: Option<PseudoElement>,
                           rules: &[Rule],
                           matching_rules: &mut ~[Rule]) {
         for rule in rules.iter() {
-            if matches_selector(rule.selector.get(), node, pseudo_element) {
+            if matches_compound_selector(rule.selector.get(), node) {
                 // TODO(pradeep): Is the cloning inefficient?
                 matching_rules.push(rule.clone());
             }
@@ -198,7 +191,7 @@ impl SelectorMap {
 
     /// Retrieve the first ID name in Rule, or None otherwise.
     fn get_id_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.get().compound_selectors.simple_selectors;
+        let simple_selector_sequence = &rule.selector.get().simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
@@ -212,7 +205,7 @@ impl SelectorMap {
 
     /// Retrieve the FIRST class name in Rule, or None otherwise.
     fn get_class_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.get().compound_selectors.simple_selectors;
+        let simple_selector_sequence = &rule.selector.get().simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
@@ -226,7 +219,7 @@ impl SelectorMap {
 
     /// Retrieve the name if it is a type selector, or None otherwise.
     fn get_element_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.get().compound_selectors.simple_selectors;
+        let simple_selector_sequence = &rule.selector.get().simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // HTML elements in HTML documents must be matched case-insensitively
@@ -240,51 +233,59 @@ impl SelectorMap {
 }
 
 pub struct Stylist {
-    priv ua_rule_map: PerOriginSelectorMap,
-    priv author_rule_map: PerOriginSelectorMap,
-    priv user_rule_map: PerOriginSelectorMap,
-    priv stylesheet_index: uint,
-    priv pseudo_element: Option<PseudoElement>,
+    priv element_map: PerPseudoElementSelectorMap,
+    priv before_map: PerPseudoElementSelectorMap,
+    priv after_map: PerPseudoElementSelectorMap,
+    priv rules_source_order: uint,
 }
 
 impl Stylist {
     #[inline]
-    pub fn new(pseudo_element: Option<PseudoElement>) -> Stylist {
+    pub fn new() -> Stylist {
         Stylist {
-            ua_rule_map: PerOriginSelectorMap::new(),
-            author_rule_map: PerOriginSelectorMap::new(),
-            user_rule_map: PerOriginSelectorMap::new(),
-            stylesheet_index: 0u,
-            pseudo_element: pseudo_element,
+            element_map: PerPseudoElementSelectorMap::new(),
+            before_map: PerPseudoElementSelectorMap::new(),
+            after_map: PerPseudoElementSelectorMap::new(),
+            rules_source_order: 0u,
         }
     }
 
-    pub fn add_stylesheet(&mut self, stylesheet: &Stylesheet, origin: StylesheetOrigin) {
-        let rule_map = match origin {
-            UserAgentOrigin => &mut self.ua_rule_map,
-            AuthorOrigin => &mut self.author_rule_map,
-            UserOrigin => &mut self.user_rule_map,
+    pub fn add_stylesheet(&mut self, stylesheet: Stylesheet, origin: StylesheetOrigin) {
+        let (mut element_map, mut before_map, mut after_map) = match origin {
+            UserAgentOrigin => (
+                &mut self.element_map.user_agent,
+                &mut self.before_map.user_agent,
+                &mut self.after_map.user_agent,
+            ),
+            AuthorOrigin => (
+                &mut self.element_map.author,
+                &mut self.before_map.author,
+                &mut self.after_map.author,
+            ),
+            UserOrigin => (
+                &mut self.element_map.user,
+                &mut self.before_map.user,
+                &mut self.after_map.user,
+            ),
         };
-        let mut added_normal_declarations = false;
-        let mut added_important_declarations = false;
-        let mut style_rule_index = 0u;
 
         // Take apart the StyleRule into individual Rules and insert
         // them into the SelectorMap of that priority.
         macro_rules! append(
-            ($priority: ident, $flag: ident) => {
+            ($priority: ident) => {
                 if style_rule.declarations.$priority.get().len() > 0 {
-                    $flag = true;
                     for selector in style_rule.selectors.iter() {
-                        // TODO: avoid copying?
-                        if selector.pseudo_element == self.pseudo_element {
-                            rule_map.$priority.insert(Rule {
-                                    selector: Arc::new(selector.clone()),
-                                    declarations: style_rule.declarations.$priority.clone(),
-                                    index: style_rule_index,
-                                    stylesheet_index: self.stylesheet_index,
-                            });
-                        }
+                        let map = match selector.pseudo_element {
+                            None => &mut element_map,
+                            Some(Before) => &mut before_map,
+                            Some(After) => &mut after_map,
+                        };
+                        map.$priority.insert(Rule {
+                                selector: selector.compound_selectors.clone(),
+                                specificity: selector.specificity,
+                                declarations: style_rule.declarations.$priority.clone(),
+                                source_order: self.rules_source_order,
+                        });
                     }
                 }
             };
@@ -292,11 +293,10 @@ impl Stylist {
 
         let device = &Device { media_type: Screen };  // TODO, use Print when printing
         do iter_style_rules(stylesheet.rules.as_slice(), device) |style_rule| {
-            append!(normal, added_normal_declarations);
-            append!(important, added_important_declarations);
-            style_rule_index += 1u;
+            append!(normal);
+            append!(important);
+            self.rules_source_order += 1;
         }
-        self.stylesheet_index += 1;
     }
 
     /// Returns the applicable CSS declarations for the given element. This corresponds to
@@ -305,20 +305,26 @@ impl Stylist {
                                        N:TNode<E>>(
                                        &self,
                                        element: &N,
-                                       style_attribute: Option<&PropertyDeclarationBlock>)
+                                       style_attribute: Option<&PropertyDeclarationBlock>,
+                                       pseudo_element: Option<PseudoElement>)
                                        -> ~[Arc<~[PropertyDeclaration]>] {
         assert!(element.is_element());
-        assert!(style_attribute.is_none() || self.pseudo_element.is_none(),
+        assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
-            
+
+        let map = match pseudo_element {
+            None => &self.element_map,
+            Some(Before) => &self.before_map,
+            Some(After) => &self.after_map,
+        };
         // In cascading order:
         let rule_map_list = [
-            &self.ua_rule_map.normal,
-            &self.user_rule_map.normal,
-            &self.author_rule_map.normal,
-            &self.author_rule_map.important,
-            &self.user_rule_map.important,
-            &self.ua_rule_map.important
+            &map.user_agent.normal,
+            &map.user.normal,
+            &map.author.normal,
+            &map.author.important,
+            &map.user.important,
+            &map.user_agent.important
         ];
 
         // We keep track of the indices of each of the rule maps in the list we're building so that
@@ -330,9 +336,9 @@ impl Stylist {
 
         for (i, rule_map) in rule_map_list.iter().enumerate() {
             rule_map_indices[i] = matching_rules_list.len();
-            rule_map.get_all_matching_rules(element, self.pseudo_element, &mut matching_rules_list);
+            rule_map.get_all_matching_rules(element, &mut matching_rules_list);
         }
-        
+
         let count = matching_rules_list.len();
 
         let mut declaration_iter = matching_rules_list.move_iter().map(|rule| {
@@ -373,25 +379,6 @@ impl Stylist {
 
         applicable_declarations
     }
-    
-    pub fn get_pseudo_element(&self) -> Option<PseudoElement> {
-        self.pseudo_element
-    }
-}
-
-struct PerOriginRules {
-    normal: ~[Rule],
-    important: ~[Rule],
-}
-
-impl PerOriginRules {
-    #[inline]
-    fn new() -> PerOriginRules {
-        PerOriginRules {
-            normal: ~[],
-            important: ~[],
-        }
-    }
 }
 
 struct PerOriginSelectorMap {
@@ -409,38 +396,42 @@ impl PerOriginSelectorMap {
     }
 }
 
+struct PerPseudoElementSelectorMap {
+    user_agent: PerOriginSelectorMap,
+    author: PerOriginSelectorMap,
+    user: PerOriginSelectorMap,
+}
+
+impl PerPseudoElementSelectorMap {
+    #[inline]
+    fn new() -> PerPseudoElementSelectorMap {
+        PerPseudoElementSelectorMap {
+            user_agent: PerOriginSelectorMap::new(),
+            author: PerOriginSelectorMap::new(),
+            user: PerOriginSelectorMap::new(),
+        }
+    }
+}
+
 #[deriving(Clone)]
 struct Rule {
     // This is an Arc because Rule will essentially be cloned for every node
     // that it matches. Selector contains an owned vector (through
     // CompoundSelector) and we want to avoid the allocation.
-    selector: Arc<Selector>,
+    selector: Arc<CompoundSelector>,
     declarations: Arc<~[PropertyDeclaration]>,
-    // Index of the parent StyleRule in the parent Stylesheet (useful for
-    // breaking ties while cascading).
-    index: uint,
-    // Index of the parent stylesheet among all the stylesheets
-    stylesheet_index: uint,
+    // Precedence among rules of equal specificity
+    source_order: uint,
+    specificity: u32,
 }
 
 impl Ord for Rule {
     #[inline]
     fn lt(&self, other: &Rule) -> bool {
-        let this_rank = (self.selector.get().specificity, self.stylesheet_index, self.index);
-        let other_rank = (other.selector.get().specificity, other.stylesheet_index, other.index);
+        let this_rank = (self.specificity, self.source_order);
+        let other_rank = (other.specificity, other.source_order);
         this_rank < other_rank
     }
-}
-
-#[inline]
-fn matches_selector<E:TElement,
-                    N:TNode<E>>(
-                    selector: &Selector,
-                    element: &N,
-                    pseudo_element: Option<PseudoElement>)
-                    -> bool {
-    selector.pseudo_element == pseudo_element &&
-        matches_compound_selector::<E,N>(&selector.compound_selectors, element)
 }
 
 fn matches_compound_selector<E:TElement,N:TNode<E>>(selector: &CompoundSelector, element: &N)
@@ -725,66 +716,71 @@ fn match_attribute<E:TElement,
 }
 
 
-/// Helper method to get some Rules from selector strings.
-/// Each sublist of the result contains the Rules for one StyleRule.
-fn get_mock_rules(css_selectors: &[&str]) -> ~[~[Rule]] {
-    use namespaces::NamespaceMap;
-    use selectors::parse_selector_list;
-    use cssparser::tokenize;
+#[cfg(test)]
+mod tests {
+    use extra::arc::Arc;
+    use super::{Rule, SelectorMap};
 
-    let namespaces = NamespaceMap::new();
-    css_selectors.iter().enumerate().map(|(i, selectors)| {
-        parse_selector_list(tokenize(*selectors).map(|(c, _)| c).to_owned_vec(), &namespaces)
-        .unwrap().move_iter().map(|s| {
-            Rule {
-                selector: Arc::new(s),
-                declarations: Arc::new(~[]),
-                index: i,
-                stylesheet_index: 0u,
-            }
+    /// Helper method to get some Rules from selector strings.
+    /// Each sublist of the result contains the Rules for one StyleRule.
+    fn get_mock_rules(css_selectors: &[&str]) -> ~[~[Rule]] {
+        use namespaces::NamespaceMap;
+        use selectors::parse_selector_list;
+        use cssparser::tokenize;
+
+        let namespaces = NamespaceMap::new();
+        css_selectors.iter().enumerate().map(|(i, selectors)| {
+            parse_selector_list(tokenize(*selectors).map(|(c, _)| c).to_owned_vec(), &namespaces)
+            .unwrap().move_iter().map(|s| {
+                Rule {
+                    specificity: s.specificity,
+                    selector: s.compound_selectors,
+                    declarations: Arc::new(~[]),
+                    source_order: i,
+                }
+            }).to_owned_vec()
         }).to_owned_vec()
-    }).to_owned_vec()
-}
+    }
 
-#[test]
-fn test_rule_ordering_same_specificity(){
-    let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
-    let rule1 = rules_list[0][0].clone();
-    let rule2 = rules_list[1][0].clone();
-    assert!(rule1 < rule2, "The rule that comes later should win.");
-}
+    #[test]
+    fn test_rule_ordering_same_specificity(){
+        let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
+        let rule1 = rules_list[0][0].clone();
+        let rule2 = rules_list[1][0].clone();
+        assert!(rule1 < rule2, "The rule that comes later should win.");
+    }
 
-#[test]
-fn test_get_id_name(){
-    let rules_list = get_mock_rules([".intro", "#top"]);
-    assert_eq!(SelectorMap::get_id_name(&rules_list[0][0]), None);
-    assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some(~"top"));
-}
+    #[test]
+    fn test_get_id_name(){
+        let rules_list = get_mock_rules([".intro", "#top"]);
+        assert_eq!(SelectorMap::get_id_name(&rules_list[0][0]), None);
+        assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some(~"top"));
+    }
 
-#[test]
-fn test_get_class_name(){
-    let rules_list = get_mock_rules([".intro.foo", "#top"]);
-    assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(~"intro"));
-    assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
-}
+    #[test]
+    fn test_get_class_name(){
+        let rules_list = get_mock_rules([".intro.foo", "#top"]);
+        assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(~"intro"));
+        assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
+    }
 
-#[test]
-fn test_get_element_name(){
-    let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
-    assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some(~"img"));
-    assert_eq!(SelectorMap::get_element_name(&rules_list[1][0]), None);
-    assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some(~"img"));
-    assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some(~"img"));
-}
+    #[test]
+    fn test_get_element_name(){
+        let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
+        assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some(~"img"));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[1][0]), None);
+        assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some(~"img"));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some(~"img"));
+    }
 
-#[test]
-fn test_insert(){
-    let rules_list = get_mock_rules([".intro.foo", "#top"]);
-    let mut selector_map = SelectorMap::new();
-    selector_map.insert(rules_list[1][0].clone());
-    assert_eq!(1, selector_map.id_hash.find(&~"top").unwrap()[0].index);
-    selector_map.insert(rules_list[0][0].clone());
-    assert_eq!(0, selector_map.class_hash.find(&~"intro").unwrap()[0].index);
-    assert!(selector_map.class_hash.find(&~"foo").is_none());
+    #[test]
+    fn test_insert(){
+        let rules_list = get_mock_rules([".intro.foo", "#top"]);
+        let mut selector_map = SelectorMap::new();
+        selector_map.insert(rules_list[1][0].clone());
+        assert_eq!(1, selector_map.id_hash.find(&~"top").unwrap()[0].source_order);
+        selector_map.insert(rules_list[0][0].clone());
+        assert_eq!(0, selector_map.class_hash.find(&~"intro").unwrap()[0].source_order);
+        assert!(selector_map.class_hash.find(&~"foo").is_none());
+    }
 }
-
