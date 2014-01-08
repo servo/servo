@@ -42,14 +42,14 @@ static SELECTOR_WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '
 /// Hence, the union of the rules keyed on each of node's classes, ID,
 /// element name, etc. will contain the Rules that actually match that
 /// node.
-pub struct SelectorMap {
+struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
     // FIXME: Use interned strings
-    priv id_hash: HashMap<~str, ~[Rule]>,
-    priv class_hash: HashMap<~str, ~[Rule]>,
-    priv element_hash: HashMap<~str, ~[Rule]>,
+    id_hash: HashMap<~str, ~[Rule]>,
+    class_hash: HashMap<~str, ~[Rule]>,
+    element_hash: HashMap<~str, ~[Rule]>,
     // For Rules that don't have ID, class, or element selectors.
-    priv universal_rules: ~[Rule],
+    universal_rules: ~[Rule],
 }
 
 impl SelectorMap {
