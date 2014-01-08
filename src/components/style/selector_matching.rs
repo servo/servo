@@ -244,20 +244,22 @@ pub struct Stylist {
     priv author_rule_map: PerOriginSelectorMap,
     priv user_rule_map: PerOriginSelectorMap,
     priv stylesheet_index: uint,
+    priv pseudo_element: Option<PseudoElement>,
 }
 
 impl Stylist {
     #[inline]
-    pub fn new() -> Stylist {
+    pub fn new(pseudo_element: Option<PseudoElement>) -> Stylist {
         Stylist {
             ua_rule_map: PerOriginSelectorMap::new(),
             author_rule_map: PerOriginSelectorMap::new(),
             user_rule_map: PerOriginSelectorMap::new(),
             stylesheet_index: 0u,
+            pseudo_element: pseudo_element,
         }
     }
 
-    pub fn add_stylesheet(&mut self, stylesheet: Stylesheet, origin: StylesheetOrigin) {
+    pub fn add_stylesheet(&mut self, stylesheet: &Stylesheet, origin: StylesheetOrigin) {
         let rule_map = match origin {
             UserAgentOrigin => &mut self.ua_rule_map,
             AuthorOrigin => &mut self.author_rule_map,
@@ -275,12 +277,14 @@ impl Stylist {
                     $flag = true;
                     for selector in style_rule.selectors.iter() {
                         // TODO: avoid copying?
-                        rule_map.$priority.insert(Rule {
-                                selector: Arc::new(selector.clone()),
-                                declarations: style_rule.declarations.$priority.clone(),
-                                index: style_rule_index,
-                                stylesheet_index: self.stylesheet_index,
+                        if selector.pseudo_element == self.pseudo_element {
+                            rule_map.$priority.insert(Rule {
+                                    selector: Arc::new(selector.clone()),
+                                    declarations: style_rule.declarations.$priority.clone(),
+                                    index: style_rule_index,
+                                    stylesheet_index: self.stylesheet_index,
                             });
+                        }
                     }
                 }
             };
@@ -301,11 +305,10 @@ impl Stylist {
                                        N:TNode<E>>(
                                        &self,
                                        element: &N,
-                                       style_attribute: Option<&PropertyDeclarationBlock>,
-                                       pseudo_element: Option<PseudoElement>)
+                                       style_attribute: Option<&PropertyDeclarationBlock>)
                                        -> ~[Arc<~[PropertyDeclaration]>] {
         assert!(element.is_element());
-        assert!(style_attribute.is_none() || pseudo_element.is_none(),
+        assert!(style_attribute.is_none() || self.pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
             
         // In cascading order:
@@ -327,7 +330,7 @@ impl Stylist {
 
         for (i, rule_map) in rule_map_list.iter().enumerate() {
             rule_map_indices[i] = matching_rules_list.len();
-            rule_map.get_all_matching_rules(element, pseudo_element, &mut matching_rules_list);
+            rule_map.get_all_matching_rules(element, self.pseudo_element, &mut matching_rules_list);
         }
         
         let count = matching_rules_list.len();
@@ -369,6 +372,10 @@ impl Stylist {
         }
 
         applicable_declarations
+    }
+    
+    pub fn get_pseudo_element(&self) -> Option<PseudoElement> {
+        self.pseudo_element
     }
 }
 

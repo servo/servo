@@ -3,16 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use style::{Stylesheet, Stylist, UserAgentOrigin, with_errors_silenced};
+use style::PseudoElement;
 use extra::url;
 
 
-pub fn new_stylist() -> Stylist {
-    let mut stylist = Stylist::new();
+pub fn new_stylist(pseudo_element: Option<PseudoElement>) -> Stylist {
+    let mut stylist = Stylist::new(pseudo_element);
     let ua_stylesheet = with_errors_silenced(|| Stylesheet::from_bytes(
         include_bin!("user-agent.css"),
         url::from_str("chrome:///user-agent.css").unwrap(),
         None,
         None));
-    stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin);
+    stylist.add_stylesheet(&ua_stylesheet, UserAgentOrigin);
     stylist
 }
