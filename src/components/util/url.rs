@@ -59,6 +59,9 @@ pub fn parse_url(str_url: &str, base_url: Option<Url>) -> Url {
             match scheme.as_slice() {
                 "about" => {
                     match page.as_slice() {
+                        "crash" => {
+                            fail!("about:crash");
+                        }
                         "failure" => {
                             let mut path = os::getcwd();
                             path.push("../src/test/html/failure.html");
