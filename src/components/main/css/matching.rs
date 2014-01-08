@@ -87,8 +87,8 @@ impl<'self> MatchMethods for LayoutNode<'self> {
                     };
 
                     let nodes = Cell::new(nodes);
-                    for i in range(0, stylists.len()) {
-                        do stylists[i].read |stylist| {
+                    for stylist in stylists.iter() {
+                        do stylist.read |stylist| {
                             nodes.with_ref(|nodes|{
                                 for node in nodes.iter() {
                                     node.match_node(stylist);

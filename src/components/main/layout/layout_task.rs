@@ -238,9 +238,11 @@ impl LayoutTask {
            -> LayoutTask {
 
         let mut stylists = ~[];
+        // We implemented parsing/selector-matching only for Before and After.
+        // FirstLine and FirstLetter have to be added later.
         let stylist_owners = ~[Some(Before), Some(After), None];
-        for i in range(0, stylist_owners.len()) {
-            stylists.push(RWArc::new(new_stylist(stylist_owners[i])));
+        for pseudo_element in stylist_owners.iter() {
+            stylists.push(RWArc::new(new_stylist(*pseudo_element)));
         }
 
         LayoutTask {
@@ -354,8 +356,8 @@ impl LayoutTask {
 
     fn handle_add_stylesheet(&mut self, sheet: Stylesheet) {
         let sheet = Cell::new(sheet);
-        for i in range(0, self.stylists.len()) {
-            do self.stylists[i].write |stylist| {
+        for stylist in self.stylists.iter() {
+            do stylist.write |stylist| {
                 sheet.with_ref(|sheet|{
                     stylist.add_stylesheet(sheet, AuthorOrigin);
                 });
