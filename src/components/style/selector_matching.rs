@@ -120,7 +120,7 @@ impl SelectorMap {
                                     N:TNode<E>>(
                                     node: &N,
                                     pseudo_element: Option<PseudoElement>,
-                                    hash: &HashMap<~str,~[Rule]>, 
+                                    hash: &HashMap<~str,~[Rule]>,
                                     key: &str,
                                     matching_rules: &mut ~[Rule]) {
         match hash.find(&key.to_str()) {
@@ -130,7 +130,7 @@ impl SelectorMap {
             None => {}
         }
     }
-    
+
     /// Adds rules in `rules` that match `node` to the `matching_rules` list.
     fn get_matching_rules<E:TElement,
                           N:TNode<E>>(
@@ -310,7 +310,7 @@ impl Stylist {
         assert!(element.is_element());
         assert!(style_attribute.is_none() || self.pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
-            
+
         // In cascading order:
         let rule_map_list = [
             &self.ua_rule_map.normal,
@@ -332,7 +332,7 @@ impl Stylist {
             rule_map_indices[i] = matching_rules_list.len();
             rule_map.get_all_matching_rules(element, self.pseudo_element, &mut matching_rules_list);
         }
-        
+
         let count = matching_rules_list.len();
 
         let mut declaration_iter = matching_rules_list.move_iter().map(|rule| {
@@ -373,7 +373,7 @@ impl Stylist {
 
         applicable_declarations
     }
-    
+
     pub fn get_pseudo_element(&self) -> Option<PseudoElement> {
         self.pseudo_element
     }

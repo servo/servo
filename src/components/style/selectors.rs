@@ -310,7 +310,7 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
                 Some(Ident(name)) => match parse_simple_pseudo_class(name) {
                     None => {
                         // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                        let name_lower = name.to_ascii_lower(); 
+                        let name_lower = name.to_ascii_lower();
                         match name_lower.as_slice() {
                             // Supported CSS 2.1 pseudo-elements only.
                             // ** Do not add to this list! **
@@ -470,7 +470,7 @@ fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
                                  namespaces: &NamespaceMap, inside_negation: bool)
                                  -> Option<SimpleSelector> {
     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-    let name_lower = name.to_ascii_lower(); 
+    let name_lower = name.to_ascii_lower();
     match name_lower.as_slice() {
 //        "lang" => parse_lang(arguments),
         "nth-child"        => parse_nth(arguments).map(|(a, b)| NthChild(a, b)),
@@ -485,7 +485,7 @@ fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
 
 fn parse_pseudo_element(name: ~str) -> Option<PseudoElement> {
     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-    let name_lower = name.to_ascii_lower();  
+    let name_lower = name.to_ascii_lower();
     match name_lower.as_slice() {
         // All supported pseudo-elements
         "before" => Some(Before),
