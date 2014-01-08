@@ -379,21 +379,6 @@ impl Stylist {
     }
 }
 
-struct PerOriginRules {
-    normal: ~[Rule],
-    important: ~[Rule],
-}
-
-impl PerOriginRules {
-    #[inline]
-    fn new() -> PerOriginRules {
-        PerOriginRules {
-            normal: ~[],
-            important: ~[],
-        }
-    }
-}
-
 struct PerOriginSelectorMap {
     normal: SelectorMap,
     important: SelectorMap,
