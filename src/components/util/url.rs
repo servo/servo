@@ -56,10 +56,10 @@ pub fn parse_url(str_url: &str, base_url: Option<Url>) -> Url {
             }
         },
         Ok((scheme, page)) => {
-            match scheme {
-                ~"about" => {
-                    match page {
-                        ~"failure" => {
+            match scheme.as_slice() {
+                "about" => {
+                    match page.as_slice() {
+                        "failure" => {
                             let mut path = os::getcwd();
                             path.push("../src/test/html/failure.html");
                             // FIXME (#1094): not the right way to transform a path
@@ -69,7 +69,7 @@ pub fn parse_url(str_url: &str, base_url: Option<Url>) -> Url {
                         _ => str_url
                     }
                 },
-                ~"data" => {
+                "data" => {
                     // Drop whitespace within data: URLs, e.g. newlines within a base64
                     // src="..." block.  Whitespace intended as content should be
                     // %-encoded or base64'd.
