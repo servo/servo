@@ -33,14 +33,6 @@ impl HTMLDocument {
 }
 
 impl HTMLDocument {
-    pub fn GetHead(&self) -> Option<AbstractNode> {
-        self.parent.GetDocumentElement().and_then(|root| {
-            root.traverse_preorder().find(|child| {
-                child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
-            })
-        })
-    }
-
     pub fn Images(&self) -> @mut HTMLCollection {
         self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "img"))
     }

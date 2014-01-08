@@ -306,12 +306,13 @@ impl Document {
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-head
     pub fn GetHead(&self) -> Option<AbstractNode> {
         self.get_html_element().and_then(|root| {
-            root.traverse_preorder().find(|child| {
+            root.children().find(|child| {
                 child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
             })
         })
     }
 
+    // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
     pub fn GetBody(&self, _: AbstractDocument) -> Option<AbstractNode> {
         match self.get_html_element() {
             None => None,
