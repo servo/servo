@@ -29,6 +29,17 @@
                 is(new_document.head, new_head, "test2-4, append head to a new document");
             }
 
+            // test3: head's parent should be document element
+            {
+                let new_document = new Document();
+                let html = new_document.createElement("html");
+                let foo = new_document.createElement("foo");
+                let head = new_document.createElement("head");
+                new_document.appendChild(html);
+                html.appendChild(foo);
+                foo.appendChild(head);
+                is(new_document.head, null, "test3-0, head's parent should be document element");
+            }
             finish();
         </script>
     </body>

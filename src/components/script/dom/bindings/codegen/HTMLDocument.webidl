@@ -17,7 +17,7 @@ interface HTMLDocument : Document {
   // getter object (DOMString name);
   /*[SetterThrows]
     attribute HTMLElement? body;*/
-  readonly attribute HTMLHeadElement? head;
+  // readonly attribute HTMLHeadElement? head;
   readonly attribute HTMLCollection images;
   readonly attribute HTMLCollection embeds;
   readonly attribute HTMLCollection plugins;
