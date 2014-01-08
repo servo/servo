@@ -24,9 +24,6 @@ pub trait MatchMethods {
     fn match_node(&self, stylist: &Stylist);
     fn match_subtree(&self, stylist: RWArc<Stylist>);
 
-    fn cascade_before_node(&self, parent: Option<LayoutNode>);
-    fn cascade_node(&self, parent: Option<LayoutNode>);
-    fn cascade_after_node(&self, parent: Option<LayoutNode>);
     fn cascade_subtree(&self, parent: Option<LayoutNode>);
 }
 
@@ -102,109 +99,47 @@ impl<'self> MatchMethods for LayoutNode<'self> {
         }
     }
 
-    fn cascade_before_node(&self, parent: Option<LayoutNode>) {
-        let parent_style = match parent {
-            Some(ref parent) => Some(parent.style()),
-            None => None
-        };
-
-        let computed_values = unsafe {
-            Arc::new(cascade(self.borrow_layout_data_unchecked()
-                                 .as_ref()
-                                 .unwrap()
-                                 .before_applicable_declarations,
-                             parent_style.map(|parent_style| parent_style.get())))
-        };
-
-        match *self.mutate_layout_data().ptr {
-            None => fail!("no layout data"),
-            Some(ref mut layout_data) => {
-                let style = &mut layout_data.before_style;
-                match *style {
-                    None => (),
-                    Some(ref previous_style) => {
-                        layout_data.restyle_damage =
-                            Some(incremental::compute_damage(previous_style.get(),
-                                                             computed_values.get()).to_int())
-                    }
-                }
-                *style = Some(computed_values)
-            }
-        }
-    }
-
-    fn cascade_node(&self, parent: Option<LayoutNode>) {
-        let parent_style = match parent {
-            Some(ref parent) => Some(parent.style()),
-            None => None
-        };
-
-        let computed_values = unsafe {
-            Arc::new(cascade(self.borrow_layout_data_unchecked()
-                                 .as_ref()
-                                 .unwrap()
-                                 .applicable_declarations,
-                             parent_style.map(|parent_style| parent_style.get())))
-        };
-
-        match *self.mutate_layout_data().ptr {
-            None => fail!("no layout data"),
-            Some(ref mut layout_data) => {
-                let style = &mut layout_data.style;
-                match *style {
-                    None => (),
-                    Some(ref previous_style) => {
-                        layout_data.restyle_damage =
-                            Some(incremental::compute_damage(previous_style.get(),
-                                                             computed_values.get()).to_int())
-                    }
-                }
-                *style = Some(computed_values)
-            }
-        }
-    }
-
-    fn cascade_after_node(&self, parent: Option<LayoutNode>) {
-        let parent_style = match parent {
-            Some(ref parent) => Some(parent.style()),
-            None => None
-        };
-
-        let computed_values = unsafe {
-            Arc::new(cascade(self.borrow_layout_data_unchecked()
-                                 .as_ref()
-                                 .unwrap()
-                                 .after_applicable_declarations,
-                             parent_style.map(|parent_style| parent_style.get())))
-        };
-
-        match *self.mutate_layout_data().ptr {
-            None => fail!("no layout data"),
-            Some(ref mut layout_data) => {
-                let style = &mut layout_data.after_style;
-                match *style {
-                    None => (),
-                    Some(ref previous_style) => {
-                        layout_data.restyle_damage =
-                            Some(incremental::compute_damage(previous_style.get(),
-                                                             computed_values.get()).to_int())
-                    }
-                }
-                *style = Some(computed_values)
-            }
-        }
-    }
-
     fn cascade_subtree(&self, parent: Option<LayoutNode>) {
+        let layout_data = unsafe {
+            self.borrow_layout_data_unchecked().as_ref().unwrap()
+        };
+        macro_rules! cascade_node(
+            ($applicable_declarations: ident, $style: ident) => {{
+                let parent_style = match parent {
+                    Some(ref parent) => Some(parent.style()),
+                    None => None
+                };
+
+                let computed_values = Arc::new(cascade(
+                    layout_data.$applicable_declarations,
+                    parent_style.map(|parent_style| parent_style.get())));
+
+                match *self.mutate_layout_data().ptr {
+                    None => fail!("no layout data"),
+                    Some(ref mut layout_data) => {
+                        let style = &mut layout_data.$style;
+                        match *style {
+                            None => (),
+                            Some(ref previous_style) => {
+                                layout_data.restyle_damage = Some(incremental::compute_damage(
+                                    previous_style.get(), computed_values.get()).to_int())
+                            }
+                        }
+                        *style = Some(computed_values)
+                    }
+                }
+            }}
+        );
+
         unsafe {
             if self.borrow_layout_data_unchecked().as_ref().unwrap().before_applicable_declarations.len() > 0 {
-                self.cascade_before_node(parent);
+                cascade_node!(before_applicable_declarations, before_style);
             }
         }
-        self.cascade_node(parent);
+        cascade_node!(applicable_declarations, style);
         unsafe {
             if self.borrow_layout_data_unchecked().as_ref().unwrap().after_applicable_declarations.len() > 0 {
-                self.cascade_after_node(parent);
+                cascade_node!(after_applicable_declarations, after_style);
             }
         }
 
