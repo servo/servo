@@ -127,10 +127,18 @@ impl ElementMapping {
 /// Data that layout associates with a node.
 pub struct LayoutData {
     /// The results of CSS matching for this node.
+    before_applicable_declarations: ~[Arc<~[PropertyDeclaration]>],
+
     applicable_declarations: ~[Arc<~[PropertyDeclaration]>],
 
+    after_applicable_declarations: ~[Arc<~[PropertyDeclaration]>],
+
     /// The results of CSS styling for this node.
+    before_style: Option<Arc<ComputedValues>>,
+
     style: Option<Arc<ComputedValues>>,
+
+    after_style: Option<Arc<ComputedValues>>,
 
     /// Description of how to account for recent style changes.
     restyle_damage: Option<int>,
@@ -145,7 +153,11 @@ impl LayoutData {
     pub fn new() -> LayoutData {
         LayoutData {
             applicable_declarations: ~[],
+            before_applicable_declarations: ~[],
+            after_applicable_declarations: ~[],
+            before_style: None,
             style: None,
+            after_style: None,
             restyle_damage: None,
             flow_construction_result: NoConstructionResult,
         }
