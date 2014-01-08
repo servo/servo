@@ -23,8 +23,8 @@ pub static STYLE_ATTRIBUTE_SPECIFICITY: u32 = 1 << 31;
 pub enum PseudoElement {
     Before,
     After,
-    FirstLine,
-    FirstLetter,
+//    FirstLine,
+//    FirstLetter,
 }
 
 
@@ -316,8 +316,8 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
                             // ** Do not add to this list! **
                             "before" => PseudoElementResult(Before),
                             "after" => PseudoElementResult(After),
-                            "first-line" => PseudoElementResult(FirstLine),
-                            "first-letter" => PseudoElementResult(FirstLetter),
+//                            "first-line" => PseudoElementResult(FirstLine),
+//                            "first-letter" => PseudoElementResult(FirstLetter),
                             _ => InvalidSimpleSelector
                         }
                     },
@@ -490,8 +490,8 @@ fn parse_pseudo_element(name: ~str) -> Option<PseudoElement> {
         // All supported pseudo-elements
         "before" => Some(Before),
         "after" => Some(After),
-        "first-line" => Some(FirstLine),
-        "first-letter" => Some(FirstLetter),
+//        "first-line" => Some(FirstLine),
+//        "first-letter" => Some(FirstLetter),
         _ => None
     }
 }

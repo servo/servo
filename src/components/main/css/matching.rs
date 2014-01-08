@@ -46,7 +46,6 @@ impl<'self> MatchMethods for LayoutNode<'self> {
                     Some(Before) => layout_data.before_applicable_declarations = applicable_declarations,
                     Some(After) => layout_data.after_applicable_declarations = applicable_declarations,
                     None => layout_data.applicable_declarations = applicable_declarations,
-                    _ => {}
                 }
             }
             None => fail!("no layout data")
