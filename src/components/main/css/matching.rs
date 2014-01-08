@@ -22,7 +22,7 @@ use style::{Before, After};
 
 pub trait MatchMethods {
     fn match_node(&self, stylist: &Stylist);
-    fn match_subtree(&self, stylist: ~[RWArc<Stylist>]);
+    fn match_subtree(&self, stylist: RWArc<Stylist>);
 
     fn cascade_before_node(&self, parent: Option<LayoutNode>);
     fn cascade_node(&self, parent: Option<LayoutNode>);
@@ -32,26 +32,26 @@ pub trait MatchMethods {
 
 impl<'self> MatchMethods for LayoutNode<'self> {
     fn match_node(&self, stylist: &Stylist) {
-        let applicable_declarations = do self.with_element |element| {
-            let style_attribute = match *element.style_attribute() {
+        let style_attribute = do self.with_element |element| {
+            match *element.style_attribute() {
                 None => None,
                 Some(ref style_attribute) => Some(style_attribute)
-            };
-            stylist.get_applicable_declarations(self, style_attribute)
+            }
         };
 
         match *self.mutate_layout_data().ptr {
             Some(ref mut layout_data) => {
-                match stylist.get_pseudo_element() {
-                    Some(Before) => layout_data.before_applicable_declarations = applicable_declarations,
-                    Some(After) => layout_data.after_applicable_declarations = applicable_declarations,
-                    None => layout_data.applicable_declarations = applicable_declarations,
-                }
+                layout_data.applicable_declarations = stylist.get_applicable_declarations(
+                    self, style_attribute, None);
+                layout_data.before_applicable_declarations = stylist.get_applicable_declarations(
+                    self, None, Some(Before));
+                layout_data.after_applicable_declarations = stylist.get_applicable_declarations(
+                    self, None, Some(After));
             }
             None => fail!("no layout data")
         }
     }
-    fn match_subtree(&self, stylists: ~[RWArc<Stylist>]) {
+    fn match_subtree(&self, stylist: RWArc<Stylist>) {
         let num_tasks = rt::default_sched_threads() * 2;
         let mut node_count = 0;
         let mut nodes_per_task = vec::from_elem(num_tasks, ~[]);
@@ -70,8 +70,8 @@ impl<'self> MatchMethods for LayoutNode<'self> {
         for nodes in nodes_per_task.move_iter() {
             if nodes.len() > 0 {
                 let chan = chan.clone();
-                let stylists = stylists.clone();
-               
+                let stylist = stylist.clone();
+
                 // FIXME(pcwalton): This transmute is to work around the fact that we have no
                 // mechanism for safe fork/join parallelism. If we had such a thing, then we could
                 // close over the lifetime-bounded `LayoutNode`. But we can't, so we force it with
@@ -80,19 +80,16 @@ impl<'self> MatchMethods for LayoutNode<'self> {
                     cast::transmute(nodes)
                 };
 
-                do task::spawn_with((evil, stylists)) |(evil, stylists)| {
+                do task::spawn_with((evil, stylist)) |(evil, stylist)| {
                     let nodes: ~[LayoutNode] = unsafe {
                         cast::transmute(evil)
                     };
 
                     let nodes = Cell::new(nodes);
-                    for stylist in stylists.iter() {
-                        do stylist.read |stylist| {
-                            nodes.with_ref(|nodes|{
-                                for node in nodes.iter() {
-                                    node.match_node(stylist);
-                                }
-                            });
+                    do stylist.read |stylist| {
+                        let nodes = nodes.take();
+                        for node in nodes.iter() {
+                            node.match_node(stylist);
                         }
                     }
                     chan.send(());

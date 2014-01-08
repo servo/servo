@@ -51,7 +51,6 @@ use std::comm::Port;
 use std::task;
 use std::util;
 use style::{AuthorOrigin, Stylesheet, Stylist};
-use style::{Before, After};
 
 /// Information needed by the layout task.
 struct LayoutTask {
@@ -82,7 +81,7 @@ struct LayoutTask {
     /// A cached display list.
     display_list: Option<Arc<DisplayList<OpaqueNode>>>,
 
-    stylists: ~[RWArc<Stylist>],
+    stylist: RWArc<Stylist>,
 
     /// The channel on which messages can be sent to the profiler.
     profiler_chan: ProfilerChan,
@@ -237,14 +236,6 @@ impl LayoutTask {
            profiler_chan: ProfilerChan)
            -> LayoutTask {
 
-        let mut stylists = ~[];
-        // We implemented parsing/selector-matching only for Before and After.
-        // FirstLine and FirstLetter have to be added later.
-        let stylist_owners = ~[Some(Before), Some(After), None];
-        for pseudo_element in stylist_owners.iter() {
-            stylists.push(RWArc::new(new_stylist(*pseudo_element)));
-        }
-
         LayoutTask {
             id: id,
             port: port,
@@ -257,7 +248,7 @@ impl LayoutTask {
 
             display_list: None,
 
-            stylists: stylists,
+            stylist: RWArc::new(new_stylist()),
             profiler_chan: profiler_chan,
             opts: opts.clone()
         }
@@ -356,12 +347,8 @@ impl LayoutTask {
 
     fn handle_add_stylesheet(&mut self, sheet: Stylesheet) {
         let sheet = Cell::new(sheet);
-        for stylist in self.stylists.iter() {
-            do stylist.write |stylist| {
-                sheet.with_ref(|sheet|{
-                    stylist.add_stylesheet(sheet, AuthorOrigin);
-                });
-            }
+        do self.stylist.write |stylist| {
+            stylist.add_stylesheet(sheet.take(), AuthorOrigin);
         }
     }
 
@@ -458,7 +445,7 @@ impl LayoutTask {
             ReflowDocumentDamage => {}
             _ => {
                 do profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone()) {
-                    node.match_subtree(self.stylists.clone());
+                    node.match_subtree(self.stylist.clone());
                     node.cascade_subtree(None);
                 }
             }
