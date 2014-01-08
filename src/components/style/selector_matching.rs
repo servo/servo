@@ -281,8 +281,7 @@ impl Stylist {
                             Some(After) => &mut after_map,
                         };
                         map.$priority.insert(Rule {
-                                // TODO: avoid copying?
-                                selector: Arc::new(selector.compound_selectors.clone()),
+                                selector: selector.compound_selectors.clone(),
                                 specificity: selector.specificity,
                                 declarations: style_rule.declarations.$priority.clone(),
                                 source_order: self.rules_source_order,
@@ -735,7 +734,7 @@ mod tests {
             .unwrap().move_iter().map(|s| {
                 Rule {
                     specificity: s.specificity,
-                    selector: Arc::new(s.compound_selectors),
+                    selector: s.compound_selectors,
                     declarations: Arc::new(~[]),
                     source_order: i,
                 }
