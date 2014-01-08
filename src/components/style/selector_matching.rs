@@ -236,7 +236,7 @@ pub struct Stylist {
     priv element_map: PerPseudoElementSelectorMap,
     priv before_map: PerPseudoElementSelectorMap,
     priv after_map: PerPseudoElementSelectorMap,
-    priv stylesheet_index: uint,
+    priv rules_source_order: uint,
 }
 
 impl Stylist {
@@ -246,7 +246,7 @@ impl Stylist {
             element_map: PerPseudoElementSelectorMap::new(),
             before_map: PerPseudoElementSelectorMap::new(),
             after_map: PerPseudoElementSelectorMap::new(),
-            stylesheet_index: 0u,
+            rules_source_order: 0u,
         }
     }
 
@@ -268,7 +268,6 @@ impl Stylist {
                 &mut self.after_map.user,
             ),
         };
-        let mut style_rule_index = 0u;
 
         // Take apart the StyleRule into individual Rules and insert
         // them into the SelectorMap of that priority.
@@ -286,8 +285,7 @@ impl Stylist {
                                 selector: Arc::new(selector.compound_selectors.clone()),
                                 specificity: selector.specificity,
                                 declarations: style_rule.declarations.$priority.clone(),
-                                index: style_rule_index,
-                                stylesheet_index: self.stylesheet_index,
+                                source_order: self.rules_source_order,
                         });
                     }
                 }
@@ -298,9 +296,8 @@ impl Stylist {
         do iter_style_rules(stylesheet.rules.as_slice(), device) |style_rule| {
             append!(normal);
             append!(important);
-            style_rule_index += 1u;
+            self.rules_source_order += 1;
         }
-        self.stylesheet_index += 1;
     }
 
     /// Returns the applicable CSS declarations for the given element. This corresponds to
@@ -424,19 +421,16 @@ struct Rule {
     // CompoundSelector) and we want to avoid the allocation.
     selector: Arc<CompoundSelector>,
     declarations: Arc<~[PropertyDeclaration]>,
-    // Index of the parent StyleRule in the parent Stylesheet (useful for
-    // breaking ties while cascading).
-    index: uint,
-    // Index of the parent stylesheet among all the stylesheets
-    stylesheet_index: uint,
+    // Precedence among rules of equal specificity
+    source_order: uint,
     specificity: u32,
 }
 
 impl Ord for Rule {
     #[inline]
     fn lt(&self, other: &Rule) -> bool {
-        let this_rank = (self.specificity, self.stylesheet_index, self.index);
-        let other_rank = (other.specificity, other.stylesheet_index, other.index);
+        let this_rank = (self.specificity, self.source_order);
+        let other_rank = (other.specificity, other.source_order);
         this_rank < other_rank
     }
 }
@@ -743,8 +737,7 @@ mod tests {
                     specificity: s.specificity,
                     selector: Arc::new(s.compound_selectors),
                     declarations: Arc::new(~[]),
-                    index: i,
-                    stylesheet_index: 0u,
+                    source_order: i,
                 }
             }).to_owned_vec()
         }).to_owned_vec()
@@ -786,9 +779,9 @@ mod tests {
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
         let mut selector_map = SelectorMap::new();
         selector_map.insert(rules_list[1][0].clone());
-        assert_eq!(1, selector_map.id_hash.find(&~"top").unwrap()[0].index);
+        assert_eq!(1, selector_map.id_hash.find(&~"top").unwrap()[0].source_order);
         selector_map.insert(rules_list[0][0].clone());
-        assert_eq!(0, selector_map.class_hash.find(&~"intro").unwrap()[0].index);
+        assert_eq!(0, selector_map.class_hash.find(&~"intro").unwrap()[0].source_order);
         assert!(selector_map.class_hash.find(&~"foo").is_none());
     }
 }
