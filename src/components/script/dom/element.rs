@@ -219,6 +219,8 @@ impl Element {
                 self.style_attribute = Some(style::parse_style_attribute(value))
             }
             "id" => {
+                // XXX: this dual declaration are workaround to avoid the compile error:
+                // "borrowed value does not live long enough"
                 let doc = self.node.owner_doc();
                 let doc = doc.mut_document();
                 doc.update_idmap(abstract_self, Some(value.clone()), old_value);
