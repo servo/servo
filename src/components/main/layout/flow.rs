@@ -210,67 +210,8 @@ pub trait MutableFlowUtils {
 }
 
 pub enum FlowClass {
-    AbsoluteFlowClass,
     BlockFlowClass,
-    InlineBlockFlowClass,
     InlineFlowClass,
-    TableFlowClass,
-}
-
-// Miscellaneous flows that are not yet implemented.
-
-pub struct AbsoluteFlow {
-    base: FlowData,
-}
-
-impl AbsoluteFlow {
-    pub fn new(base: FlowData) -> AbsoluteFlow {
-        AbsoluteFlow {
-            base: base,
-        }
-    }
-}
-
-impl Flow for AbsoluteFlow {
-    fn class(&self) -> FlowClass {
-        AbsoluteFlowClass
-    }
-}
-
-pub struct InlineBlockFlow {
-    base: FlowData,
-}
-
-impl InlineBlockFlow {
-    pub fn new(base: FlowData) -> InlineBlockFlow {
-        InlineBlockFlow {
-            base: base,
-        }
-    }
-}
-
-impl Flow for InlineBlockFlow {
-    fn class(&self) -> FlowClass {
-        InlineBlockFlowClass
-    }
-}
-
-pub struct TableFlow {
-    base: FlowData,
-}
-
-impl TableFlow {
-    pub fn new(base: FlowData) -> TableFlow {
-        TableFlow {
-            base: base,
-        }
-    }
-}
-
-impl Flow for TableFlow {
-    fn class(&self) -> FlowClass {
-        TableFlowClass
-    }
 }
 
 /// A top-down traversal.
@@ -464,7 +405,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn is_block_like(self) -> bool {
         match self.class() {
             BlockFlowClass => true,
-            AbsoluteFlowClass | InlineBlockFlowClass | InlineFlowClass | TableFlowClass => false,
+            InlineFlowClass => false,
         }
     }
 
@@ -476,8 +417,8 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     /// Returns true if this flow is a block flow, an inline-block flow, or a float flow.
     fn starts_block_flow(self) -> bool {
         match self.class() {
-            BlockFlowClass | InlineBlockFlowClass => true,
-            AbsoluteFlowClass | InlineFlowClass | TableFlowClass => false,
+            BlockFlowClass => true,
+            InlineFlowClass => false,
         }
     }
 
@@ -485,8 +426,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn starts_inline_flow(self) -> bool {
         match self.class() {
             InlineFlowClass => true,
-            AbsoluteFlowClass | BlockFlowClass | InlineBlockFlowClass |
-            TableFlowClass => false,
+            BlockFlowClass => false,
         }
     }
 
@@ -593,7 +533,6 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         match self.class() {
             BlockFlowClass => self.as_block().build_display_list_block(builder, dirty, list),
             InlineFlowClass => self.as_inline().build_display_list_inline(builder, dirty, list),
-            _ => fail!("Tried to build_display_list_recurse of flow: {:?}", self),
         };
 
         if list.with_mut(|list| list.list.len() == 0) {
