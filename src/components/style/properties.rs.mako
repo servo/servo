@@ -433,6 +433,41 @@ pub mod longhands {
                 Some(Content(content))
             }
     </%self:longhand>
+
+    // 12.5 Lists
+    ${new_style_struct("List")}
+    ${single_keyword("list-style-type", "disc circle square decimal lower-roman upper-roman none", inherited=True)} // TODO: decimal-leading-zero lower-greek lower-latin upper-latin armenian georgian lower-alpha upper-alpha
+    ${single_keyword("list-style-image", "none", inherited=True)} // TODO: url(image.jpg)
+
+    // TODO: outside inside
+    <%self:single_component_value name="list-style-position" inherited="True">
+            // The computed value is the same as the specified value.
+            pub use to_computed_value = super::computed_as_specified;
+        
+            pub mod computed_value {
+                #[deriving(Eq, Clone, FromPrimitive)]
+                pub enum T {
+                        outside,
+                        inside,
+                }
+            }
+            pub type SpecifiedValue = computed_value::T;
+            #[inline] pub fn get_initial_value() -> computed_value::T {
+                outside
+            }
+            pub fn from_component_value(v: &ComponentValue) -> Option<SpecifiedValue> {
+                get_ident_lower(v).and_then(|keyword| {
+                    match keyword.as_slice() {
+                        _ => {
+                            println!("Unsupported property: {:?}", keyword.as_slice());
+                            None
+                        }
+                    }
+                })
+            }
+    </%self:single_component_value>
+
+
     // CSS 2.1, Section 13 - Paged media
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
@@ -766,6 +801,77 @@ pub mod shorthands {
         </%self:shorthand>
     </%def>
 
+    // 12 - Generated content, automatic numbering, and lists
+
+    // 12.5 Lists
+    <%self:shorthand name="list-style" sub_properties="list-style-type list-style-position
+                                                       list-style-image">
+            let mut none_count = 0u;
+            let mut property_count = 0u;
+            let mut iter = input.skip_whitespace();
+            let mut style_type = None;
+            let mut style_position = None;
+            let mut style_image = None;
+            for component_value in iter {
+                property_count += 1;
+
+                // list-style-type and list-style-image has none propertiy.
+                if get_ident_lower(component_value).filtered(
+                    |v| v.eq_ignore_ascii_case("none")).is_some() {
+                    none_count += 1;
+                    continue;
+                }
+
+                // list-style-type parsing check
+                match list_style_type::from_component_value(component_value) {
+                    Some(v) => {
+                        if style_type.is_some() { return None; }
+                        style_type = Some(v); 
+                        continue
+                    },
+                    None => (),
+                }
+
+                // list-style-position parsing check
+                match list_style_position::from_component_value(component_value) {
+                    Some(v) => {
+                        if style_position.is_some() { return None; }
+                        style_position = Some(v);
+                        continue 
+                    },
+                    None => ()
+                }
+
+                // list-style-position parsing check
+                match list_style_image::from_component_value(component_value) {
+                    Some(v) => { 
+                        if style_image.is_some() { return None; }
+                        style_image = Some(v); 
+                        continue 
+                    },
+                    None => ()
+                }
+
+                // if component value is wrong, return None.
+                return None;
+            }
+
+            // list-style could have three properties.
+            // if list-style have more than 3, it will return None.
+            if property_count > 3 { return None }
+
+            if style_type.is_none() && none_count > 0 { style_type = Some(list_style_type::none); none_count -= 1; }
+            if style_image.is_none() && none_count > 0 { style_image = Some(list_style_image::none); none_count -= 1; }
+
+            // If too many none, return None.
+            if none_count > 0 { return None; }
+
+            Some(Longhands {
+                list_style_type: style_type,
+                list_style_position: style_position,
+                list_style_image: style_image
+            })
+    </%self:shorthand>
 
     // TODO: other background-* properties
     <%self:shorthand name="background" sub_properties="background-color">
