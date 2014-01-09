@@ -27,20 +27,25 @@ use layout::box_::{UnscannedTextBox, UnscannedTextBoxInfo, InlineInfo, InlinePar
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
 use layout::flow::{BaseFlow, Flow, LeafSet, MutableOwnedFlowUtils};
+use layout::flow;
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
-use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal};
+use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal, LayoutElement};
 
 use gfx::font_context::FontContext;
 use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
+use script::dom::element::{HTMLUListElementTypeId, HTMLOListElementTypeId, ElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, TextNodeTypeId};
 use style::computed_values::{display, position, float};
+use style::TNode;
+use style::TElement;
 
 use std::cell::RefCell;
 use std::util;
 use std::num::Zero;
+use servo_util::namespace;
 
 /// The results of flow construction for a DOM node.
 pub enum ConstructionResult {
@@ -295,6 +300,57 @@ impl<'fc> FlowConstructor<'fc> {
         }
     }
 
+    fn recursive_order_check(&mut self, flow: &mut ~Flow, mut list_cnt: int, is_ordered: bool, is_reversed: bool) -> int {
+        for child_flow in flow::child_iter(*flow) {
+            list_cnt = self.recursive_order_check(child_flow, list_cnt, is_ordered, is_reversed);
+            match child_flow.class() {
+                flow::BlockFlowClass => {
+                    if child_flow.as_block().is_list() && !child_flow.as_block().base.listdata.get_mut_ref().sequenced() {
+                        child_flow.as_block().base.listdata.get_mut_ref().from_list_tag(list_cnt, is_ordered);
+                        if is_reversed { list_cnt -= 1; }
+                        else { list_cnt += 1; }
+                    }
+                },
+                _ => {},
+            }
+        }
+        list_cnt
+    }
+
+    fn parse_attr_for_list(&mut self, node: LayoutNode) -> (Option<ElementTypeId>, int, bool, bool) {
+        //FIXME(aydin.kim) : boost up the flow traverse. Sequence checking in time of parsing is needed?
+        let mut list_start_num: int = 1;
+        let mut is_ordered = false;
+        let mut is_reversed = false;
+        return match node.type_id() {
+            ElementNodeTypeId(typeid) if typeid == HTMLUListElementTypeId || typeid == HTMLOListElementTypeId=> {
+                match typeid {
+                    HTMLUListElementTypeId => {
+                        is_ordered = false;
+                    },
+                    HTMLOListElementTypeId => {
+                        is_ordered = true;
+
+                        match node.with_element(|e: &LayoutElement| {e.get_attr(&namespace::Null, "start")}) {
+                            Some(s) => {
+                                let conv_seq: Option<int> = from_str(s);
+                                if conv_seq.is_some() { list_start_num = conv_seq.unwrap(); }
+                                else { list_start_num = 1; }
+                            },
+                            None => {},
+                        };
+                        if node.with_element(|e: &LayoutElement| {e.get_attr(&namespace::Null, "reversed")}).is_some() {
+                            is_reversed = true;
+                        }
+                    },
+                    _ => {},
+                }
+                (Some(typeid), list_start_num, is_ordered, is_reversed)
+            },
+            _ =>(None, 1, false, false) //just a dummy value
+        }
+    } 
+
     /// Builds the children flows underneath a node with `display: block`. After this call,
     /// other `BlockFlow`s or `InlineFlow`s will be populated underneath this node, depending on
     /// whether {ib} splits needed to happen.
@@ -304,15 +360,35 @@ impl<'fc> FlowConstructor<'fc> {
         // Gather up boxes for the inline flows we might need to create.
         let mut opt_boxes_for_inline_flow = None;
         let mut first_box = true;
+
+        let (list_type, list_start_num, is_ordered, is_reversed) = self.parse_attr_for_list(node);
+        let mut list_cnt = list_start_num;
+
+        // Children..
         for kid in node.children() {
             match kid.swap_out_construction_result() {
                 NoConstructionResult => {}
-                FlowConstructionResult(kid_flow) => {
+                FlowConstructionResult(mut kid_flow) => {
                     // Strip ignorable whitespace from the start of this flow per CSS 2.1 §
                     // 9.2.1.1.
                     if first_box {
                         strip_ignorable_whitespace_from_start(&mut opt_boxes_for_inline_flow);
                         first_box = false
+                    }
+
+                    //Processing html list tag for backward compatibility.
+                    if list_type.is_some() {
+                        if kid_flow.as_block().is_list() && !kid_flow.as_block().base.listdata.get_mut_ref().sequenced() {
+                            kid_flow.as_block().base.listdata.get_mut_ref().from_list_tag(list_cnt, is_ordered);
+                            if is_reversed { list_cnt -= 1; }
+                            else { list_cnt += 1; }
+                        }
+
+                        if (kid.type_id() != ElementNodeTypeId(HTMLUListElementTypeId))
+                        && (kid.type_id() != ElementNodeTypeId(HTMLOListElementTypeId)) {
+                            //FIXME(aydin.kim): Actually we don't need sequence and reverse check in the case of UL. 
+                            list_cnt = self.recursive_order_check(&mut kid_flow, list_cnt, is_ordered, is_reversed);
+                        }
                     }
 
                     // Flush any inline boxes that we were gathering up. This allows us to handle
@@ -386,6 +462,18 @@ impl<'fc> FlowConstructor<'fc> {
         self.flush_inline_boxes_to_flow_if_necessary(&mut opt_boxes_for_inline_flow,
                                                      flow,
                                                      node);
+    }
+
+    ///Builds a flow for a node. In here, we can switch the flow type to make.
+    fn build_block_flow(&mut self, node: LayoutNode, float_value: float::T, is_fixed: bool) -> ~Flow {
+        let flow = match float_value {
+            float::none => self.build_flow_for_block(node, is_fixed),
+            _ => {
+                let float_type = FloatType::from_property(float_value);
+                self.build_flow_for_floated_block(node, float_type)
+            }
+        };
+        flow
     }
 
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
@@ -651,15 +739,10 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                 let flow = self.build_flow_for_block(node, true);
                 node.set_flow_construction_result(FlowConstructionResult(flow))
             }
-            (_, float::none, _) => {
-                let flow = self.build_flow_for_block(node, false);
-                node.set_flow_construction_result(FlowConstructionResult(flow))
-            }
 
             // Floated flows contribute float flow construction results.
             (_, float_value, _) => {
-                let float_type = FloatType::from_property(float_value);
-                let flow = self.build_flow_for_floated_block(node, float_type);
+                let flow = self.build_block_flow(node, float_value, false);
                 node.set_flow_construction_result(FlowConstructionResult(flow))
             }
         }

@@ -563,6 +563,7 @@ impl LayoutTask {
                 let dirty = flow::base(layout_root).position.clone();
                 let display_list_builder = DisplayListBuilder {
                     ctx: &layout_ctx,
+                    numbers: &converter::Numbers::new(),
                 };
                 layout_root.build_display_list(&display_list_builder, &dirty, display_list);
 

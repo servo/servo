@@ -37,6 +37,7 @@ impl ExtraDisplayListData for Nothing {
 /// support display-list-based hit testing and so forth.
 pub struct DisplayListBuilder<'a> {
     ctx: &'a LayoutContext,
+    numbers: &'a converter::Numbers,
 }
 
 //
