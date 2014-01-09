@@ -119,9 +119,9 @@ pub trait Flow {
 // Base access
 
 #[inline(always)]
-pub fn base<'a>(this: &'a Flow) -> &'a FlowData {
+pub fn base<'a>(this: &'a Flow) -> &'a BaseFlow {
     unsafe {
-        let (_, ptr): (uint, &FlowData) = cast::transmute(this);
+        let (_, ptr): (uint, &BaseFlow) = cast::transmute(this);
         ptr
     }
 }
@@ -132,9 +132,9 @@ pub fn imm_child_iter<'a>(flow: &'a Flow) -> DListIterator<'a,~Flow> {
 }
 
 #[inline(always)]
-pub fn mut_base<'a>(this: &'a mut Flow) -> &'a mut FlowData {
+pub fn mut_base<'a>(this: &'a mut Flow) -> &'a mut BaseFlow {
     unsafe {
-        let (_, ptr): (uint, &mut FlowData) = cast::transmute(this);
+        let (_, ptr): (uint, &mut BaseFlow) = cast::transmute(this);
         ptr
     }
 }
@@ -319,10 +319,7 @@ impl FlowFlags {
 }
 
 /// Data common to all flows.
-///
-/// FIXME: We need a naming convention for pseudo-inheritance like this. How about
-/// `CommonFlowInfo`?
-pub struct FlowData {
+pub struct BaseFlow {
     restyle_damage: RestyleDamage,
 
     /// The children of this flow.
@@ -371,11 +368,11 @@ impl Iterator<@Box> for BoxIterator {
     }
 }
 
-impl FlowData {
+impl BaseFlow {
     #[inline]
-    pub fn new(id: int, node: LayoutNode) -> FlowData {
+    pub fn new(id: int, node: LayoutNode) -> BaseFlow {
         let style = node.style();
-        FlowData {
+        BaseFlow {
             restyle_damage: node.restyle_damage(),
 
             children: DList::new(),

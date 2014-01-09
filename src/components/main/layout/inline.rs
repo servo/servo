@@ -7,7 +7,7 @@ use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTex
 use layout::box_::{SplitDidNotFit, UnscannedTextBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::flow::{FlowClass, Flow, FlowData, InlineFlowClass};
+use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
 use layout::flow;
 use layout::float_context::FloatContext;
 use layout::util::ElementMapping;
@@ -419,7 +419,7 @@ impl LineboxScanner {
 
 pub struct InlineFlow {
     /// Data common to all flows.
-    base: FlowData,
+    base: BaseFlow,
 
     /// A vector of all inline render boxes. Several boxes may correspond to one node/element.
     boxes: ~[Box],
@@ -436,7 +436,7 @@ pub struct InlineFlow {
 }
 
 impl InlineFlow {
-    pub fn new(base: FlowData) -> InlineFlow {
+    pub fn new(base: BaseFlow) -> InlineFlow {
         InlineFlow {
             base: base,
             boxes: ~[],
@@ -445,7 +445,7 @@ impl InlineFlow {
         }
     }
 
-    pub fn from_boxes(base: FlowData, boxes: ~[Box]) -> InlineFlow {
+    pub fn from_boxes(base: BaseFlow, boxes: ~[Box]) -> InlineFlow {
         InlineFlow {
             base: base,
             boxes: boxes,
