@@ -31,6 +31,7 @@ use style::{ComputedValues, TElement, TNode, cascade};
 use style::computed_values::{LengthOrPercentage, overflow};
 use style::computed_values::{border_style, clear, font_family, line_height};
 use style::computed_values::{text_align, text_decoration, vertical_align, visibility};
+use script::dom::node::NodeTypeId;
 
 use css::node_style::StyledNode;
 use layout::context::LayoutContext;
@@ -66,6 +67,9 @@ use layout::wrapper::LayoutNode;
 pub struct Box {
     /// An opaque reference to the DOM node that this `Box` originates from.
     node: OpaqueNode,
+
+    /// type of node
+    node_type_id: NodeTypeId,
 
     /// The CSS style of this box.
     style: Arc<ComputedValues>,
@@ -255,6 +259,7 @@ impl Box {
 
         Box {
             node: OpaqueNode::from_layout_node(&node),
+            node_type_id: node.type_id(),
             style: node_style,
             position: Slot::init(Au::zero_rect()),
             border: Slot::init(Zero::zero()),
@@ -278,6 +283,7 @@ impl Box {
     pub fn transform(&self, size: Size2D<Au>, specific: SpecificBoxInfo) -> Box {
         Box {
             node: self.node,
+            node_type_id: self.node_type_id,
             style: self.style.clone(),
             position: Slot::init(Rect(self.position.get().origin, size)),
             border: Slot::init(self.border.get()),
@@ -954,8 +960,6 @@ impl Box {
     pub fn assign_width(&self) {
         match self.specific {
             GenericBox | IframeBox(_) => {
-                // FIXME(pcwalton): This seems clownshoes; can we remove?
-                self.position.mutate().ptr.size.width = Au::from_px(45)
             }
             ImageBox(ref image_box_info) => {
                 let image_width = image_box_info.image_width();

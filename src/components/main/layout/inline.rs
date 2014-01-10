@@ -23,6 +23,8 @@ use std::cell::Cell;
 use std::u16;
 use std::util;
 use style::computed_values::{text_align, vertical_align};
+use script::dom::element::HTMLBRElementTypeId;
+use script::dom::node::ElementNodeTypeId;
 
 /// Lineboxes are represented as offsets into the child list, rather than
 /// as an object that "owns" boxes. Choosing a different set of line
@@ -326,6 +328,14 @@ impl LineboxScanner {
             let (line_bounds, _) = self.initial_line_placement(&in_box, self.cur_y, flow);
             self.pending_line.bounds.origin = line_bounds.origin;
             self.pending_line.green_zone = line_bounds.size;
+        }
+
+        match in_box.node_type_id {
+            ElementNodeTypeId(HTMLBRElementTypeId) => {
+                self.push_box_to_line(in_box);
+                return false;
+            },
+            _ => {}
         }
 
         debug!("LineboxScanner: Trying to append box to line {:u} (box size: {}, green zone: \
@@ -763,6 +773,13 @@ impl Flow for InlineFlow {
                         (text_offset, line_height - text_offset, text_ascent)
                     },
                     GenericBox | IframeBox(_) => {
+                        match cur_box.node_type_id {
+                            ElementNodeTypeId(HTMLBRElementTypeId) => {
+                                cur_box.position.mutate().ptr.size.height =
+                                    cur_box.calculate_line_height(cur_box.style().Font.font_size);
+                            },
+                            _ => {}
+                        }
                         let height = cur_box.position.get().size.height;
                         (height, Au::new(0), height)
                     },
