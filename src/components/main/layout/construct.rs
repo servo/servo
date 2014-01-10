@@ -32,13 +32,23 @@ use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
 use layout::wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
+use layout::util::PrivateLayoutData;
+use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal};
+use layout::wrapper::{LayoutPseudoNode};
+use layout::extra::LayoutAuxMethods;
 
 use gfx::font_context::FontContext;
 use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
+use script::dom::element::Element;
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
 use script::dom::node::{TextNodeTypeId};
+use script::dom::node::AbstractNode;
+use script::dom::text::Text;
 use style::computed_values::{display, position, float, white_space};
+use style::computed_values::content;
+use style::TNode;
+use style::{PseudoElement, Before, After};
 use style::ComputedValues;
 
 use extra::arc::Arc;
@@ -371,8 +381,6 @@ impl<'fc> FlowConstructor<'fc> {
                             }
                         }
                     }
-
-                    // Add the boxes to the list we're maintaining.
                     opt_boxes_for_inline_flow.push_all_move(boxes)
                 }
                 ConstructionItemConstructionResult(WhitespaceConstructionItem(..)) => {
@@ -402,6 +410,7 @@ impl<'fc> FlowConstructor<'fc> {
     fn build_flow_for_block(&mut self, node: ThreadSafeLayoutNode, is_fixed: bool) -> ~Flow {
         let mut flow = ~BlockFlow::from_node(self, node, is_fixed) as ~Flow;
         self.build_children_of_block_flow(&mut flow, node);
+
         flow
     }
 
@@ -617,6 +626,136 @@ impl<'fc> FlowConstructor<'fc> {
             self.build_boxes_for_replaced_inline_content(node)
         }
     }
+
+    fn build_flow_or_boxes_for_pseudo_element(&mut self, node: LayoutNode, pseudo_element: PseudoElement) {
+        let p = node.parent_node().expect("Text node should have its parent");
+        let mut content = ~"";
+
+        // Create pseudo parent_node
+        let pseudo_parent_element = match pseudo_element {
+            Before => ~Element::new_layout_pseudo(~"before"),
+            After => ~Element::new_layout_pseudo(~"after"),
+        };
+        let pseudo_parent_abstract_node = unsafe { AbstractNode::from_layout_pseudo(pseudo_parent_element) };
+        let mut pseudo_parent_node = unsafe { p.new_with_this_lifetime(pseudo_parent_abstract_node.clone()) };
+
+        // Create layout data for pseudo parent node
+        let layout_data_ref = p.borrow_layout_data();
+        match *layout_data_ref.get() {
+            Some(ref ldw) => {
+                match ldw.chan {
+                    Some(ref chan) => pseudo_parent_node.initialize_layout_data(chan.clone()),
+                    None => {}
+                }
+                if pseudo_element == Before {
+                    insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(ldw.data.before_style.clone()));
+                    match ldw.data.before_style {
+                        Some(ref before_style) => content = FlowConstructor::get_content(&before_style.get().Box.content),
+                        None() => {}
+                    }
+                } else if pseudo_element == After {
+                    insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(ldw.data.after_style.clone()));
+                    match ldw.data.after_style {
+                        Some(ref after_style) => content = FlowConstructor::get_content(&after_style.get().Box.content),
+                        None() => {}
+                    }
+                }
+            }
+            None => {}
+        }
+        let pseudo_parent_display = pseudo_parent_node.style().get().Box.display;
+
+        // Create pseudo node
+        let pseudo_text = ~Text::new_layout_pseudo(content);
+        let pseudo_abstract_node = unsafe { AbstractNode::from_layout_pseudo(pseudo_text) };
+        let mut pseudo_node = unsafe { node.new_with_this_lifetime(pseudo_abstract_node) };
+        let mut layout_data_ref = node.mutate_layout_data();
+        match *layout_data_ref.get() {
+            Some(ref mut ldw) => {
+                match ldw.chan {
+                    Some(ref chan) => {
+                        pseudo_node.initialize_layout_data(chan.clone());
+                    }
+                    None => {}
+                }
+
+                insert_layout_data(&pseudo_node, ~PrivateLayoutData::new());
+
+                // Store pseudo_parent_node & pseudo_node in node
+                if pseudo_element == Before {
+                    ldw.data.before_parent_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_parent_abstract_node));
+                    match ldw.data.before_parent_node {
+                        Some(ref mut before_parent_node) => before_parent_node.set_display(pseudo_parent_display),
+                        None => {}
+                    }
+                    ldw.data.before_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_abstract_node));
+                } else if pseudo_element == After {
+                    ldw.data.after_parent_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_parent_abstract_node));
+                    match ldw.data.after_parent_node {
+                        Some(ref mut after_parent_node) => after_parent_node.set_display(pseudo_parent_display),
+                        None => {}
+                    }
+                    ldw.data.after_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_abstract_node));
+                }
+            }
+            None => {}
+        }
+
+        // Set relation between pseudo_node and pseudo_parent_node
+        pseudo_parent_node.set_first_child(&mut pseudo_node);
+        pseudo_node.set_parent_node(&mut pseudo_parent_node);
+
+        // Build block flow or inline boxes for pseudo_parent_node
+        if pseudo_element == Before {
+            if  pseudo_parent_display == display::block {
+                let flow = self.build_flow_for_block(pseudo_parent_node, false);
+                pseudo_parent_node.set_flow_construction_result(FlowConstructionResult(flow));
+            } else if pseudo_parent_display == display::inline {
+                let construction_result = self.build_boxes_for_inline(pseudo_parent_node);
+                pseudo_parent_node.set_flow_construction_result(construction_result);
+            }
+        }
+
+        // Set relation with dom nodes
+        if pseudo_parent_display == display::inline {
+            if pseudo_element == Before {
+                pseudo_node.set_next_sibling(&node);
+            } else if pseudo_element == After {
+                pseudo_parent_node.set_prev_sibling(&node);
+                match node.next_pseudo_sibling() {
+                    Some(next_sibling) => {
+                        pseudo_parent_node.set_next_sibling(&next_sibling);
+                    }
+                    None => {}
+                }
+            }
+        } else if pseudo_parent_display == display::block {
+            if pseudo_element == Before {
+                pseudo_parent_node.set_next_sibling(&p);
+            } else if pseudo_element == After {
+                pseudo_parent_node.set_prev_sibling(&p);
+                match p.next_pseudo_sibling() {
+                    Some(next_sibling) => {
+                        pseudo_parent_node.set_next_sibling(&next_sibling);
+                    }
+                    None => {}
+                }
+            }
+        }
+    }
+
+    fn get_content(content_list: &content::T) -> ~str{
+        match *content_list {
+            content::Content(ref value) => {
+                let iter = &mut value.clone().move_iter().peekable();
+                match iter.next() {
+                    Some(content::StringContent(str)) => str,
+                    _ => ~"",
+                }
+            }
+            _ => ~"",
+        }
+    }
 }
 
 impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
@@ -653,6 +792,12 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
 
             // Inline items contribute inline box construction results.
             (display::inline, float::none, _) => {
+                if node.is_text() {
+                    let pseudo_elements = node.necessary_pseudo_elements();
+                    for pseudo_element in pseudo_elements.iter() {
+                        self.build_flow_or_boxes_for_pseudo_element(node, *pseudo_element);
+                    }
+                }
                 let construction_result = self.build_boxes_for_inline(node);
                 node.set_flow_construction_result(construction_result)
             }
@@ -812,3 +957,10 @@ fn strip_ignorable_whitespace_from_end(opt_boxes: &mut Option<~[Box]>) {
     }
 }
 
+fn insert_layout_data(node: &LayoutNode, new_layout_data: ~PrivateLayoutData) {
+    let mut layout_data = node.mutate_layout_data();
+    match *layout_data.get() {
+        Some(ref mut layout_data_wrapper) => layout_data_wrapper.data = new_layout_data,
+        None => {}
+    }
+}

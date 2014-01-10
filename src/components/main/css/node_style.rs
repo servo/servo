@@ -14,6 +14,8 @@ use style::ComputedValues;
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
     fn style<'a>(&'a self) -> &'a Arc<ComputedValues>;
+    fn before_style<'a>(&'a self) -> &'a Arc<ComputedValues>;
+    fn after_style<'a>(&'a self) -> &'a Arc<ComputedValues>;
     fn restyle_damage(&self) -> RestyleDamage;
 }
 
@@ -21,6 +23,16 @@ impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
     #[inline]
     fn style<'a>(&'a self) -> &'a Arc<ComputedValues> {
         self.get_css_select_results()
+    }
+
+    #[inline]
+    fn before_style<'a>(&'a self) -> &'a Arc<ComputedValues> {
+        self.get_before_css_select_results()
+    }
+
+    #[inline]
+    fn after_style<'a>(&'a self) -> &'a Arc<ComputedValues> {
+        self.get_before_css_select_results()
     }
 
     fn restyle_damage(&self) -> RestyleDamage {

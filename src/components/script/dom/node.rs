@@ -317,6 +317,13 @@ impl<'a> AbstractNode {
         }
     }
 
+    pub unsafe fn from_layout_pseudo<T: Reflectable>(node: ~T) -> AbstractNode {
+        let node = AbstractNode {
+            obj: transmute(node),
+        };
+        node
+    }
+
     // Convenience accessors
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.

@@ -28,13 +28,16 @@ use servo_util::namespace::Namespace;
 use std::cast;
 use std::cell::{Ref, RefMut};
 use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector};
+use style::{PseudoElement, Before, After};
+use style::computed_values::display;
+use layout::util::LayoutDataAccess;
 
 use layout::util::LayoutDataWrapper;
 
 /// Allows some convenience methods on generic layout nodes.
 pub trait TLayoutNode {
     /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> Self;
+    pub unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> Self;
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
     fn type_id(&self) -> NodeTypeId;
@@ -123,10 +126,21 @@ pub trait TLayoutNode {
     }
 
     /// Returns the first child of this node.
-    fn first_child(&self) -> Option<Self> {
-        unsafe {
-            self.get_abstract().first_child().map(|node| self.new_with_this_lifetime(node))
+    pub fn first_child(&self) -> Option<LayoutNode<'ln>> {
+        let first_child = unsafe{ self.node.first_child().map(|node| self.new_with_this_lifetime(node)) };
+
+        if first_child.is_some() && first_child.unwrap().is_text() {
+            let before_node = first_child.unwrap().get_before_node();
+            if before_node.is_some() {
+                return before_node
+            }
         }
+
+        return first_child
+    }
+
+    pub fn next_pseudo_sibling(&self) -> Option<LayoutNode<'ln>> {
+        unsafe{ self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node)) }
     }
 
     /// Dumps this node tree, for debugging.
@@ -147,7 +161,7 @@ pub struct LayoutNode<'a> {
     /// Being chained to a value prevents `LayoutNode`s from escaping.
     priv chain: &'a (),
 }
-
+rc/components/main/layout/wrapper.rs
 impl<'ln> TLayoutNode for LayoutNode<'ln> {
     unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> LayoutNode<'ln> {
         LayoutNode {
@@ -188,6 +202,153 @@ impl<'ln> LayoutNode<'ln> {
             current_node: self.first_child(),
         }
     }
+
+    pub fn set_parent_node(&mut self, new_parent_node: &LayoutNode) {
+        self.node.mut_node().parent_node = Some(new_parent_node.node);
+    }
+
+    pub fn set_first_child(&mut self, new_first_child: &LayoutNode) {
+        self.node.mut_node().first_child = Some(new_first_child.node);
+    }
+
+    pub fn set_last_child(&mut self, new_last_child: &LayoutNode) {
+        self.node.mut_node().last_child = Some(new_last_child.node);
+    }
+
+    pub fn set_prev_sibling(&mut self, new_prev_sibling: &LayoutNode) {
+        self.node.mut_node().prev_sibling = Some(new_prev_sibling.node);
+    }
+
+    pub fn set_next_sibling(&mut self, new_next_sibling: &LayoutNode) {
+        self.node.mut_node().next_sibling = Some(new_next_sibling.node);
+    }
+
+    pub fn necessary_pseudo_elements(&self) -> ~[PseudoElement] {
+        let mut pseudo_elements = ~[];
+
+        let ldw = self.borrow_layout_data();
+        if self.parent_node().is_none() {
+            return ~[];
+        }
+        let p = self.parent_node().unwrap();
+        let p_ldw = p.borrow_layout_data();
+        match *ldw.get() {
+            Some(ref ldw) => {
+                match *p_ldw.get() {
+                    Some(ref p_ldw) => {
+                        if p_ldw.data.before_style.is_some() && ldw.data.before_node.is_none() {
+                                pseudo_elements.push(Before);
+                        }
+                        if p_ldw.data.after_style.is_some() && ldw.data.after_node.is_none() {
+                                pseudo_elements.push(After);
+                        }
+                    }
+                    None => {}
+                }
+            }
+            None => {}
+        }
+
+        return pseudo_elements
+    }
+
+    fn get_before_node(&self) -> Option<LayoutNode<'ln>> {
+        if self.is_text() {
+            let layout_data_ref = self.borrow_layout_data();
+            match *layout_data_ref.get() {
+                Some(ref ldw) => {
+                    match ldw.data.before_parent_node {
+                        Some(ref before_parent_node) => {
+                            if before_parent_node.get_display() == display::inline {
+                                match ldw.data.before_node {
+                                    Some(ref before_node) => {
+                                        return unsafe{ Some(self.new_with_this_lifetime(before_node.node)) }
+                                    }
+                                    None => {}
+                                }
+                            }
+                        }
+                        None => {}
+                    }
+                }
+                None => {}
+            }
+        } else if self.is_element() {
+            match self.first_child() {
+                Some(first_child) => {
+                    let layout_data_ref = first_child.borrow_layout_data();
+                    match *layout_data_ref.get() {
+                        Some(ref ldw) => {
+                            match ldw.data.before_parent_node {
+                                Some(ref before_parent_node) => {
+                                    if before_parent_node.get_display() == display::block {
+                                        match ldw.data.before_parent_node {
+                                            Some(ref before_parent_node) => {
+                                                return unsafe{ Some(self.new_with_this_lifetime(before_parent_node.node)) }
+                                            }
+                                            None => {}
+                                        }
+                                    }
+                                }
+                                None => {}
+                            }
+                        }
+                        None => {}
+                    }
+                }
+                None => {}
+            }
+        }
+        None
+    }
+
+    fn get_after_node(&self) -> Option<LayoutNode<'ln>> {
+        if self.is_text() {
+            let layout_data_ref = self.borrow_layout_data();
+            match *layout_data_ref.get() {
+                Some(ref ldw) => {
+                    match ldw.data.after_parent_node {
+                        Some(ref after_parent_node) => {
+                            if after_parent_node.get_display() == display::inline {
+                                match ldw.data.after_node {
+                                    Some(ref after_node) => return unsafe{ Some(self.new_with_this_lifetime(after_node.node)) },
+                                    None => {}
+                                }
+                            }
+                        }
+                        None => {}
+                    }
+                }
+                None => {}
+            }
+        } else if self.is_element() {
+            match self.first_child() {
+                Some(first_child) => {
+                    let layout_data_ref = first_child.borrow_layout_data();
+                    match *layout_data_ref.get() {
+                        Some(ref ldw) => {
+                            match ldw.data.after_parent_node {
+                                Some(ref after_parent_node) => {
+                                    if after_parent_node.get_display() == display::block {
+                                        match ldw.data.after_parent_node {
+                                            Some(ref after_parent_node) => {
+                                                return unsafe{ Some(self.new_with_this_lifetime(after_parent_node.node)) }
+                                            }
+                                            None => {}
+                                        }
+                                    }
+                                }
+                                None => {}
+                            }
+                        }
+                        None => {}
+                    }
+                }
+                None => {}
+            }
+        }
+        None
+    }
 }
 
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
@@ -198,14 +359,56 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     }
 
     fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
+        if self.is_element() && self.node.with_imm_element(|element| element.tag_name == ~"after")
+            || (self.is_text() && self.parent_node().unwrap().node.with_imm_element(|element| element.tag_name == ~"after")) {
+            return unsafe{ self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node)) }
+        }
+
+        let before_layout_node = self.get_after_node();
+        if before_layout_node.is_some() { return before_layout_node }
+
+        let prev_sibling = unsafe{ self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node)) };
+        match prev_sibling {
+            Some(prev_sibling) => {
+                match prev_sibling.get_after_node() {
+                    Some(after_layout_node) => {
+                        Some(after_layout_node)
+                    }
+                    None => {
+                        Some(prev_sibling)
+                    }
+                }
+            }
+            None => {
+                None
+            }
         }
     }
 
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
+        if (self.is_element() && self.node.with_imm_element(|element| element.tag_name == ~"before"))
+            || (self.is_text() && self.parent_node().unwrap().node.with_imm_element(|element| element.tag_name == ~"before")) {
+            return unsafe{ self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node)) }
+        }
+
+        let after_layout_node = self.get_after_node();
+        if after_layout_node.is_some() { return after_layout_node }
+
+        let next_sibling = unsafe{ self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node)) };
+        match next_sibling {
+            Some(next_sibling) => {
+                match next_sibling.get_before_node() {
+                    Some(before_layout_node) => {
+                        Some(before_layout_node)
+                    }
+                    None => {
+                        Some(next_sibling)
+                    }
+                }
+            }
+            None => {
+                None
+            }
         }
     }
 
@@ -263,6 +466,40 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeChildrenIterator<'a> {
             node.next_sibling()
         });
         node
+    }
+}
+
+pub struct LayoutPseudoNode {
+    /// The wrapped node.
+    priv node: AbstractNode,
+    priv display: display::T
+}
+
+impl LayoutPseudoNode {
+    pub fn from_layout_pseudo(node: AbstractNode) -> LayoutPseudoNode {
+        let node = LayoutPseudoNode {
+            node: node,
+            display: display::none
+        };
+        node
+    }
+
+    fn get_display(&self) -> display::T {
+        self.display
+    }
+
+    pub fn set_display(&mut self, display: display::T) {
+        self.display = display
+    }
+}
+
+impl Drop for LayoutPseudoNode {
+    fn drop(&mut self) {
+        if self.node.is_element() {
+            let node: ~Element = unsafe { cast::transmute(self.node) };
+        } else if self.node.is_text() {
+            let node: ~Text = unsafe { cast::transmute(self.node) };
+        }
     }
 }
 

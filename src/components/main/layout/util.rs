@@ -6,6 +6,7 @@ use layout::box_::Box;
 use layout::construct::{ConstructionResult, NoConstructionResult};
 use layout::parallel::DomParallelInfo;
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
+use layout::wrapper::LayoutPseudoNode;
 
 use extra::arc::Arc;
 use script::dom::bindings::utils::Reflectable;
@@ -144,6 +145,14 @@ pub struct PrivateLayoutData {
 
     after_style: Option<Arc<ComputedValues>>,
 
+    before_parent_node: Option<LayoutPseudoNode>,
+
+    before_node: Option<LayoutPseudoNode>,
+
+    after_parent_node: Option<LayoutPseudoNode>,
+
+    after_node: Option<LayoutPseudoNode>,
+
     /// Description of how to account for recent style changes.
     restyle_damage: Option<int>,
 
@@ -165,6 +174,27 @@ impl PrivateLayoutData {
             before_style: None,
             style: None,
             after_style: None,
+            before_parent_node: None,
+            before_node: None,
+            after_parent_node: None,
+            after_node: None,
+            restyle_damage: None,
+            flow_construction_result: NoConstructionResult,
+        }
+    }
+
+    pub fn new_with_style(style: Option<Arc<ComputedValues>>) -> PrivateLayoutData {
+        PrivateLayoutData {
+            applicable_declarations: ~[],
+            before_applicable_declarations: ~[],
+            after_applicable_declarations: ~[],
+            before_style: None,
+            style: style,
+            after_style: None,
+            before_parent_node: None,
+            before_node: None,
+            after_parent_node: None,
+            after_node: None,
             restyle_damage: None,
             flow_construction_result: NoConstructionResult,
             parallel: DomParallelInfo::new(),
