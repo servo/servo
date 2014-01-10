@@ -6,6 +6,7 @@ use layout::box_::Box;
 use layout::construct::{ConstructionResult, NoConstructionResult};
 use layout::parallel::DomParallelInfo;
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
+use layout::wrapper::LayoutPseudoNode;
 
 use extra::arc::Arc;
 use script::dom::bindings::utils::Reflectable;
@@ -17,7 +18,7 @@ use std::cell::{Ref, RefMut};
 use std::iter::Enumerate;
 use std::libc::uintptr_t;
 use std::vec::VecIterator;
-use style::ComputedValues;
+use style::{ComputedValues, PseudoElement, Before, After};
 
 /// A range of nodes.
 pub struct NodeRange {
@@ -127,6 +128,11 @@ impl ElementMapping {
     }
 }
 
+pub struct PseudoNode {
+    parent: LayoutPseudoNode,
+    element: LayoutPseudoNode
+}
+
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
     /// The results of CSS styling for this node.
@@ -137,6 +143,10 @@ pub struct PrivateLayoutData {
 
     /// The results of CSS styling for this node's `after` pseudo-element, if any.
     after_style: Option<Arc<ComputedValues>>,
+
+    before: Option<PseudoNode>,
+
+    after: Option<PseudoNode>,
 
     /// Description of how to account for recent style changes.
     restyle_damage: Option<int>,
@@ -156,9 +166,36 @@ impl PrivateLayoutData {
             before_style: None,
             style: None,
             after_style: None,
+            before: None,
+            after: None,
             restyle_damage: None,
             flow_construction_result: NoConstructionResult,
             parallel: DomParallelInfo::new(),
+        }
+    }
+
+    pub fn new_with_style(style: Option<Arc<ComputedValues>>) -> PrivateLayoutData {
+        PrivateLayoutData {
+            before_style: None,
+            style: style,
+            after_style: None,
+            before: None,
+            after: None,
+            restyle_damage: None,
+            flow_construction_result: NoConstructionResult,
+            parallel: DomParallelInfo::new(),
+        }
+    }
+
+    /// Initialize the function for applicable_declarations.
+    pub fn init_applicable_declarations(&mut self) {
+        //FIXME To implement a clear() on SmallVec and use it(init_applicable_declarations).
+    }
+
+    pub fn get_pseudo_element<'a>(&'a self, pseudo_element: PseudoElement) -> Option<&'a PseudoNode> {
+        match pseudo_element {
+            Before => self.before.as_ref(),
+            After => self.after.as_ref()
         }
     }
 }

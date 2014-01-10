@@ -29,6 +29,9 @@ use std::cast;
 use std::cell::{Ref, RefMut};
 use style::{PropertyDeclarationBlock, TElement, TNode,
             AttrSelector, SpecificNamespace, AnyNamespace};
+use style::{PseudoElement, Before, After};
+use style::computed_values::display;
+use layout::util::LayoutDataAccess;
 
 use layout::util::LayoutDataWrapper;
 
@@ -43,6 +46,8 @@ pub trait TLayoutNode {
     /// Returns the interior of this node as an `AbstractNode`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
     unsafe fn get_abstract(&self) -> AbstractNode;
+
+    fn get_pseudo_node(&self, pseudo_element: PseudoElement) -> Option<Self>;
 
     /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
     /// and as such is marked `unsafe`.
@@ -123,10 +128,34 @@ pub trait TLayoutNode {
         self.get_abstract().with_imm_text(f)
     }
 
+    /// Returns true if this node is a text node or false otherwise.
+    #[inline]
+    fn is_text(&self) -> bool {
+        unsafe { self.get_abstract().is_text() }
+    }
+
     /// Returns the first child of this node.
     fn first_child(&self) -> Option<Self> {
-        unsafe {
+        let first_child = unsafe {
             self.get_abstract().first_child().map(|node| self.new_with_this_lifetime(node))
+        };
+
+        match first_child {
+            Some(ref first_child) if first_child.is_text() => {
+                let before_node = first_child.get_pseudo_node(Before);
+                if before_node.is_some() {
+                    return before_node
+                }
+            }
+            _ => ()
+        }
+
+        return first_child
+    }
+
+    fn next_pseudo_sibling(&self) -> Option<Self> {
+        unsafe {
+            self.get_abstract().next_sibling().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
@@ -162,6 +191,13 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
     unsafe fn get_abstract(&self) -> AbstractNode {
         self.node
     }
+
+    fn get_pseudo_node(&self, pseudo_element: PseudoElement) -> Option<LayoutNode<'ln>> {
+        match ThreadSafeLayoutNode::new(*self).get_pseudo_node(pseudo_element) {
+            Some(pseudo_node) => Some(ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_node)),
+            None => None
+        }
+    }
 }
 
 impl<'ln> LayoutNode<'ln> {
@@ -189,6 +225,12 @@ impl<'ln> LayoutNode<'ln> {
             current_node: self.first_child(),
         }
     }
+
+    /// Returns true if this node is a text node or false otherwise.
+    #[inline]
+    pub fn is_text(self) -> bool {
+        self.node.is_text()
+    }
 }
 
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
@@ -199,15 +241,43 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     }
 
     fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
+        if self.is_element() && self.node.with_imm_element(|element| "after" == element.tag_name) ||
+            (self.is_text() && self.parent_node().unwrap().node.with_imm_element(|element| "after" == element.tag_name)) {
+            return unsafe {
+                self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
+            }
         }
+
+        let before_layout_node = self.get_pseudo_node(After);
+        if before_layout_node.is_some() {
+            return before_layout_node
+        }
+
+        let prev_sibling = unsafe {
+            self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
+        };
+
+        prev_sibling.map(|prev_sibling| prev_sibling.get_pseudo_node(After).or_else(|| Some(prev_sibling)).unwrap())
     }
 
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
+        if (self.is_element() && self.node.with_imm_element(|element| "before" == element.tag_name)) ||
+            (self.is_text() && self.parent_node().unwrap().node.with_imm_element(|element| "before" == element.tag_name)) {
+            return unsafe {
+                self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
+            }
         }
+
+        let after_layout_node = self.get_pseudo_node(After);
+        if after_layout_node.is_some() {
+            return after_layout_node
+        }
+
+        let next_sibling = unsafe {
+            self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
+        };
+
+        next_sibling.map(|next_sibling| next_sibling.get_pseudo_node(Before).or_else(|| Some(next_sibling)).unwrap())
     }
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
@@ -262,6 +332,37 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeChildrenIterator<'a> {
             node.next_sibling()
         });
         node
+    }
+}
+
+pub struct LayoutPseudoNode {
+    /// The wrapped node.
+    priv node: AbstractNode,
+    priv display: display::T
+}
+
+impl LayoutPseudoNode {
+    pub fn from_layout_pseudo(node: AbstractNode, display: display::T) -> LayoutPseudoNode {
+        LayoutPseudoNode {
+            node: node,
+            display: display
+        }
+    }
+
+    fn get_display(&self) -> display::T {
+        self.display
+    }
+}
+
+impl Drop for LayoutPseudoNode {
+    fn drop(&mut self) {
+        if self.node.is_element() {
+            let _: ~Element = unsafe { cast::transmute(self.node) };
+        } else if self.node.is_text() {
+            let _: ~Text = unsafe { cast::transmute(self.node) };
+        } else {
+            fail!("LayoutPseudoNode should be element or text");
+        }
     }
 }
 
@@ -378,6 +479,42 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     unsafe fn get_abstract(&self) -> AbstractNode {
         self.node
     }
+
+    fn get_pseudo_node(&self, pseudo_element: PseudoElement) -> Option<ThreadSafeLayoutNode<'ln>> {
+        if self.is_text() {
+            let layout_data_ref = self.borrow_layout_data();
+            return layout_data_ref.get().as_ref().and_then(|ldw|{
+                let pseudo_element = ldw.data.get_pseudo_element(pseudo_element);
+                pseudo_element.and_then(|pseudo_node|{
+                    if pseudo_node.parent.get_display() == display::inline {
+                        unsafe {
+                            Some(self.new_with_this_lifetime(pseudo_node.element.node))
+                        }
+                    } else {
+                        None
+                    }
+                })
+            });
+        } else if self.is_element() {
+            self.first_child().and_then(|first_child| {
+                let layout_data_ref = first_child.borrow_layout_data();
+                return layout_data_ref.get().as_ref().and_then(|ldw|{
+                    let pseudo_element = ldw.data.get_pseudo_element(pseudo_element);
+                    pseudo_element.and_then(|pseudo_node|{
+                        if pseudo_node.parent.get_display() == display::block {
+                            unsafe {
+                                Some(self.new_with_this_lifetime(pseudo_node.parent.node))
+                            }
+                        } else {
+                            None
+                        }
+                    })
+                })
+            })
+        } else {
+            return None
+        }
+    }
 }
 
 impl<'ln> ThreadSafeLayoutNode<'ln> {
@@ -389,9 +526,51 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
+    pub fn to_pseudo_layout_node<'a>(node: ThreadSafeLayoutNode<'a>) -> LayoutNode<'a> {
+        LayoutNode {
+            node: node.node,
+            chain: node.chain,
+        }
+    }
+
+    pub unsafe fn parent_node(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        self.node.node().parent_node.map(|node| self.new_with_this_lifetime(node))
+    }
+
     unsafe fn next_sibling(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
+        if (self.is_element() && self.node.with_imm_element(|element| "before" == element.tag_name))
+            || (self.is_text() && self.parent_node().unwrap().node.with_imm_element(|element| "before" == element.tag_name)) {
+            return self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
+        }
+
+        let after_layout_node = self.get_pseudo_node(After);
+        if after_layout_node.is_some() {
+            return after_layout_node
+        }
+
+        let next_sibling = self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node));
+
+        next_sibling.map(|next_sibling| next_sibling.get_pseudo_node(Before).or_else(|| Some(next_sibling)).unwrap())
+    }
+
+    pub fn set_parent_node(&mut self, new_parent_node: &ThreadSafeLayoutNode) {
+        self.node.mut_node().parent_node = Some(new_parent_node.node);
+    }
+
+    pub fn set_first_child(&mut self, new_first_child: &ThreadSafeLayoutNode) {
+        self.node.mut_node().first_child = Some(new_first_child.node);
+    }
+
+    pub fn set_last_child(&mut self, new_last_child: &ThreadSafeLayoutNode) {
+        self.node.mut_node().last_child = Some(new_last_child.node);
+    }
+
+    pub fn set_prev_sibling(&mut self, new_prev_sibling: &ThreadSafeLayoutNode) {
+        self.node.mut_node().prev_sibling = Some(new_prev_sibling.node);
+    }
+
+    pub fn set_next_sibling(&mut self, new_next_sibling: &ThreadSafeLayoutNode) {
+        self.node.mut_node().next_sibling = Some(new_next_sibling.node);
     }
 
     /// Returns an iterator over this node's children.
@@ -449,13 +628,48 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
                         return false
                     }
                     unsafe {
-                        opt_kid = kid.next_sibling()
+                        opt_kid = kid.next_sibling();
                     }
                 }
             }
         }
 
         traversal.process(self)
+    }
+
+    pub fn necessary_pseudo_elements(&self) -> ~[PseudoElement] {
+        let mut pseudo_elements = ~[];
+
+        let ldw = self.borrow_layout_data();
+        let ldw_ref = ldw.get().get_ref();
+        let p = unsafe {
+            self.parent_node()
+        };
+        if p.is_none() {
+            return ~[];
+        }
+        let p = p.unwrap();
+        let p_ldw = p.borrow_layout_data();
+        let p_ldw_ref = p_ldw.get().get_ref();
+
+        if p_ldw_ref.data.before_style.is_some() && ldw_ref.data.before.is_none() {
+            pseudo_elements.push(Before);
+        }
+        if p_ldw_ref.data.after_style.is_some() && ldw_ref.data.after.is_none() {
+            pseudo_elements.push(After);
+        }
+
+        return pseudo_elements
+    }
+
+    /// Returns true if this node is a text node or false otherwise.
+    #[inline]
+    pub fn is_text(self) -> bool {
+        self.node.is_text()
+    }
+
+    fn is_element(&self) -> bool{
+        self.node.is_element()
     }
 }
 

@@ -22,7 +22,13 @@ impl Text {
         }
     }
 
-    pub fn new(text: DOMString, document: AbstractDocument) -> AbstractNode {
+    pub fn new_layout_pseudo(text: ~str) -> Text {
+        Text {
+            characterdata: CharacterData::new_layout_pseudo(TextNodeTypeId, text)
+        }
+    }
+
+    pub fn new(text: ~str, document: AbstractDocument) -> AbstractNode {
         let node = Text::new_inherited(text, document);
         Node::reflect_node(@mut node, document, TextBinding::Wrap)
     }

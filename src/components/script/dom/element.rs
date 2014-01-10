@@ -137,6 +137,17 @@ impl Element {
         }
     }
 
+    pub fn new_layout_pseudo(tag_name: ~str) -> Element {
+        Element {
+            node: Node::new_without_doc(ElementNodeTypeId(HTMLUnknownElementTypeId)),
+            tag_name: tag_name,
+            namespace: namespace::HTML,
+            attrs: ~[],
+            attr_list: None,
+            style_attribute: None,
+        }
+    }
+
     pub fn html_element_in_html_document(&self) -> bool {
         let owner = self.node.owner_doc();
         self.namespace == namespace::HTML &&

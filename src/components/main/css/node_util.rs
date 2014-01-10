@@ -12,6 +12,8 @@ use style::ComputedValues;
 
 pub trait NodeUtil {
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;
+    fn get_before_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;
+    fn get_after_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;
     fn have_css_select_results(self) -> bool;
 
     fn get_restyle_damage(self) -> RestyleDamage;
@@ -32,6 +34,22 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
                                                   .style
                                                   .as_ref()
                                                   .unwrap())
+        }
+    }
+
+    #[inline]
+    fn get_before_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues> {
+        unsafe {
+            let layout_data_ref = self.borrow_layout_data();
+            cast::transmute_region(layout_data_ref.get().as_ref().unwrap().data.before_style.as_ref().unwrap())
+        }
+    }
+
+    #[inline]
+    fn get_after_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues> {
+        unsafe {
+            let layout_data_ref = self.borrow_layout_data();
+            cast::transmute_region(layout_data_ref.get().as_ref().unwrap().data.after_style.as_ref().unwrap())
         }
     }
 
