@@ -45,7 +45,7 @@ impl Reflectable for Element {
     }
 }
 
-#[deriving(Eq)]
+#[deriving(Eq,Clone)]
 pub enum ElementTypeId {
     HTMLElementTypeId,
     HTMLAnchorElementTypeId,

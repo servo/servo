@@ -31,7 +31,7 @@ use std::hashmap::HashMap;
 use std::str::eq_slice;
 use std::unstable::raw::Box;
 
-#[deriving(Eq)]
+#[deriving(Eq,Clone)]
 pub enum DocumentTypeId {
     PlainDocumentTypeId,
     HTMLDocumentTypeId

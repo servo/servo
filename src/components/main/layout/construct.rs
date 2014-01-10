@@ -32,7 +32,7 @@ use layout::text::TextRunScanner;
 use layout::util::LayoutDataAccess;
 use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal};
 
-use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
+use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId, HTMLBRElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, TextNodeTypeId};
 use servo_util::slot::Slot;
@@ -536,6 +536,7 @@ impl<'self> NodeUtils for LayoutNode<'self> {
             DoctypeNodeTypeId |
             DocumentFragmentNodeTypeId |
             DocumentNodeTypeId(_) |
+            ElementNodeTypeId(HTMLBRElementTypeId) |
             ElementNodeTypeId(HTMLImageElementTypeId) => true,
             ElementNodeTypeId(_) => false,
         }

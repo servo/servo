@@ -174,7 +174,7 @@ impl LayoutDataRef {
 pub trait TLayoutData {}
 
 /// The different types of nodes.
-#[deriving(Eq)]
+#[deriving(Eq,Clone)]
 pub enum NodeTypeId {
     DoctypeNodeTypeId,
     DocumentFragmentNodeTypeId,
