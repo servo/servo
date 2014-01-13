@@ -171,14 +171,7 @@ impl Element {
                          namespace: Namespace,
                          name: DOMString,
                          value: DOMString) -> ErrorResult {
-        //FIXME: Throw for XML-invalid names
-        //FIXME: Throw for XMLNS-invalid names
-        let (prefix, local_name) = if name.contains(":")  {
-            let parts: ~[&str] = name.splitn(':', 1).collect();
-            (Some(parts[0].to_owned()), parts[1].to_owned())
-        } else {
-            (None, name.clone())
-        };
+        let (prefix, local_name) = get_attribute_parts(name.clone());
         match prefix {
             Some(ref prefix_str) => {
                 if (namespace == namespace::Null ||
@@ -226,9 +219,11 @@ impl Element {
                 self.style_attribute = Some(style::parse_style_attribute(value))
             }
             "id" => {
+                // XXX: this dual declaration are workaround to avoid the compile error:
+                // "borrowed value does not live long enough"
                 let doc = self.node.owner_doc();
                 let doc = doc.mut_document();
-                doc.update_idmap(abstract_self, value.clone(), old_value);
+                doc.update_idmap(abstract_self, Some(value.clone()), old_value);
             }
             _ => ()
         }
@@ -249,6 +244,76 @@ impl Element {
             _ => ()
         }
 
+        self.notify_attribute_changed(abstract_self, local_name);
+    }
+
+    pub fn remove_attribute(&mut self,
+                            abstract_self: AbstractNode,
+                            namespace: Namespace,
+                            name: DOMString) -> ErrorResult {
+        let (_, local_name) = get_attribute_parts(name.clone());
+
+        self.node.wait_until_safe_to_modify_dom();
+
+        let idx = self.attrs.iter().position(|attr: &@mut Attr| -> bool {
+            attr.local_name == local_name
+        });
+
+        match idx {
+            None => (),
+            Some(idx) => {
+                let removed = self.attrs.remove(idx);
+                let removed_raw_value = Some(removed.Value());
+
+                if namespace == namespace::Null {
+                    self.after_remove_attr(abstract_self, local_name, removed_raw_value);
+                }
+            }
+        };
+
+        Ok(())
+    }
+
+    fn after_remove_attr(&mut self,
+                         abstract_self: AbstractNode,
+                         local_name: DOMString,
+                         old_value: Option<DOMString>) {
+        match local_name.as_slice() {
+            "style" => {
+                self.style_attribute = None
+            }
+            "id" => {
+                // XXX: this dual declaration are workaround to avoid the compile error:
+                // "borrowed value does not live long enough"
+                let doc = self.node.owner_doc();
+                let doc = doc.mut_document();
+                doc.update_idmap(abstract_self, None, old_value);
+            }
+            _ => ()
+        }
+
+        //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
+        //       This hardcoding is awful.
+        match abstract_self.type_id() {
+            ElementNodeTypeId(HTMLImageElementTypeId) => {
+                abstract_self.with_mut_image_element(|image| {
+                    image.AfterRemoveAttr(local_name.clone());
+                });
+            }
+            ElementNodeTypeId(HTMLIframeElementTypeId) => {
+                abstract_self.with_mut_iframe_element(|iframe| {
+                    iframe.AfterRemoveAttr(local_name.clone());
+                });
+            }
+            _ => ()
+        }
+
+        self.notify_attribute_changed(abstract_self, local_name);
+    }
+
+    fn notify_attribute_changed(&self,
+                                abstract_self: AbstractNode,
+                                local_name: DOMString) {
         if abstract_self.is_in_doc() {
             let damage = match local_name.as_slice() {
                 "style" | "id" | "class" => MatchSelectorsDocumentDamage,
@@ -321,8 +386,7 @@ impl Element {
 
     pub fn SetAttribute(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
                         -> ErrorResult {
-        self.set_attr(abstract_self, name, value);
-        Ok(())
+        self.set_attr(abstract_self, name, value)
     }
 
     pub fn SetAttributeNS(&mut self,
@@ -341,12 +405,18 @@ impl Element {
         self.set_attribute(abstract_self, namespace, name, value)
     }
 
-    pub fn RemoveAttribute(&self, _name: DOMString) -> ErrorResult {
-        Ok(())
+    pub fn RemoveAttribute(&mut self,
+                           abstract_self: AbstractNode,
+                           name: DOMString) -> ErrorResult {
+        self.remove_attribute(abstract_self, namespace::Null, name)
     }
 
-    pub fn RemoveAttributeNS(&self, _namespace: Option<DOMString>, _localname: DOMString) -> ErrorResult {
-        Ok(())
+    pub fn RemoveAttributeNS(&mut self,
+                             abstract_self: AbstractNode,
+                             namespace: Option<DOMString>,
+                             localname: DOMString) -> ErrorResult {
+        let namespace = Namespace::from_str(namespace);
+        self.remove_attribute(abstract_self, namespace, localname)
     }
 
     pub fn HasAttribute(&self, name: DOMString) -> bool {
@@ -488,4 +558,18 @@ impl Element {
     pub fn QuerySelector(&self, _selectors: DOMString) -> Fallible<Option<AbstractNode>> {
         Ok(None)
     }
+}
+
+
+fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
+    //FIXME: Throw for XML-invalid names
+    //FIXME: Throw for XMLNS-invalid names
+    let (prefix, local_name) = if name.contains(":")  {
+        let parts: ~[&str] = name.splitn(':', 1).collect();
+        (Some(parts[0].to_owned()), parts[1].to_owned())
+    } else {
+        (None, name)
+    };
+
+    (prefix, local_name)
 }

@@ -31,6 +31,16 @@
       is(r, VALUE, "test3, attribute update by Element.setAttribute().")
     }
 
+    {
+      test.setAttribute("id", "bar");
+      test.removeAttribute("id");
+
+      let r1 = test.hasAttribute("id");
+      is(r1, false, "test4-0, Element.removeAttribute().");
+      let r2 = test.getAttribute("id");
+      is(r2, null, "test4-1, Element.removeAttribute().");
+    }
+
     finish();
   </script>
 </body>

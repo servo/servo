@@ -112,6 +112,12 @@ impl HTMLIFrameElement {
         }
     }
 
+    pub fn AfterRemoveAttr(&mut self, name: DOMString) {
+        if "sandbox" == name {
+            self.sandbox = None;
+        }
+    }
+
     pub fn AllowFullscreen(&self) -> bool {
         false
     }
