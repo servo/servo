@@ -122,13 +122,13 @@ fn check_reftest(reftest: Reftest) {
 
     let args = ~[~"-o", left_filename.clone(), reftest.left.clone()];
     let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
-    let _retval = process.finish();
-    // assert!(retval == 0);
+    let retval = process.finish();
+    assert!(retval == ExitStatus(0));
 
     let args = ~[~"-o", right_filename.clone(), reftest.right.clone()];
     let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
-    let _retval = process.finish();
-    // assert!(retval == 0);
+    let retval = process.finish();
+    assert!(retval == ExitStatus(0));
 
     // check the pngs are bit equal
     let args = ~[left_filename.clone(), right_filename.clone()];
