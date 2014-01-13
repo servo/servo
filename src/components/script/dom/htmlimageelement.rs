@@ -67,6 +67,17 @@ impl HTMLImageElement {
         }
     }
 
+    pub fn AfterRemoveAttr(&mut self, name: DOMString) {
+        // FIXME (#1469):
+        // This might not handle remove src attribute actually since
+        // `self.update_image()` will see the missing src attribute and return early.
+        if "src" == name {
+            let document = self.htmlelement.element.node.owner_doc();
+            let window = document.document().window;
+            self.update_image(window.image_cache_task.clone(), None);
+        }
+    }
+
     pub fn Alt(&self) -> DOMString {
         ~""
     }
