@@ -33,7 +33,7 @@ interface Document : Node {
   // readonly attribute DOMString characterSet;
   // readonly attribute DOMString contentType;
 
-  //readonly attribute DocumentType? doctype;
+  readonly attribute DocumentType? doctype;
   readonly attribute Element? documentElement;
   HTMLCollection getElementsByTagName(DOMString localName);
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);

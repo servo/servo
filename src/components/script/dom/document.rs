@@ -156,6 +156,10 @@ impl Reflectable for Document {
 }
 
 impl Document {
+    pub fn GetDoctype(&self) -> Option<AbstractNode> {
+        self.node.children().find(|child| child.is_doctype())
+    }
+
     pub fn GetDocumentElement(&self) -> Option<AbstractNode> {
         self.node.child_elements().next()
     }
