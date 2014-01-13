@@ -5,10 +5,8 @@
 use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::document::{AbstractDocument, Document, HTML};
-use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::namespace::Null;
-use dom::node::{AbstractNode, ElementNodeTypeId};
 use dom::window::Window;
 
 use js::jsapi::JSTracer;
