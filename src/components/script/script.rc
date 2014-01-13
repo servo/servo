@@ -55,6 +55,7 @@ pub mod dom {
     pub mod document;
     pub mod documentfragment;
     pub mod documenttype;
+    pub mod domimplementation;
     pub mod domparser;
     pub mod element;
     pub mod event;

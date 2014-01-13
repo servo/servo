@@ -1,0 +1,17 @@
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            // test1: basic test
+            {
+                isnot(document.implementation, null, "test1-0, basic test");
+                is_a(document.implementation, DOMImplementation, "test1-1, basic test");
+
+                var implementation = document.implementation;
+                is(document.implementation, implementation, "test1-2, basic test");
+            }
+
+            finish();
+        </script>
+    </head>
+</html>
