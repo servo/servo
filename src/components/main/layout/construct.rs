@@ -26,7 +26,7 @@ use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBox
 use layout::box_::{UnscannedTextBox, UnscannedTextBoxInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
-use layout::flow::{Flow, FlowData, MutableFlowUtils};
+use layout::flow::{BaseFlow, Flow, MutableFlowUtils};
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::LayoutDataAccess;
@@ -234,7 +234,7 @@ impl<'fc> FlowConstructor<'fc> {
     #[inline(always)]
     fn flush_inline_boxes_to_flow(&mut self, boxes: ~[Box], flow: &mut ~Flow, node: LayoutNode) {
         if boxes.len() > 0 {
-            let inline_base = FlowData::new(self.next_flow_id(), node);
+            let inline_base = BaseFlow::new(self.next_flow_id(), node);
             let mut inline_flow = ~InlineFlow::from_boxes(inline_base, boxes) as ~Flow;
             TextRunScanner::new().scan_for_runs(self.layout_context, inline_flow);
             flow.add_new_child(inline_flow)
@@ -344,7 +344,7 @@ impl<'fc> FlowConstructor<'fc> {
     /// other `BlockFlow`s or `InlineFlow`s underneath it, depending on whether {ib} splits needed
     /// to happen.
     fn build_flow_for_block(&mut self, node: LayoutNode) -> ~Flow {
-        let base = FlowData::new(self.next_flow_id(), node);
+        let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = self.build_box_for_node(node);
         let mut flow = ~BlockFlow::from_box(base, box_) as ~Flow;
         self.build_children_of_block_flow(&mut flow, node);
@@ -355,7 +355,7 @@ impl<'fc> FlowConstructor<'fc> {
     /// a `BlockFlow` underneath it.
     fn build_flow_for_floated_block(&mut self, node: LayoutNode, float_type: FloatType)
                                     -> ~Flow {
-        let base = FlowData::new(self.next_flow_id(), node);
+        let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = self.build_box_for_node(node);
         let mut flow = ~BlockFlow::float_from_box(base, float_type, box_) as ~Flow;
         self.build_children_of_block_flow(&mut flow, node);
