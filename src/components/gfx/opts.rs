@@ -113,9 +113,9 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
     };
 
     // if only flag is present, default to 5 second period
-    let profiler_period = do opt_match.opt_default("p", "5").map |period| {
+    let profiler_period = opt_match.opt_default("p", "5").map(|period| {
         from_str(period).unwrap()
-    };
+    });
 
     let cpu_painting = opt_match.opt_present("c");
 

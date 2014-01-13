@@ -19,7 +19,6 @@ use servo_msg::compositor_msg::{ScriptListener, Tile};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, ExitMsg};
 use servo_util::time::ProfilerChan;
 use std::comm::{Chan, SharedChan, Port};
-use std::comm;
 use std::num::Orderable;
 
 #[cfg(target_os="linux")]
@@ -54,7 +53,9 @@ impl ScriptListener for CompositorChan {
     }
 
     fn close(&self) {
-        self.chan.send(Exit);
+        let (port, chan) = Chan::new();
+        self.chan.send(Exit(chan));
+        port.recv();
     }
 
 }
@@ -62,7 +63,7 @@ impl ScriptListener for CompositorChan {
 /// Implementation of the abstract `RenderListener` interface.
 impl RenderListener for CompositorChan {
     fn get_graphics_metadata(&self) -> Option<NativeGraphicsMetadata> {
-        let (port, chan) = comm::stream();
+        let (port, chan) = Chan::new();
         self.chan.send(GetGraphicsMetadata(chan));
         port.recv()
     }
@@ -99,10 +100,12 @@ impl RenderListener for CompositorChan {
 }
 
 impl CompositorChan {
-    pub fn new(chan: Chan<Msg>) -> CompositorChan {
-        CompositorChan {
-            chan: SharedChan::new(chan),
-        }
+    pub fn new() -> (Port<Msg>, CompositorChan) {
+        let (port, chan) = SharedChan::new();
+        let compositor_chan = CompositorChan {
+            chan: chan,
+        };
+        (port, compositor_chan)
     }
 
     pub fn send(&self, msg: Msg) {
@@ -113,7 +116,7 @@ impl CompositorChan {
 /// Messages from the painting task and the constellation task to the compositor task.
 pub enum Msg {
     /// Requests that the compositor shut down.
-    Exit,
+    Exit(Chan<()>),
     /// Requests the compositor's graphics metadata. Graphics metadata is what the renderer needs
     /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
     /// is the pixel format.

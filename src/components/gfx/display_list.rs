@@ -150,14 +150,14 @@ pub struct ClipDisplayItem<E> {
     need_clip: bool
 }
 
-pub enum DisplayItemIterator<'self,E> {
+pub enum DisplayItemIterator<'a,E> {
     EmptyDisplayItemIterator,
-    ParentDisplayItemIterator(VecIterator<'self,DisplayItem<E>>),
+    ParentDisplayItemIterator(VecIterator<'a,DisplayItem<E>>),
 }
 
-impl<'self,E> Iterator<&'self DisplayItem<E>> for DisplayItemIterator<'self,E> {
+impl<'a,E> Iterator<&'a DisplayItem<E>> for DisplayItemIterator<'a,E> {
     #[inline]
-    fn next(&mut self) -> Option<&'self DisplayItem<E>> {
+    fn next(&mut self) -> Option<&'a DisplayItem<E>> {
         match *self {
             EmptyDisplayItemIterator => None,
             ParentDisplayItemIterator(ref mut subiterator) => subiterator.next(),
@@ -192,12 +192,12 @@ impl<E> DisplayItem<E> {
                 let text_run = text.text_run.get();
                 let font = render_context.font_ctx.get_font_by_descriptor(&text_run.font_descriptor).unwrap();
 
-                let font_metrics = font.with_borrow( |font| {
+                let font_metrics = font.borrow().with(|font| {
                     font.metrics.clone()
                 });
                 let origin = text.base.bounds.origin;
                 let baseline_origin = Point2D(origin.x, origin.y + font_metrics.ascent);
-                font.with_mut_borrow( |font| {
+                font.borrow().with_mut(|font| {
                     font.draw_text_into_context(render_context,
                                                 text.text_run.get(),
                                                 &text.range,
@@ -264,10 +264,10 @@ impl<E> DisplayItem<E> {
     pub fn children<'a>(&'a self) -> DisplayItemIterator<'a,E> {
         match *self {
             ClipDisplayItemClass(ref clip) => ParentDisplayItemIterator(clip.child_list.iter()),
-            SolidColorDisplayItemClass(*) |
-            TextDisplayItemClass(*) |
-            ImageDisplayItemClass(*) |
-            BorderDisplayItemClass(*) => EmptyDisplayItemIterator,
+            SolidColorDisplayItemClass(..) |
+            TextDisplayItemClass(..) |
+            ImageDisplayItemClass(..) |
+            BorderDisplayItemClass(..) => EmptyDisplayItemIterator,
         }
     }
 

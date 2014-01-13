@@ -13,14 +13,12 @@ pub trait JSValConvertible {
 
 
 impl JSValConvertible for i64 {
-    #[fixed_stack_segment]
     fn to_jsval(&self) -> JSVal {
         unsafe {
             RUST_DOUBLE_TO_JSVAL(*self as f64)
         }
     }
 
-    #[fixed_stack_segment]
     fn from_jsval(val: JSVal) -> Option<i64> {
         unsafe {
             Some(RUST_JSVAL_TO_DOUBLE(val) as i64)
@@ -29,14 +27,12 @@ impl JSValConvertible for i64 {
 }
 
 impl JSValConvertible for u32 {
-    #[fixed_stack_segment]
     fn to_jsval(&self) -> JSVal {
         unsafe {
             RUST_UINT_TO_JSVAL(*self)
         }
     }
 
-    #[fixed_stack_segment]
     fn from_jsval(val: JSVal) -> Option<u32> {
         unsafe {
             Some(RUST_JSVAL_TO_INT(val) as u32)
@@ -45,14 +41,12 @@ impl JSValConvertible for u32 {
 }
 
 impl JSValConvertible for i32 {
-    #[fixed_stack_segment]
     fn to_jsval(&self) -> JSVal {
         unsafe {
             RUST_UINT_TO_JSVAL(*self as u32)
         }
     }
 
-    #[fixed_stack_segment]
     fn from_jsval(val: JSVal) -> Option<i32> {
         unsafe {
             Some(RUST_JSVAL_TO_INT(val) as i32)
@@ -61,14 +55,12 @@ impl JSValConvertible for i32 {
 }
 
 impl JSValConvertible for u16 {
-    #[fixed_stack_segment]
     fn to_jsval(&self) -> JSVal {
         unsafe {
             RUST_UINT_TO_JSVAL(*self as u32)
         }
     }
 
-    #[fixed_stack_segment]
     fn from_jsval(val: JSVal) -> Option<u16> {
         unsafe {
             Some(RUST_JSVAL_TO_INT(val) as u16)
@@ -97,14 +89,12 @@ impl JSValConvertible for bool {
 }
 
 impl JSValConvertible for f32 {
-    #[fixed_stack_segment]
     fn to_jsval(&self) -> JSVal {
         unsafe {
             RUST_DOUBLE_TO_JSVAL(*self as f64)
         }
     }
 
-    #[fixed_stack_segment]
     fn from_jsval(val: JSVal) -> Option<f32> {
         unsafe {
             Some(RUST_JSVAL_TO_DOUBLE(val) as f32)
@@ -113,14 +103,12 @@ impl JSValConvertible for f32 {
 }
 
 impl JSValConvertible for f64 {
-    #[fixed_stack_segment]
     fn to_jsval(&self) -> JSVal {
         unsafe {
             RUST_DOUBLE_TO_JSVAL(*self as f64)
         }
     }
 
-    #[fixed_stack_segment]
     fn from_jsval(val: JSVal) -> Option<f64> {
         unsafe {
             Some(RUST_JSVAL_TO_DOUBLE(val) as f64)

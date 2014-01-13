@@ -7,22 +7,22 @@
 use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
 use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
 use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
-use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
+use windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 use windowing::{Forward, Back};
 
 use alert::{Alert, AlertMethods};
-use std::libc::c_int;
+use std::libc::{c_int, c_uchar};
 use std::local_data;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
-use servo_msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
+use servo_msg::compositor_msg::{FinishedLoading, Blank, ReadyState};
 
-use glut::glut::{ACTIVE_CTRL, ACTIVE_SHIFT, DOUBLE, HAVE_PRECISE_MOUSE_WHEEL, WindowHeight};
+use glut::glut::{ACTIVE_SHIFT, DOUBLE, WindowHeight};
 use glut::glut::WindowWidth;
 use glut::glut;
 
-static THROBBER: [char, ..8] = [ '⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷' ];
+// static THROBBER: [char, ..8] = [ '⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷' ];
 
 /// A structure responsible for setting up and tearing down the entire windowing system.
 pub struct Application;
@@ -85,31 +85,47 @@ impl WindowMethods<Application> for Window {
         // Register event handlers.
 
         //Added dummy display callback to freeglut. According to freeglut ref, we should register some kind of display callback after freeglut 3.0.
-        do glut::display_func || {
-            debug!("GLUT display func registered");
-        }
-        do glut::reshape_func(window.glut_window) |width, height| {
-            local_window().event_queue.push(ResizeWindowEvent(width as uint, height as uint))
-        }
-        do glut::keyboard_func |key, _, _| {
-            local_window().handle_key(key)
-        }
-        do glut::mouse_func |button, state, x, y| {
-            if button < 3 {
-                local_window().handle_mouse(button, state, x, y);
+
+        struct DisplayCallbackState;
+        impl glut::DisplayCallback for DisplayCallbackState {
+            fn call(&self) {
+                debug!("GLUT display func registgered");
             }
-            else {
-                match button {
-                    3 => {
-                        local_window().event_queue.push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32)));
-                    },
-                    4 => {
-                        local_window().event_queue.push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32)));
-                    },
-                    _ => {}
+        }
+        glut::display_func(~DisplayCallbackState);
+        struct ReshapeCallbackState;
+        impl glut::ReshapeCallback for ReshapeCallbackState {
+            fn call(&self, width: c_int, height: c_int) {
+                local_window().event_queue.push(ResizeWindowEvent(width as uint, height as uint))
+            }
+        }
+        glut::reshape_func(glut_window, ~ReshapeCallbackState);
+        struct KeyboardCallbackState;
+        impl glut::KeyboardCallback for KeyboardCallbackState {
+            fn call(&self, key: c_uchar, _x: c_int, _y: c_int) {
+                local_window().handle_key(key)
+            }
+        }
+        glut::keyboard_func(~KeyboardCallbackState);
+        struct MouseCallbackState;
+        impl glut::MouseCallback for MouseCallbackState {
+            fn call(&self, button: c_int, state: c_int, x: c_int, y: c_int) {
+                if button < 3 {
+                    local_window().handle_mouse(button, state, x, y);
+                } else {
+                    match button {
+                        3 => {
+                            local_window().event_queue.push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32)));
+                        },
+                        4 => {
+                            local_window().event_queue.push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32)));
+                        },
+                        _ => {}
+                    }
                 }
             }
         }
+        glut::mouse_func(~MouseCallbackState);
 
         window
     }
@@ -165,28 +181,28 @@ impl WindowMethods<Application> for Window {
 
 impl Window {
     /// Helper function to set the window title in accordance with the ready state.
-    fn update_window_title(&self) {
-        let throbber = THROBBER[self.throbber_frame];
-        match self.ready_state {
-            Blank => {
-                glut::set_window_title(self.glut_window, "Blank")
-            }
-            Loading => {
-                glut::set_window_title(self.glut_window, format!("{:c} Loading . Servo", throbber))
-            }
-            PerformingLayout => {
-                glut::set_window_title(self.glut_window, format!("{:c} Performing Layout . Servo", throbber))
-            }
-            FinishedLoading => {
-                match self.render_state {
-                    RenderingRenderState => {
-                        glut::set_window_title(self.glut_window, format!("{:c} Rendering . Servo", throbber))
-                    }
-                    IdleRenderState => glut::set_window_title(self.glut_window, "Servo"),
-                }
-            }
-        }
-    }
+    // fn update_window_title(&self) {
+    //     let throbber = THROBBER[self.throbber_frame];
+    //     match self.ready_state {
+    //         Blank => {
+    //             glut::set_window_title(self.glut_window, "Blank")
+    //         }
+    //         Loading => {
+    //             glut::set_window_title(self.glut_window, format!("{:c} Loading . Servo", throbber))
+    //         }
+    //         PerformingLayout => {
+    //             glut::set_window_title(self.glut_window, format!("{:c} Performing Layout . Servo", throbber))
+    //         }
+    //         FinishedLoading => {
+    //             match self.render_state {
+    //                 RenderingRenderState => {
+    //                     glut::set_window_title(self.glut_window, format!("{:c} Rendering . Servo", throbber))
+    //                 }
+    //                 IdleRenderState => glut::set_window_title(self.glut_window, "Servo"),
+    //             }
+    //         }
+    //     }
+    // }
 
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: u8) {

@@ -44,9 +44,9 @@ pub struct AbstractEventTarget {
 }
 
 impl AbstractEventTarget {
-    pub fn from_box<T>(box: *mut Box<T>) -> AbstractEventTarget {
+    pub fn from_box<T>(box_: *mut Box<T>) -> AbstractEventTarget {
         AbstractEventTarget {
-            eventtarget: box as *mut Box<EventTarget>
+            eventtarget: box_ as *mut Box<EventTarget>
         }
     }
 
@@ -86,15 +86,15 @@ impl AbstractEventTarget {
 
     fn transmute<'a, T>(&'a self) -> &'a T {
         unsafe {
-            let box: *Box<T> = self.eventtarget as *Box<T>;
-            &(*box).data
+            let box_: *Box<T> = self.eventtarget as *Box<T>;
+            &(*box_).data
         }
     }
 
     fn transmute_mut<'a, T>(&'a mut self) -> &'a mut T {
         unsafe {
-            let box: *mut Box<T> = self.eventtarget as *mut Box<T>;
-            &mut (*box).data
+            let box_: *mut Box<T> = self.eventtarget as *mut Box<T>;
+            &mut (*box_).data
         }
     }
 
@@ -127,17 +127,17 @@ impl EventTarget {
     }
 
     pub fn get_listeners(&self, type_: &str) -> Option<~[EventListener]> {
-        do self.handlers.find_equiv(&type_).map |listeners| {
+        self.handlers.find_equiv(&type_).map(|listeners| {
             listeners.iter().map(|entry| entry.listener).collect()
-        }
+        })
     }
 
     pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
         -> Option<~[EventListener]> {
-        do self.handlers.find_equiv(&type_).map |listeners| {
+        self.handlers.find_equiv(&type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener).collect()
-        }
+        })
     }
 
     pub fn AddEventListener(&mut self,

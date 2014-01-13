@@ -14,8 +14,9 @@ use std::comm::{Chan, SharedChan};
 pub struct ConstellationChan(SharedChan<Msg>);
 
 impl ConstellationChan {
-    pub fn new(chan: Chan<Msg>) -> ConstellationChan {
-        ConstellationChan(SharedChan::new(chan))
+    pub fn new() -> (Port<Msg>, ConstellationChan) {
+        let (port, chan) = SharedChan::new();
+        (port, ConstellationChan(chan))
     }
 }
 
@@ -53,5 +54,6 @@ pub enum NavigationDirection {
 
 #[deriving(Clone, Eq, IterBytes)]
 pub struct PipelineId(uint);
+
 #[deriving(Clone, Eq, IterBytes)]
 pub struct SubpageId(uint);

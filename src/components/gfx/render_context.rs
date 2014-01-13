@@ -18,14 +18,13 @@ use geom::side_offsets::SideOffsets2D;
 use servo_net::image::base::Image;
 use png::{RGBA8, K8, KA8};
 use servo_util::geometry::Au;
-use std::vec;
 use std::libc::types::common::c99::uint16_t;
 use std::libc::size_t;
 
-pub struct RenderContext<'self> {
-    draw_target: &'self DrawTarget,
-    font_ctx: &'self mut ~FontContext,
-    opts: &'self Opts,
+pub struct RenderContext<'a> {
+    draw_target: &'a DrawTarget,
+    font_ctx: &'a mut ~FontContext,
+    opts: &'a Opts,
     /// The rectangle that this context encompasses in page coordinates.
     page_rect: Rect<f32>,
     /// The rectangle that this context encompasses in screen coordinates (pixels).
@@ -39,8 +38,8 @@ enum Direction {
     Bottom
 }
 
-impl<'self> RenderContext<'self>  {
-    pub fn get_draw_target(&self) -> &'self DrawTarget {
+impl<'a> RenderContext<'a>  {
+    pub fn get_draw_target(&self) -> &'a DrawTarget {
         self.draw_target
     }
 
@@ -167,7 +166,7 @@ impl<'self> RenderContext<'self>  {
         stroke_opts.line_width = border_width;
         dash[0] = border_width * 3 as AzFloat;
         dash[1] = border_width * 3 as AzFloat;
-        stroke_opts.mDashPattern = vec::raw::to_ptr(dash);
+        stroke_opts.mDashPattern = dash.as_ptr();
         stroke_opts.mDashLength = dash.len() as size_t;
 
         let (start, end)  = match direction {

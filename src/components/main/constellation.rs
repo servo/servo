@@ -20,10 +20,7 @@ use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_util::time::ProfilerChan;
 use servo_util::url::make_url;
-use std::comm::Port;
-use std::comm;
 use std::hashmap::{HashMap, HashSet};
-use std::task::spawn_with;
 use std::util::replace;
 
 /// Maintains the pipelines and navigation context and grants permission to composite
@@ -53,9 +50,9 @@ struct FrameTree {
 // Need to clone the FrameTrees, but _not_ the Pipelines
 impl Clone for FrameTree {
     fn clone(&self) -> FrameTree {
-        let mut children = do self.children.iter().map |child_frame_tree| {
+        let mut children = self.children.iter().map(|child_frame_tree| {
             child_frame_tree.clone()
-        };
+        });
         FrameTree {
             pipeline: self.pipeline,
             parent: self.parent.clone(),
@@ -90,41 +87,46 @@ pub struct SendableChildFrameTree {
     rect: Option<Rect<f32>>,
 }
 
-impl SendableFrameTree {
-    fn contains(&self, id: PipelineId) -> bool {
-        self.pipeline.id == id ||
-        do self.children.iter().any |&SendableChildFrameTree { frame_tree: ref frame_tree, _ }| {
-            frame_tree.contains(id)
-        }
-    }
+// impl SendableFrameTree {
+//     fn contains(&self, id: PipelineId) -> bool {
+//         self.pipeline.id == id ||
+//         self.children.iter().any(|&SendableChildFrameTree { frame_tree: ref frame_tree, .. }| {
+//             frame_tree.contains(id)
+//         })
+//     }
+// }
+
+enum ReplaceResult {
+    ReplacedNode(@mut FrameTree),
+    OriginalNode(@mut FrameTree),
 }
 
 impl FrameTree {
     fn contains(@mut self, id: PipelineId) -> bool {
-        do self.iter().any |frame_tree| {
+        self.iter().any(|frame_tree| {
             id == frame_tree.pipeline.id
-        }
+        })
     }
 
     /// Returns the frame tree whose key is id
     fn find(@mut self, id: PipelineId) -> Option<@mut FrameTree> {
-        do self.iter().find |frame_tree| {
+        self.iter().find(|frame_tree| {
             id == frame_tree.pipeline.id
-        }
+        })
     }
 
     /// Replaces a node of the frame tree in place. Returns the node that was removed or the original node
     /// if the node to replace could not be found.
-    fn replace_child(@mut self, id: PipelineId, new_child: @mut FrameTree) -> Either<@mut FrameTree, @mut FrameTree> {
+    fn replace_child(@mut self, id: PipelineId, new_child: @mut FrameTree) -> ReplaceResult {
         for frame_tree in self.iter() {
             let mut child = frame_tree.children.mut_iter()
                 .find(|child| child.frame_tree.pipeline.id == id);
             for child in child.mut_iter() {
                 new_child.parent = child.frame_tree.parent;
-                return Left(replace(&mut child.frame_tree, new_child));
+                return ReplacedNode(replace(&mut child.frame_tree, new_child));
             }
         }
-        Right(new_child)
+        OriginalNode(new_child)
     }
 
     fn to_sendable(&self) -> SendableFrameTree {
@@ -162,7 +164,7 @@ impl Iterator<@mut FrameTree> for FrameTreeIterator {
     fn next(&mut self) -> Option<@mut FrameTree> {
         if !self.stack.is_empty() {
             let next = self.stack.pop();
-            for &ChildFrameTree { frame_tree, _ } in next.children.rev_iter() {
+            for &ChildFrameTree { frame_tree, .. } in next.children.rev_iter() {
                 self.stack.push(frame_tree);
             }
             Some(next)
@@ -223,15 +225,15 @@ impl NavigationContext {
 
     /// Returns the frame trees whose keys are pipeline_id.
     pub fn find_all(&mut self, pipeline_id: PipelineId) -> ~[@mut FrameTree] {
-        let from_current = do self.current.iter().filter_map |frame_tree| {
+        let from_current = self.current.iter().filter_map(|frame_tree| {
             frame_tree.find(pipeline_id)
-        };
-        let from_next =  do self.next.iter().filter_map |frame_tree| {
+        });
+        let from_next = self.next.iter().filter_map(|frame_tree| {
             frame_tree.find(pipeline_id)
-        };
-        let from_prev = do self.previous.iter().filter_map |frame_tree| {
+        });
+        let from_prev = self.previous.iter().filter_map(|frame_tree| {
             frame_tree.find(pipeline_id)
-        };
+        });
         from_prev.chain(from_current).chain(from_next).collect()
     }
 
@@ -241,36 +243,25 @@ impl NavigationContext {
         let from_prev = self.previous.iter();
 
         let mut all_contained = from_prev.chain(from_current).chain(from_next);
-        do all_contained.any |frame_tree| {
+        all_contained.any(|frame_tree| {
             frame_tree.contains(pipeline_id)
-        }
+        })
     }
 }
 
 impl Constellation {
-    pub fn start(constellation_port: Port<Msg>,
-                 constellation_chan: ConstellationChan,
-                 compositor_chan: CompositorChan,
+    pub fn start(compositor_chan: CompositorChan,
                  opts: &Opts,
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask,
-                 profiler_chan: ProfilerChan) {
-        do spawn_with((constellation_port,
-                       constellation_chan.clone(),
-                       compositor_chan,
-                       resource_task,
-                       image_cache_task,
-                       profiler_chan,
-                       opts.clone()))
-            |(constellation_port,
-              constellation_chan,
-              compositor_chan,
-              resource_task,
-              image_cache_task,
-              profiler_chan,
-              opts)| {
+                 profiler_chan: ProfilerChan)
+                 -> ConstellationChan {
+        let (constellation_port, constellation_chan) = ConstellationChan::new();
+        let constellation_chan_clone = constellation_chan.clone();
+        let opts_clone = opts.clone();
+        spawn(proc() {
             let mut constellation = Constellation {
-                chan: constellation_chan,
+                chan: constellation_chan_clone,
                 request_port: constellation_port,
                 compositor_chan: compositor_chan,
                 resource_task: resource_task,
@@ -282,10 +273,11 @@ impl Constellation {
                 pending_sizes: HashMap::new(),
                 profiler_chan: profiler_chan,
                 window_size: Size2D(500u, 500u),
-                opts: opts
+                opts: opts_clone,
             };
             constellation.run();
-        }
+        });
+        constellation_chan
     }
 
     fn run(&mut self) {
@@ -313,9 +305,9 @@ impl Constellation {
     /// Returns both the navigation context and pending frame trees whose keys are pipeline_id.
     pub fn find_all(&mut self, pipeline_id: PipelineId) -> ~[@mut FrameTree] {
         let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
-        let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
+        let matching_pending_frames = self.pending_frames.iter().filter_map(|frame_change| {
             frame_change.after.find(pipeline_id)
-        };
+        });
         matching_navi_frames.move_iter().chain(matching_pending_frames).collect()
     }
 
@@ -323,6 +315,7 @@ impl Constellation {
     fn handle_request(&mut self, request: Msg) -> bool {
         match request {
             ExitMsg(sender) => {
+                debug!("constellation exiting");
                 self.handle_exit(sender);
                 return false;
             }
@@ -499,9 +492,9 @@ impl Constellation {
         // and add the new pipeline to their sub frames.
         let frame_trees: ~[@mut FrameTree] = {
             let matching_navi_frames = self.navigation_context.find_all(source_pipeline_id);
-            let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
+            let matching_pending_frames = self.pending_frames.iter().filter_map(|frame_change| {
                 frame_change.after.find(source_pipeline_id)
-            };
+            });
             matching_navi_frames.move_iter().chain(matching_pending_frames).collect()
         };
 
@@ -681,9 +674,9 @@ impl Constellation {
         // Find the pending frame change whose new pipeline id is pipeline_id.
         // If it is not found, it simply means that this pipeline will not receive
         // permission to paint.
-        let pending_index = do self.pending_frames.iter().rposition |frame_change| {
+        let pending_index = self.pending_frames.iter().rposition(|frame_change| {
             frame_change.after.pipeline.id == pipeline_id
-        };
+        });
         for &pending_index in pending_index.iter() {
             let frame_change = self.pending_frames.swap_remove(pending_index);
             let to_add = frame_change.after;
@@ -742,9 +735,9 @@ impl Constellation {
     /// Called when the window is resized.
     fn handle_resized_window_msg(&mut self, new_size: Size2D<uint>) {
         let mut already_seen = HashSet::new();
-        for &@FrameTree { pipeline: pipeline, _ } in self.current_frame().iter() {
+        for &@FrameTree { pipeline: pipeline, .. } in self.current_frame().iter() {
             debug!("constellation sending resize message to active frame");
-            pipeline.script_chan.send(ResizeMsg(pipeline.id, new_size));
+            pipeline.script_chan.try_send(ResizeMsg(pipeline.id, new_size));
             already_seen.insert(pipeline.id);
         }
         for frame_tree in self.navigation_context.previous.iter()
@@ -752,7 +745,7 @@ impl Constellation {
             let pipeline = &frame_tree.pipeline;
             if !already_seen.contains(&pipeline.id) {
                 debug!("constellation sending resize message to inactive frame");
-                pipeline.script_chan.send(ResizeInactiveMsg(pipeline.id, new_size));
+                pipeline.script_chan.try_send(ResizeInactiveMsg(pipeline.id, new_size));
                 already_seen.insert(pipeline.id);
             }
         }
@@ -774,7 +767,7 @@ impl Constellation {
     fn close_pipelines(&mut self, frame_tree: @mut FrameTree) {
         // TODO(tkuehn): should only exit once per unique script task,
         // and then that script task will handle sub-exits
-        for @FrameTree { pipeline, _ } in frame_tree.iter() {
+        for @FrameTree { pipeline, .. } in frame_tree.iter() {
             pipeline.exit();
             self.pipelines.remove(&pipeline.id);
         }
@@ -809,9 +802,9 @@ impl Constellation {
     }
 
     fn set_ids(&self, frame_tree: @mut FrameTree) {
-        let (port, chan) = comm::stream();
+        let (port, chan) = Chan::new();
         self.compositor_chan.send(SetIds(frame_tree.to_sendable(), chan, self.chan.clone()));
-        match port.try_recv() {
+        match port.recv_opt() {
             Some(()) => {
                 for frame in frame_tree.iter() {
                     frame.pipeline.grant_paint_permission();

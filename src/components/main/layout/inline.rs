@@ -3,14 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use css::node_style::StyledNode;
-use layout::box::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox, SplitDidFit};
-use layout::box::{SplitDidNotFit, UnscannedTextBox};
+use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox, SplitDidFit};
+use layout::box_::{SplitDidNotFit, UnscannedTextBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{FlowClass, Flow, FlowData, InlineFlowClass};
 use layout::flow;
 use layout::float_context::FloatContext;
-use layout::util::{ElementMapping};
+use layout::util::ElementMapping;
 use layout::float_context::{PlacementInfo, FloatLeft};
 
 use extra::container::Deque;
@@ -19,7 +19,7 @@ use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
-use std::cell::Cell;
+use std::cell::RefCell;
 use std::u16;
 use std::util;
 use style::computed_values::{text_align, vertical_align};
@@ -80,18 +80,6 @@ impl LineboxScanner {
         }
     }
 
-    fn reinitialize(&mut self, float_ctx: FloatContext) {
-        self.floats = float_ctx;
-        self.new_boxes.truncate(0);
-        self.work_list.clear();
-        self.pending_line.range = Range::empty();
-        self.pending_line.bounds = Rect(Point2D(Au::new(0), Au::new(0)),
-                                        Size2D(Au::new(0), Au::new(0)));
-        self.pending_line.green_zone = Size2D(Au::new(0), Au::new(0));
-        self.lines.truncate(0);
-        self.cur_y = Au::new(0);
-    }
-
     pub fn floats_out(&mut self) -> FloatContext {
         self.floats.clone()
     }
@@ -119,13 +107,13 @@ impl LineboxScanner {
                 if flow.boxes.is_empty() {
                     break;
                 }
-                let box = flow.boxes.remove(0); // FIXME: use a linkedlist
-                debug!("LineboxScanner: Working with box from box list: b{}", box.debug_id());
-                box
+                let box_ = flow.boxes.remove(0); // FIXME: use a linkedlist
+                debug!("LineboxScanner: Working with box from box list: b{}", box_.debug_id());
+                box_
             } else {
-                let box = self.work_list.pop_front().unwrap();
-                debug!("LineboxScanner: Working with box from work list: b{}", box.debug_id());
-                box
+                let box_ = self.work_list.pop_front().unwrap();
+                debug!("LineboxScanner: Working with box from work list: b{}", box_.debug_id());
+                box_
             };
 
             let box_was_appended = self.try_append_to_line(cur_box, flow);
@@ -413,8 +401,8 @@ impl LineboxScanner {
     }
 
     // An unconditional push
-    fn push_box_to_line(&mut self, box: Box) {
-        debug!("LineboxScanner: Pushing box {} to line {:u}", box.debug_id(), self.lines.len());
+    fn push_box_to_line(&mut self, box_: Box) {
+        debug!("LineboxScanner: Pushing box {} to line {:u}", box_.debug_id(), self.lines.len());
 
         if self.pending_line.range.length() == 0 {
             assert!(self.new_boxes.len() <= (u16::max_value as uint));
@@ -422,10 +410,10 @@ impl LineboxScanner {
         }
         self.pending_line.range.extend_by(1);
         self.pending_line.bounds.size.width = self.pending_line.bounds.size.width +
-            box.position.get().size.width;
+            box_.position.get().size.width;
         self.pending_line.bounds.size.height = Au::max(self.pending_line.bounds.size.height,
-                                                       box.position.get().size.height);
-        self.new_boxes.push(box);
+                                                       box_.position.get().size.height);
+        self.new_boxes.push(box_);
     }
 }
 
@@ -467,8 +455,8 @@ impl InlineFlow {
     }
 
     pub fn teardown(&mut self) {
-        for box in self.boxes.iter() {
-            box.teardown();
+        for box_ in self.boxes.iter() {
+            box_.teardown();
         }
         self.boxes = ~[];
     }
@@ -477,7 +465,7 @@ impl InlineFlow {
                                      &self,
                                      builder: &DisplayListBuilder,
                                      dirty: &Rect<Au>,
-                                     list: &Cell<DisplayList<E>>)
+                                     list: &RefCell<DisplayList<E>>)
                                      -> bool {
         let abs_rect = Rect(self.base.abs_position, self.base.position.size);
         if !abs_rect.intersects(dirty) {
@@ -490,8 +478,8 @@ impl InlineFlow {
                self.base.id,
                self.boxes.len());
 
-        for box in self.boxes.iter() {
-            box.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, list)
+        for box_ in self.boxes.iter() {
+            box_.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, list)
         }
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
@@ -590,9 +578,9 @@ impl InlineFlow {
         };
 
         for i in line.range.eachi() {
-            let box = &boxes[i];
-            let size = box.position.get().size;
-            box.position.set(Rect(Point2D(offset_x, box.position.get().origin.y), size));
+            let box_ = &boxes[i];
+            let size = box_.position.get().size;
+            box_.position.set(Rect(Point2D(offset_x, box_.position.get().origin.y), size));
             offset_x = offset_x + size.width;
         }
     }
@@ -623,10 +611,10 @@ impl Flow for InlineFlow {
         let mut min_width = Au::new(0);
         let mut pref_width = Au::new(0);
 
-        for box in self.boxes.iter() {
-            debug!("Flow[{:d}]: measuring {:s}", self.base.id, box.debug_str());
+        for box_ in self.boxes.iter() {
+            debug!("Flow[{:d}]: measuring {:s}", self.base.id, box_.debug_str());
             let (this_minimum_width, this_preferred_width) =
-                box.minimum_and_preferred_widths();
+                box_.minimum_and_preferred_widths();
             min_width = Au::max(min_width, this_minimum_width);
             pref_width = Au::max(pref_width, this_preferred_width);
         }
@@ -647,8 +635,8 @@ impl Flow for InlineFlow {
 
         {
             let this = &mut *self;
-            for box in this.boxes.iter() {
-                box.assign_width();
+            for box_ in this.boxes.iter() {
+                box_.assign_width();
             }
         }
 
@@ -736,9 +724,9 @@ impl Flow for InlineFlow {
                         let noncontent_height = top + bottom;
                         height = height + noncontent_height;
 
-                        let position_ref = cur_box.position.mutate();
-                        position_ref.ptr.size.height = height;
-                        position_ref.ptr.translate(&Point2D(Au::new(0), -height));
+                        let mut position_ref = cur_box.position.borrow_mut();
+                        position_ref.get().size.height = height;
+                        position_ref.get().translate(&Point2D(Au::new(0), -height));
 
                         let ascent = height + bottom;
                         (height, Au::new(0), ascent)
@@ -818,7 +806,7 @@ impl Flow for InlineFlow {
                     bottommost = bottom_from_base;
                 }
 
-                cur_box.position.mutate().ptr.origin.y = line.bounds.origin.y + offset;
+                cur_box.position.borrow_mut().get().origin.y = line.bounds.origin.y + offset;
             }
 
             // Calculate the distance from baseline to the top of the biggest box with 'bottom'
@@ -847,7 +835,7 @@ impl Flow for InlineFlow {
                     _ => baseline_offset,
                 };
 
-                cur_box.position.mutate().ptr.origin.y = cur_box.position.get().origin.y +
+                cur_box.position.borrow_mut().get().origin.y = cur_box.position.get().origin.y +
                     adjust_offset;
             }
 

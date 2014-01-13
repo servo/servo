@@ -11,7 +11,7 @@ use http::headers::test_utils::from_stream_with_str;
 use http::headers::content_type::MediaType;
 
 pub fn factory() -> LoaderTask {
-    |url, start_chan| {
+    proc(url, start_chan) {
         // NB: we don't spawn a new task.
         // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
         // Should be tested at some point.
@@ -25,7 +25,7 @@ fn load(url: Url, start_chan: Chan<LoadResponse>) {
     let mut metadata = Metadata::default(url.clone());
 
     // Split out content type and data.
-    let parts: ~[&str] = url.path.splitn_iter(',', 1).to_owned_vec();
+    let parts: ~[&str] = url.path.splitn(',', 1).to_owned_vec();
     if parts.len() != 2 {
         start_sending(start_chan, metadata).send(Done(Err(())));
         return;
@@ -49,7 +49,7 @@ fn load(url: Url, start_chan: Chan<LoadResponse>) {
 
     if is_base64 {
         match parts[1].from_base64() {
-            Err(*) => {
+            Err(..) => {
                 progress_chan.send(Done(Err(())));
             }
             Ok(data) => {
@@ -71,9 +71,8 @@ fn assert_parse(url:          &'static str,
                 charset:      Option<~str>,
                 data:         Option<~[u8]>) {
     use std::from_str::FromStr;
-    use std::comm;
 
-    let (start_port, start_chan) = comm::stream();
+    let (start_port, start_chan) = Chan::new();
     load(FromStr::from_str(url).unwrap(), start_chan);
 
     let response = start_port.recv();

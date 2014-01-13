@@ -77,7 +77,7 @@ impl FloatContext {
     }
 
     #[inline(always)]
-    fn with_mut_base<R>(&mut self, callback: &fn(&mut FloatContextBase) -> R) -> R {
+    fn with_mut_base<R>(&mut self, callback: |&mut FloatContextBase| -> R) -> R {
         match *self {
             Invalid => fail!("Float context no longer available"),
             Valid(ref mut base) => callback(&mut *base)
@@ -85,7 +85,7 @@ impl FloatContext {
     }
 
     #[inline(always)]
-    pub fn with_base<R>(&self, callback: &fn(&FloatContextBase) -> R) -> R {
+    pub fn with_base<R>(&self, callback: |&FloatContextBase| -> R) -> R {
         match *self {
             Invalid => fail!("Float context no longer available"),
             Valid(ref base) => callback(&*base)
@@ -94,46 +94,46 @@ impl FloatContext {
 
     #[inline(always)]
     pub fn translate(&mut self, trans: Point2D<Au>) -> FloatContext {
-        do self.with_mut_base |base| {
+        self.with_mut_base(|base| {
             base.translate(trans);
-        }
+        });
         replace(self, Invalid)
     }
 
     #[inline(always)]
     pub fn available_rect(&mut self, top: Au, height: Au, max_x: Au) -> Option<Rect<Au>> {
-        do self.with_base |base| {
+        self.with_base(|base| {
             base.available_rect(top, height, max_x)
-        }
+        })
     }
 
     #[inline(always)]
     pub fn add_float(&mut self, info: &PlacementInfo) -> FloatContext{
-        do self.with_mut_base |base| {
+        self.with_mut_base(|base| {
             base.add_float(info);
-        }
+        });
         replace(self, Invalid)
     }
 
     #[inline(always)]
     pub fn place_between_floats(&self, info: &PlacementInfo) -> Rect<Au> {
-        do self.with_base |base| {
+        self.with_base(|base| {
             base.place_between_floats(info)
-        }
+        })
     }
 
     #[inline(always)]
     pub fn last_float_pos(&mut self) -> Point2D<Au> {
-        do self.with_base |base| {
+        self.with_base(|base| {
             base.last_float_pos()
-        }
+        })
     }
 
     #[inline(always)]
     pub fn clearance(&self, clear: ClearType) -> Au {
-        do self.with_base |base| {
+        self.with_base(|base| {
             base.clearance(clear)
-        }
+        })
     }
 }
 
@@ -286,24 +286,6 @@ impl FloatContextBase {
         self.float_data.get_mut_ref()[self.floats_used] = Some(new_float);
         self.max_y = max(self.max_y, new_float.bounds.origin.y);
         self.floats_used += 1;
-    }
-
-    /// Returns true if the given rect overlaps with any floats.
-    fn collides_with_float(&self, bounds: &Rect<Au>) -> bool {
-        for floats in self.float_data.iter() {
-            for float in floats.iter() {
-                match *float {
-                    None => (),
-                    Some(data) => {
-                        if data.bounds.translate(&self.offset).intersects(bounds) {
-                            return true;
-                        }
-                    }
-                };
-            }
-        }
-
-        return false;
     }
 
     /// Given the top 3 sides of the rectange, finds the largest height that

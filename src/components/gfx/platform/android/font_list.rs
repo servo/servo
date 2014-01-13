@@ -40,7 +40,6 @@ impl FontListHandle {
         FontListHandle { fctx: fctx.clone() }
     }
 
-    #[fixed_stack_segment]
     pub fn get_available_families(&self) -> FontFamilyMap {
         let mut family_map : FontFamilyMap = HashMap::new();
         unsafe {
@@ -50,7 +49,7 @@ impl FontListHandle {
                 let font = (*fontSet).fonts.offset(i);
                 let family: *FcChar8 = ptr::null();
                 let mut v: c_int = 0;
-                do "family".to_c_str().with_ref |FC_FAMILY| {
+                "family".to_c_str().with_ref(|FC_FAMILY| {
                     while FcPatternGetString(*font, FC_FAMILY, v, &family) == FcResultMatch {
                         let family_name = str::raw::from_c_str(family as *c_char);
                         debug!("Creating new FontFamily for family: {:s}", family_name);
@@ -58,13 +57,12 @@ impl FontListHandle {
                         family_map.insert(family_name, new_family);
                         v += 1;
                     }
-                }
+                });
             }
         }
         return family_map;
     }
 
-    #[fixed_stack_segment]
     pub fn load_variations_for_family(&self, family: &mut FontFamily) {
         debug!("getting variations for {:?}", family);
         unsafe {
@@ -73,22 +71,22 @@ impl FontListHandle {
             let font_set_array_ptr = ptr::to_unsafe_ptr(&font_set);
             let pattern = FcPatternCreate();
             assert!(pattern.is_not_null());
-            do "family".to_c_str().with_ref |FC_FAMILY| {
-                do family.family_name.to_c_str().with_ref |family_name| {
+            "family".to_c_str().with_ref(|FC_FAMILY| {
+                family.family_name.to_c_str().with_ref(|family_name| {
                     let ok = FcPatternAddString(pattern, FC_FAMILY, family_name as *FcChar8);
                     assert!(ok != 0);
-                }
-            }
+                });
+            });
 
             let object_set = FcObjectSetCreate();
             assert!(object_set.is_not_null());
 
-            do "file".to_c_str().with_ref |FC_FILE| {
+            "file".to_c_str().with_ref(|FC_FILE| {
                 FcObjectSetAdd(object_set, FC_FILE);
-            }
-            do "index".to_c_str().with_ref |FC_INDEX| {
+            });
+            "index".to_c_str().with_ref(|FC_INDEX| {
                 FcObjectSetAdd(object_set, FC_INDEX);
-            }
+            });
 
             let matches = FcFontSetList(config, font_set_array_ptr, 1, pattern, object_set);
 
@@ -96,22 +94,22 @@ impl FontListHandle {
 
             for i in range(0, (*matches).nfont as int) {
                 let font = (*matches).fonts.offset(i);
-                let file = do "file".to_c_str().with_ref |FC_FILE| {
+                let file = "file".to_c_str().with_ref(|FC_FILE| {
                     let file: *FcChar8 = ptr::null();
                     if FcPatternGetString(*font, FC_FILE, 0, &file) == FcResultMatch {
                         str::raw::from_c_str(file as *libc::c_char)
                     } else {
                         fail!();
                     }
-                };
-                let index = do "index".to_c_str().with_ref |FC_INDEX| {
+                });
+                let index = "index".to_c_str().with_ref(|FC_INDEX| {
                     let index: libc::c_int = 0;
                     if FcPatternGetInteger(*font, FC_INDEX, 0, &index) == FcResultMatch {
                         index
                     } else {
                         fail!();
                     }
-                };
+                });
 
                 debug!("variation file: {}", file);
                 debug!("variation index: {}", index);
@@ -141,7 +139,6 @@ struct AutoPattern {
 }
 
 impl Drop for AutoPattern {
-    #[fixed_stack_segment]
     fn drop(&mut self) {
         unsafe {
             FcPatternDestroy(self.pattern);
@@ -149,17 +146,16 @@ impl Drop for AutoPattern {
     }
 }
 
-#[fixed_stack_segment]
 pub fn path_from_identifier(name: ~str, style: &UsedFontStyle) -> Result<~str, ()> {
     unsafe {
         let config = FcConfigGetCurrent();
         let wrapper = AutoPattern { pattern: FcPatternCreate() };
         let pattern = wrapper.pattern;
-        let res = do "family".to_c_str().with_ref |FC_FAMILY| {
-            do name.to_c_str().with_ref |family| {
+        let res = "family".to_c_str().with_ref(|FC_FAMILY| {
+            name.to_c_str().with_ref(|family| {
                 FcPatternAddString(pattern, FC_FAMILY, family as *FcChar8)
-            }
-        };
+            })
+        });
         if res != 1 {
             debug!("adding family to pattern failed");
             return Err(());
@@ -168,18 +164,18 @@ pub fn path_from_identifier(name: ~str, style: &UsedFontStyle) -> Result<~str, (
         match style.style {
             font_style::normal => (),
             font_style::italic => {
-                let res = do "slant".to_c_str().with_ref |FC_SLANT| {
+                let res = "slant".to_c_str().with_ref(|FC_SLANT| {
                     FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ITALIC)
-                };
+                });
                 if res != 1 {
                     debug!("adding slant to pattern failed");
                     return Err(());
                 }
             },
             font_style::oblique => {
-                let res = do "slant".to_c_str().with_ref |FC_SLANT| {
+                let res = "slant".to_c_str().with_ref(|FC_SLANT| {
                     FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_OBLIQUE)
-                };
+                });
                 if res != 1 {
                     debug!("adding slant(oblique) to pattern failed");
                     return Err(());
@@ -188,9 +184,9 @@ pub fn path_from_identifier(name: ~str, style: &UsedFontStyle) -> Result<~str, (
         }
 
         if style.weight.is_bold() {
-            let res = do "weight".to_c_str().with_ref |FC_WEIGHT| {
+            let res = "weight".to_c_str().with_ref(|FC_WEIGHT| {
                 FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_BOLD)
-            };
+            });
             if res != 1 {
                 debug!("adding weight to pattern failed");
                 return Err(());
@@ -211,9 +207,9 @@ pub fn path_from_identifier(name: ~str, style: &UsedFontStyle) -> Result<~str, (
         }
 
         let file: *FcChar8 = ptr::null();
-        let res = do "file".to_c_str().with_ref |FC_FILE| {
+        let res = "file".to_c_str().with_ref(|FC_FILE| {
             FcPatternGetString(result_pattern, FC_FILE, 0, &file)
-        };
+        });
         if res != FcResultMatch {
             debug!("getting filename for font failed");
             return Err(());

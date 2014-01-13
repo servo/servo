@@ -18,7 +18,7 @@ pub trait NodeUtil {
     fn set_restyle_damage(self, damage: RestyleDamage);
 }
 
-impl<'self> NodeUtil for LayoutNode<'self> {
+impl<'ln> NodeUtil for LayoutNode<'ln> {
     /** 
      * Provides the computed style for the given node. If CSS selector
      * Returns the style results for the given node. If CSS selector
@@ -27,18 +27,15 @@ impl<'self> NodeUtil for LayoutNode<'self> {
     #[inline]
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues> {
         unsafe {
-            cast::transmute_region(self.borrow_layout_data_unchecked()
-                                       .as_ref()
-                                       .unwrap()
-                                       .style
-                                       .as_ref()
-                                       .unwrap())
+            let layout_data_ref = self.borrow_layout_data();
+            cast::transmute_region(layout_data_ref.get().as_ref().unwrap().data.style.as_ref().unwrap())
         }
     }
 
     /// Does this node have a computed style yet?
     fn have_css_select_results(self) -> bool {
-        self.borrow_layout_data().ptr.as_ref().unwrap().style.is_some()
+        let layout_data_ref = self.borrow_layout_data();
+        layout_data_ref.get().get_ref().data.style.is_some()
     }
 
     /// Get the description of how to account for recent style changes.
@@ -52,10 +49,11 @@ impl<'self> NodeUtil for LayoutNode<'self> {
             RestyleDamage::none()
         };
 
-        self.borrow_layout_data()
-            .ptr
-            .as_ref()
-            .unwrap()
+        let layout_data_ref = self.borrow_layout_data();
+        layout_data_ref
+            .get()
+            .get_ref()
+            .data
             .restyle_damage
             .map(|x| RestyleDamage::from_int(x))
             .unwrap_or(default)
@@ -63,10 +61,10 @@ impl<'self> NodeUtil for LayoutNode<'self> {
 
     /// Set the restyle damage field.
     fn set_restyle_damage(self, damage: RestyleDamage) {
-        match *self.mutate_layout_data().ptr {
-            Some(ref mut data) => data.restyle_damage = Some(damage.to_int()),
+        let mut layout_data_ref = self.mutate_layout_data();
+        match *layout_data_ref.get() {
+            Some(ref mut layout_data) => layout_data.data.restyle_damage = Some(damage.to_int()),
             _ => fail!("no layout data for this node"),
         }
     }
 }
-

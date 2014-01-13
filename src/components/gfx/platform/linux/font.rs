@@ -41,7 +41,7 @@ pub struct FontTable {
 }
 
 impl FontTableMethods for FontTable {
-    fn with_buffer(&self, _blk: &fn(*u8, uint)) {
+    fn with_buffer(&self, _blk: |*u8, uint|) {
         fail!()
     }
 }
@@ -61,7 +61,6 @@ pub struct FontHandle {
 
 #[unsafe_destructor]
 impl Drop for FontHandle {
-    #[fixed_stack_segment]
     fn drop(&mut self) {
         assert!(self.face.is_not_null());
         unsafe {
@@ -80,9 +79,7 @@ impl FontHandleMethods for FontHandle {
         let ft_ctx: FT_Library = fctx.ctx.borrow().ctx;
         if ft_ctx.is_null() { return Err(()); }
 
-        let face_result = do buf.as_imm_buf |bytes: *u8, len: uint| {
-            create_face_from_buffer(ft_ctx, bytes, len, style.pt_size)
-        };
+        let face_result = create_face_from_buffer(ft_ctx, buf.as_ptr(), buf.len(), style.pt_size);
 
         // TODO: this could be more simply written as result::chain
         // and moving buf into the struct ctor, but cant' move out of
@@ -99,7 +96,6 @@ impl FontHandleMethods for FontHandle {
             Err(()) => Err(())
         };
 
-        #[fixed_stack_segment]
          fn create_face_from_buffer(lib: FT_Library, cbuf: *u8, cbuflen: uint, pt_size: f64)
                                     -> Result<FT_Face, ()> {
              unsafe {
@@ -129,14 +125,12 @@ impl FontHandleMethods for FontHandle {
     fn family_name(&self) -> ~str {
         unsafe { str::raw::from_c_str((*self.face).family_name) }
     }
-    #[fixed_stack_segment]
     fn face_name(&self) -> ~str {
         unsafe { str::raw::from_c_str(FT_Get_Postscript_Name(self.face)) }
     }
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
     }
-    #[fixed_stack_segment]
     fn boldness(&self) -> font_weight::T {
         let default_weight = font_weight::Weight400;
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD == 0 } {
@@ -179,7 +173,6 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    #[fixed_stack_segment]
     fn glyph_index(&self,
                        codepoint: char) -> Option<GlyphIndex> {
         assert!(self.face.is_not_null());
@@ -194,7 +187,6 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    #[fixed_stack_segment]
     fn glyph_h_advance(&self,
                            glyph: GlyphIndex) -> Option<FractionalPixel> {
         assert!(self.face.is_not_null());
@@ -216,7 +208,6 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    #[fixed_stack_segment]
     fn get_metrics(&self) -> FontMetrics {
         /* TODO(Issue #76): complete me */
         let face = self.get_face_rec();
@@ -272,8 +263,7 @@ impl FontHandleMethods for FontHandle {
     }
 }
 
-impl<'self> FontHandle {
-    #[fixed_stack_segment]
+impl<'a> FontHandle {
     fn set_char_size(face: FT_Face, pt_size: f64) -> Result<(), ()>{
         let char_width = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let char_height = float_to_fixed_ft(pt_size) as FT_F26Dot6;
@@ -286,7 +276,6 @@ impl<'self> FontHandle {
         }
     }
 
-    #[fixed_stack_segment]
     pub fn new_from_file(fctx: &FontContextHandle, file: &str,
                          style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
         unsafe {
@@ -295,10 +284,10 @@ impl<'self> FontHandle {
 
             let mut face: FT_Face = ptr::null();
             let face_index = 0 as FT_Long;
-            do file.to_c_str().with_ref |file_str| {
+            file.to_c_str().with_ref(|file_str| {
                 FT_New_Face(ft_ctx, file_str,
                             face_index, ptr::to_mut_unsafe_ptr(&mut face));
-            }
+            });
             if face.is_null() {
                 return Err(());
             }
@@ -314,7 +303,6 @@ impl<'self> FontHandle {
         }
     }
 
-    #[fixed_stack_segment]
     pub fn new_from_file_unstyled(fctx: &FontContextHandle, file: ~str)
                                -> Result<FontHandle, ()> {
         unsafe {
@@ -323,10 +311,10 @@ impl<'self> FontHandle {
 
             let mut face: FT_Face = ptr::null();
             let face_index = 0 as FT_Long;
-            do file.to_c_str().with_ref |file_str| {
+            file.to_c_str().with_ref(|file_str| {
                 FT_New_Face(ft_ctx, file_str,
                             face_index, ptr::to_mut_unsafe_ptr(&mut face));
-            }
+            });
             if face.is_null() {
                 return Err(());
             }
@@ -339,7 +327,7 @@ impl<'self> FontHandle {
         }
     }
 
-    fn get_face_rec(&'self self) -> &'self FT_FaceRec {
+    fn get_face_rec(&'a self) -> &'a FT_FaceRec {
         unsafe {
             &(*self.face)
         }

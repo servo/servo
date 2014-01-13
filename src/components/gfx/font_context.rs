@@ -15,7 +15,8 @@ use platform::font_context::FontContextHandle;
 use azure::azure_hl::BackendType;
 use std::hashmap::HashMap;
 
-use std::rc::RcMut;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 
 pub trait FontContextHandleMethods {
@@ -23,16 +24,16 @@ pub trait FontContextHandleMethods {
 }
 
 pub struct FontContext {
-    instance_cache: LRUCache<FontDescriptor, RcMut<Font>>,
+    instance_cache: LRUCache<FontDescriptor, Rc<RefCell<Font>>>,
     font_list: Option<FontList>, // only needed by layout
-    group_cache: LRUCache<SpecifiedFontStyle, RcMut<FontGroup>>,
+    group_cache: LRUCache<SpecifiedFontStyle, Rc<RefCell<FontGroup>>>,
     handle: FontContextHandle,
     backend: BackendType,
     generic_fonts: HashMap<~str,~str>,
     profiler_chan: ProfilerChan,
 }
 
-impl<'self> FontContext {
+impl FontContext {
     pub fn new(backend: BackendType,
            needs_font_list: bool,
            profiler_chan: ProfilerChan)
@@ -61,11 +62,8 @@ impl<'self> FontContext {
         }
     }
 
-    fn get_font_list(&'self self) -> &'self FontList {
-        self.font_list.get_ref()
-    }
-
-    pub fn get_resolved_font_for_style(&mut self, style: &SpecifiedFontStyle) -> RcMut<FontGroup> {
+    pub fn get_resolved_font_for_style(&mut self, style: &SpecifiedFontStyle)
+                                       -> Rc<RefCell<FontGroup>> {
         match self.group_cache.find(style) {
             Some(fg) => {
                 debug!("font group cache hit");
@@ -80,7 +78,8 @@ impl<'self> FontContext {
         }
     }
 
-    pub fn get_font_by_descriptor(&mut self, desc: &FontDescriptor) -> Result<RcMut<Font>, ()> {
+    pub fn get_font_by_descriptor(&mut self, desc: &FontDescriptor)
+                                  -> Result<Rc<RefCell<Font>>, ()> {
         match self.instance_cache.find(desc) {
             Some(f) => {
                 debug!("font cache hit");
@@ -107,7 +106,7 @@ impl<'self> FontContext {
         }
     }
 
-    fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> RcMut<FontGroup> {
+    fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> Rc<RefCell<FontGroup>> {
         let mut fonts = ~[];
 
         debug!("(create font group) --- starting ---");
@@ -140,8 +139,7 @@ impl<'self> FontContext {
                 Some(ref result) => {
                     found = true;
                     let instance = self.get_font_by_descriptor(result);
-
-                    for font in instance.iter() { fonts.push(font.clone()); }
+                    instance.map(|font| fonts.push(font.clone()));
                 },
                 _ => {}
             }
@@ -179,10 +177,7 @@ impl<'self> FontContext {
                 match font_desc {
                     Some(ref fd) => {
                         let instance = self.get_font_by_descriptor(fd);
-
-                        for font in instance.iter() {
-                            fonts.push(font.clone());
-                        }
+                        instance.map(|font| fonts.push(font.clone()));
                     },
                     None => { }
                 };
@@ -194,22 +189,28 @@ impl<'self> FontContext {
 
         debug!("(create font group) --- finished ---");
 
-        unsafe { RcMut::new_unchecked(FontGroup::new(style.families.clone(), &used_style, fonts)) }
+        unsafe {
+            Rc::new_unchecked(
+                RefCell::new(
+                    FontGroup::new(style.families.to_owned(), &used_style, fonts)))
+        }
     }
 
-    fn create_font_instance(&self, desc: &FontDescriptor) -> Result<RcMut<Font>, ()> {
+    fn create_font_instance(&self, desc: &FontDescriptor) -> Result<Rc<RefCell<Font>>, ()> {
         return match &desc.selector {
             // TODO(Issue #174): implement by-platform-name font selectors.
             &SelectorPlatformIdentifier(ref identifier) => {
                 let result_handle = self.handle.create_font_from_identifier((*identifier).clone(),
                                                                             desc.style.clone());
-                do result_handle.and_then |handle| {
-                    Ok(RcMut::new(Font::new_from_adopted_handle(self,
-                                                     handle,
-                                                     &desc.style,
-                                                     self.backend,
-                                                     self.profiler_chan.clone())))
-                }
+                result_handle.and_then(|handle| {
+                    Ok(
+                        Rc::from_mut(
+                            RefCell::new(
+                                Font::new_from_adopted_handle(self,
+                                                              handle,
+                                                              &desc.style,
+                                                              self.backend))))
+                })
             }
         };
     }
