@@ -20,6 +20,7 @@ use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_util::time::ProfilerChan;
 use servo_util::url::make_url;
+use servo_util::task::spawn_named;
 use std::hashmap::{HashMap, HashSet};
 use std::util::replace;
 
@@ -259,7 +260,7 @@ impl Constellation {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
         let opts_clone = opts.clone();
-        spawn(proc() {
+        spawn_named("Constellation", proc() {
             let mut constellation = Constellation {
                 chan: constellation_chan_clone,
                 request_port: constellation_port,

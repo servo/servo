@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::comm::{Chan, Port};
-use std::task;
+use servo_util::task::spawn_named;
 
-pub fn spawn_listener<A: Send>(f: proc(Port<A>)) -> SharedChan<A> {
+pub fn spawn_listener<A: Send, S: IntoSendStr>(name: S, f: proc(Port<A>)) -> SharedChan<A> {
     let (setup_port, setup_chan) = Chan::new();
-    do task::spawn {
+    do spawn_named(name) {
         let (port, chan) = SharedChan::new();
         setup_chan.send(chan);
         f(port);

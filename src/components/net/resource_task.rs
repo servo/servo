@@ -135,7 +135,7 @@ pub fn ResourceTask() -> ResourceTask {
 }
 
 fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
-    let chan = spawn_listener(proc(from_client) {
+    let chan = spawn_listener("ResourceManager", proc(from_client) {
         // TODO: change copy to move once we can move out of closures
         ResourceManager(from_client, loaders).start()
     });

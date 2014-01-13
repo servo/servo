@@ -44,6 +44,7 @@ use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
+use servo_util::task::spawn_named;
 use std::cast::transmute;
 use std::cast;
 use std::cell::RefCell;
@@ -210,7 +211,7 @@ impl LayoutTask {
                   opts: Opts,
                   profiler_chan: ProfilerChan,
                   shutdown_chan: Chan<()>) {
-        spawn(proc() {
+        spawn_named("LayoutTask", proc() {
             { // Ensures layout task is destroyed before we send shutdown message
                 let mut layout = LayoutTask::new(id,
                                                  port,

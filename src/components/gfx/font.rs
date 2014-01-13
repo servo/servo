@@ -494,7 +494,7 @@ fn should_get_glyph_advance_stress() {
     for iter::repeat(100) {
         let (chan, port) = pipes::stream();
         ports += [@port];
-        do task::spawn {
+        spawn_named("should_get_glyph_advance_stress") {
             let fctx = @FontContext();
             let matcher = @FontMatcher(fctx);
             let _font = matcher.get_test_font();

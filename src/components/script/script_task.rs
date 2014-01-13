@@ -46,6 +46,7 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::url::make_url;
+use servo_util::task::spawn_named;
 use std::comm::{Port, SharedChan};
 use std::ptr;
 use std::str::eq_slice;
@@ -462,7 +463,7 @@ impl ScriptTask {
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
                   window_size: Size2D<uint>) {
-        spawn(proc() {
+        spawn_named("ScriptTask", proc() {
             let script_task = ScriptTask::new(id,
                                               @compositor as @ScriptListener,
                                               layout_chan,

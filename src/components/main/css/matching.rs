@@ -8,6 +8,7 @@ use css::node_style::StyledNode;
 use layout::incremental;
 use layout::util::LayoutDataAccess;
 use layout::wrapper::LayoutNode;
+use servo_util::task::spawn_named;
 
 use extra::arc::{Arc, RWArc};
 use std::cast;
@@ -75,7 +76,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                 };
 
                 let evil = Some(evil);
-                spawn(proc() {
+                spawn_named("MatchMethods for LayoutNode", proc() {
                     let mut evil = evil;
                     let nodes: ~[LayoutNode] = unsafe {
                         cast::transmute(evil.take_unwrap())
