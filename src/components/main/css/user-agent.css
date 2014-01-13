@@ -1,13 +1,12 @@
 html, address,
 blockquote,
-body, dd, div,
-dl, dt, fieldset, form,
+body, div,
+dt, fieldset, form,
 frame, frameset,
 h1, h2, h3, h4,
-h5, h6, noframes,
-ol, p, ul, center,
-    dir, hr, menu, pre   { display: block; unicode-bidi: embed }
-    li              { display: list-item }
+h5, h6, noframes, 
+center, dir, 
+hr, menu, pre       { display: block; unicode-bidi: embed }
     head            { display: none }
     table           { display: table }
     tr              { display: table-row }
@@ -24,11 +23,10 @@ ol, p, ul, center,
     h1              { font-size: 2em; margin: .67em 0 }
     h2              { font-size: 1.5em; margin: .75em 0 }
     h3              { font-size: 1.17em; margin: .83em 0 }
-h4, p,
-blockquote, ul,
+h4,
+blockquote,
 fieldset, form,
-ol, dl, dir,
-    menu            { margin: 1.12em 0 }
+dir, menu           { margin: 1.12em 0 }
     h5              { font-size: .83em; margin: 1.5em 0 }
     h6              { font-size: .75em; margin: 1.67em 0 }
 h1, h2, h3, h4,
@@ -52,32 +50,62 @@ thead, tbody,
     td, th, tr      { vertical-align: inherit }
     s, strike, del  { text-decoration: line-through }
     hr              { border: 1px inset }
-ol, ul, dir,
-    menu, dd        { margin-left: 40px }
-    ol              { list-style-type: decimal }
-ol ul, ul ol,
-    ul ul, ol ol    { margin-top: 0; margin-bottom: 0 }
-    u, ins          { text-decoration: underline }
-    br:before       { content: "\A"; white-space: pre-line }
-center          { text-align: center }
-:link, :visited { text-decoration: underline }
-:focus          { outline: thin dotted invert }
+
+/* lists */
+dd                  { display: block; margin-left: 40px }
+p, dl, multicol     { display: block; margin: 1em 0 }
+ul                  { display: block; list-style-type: disc; 
+                      margin: 1em 0; padding-left: 40px }
+
+ol                  { display: block; list-style-type: decimal;
+                      margin: 1em 0; padding-left: 40px }
+
+li                  { display: list-item }
+
+/* nested lists have no top/bottom margins */
+ul ul, ul ol, ul dl,
+ol ul, ol ol, ol dl,
+dl ul, dl ol, dl dl { margin-top: 0; margin-bottom: 0 }
+
+/* 2 deep unordered lists use a circle */
+ol ul,   ul ul      { list-style-type: circle; }
+
+/* 3 deep (or more) unordered lists use a square */
+ol ol ul, ol ul ul,
+ul ol ul, ul ul ul  { list-style-type: square; }
+
+/* The type attribute on ol and ul elements */
+ul[type="disc"]     { list-style-type: disc; }
+ul[type="circle"]   { list-style-type: circle; }
+ul[type="square"]   { list-style-type: square; }
+ol[type="1"]        { list-style-type: decimal; }
+ol[type="a"]        { list-style-type: lower-alpha; }
+ol[type="A"]        { list-style-type: upper-alpha; }
+ol[type="i"]        { list-style-type: lower-roman; }
+ol[type="I"]        { list-style-type: upper-roman; }
+
+u, ins              { text-decoration: underline }
+br:before           { content: "\A"; white-space: pre-line }
+
+center              { text-align: center }
+:link, :visited     { text-decoration: underline }
+:focus              { outline: thin dotted invert }
 
 /* Begin bidirectionality settings (do not change) */
-BDO[DIR="ltr"]  { direction: ltr; unicode-bidi: bidi-override }
-BDO[DIR="rtl"]  { direction: rtl; unicode-bidi: bidi-override }
+BDO[DIR="ltr"]      { direction: ltr; unicode-bidi: bidi-override }
+BDO[DIR="rtl"]      { direction: rtl; unicode-bidi: bidi-override }
 
-*[DIR="ltr"]    { direction: ltr; unicode-bidi: embed }
-*[DIR="rtl"]    { direction: rtl; unicode-bidi: embed }
+*[DIR="ltr"]        { direction: ltr; unicode-bidi: embed }
+*[DIR="rtl"]        { direction: rtl; unicode-bidi: embed }
 
 @media print {
-h1            { page-break-before: always }
-  h1, h2, h3,
-h4, h5, h6    { page-break-after: avoid }
-ul, ol, dl    { page-break-before: avoid }
+h1                  { page-break-before: always }
+h1, h2, h3,
+h4, h5, h6          { page-break-after: avoid }
+ul, ol, dl          { page-break-before: avoid }
 }
 
 /* Servo additions */
-:link           { color: blue }
-script          { display: none }
-style           { display: none }
+:link               { color: blue }
+script              { display: none }
+style               { display: none }
