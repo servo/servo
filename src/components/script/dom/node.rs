@@ -6,7 +6,8 @@
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, null_str_as_empty};
-use dom::bindings::utils::{ErrorResult, Fallible, NotFound, HierarchyRequest};
+use dom::bindings::utils::{ErrorResult, Fallible, NotFound, HierarchyRequest, NodePtrHashSet};
+use dom::bindings::utils;
 use dom::characterdata::CharacterData;
 use dom::document::{AbstractDocument, DocumentTypeId};
 use dom::documenttype::DocumentType;
@@ -105,6 +106,11 @@ impl Drop for Node {
     fn drop(&mut self) {
         unsafe {
             let this: &mut Node = cast::transmute(self);
+
+            // Mark this DOM node as no longer valid.
+            NodePtrHashSet::remove(this);
+
+            // Destroy the layout data.
             this.reap_layout_data()
         }
     }
