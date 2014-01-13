@@ -16,6 +16,7 @@ use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
 use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan};
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
+use servo_util::task::{spawn_named};
 
 use js::glue::*;
 use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JSTracer, JSVal};
@@ -193,7 +194,7 @@ impl Window {
         let tm = Timer::new().unwrap();
         let (cancel_port, cancel_chan) = Chan::new();
         let chan = self.timer_chan.clone();
-        spawn(proc() {
+        spawn_named("Window:SetTimeout", proc() {
             let mut tm = tm;
             let mut timeout_port = tm.oneshot(timeout);
             let mut cancel_port = cancel_port;
@@ -248,7 +249,7 @@ impl Window {
             timer_chan: {
                 let (timer_port, timer_chan): (Port<TimerControlMsg>, SharedChan<TimerControlMsg>) = SharedChan::new();
                 let id = page.id.clone();
-                spawn(proc() {
+                spawn_named("timer controller", proc() {
                     loop {
                         match timer_port.recv() {
                             TimerMessage_Close => break,

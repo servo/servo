@@ -8,7 +8,7 @@ use extra::time::precise_time_ns;
 use extra::treemap::TreeMap;
 use std::comm::{Port, SharedChan};
 use std::iter::AdditiveIterator;
-
+use task::{spawn_named};
 
 // TODO: This code should be changed to use the commented code that uses timers
 // directly, once native timers land in Rust.
@@ -25,7 +25,6 @@ impl Timer {
        unsafe { usleep((ms * 1000)); }
     }
 }
-
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
@@ -117,7 +116,7 @@ impl Profiler {
             Some(period) => {
                 let period = (period * 1000f64) as u64;
                 let chan = chan.clone();
-                spawn(proc() {
+                spawn_named("Profiler timer", proc() {
                     loop {
                         Timer::sleep(period);
                         if !chan.try_send(PrintMsg) {
@@ -126,14 +125,14 @@ impl Profiler {
                     }
                 });
                 // Spawn the profiler
-                spawn(proc() {
+                spawn_named("Profiler", proc() {
                     let mut profiler = Profiler::new(port);
                     profiler.start();
                 });
             }
             None => {
                 // no-op to handle profiler messages when the profiler is inactive
-                spawn(proc() {
+                spawn_named("Profiler", proc() {
                     while port.recv_opt().is_some() {}
                 });
             }
