@@ -7,7 +7,7 @@
 use layout::box_::Box;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::flow::{BlockFlowClass, FlowClass, Flow, FlowData, ImmutableFlowUtils};
+use layout::flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
 use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
 use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
@@ -50,7 +50,7 @@ impl FloatedBlockInfo {
 /// A block formatting context.
 pub struct BlockFlow {
     /// Data common to all flows.
-    base: FlowData,
+    base: BaseFlow,
 
     /// The associated box.
     box_: Option<Box>,
@@ -63,7 +63,7 @@ pub struct BlockFlow {
 }
 
 impl BlockFlow {
-    pub fn new(base: FlowData) -> BlockFlow {
+    pub fn new(base: BaseFlow) -> BlockFlow {
         BlockFlow {
             base: base,
             box_: None,
@@ -72,7 +72,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn from_box(base: FlowData, box_: Box) -> BlockFlow {
+    pub fn from_box(base: BaseFlow, box_: Box) -> BlockFlow {
         BlockFlow {
             base: base,
             box_: Some(box_),
@@ -81,7 +81,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn float_from_box(base: FlowData, float_type: FloatType, box_: Box) -> BlockFlow {
+    pub fn float_from_box(base: BaseFlow, float_type: FloatType, box_: Box) -> BlockFlow {
         BlockFlow {
             base: base,
             box_: Some(box_),
@@ -90,7 +90,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn new_root(base: FlowData) -> BlockFlow {
+    pub fn new_root(base: BaseFlow) -> BlockFlow {
         BlockFlow {
             base: base,
             box_: None,
@@ -99,7 +99,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn new_float(base: FlowData, float_type: FloatType) -> BlockFlow {
+    pub fn new_float(base: BaseFlow, float_type: FloatType) -> BlockFlow {
         BlockFlow {
             base: base,
             box_: None,
