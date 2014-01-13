@@ -68,7 +68,7 @@ export CFG_BUILD_HOME
 # Re-configuration
 ######################################################################
 
-ifndef CFG_DISABLE_MANAGE_SUBMODULES
+ifdef CFG_ENABLE_MANAGE_SUBMODULES
 # This is a pretty expensive operation but I don't see any way to avoid it
 NEED_GIT_RECONFIG=$(shell cd "$(S)" && "$(CFG_GIT)" submodule status | grep -c '^\(+\|-\)')
 else
