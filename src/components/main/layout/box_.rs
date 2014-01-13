@@ -22,9 +22,8 @@ use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::*;
-use servo_util::slot::Slot;
 use std::cast;
-use std::cell::Cell;
+use std::cell::RefCell;
 use std::cmp::ApproxEq;
 use std::num::Zero;
 use style::{ComputedValues, TElement, TNode, cascade};
@@ -71,24 +70,24 @@ pub struct Box {
     style: Arc<ComputedValues>,
 
     /// The position of this box relative to its owning flow.
-    position: Slot<Rect<Au>>,
+    position: RefCell<Rect<Au>>,
 
     /// The border of the content box.
     ///
     /// FIXME(pcwalton): This need not be stored in the box.
-    border: Slot<SideOffsets2D<Au>>,
+    border: RefCell<SideOffsets2D<Au>>,
 
     /// The padding of the content box.
-    padding: Slot<SideOffsets2D<Au>>,
+    padding: RefCell<SideOffsets2D<Au>>,
 
     /// The margin of the content box.
-    margin: Slot<SideOffsets2D<Au>>,
+    margin: RefCell<SideOffsets2D<Au>>,
 
     /// Info specific to the kind of box. Keep this enum small.
     specific: SpecificBoxInfo,
 
     /// positioned box offsets
-    position_offsets: Slot<SideOffsets2D<Au>>,
+    position_offsets: RefCell<SideOffsets2D<Au>>,
 }
 
 /// Info specific to the kind of box. Keep this enum small.
@@ -105,7 +104,7 @@ pub enum SpecificBoxInfo {
 #[deriving(Clone)]
 pub struct ImageBoxInfo {
     /// The image held within this box.
-    image: Slot<ImageHolder>,
+    image: RefCell<ImageHolder>,
     /// The width attribute supplied by the DOM, if any.
     dom_width: Option<Au>,
     /// The height attribute supplied by the DOM, if any.
@@ -129,7 +128,7 @@ impl ImageBoxInfo {
         }
 
         ImageBoxInfo {
-            image: Slot::init(ImageHolder::new(image_url, local_image_cache)),
+            image: RefCell::new(ImageHolder::new(image_url, local_image_cache)),
             dom_width: convert_length(node, "width"),
             dom_height: convert_length(node, "height"),
         }
@@ -139,7 +138,8 @@ impl ImageBoxInfo {
     fn image_width(&self) -> Au {
         // TODO(brson): Consult margins and borders?
         self.dom_width.unwrap_or_else(|| {
-            Au::from_px(self.image.mutate().ptr.get_size().unwrap_or(Size2D(0, 0)).width)
+            let mut image_ref = self.image.borrow_mut();
+            Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0, 0)).width)
         })
     }
 
@@ -147,7 +147,8 @@ impl ImageBoxInfo {
     pub fn image_height(&self) -> Au {
         // TODO(brson): Consult margins and borders?
         self.dom_height.unwrap_or_else(|| {
-            Au::from_px(self.image.mutate().ptr.get_size().unwrap_or(Size2D(0, 0)).height)
+            let mut image_ref = self.image.borrow_mut();
+            Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0, 0)).height)
         })
     }
 }
@@ -256,12 +257,12 @@ impl Box {
         Box {
             node: OpaqueNode::from_layout_node(&node),
             style: node_style,
-            position: Slot::init(Au::zero_rect()),
-            border: Slot::init(Zero::zero()),
-            padding: Slot::init(Zero::zero()),
-            margin: Slot::init(Zero::zero()),
+            position: RefCell::new(Au::zero_rect()),
+            border: RefCell::new(Zero::zero()),
+            padding: RefCell::new(Zero::zero()),
+            margin: RefCell::new(Zero::zero()),
             specific: specific,
-            position_offsets: Slot::init(Zero::zero()),
+            position_offsets: RefCell::new(Zero::zero()),
         }
     }
 
@@ -279,12 +280,12 @@ impl Box {
         Box {
             node: self.node,
             style: self.style.clone(),
-            position: Slot::init(Rect(self.position.get().origin, size)),
-            border: Slot::init(self.border.get()),
-            padding: Slot::init(self.padding.get()),
-            margin: Slot::init(self.margin.get()),
+            position: RefCell::new(Rect(self.position.get().origin, size)),
+            border: RefCell::new(self.border.get()),
+            padding: RefCell::new(self.padding.get()),
+            margin: RefCell::new(self.margin.get()),
             specific: specific,
-            position_offsets: Slot::init(Zero::zero())
+            position_offsets: RefCell::new(Zero::zero())
         }
     }
 
@@ -308,11 +309,6 @@ impl Box {
 
         width + margin_left + margin_right + padding_left + padding_right +
             self.border.get().left + self.border.get().right
-    }
-
-    /// Sets the size of this box.
-    fn set_size(&self, new_size: Size2D<Au>) {
-        self.position.set(Rect(self.position.get().origin, new_size))
     }
 
     pub fn calculate_line_height(&self, font_size: Au) -> Au {
@@ -408,11 +404,11 @@ impl Box {
         debug!("(font style) start");
 
         // FIXME: Too much allocation here.
-        let font_families = do my_style.Font.font_family.map |family| {
+        let font_families = my_style.Font.font_family.map(|family| {
             match *family {
                 font_family::FamilyName(ref name) => (*name).clone(),
             }
-        };
+        });
         debug!("(font style) font families: `{:?}`", font_families);
 
         let font_size = my_style.Font.font_size.to_f64().unwrap() / 60.0;
@@ -465,7 +461,7 @@ impl Box {
     /// and so on.
     pub fn is_replaced(&self) -> bool {
         match self.specific {
-            ImageBox(*) => true,
+            ImageBox(..) => true,
             _ => false,
         }
     }
@@ -473,7 +469,7 @@ impl Box {
     /// Returns true if this element can be split. This is true for text boxes.
     pub fn can_split(&self) -> bool {
         match self.specific {
-            ScannedTextBox(*) => true,
+            ScannedTextBox(..) => true,
             _ => false,
         }
     }
@@ -496,7 +492,7 @@ impl Box {
     /// necessary.
     pub fn paint_background_if_applicable<E:ExtraDisplayListData>(
                                           &self,
-                                          list: &Cell<DisplayList<E>>,
+                                          list: &RefCell<DisplayList<E>>,
                                           absolute_bounds: &Rect<Au>) {
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
         // needed. We could use display list optimization to clean this up, but it still seems
@@ -505,7 +501,7 @@ impl Box {
         let style = self.style();
         let background_color = style.resolve_color(style.Background.background_color);
         if !background_color.alpha.approx_eq(&0.0) {
-            list.with_mut_ref(|list| {
+            list.with_mut(|list| {
                 let solid_color_display_item = ~SolidColorDisplayItem {
                     base: BaseDisplayItem {
                         bounds: *absolute_bounds,
@@ -523,7 +519,7 @@ impl Box {
     /// necessary.
     pub fn paint_borders_if_applicable<E:ExtraDisplayListData>(
                                        &self,
-                                       list: &Cell<DisplayList<E>>,
+                                       list: &RefCell<DisplayList<E>>,
                                        abs_bounds: &Rect<Au>) {
         // Fast path.
         let border = self.border.get();
@@ -542,7 +538,7 @@ impl Box {
         let left_style = style.Border.border_left_style;
 
         // Append the border to the display list.
-        do list.with_mut_ref |list| {
+        list.with_mut(|list| {
             let border_display_item = ~BorderDisplayItem {
                 base: BaseDisplayItem {
                     bounds: *abs_bounds,
@@ -560,7 +556,7 @@ impl Box {
             };
 
             list.append_item(BorderDisplayItemClass(border_display_item))
-        }
+        });
     }
 
     /// Adds the display items for this box to the given display list.
@@ -583,7 +579,7 @@ impl Box {
                               dirty: &Rect<Au>,
                               offset: Point2D<Au>,
                               flow: &Flow,
-                              list: &Cell<DisplayList<E>>) {
+                              list: &RefCell<DisplayList<E>>) {
         let box_bounds = self.position.get();
         let absolute_box_bounds = box_bounds.translate(&offset);
         debug!("Box::build_display_list at rel={}, abs={}: {:s}",
@@ -607,7 +603,7 @@ impl Box {
         match self.specific {
             UnscannedTextBox(_) => fail!("Shouldn't see unscanned boxes here."),
             ScannedTextBox(ref text_box) => {
-                do list.with_mut_ref |list| {
+                list.with_mut(|list| {
                     let item = ~ClipDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
@@ -617,7 +613,7 @@ impl Box {
                         need_clip: false
                     };
                     list.append_item(ClipDisplayItemClass(item));
-                }
+                });
 
                 let color = self.style().Color.color.to_gfx_color();
 
@@ -629,7 +625,7 @@ impl Box {
                 text_flags.set_override_line_through(flow_flags.override_line_through());
 
                 // Create the text box.
-                do list.with_mut_ref |list| {
+                list.with_mut(|list| {
                     let text_display_item = ~TextDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
@@ -642,7 +638,7 @@ impl Box {
                     };
 
                     list.append_item(TextDisplayItemClass(text_display_item))
-                }
+                });
 
                 // Draw debug frames for text bounds.
                 //
@@ -652,7 +648,7 @@ impl Box {
                     // Compute the text box bounds and draw a border surrounding them.
                     let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
-                    do list.with_mut_ref |list| {
+                    list.with_mut(|list| {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: absolute_box_bounds,
@@ -664,7 +660,7 @@ impl Box {
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
-                    }
+                    });
 
                     // Draw a rectangle representing the baselines.
                     //
@@ -674,7 +670,7 @@ impl Box {
                     let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
                                         Size2D(absolute_box_bounds.size.width, Au(0)));
 
-                    do list.with_mut_ref |list| {
+                    list.with_mut(|list| {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: baseline,
@@ -686,13 +682,11 @@ impl Box {
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
-                    }
-
-                    ()
+                    });
                 });
             },
-            GenericBox | IframeBox(_) => {
-                do list.with_mut_ref |list| {
+            GenericBox | IframeBox(..) => {
+                list.with_mut(|list| {
                     let item = ~ClipDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
@@ -702,14 +696,14 @@ impl Box {
                         need_clip: self.needs_clip()
                     };
                     list.append_item(ClipDisplayItemClass(item));
-                }
+                });
 
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
                 debug!("{:?}", {
                     let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
-                    do list.with_mut_ref |list| {
+                    list.with_mut(|list| {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: absolute_box_bounds,
@@ -721,13 +715,11 @@ impl Box {
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
-                    }
-
-                    ()
+                    });
                 });
             },
             ImageBox(ref image_box) => {
-                do list.with_mut_ref |list| {
+                list.with_mut(|list| {
                     let item = ~ClipDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
@@ -737,14 +729,15 @@ impl Box {
                         need_clip: false
                     };
                     list.append_item(ClipDisplayItemClass(item));
-                }
+                });
 
-                match image_box.image.mutate().ptr.get_image() {
+                let mut image_ref = image_box.image.borrow_mut();
+                match image_ref.get().get_image() {
                     Some(image) => {
                         debug!("(building display list) building image box");
 
                         // Place the image into the display list.
-                        do list.with_mut_ref |list| {
+                        list.with_mut(|list| {
                             let image_display_item = ~ImageDisplayItem {
                                 base: BaseDisplayItem {
                                     bounds: absolute_box_bounds,
@@ -752,8 +745,8 @@ impl Box {
                                 },
                                 image: image.clone(),
                             };
-                            list.append_item(ImageDisplayItemClass(image_display_item))
-                        }
+                            list.append_item(ImageDisplayItemClass(image_display_item));
+                        });
                     }
                     None => {
                         // No image data at all? Do nothing.
@@ -809,7 +802,7 @@ impl Box {
 
                 (min_line_width, max_line_width)
             }
-            UnscannedTextBox(*) => fail!("Unscanned text boxes should have been scanned by now!"),
+            UnscannedTextBox(..) => fail!("Unscanned text boxes should have been scanned by now!"),
         };
         (guessed_width + additional_minimum, guessed_width + additional_preferred)
     }
@@ -822,11 +815,12 @@ impl Box {
         match self.specific {
             GenericBox | IframeBox(_) => Au(0),
             ImageBox(ref image_box_info) => {
-                let size = image_box_info.image.mutate().ptr.get_size();
+                let mut image_ref = image_box_info.image.borrow_mut();
+                let size = image_ref.get().get_size();
                 let height = Au::from_px(size.unwrap_or(Size2D(0, 0)).height);
 
                 // Eww. Refactor this.
-                self.position.mutate().ptr.size.height = height;
+                self.position.borrow_mut().get().size.height = height;
                 debug!("box_height: found image height: {}", height);
 
                 height
@@ -955,11 +949,11 @@ impl Box {
         match self.specific {
             GenericBox | IframeBox(_) => {
                 // FIXME(pcwalton): This seems clownshoes; can we remove?
-                self.position.mutate().ptr.size.width = Au::from_px(45)
+                self.position.borrow_mut().get().size.width = Au::from_px(45)
             }
             ImageBox(ref image_box_info) => {
                 let image_width = image_box_info.image_width();
-                self.position.mutate().ptr.size.width = image_width
+                self.position.borrow_mut().get().size.width = image_width
             }
             ScannedTextBox(_) => {
                 // Scanned text boxes will have already had their widths assigned by this point.

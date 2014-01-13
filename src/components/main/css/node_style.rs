@@ -17,7 +17,7 @@ pub trait StyledNode {
     fn restyle_damage(&self) -> RestyleDamage;
 }
 
-impl<'self> StyledNode for LayoutNode<'self> {
+impl<'ln> StyledNode for LayoutNode<'ln> {
     #[inline]
     fn style<'a>(&'a self) -> &'a Arc<ComputedValues> {
         self.get_css_select_results()

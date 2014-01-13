@@ -4,13 +4,13 @@
 
 use std::cmp::{Ord, Eq};
 
-pub trait BinarySearchMethods<'self, T: Ord + Eq> {
-    fn binary_search(&self, key: &T) -> Option<&'self T>;
+pub trait BinarySearchMethods<'a, T: Ord + Eq> {
+    fn binary_search(&self, key: &T) -> Option<&'a T>;
     fn binary_search_index(&self, key: &T) -> Option<uint>;
 }
 
-impl<'self, T: Ord + Eq> BinarySearchMethods<'self, T> for &'self [T] {
-    fn binary_search(&self, key: &T) -> Option<&'self T> {
+impl<'a, T: Ord + Eq> BinarySearchMethods<'a, T> for &'a [T] {
+    fn binary_search(&self, key: &T) -> Option<&'a T> {
         self.binary_search_index(key).map(|i| &self[i])
     }
 
@@ -39,6 +39,7 @@ impl<'self, T: Ord + Eq> BinarySearchMethods<'self, T> for &'self [T] {
     }
 }
 
+#[cfg(test)]
 fn test_find_all_elems<T: Eq + Ord>(arr: &[T]) {
     let mut i = 0;
     while i < arr.len() {
@@ -47,6 +48,7 @@ fn test_find_all_elems<T: Eq + Ord>(arr: &[T]) {
     }
 }
 
+#[cfg(test)]
 fn test_miss_all_elems<T: Eq + Ord>(arr: &[T], misses: &[T]) {
     let mut i = 0;
     while i < misses.len() {
@@ -57,6 +59,7 @@ fn test_miss_all_elems<T: Eq + Ord>(arr: &[T], misses: &[T]) {
     }
 }
 
+#[cfg(test)]
 fn test_match<T: Eq>(b: &T, a: Option<&T>) -> bool {
     match a {
         None => false,
@@ -70,9 +73,8 @@ pub fn zip_copies<A: Clone, B: Clone>(avec: &[A], bvec: &[B]) -> ~[(A,B)] {
         .collect()
 }
 
+#[test]
 fn should_find_all_elements() {
-    #[test];
-
     let arr_odd = [1, 2, 4, 6, 7, 8, 9];
     let arr_even = [1, 2, 5, 6, 7, 8, 9, 42];
     let arr_double = [1, 1, 2, 2, 6, 8, 22];
@@ -88,9 +90,8 @@ fn should_find_all_elements() {
     test_find_all_elems(arr_three);
 }
 
+#[test]
 fn should_not_find_missing_elements() {
-    #[test];
-
     let arr_odd = [1, 2, 4, 6, 7, 8, 9];
     let arr_even = [1, 2, 5, 6, 7, 8, 9, 42];
     let arr_double = [1, 1, 2, 2, 6, 8, 22];

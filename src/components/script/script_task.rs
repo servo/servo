@@ -14,15 +14,15 @@ use dom::event::Event;
 use dom::eventtarget::AbstractEventTarget;
 use dom::htmldocument::HTMLDocument;
 use dom::namespace::Null;
-use dom::node::{AbstractNode, LayoutDataRef};
-use dom::window::{TimerData, Window};
+use dom::node::AbstractNode;
+use dom::window::{TimerData, TimerHandle, Window};
 use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
 use layout_interface::{AddStylesheetMsg, DocumentDamage};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery};
-use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg, ReapLayoutDataMsg};
+use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg};
 use layout_interface::{Reflow, ReflowDocumentDamage, ReflowForDisplay, ReflowGoal, ReflowMsg};
 use layout_interface::ContentChangedDocumentDamage;
 use layout_interface;
@@ -46,12 +46,9 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::url::make_url;
-use std::cell::Cell;
 use std::comm::{Port, SharedChan};
-use std::comm;
 use std::ptr;
 use std::str::eq_slice;
-use std::task::{spawn_sched, SingleThreaded};
 use std::util::replace;
 
 /// Messages used to control the script task.
@@ -90,8 +87,9 @@ pub struct ScriptChan(SharedChan<ScriptMsg>);
 
 impl ScriptChan {
     /// Creates a new script chan.
-    pub fn new(chan: Chan<ScriptMsg>) -> ScriptChan {
-        ScriptChan(SharedChan::new(chan))
+    pub fn new() -> (Port<ScriptMsg>, ScriptChan) {
+        let (port, chan) = SharedChan::new();
+        (port, ScriptChan(chan))
     }
 }
 
@@ -140,8 +138,8 @@ pub struct PageTree {
     inner: ~[PageTree],
 }
 
-pub struct PageTreeIterator<'self> {
-    priv stack: ~[&'self mut PageTree],
+pub struct PageTreeIterator<'a> {
+    priv stack: ~[&'a mut PageTree],
 }
 
 impl PageTree {
@@ -203,7 +201,7 @@ impl PageTree {
     }
 }
 
-impl<'self> Iterator<@mut Page> for PageTreeIterator<'self> {
+impl<'a> Iterator<@mut Page> for PageTreeIterator<'a> {
     fn next(&mut self) -> Option<@mut Page> {
         if !self.stack.is_empty() {
             let next = self.stack.pop();
@@ -254,11 +252,13 @@ impl Page {
             let join_port = replace(&mut self.layout_join_port, None);
             match join_port {
                 Some(ref join_port) => {
-                    if !join_port.peek() {
-                        info!("script: waiting on layout");
+                    match join_port.try_recv() {
+                        None => {
+                            info!("script: waiting on layout");
+                            join_port.recv();
+                        }
+                        Some(_) => {}
                     }
-
-                    join_port.recv();
 
                     debug!("script: layout joined")
                 }
@@ -307,7 +307,7 @@ impl Page {
                 compositor.set_ready_state(PerformingLayout);
 
                 // Layout will let us know when it's done.
-                let (join_port, join_chan) = comm::stream();
+                let (join_port, join_chan) = Chan::new();
                 self.layout_join_port = Some(join_port);
 
                 self.last_reflow_id += 1;
@@ -359,11 +359,6 @@ impl Page {
             js_context: js_context,
         });
     }
-
-    /// Sends the given layout data back to the layout task to be destroyed.
-    pub unsafe fn reap_dead_layout_data(&self, layout_data: LayoutDataRef) {
-        self.layout_chan.send(ReapLayoutDataMsg(layout_data))
-    }
 }
 
 /// Information for one frame in the browsing context.
@@ -412,7 +407,6 @@ pub struct ScriptTask {
 }
 
 /// Returns the relevant page from the associated JS Context.
-#[fixed_stack_segment]
 pub fn page_from_context(js_context: *JSContext) -> *mut Page {
     unsafe {
         JS_GetContextPrivate(js_context) as *mut Page
@@ -468,24 +462,7 @@ impl ScriptTask {
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
                   window_size: Size2D<uint>) {
-        let parms = Cell::new((compositor,
-                               layout_chan,
-                               port,
-                               chan,
-                               constellation_chan,
-                               resource_task,
-                               image_cache_task));
-        // Since SpiderMonkey is blocking it needs to run in its own thread.
-        // If we don't do this then we'll just end up with a bunch of SpiderMonkeys
-        // starving all the other tasks.
-        do spawn_sched(SingleThreaded) {
-            let (compositor,
-                 layout_chan,
-                 port,
-                 chan,
-                 constellation_chan,
-                 resource_task,
-                 image_cache_task) = parms.take();
+        spawn(proc() {
             let script_task = ScriptTask::new(id,
                                               @compositor as @ScriptListener,
                                               layout_chan,
@@ -496,7 +473,7 @@ impl ScriptTask {
                                               image_cache_task,
                                               window_size);
             script_task.start();
-        }
+        });
     }
 
     /// Handle incoming control messages.
@@ -520,12 +497,13 @@ impl ScriptTask {
 
         // Store new resizes, and gather all other events.
         let mut sequential = ~[];
+
+        // Receive at least one message so we don't spinloop.
+        let mut event = self.port.recv();
+
         loop {
-            // Receive at least one message so we don't spinloop.
-            let event = self.port.recv();
             match event {
                 ResizeMsg(id, size) => {
-                    debug!("script got resize message");
                     let page = self.page_tree.find(id).expect("resize sent to nonexistent pipeline").page;
                     page.resize_event = Some(size);
                 }
@@ -534,9 +512,9 @@ impl ScriptTask {
                 }
             }
 
-            // Break if there are no more messages.
-            if !self.port.peek() {
-                break;
+            match self.port.try_recv() {
+                None => break,
+                Some(ev) => event = ev,
             }
         }
 
@@ -556,7 +534,7 @@ impl ScriptTask {
                     self.handle_exit_window_msg(id);
                     return false
                 },
-                ResizeMsg(*) => fail!("should have handled ResizeMsg already"),
+                ResizeMsg(..) => fail!("should have handled ResizeMsg already"),
             }
         }
 
@@ -579,14 +557,14 @@ impl ScriptTask {
     }
 
     /// Handles a timer that fired.
-    #[fixed_stack_segment]
     fn handle_fire_timer_msg(&mut self, id: PipelineId, timer_data: ~TimerData) {
         let page = self.page_tree.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.").page;
         let window = page.frame.expect("ScriptTask: Expect a timeout to have a document").window;
-        if !window.active_timers.contains(&timer_data.handle) {
+        if !window.active_timers.contains(&TimerHandle { handle: timer_data.handle, cancel_chan: None }) {
             return;
         }
+        window.active_timers.remove(&TimerHandle { handle: timer_data.handle, cancel_chan: None });
         unsafe {
             let this_value = if timer_data.args.len() > 0 {
                 RUST_JSVAL_TO_OBJECT(timer_data.args[0])
@@ -711,7 +689,6 @@ impl ScriptTask {
         //
         // Note: We can parse the next document in parallel with any previous documents.
         let document = HTMLDocument::new(window);
-
         let html_parsing_result = hubbub_html_parser::parse_html(cx.ptr,
                                                                  document,
                                                                  url.clone(),
@@ -736,7 +713,7 @@ impl ScriptTask {
 
         let mut js_scripts = None;
         loop {
-            match discovery_port.try_recv() {
+            match discovery_port.recv_opt() {
                 Some(HtmlDiscoveredScript(scripts)) => {
                     assert!(js_scripts.is_none());
                     js_scripts = Some(scripts);
@@ -805,20 +782,20 @@ impl ScriptTask {
             None => {
                 let doc_node = AbstractNode::from_document(document);
                 let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
-                do anchors.find |node| {
-                    do node.with_imm_element |elem| {
+                anchors.find(|node| {
+                    node.with_imm_element(|elem| {
                         match elem.get_attr(Null, "name") {
                             Some(name) => eq_slice(name, fragid),
                             None => false
                         }
-                    }
-                }
+                    })
+                })
             }
         }
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &mut Page, node: AbstractNode) {
-        let (port, chan) = comm::stream();
+        let (port, chan) = Chan::new();
         match page.query_layout(ContentBoxQuery(node, chan), port) {
             ContentBoxResponse(rect) => {
                 let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(), 
@@ -870,7 +847,7 @@ impl ScriptTask {
                 if root.is_none() {
                     return;
                 }
-                let (port, chan) = comm::stream();
+                let (port, chan) = Chan::new();
                 match page.query_layout(HitTestQuery(root.unwrap(), point, chan), port) {
                     Ok(node) => match node {
                         HitTestResponse(node) => {
@@ -886,11 +863,11 @@ impl ScriptTask {
                                 }
                             }
                             if node.is_element() {
-                                do node.with_imm_element |element| {
+                                node.with_imm_element(|element| {
                                     if "a" == element.tag_name {
                                         self.load_url_from_element(page, element)
                                     }
-                                }
+                                })
                             }
                         }
                     },
@@ -899,8 +876,8 @@ impl ScriptTask {
                     }
                 }
             }
-            MouseDownEvent(*) => {}
-            MouseUpEvent(*) => {}
+            MouseDownEvent(..) => {}
+            MouseUpEvent(..) => {}
         }
     }
 
@@ -910,9 +887,9 @@ impl ScriptTask {
         for href in attr.iter() {
             debug!("ScriptTask: clicked on link to {:s}", *href);
             let click_frag = href.starts_with("#");
-            let current_url = do page.url.as_ref().map |&(ref url, _)| {
+            let current_url = page.url.as_ref().map(|&(ref url, _)| {
                 url.clone()
-            };
+            });
             debug!("ScriptTask: current url is {:?}", current_url);
             let url = make_url(href.to_owned(), current_url);
 
@@ -933,29 +910,15 @@ fn shut_down_layout(page: @mut Page) {
     page.join_layout();
 
     // Tell the layout task to begin shutting down.
-    let (response_port, response_chan) = comm::stream();
+    let (response_port, response_chan) = Chan::new();
     page.layout_chan.send(layout_interface::PrepareToExitMsg(response_chan));
     response_port.recv();
 
-    // Destroy all nodes.
-    //
-    // If there was a leak, the layout task will soon crash safely when it detects that local data
-    // is missing from its heap.
-    //
-    // FIXME(pcwalton): *But*, for now, because we use `@mut` boxes to hold onto Nodes, if this
-    // didn't destroy all the nodes there will be an *exploitable* security vulnerability as the
-    // nodes try to access the destroyed JS context. We need to change this so that the only actor
-    // who can judge a JS object dead (and thus run its drop glue) is the JS engine itself; thus it
-    // will be impossible (absent a serious flaw in the JS engine) for the JS context to be dead
-    // before nodes are.
-    unsafe {
-        let document_node = AbstractNode::from_document(page.frame.as_ref().unwrap().document);
-        for node in document_node.traverse_preorder() {
-            node.mut_node().reap_layout_data()
-        }
-    }
+    // Destroy all nodes. Setting frame and js_info to None will trigger our
+    // compartment to shutdown, run GC, etc.
+    page.frame = None;
+    page.js_info = None;
 
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
     page.layout_chan.send(layout_interface::ExitNowMsg);
 }
-

@@ -27,9 +27,6 @@ pub struct Selector {
     specificity: u32,
 }
 
-pub static STYLE_ATTRIBUTE_SPECIFICITY: u32 = 1 << 31;
-
-
 #[deriving(Eq, Clone)]
 pub enum PseudoElement {
     Before,
@@ -203,19 +200,19 @@ fn compute_specificity(mut selector: &CompoundSelector,
                                     specificity: &mut Specificity) {
         for simple_selector in simple_selectors.iter() {
             match simple_selector {
-                &LocalNameSelector(*) => specificity.element_selectors += 1,
-                &IDSelector(*) => specificity.id_selectors += 1,
-                &ClassSelector(*)
-                | &AttrExists(*) | &AttrEqual(*) | &AttrIncludes(*) | &AttrDashMatch(*)
-                | &AttrPrefixMatch(*) | &AttrSubstringMatch(*) | &AttrSuffixMatch(*)
+                &LocalNameSelector(..) => specificity.element_selectors += 1,
+                &IDSelector(..) => specificity.id_selectors += 1,
+                &ClassSelector(..)
+                | &AttrExists(..) | &AttrEqual(..) | &AttrIncludes(..) | &AttrDashMatch(..)
+                | &AttrPrefixMatch(..) | &AttrSubstringMatch(..) | &AttrSuffixMatch(..)
                 | &AnyLink | &Link | &Visited
                 | &FirstChild | &LastChild | &OnlyChild | &Root
 //                | &Empty | &Lang(*)
-                | &NthChild(*) | &NthLastChild(*)
-                | &NthOfType(*) | &NthLastOfType(*)
+                | &NthChild(..) | &NthLastChild(..)
+                | &NthOfType(..) | &NthLastOfType(..)
                 | &FirstOfType | &LastOfType | &OnlyOfType
                 => specificity.class_like_selectors += 1,
-                &NamespaceSelector(*) => (),
+                &NamespaceSelector(..) => (),
                 &Negation(ref negated)
                 => simple_selectors_specificity(negated.as_slice(), specificity),
             }

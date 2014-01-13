@@ -4,10 +4,7 @@
 
 /// Some little helpers for hooking up the HTML parser with the CSS parser.
 
-use std::cell::Cell;
-use std::comm;
 use std::comm::Port;
-use std::task;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use style::Stylesheet;
@@ -23,25 +20,22 @@ pub enum StylesheetProvenance {
 pub fn spawn_css_parser(provenance: StylesheetProvenance,
                         resource_task: ResourceTask)
                      -> Port<Stylesheet> {
-    let (result_port, result_chan) = comm::stream();
+    let (result_port, result_chan) = Chan::new();
 
     // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
     let environment_encoding = UTF_8 as EncodingRef;
 
-    let provenance_cell = Cell::new(provenance);
-    do task::spawn {
+    spawn(proc() {
         // TODO: CSS parsing should take a base URL.
-        let _url = do provenance_cell.with_ref |p| {
-            match *p {
-                UrlProvenance(ref the_url) => (*the_url).clone(),
-                InlineProvenance(ref the_url, _) => (*the_url).clone()
-            }
+        let _url = match provenance {
+            UrlProvenance(ref the_url) => (*the_url).clone(),
+            InlineProvenance(ref the_url, _) => (*the_url).clone()
         };
 
-        let sheet = match provenance_cell.take() {
+        let sheet = match provenance {
             UrlProvenance(url) => {
                 debug!("cssparse: loading style sheet at {:s}", url.to_str());
-                let (input_port, input_chan) = comm::stream();
+                let (input_port, input_chan) = Chan::new();
                 resource_task.send(Load(url, input_chan));
                 let LoadResponse { metadata: metadata, progress_port: progress_port }
                     = input_port.recv();
@@ -56,7 +50,7 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
             }
         };
         result_chan.send(sheet);
-    }
+    });
 
     return result_port;
 }
@@ -69,7 +63,7 @@ impl Iterator<~[u8]> for ProgressMsgPortIterator {
     fn next(&mut self) -> Option<~[u8]> {
         match self.progress_port.recv() {
             Payload(data) => Some(data),
-            Done(*) => None
+            Done(..) => None
         }
     }
 }

@@ -151,7 +151,7 @@ pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
 
 
 pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
-                            callback: &fn(&StyleRule)) {
+                            callback: |&StyleRule|) {
     for rule in rules.iter() {
         match *rule {
             CSSStyleRule(ref rule) => callback(rule),

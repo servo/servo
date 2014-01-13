@@ -55,17 +55,12 @@ impl AbstractDocument {
         }
     }
 
-    unsafe fn transmute<T, R>(&self, f: &fn(&T) -> R) -> R {
-        let box: *Box<T> = cast::transmute(self.document);
-        f(&(*box).data)
+    unsafe fn transmute<T, R>(&self, f: |&T| -> R) -> R {
+        let box_: *Box<T> = cast::transmute(self.document);
+        f(&(*box_).data)
     }
 
-    unsafe fn transmute_mut<T, R>(&self, f: &fn(&mut T) -> R) -> R {
-        let box: *mut Box<T> = cast::transmute(self.document);
-        f(&mut (*box).data)
-    }
-
-    pub fn with_html<R>(&self, callback: &fn(&HTMLDocument) -> R) -> R {
+    pub fn with_html<R>(&self, callback: |&HTMLDocument| -> R) -> R {
         match self.document().doctype {
             HTML => unsafe { self.transmute(callback) },
             _ => fail!("attempt to downcast a non-HTMLDocument to HTMLDocument")
@@ -105,9 +100,9 @@ impl Document {
         let document = reflect_dom_object(document, window, wrap_fn);
         assert!(document.reflector().get_jsobject().is_not_null());
 
-        // This surrenders memory management of the document!
+        // JS object now owns the Document, so transmute_copy is needed
         let abstract = AbstractDocument {
-            document: unsafe { cast::transmute(document) }
+            document: unsafe { cast::transmute_copy(&document) }
         };
         abstract.mut_document().node.set_owner_doc(abstract);
         abstract
@@ -163,10 +158,6 @@ impl Reflectable for Document {
 impl Document {
     pub fn GetDocumentElement(&self) -> Option<AbstractNode> {
         self.node.child_elements().next()
-    }
-
-    fn get_cx(&self) -> *JSContext {
-        self.window.get_cx()
     }
 
     pub fn GetElementsByTagName(&self, tag: DOMString) -> @mut HTMLCollection {
@@ -238,9 +229,9 @@ impl Document {
                             }
                             for child in node.children() {
                                 if child.is_text() {
-                                    do child.with_imm_text() |text| {
+                                    child.with_imm_text(|text| {
                                         title = title + text.element.Data();
-                                    }
+                                    });
                                 }
                             }
                             break;
@@ -249,7 +240,7 @@ impl Document {
                 }
             }
         }
-        let v: ~[&str] = title.word_iter().collect();
+        let v: ~[&str] = title.words().collect();
         title = v.connect(" ");
         title = title.trim().to_owned();
         title
@@ -295,12 +286,12 @@ impl Document {
     }
 
     fn get_html_element(&self) -> Option<AbstractNode> {
-        do self.GetDocumentElement().filtered |root| {
+        self.GetDocumentElement().filtered(|root| {
             match root.type_id() {
                 ElementNodeTypeId(HTMLHtmlElementTypeId) => true,
                 _ => false
             }
-        }
+        })
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-head
@@ -317,13 +308,13 @@ impl Document {
         match self.get_html_element() {
             None => None,
             Some(root) => {
-                do root.children().find |child| {
+                root.children().find(|child| {
                     match child.type_id() {
                         ElementNodeTypeId(HTMLBodyElementTypeId) |
                         ElementNodeTypeId(HTMLFrameSetElementTypeId) => true,
                         _ => false
                     }
-                }
+                })
             }
         }
     }
@@ -366,18 +357,18 @@ impl Document {
             elem.get_attr(Null, "name").is_some() && eq_slice(elem.get_attr(Null, "name").unwrap(), name))
     }
 
-    pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
+    pub fn createHTMLCollection(&self, callback: |elem: &Element| -> bool) -> @mut HTMLCollection {
         let mut elements = ~[];
         match self.GetDocumentElement() {
             None => {},
             Some(root) => {
                 for child in root.traverse_preorder() {
                     if child.is_element() {
-                        do child.with_imm_element |elem| {
+                        child.with_imm_element(|elem| {
                             if callback(elem) {
                                 elements.push(child);
                             }
-                        }
+                        });
                     }
                 }
             }
@@ -436,25 +427,24 @@ impl Document {
 }
 
 #[inline(always)]
-fn foreach_ided_elements(root: &AbstractNode, callback: &fn(&DOMString, &AbstractNode)) {
+fn foreach_ided_elements(root: &AbstractNode, callback: |&DOMString, &AbstractNode|) {
     for node in root.traverse_preorder() {
         if !node.is_element() {
             continue;
         }
 
-        do node.with_imm_element |element| {
+        node.with_imm_element(|element| {
             match element.get_attr(Null, "id") {
                 Some(id) => {
                     callback(&id.to_str(), &node);
                 }
                 None => ()
             }
-        }
+        });
     }
 }
 
 impl Traceable for Document {
-    #[fixed_stack_segment]
     fn trace(&self, tracer: *mut JSTracer) {
         self.node.trace(tracer);
     }

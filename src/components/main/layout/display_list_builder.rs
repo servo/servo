@@ -4,7 +4,7 @@
 
 //! Constructs display lists from boxes.
 
-use layout::box::Box;
+use layout::box_::Box;
 use layout::context::LayoutContext;
 use layout::util::OpaqueNode;
 
@@ -12,14 +12,14 @@ use gfx;
 use style;
 
 pub trait ExtraDisplayListData {
-    fn new(box: &Box) -> Self;
+    fn new(box_: &Box) -> Self;
 }
 
 pub type Nothing = ();
 
 impl ExtraDisplayListData for OpaqueNode {
-    fn new(box: &Box) -> OpaqueNode {
-        box.node
+    fn new(box_: &Box) -> OpaqueNode {
+        box_.node
     }
 }
 
@@ -35,8 +35,8 @@ impl ExtraDisplayListData for Nothing {
 ///
 /// Right now, the builder isn't used for much, but it establishes the pattern we'll need once we
 /// support display-list-based hit testing and so forth.
-pub struct DisplayListBuilder<'self> {
-    ctx: &'self LayoutContext,
+pub struct DisplayListBuilder<'a> {
+    ctx: &'a LayoutContext,
 }
 
 //

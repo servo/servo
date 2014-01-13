@@ -11,11 +11,8 @@ use layout::wrapper::LayoutNode;
 
 use extra::arc::{Arc, RWArc};
 use std::cast;
-use std::cell::Cell;
-use std::comm;
 use std::libc::uintptr_t;
 use std::rt;
-use std::task;
 use std::vec;
 use style::{TNode, Stylist, cascade};
 use style::{Before, After};
@@ -27,22 +24,23 @@ pub trait MatchMethods {
     fn cascade_subtree(&self, parent: Option<LayoutNode>);
 }
 
-impl<'self> MatchMethods for LayoutNode<'self> {
+impl<'ln> MatchMethods for LayoutNode<'ln> {
     fn match_node(&self, stylist: &Stylist) {
-        let style_attribute = do self.with_element |element| {
+        let style_attribute = self.with_element(|element| {
             match *element.style_attribute() {
                 None => None,
                 Some(ref style_attribute) => Some(style_attribute)
             }
-        };
+        });
 
-        match *self.mutate_layout_data().ptr {
+        let mut layout_data_ref = self.mutate_layout_data();
+        match *layout_data_ref.get() {
             Some(ref mut layout_data) => {
-                layout_data.applicable_declarations = stylist.get_applicable_declarations(
+                layout_data.data.applicable_declarations = stylist.get_applicable_declarations(
                     self, style_attribute, None);
-                layout_data.before_applicable_declarations = stylist.get_applicable_declarations(
+                layout_data.data.before_applicable_declarations = stylist.get_applicable_declarations(
                     self, None, Some(Before));
-                layout_data.after_applicable_declarations = stylist.get_applicable_declarations(
+                layout_data.data.after_applicable_declarations = stylist.get_applicable_declarations(
                     self, None, Some(After));
             }
             None => fail!("no layout data")
@@ -60,8 +58,7 @@ impl<'self> MatchMethods for LayoutNode<'self> {
             }
         }
 
-        let (port, chan) = comm::stream();
-        let chan = comm::SharedChan::new(chan);
+        let (port, chan) = SharedChan::new();
         let mut num_spawned = 0;
 
         for nodes in nodes_per_task.move_iter() {
@@ -77,20 +74,20 @@ impl<'self> MatchMethods for LayoutNode<'self> {
                     cast::transmute(nodes)
                 };
 
-                do task::spawn_with((evil, stylist)) |(evil, stylist)| {
+                let evil = Some(evil);
+                spawn(proc() {
+                    let mut evil = evil;
                     let nodes: ~[LayoutNode] = unsafe {
-                        cast::transmute(evil)
+                        cast::transmute(evil.take_unwrap())
                     };
 
-                    let nodes = Cell::new(nodes);
-                    do stylist.read |stylist| {
-                        let nodes = nodes.take();
+                    stylist.read(|stylist| {
                         for node in nodes.iter() {
                             node.match_node(stylist);
                         }
-                    }
+                    });
                     chan.send(());
-                }
+                });
                 num_spawned += 1;
             }
         }
@@ -100,9 +97,6 @@ impl<'self> MatchMethods for LayoutNode<'self> {
     }
 
     fn cascade_subtree(&self, parent: Option<LayoutNode>) {
-        let layout_data = unsafe {
-            self.borrow_layout_data_unchecked().as_ref().unwrap()
-        };
         macro_rules! cascade_node(
             ($applicable_declarations: ident, $style: ident) => {{
                 let parent_style = match parent {
@@ -110,18 +104,21 @@ impl<'self> MatchMethods for LayoutNode<'self> {
                     None => None
                 };
 
-                let computed_values = Arc::new(cascade(
-                    layout_data.$applicable_declarations,
-                    parent_style.map(|parent_style| parent_style.get())));
+                let computed_values = {
+                    let layout_data_ref = self.borrow_layout_data();
+                    let layout_data = layout_data_ref.get().as_ref().unwrap();
+                    Arc::new(cascade(layout_data.data.$applicable_declarations, parent_style.map(|parent_style| parent_style.get())))
+                };
 
-                match *self.mutate_layout_data().ptr {
+                let mut layout_data_ref = self.mutate_layout_data();
+                match *layout_data_ref.get() {
                     None => fail!("no layout data"),
                     Some(ref mut layout_data) => {
-                        let style = &mut layout_data.$style;
+                        let style = &mut layout_data.data.$style;
                         match *style {
                             None => (),
                             Some(ref previous_style) => {
-                                layout_data.restyle_damage = Some(incremental::compute_damage(
+                                layout_data.data.restyle_damage = Some(incremental::compute_damage(
                                     previous_style.get(), computed_values.get()).to_int())
                             }
                         }
@@ -131,14 +128,22 @@ impl<'self> MatchMethods for LayoutNode<'self> {
             }}
         );
 
-        unsafe {
-            if self.borrow_layout_data_unchecked().as_ref().unwrap().before_applicable_declarations.len() > 0 {
+        {
+            let before_len = {
+                let layout_data_ref = self.borrow_layout_data();
+                layout_data_ref.get().as_ref().unwrap().data.before_applicable_declarations.len()
+            };
+            if before_len > 0 {
                 cascade_node!(before_applicable_declarations, before_style);
             }
         }
         cascade_node!(applicable_declarations, style);
-        unsafe {
-            if self.borrow_layout_data_unchecked().as_ref().unwrap().after_applicable_declarations.len() > 0 {
+        {
+            let after_len = {
+                let layout_data_ref = self.borrow_layout_data();
+                layout_data_ref.get().as_ref().unwrap().data.after_applicable_declarations.len()
+            };
+            if after_len > 0 {
                 cascade_node!(after_applicable_declarations, after_style);
             }
         }

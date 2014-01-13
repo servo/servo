@@ -43,7 +43,6 @@ impl CallbackInterface {
         }
     }
 
-    #[fixed_stack_segment]
     pub fn GetCallableProperty(&self, cx: *JSContext, name: *libc::c_char, callable: &mut JSVal) -> bool {
         unsafe {
             if JS_GetProperty(cx, self.callback, name, &*callable) == 0 {
@@ -65,7 +64,6 @@ pub fn GetJSObjectFromCallback<T: CallbackContainer>(callback: &T) -> *JSObject 
     callback.callback()
 }
 
-#[fixed_stack_segment]
 pub fn WrapCallThisObject<T: 'static + CallbackContainer + Reflectable>(cx: *JSContext,
                                                                         _scope: *JSObject,
                                                                         p: @mut T) -> *JSObject {

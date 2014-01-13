@@ -8,9 +8,7 @@ use file_loader;
 use http_loader;
 use data_loader;
 
-use std::cell::Cell;
 use std::comm::{Chan, Port, SharedChan};
-use std::comm;
 use extra::url::Url;
 use util::spawn_listener;
 use http::headers::content_type::MediaType;
@@ -87,8 +85,8 @@ pub enum ProgressMsg {
 
 /// For use by loaders in responding to a Load message.
 pub fn start_sending(start_chan: Chan<LoadResponse>,
-                     metadata:   Metadata) -> Chan<ProgressMsg> {
-    let (progress_port, progress_chan) = comm::stream();
+                     metadata:   Metadata) -> SharedChan<ProgressMsg> {
+    let (progress_port, progress_chan) = SharedChan::new();
     start_chan.send(LoadResponse {
         metadata:      metadata,
         progress_port: progress_port,
@@ -99,7 +97,7 @@ pub fn start_sending(start_chan: Chan<LoadResponse>,
 /// Convenience function for synchronously loading a whole resource.
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, ~[u8]), ()> {
-    let (start_port, start_chan) = comm::stream();
+    let (start_port, start_chan) = Chan::new();
     resource_task.send(Load(url, start_chan));
     let response = start_port.recv();
 
@@ -116,7 +114,7 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 /// Handle to a resource task
 pub type ResourceTask = SharedChan<ControlMsg>;
 
-pub type LoaderTask = ~fn(url: Url, Chan<LoadResponse>);
+pub type LoaderTask = proc(url: Url, Chan<LoadResponse>);
 
 /**
 Creates a task to load a specific resource
@@ -137,12 +135,11 @@ pub fn ResourceTask() -> ResourceTask {
 }
 
 fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
-    let loaders_cell = Cell::new(loaders);
-    let chan = do spawn_listener |from_client| {
+    let chan = spawn_listener(proc(from_client) {
         // TODO: change copy to move once we can move out of closures
-        ResourceManager(from_client, loaders_cell.take()).start()
-    };
-    SharedChan::new(chan)
+        ResourceManager(from_client, loaders).start()
+    });
+    chan
 }
 
 pub struct ResourceManager {
@@ -211,7 +208,7 @@ fn test_exit() {
 #[test]
 fn test_bad_scheme() {
     let resource_task = ResourceTask();
-    let (start, start_chan) = comm::stream();
+    let (start, start_chan) = Chan::new();
     resource_task.send(Load(FromStr::from_str("bogus://whatever").unwrap(), start_chan));
     let response = start.recv();
     match response.progress_port.recv() {
@@ -226,7 +223,7 @@ static snicklefritz_payload: [u8, ..3] = [1, 2, 3];
 
 #[cfg(test)]
 fn snicklefritz_loader_factory() -> LoaderTask {
-    let f: LoaderTask = |url: Url, start_chan: Chan<LoadResponse>| {
+    let f: LoaderTask = proc(url: Url, start_chan: Chan<LoadResponse>) {
         let progress_chan = start_sending(start_chan, Metadata::default(url));
         progress_chan.send(Payload(snicklefritz_payload.into_owned()));
         progress_chan.send(Done(Ok(())));
@@ -238,7 +235,7 @@ fn snicklefritz_loader_factory() -> LoaderTask {
 fn should_delegate_to_scheme_loader() {
     let loader_factories = ~[(~"snicklefritz", snicklefritz_loader_factory)];
     let resource_task = create_resource_task_with_loaders(loader_factories);
-    let (start, start_chan) = comm::stream();
+    let (start, start_chan) = Chan::new();
     resource_task.send(Load(FromStr::from_str("snicklefritz://heya").unwrap(), start_chan));
 
     let response = start.recv();

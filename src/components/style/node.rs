@@ -14,7 +14,7 @@ pub trait TNode<E:TElement> : Clone {
     fn is_element(&self) -> bool;
 
     /// FIXME(pcwalton): This should not use the `with` pattern.
-    fn with_element<R>(&self, f: &fn(&E) -> R) -> R;
+    fn with_element<'a, R>(&self, f: |&E| -> R) -> R;
 }
 
 pub trait TElement {

@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use extra::arc::Arc;
-use extra::sort::tim_sort;
 use std::ascii::StrAsciiExt;
 use std::hashmap::HashMap;
 use std::str;
@@ -86,11 +85,9 @@ impl SelectorMap {
 
             match element.get_attr(None, "class") {
                 Some(ref class_attr) => {
-                    for class in class_attr.split_iter(SELECTOR_WHITESPACE) {
-                        SelectorMap::get_matching_rules_from_hash(node,
-                                                                  &self.class_hash,
-                                                                  class,
-                                                                  matching_rules_list)
+                    for class in class_attr.split(SELECTOR_WHITESPACE) {
+                        SelectorMap::get_matching_rules_from_hash(
+                            node, &self.class_hash, class, matching_rules_list);
                     }
                 }
                 None => {}
@@ -108,7 +105,13 @@ impl SelectorMap {
         });
 
         // Sort only the rules we just added.
-        tim_sort(matching_rules_list.mut_slice_from(init_len));
+        matching_rules_list.mut_slice_from(init_len).sort_by(|a, b| {
+            if a < b {
+                Less
+            } else {
+                Greater
+            }
+        });
     }
 
     fn get_matching_rules_from_hash<E:TElement,
@@ -292,11 +295,11 @@ impl Stylist {
         );
 
         let device = &Device { media_type: Screen };  // TODO, use Print when printing
-        do iter_style_rules(stylesheet.rules.as_slice(), device) |style_rule| {
+        iter_style_rules(stylesheet.rules.as_slice(), device, |style_rule| {
             append!(normal);
             append!(important);
             self.rules_source_order += 1;
-        }
+        });
     }
 
     /// Returns the applicable CSS declarations for the given element. This corresponds to
@@ -344,7 +347,7 @@ impl Stylist {
         let mut declaration_iter = matching_rules_list.move_iter().map(|rule| {
             let Rule {
                 declarations,
-                _
+                ..
             } = rule;
             declarations
         });
@@ -436,9 +439,9 @@ impl Ord for Rule {
 
 fn matches_compound_selector<E:TElement,N:TNode<E>>(selector: &CompoundSelector, element: &N)
                              -> bool {
-    if !do selector.simple_selectors.iter().all |simple_selector| {
+    if !selector.simple_selectors.iter().all(|simple_selector| {
             matches_simple_selector(simple_selector, element)
-    } {
+    }) {
         return false
     }
     match selector.next {
@@ -479,77 +482,77 @@ fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, ele
         // TODO: case-sensitivity depends on the document type
         // TODO: intern element names
         LocalNameSelector(ref name) => {
-            do element.with_element |element: &E| {
+            element.with_element(|element: &E| {
                 element.get_local_name().eq_ignore_ascii_case(name.as_slice())
-            }
+            })
         }
         NamespaceSelector(ref url) => {
-            do element.with_element |element: &E| {
+            element.with_element(|element: &E| {
                 element.get_namespace_url() == url.as_slice()
-            }
+            })
         }
         // TODO: case-sensitivity depends on the document type and quirks mode
         // TODO: cache and intern IDs on elements.
         IDSelector(ref id) => {
-            do element.with_element |element: &E| {
+            element.with_element(|element: &E| {
                 match element.get_attr(None, "id") {
                     Some(attr) => str::eq_slice(attr, *id),
                     None => false
                 }
-            }
+            })
         }
         // TODO: cache and intern classe names on elements.
         ClassSelector(ref class) => {
-            do element.with_element |element: &E| {
+            element.with_element(|element: &E| {
                 match element.get_attr(None, "class") {
                     None => false,
                     // TODO: case-sensitivity depends on the document type and quirks mode
                     Some(ref class_attr)
-                    => class_attr.split_iter(SELECTOR_WHITESPACE).any(|c| c == class.as_slice()),
+                    => class_attr.split(SELECTOR_WHITESPACE).any(|c| c == class.as_slice()),
                 }
-            }
+            })
         }
 
         AttrExists(ref attr) => match_attribute(attr, element, |_| true),
         AttrEqual(ref attr, ref value) => match_attribute(attr, element, |v| v == value.as_slice()),
-        AttrIncludes(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
-            attr_value.split_iter(SELECTOR_WHITESPACE).any(|v| v == value.as_slice())
-        },
+        AttrIncludes(ref attr, ref value) => match_attribute(attr, element, |attr_value| {
+            attr_value.split(SELECTOR_WHITESPACE).any(|v| v == value.as_slice())
+        }),
         AttrDashMatch(ref attr, ref value, ref dashing_value)
-        => do match_attribute(attr, element) |attr_value| {
+        => match_attribute(attr, element, |attr_value| {
             attr_value == value.as_slice() || attr_value.starts_with(dashing_value.as_slice())
-        },
-        AttrPrefixMatch(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
+        }),
+        AttrPrefixMatch(ref attr, ref value) => match_attribute(attr, element, |attr_value| {
             attr_value.starts_with(value.as_slice())
-        },
-        AttrSubstringMatch(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
+        }),
+        AttrSubstringMatch(ref attr, ref value) => match_attribute(attr, element, |attr_value| {
             attr_value.contains(value.as_slice())
-        },
-        AttrSuffixMatch(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
+        }),
+        AttrSuffixMatch(ref attr, ref value) => match_attribute(attr, element, |attr_value| {
             attr_value.ends_with(value.as_slice())
-        },
+        }),
 
 
         AnyLink => {
-            do element.with_element |element: &E| {
+            element.with_element(|element: &E| {
                 element.get_link().is_some()
-            }
+            })
         }
         Link => {
-            do element.with_element |element: &E| {
+            element.with_element(|element: &E| {
                 match element.get_link() {
                     Some(url) => !url_is_visited(url),
                     None => false,
                 }
-            }
+            })
         }
         Visited => {
-            do element.with_element |element: &E| {
+            element.with_element(|element: &E| {
                 match element.get_link() {
                     Some(url) => url_is_visited(url),
                     None => false,
                 }
-            }
+            })
         }
 
         FirstChild => matches_first_child(element),
@@ -583,7 +586,8 @@ fn url_is_visited(_url: &str) -> bool {
 }
 
 #[inline]
-fn matches_generic_nth_child<E:TElement,
+fn matches_generic_nth_child<'a,
+                             E:TElement,
                              N:TNode<E>>(
                              element: &N,
                              a: i32,
@@ -601,15 +605,6 @@ fn matches_generic_nth_child<E:TElement,
         None => return false
     };
 
-    let mut element_local_name = "";
-    let mut element_namespace = "";
-    if is_of_type {
-        do element.with_element |element: &E| {
-            element_local_name = element.get_local_name();
-            element_namespace = element.get_namespace_url();
-        }
-    }
-
     let mut index = 1;
     loop {
         if is_from_end {
@@ -626,12 +621,14 @@ fn matches_generic_nth_child<E:TElement,
 
         if node.is_element() {
             if is_of_type {
-                do node.with_element |node: &E| {
-                    if element_local_name == node.get_local_name() &&
-                       element_namespace == node.get_namespace_url() {
-                        index += 1;
-                    }
-                }
+                element.with_element(|element: &E| {
+                    node.with_element(|node: &E| {
+                        if element.get_local_name() == node.get_local_name() &&
+                           element.get_namespace_url() == node.get_namespace_url() {
+                            index += 1;
+                        }
+                    })
+                })
             } else {
               index += 1;
             }
@@ -704,17 +701,16 @@ fn match_attribute<E:TElement,
                    N:TNode<E>>(
                    attr: &AttrSelector,
                    element: &N,
-                   f: &fn(&str) -> bool)
+                   f: |&str| -> bool)
                    -> bool {
-    do element.with_element |element: &E| {
+    element.with_element(|element: &E| {
         // FIXME: avoid .clone() here? See #1367
         match element.get_attr(attr.namespace.clone(), attr.name) {
             None => false,
             Some(value) => f(value)
         }
-    }
+    })
 }
-
 
 #[cfg(test)]
 mod tests {

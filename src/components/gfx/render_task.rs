@@ -20,7 +20,6 @@ use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 
 use std::comm::{Chan, Port, SharedChan};
-use std::task::spawn_with;
 use extra::arc::Arc;
 
 use buffer_map::BufferMap;
@@ -63,24 +62,32 @@ pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferReq
 
 // FIXME(rust#9155): this should be a newtype struct, but
 // generic newtypes ICE when compiled cross-crate
-#[deriving(Clone)]
 pub struct RenderChan<T> {
     chan: SharedChan<Msg<T>>,
 }
-impl<T: Send> RenderChan<T> {
-    pub fn new(chan: Chan<Msg<T>>) -> RenderChan<T> {
+
+impl<T: Send> Clone for RenderChan<T> {
+    fn clone(&self) -> RenderChan<T> {
         RenderChan {
-            chan: SharedChan::new(chan),
+            chan: self.chan.clone(),
         }
     }
 }
-impl<T: Send> GenericChan<Msg<T>> for RenderChan<T> {
-    fn send(&self, msg: Msg<T>) {
+
+impl<T: Send> RenderChan<T> {
+    pub fn new() -> (Port<Msg<T>>, RenderChan<T>) {
+        let (port, chan) = SharedChan::new();
+        let render_chan = RenderChan {
+            chan: chan,
+        };
+        (port, render_chan)
+    }
+
+    pub fn send(&self, msg: Msg<T>) {
         assert!(self.try_send(msg), "RenderChan.send: render port closed")
     }
-}
-impl<T: Send> GenericSmartChan<Msg<T>> for RenderChan<T> {
-    fn try_send(&self, msg: Msg<T>) -> bool {
+
+    pub fn try_send(&self, msg: Msg<T>) -> bool {
         self.chan.try_send(msg)
     }
 }
@@ -138,9 +145,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                   opts: Opts,
                   profiler_chan: ProfilerChan,
                   shutdown_chan: Chan<()>) {
-        do spawn_with((port, compositor, constellation_chan, opts, profiler_chan, shutdown_chan))
-            |(port, compositor, constellation_chan, opts, profiler_chan, shutdown_chan)| {
-
+        spawn(proc() {
             { // Ensures RenderTask and graphics context are destroyed before shutdown msg
                 let native_graphics_context = compositor.get_graphics_metadata().map(
                     |md| NativePaintingGraphicsContext::from_metadata(&md));
@@ -153,8 +158,8 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     compositor: compositor,
                     constellation_chan: constellation_chan,
                     font_ctx: ~FontContext::new(opts.render_backend.clone(),
-                                                    false,
-                                                    profiler_chan.clone()),
+                                                false,
+                                                profiler_chan.clone()),
                     opts: opts,
                     profiler_chan: profiler_chan,
 
@@ -176,13 +181,12 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                 render_task.start();
 
                 // Destroy all the buffers.
-                render_task.native_graphics_context.as_ref().map(|ctx|
-                    render_task.buffer_map.clear(ctx)
-                );
+                render_task.native_graphics_context.as_ref().map(
+                    |ctx| render_task.buffer_map.clear(ctx));
             }
 
             shutdown_chan.send(());
-        }
+        });
     }
 
     fn start(&mut self) {
@@ -243,12 +247,12 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
         }
 
         self.compositor.set_render_state(RenderingRenderState);
-        do time::profile(time::RenderingCategory, self.profiler_chan.clone()) {
+        time::profile(time::RenderingCategory, self.profiler_chan.clone(), || {
             // FIXME: Try not to create a new array here.
             let mut new_buffers = ~[];
 
             // Divide up the layer into tiles.
-            do time::profile(time::RenderingPrepBuffCategory, self.profiler_chan.clone()) {
+            time::profile(time::RenderingPrepBuffCategory, self.profiler_chan.clone(), || {
                 for tile in tiles.iter() {
                     let width = tile.screen_rect.size.width;
                     let height = tile.screen_rect.size.height;
@@ -293,10 +297,10 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                         ctx.clear();
                         
                         // Draw the display list.
-                        do profile(time::RenderingDrawingCategory, self.profiler_chan.clone()) {
+                        profile(time::RenderingDrawingCategory, self.profiler_chan.clone(), || {
                             render_layer.display_list.get().draw_into_context(&mut ctx);
                             ctx.draw_target.flush();
-                        }
+                        });
                     }
 
                     // Extract the texture from the draw target and place it into its slot in the
@@ -335,11 +339,11 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                                 }
                             };
 
-                            do draw_target.snapshot().get_data_surface().with_data |data| {
+                            draw_target.snapshot().get_data_surface().with_data(|data| {
                                 buffer.native_surface.upload(native_graphics_context!(self), data);
                                 debug!("RENDERER uploading to native surface {:d}",
                                        buffer.native_surface.get_id() as int);
-                            }
+                            });
 
                             buffer
                         }
@@ -367,7 +371,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     
                     new_buffers.push(buffer);
                 }
-            }
+            });
 
             let layer_buffer_set = ~LayerBufferSet {
                 buffers: new_buffers,
@@ -380,7 +384,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                 self.constellation_chan.send(RendererReadyMsg(self.id));
             }
             self.compositor.set_render_state(IdleRenderState);
-        }
+        })
     }
 }
 

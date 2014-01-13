@@ -10,13 +10,11 @@ use geom::{Point2D, Rect, Size2D};
 use std::cast;
 use std::ptr;
 use std::str;
-use std::vec;
-use std::rc::RcMut;
+use std::rc::Rc;
+use std::cell::RefCell;
 use servo_util::cache::{Cache, HashCache};
 use servo_util::range::Range;
-use servo_util::time::ProfilerChan;
 use style::computed_values::{text_decoration, font_weight, font_style};
-
 use color::Color;
 use font_context::FontContext;
 use servo_util::geometry::Au;
@@ -73,7 +71,7 @@ impl FontTableTagConversions for FontTableTag {
 }
 
 pub trait FontTableMethods {
-    fn with_buffer(&self, &fn(*u8, uint));
+    fn with_buffer(&self, |*u8, uint|);
 }
 
 #[deriving(Clone)]
@@ -107,12 +105,6 @@ pub struct FontStyle {
 
 pub type SpecifiedFontStyle = FontStyle;
 pub type UsedFontStyle = FontStyle;
-
-// FIXME: move me to layout
-struct ResolvedFont {
-    group: @FontGroup,
-    style: SpecifiedFontStyle,
-}
 
 // FontDescriptor serializes a specific font and used font style
 // options, such as point size.
@@ -153,11 +145,11 @@ pub struct FontGroup {
     // style of the first western font in group, which is
     // used for purposes of calculating text run metrics.
     style: UsedFontStyle,
-    fonts: ~[RcMut<Font>]
+    fonts: ~[Rc<RefCell<Font>>]
 }
 
 impl FontGroup {
-    pub fn new(families: ~[~str], style: &UsedFontStyle, fonts: ~[RcMut<Font>]) -> FontGroup {
+    pub fn new(families: ~[~str], style: &UsedFontStyle, fonts: ~[Rc<RefCell<Font>>]) -> FontGroup {
         FontGroup {
             families: families,
             style: (*style).clone(),
@@ -173,7 +165,7 @@ impl FontGroup {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        self.fonts[0].with_mut_borrow(|font| {
+        self.fonts[0].borrow().with_mut(|font| {
             TextRun::new(font, text.clone(), decoration)
         })
     }
@@ -218,18 +210,16 @@ pub struct Font {
     style: UsedFontStyle,
     metrics: FontMetrics,
     backend: BackendType,
-    profiler_chan: ProfilerChan,
     shape_cache: HashCache<~str, Arc<GlyphStore>>,
     glyph_advance_cache: HashCache<u32, FractionalPixel>,
 }
 
-impl<'self> Font {
+impl<'a> Font {
     pub fn new_from_buffer(ctx: &FontContext,
                        buffer: ~[u8],
                        style: &SpecifiedFontStyle,
-                       backend: BackendType,
-                       profiler_chan: ProfilerChan)
-            -> Result<RcMut<Font>, ()> {
+                       backend: BackendType)
+            -> Result<Rc<RefCell<Font>>, ()> {
         let handle = FontHandleMethods::new_from_buffer(&ctx.handle, buffer, style);
         let handle: FontHandle = if handle.is_ok() {
             handle.unwrap()
@@ -240,22 +230,21 @@ impl<'self> Font {
         let metrics = handle.get_metrics();
         // TODO(Issue #179): convert between specified and used font style here?
 
-        return Ok(RcMut::new(Font {
+        return Ok(Rc::from_mut(RefCell::new(Font {
             handle: handle,
             azure_font: None,
             shaper: None,
             style: (*style).clone(),
             metrics: metrics,
             backend: backend,
-            profiler_chan: profiler_chan,
             shape_cache: HashCache::new(),
             glyph_advance_cache: HashCache::new(),
-        }));
+        })));
     }
 
     pub fn new_from_adopted_handle(_fctx: &FontContext, handle: FontHandle,
-                               style: &SpecifiedFontStyle, backend: BackendType,
-                               profiler_chan: ProfilerChan) -> Font {
+                               style: &SpecifiedFontStyle, backend: BackendType)
+                               -> Font {
         let metrics = handle.get_metrics();
 
         Font {
@@ -265,15 +254,14 @@ impl<'self> Font {
             style: (*style).clone(),
             metrics: metrics,
             backend: backend,
-            profiler_chan: profiler_chan,
             shape_cache: HashCache::new(),
             glyph_advance_cache: HashCache::new(),
         }
     }
 
     pub fn new_from_existing_handle(fctx: &FontContext, handle: &FontHandle,
-                                style: &SpecifiedFontStyle, backend: BackendType,
-                                profiler_chan: ProfilerChan) -> Result<RcMut<Font>,()> {
+                                style: &SpecifiedFontStyle, backend: BackendType)
+                                -> Result<Rc<RefCell<Font>>,()> {
 
         // TODO(Issue #179): convert between specified and used font style here?
         let styled_handle = match handle.clone_with_style(&fctx.handle, style) {
@@ -281,15 +269,15 @@ impl<'self> Font {
             Err(()) => return Err(())
         };
 
-        return Ok(RcMut::new(Font::new_from_adopted_handle(fctx, styled_handle, style, backend, profiler_chan)));
+        return Ok(Rc::from_mut(RefCell::new(Font::new_from_adopted_handle(fctx, styled_handle, style, backend))));
     }
 
-    fn make_shaper(&'self mut self) -> &'self Shaper {
+    fn make_shaper(&'a mut self) -> &'a Shaper {
         // fast path: already created a shaper
         match self.shaper {
-            Some(ref shaper) => {
-                let s: &'self Shaper = shaper;
-                return s;
+            Some(ref shaper) => { 
+                let s: &'a Shaper = shaper;
+                return s; 
             },
             None => {}
         }
@@ -349,7 +337,6 @@ impl<'self> Font {
 
 
 impl Font {
-    #[fixed_stack_segment]
     pub fn draw_text_into_context(&mut self,
                               rctx: &RenderContext,
                               run: &~TextRun,
@@ -399,8 +386,8 @@ impl Font {
         if azglyph_buf_len == 0 { return; } // Otherwise the Quartz backend will assert.
 
         let glyphbuf = struct__AzGlyphBuffer {
-            mGlyphs: vec::raw::to_ptr(azglyphs),
-            mNumGlyphs: azglyph_buf_len as uint32_t
+            mGlyphs: azglyphs.as_ptr(),
+            mNumGlyphs: azglyph_buf_len as uint32_t            
         };
 
         unsafe {
@@ -441,11 +428,11 @@ impl Font {
 
         //FIXME (ksh8281)
         self.make_shaper();
-        do self.shape_cache.find_or_create(&text) |txt| {
+        self.shape_cache.find_or_create(&text, |txt| {
             let mut glyphs = GlyphStore::new(text.char_len(), is_whitespace);
             self.shaper.get_ref().shape_text(*txt, &mut glyphs);
             Arc::new(glyphs)
-        }
+        })
     }
 
     pub fn get_descriptor(&self) -> FontDescriptor {
@@ -457,12 +444,12 @@ impl Font {
     }
 
     pub fn glyph_h_advance(&mut self, glyph: GlyphIndex) -> FractionalPixel {
-        do self.glyph_advance_cache.find_or_create(&glyph) |glyph| {
+        self.glyph_advance_cache.find_or_create(&glyph, |glyph| {
             match self.handle.glyph_h_advance(*glyph) {
                 Some(adv) => adv,
                 None => /* FIXME: Need fallback strategy */ 10f64 as FractionalPixel
             }
-        }
+        })
     }
 }
 

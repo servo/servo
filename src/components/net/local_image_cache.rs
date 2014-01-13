@@ -11,14 +11,13 @@ multiple times and thus triggering reflows multiple times.
 use image_cache_task::{Decode, GetImage, ImageCacheTask, ImageFailed, ImageNotReady, ImageReady};
 use image_cache_task::{ImageResponseMsg, Prefetch, WaitForImage};
 
-use std::comm;
 use std::comm::Port;
 use std::task;
 use servo_util::url::{UrlMap, url_map};
 use extra::url::Url;
 
 pub trait ImageResponder {
-    fn respond(&self) -> ~fn(ImageResponseMsg);
+    fn respond(&self) -> proc(ImageResponseMsg);
 }
 
 pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
@@ -90,13 +89,13 @@ impl LocalImageCache {
 
             match state.last_response {
                 ImageReady(ref image) => {
-                    let (port, chan) = comm::stream();
+                    let (port, chan) = Chan::new();
                     chan.send(ImageReady(image.clone()));
                     return port;
                 }
                 ImageNotReady => {
                     if last_round == self.round_number {
-                        let (port, chan) = comm::stream();
+                        let (port, chan) = Chan::new();
                         chan.send(ImageNotReady);
                         return port;
                     } else {
@@ -105,14 +104,14 @@ impl LocalImageCache {
                     }
                 }
                 ImageFailed => {
-                    let (port, chan) = comm::stream();
+                    let (port, chan) = Chan::new();
                     chan.send(ImageFailed);
                     return port;
                 }
             }
         }
 
-        let (response_port, response_chan) = comm::stream();
+        let (response_port, response_chan) = Chan::new();
         self.image_cache_task.send(GetImage((*url).clone(), response_chan));
 
         let response = response_port.recv();
@@ -128,7 +127,7 @@ impl LocalImageCache {
                 let on_image_available = self.on_image_available.as_ref().unwrap().respond();
                 let url = (*url).clone();
                 do task::spawn {
-                    let (response_port, response_chan) = comm::stream();
+                    let (response_port, response_chan) = Chan::new();
                     image_cache_task.send(WaitForImage(url.clone(), response_chan));
                     on_image_available(response_port.recv());
                 }
@@ -144,7 +143,7 @@ impl LocalImageCache {
         };
         self.get_state(url).last_response = response_copy;
 
-        let (port, chan) = comm::stream();
+        let (port, chan) = Chan::new();
         chan.send(response);
         return port;
     }

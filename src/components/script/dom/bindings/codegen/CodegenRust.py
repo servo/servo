@@ -1091,7 +1091,7 @@ for (uint32_t i = 0; i < length; ++i) {
             return handleDefault(
                 conversionCode,
                 ("static data: [u8, ..%s] = [ %s ];\n"
-                 "%s = str::from_utf8(data)" %
+                 "%s = str::from_utf8(data).to_owned()" %
                  (len(defaultValue.value) + 1,
                   ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
                   varName)))
@@ -2173,7 +2173,7 @@ class CGImports(CGWrapper):
             # Allow unreachable_code because we use 'break' in a way that sometimes produces
             # two 'break's in a row. See for example CallbackMember.getArgConversions.
             return '\n'.join([
-                '#[allow(unreachable_code,non_uppercase_statics,unused_imports,unused_variable,unused_unsafe,unused_mut,dead_assignment)];',
+                '#[allow(unreachable_code,non_uppercase_statics,unused_imports,unused_variable,unused_unsafe,unused_mut,dead_assignment,dead_code)];',
                 ''.join('use %s;\n' % i for i in imports),
                 ''])
         CGWrapper.__init__(self, child,
@@ -2454,16 +2454,14 @@ class CGAbstractMethod(CGThing):
     def _decorators(self):
         decorators = []
         if self.alwaysInline:
-            # FIXME Rust #8801 #[inline(always)] and #[fixed_stack_segment] not compatible
-            # decorators.append('#[inline(always)]')
-            pass
+            decorators.append('#[inline(always)]')
         elif self.inline:
             #decorators.append('inline')
             pass
         if self.extern:
             decorators.append('extern')
         if not self.extern:
-            decorators.append('#[fixed_stack_segment]')
+            pass
         if self.static:
             #decorators.append('static')
             pass
@@ -3522,6 +3520,7 @@ class CGEnum(CGThing):
 
     def define(self):
         return """
+  #[repr(uint)]
   pub enum valuelist {
     %s
   }
@@ -3576,7 +3575,7 @@ class ClassMethod(ClassItem):
         ClassItem.__init__(self, name, visibility)
 
     def getDecorators(self, declaring):
-        decorators = ['#[fixed_stack_segment]']
+        decorators = []
         if self.inline:
             decorators.append('inline')
         if declaring:
@@ -4150,8 +4149,8 @@ class CGProxyUnwrap(CGAbstractMethod):
     obj = js::UnwrapObject(obj);
   }*/
   //MOZ_ASSERT(IsProxy(obj));
-  let box: *Box<%s> = cast::transmute(RUST_JSVAL_TO_PRIVATE(GetProxyPrivate(obj)));
-  return ptr::to_unsafe_ptr(&(*box).data);""" % (self.descriptor.concreteType)
+  let box_: *Box<%s> = cast::transmute(RUST_JSVAL_TO_PRIVATE(GetProxyPrivate(obj)));
+  return ptr::to_unsafe_ptr(&(*box_).data);""" % (self.descriptor.concreteType)
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
@@ -4443,9 +4442,9 @@ class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
 JSString* jsresult;
 return xpc_qsStringToJsstring(cx, result, &jsresult) ? jsresult : NULL;""" 
 
-        return """    do "%s".to_c_str().with_ref |s| {
+        return """    "%s".to_c_str().with_ref(|s| {
       _obj_toString(cx, s)
-    }""" % self.descriptor.name
+    })""" % self.descriptor.name
 
     def definition_body(self):
         return self.getBody()
@@ -4907,7 +4906,6 @@ class CGDictionary(CGThing):
              "    return true;\n"
              "  }\n"
              "\n" if not self.workers else "") +
-            "  #[fixed_stack_segment]\n" +
             "  pub fn Init(&mut self, cx: *JSContext, val: JSVal) -> JSBool {\n"
             "    unsafe {\n" +
             # NOTE: jsids are per-runtime, so don't use them in workers

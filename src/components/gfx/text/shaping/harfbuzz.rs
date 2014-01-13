@@ -10,15 +10,14 @@ use platform::font::FontTable;
 use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
 use text::shaping::ShaperMethods;
 use servo_util::range::Range;
-use text::util::{float_to_fixed, fixed_to_float, fixed_to_rounded_int};
+use text::util::{float_to_fixed, fixed_to_float};
 
 use std::cast::transmute;
 use std::char;
 use std::libc::{c_uint, c_int, c_void, c_char};
 use std::ptr;
 use std::ptr::null;
-use std::uint;
-use std::util::ignore;
+use std::num;
 use std::vec;
 use geom::Point2D;
 use harfbuzz::{hb_blob_create, hb_face_create_for_tables};
@@ -63,7 +62,6 @@ pub struct ShapedGlyphEntry {
 }
 
 impl ShapedGlyphData {
-    #[fixed_stack_segment]
     pub fn new(buffer: *hb_buffer_t) -> ShapedGlyphData {
         unsafe {
             let glyph_count = 0;
@@ -143,7 +141,6 @@ pub struct Shaper {
 
 #[unsafe_destructor]
 impl Drop for Shaper {
-    #[fixed_stack_segment]
     fn drop(&mut self) {
         unsafe {
             assert!(self.hb_face.is_not_null());
@@ -159,7 +156,6 @@ impl Drop for Shaper {
 }
 
 impl Shaper {
-    #[fixed_stack_segment]
     pub fn new(font: &mut Font) -> Shaper {
         unsafe {
             // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
@@ -200,29 +196,22 @@ impl Shaper {
     fn fixed_to_float(i: hb_position_t) -> f64 {
         fixed_to_float(16, i)
     }
-
-    fn fixed_to_rounded_int(f: hb_position_t) -> int {
-        fixed_to_rounded_int(16, f)
-    }
 }
 
 impl ShaperMethods for Shaper {
     /// Calculate the layout metrics associated with the given text when rendered in a specific
     /// font.
-    #[fixed_stack_segment]
     fn shape_text(&self, text: &str, glyphs: &mut GlyphStore) {
         unsafe {
             let hb_buffer: *hb_buffer_t = hb_buffer_create();
             hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
             // Using as_imm_buf because it never does a copy - we don't need the trailing null
-            do text.as_imm_buf |ctext: *u8, _: uint| {
-                hb_buffer_add_utf8(hb_buffer,
-                                   ctext as *c_char,
-                                   text.len() as c_int,
-                                   0,
-                                   text.len() as c_int);
-            }
+            hb_buffer_add_utf8(hb_buffer,
+                               text.as_ptr() as *c_char,
+                               text.len() as c_int,
+                               0,
+                               text.len() as c_int);
 
             hb_shape(self.hb_font, hb_buffer, null(), 0);
             self.save_glyph_results(text, glyphs, hb_buffer);
@@ -261,7 +250,7 @@ impl Shaper {
             byteToGlyph = vec::from_elem(byte_max, NO_GLYPH);
         } else {
             byteToGlyph = vec::from_elem(byte_max, CONTINUATION_BYTE);
-            for (i, _) in text.char_offset_iter() {
+            for (i, _) in text.char_indices() {
                 byteToGlyph[i] = NO_GLYPH;
             }
         }
@@ -283,7 +272,7 @@ impl Shaper {
 
         debug!("text: {:s}", text);
         debug!("(char idx): char->(glyph index):");
-        for (i, ch) in text.char_offset_iter() {
+        for (i, ch) in text.char_indices() {
             debug!("{:u}: {} --> {:d}", i, ch, byteToGlyph[i] as int);
         }
 
@@ -309,7 +298,7 @@ impl Shaper {
             // any trailing chars that do not have associated glyphs.
             while char_byte_span.end() < byte_max {
                 let range = text.char_range_at(char_byte_span.end());
-                ignore(range.ch);
+                drop(range.ch);
                 char_byte_span.extend_to(range.next);
 
                 debug!("Processing char byte span: off={:u}, len={:u} for glyph idx={:u}",
@@ -320,7 +309,7 @@ impl Shaper {
                     debug!("Extending char byte span to include byte offset={:u} with no associated \
                             glyph", char_byte_span.end());
                     let range = text.char_range_at(char_byte_span.end());
-                    ignore(range.ch);
+                    drop(range.ch);
                     char_byte_span.extend_to(range.next);
                 }
 
@@ -329,7 +318,7 @@ impl Shaper {
                 let mut max_glyph_idx = glyph_span.end();
                 for i in char_byte_span.eachi() {
                     if byteToGlyph[i] > NO_GLYPH {
-                        max_glyph_idx = uint::max(byteToGlyph[i] as uint + 1, max_glyph_idx);
+                        max_glyph_idx = num::max(byteToGlyph[i] as uint + 1, max_glyph_idx);
                     }
                 }
 
@@ -390,7 +379,7 @@ impl Shaper {
             while covered_byte_span.end() < byte_max
                     && byteToGlyph[covered_byte_span.end()] == NO_GLYPH {
                 let range = text.char_range_at(covered_byte_span.end());
-                ignore(range.ch);
+                drop(range.ch);
                 covered_byte_span.extend_to(range.next);
             }
 
@@ -404,7 +393,7 @@ impl Shaper {
 
             // clamp to end of text. (I don't think this will be necessary, but..)
             let end = covered_byte_span.end(); // FIXME: borrow checker workaround
-            covered_byte_span.extend_to(uint::min(end, byte_max));
+            covered_byte_span.extend_to(num::min(end, byte_max));
 
             // fast path: 1-to-1 mapping of single char and single glyph.
             if glyph_span.length() == 1 {
@@ -443,7 +432,7 @@ impl Shaper {
                 let mut i = covered_byte_span.begin();
                 loop {
                     let range = text.char_range_at(i);
-                    ignore(range.ch);
+                    drop(range.ch);
                     i = range.next;
                     if i >= covered_byte_span.end() { break; }
                     char_idx += 1;
@@ -514,14 +503,14 @@ extern fn get_font_table_func(_: *hb_face_t, tag: hb_tag_t, user_data: *c_void) 
                 let skinny_font_table_ptr: *FontTable = font_table;   // private context
 
                 let mut blob: *hb_blob_t = null();
-                do (*skinny_font_table_ptr).with_buffer |buf: *u8, len: uint| {
+                (*skinny_font_table_ptr).with_buffer(|buf: *u8, len: uint| {
                     // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
                     blob = hb_blob_create(buf as *c_char,
                                           len as c_uint,
                                           HB_MEMORY_MODE_READONLY,
                                           transmute(skinny_font_table_ptr),
                                           destroy_blob_func);
-                }
+                });
 
                 assert!(blob.is_not_null());
                 blob

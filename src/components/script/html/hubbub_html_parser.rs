@@ -22,9 +22,8 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
 use servo_util::url::make_url;
 use std::cast;
-use std::cell::Cell;
+use std::cell::RefCell;
 use std::comm::{Port, SharedChan};
-use std::comm;
 use std::from_str::FromStr;
 use std::str::eq_slice;
 use std::str;
@@ -107,11 +106,11 @@ fn css_link_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
     let mut result_vec = ~[];
 
     loop {
-        match from_parent.recv() {
-            CSSTaskNewFile(provenance) => {
+        match from_parent.recv_opt() {
+            Some(CSSTaskNewFile(provenance)) => {
                 result_vec.push(spawn_css_parser(provenance, resource_task.clone()));
             }
-            CSSTaskExit => {
+            Some(CSSTaskExit) | None => {
                 break;
             }
         }
@@ -120,7 +119,7 @@ fn css_link_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
     // Send the sheets back in order
     // FIXME: Shouldn't wait until after we've recieved CSSTaskExit to start sending these
     for port in result_vec.iter() {
-        to_parent.send(HtmlDiscoveredStyle(port.recv()));
+        to_parent.try_send(HtmlDiscoveredStyle(port.recv()));
     }
 }
 
@@ -130,30 +129,30 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
     let mut result_vec = ~[];
 
     loop {
-        match from_parent.recv() {
-            JSTaskNewFile(url) => {
+        match from_parent.recv_opt() {
+            Some(JSTaskNewFile(url)) => {
                 match load_whole_resource(&resource_task, url.clone()) {
                     Err(_) => {
                         error!("error loading script {:s}", url.to_str());
                     }
                     Ok((metadata, bytes)) => {
                         result_vec.push(JSFile {
-                            data: str::from_utf8(bytes),
+                            data: str::from_utf8(bytes).to_owned(),
                             url: metadata.final_url,
                         });
                     }
                 }
             }
-            JSTaskNewInlineScript(data, url) => {
+            Some(JSTaskNewInlineScript(data, url)) => {
                 result_vec.push(JSFile { data: data, url: url });
             }
-            JSTaskExit => {
+            Some(JSTaskExit) | None => {
                 break;
             }
         }
     }
 
-    to_parent.send(HtmlDiscoveredScript(result_vec));
+    to_parent.try_send(HtmlDiscoveredScript(result_vec));
 }
 
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
@@ -253,30 +252,23 @@ pub fn parse_html(cx: *JSContext,
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
 
-    let (discovery_port, discovery_chan) = comm::stream();
-    let discovery_chan = SharedChan::new(discovery_chan);
-
-    let stylesheet_chan = Cell::new(discovery_chan.clone());
-    let (css_msg_port, css_msg_chan) = comm::stream();
-    let css_msg_port = Cell::new(css_msg_port);
-    do spawn {
-        css_link_listener(stylesheet_chan.take(), css_msg_port.take(), resource_task2.clone());
-    }
-
-    let css_chan = SharedChan::new(css_msg_chan);
+    let (discovery_port, discovery_chan) = SharedChan::new();
+    let stylesheet_chan = discovery_chan.clone();
+    let (css_msg_port, css_chan) = SharedChan::new();
+    spawn(proc() {
+        css_link_listener(stylesheet_chan, css_msg_port, resource_task2.clone());
+    });
 
     // Spawn a JS parser to receive JavaScript.
     let resource_task2 = resource_task.clone();
-    let js_result_chan = Cell::new(discovery_chan.clone());
-    let (js_msg_port, js_msg_chan) = comm::stream();
-    let js_msg_port = Cell::new(js_msg_port);
-    do spawn {
-        js_script_listener(js_result_chan.take(), js_msg_port.take(), resource_task2.clone());
-    }
-    let js_chan = SharedChan::new(js_msg_chan);
+    let js_result_chan = discovery_chan.clone();
+    let (js_msg_port, js_chan) = SharedChan::new();
+    spawn(proc() {
+        js_script_listener(js_result_chan, js_msg_port, resource_task2.clone());
+    });
 
     // Wait for the LoadResponse so that the parser knows the final URL.
-    let (input_port, input_chan) = comm::stream();
+    let (input_port, input_chan) = Chan::new();
     resource_task.send(Load(url.clone(), input_chan));
     let load_response = input_port.recv();
 
@@ -305,9 +297,10 @@ pub fn parse_html(cx: *JSContext,
     parser.enable_styling(true);
 
     let (css_chan2, css_chan3, js_chan2) = (css_chan.clone(), css_chan.clone(), js_chan.clone());
-    let next_subpage_id = Cell::new(next_subpage_id);
-    
-    parser.set_tree_handler(~hubbub::TreeHandler {
+
+    let next_subpage_id = RefCell::new(next_subpage_id);
+
+    let tree_handler = hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
             let comment = Comment::new(data, document);
@@ -333,19 +326,19 @@ pub fn parse_html(cx: *JSContext,
             let node = build_element_from_tag(tag.name.clone(), document);
 
             debug!("-- attach attrs");
-            do node.as_mut_element |element| {
+            node.as_mut_element(|element| {
                 for attr in tag.attributes.iter() {
                     element.set_attr(node,
                                      attr.name.clone(),
                                      attr.value.clone());
                 }
-            }
+            });
 
             // Spawn additional parsing, network loads, etc. from tag and attrs
             match node.type_id() {
                 // Handle CSS style sheets from <link> elements
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                    do node.with_imm_element |element| {
+                    node.with_imm_element(|element| {
                         match (element.get_attr(Null, "rel"), element.get_attr(Null, "href")) {
                             (Some(rel), Some(href)) => {
                                 if "stylesheet" == rel {
@@ -356,13 +349,12 @@ pub fn parse_html(cx: *JSContext,
                             }
                             _ => {}
                         }
-                    }
+                    });
                 }
 
                 ElementNodeTypeId(HTMLIframeElementTypeId) => {
-                    let iframe_chan = Cell::new(discovery_chan.clone());
-                    do node.with_mut_iframe_element |iframe_element| {
-                        let iframe_chan = iframe_chan.take();
+                    let iframe_chan = discovery_chan.clone();
+                    node.with_mut_iframe_element(|iframe_element| {
                         let sandboxed = iframe_element.is_sandboxed();
                         let elem = &mut iframe_element.htmlelement.element;
                         let src_opt = elem.get_attr(Null, "src").map(|x| x.to_str());
@@ -371,8 +363,8 @@ pub fn parse_html(cx: *JSContext,
                             iframe_element.frame = Some(iframe_url.clone());
                             
                             // Subpage Id
-                            let subpage_id = next_subpage_id.take();
-                            next_subpage_id.put_back(SubpageId(*subpage_id + 1));
+                            let subpage_id = next_subpage_id.get();
+                            next_subpage_id.set(SubpageId(*subpage_id + 1));
 
                             // Pipeline Id
                             let pipeline_id = {
@@ -388,15 +380,15 @@ pub fn parse_html(cx: *JSContext,
                                                                    subpage_id,
                                                                    sandboxed)));
                         }
-                    }
+                    });
                 }
 
                 //FIXME: This should be taken care of by set_attr, but we don't have
                 //       access to a window so HTMLImageElement::AfterSetAttr bails.
                 ElementNodeTypeId(HTMLImageElementTypeId) => {
-                    do node.with_mut_image_element |image_element| {
+                    node.with_mut_image_element(|image_element| {
                         image_element.update_image(image_cache_task.clone(), Some(url2.clone()));
-                    }
+                    });
                 }
 
                 _ => {}
@@ -460,7 +452,7 @@ pub fn parse_html(cx: *JSContext,
         complete_script: |script| {
             unsafe {
                 let scriptnode: AbstractNode = NodeWrapping::from_hubbub_node(script);
-                do scriptnode.with_imm_element |script| {
+                scriptnode.with_imm_element(|script| {
                     match script.get_attr(Null, "src") {
                         Some(src) => {
                             debug!("found script: {:s}", src);
@@ -472,16 +464,16 @@ pub fn parse_html(cx: *JSContext,
                             debug!("iterating over children {:?}", scriptnode.first_child());
                             for child in scriptnode.children() {
                                 debug!("child = {:?}", child);
-                                do child.with_imm_text() |text| {
+                                child.with_imm_text(|text| {
                                     data.push(text.element.data.to_str());  // FIXME: Bad copy.
-                                }
+                                });
                             }
 
                             debug!("script data = {:?}", data);
                             js_chan2.send(JSTaskNewInlineScript(data.concat(), url3.clone()));
                         }
                     }
-                }
+                });
             }
             debug!("complete script");
         },
@@ -490,23 +482,22 @@ pub fn parse_html(cx: *JSContext,
             unsafe {
                 let style: AbstractNode = NodeWrapping::from_hubbub_node(style);
                 let url = FromStr::from_str("http://example.com/"); // FIXME
-                let url_cell = Cell::new(url);
-
                 let mut data = ~[];
                 debug!("iterating over children {:?}", style.first_child());
                 for child in style.children() {
                     debug!("child = {:?}", child);
-                    do child.with_imm_text() |text| {
+                    child.with_imm_text(|text| {
                         data.push(text.element.data.to_str());  // FIXME: Bad copy.
-                    }
+                    });
                 }
 
                 debug!("style data = {:?}", data);
-                let provenance = InlineProvenance(url_cell.take().unwrap(), data.concat());
+                let provenance = InlineProvenance(url.unwrap(), data.concat());
                 css_chan3.send(CSSTaskNewFile(provenance));
             }
         },
-    });
+    };
+    parser.set_tree_handler(&tree_handler);
     debug!("set tree handler");
 
     debug!("loaded page");
@@ -516,10 +507,10 @@ pub fn parse_html(cx: *JSContext,
                 debug!("received data");
                 parser.parse_chunk(data);
             }
-            Done(Err(*)) => {
+            Done(Err(..)) => {
                 fail!("Failed to load page URL {:s}", url.to_str());
             }
-            Done(*) => {
+            Done(..) => {
                 break;
             }
         }

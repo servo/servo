@@ -2,14 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[link(name = "script",
-       vers = "0.1",
-       uuid = "536a45e2-b605-4ee0-b54c-466810f1ffc1",
-       url = "http://servo.org/")];
+#[crate_id = "github.com/mozilla/servo#script:0.1"];
+#[crate_type = "lib"];
 
 #[comment = "The Servo Parallel Browser Project"];
 #[license = "MPL"];
-#[crate_type = "lib"];
 
 #[feature(globs, macro_rules, struct_variant, managed_boxes)];
 
@@ -17,11 +14,12 @@ extern mod geom;
 extern mod hubbub;
 extern mod encoding;
 extern mod js;
-extern mod servo_net (name = "net");
-extern mod servo_util (name = "util");
+extern mod servo_net = "net";
+extern mod servo_util = "util";
 extern mod style;
-extern mod servo_msg (name = "msg");
+extern mod servo_msg = "msg";
 extern mod extra;
+extern mod native;
 
 // Macros
 mod macros;

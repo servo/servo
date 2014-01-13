@@ -112,7 +112,7 @@ impl HTMLImageElement {
     pub fn Width(&self, abstract_self: AbstractNode) -> u32 {
         let node = &self.htmlelement.element.node;
         let page = node.owner_doc().document().window.page;
-        let (port, chan) = stream();
+        let (port, chan) = Chan::new();
         match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
             ContentBoxResponse(rect) => {
                 to_px(rect.size.width) as u32
@@ -129,7 +129,7 @@ impl HTMLImageElement {
     pub fn Height(&self, abstract_self: AbstractNode) -> u32 {
         let node = &self.htmlelement.element.node;
         let page = node.owner_doc().document().window.page;
-        let (port, chan) = stream();
+        let (port, chan) = Chan::new();
         match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
             ContentBoxResponse(rect) => {
                 to_px(rect.size.height) as u32

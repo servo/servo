@@ -22,16 +22,16 @@ pub struct TextRun {
     glyphs: Arc<~[Arc<GlyphStore>]>,
 }
 
-pub struct SliceIterator<'self> {
-    priv glyph_iter: VecIterator<'self, Arc<GlyphStore>>,
+pub struct SliceIterator<'a> {
+    priv glyph_iter: VecIterator<'a, Arc<GlyphStore>>,
     priv range:      Range,
     priv offset:     uint,
 }
 
-impl<'self> Iterator<(&'self GlyphStore, uint, Range)> for SliceIterator<'self> {
+impl<'a> Iterator<(&'a GlyphStore, uint, Range)> for SliceIterator<'a> {
     // inline(always) due to the inefficient rt failures messing up inline heuristics, I think.
     #[inline(always)]
-    fn next(&mut self) -> Option<(&'self GlyphStore, uint, Range)> {
+    fn next(&mut self) -> Option<(&'a GlyphStore, uint, Range)> {
         loop {
             let slice_glyphs = self.glyph_iter.next();
             if slice_glyphs.is_none() {
@@ -52,13 +52,13 @@ impl<'self> Iterator<(&'self GlyphStore, uint, Range)> for SliceIterator<'self> 
     }
 }
 
-pub struct LineIterator<'self> {
+pub struct LineIterator<'a> {
     priv range:  Range,
     priv clump:  Option<Range>,
-    priv slices: SliceIterator<'self>,
+    priv slices: SliceIterator<'a>,
 }
 
-impl<'self> Iterator<Range> for LineIterator<'self> {
+impl<'a> Iterator<Range> for LineIterator<'a> {
     fn next(&mut self) -> Option<Range> {
         // Loop until we hit whitespace and are in a clump.
         loop {
@@ -96,7 +96,7 @@ impl<'self> Iterator<Range> for LineIterator<'self> {
     }
 }
 
-impl<'self> TextRun {
+impl<'a> TextRun {
     pub fn new(font: &mut Font, text: ~str, decoration: text_decoration::T) -> TextRun {
         let glyphs = TextRun::break_and_shape(font, text);
 
@@ -170,12 +170,12 @@ impl<'self> TextRun {
     }
     
     pub fn char_len(&self) -> uint {
-        do self.glyphs.get().iter().fold(0u) |len, slice_glyphs| {
+        self.glyphs.get().iter().fold(0u, |len, slice_glyphs| {
             len + slice_glyphs.get().char_len()
-        }
+        })
     }
 
-    pub fn glyphs(&'self self) -> &'self ~[Arc<GlyphStore>] {
+    pub fn glyphs(&'a self) -> &'a ~[Arc<GlyphStore>] {
         self.glyphs.get()
     }
 
@@ -216,7 +216,7 @@ impl<'self> TextRun {
         max_piece_width
     }
 
-    pub fn iter_slices_for_range(&'self self, range: &Range) -> SliceIterator<'self> {
+    pub fn iter_slices_for_range(&'a self, range: &Range) -> SliceIterator<'a> {
         SliceIterator {
             glyph_iter: self.glyphs.get().iter(),
             range:      *range,
@@ -224,7 +224,7 @@ impl<'self> TextRun {
         }
     }
 
-    pub fn iter_natural_lines_for_range(&'self self, range: &Range) -> LineIterator<'self> {
+    pub fn iter_natural_lines_for_range(&'a self, range: &Range) -> LineIterator<'a> {
         LineIterator {
             range:  *range,
             clump:  None,

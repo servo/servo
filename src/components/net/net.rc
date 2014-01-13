@@ -2,17 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[link(name = "net",
-       vers = "0.1",
-       uuid = "69c2b7b7-0d7d-4514-a48a-0eed61476039",
-       url = "http://servo.org/")];
+#[crate_id = "github.com/mozilla/servo#net:0.1"];
 #[crate_type = "lib"];
 
 #[feature(globs, managed_boxes)];
 
 extern mod geom;
 extern mod http;
-extern mod servo_util (name = "util");
+extern mod servo_util = "util";
 extern mod stb_image;
 extern mod extra;
 extern mod png;

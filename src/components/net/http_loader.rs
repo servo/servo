@@ -4,19 +4,16 @@
 
 use resource_task::{Metadata, Payload, Done, LoadResponse, LoaderTask, start_sending};
 
-use std::cell::Cell;
 use std::vec;
 use extra::url::Url;
 use http::client::RequestWriter;
 use http::method::Get;
 use http::headers::HeaderEnum;
-use std::rt::io::Reader;
+use std::io::Reader;
 
 pub fn factory() -> LoaderTask {
-    let f: LoaderTask = |url, start_chan| {
-        let url = Cell::new(url);
-        let start_chan = Cell::new(start_chan);
-        spawn(|| load(url.take(), start_chan.take()))
+    let f: LoaderTask = proc(url, start_chan) {
+        spawn(proc() load(url, start_chan))
     };
     f
 }
@@ -63,10 +60,10 @@ fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
         loop {
             let mut buf = vec::with_capacity(1024);
 
-            unsafe { vec::raw::set_len(&mut buf, 1024) };
+            unsafe { buf.set_len(1024); }
             match response.read(buf) {
                 Some(len) => {
-                    unsafe { vec::raw::set_len(&mut buf, len) };
+                    unsafe { buf.set_len(len); }
                     progress_chan.send(Payload(buf));
                 }
                 None => {

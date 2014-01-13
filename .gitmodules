@@ -66,7 +66,7 @@
 	url = https://github.com/mozilla-servo/skia.git
 [submodule "src/compiler/rust"]
 	path = src/compiler/rust
-	url = https://github.com/mozilla/rust.git
+	url = https://github.com/mozilla-servo/rust.git
 [submodule "src/support/alert/rust-alert"]
 	path = src/support/alert/rust-alert
 	url = https://github.com/mozilla-servo/rust-alert.git
@@ -112,7 +112,7 @@
 	branch = rust-servo
 [submodule "src/support/egl/rust-egl"]
 	path = src/support/egl/rust-egl
-	url = https://github.com/webconvforge/rust-egl.git
+	url = https://github.com/mozilla-servo/rust-egl.git
 [submodule "src/platform/android/servo-android-glue"]
 	path = src/platform/android/servo-android-glue
 	url = https://github.com/webconvforge/servo-android-glue.git
