@@ -1,0 +1,24 @@
+<!-- comment -->
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            // test1: document with doctype
+            {
+                isnot(document.doctype, document.firstChild, "test1-0, document with doctype");
+                isnot(document.doctype, null, "test1-1, document with doctype");
+                is_a(document.doctype, DocumentType, "test1-2, document with doctype");
+            }
+
+            // test2: empty document
+            {
+                var newdoc = new Document();
+                newdoc.appendChild(newdoc.createElement("html"));
+                is(newdoc.doctype, null, "test2-0, empty document");
+            }
+
+            finish();
+        </script>
+    </head>
+</html>
