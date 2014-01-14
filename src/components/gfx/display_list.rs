@@ -15,17 +15,17 @@
 /// low-level drawing primitives.
 
 use color::Color;
-use servo_util::geometry::Au;
-use style::computed_values::border_style;
 use render_context::RenderContext;
 use text::TextRun;
 
-use std::cast::transmute_region;
-use std::vec::VecIterator;
+use extra::arc::Arc;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use servo_net::image::base::Image;
+use servo_util::geometry::Au;
 use servo_util::range::Range;
-use extra::arc::Arc;
+use std::cast::transmute_region;
+use std::vec::VecIterator;
+use style::computed_values::border_style;
 
 /// A list of rendering operations to be performed.
 pub struct DisplayList<E> {

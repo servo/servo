@@ -5,18 +5,36 @@
 //! Data needed by the layout task.
 
 use extra::arc::MutexArc;
-use geom::rect::Rect;
+use layout::flow::LeafSet;
+
+use geom::size::Size2D;
 use gfx::font_context::FontContext;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 
-/// Data needed by the layout task.
-pub struct LayoutContext {
-    font_ctx: ~FontContext,
+/// Data shared by all layout workers.
+#[deriving(Clone)]
+pub struct SharedLayoutInfo {
+    /// The local image cache.
     image_cache: MutexArc<LocalImageCache>,
-    screen_size: Rect<Au>,
+
+    /// The current screen size.
+    screen_size: Size2D<Au>,
 
     /// A channel up to the constellation.
     constellation_chan: ConstellationChan,
+
+    /// The set of leaf flows.
+    leaf_set: MutexArc<LeafSet>,
 }
+
+/// Data specific to a layout worker.
+pub struct LayoutContext {
+    /// Shared layout info.
+    shared: SharedLayoutInfo,
+
+    /// The current font context.
+    font_ctx: ~FontContext,
+}
+

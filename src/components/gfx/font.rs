@@ -15,6 +15,7 @@ use std::cell::RefCell;
 use servo_util::cache::{Cache, HashCache};
 use servo_util::range::Range;
 use style::computed_values::{text_decoration, font_weight, font_style};
+
 use color::Color;
 use font_context::FontContext;
 use servo_util::geometry::Au;
@@ -228,7 +229,6 @@ impl<'a> Font {
         };
 
         let metrics = handle.get_metrics();
-        // TODO(Issue #179): convert between specified and used font style here?
 
         return Ok(Rc::from_mut(RefCell::new(Font {
             handle: handle,

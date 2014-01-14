@@ -7,11 +7,10 @@ use gfx_font::FontHandleMethods;
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_list::FontListHandle;
-use servo_util::time;
-use servo_util::time::profile;
-use servo_util::time::ProfilerChan;
 use style::computed_values::{font_weight, font_style};
 
+use servo_util::time::{ProfilerChan, profile};
+use servo_util::time;
 use std::hashmap::HashMap;
 
 pub type FontFamilyMap = HashMap<~str, FontFamily>;
@@ -105,7 +104,7 @@ impl FontFamily {
     }
 
     pub fn find_font_for_style<'a>(&'a mut self, list: &FontListHandle, style: &SpecifiedFontStyle)
-                                   -> Option<&'a FontEntry> {
+                               -> Option<&'a FontEntry> {
         self.load_family_variations(list);
 
         // TODO(Issue #189): optimize lookup for
