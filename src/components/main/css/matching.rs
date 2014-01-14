@@ -17,16 +17,17 @@ use std::rt;
 use std::vec;
 use style::{TNode, Stylist, cascade};
 use style::{Before, After};
+use servo_net::history_cache_task::HistoryCacheTask;
 
 pub trait MatchMethods {
-    fn match_node(&self, stylist: &Stylist);
-    fn match_subtree(&self, stylist: RWArc<Stylist>);
+    fn match_node(&self, stylist: &Stylist, history_cache_task: HistoryCacheTask);
+    fn match_subtree(&self, stylist: RWArc<Stylist>, history_cache_task: HistoryCacheTask);
 
     fn cascade_subtree(&self, parent: Option<LayoutNode>);
 }
 
 impl<'ln> MatchMethods for LayoutNode<'ln> {
-    fn match_node(&self, stylist: &Stylist) {
+    fn match_node(&self, stylist: &Stylist, history_cache_task: HistoryCacheTask) {
         let style_attribute = self.with_element(|element| {
             match *element.style_attribute() {
                 None => None,
@@ -47,7 +48,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             None => fail!("no layout data")
         }
     }
-    fn match_subtree(&self, stylist: RWArc<Stylist>) {
+    fn match_subtree(&self, stylist: RWArc<Stylist>, history_cache_task: HistoryCacheTask) {
         let num_tasks = rt::default_sched_threads() * 2;
         let mut node_count = 0;
         let mut nodes_per_task = vec::from_elem(num_tasks, ~[]);
@@ -66,7 +67,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             if nodes.len() > 0 {
                 let chan = chan.clone();
                 let stylist = stylist.clone();
-
+                let history_cache_task = history_cache_task.clone(); 
                 // FIXME(pcwalton): This transmute is to work around the fact that we have no
                 // mechanism for safe fork/join parallelism. If we had such a thing, then we could
                 // close over the lifetime-bounded `LayoutNode`. But we can't, so we force it with
@@ -84,7 +85,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
                     stylist.read(|stylist| {
                         for node in nodes.iter() {
-                            node.match_node(stylist);
+                            node.match_node(stylist, history_cache_task.clone());
                         }
                     });
                     chan.send(());

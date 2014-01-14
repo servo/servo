@@ -11,8 +11,7 @@ use extra::arc::{Arc,MutexArc};
 use extra::url::Url;
 
 pub enum Msg {
-    Record(Url),
-    Request(Url),
+    UrlRecord(Url),
     Visited(~str,Chan<HistoryResponseMsg>),
     Exit(Chan<()>),
 }
@@ -68,9 +67,8 @@ impl HistoryCache {
             let msg: Msg = self.port.recv();
 
             match msg {
-                Record(url) => { println!("Visited Record");},
-                Request(url) => { println!("Request"); },
-                Visited(url, chan) => { println!("for Response"); },
+                UrlRecord(url) => {},
+                Visited(url, chan) => {},
                 Exit(response) => {
                     self.need_exit = Some(response);
                 },
@@ -105,5 +103,16 @@ impl HistoryCacheTask {
         let (response_port, response_chan) = Chan::new();
         self.send(Exit(response_chan));
         response_port.recv();
+    }
+
+    pub fn record(&self, url: Option<Url>) {
+        match url {
+            Some(url) => self.send(UrlRecord(url)),
+            None => {}
+        }
+    }
+
+    pub fn url_is_visited(&self, url: &str) -> bool {
+        false
     }
 }

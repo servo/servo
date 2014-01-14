@@ -422,6 +422,9 @@ impl LayoutTask {
         debug!("layout: parsed Node tree");
         debug!("{:?}", node.dump());
 
+        // record visited site
+        self.history_cache_task.record(Some(data.url.clone()));
+
         // Reset the image cache.
         unsafe {
             self.local_image_cache.unsafe_access(
@@ -457,7 +460,7 @@ impl LayoutTask {
             ReflowDocumentDamage => {}
             _ => {
                 profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone(), || {
-                    node.match_subtree(self.stylist.clone());
+                    node.match_subtree(self.stylist.clone(), self.history_cache_task.clone());
                     node.cascade_subtree(None);
                 });
             }
