@@ -16,6 +16,7 @@ use servo_msg::constellation_msg::{LoadIframeUrlMsg, LoadUrlMsg, Msg, NavigateMs
 use servo_msg::constellation_msg::{PipelineId, RendererReadyMsg, ResizedWindowMsg, SubpageId};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
+use servo_net::history_cache_task::{HistoryCacheTask};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_util::time::ProfilerChan;
@@ -31,6 +32,7 @@ pub struct Constellation {
     compositor_chan: CompositorChan,
     resource_task: ResourceTask,
     image_cache_task: ImageCacheTask,
+    history_cache_task:HistoryCacheTask,
     pipelines: HashMap<PipelineId, @mut Pipeline>,
     navigation_context: NavigationContext,
     priv next_pipeline_id: PipelineId,
@@ -255,6 +257,7 @@ impl Constellation {
                  opts: &Opts,
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask,
+                 history_cache_task: HistoryCacheTask,
                  profiler_chan: ProfilerChan)
                  -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
@@ -267,6 +270,7 @@ impl Constellation {
                 compositor_chan: compositor_chan,
                 resource_task: resource_task,
                 image_cache_task: image_cache_task,
+                history_cache_task: history_cache_task,
                 pipelines: HashMap::new(),
                 navigation_context: NavigationContext::new(),
                 next_pipeline_id: PipelineId(0),
@@ -368,6 +372,7 @@ impl Constellation {
             pipeline.exit();
         }
         self.image_cache_task.exit();
+        self.history_cache_task.exit();
         self.resource_task.send(resource_task::Exit);
         self.compositor_chan.send(ShutdownComplete);
     }
@@ -379,6 +384,7 @@ impl Constellation {
                                              self.chan.clone(),
                                              self.compositor_chan.clone(),
                                              self.image_cache_task.clone(),
+                                             self.history_cache_task.clone(),
                                              self.resource_task.clone(),
                                              self.profiler_chan.clone(),
                                              self.window_size,
@@ -401,6 +407,7 @@ impl Constellation {
                                              self.chan.clone(),
                                              self.compositor_chan.clone(),
                                              self.image_cache_task.clone(),
+                                             self.history_cache_task.clone(),
                                              self.resource_task.clone(),
                                              self.profiler_chan.clone(),
                                              self.window_size,
@@ -527,6 +534,7 @@ impl Constellation {
                                   self.chan.clone(),
                                   self.compositor_chan.clone(),
                                   self.image_cache_task.clone(),
+                                  self.history_cache_task.clone(),
                                   self.profiler_chan.clone(),
                                   self.opts.clone(),
                                   source_pipeline)
@@ -538,6 +546,7 @@ impl Constellation {
                              self.chan.clone(),
                              self.compositor_chan.clone(),
                              self.image_cache_task.clone(),
+                             self.history_cache_task.clone(),
                              self.resource_task.clone(),
                              self.profiler_chan.clone(),
                              self.window_size,
@@ -592,6 +601,7 @@ impl Constellation {
                                              self.chan.clone(),
                                              self.compositor_chan.clone(),
                                              self.image_cache_task.clone(),
+                                             self.history_cache_task.clone(),
                                              self.resource_task.clone(),
                                              self.profiler_chan.clone(),
                                              self.window_size,

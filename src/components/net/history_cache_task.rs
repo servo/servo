@@ -10,15 +10,23 @@ use std::result;
 use extra::arc::{Arc,MutexArc};
 use extra::url::Url;
 
-
 pub enum Msg {
     Record(Url),
     Request(Url),
-    Visited(bool),
+    Visited(~str,Chan<HistoryResponseMsg>),
     Exit(Chan<()>),
 }
 
-pub type HistoryCacheTask = SharedChan<Msg>;
+#[deriving(Clone)]
+pub enum HistoryResponseMsg {
+    NotVisitedStie,
+    VisitedSite
+}
+
+#[deriving(Clone)]
+pub struct HistoryCacheTask {
+    chan: SharedChan<Msg>,
+}
 
 pub fn HistoryCacheTask(resource_task: ResourceTask) -> HistoryCacheTask {
     HistoryCacheTask_(resource_task)
@@ -38,12 +46,13 @@ pub fn HistoryCacheTask_(resource_task: ResourceTask)
         };
         cache.run();
     }
-
-    chan
+    HistoryCacheTask {
+        chan:chan,
+    }
 }
 
 struct HistoryCache {
-    /// A handle to the resource task for fetching the image binaries
+    /// A handle to the resource task for fetching the url history data
     resource_task: ResourceTask,
     /// The port on which we'll receive client requests
     port: Port<Msg>,
@@ -54,7 +63,6 @@ struct HistoryCache {
 
 impl HistoryCache {
     pub fn run(&mut self) {
-        //let mut msg_handlers: ~[~fn(msg: &Msg)] = ~[];
 
         loop {
             let msg: Msg = self.port.recv();
@@ -62,21 +70,40 @@ impl HistoryCache {
             match msg {
                 Record(url) => { println!("Visited Record");},
                 Request(url) => { println!("Request"); },
+                Visited(url, chan) => { println!("for Response"); },
                 Exit(response) => {
                     self.need_exit = Some(response);
                 },
-                _ => {}
             }
   
             let need_exit = replace(&mut self.need_exit, None);
 
             match need_exit {
               Some(response) => {
-                // save file for exit
+                  let mut can_exit = true;
+
+                  if can_exit {
+                      response.send(());
+                      break;
+                  } else {
+                      self.need_exit = Some(response);
+                  }
               }
               None => ()
             }
  
         }
+    }
+}
+
+impl HistoryCacheTask {
+    pub fn send(&self, msg: Msg) {
+        self.chan.send(msg);
+    }
+
+    pub fn exit(&self) {
+        let (response_port, response_chan) = Chan::new();
+        self.send(Exit(response_chan));
+        response_port.recv();
     }
 }

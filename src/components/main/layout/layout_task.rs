@@ -41,6 +41,7 @@ use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
+use servo_net::history_cache_task::HistoryCacheTask;
 use servo_util::geometry::Au;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
@@ -74,6 +75,9 @@ pub struct LayoutTask {
 
     /// The channel on which messages can be sent to the image cache.
     image_cache_task: ImageCacheTask,
+
+    /// The channel on which message can be sent to the history cache.
+    history_cache_task: HistoryCacheTask,
 
     /// The local image cache.
     local_image_cache: MutexArc<LocalImageCache>,
@@ -208,6 +212,7 @@ impl LayoutTask {
                   script_chan: ScriptChan,
                   render_chan: RenderChan<OpaqueNode>,
                   img_cache_task: ImageCacheTask,
+                  history_cache_task: HistoryCacheTask,
                   opts: Opts,
                   profiler_chan: ProfilerChan,
                   shutdown_chan: Chan<()>) {
@@ -220,6 +225,7 @@ impl LayoutTask {
                                                  script_chan,
                                                  render_chan,
                                                  img_cache_task,
+                                                 history_cache_task,
                                                  &opts,
                                                  profiler_chan);
                 layout.start();
@@ -236,6 +242,7 @@ impl LayoutTask {
            script_chan: ScriptChan,
            render_chan: RenderChan<OpaqueNode>, 
            image_cache_task: ImageCacheTask,
+           history_cache_task: HistoryCacheTask,
            opts: &Opts,
            profiler_chan: ProfilerChan)
            -> LayoutTask {
@@ -248,6 +255,7 @@ impl LayoutTask {
             script_chan: script_chan,
             render_chan: render_chan,
             image_cache_task: image_cache_task.clone(),
+            history_cache_task: history_cache_task.clone(),
             local_image_cache: MutexArc::new(LocalImageCache(image_cache_task)),
             screen_size: None,
 
