@@ -13,10 +13,11 @@ use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::document::AbstractDocument;
-use dom::node::{AbstractNode, ElementNodeTypeId, Node};
+use dom::node::{AbstractNode, ElementNodeTypeId, Node, NodeIterator};
 use dom::document;
 use dom::namespace;
 use dom::namespace::{Namespace, Null};
+use dom::htmlserializer::serialize;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
@@ -323,6 +324,20 @@ impl Element {
             document.document().damage_and_reflow(damage);
         }
     }
+
+    pub fn is_void(&self) -> bool {
+        if self.namespace != namespace::HTML {
+            return false
+        }
+        match self.tag_name.as_slice() {
+            /* List of void elements from
+            http://www.whatwg.org/specs/web-apps/current-work/multipage/the-end.html#html-fragment-serialization-algorithm */
+            "area" | "base" | "basefont" | "bgsound" | "br" | "col" | "embed" |
+            "frame" | "hr" | "img" | "input" | "keygen" | "link" | "menuitem" |
+            "meta" | "param" | "source" | "track" | "wbr" => true,
+            _ => false
+        }
+    }
 }
 
 // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
@@ -535,19 +550,20 @@ impl Element {
         0
     }
 
-    pub fn GetInnerHTML(&self) -> Fallible<DOMString> {
-        Ok(~"")
+    pub fn GetInnerHTML(&self, abstract_self: AbstractNode) -> Fallible<DOMString> {
+        //XXX TODO: XML case
+        Ok(serialize(&mut NodeIterator::new(abstract_self, false, false)))
     }
 
-    pub fn SetInnerHTML(&mut self, _value: DOMString) -> ErrorResult {
+    pub fn SetInnerHTML(&mut self, _abstract_self: AbstractNode, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetOuterHTML(&self) -> Fallible<DOMString> {
-        Ok(~"")
+    pub fn GetOuterHTML(&self, abstract_self:AbstractNode) -> Fallible<DOMString> {
+        Ok(serialize(&mut NodeIterator::new(abstract_self, true, false)))
     }
 
-    pub fn SetOuterHTML(&mut self, _value: DOMString) -> ErrorResult {
+    pub fn SetOuterHTML(&mut self, _abstract_self: AbstractNode, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -559,7 +575,6 @@ impl Element {
         Ok(None)
     }
 }
-
 
 fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     //FIXME: Throw for XML-invalid names
