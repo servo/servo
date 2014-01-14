@@ -97,6 +97,7 @@ pub mod layout {
     pub mod model;
     pub mod parallel;
     pub mod text;
+    pub mod counter_style;
     pub mod util;
     pub mod incremental;
     pub mod wrapper;

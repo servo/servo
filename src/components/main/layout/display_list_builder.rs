@@ -7,6 +7,7 @@
 use layout::box_::Box;
 use layout::context::LayoutContext;
 use layout::util::OpaqueNode;
+use layout::counter_style;
 
 use gfx;
 use style;
@@ -37,7 +38,7 @@ impl ExtraDisplayListData for Nothing {
 /// support display-list-based hit testing and so forth.
 pub struct DisplayListBuilder<'a> {
     ctx: &'a LayoutContext,
-    numbers: &'a converter::Numbers,
+    numbers: &'a counter_style::Numbers,
 }
 
 //
@@ -55,4 +56,3 @@ impl ToGfxColor for style::computed_values::RGBA {
         gfx::color::rgba(self.red, self.green, self.blue, self.alpha)
     }
 }
-

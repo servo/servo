@@ -14,6 +14,7 @@ use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextD
 use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags, ClipDisplayItem};
 use gfx::display_list::{ClipDisplayItemClass};
 use gfx::font::FontStyle;
+use gfx::font_context::FontContext;
 
 use gfx::text::text_run::TextRun;
 use servo_msg::constellation_msg::{FrameRectMsg, PipelineId, SubpageId};
@@ -1222,10 +1223,16 @@ impl Box {
             return;
         }
 
+        let listdata = flow::base(flow).listdata.unwrap();
+        let convert = builder.numbers;
+        let text = convert.to_list_style_type(listdata.list_style_type, listdata.sequence);
+
         let color = self.style().Color.color.to_gfx_color();
         let font_style = self.font_style();
-        let fontgroup = (builder.ctx.font_ctx).get_resolved_font_for_style(&font_style);
-        let text = RefCell::new(listdata.sequence.to_str() + ".\u2009");
+        //FIXME(aydin.kim) : In the future, we do not have to create new font context. Need to get unicode chracter values from css style sheet directly. when we will complete that works, this code has to be modified.
+        let mut font_context = ~FontContext::new(builder.ctx.font_context_info.clone());
+        let fontgroup = font_context.get_resolved_font_for_style(&font_style);
+        let text = RefCell::new(text);
         let run = ~fontgroup.borrow().with(|fg| fg.create_textrun(text.get(), text_decoration::none));
         let text_range = Range::new(0, text.get().len());
         let text_bounds = run.metrics_for_range(&text_range).bounding_box;
@@ -1258,6 +1265,7 @@ impl Box {
 
             list.append_item(TextDisplayItemClass(text_display_item))
         });
+
     }
     /// Returns the *minimum width* and *preferred width* of this box as defined by CSS 2.1.
     pub fn minimum_and_preferred_widths(&self) -> (Au, Au) {
