@@ -9,6 +9,7 @@ use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter
 use dom::bindings::utils::DOMString;
 use dom::bindings::utils::{xml_name_type, InvalidXMLName};
 use dom::documentfragment::DocumentFragment;
+use dom::domimplementation::DOMImplementation;
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId, HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::{AbstractEvent, Event};
@@ -87,7 +88,8 @@ pub struct Document {
     window: @mut Window,
     doctype: DocumentType,
     title: ~str,
-    idmap: HashMap<DOMString, AbstractNode>
+    idmap: HashMap<DOMString, AbstractNode>,
+    implementation: Option<@mut DOMImplementation>
 }
 
 impl Document {
@@ -119,7 +121,8 @@ impl Document {
             window: window,
             doctype: doctype,
             title: ~"",
-            idmap: HashMap::new()
+            idmap: HashMap::new(),
+            implementation: None
         }
     }
 
@@ -156,6 +159,13 @@ impl Reflectable for Document {
 }
 
 impl Document {
+    pub fn Implementation(&mut self) -> @mut DOMImplementation {
+        if self.implementation.is_none() {
+            self.implementation = Some(DOMImplementation::new(self.window));
+        }
+        self.implementation.unwrap()
+    }
+
     pub fn GetDoctype(&self) -> Option<AbstractNode> {
         self.node.children().find(|child| child.is_doctype())
     }
