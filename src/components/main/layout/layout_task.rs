@@ -29,7 +29,7 @@ use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use script::dom::event::ReflowEvent;
-use script::dom::node::{AbstractNode, ElementNodeTypeId, LayoutDataRef};
+use script::dom::node::{ElementNodeTypeId, LayoutDataRef};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
 use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitNowMsg, LayoutQuery};
@@ -608,15 +608,9 @@ impl LayoutTask {
                                 bounds.origin.x <= x &&
                                 y < bounds.origin.y + bounds.size.height &&
                                 bounds.origin.y <= y {
-                            // FIXME(pcwalton): This `unsafe` block is too unsafe, since incorrect
-                            // incremental flow construction could create this. Paranoid validation
-                            // against the set of valid nodes should occur in the script task to
-                            // ensure that this is a valid address instead of transmuting here.
-                            let node: AbstractNode = unsafe {
-                                item.base().extra.to_script_node()
-                            };
-                            let resp = Some(HitTestResponse(node));
-                            return resp;
+                            return Some(HitTestResponse(item.base()
+                                                            .extra
+                                                            .to_untrusted_node_address()))
                         }
                     }
 
