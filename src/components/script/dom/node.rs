@@ -575,8 +575,6 @@ impl AbstractNode {
                 let before_node = before.mut_node();
                 // XXX Should assert that parent is self.
                 assert!(before_node.parent_node.is_some());
-                before_node.set_prev_sibling(Some(new_child.clone()));
-                new_child_node.set_next_sibling(Some(before.clone()));
                 match before_node.prev_sibling {
                     None => {
                         // XXX Should assert that before is the first child of
@@ -589,6 +587,8 @@ impl AbstractNode {
                         new_child_node.set_prev_sibling(Some(prev_sibling.clone()));
                     },
                 }
+                before_node.set_prev_sibling(Some(new_child.clone()));
+                new_child_node.set_next_sibling(Some(before.clone()));
             },
             None => {
                 match this_node.last_child {
