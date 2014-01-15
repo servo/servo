@@ -312,11 +312,10 @@ pub fn parse_html(cx: *JSContext,
             let ~hubbub::Doctype {name: name,
                                 public_id: public_id,
                                 system_id: system_id,
-                                force_quirks: force_quirks } = doctype;
+                                force_quirks: _ } = doctype;
             let node = DocumentType::new(name,
                                          public_id,
                                          system_id,
-                                         force_quirks,
                                          document);
             unsafe {
                 node.to_hubbub_node()

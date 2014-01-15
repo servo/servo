@@ -13,35 +13,30 @@ pub struct DocumentType {
     name: DOMString,
     public_id: DOMString,
     system_id: DOMString,
-    force_quirks: bool
 }
 
 impl DocumentType {
     pub fn new_inherited(name: ~str,
                          public_id: Option<~str>,
                          system_id: Option<~str>,
-                         force_quirks: bool,
                          document: AbstractDocument)
             -> DocumentType {
         DocumentType {
             node: Node::new_inherited(DoctypeNodeTypeId, document),
             name: name,
             public_id: public_id.unwrap_or(~""),
-            system_id: system_id.unwrap_or(~""),
-            force_quirks: force_quirks,
+            system_id: system_id.unwrap_or(~"")
         }
     }
 
     pub fn new(name: ~str,
                public_id: Option<~str>,
                system_id: Option<~str>,
-               force_quirks: bool,
                document: AbstractDocument)
                -> AbstractNode {
         let documenttype = DocumentType::new_inherited(name,
                                                        public_id,
                                                        system_id,
-                                                       force_quirks,
                                                        document);
         Node::reflect_node(@mut documenttype, document, DocumentTypeBinding::Wrap)
     }
