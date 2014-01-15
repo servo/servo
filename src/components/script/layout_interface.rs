@@ -14,8 +14,9 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use script_task::{ScriptChan};
 use servo_util::geometry::Au;
-use std::comm::{Chan, SharedChan};
 use std::cmp;
+use std::comm::{Chan, SharedChan};
+use std::libc::c_void;
 use style::Stylesheet;
 
 /// Asynchronous messages that script can send to layout.
@@ -58,9 +59,13 @@ pub enum LayoutQuery {
     HitTestQuery(AbstractNode, Point2D<f32>, Chan<Result<HitTestResponse, ()>>),
 }
 
+/// The address of a node. Layout sends these back. They must be validated via
+/// `from_untrusted_node_address` before they can be used, because we do not trust layout.
+pub type UntrustedNodeAddress = *c_void;
+
 pub struct ContentBoxResponse(Rect<Au>);
 pub struct ContentBoxesResponse(~[Rect<Au>]);
-pub struct HitTestResponse(AbstractNode);
+pub struct HitTestResponse(UntrustedNodeAddress);
 
 /// Determines which part of the 
 #[deriving(Eq, Ord)]

@@ -850,31 +850,31 @@ impl ScriptTask {
                 }
                 let (port, chan) = Chan::new();
                 match page.query_layout(HitTestQuery(root.unwrap(), point, chan), port) {
-                    Ok(node) => match node {
-                        HitTestResponse(node) => {
-                            debug!("clicked on {:s}", node.debug_str());
-                            let mut node = node;
-                            // traverse node generations until a node that is an element is found
-                            while !node.is_element() {
-                                match node.parent_node() {
-                                    Some(parent) => {
-                                        node = parent;
-                                    }
-                                    None => break
-                                }
-                            }
-                            if node.is_element() {
-                                node.with_imm_element(|element| {
-                                    if "a" == element.tag_name {
-                                        self.load_url_from_element(page, element)
-                                    }
-                                })
+                    Ok(HitTestResponse(node_address)) => {
+                        debug!("node address is {:?}", node_address);
+                        let mut node = AbstractNode::from_untrusted_node_address(self.js_runtime
+                                                                                     .ptr,
+                                                                                 node_address);
+                        debug!("clicked on {:s}", node.debug_str());
+
+                        // Traverse node generations until a node that is an element is
+                        // found.
+                        while !node.is_element() {
+                            match node.parent_node() {
+                                Some(parent) => node = parent,
+                                None => break,
                             }
                         }
+
+                        if node.is_element() {
+                            node.with_imm_element(|element| {
+                                if "a" == element.tag_name {
+                                    self.load_url_from_element(page, element)
+                                }
+                            })
+                        }
                     },
-                    Err(()) => {
-                        debug!("layout query error");
-                    }
+                    Err(()) => debug!("layout query error"),
                 }
             }
             MouseDownEvent(..) => {}
