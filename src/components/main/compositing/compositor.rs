@@ -663,14 +663,16 @@ impl IOCompositor {
             let res = png::store_png(&img, &path);
             assert!(res.is_ok());
 
-            self.done = true;
+            debug!("shutting down the constellation after generating an output file");
+            self.constellation_chan.send(ExitMsg);
         }
 
         self.window.present();
 
         let exit = self.opts.exit_after_load;
         if exit {
-            self.done = true;
+            debug!("shutting down the constellation for exit_after_load");
+            self.constellation_chan.send(ExitMsg);
         }
     }
 
