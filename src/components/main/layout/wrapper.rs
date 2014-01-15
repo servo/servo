@@ -61,6 +61,12 @@ impl<'ln> LayoutNode<'ln> {
         cast::transmute(self.node.node())
     }
 
+    /// Returns the interior of this node as an `AbstractNode`. This is highly unsafe for layout to
+    /// call and as such is marked `unsafe`.
+    pub unsafe fn get_abstract(&self) -> AbstractNode {
+        self.node
+    }
+
     /// Returns the first child of this node.
     pub fn first_child(&self) -> Option<LayoutNode<'ln>> {
         unsafe {

@@ -7,6 +7,7 @@
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, null_str_as_empty};
 use dom::bindings::utils::{ErrorResult, Fallible, NotFound, HierarchyRequest};
+use dom::bindings::utils;
 use dom::characterdata::CharacterData;
 use dom::document::{AbstractDocument, DocumentTypeId};
 use dom::documenttype::DocumentType;
@@ -17,15 +18,15 @@ use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::nodelist::{NodeList};
 use dom::text::Text;
+use layout_interface::{LayoutChan, ReapLayoutDataMsg, UntrustedNodeAddress};
 
-use js::jsapi::{JSObject, JSContext};
-
-use layout_interface::{LayoutChan, ReapLayoutDataMsg};
-
-use std::cast;
+use js::jsapi::{JSContext, JSObject, JSRuntime};
+use js::jsfriendapi;
 use std::cast::transmute;
+use std::cast;
 use std::cell::{RefCell, Ref, RefMut};
 use std::iter::Filter;
+use std::libc::uintptr_t;
 use std::util;
 use std::unstable::raw::Box;
 
@@ -239,6 +240,22 @@ impl AbstractNode {
         match self.type_id() {
             DocumentNodeTypeId(..) => true,
             _ => false
+        }
+    }
+
+    /// If the given untrusted node address represents a valid DOM node in the given runtime,
+    /// returns it.
+    pub fn from_untrusted_node_address(runtime: *JSRuntime, candidate: UntrustedNodeAddress)
+                                       -> AbstractNode {
+        unsafe {
+            let candidate: uintptr_t = cast::transmute(candidate);
+            let object: *JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
+                                                                                  candidate);
+            if object.is_null() {
+                fail!("Attempted to create an `AbstractNode` from an invalid pointer!")
+            }
+            let boxed_node: *mut Box<Node> = utils::unwrap(object);
+            AbstractNode::from_box(boxed_node)
         }
     }
 }
