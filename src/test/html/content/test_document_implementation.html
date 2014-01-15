@@ -11,6 +11,17 @@
                 is(document.implementation, implementation, "test1-2, basic test");
             }
 
+            // test2: createDocumentType
+            {
+                is(document.doctype, null, "test2-0, createDocumentType");
+
+                var doctype = document.implementation.createDocumentType("html", null, null);
+                is_a(doctype && doctype, DocumentType, "test2-1, createDocumentType");
+
+                doctype = document.implementation.createDocumentType("html:html", null, null);
+                is_a(doctype && doctype, DocumentType, "test2-2, createDocumentType");
+            }
+
             finish();
         </script>
     </head>
