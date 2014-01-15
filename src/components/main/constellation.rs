@@ -372,9 +372,9 @@ impl Constellation {
             pipeline.exit();
         }
         self.image_cache_task.exit();
-        self.history_cache_task.exit();
         self.resource_task.send(resource_task::Exit);
         self.compositor_chan.send(ShutdownComplete);
+        self.history_cache_task.exit();
     }
 
     fn handle_failure_msg(&mut self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>) {

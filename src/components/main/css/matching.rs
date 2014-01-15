@@ -39,11 +39,11 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         match *layout_data_ref.get() {
             Some(ref mut layout_data) => {
                 layout_data.data.applicable_declarations = stylist.get_applicable_declarations(
-                    self, style_attribute, None);
+                    self, style_attribute, None, history_cache_task.clone());
                 layout_data.data.before_applicable_declarations = stylist.get_applicable_declarations(
-                    self, None, Some(Before));
+                    self, None, Some(Before), history_cache_task.clone());
                 layout_data.data.after_applicable_declarations = stylist.get_applicable_declarations(
-                    self, None, Some(After));
+                    self, None, Some(After), history_cache_task.clone());
             }
             None => fail!("no layout data")
         }
