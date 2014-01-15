@@ -43,15 +43,13 @@ impl Reflectable for DOMImplementation {
 impl DOMImplementation {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
     pub fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<AbstractNode> {
-        // FIXME: To be removed in https://github.com/mozilla/servo/issues/1498
-        let force_quirks : bool = false;
         match xml_name_type(qname) {
             // Step 1.
             InvalidXMLName => Err(InvalidCharacter),
             // Step 2.
             Name => Err(NamespaceError),
             // Step 3.
-            QName => Ok(DocumentType::new(qname, Some(pubid), Some(sysid), force_quirks, self.owner.Document()))
+            QName => Ok(DocumentType::new(qname, Some(pubid), Some(sysid), self.owner.Document()))
         }
     }
 }
