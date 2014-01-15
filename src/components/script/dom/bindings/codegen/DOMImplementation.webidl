@@ -14,9 +14,9 @@
 interface DOMImplementation {
   /*boolean hasFeature(DOMString feature,
                      [TreatNullAs=EmptyString] DOMString version);*/
-  /*[Throws]
+  [Creator, Throws]
   DocumentType createDocumentType(DOMString qualifiedName, DOMString publicId,
-                                  DOMString systemId);*/
+                                  DOMString systemId);
   /*[Throws]
   Document createDocument(DOMString? namespace,
                           [TreatNullAs=EmptyString] DOMString qualifiedName,
