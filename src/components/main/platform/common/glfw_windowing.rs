@@ -14,7 +14,7 @@ use windowing::{Forward, Back};
 use alert::{Alert, AlertMethods};
 use extra::time::Timespec;
 use extra::time;
-use std::libc::c_int;
+use std::libc::{exit, c_int};
 use std::local_data;
 use geom::point::Point2D;
 use geom::size::Size2D;
@@ -31,7 +31,14 @@ impl ApplicationMethods for Application {
         // Per GLFW docs it's safe to set the error callback before calling
         // glfwInit(), and this way we notice errors from init too.
         glfw::set_error_callback(~glfw::LogErrorHandler);
-        glfw::init();
+
+        if glfw::init().is_err() {
+            // handles things like inability to connect to X
+            // cannot simply fail, since the runtime isn't up yet (causes a nasty abort)
+            println!("GLFW initialization failed");
+            unsafe { exit(1); }
+        }
+
         Application
     }
 }
@@ -153,7 +160,7 @@ impl WindowMethods<Application> for Window {
             glfw_callback!(glfw::ScrollCallback(win: &glfw::Window, xpos: f64, ypos: f64) {
                 let dx = (xpos as f32) * 30.0;
                 let dy = (ypos as f32) * 30.0;
-            
+
                 let (x, y) = win.get_cursor_pos();
                 //handle hidpi displays, since GLFW returns non-hi-def coordinates.
                 let (backing_size, _) = win.get_framebuffer_size();
@@ -178,7 +185,7 @@ impl WindowMethods<Application> for Window {
     fn present(&mut self) {
         self.glfw_window.swap_buffers();
     }
-    
+
     fn recv(@mut self) -> WindowEvent {
         if !self.event_queue.is_empty() {
             return self.event_queue.shift()
