@@ -8,7 +8,7 @@
 use extra::url::Url;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use std::comm::{Chan, SharedChan};
+use std::comm::SharedChan;
 
 #[deriving(Clone)]
 pub struct ConstellationChan(SharedChan<Msg>);
@@ -28,7 +28,7 @@ pub enum IFrameSandboxState {
 
 /// Messages from the compositor to the constellation.
 pub enum Msg {
-    ExitMsg(Chan<()>),
+    ExitMsg,
     FailureMsg(PipelineId, Option<SubpageId>),
     InitLoadUrlMsg(Url),
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),

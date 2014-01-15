@@ -16,7 +16,7 @@ use gfx::opts::Opts;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use servo_msg::compositor_msg::{Epoch, RenderListener, LayerBufferSet, RenderState, ReadyState};
 use servo_msg::compositor_msg::{ScriptListener, Tile};
-use servo_msg::constellation_msg::{ConstellationChan, PipelineId, ExitMsg};
+use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_util::time::ProfilerChan;
 use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
@@ -112,11 +112,16 @@ impl CompositorChan {
         self.chan.send(msg);
     }
 }
-
 /// Messages from the painting task and the constellation task to the compositor task.
 pub enum Msg {
     /// Requests that the compositor shut down.
     Exit(Chan<()>),
+
+    /// Informs the compositor that the constellation has completed shutdown.
+    /// Required because the constellation can have pending calls to make (e.g. SetIds)
+    /// at the time that we send it an ExitMsg.
+    ShutdownComplete,
+
     /// Requests the compositor's graphics metadata. Graphics metadata is what the renderer needs
     /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
     /// is the pixel format.
@@ -185,9 +190,7 @@ impl CompositorTask {
     pub fn create(opts: Opts,
                   port: Port<Msg>,
                   constellation_chan: ConstellationChan,
-                  profiler_chan: ProfilerChan,
-                  exit_chan: Chan<()>,
-                  exit_response_from_constellation: Port<()>) {
+                  profiler_chan: ProfilerChan) {
 
         let compositor = CompositorTask::new(opts.headless);
 
@@ -197,18 +200,12 @@ impl CompositorTask {
                                                  opts,
                                                  port,
                                                  constellation_chan.clone(),
-                                                 profiler_chan);
+                                                 profiler_chan)
             }
             Headless => {
                 headless::NullCompositor::create(port,
-                                                 constellation_chan.clone());
+                                                 constellation_chan.clone())
             }
-        }
-
-        // Constellation has to be shut down before the compositor goes out of
-        // scope, as the compositor manages setup/teardown of global subsystems
-        debug!("shutting down the constellation");
-        constellation_chan.send(ExitMsg(exit_chan));
-        exit_response_from_constellation.recv();
+        };
     }
 }
