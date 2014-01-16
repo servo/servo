@@ -266,29 +266,6 @@ impl AbstractNode {
     pub fn is_parent_of(&self, child: AbstractNode) -> bool {
         child.parent_node() == Some(*self)
     }
-
-    fn followed_by_doctype(child: AbstractNode) -> bool {
-        let mut iter = child;
-        loop {
-            match iter.next_sibling() {
-                Some(sibling) => {
-                    if sibling.is_doctype() {
-                        return true;
-                    }
-                    iter = sibling;
-                },
-                None => return false
-            }
-        }
-    }
-
-    fn inclusively_followed_by_doctype(child: Option<AbstractNode>) -> bool {
-        match child {
-            Some(child) if child.is_doctype() => true,
-            Some(child) => AbstractNode::followed_by_doctype(child),
-            None => false
-        }
-    }
 }
 
 impl<'a> AbstractNode {
@@ -831,6 +808,18 @@ impl AbstractNode {
         }
     }
 
+    pub fn inclusively_following_siblings(&self) -> AbstractNodeChildrenIterator {
+        AbstractNodeChildrenIterator {
+            current_node: Some(*self),
+        }
+    }
+
+    pub fn following_siblings(&self) -> AbstractNodeChildrenIterator {
+        AbstractNodeChildrenIterator {
+            current_node: self.next_sibling(),
+        }
+    }
+
     /// Iterates over this node and all its descendants, in preorder.
     pub fn traverse_preorder(&self) -> TreeIterator {
         let mut nodes = ~[];
@@ -1131,8 +1120,12 @@ impl Node {
                                 if parent.child_elements().len() > 0 {
                                     return Err(HierarchyRequest);
                                 }
-                                if AbstractNode::inclusively_followed_by_doctype(child) {
-                                    return Err(HierarchyRequest);
+                                match child {
+                                    Some(child) if child.inclusively_following_siblings()
+                                                        .any(|child| child.is_doctype()) => {
+                                        return Err(HierarchyRequest);
+                                    }
+                                    _ => (),
                                 }
                             },
                             // Step 6.1.1(a)
@@ -1146,8 +1139,12 @@ impl Node {
                         if parent.child_elements().len() > 0 {
                             return Err(HierarchyRequest);
                         }
-                        if AbstractNode::inclusively_followed_by_doctype(child) {
-                            return Err(HierarchyRequest);
+                        match child {
+                            Some(child) if child.inclusively_following_siblings()
+                                                .any(|child| child.is_doctype()) => {
+                                return Err(HierarchyRequest);
+                            }
+                            _ => (),
                         }
                     },
                     // Step 6.3
@@ -1406,7 +1403,8 @@ impl Node {
                                 if parent.child_elements().any(|c| c != child) {
                                     return Err(HierarchyRequest);
                                 }
-                                if AbstractNode::followed_by_doctype(child) {
+                                if child.following_siblings()
+                                        .any(|child| child.is_doctype()) {
                                     return Err(HierarchyRequest);
                                 }
                             },
@@ -1419,7 +1417,8 @@ impl Node {
                         if parent.child_elements().any(|c| c != child) {
                             return Err(HierarchyRequest);
                         }
-                        if AbstractNode::followed_by_doctype(child) {
+                        if child.following_siblings()
+                                .any(|child| child.is_doctype()) {
                             return Err(HierarchyRequest);
                         }
                     },
