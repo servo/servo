@@ -160,7 +160,7 @@ impl LineboxScanner {
     // FIXME(eatkinson): this assumes that the tallest box in the line determines the line height
     // This might not be the case with some weird text fonts.
     fn new_height_for_line(&self, new_box: &Box) -> Au {
-        let box_height = new_box.box_height();
+        let box_height = new_box.content_height();
         if box_height > self.pending_line.bounds.size.height {
             box_height
         } else {
@@ -508,7 +508,7 @@ impl InlineFlow {
             vertical_align::middle => {
                 // TODO: x-height value should be used from font info.
                 let xheight = Au::new(0);
-                (-(xheight + cur_box.box_height()).scale_by(0.5), false)
+                (-(xheight + cur_box.content_height()).scale_by(0.5), false)
             },
             vertical_align::sub => {
                 // TODO: The proper position for subscripts should be used.
@@ -636,7 +636,7 @@ impl Flow for InlineFlow {
         {
             let this = &mut *self;
             for box_ in this.boxes.iter() {
-                box_.assign_width();
+                box_.assign_width(self.base.position.size.width);
             }
         }
 
@@ -707,8 +707,8 @@ impl Flow for InlineFlow {
 
                 // FIXME(pcwalton): Move into `box.rs` like the rest of box-specific layout code?
                 let (top_from_base, bottom_from_base, ascent) = match cur_box.specific {
-                    ImageBox(ref image_box) => {
-                        let mut height = image_box.image_height();
+                    ImageBox(_) => {
+                        let mut height = cur_box.content_height();
 
                         // TODO: margin, border, padding's top and bottom should be calculated in
                         // advance, since baseline of image is bottom margin edge.

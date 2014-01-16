@@ -37,7 +37,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToG
 use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
 use layout::flow::Flow;
 use layout::flow;
-use layout::model::{MaybeAuto, Auto, specified};
+use layout::model::{MaybeAuto, specified, Auto, Specified};
 use layout::util::OpaqueNode;
 use layout::wrapper::LayoutNode;
 
@@ -108,9 +108,8 @@ pub enum SpecificBoxInfo {
 pub struct ImageBoxInfo {
     /// The image held within this box.
     image: RefCell<ImageHolder>,
-    /// The width attribute supplied by the DOM, if any.
+    computed_size: RefCell<Option<Size2D<Au>>>,
     dom_width: Option<Au>,
-    /// The height attribute supplied by the DOM, if any.
     dom_height: Option<Au>,
 }
 
@@ -121,6 +120,7 @@ impl ImageBoxInfo {
     /// me.
     pub fn new(node: &LayoutNode, image_url: Url, local_image_cache: MutexArc<LocalImageCache>)
                -> ImageBoxInfo {
+
         fn convert_length(node: &LayoutNode, name: &str) -> Option<Au> {
             node.with_element(|element| {
                 element.get_attr(None, name).and_then(|string| {
@@ -132,27 +132,45 @@ impl ImageBoxInfo {
 
         ImageBoxInfo {
             image: RefCell::new(ImageHolder::new(image_url, local_image_cache)),
-            dom_width: convert_length(node, "width"),
-            dom_height: convert_length(node, "height"),
+            computed_size: RefCell::new(None),
+            dom_width: convert_length(node,"width"),
+            dom_height: convert_length(node,"height"),
         }
     }
 
-    // Calculates the width of an image, accounting for the width attribute.
-    fn image_width(&self) -> Au {
-        // TODO(brson): Consult margins and borders?
-        self.dom_width.unwrap_or_else(|| {
-            let mut image_ref = self.image.borrow_mut();
-            Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0, 0)).width)
-        })
+    /// Returns Calculated the width of an image, accounting for the height attribute.
+    pub fn computed_width(&self) -> Au {
+        match self.computed_size.borrow().get() {
+            &Some(size) => {
+                size.width
+            },
+            &None => {
+                fail!("image size is not computed yet!");
+            }
+        }
+    }
+    /// Returns width of image(just original width)
+    pub fn image_width(&self) -> Au {
+        let mut image_ref = self.image.borrow_mut();
+        Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0,0)).width)
     }
 
-    // Calculate the height of an image, accounting for the height attribute.
+    /// Returns Calculated the height of an image, accounting for the height attribute.
+    pub fn computed_height(&self) -> Au {
+        match self.computed_size.borrow().get() {
+            &Some(size) => {
+                size.height
+            },
+            &None => {
+                fail!("image size is not computed yet!");
+            }
+        }
+    }
+
+    /// Returns height of image(just original height)
     pub fn image_height(&self) -> Au {
-        // TODO(brson): Consult margins and borders?
-        self.dom_height.unwrap_or_else(|| {
-            let mut image_ref = self.image.borrow_mut();
-            Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0, 0)).height)
-        })
+        let mut image_ref = self.image.borrow_mut();
+        Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0,0)).height)
     }
 }
 
@@ -939,23 +957,28 @@ impl Box {
         (guessed_width + additional_minimum, guessed_width + additional_preferred)
     }
 
-    /// Returns, and computes, the height of this box.
-    ///
-    /// FIXME(pcwalton): Rename to just `height`?
-    /// FIXME(pcwalton): This function *mutates* the height? Gross! Refactor please.
-    pub fn box_height(&self) -> Au {
+    
+    pub fn content_width(&self) -> Au {
         match self.specific {
             GenericBox | IframeBox(_) => Au(0),
             ImageBox(ref image_box_info) => {
-                let mut image_ref = image_box_info.image.borrow_mut();
-                let size = image_ref.get().get_size();
-                let height = Au::from_px(size.unwrap_or(Size2D(0, 0)).height);
-
-                // Eww. Refactor this.
-                self.position.borrow_mut().get().size.height = height;
-                debug!("box_height: found image height: {}", height);
-
-                height
+                image_box_info.computed_width()
+            }
+            ScannedTextBox(ref text_box_info) => {
+                let (range, run) = (&text_box_info.range, &text_box_info.run);
+                let text_bounds = run.get().metrics_for_range(range).bounding_box;
+                text_bounds.size.width
+            }
+            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
+        }   
+    }
+    /// Returns, and computes, the height of this box.
+    ///
+    pub fn content_height(&self) -> Au {
+        match self.specific {
+            GenericBox | IframeBox(_) => Au(0),
+            ImageBox(ref image_box_info) => {
+                image_box_info.computed_height()
             }
             ScannedTextBox(ref text_box_info) => {
                 // Compute the height based on the line-height and font size.
@@ -1077,15 +1100,63 @@ impl Box {
     }
 
     /// Assigns the appropriate width to this box.
-    pub fn assign_width(&self) {
+    pub fn assign_width(&self,container_width: Au) {
         match self.specific {
             GenericBox | IframeBox(_) => {
-                // FIXME(pcwalton): This seems clownshoes; can we remove?
-                self.position.borrow_mut().get().size.width = Au::from_px(45)
             }
             ImageBox(ref image_box_info) => {
-                let image_width = image_box_info.image_width();
-                self.position.borrow_mut().get().size.width = image_width
+                // TODO(ksh8281): compute border,margin,padding
+                let width = match (MaybeAuto::from_style(self.style().Box.width,container_width),
+                                   image_box_info.dom_width) {
+                    (Specified(width),_) => {
+                        Specified(width)
+                    },
+                    (Auto,Some(width)) => {
+                        Specified(width)
+                    },
+                    (Auto,None) => {
+                        Auto
+                    }
+                };
+
+
+                let height = match (MaybeAuto::from_style(self.style().Box.height,container_width),
+                                   image_box_info.dom_height) {
+                    (Specified(height),_) => {
+                        Specified(height)
+                    },
+                    (Auto,Some(height)) => {
+                        Specified(height)
+                    },
+                    (Auto,None) => {
+                        Auto
+                    }
+                };
+
+                let (width,height) = match (width,height) {
+                    (Auto,Auto) => {
+                        (image_box_info.image_width(),image_box_info.image_height())
+                    },
+                    (Auto,Specified(h)) => {
+                        let scale = image_box_info.
+                            image_height().to_f32().unwrap() / h.to_f32().unwrap();
+                        (Au::new((image_box_info.image_width().to_f32().unwrap() / scale) as i32),h)
+                    },
+                    (Specified(w),Auto) => {
+                        let scale = image_box_info.
+                            image_width().to_f32().unwrap() / w.to_f32().unwrap();
+                        (w,Au::new((image_box_info.image_height().to_f32().unwrap() / scale) as i32))
+
+                    },
+                    (Specified(w),Specified(h)) => {
+                        (w,h)
+                    }
+                };
+
+                let mut position = self.position.borrow_mut();
+                position.get().size.width = width;
+                position.get().size.height = height;
+                image_box_info.computed_size.set(Some(Size2D(width,height)));
             }
             ScannedTextBox(_) => {
                 // Scanned text boxes will have already had their widths assigned by this point.
