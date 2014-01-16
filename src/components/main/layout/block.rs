@@ -55,8 +55,11 @@ pub struct BlockFlow {
     /// The associated box.
     box_: Option<Box>,
 
+    //TODO: is_fixed and is_root should be bit fields to conserve memory.
     /// Whether this block flow is the root flow.
     is_root: bool,
+
+    is_fixed: bool,
 
     /// Additional floating flow members.
     float: Option<~FloatedBlockInfo>
@@ -68,15 +71,17 @@ impl BlockFlow {
             base: base,
             box_: None,
             is_root: false,
+            is_fixed: false,
             float: None
         }
     }
 
-    pub fn from_box(base: BaseFlow, box_: Box) -> BlockFlow {
+    pub fn from_box(base: BaseFlow, box_: Box, is_fixed: bool) -> BlockFlow {
         BlockFlow {
             base: base,
             box_: Some(box_),
             is_root: false,
+            is_fixed: is_fixed,
             float: None
         }
     }
@@ -86,6 +91,7 @@ impl BlockFlow {
             base: base,
             box_: Some(box_),
             is_root: false,
+            is_fixed: false,
             float: Some(~FloatedBlockInfo::new(float_type))
         }
     }
@@ -95,6 +101,7 @@ impl BlockFlow {
             base: base,
             box_: None,
             is_root: true,
+            is_fixed: false,
             float: None
         }
     }
@@ -104,6 +111,7 @@ impl BlockFlow {
             base: base,
             box_: None,
             is_root: false,
+            is_fixed: false,
             float: Some(~FloatedBlockInfo::new(float_type))
         }
     }
@@ -353,11 +361,26 @@ impl BlockFlow {
             margin.top = margin_top;
             margin.bottom = margin_bottom;
 
-            position.origin.y = clearance + margin.top;
-
             noncontent_height = box_.padding.get().top + box_.padding.get().bottom +
                 box_.border.get().top + box_.border.get().bottom;
-            position.size.height = height + noncontent_height;
+
+            let (y, h) = box_.get_y_coord_and_new_height_if_fixed(ctx.screen_size.size.height,
+                                                                 height, clearance + margin.top, self.is_fixed);
+            position.origin.y = y;
+            height = h;
+
+            if self.is_fixed { 
+                for kid in self.base.child_iter() {
+                    let child_node = flow::mut_base(*kid);
+                    child_node.position.origin.y = position.origin.y + top_offset;
+                }
+            }
+
+            position.size.height = if self.is_fixed {
+                height
+            } else {
+                height + noncontent_height
+            };
 
             noncontent_height = noncontent_height + clearance + margin.top + margin.bottom;
 
@@ -365,7 +388,11 @@ impl BlockFlow {
             box_.margin.set(margin);
         }
 
-        self.base.position.size.height = height + noncontent_height;
+        self.base.position.size.height = if self.is_fixed {
+            height
+        } else {
+            height + noncontent_height
+        };
 
         if inorder {
             let extra_height = height - (cur_y - top_offset) + bottom_offset;
@@ -482,9 +509,9 @@ impl BlockFlow {
         for box_ in self.box_.iter() {
             box_.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, list)
         }
-
         // TODO: handle any out-of-flow elements
         let this_position = self.base.abs_position;
+
         for child in self.base.child_iter() {
             let child_base = flow::mut_base(*child);
             child_base.abs_position = this_position + child_base.position.origin;
@@ -641,12 +668,19 @@ impl Flow for BlockFlow {
                                               margin_bottom,
                                               margin_left));
 
-            x_offset = box_.offset();
-            remaining_width = width;
+            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(ctx.screen_size.size.width, 
+                                                            ctx.screen_size.size.height, width, box_.offset(), self.is_fixed);
+            x_offset = x;
+            remaining_width = w;
 
             // The associated box is the border box of this flow.
             let mut position_ref = box_.position.borrow_mut();
-            position_ref.get().origin.x = box_.margin.get().left;
+            if self.is_fixed {
+                position_ref.get().origin.x = x_offset + box_.margin.get().left;
+                x_offset = x_offset + box_.padding.get().left;
+            } else {
+                position_ref.get().origin.x = box_.margin.get().left;
+            }
             let padding_and_borders = box_.padding.get().left + box_.padding.get().right +
                 box_.border.get().left + box_.border.get().right;
             position_ref.get().size.width = remaining_width + padding_and_borders;

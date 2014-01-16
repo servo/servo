@@ -21,3 +21,4 @@
 == inline_text_align_a.html inline_text_align_b.html
 == font_size_em.html font_size_em_ref.html
 == font_size_percentage.html font_size_em_ref.html
+== position_fixed_a.html position_fixed_b.html
