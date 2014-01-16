@@ -5,7 +5,7 @@
 use compositing::*;
 
 use geom::size::Size2D;
-use servo_msg::constellation_msg::{ConstellationChan, ResizedWindowMsg};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, ResizedWindowMsg};
 use std::comm::Port;
 
 
@@ -32,14 +32,20 @@ impl NullCompositor {
 
         // Tell the constellation about the initial fake size.
         constellation_chan.send(ResizedWindowMsg(Size2D(640u, 480u)));
-        compositor.handle_message();
+        compositor.handle_message(constellation_chan);
     }
 
-    fn handle_message(&self) {
+    fn handle_message(&self, constellation_chan: ConstellationChan) {
         loop {
             match self.port.recv() {
                 Exit(chan) => {
+                    debug!("shutting down the constellation");
+                    constellation_chan.send(ExitMsg);
                     chan.send(());
+                }
+
+                ShutdownComplete => {
+                    debug!("constellation completed shutdown");
                     break
                 }
 

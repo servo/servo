@@ -32,7 +32,7 @@ use layers::scene::Scene;
 use opengles::gl2;
 use png;
 use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerBufferSet, RenderState};
-use servo_msg::constellation_msg::{ConstellationChan, NavigateMsg, ResizedWindowMsg, LoadUrlMsg, PipelineId};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, NavigateMsg, ResizedWindowMsg, LoadUrlMsg, PipelineId};
 use servo_msg::constellation_msg;
 use servo_util::time::{profile, ProfilerChan, Timer};
 use servo_util::{time, url};
@@ -129,7 +129,7 @@ impl IOCompositor {
             zoom_action: false,
             zoom_time: 0f64,
             compositor_layer: None,
-            constellation_chan: constellation_chan.clone(),
+            constellation_chan: constellation_chan,
             profiler_chan: profiler_chan,
             fragment_point: None
         }
@@ -202,8 +202,14 @@ impl IOCompositor {
                 None => break,
 
                 Some(Exit(chan)) => {
-                    self.done = true;
+                    debug!("shutting down the constellation");
+                    self.constellation_chan.send(ExitMsg);
                     chan.send(());
+                }
+
+                Some(ShutdownComplete) => {
+                    debug!("constellation completed shutdown");
+                    self.done = true;
                 }
 
                 Some(ChangeReadyState(ready_state)) => {
@@ -496,12 +502,14 @@ impl IOCompositor {
             FinishedWindowEvent => {
                 let exit = self.opts.exit_after_load;
                 if exit {
-                    self.done = true;
+                    debug!("shutting down the constellation for FinishedWindowEvent");
+                    self.constellation_chan.send(ExitMsg);
                 }
             }
 
             QuitWindowEvent => {
-                self.done = true;
+                debug!("shutting down the constellation for QuitWindowEvent");
+                self.constellation_chan.send(ExitMsg);
             }
         }
     }
@@ -655,14 +663,16 @@ impl IOCompositor {
             let res = png::store_png(&img, &path);
             assert!(res.is_ok());
 
-            self.done = true;
+            debug!("shutting down the constellation after generating an output file");
+            self.constellation_chan.send(ExitMsg);
         }
 
         self.window.present();
 
         let exit = self.opts.exit_after_load;
         if exit {
-            self.done = true;
+            debug!("shutting down the constellation for exit_after_load");
+            self.constellation_chan.send(ExitMsg);
         }
     }
 

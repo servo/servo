@@ -181,6 +181,7 @@ impl Pipeline {
     }
 
     pub fn revoke_paint_permission(&self) {
+        debug!("pipeline revoking render channel paint permission");
         self.render_chan.send(PaintPermissionRevoked);
     }
 
