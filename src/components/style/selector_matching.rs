@@ -12,7 +12,7 @@ use node::{TElement, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use selectors::*;
 use stylesheets::{Stylesheet, iter_style_rules};
-use servo_net::history_cache_task::HistoryCacheTask;
+use servo_net::history_task::HistoryTask;
 
 pub enum StylesheetOrigin {
     UserAgentOrigin,
@@ -71,7 +71,7 @@ impl SelectorMap {
                               &self,
                               node: &N,
                               matching_rules_list: &mut ~[Rule],
-                              history_cache_task: HistoryCacheTask) {
+                              history_task: &HistoryTask) {
         // At the end, we're going to sort the rules that we added, so remember where we began.
         let init_len = matching_rules_list.len();
         node.with_element(|element: &E| {
@@ -81,7 +81,7 @@ impl SelectorMap {
                                                               &self.id_hash,
                                                               id,
                                                               matching_rules_list,
-                                                              history_cache_task.clone())
+                                                              history_task)
                 }
                 None => {}
             }
@@ -90,7 +90,7 @@ impl SelectorMap {
                 Some(ref class_attr) => {
                     for class in class_attr.split(SELECTOR_WHITESPACE) {
                         SelectorMap::get_matching_rules_from_hash(
-                            node, &self.class_hash, class, matching_rules_list, history_cache_task.clone());
+                            node, &self.class_hash, class, matching_rules_list, history_task);
                     }
                 }
                 None => {}
@@ -102,11 +102,11 @@ impl SelectorMap {
                                                       &self.element_hash,
                                                       element.get_local_name().to_ascii_lower(),
                                                       matching_rules_list,
-                                                      history_cache_task.clone());
+                                                      history_task);
             SelectorMap::get_matching_rules(node,
                                             self.universal_rules,
                                             matching_rules_list,
-                                            history_cache_task.clone());
+                                            history_task);
         });
 
         // Sort only the rules we just added.
@@ -125,10 +125,10 @@ impl SelectorMap {
                                     hash: &HashMap<~str,~[Rule]>,
                                     key: &str,
                                     matching_rules: &mut ~[Rule],
-                                    history_cache_task: HistoryCacheTask) {
+                                    history_task: &HistoryTask) {
         match hash.find(&key.to_str()) {
             Some(rules) => {
-                SelectorMap::get_matching_rules(node, *rules, matching_rules, history_cache_task.clone())
+                SelectorMap::get_matching_rules(node, *rules, matching_rules, history_task)
             }
             None => {}
         }
@@ -140,9 +140,9 @@ impl SelectorMap {
                           node: &N,
                           rules: &[Rule],
                           matching_rules: &mut ~[Rule],
-                          history_cache_task: HistoryCacheTask) {
+                          history_task: &HistoryTask) {
         for rule in rules.iter() {
-            if matches_compound_selector(rule.selector.get(), node, history_cache_task.clone()) {
+            if matches_compound_selector(rule.selector.get(), node, history_task) {
                 // TODO(pradeep): Is the cloning inefficient?
                 matching_rules.push(rule.clone());
             }
@@ -317,7 +317,7 @@ impl Stylist {
                                        element: &N,
                                        style_attribute: Option<&PropertyDeclarationBlock>,
                                        pseudo_element: Option<PseudoElement>,
-                                       history_cache_task: HistoryCacheTask)
+                                       history_task: &HistoryTask)
                                        -> ~[Arc<~[PropertyDeclaration]>] {
         assert!(element.is_element());
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
@@ -347,7 +347,7 @@ impl Stylist {
 
         for (i, rule_map) in rule_map_list.iter().enumerate() {
             rule_map_indices[i] = matching_rules_list.len();
-            rule_map.get_all_matching_rules(element, &mut matching_rules_list, history_cache_task.clone());
+            rule_map.get_all_matching_rules(element, &mut matching_rules_list, history_task);
         }
 
         let count = matching_rules_list.len();
@@ -445,10 +445,10 @@ impl Ord for Rule {
     }
 }
 
-fn matches_compound_selector<E:TElement,N:TNode<E>>(selector: &CompoundSelector, element: &N, history_cache_task: HistoryCacheTask)
+fn matches_compound_selector<E:TElement,N:TNode<E>>(selector: &CompoundSelector, element: &N, history_task: &HistoryTask)
                              -> bool {
     if !selector.simple_selectors.iter().all(|simple_selector| {
-            matches_simple_selector(simple_selector, element, history_cache_task.clone())
+            matches_simple_selector(simple_selector, element, history_task)
     }) {
         return false
     }
@@ -473,7 +473,7 @@ fn matches_compound_selector<E:TElement,N:TNode<E>>(selector: &CompoundSelector,
                     Some(next_node) => node = next_node,
                 }
                 if node.is_element() {
-                    if matches_compound_selector(&**next_selector, &node, history_cache_task.clone()) {
+                    if matches_compound_selector(&**next_selector, &node, history_task) {
                         return true
                     } else if just_one {
                         return false
@@ -485,7 +485,7 @@ fn matches_compound_selector<E:TElement,N:TNode<E>>(selector: &CompoundSelector,
 }
 
 #[inline]
-fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, element: &N, history_cache_task: HistoryCacheTask) -> bool {
+fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, element: &N, history_task: &HistoryTask) -> bool {
     match *selector {
         // TODO: case-sensitivity depends on the document type
         // TODO: intern element names
@@ -549,7 +549,7 @@ fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, ele
         Link => {
             element.with_element(|element: &E| {
                 match element.get_link() {
-                    Some(url) => !history_cache_task.url_is_visited(url),
+                    Some(url) => !history_task.url_is_visited(url),
                     None => false,
                 }
             })
@@ -557,7 +557,7 @@ fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, ele
         Visited => {
             element.with_element(|element: &E| {
                 match element.get_link() {
-                    Some(url) => history_cache_task.url_is_visited(url),
+                    Some(url) => history_task.url_is_visited(url),
                     None => false,
                 }
             })
@@ -581,7 +581,7 @@ fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, ele
                        matches_generic_nth_child(element, 0, 1, true, true),
 
         Negation(ref negated) => {
-            !negated.iter().all(|s| matches_simple_selector(s, element, history_cache_task.clone()))
+            !negated.iter().all(|s| matches_simple_selector(s, element, history_task))
         },
     }
 }

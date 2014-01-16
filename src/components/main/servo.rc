@@ -50,7 +50,7 @@ use gfx::opts;
 #[cfg(not(test))]
 use servo_net::image_cache_task::ImageCacheTask;
 #[cfg(not(test))]
-use servo_net::history_cache_task::HistoryCacheTask;
+use servo_net::history_task::HistoryTask;
 #[cfg(not(test))]
 use servo_net::resource_task::ResourceTask;
 #[cfg(not(test))]
@@ -149,12 +149,12 @@ fn run(opts: Opts) {
         // Create a Servo instance.
         let resource_task = ResourceTask();
         let image_cache_task = ImageCacheTask(resource_task.clone());
-        let history_cache_task = HistoryCacheTask(resource_task.clone()); 
+        let history_task = HistoryTask(); 
         let constellation_chan = Constellation::start(compositor_chan,
                                                       opts,
                                                       resource_task,
                                                       image_cache_task,
-                                                      history_cache_task,
+                                                      history_task,
                                                       profiler_chan_clone);
 
         // Send the URL command to the constellation.
