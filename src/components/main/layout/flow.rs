@@ -42,6 +42,8 @@ use extra::container::Deque;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::{ClipDisplayItemClass, DisplayList};
+use layout::display_list_builder::ToGfxColor;
+use gfx::color::Color;
 use servo_util::geometry::Au;
 use std::cast;
 use std::cell::RefCell;
@@ -257,6 +259,15 @@ pub trait PostorderFlowTraversal {
     }
 }
 
+pub struct FlowFlagsInfo{
+    flags: FlowFlags,
+
+    /// text-decoration colors
+    underline_color: Color,
+    overline_color: Color,
+    line_through_color: Color,
+}
+
 /// Flags used in flows, tightly packed to save space.
 pub struct FlowFlags(u8);
 
@@ -275,25 +286,44 @@ static TEXT_ALIGN_BITMASK: u8 = 0b00110000;
 /// NB: If you update this field, you must update the bitfields below.
 static TEXT_ALIGN_SHIFT: u8 = 4;
 
-impl FlowFlags {
+impl FlowFlagsInfo {
     /// Creates a new set of flow flags from the given style.
-    fn new(style: &ComputedValues) -> FlowFlags {
+    pub fn new(style: &ComputedValues) -> FlowFlagsInfo {
         let text_decoration = style.Text.text_decoration;
         let mut flags = FlowFlags(0);
         flags.set_override_underline(text_decoration.underline);
         flags.set_override_overline(text_decoration.overline);
         flags.set_override_line_through(text_decoration.line_through);
-        flags
+
+        // TODO(ksh8281) compute text-decoration-color,style,line
+        let underline_color = style.Color.color.to_gfx_color();
+        let overline_color = style.Color.color.to_gfx_color();
+        let line_through_color = style.Color.color.to_gfx_color();
+        FlowFlagsInfo {
+            flags: flags,
+            underline_color: underline_color,
+            overline_color: overline_color,
+            line_through_color: line_through_color,
+        }
     }
 
     /// Propagates text decoration flags from an appropriate parent flow per CSS 2.1 § 16.3.1.
-    pub fn propagate_text_decoration_from_parent(&mut self, parent: FlowFlags) {
-        *self = FlowFlags(**self | (*parent & TEXT_DECORATION_OVERRIDE_BITMASK))
+    pub fn propagate_text_decoration_from_parent(&mut self, parent: FlowFlagsInfo) {
+        if !self.flags.override_underline() && parent.flags.override_underline() {
+            self.underline_color = parent.underline_color;
+        }
+        if !self.flags.override_overline() && parent.flags.override_overline() {
+            self.overline_color = parent.overline_color;
+        }
+        if !self.flags.override_line_through() && parent.flags.override_line_through() {
+            self.line_through_color = parent.line_through_color;
+        }
+        self.flags.set_text_decoration_override(parent.flags);
     }
 
     /// Propagates text alignment flags from an appropriate parent flow per CSS 2.1.
-    pub fn propagate_text_alignment_from_parent(&mut self, parent: FlowFlags) {
-        *self = FlowFlags(**self | (*parent & TEXT_ALIGN_BITMASK))
+    pub fn propagate_text_alignment_from_parent(&mut self, parent: FlowFlagsInfo) {
+        self.flags.set_text_align_override(parent.flags);
     }
 }
 
@@ -325,6 +355,16 @@ impl FlowFlags {
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
         *self = FlowFlags((**self & !TEXT_ALIGN_BITMASK) | ((value as u8) << TEXT_ALIGN_SHIFT))
+    }
+
+    #[inline]
+    pub fn set_text_align_override(&mut self, parent: FlowFlags) {
+        *self = FlowFlags(**self | (*parent & TEXT_ALIGN_BITMASK))
+    }
+
+    #[inline]
+    pub fn set_text_decoration_override(&mut self, parent: FlowFlags) {
+        *self = FlowFlags(**self | (*parent & TEXT_DECORATION_OVERRIDE_BITMASK));
     }
 }
 
@@ -365,8 +405,8 @@ pub struct BaseFlow {
     num_floats: uint,
     abs_position: Point2D<Au>,
 
-    /// Various flags for flows, tightly packed to save space.
-    flags: FlowFlags,
+    /// Various flags for flows and some info
+    flags_info: FlowFlagsInfo,
 }
 
 pub struct BoxIterator {
@@ -409,7 +449,7 @@ impl BaseFlow {
             num_floats: 0,
             abs_position: Point2D(Au::new(0), Au::new(0)),
 
-            flags: FlowFlags::new(style.get()),
+            flags_info: FlowFlagsInfo::new(style.get()),
         }
     }
 

@@ -102,10 +102,15 @@ pub struct TextDisplayItem<E> {
     range: Range,
 
     /// The color of the text.
-    color: Color,
+    text_color: Color,
 
     /// A bitfield of flags for text display items.
     flags: TextDisplayItemFlags,
+
+    /// The color of text-decorations
+    underline_color: Color,
+    overline_color: Color,
+    line_through_color: Color,
 }
 
 /// Flags for text display items.
@@ -202,7 +207,7 @@ impl<E> DisplayItem<E> {
                                                 text.text_run.get(),
                                                 &text.range,
                                                 baseline_origin,
-                                                text.color);
+                                                text.text_color);
                 });
                 let width = text.base.bounds.size.width;
                 let underline_size = font_metrics.underline_size;
@@ -214,18 +219,18 @@ impl<E> DisplayItem<E> {
                     let underline_y = baseline_origin.y - underline_offset;
                     let underline_bounds = Rect(Point2D(baseline_origin.x, underline_y),
                                                 Size2D(width, underline_size));
-                    render_context.draw_solid_color(&underline_bounds, text.color);
+                    render_context.draw_solid_color(&underline_bounds, text.underline_color);
                 }
                 if text_run.decoration.overline || text.flags.override_overline() {
                     let overline_bounds = Rect(Point2D(baseline_origin.x, origin.y),
                                                Size2D(width, underline_size));
-                    render_context.draw_solid_color(&overline_bounds, text.color);
+                    render_context.draw_solid_color(&overline_bounds, text.overline_color);
                 }
                 if text_run.decoration.line_through || text.flags.override_line_through() {
                     let strikeout_y = baseline_origin.y - strikeout_offset;
                     let strikeout_bounds = Rect(Point2D(baseline_origin.x, strikeout_y),
                                                 Size2D(width, strikeout_size));
-                    render_context.draw_solid_color(&strikeout_bounds, text.color);
+                    render_context.draw_solid_color(&strikeout_bounds, text.line_through_color);
                 }
             }
 

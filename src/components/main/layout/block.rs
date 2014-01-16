@@ -629,7 +629,7 @@ impl Flow for BlockFlow {
             self.base.position.origin = Au::zero_point();
             self.base.position.size.width = ctx.shared.screen_size.width;
             self.base.floats_in = FloatContext::new(self.base.num_floats);
-            self.base.flags.set_inorder(false);
+            self.base.flags_info.flags.set_inorder(false);
         }
 
         // The position was set to the containing block by the flow's parent.
@@ -640,14 +640,14 @@ impl Flow for BlockFlow {
             self.float.get_mut_ref().containing_width = remaining_width;
 
             // Parent usually sets this, but floats are never inorder
-            self.base.flags.set_inorder(false);
+            self.base.flags_info.flags.set_inorder(false);
         }
 
         for box_ in self.box_.iter() {
             let style = box_.style();
 
             // The text alignment of a block flow is the text alignment of its box's style.
-            self.base.flags.set_text_align(style.Text.text_align);
+            self.base.flags_info.flags.set_text_align(style.Text.text_align);
 
             // Can compute padding here since we know containing block width.
             box_.compute_padding(style, remaining_width);
@@ -702,7 +702,7 @@ impl Flow for BlockFlow {
         let has_inorder_children = if self.is_float() {
             self.base.num_floats > 0
         } else {
-            self.base.flags.inorder() || self.base.num_floats > 0
+            self.base.flags_info.flags.inorder() || self.base.num_floats > 0
         };
 
         for kid in self.base.child_iter() {
@@ -711,18 +711,20 @@ impl Flow for BlockFlow {
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;
             child_base.position.size.width = remaining_width;
-            child_base.flags.set_inorder(has_inorder_children);
+            child_base.flags_info.flags.set_inorder(has_inorder_children);
 
-            if !child_base.flags.inorder() {
+            if !child_base.flags_info.flags.inorder() {
                 child_base.floats_in = FloatContext::new(0);
             }
 
             // Per CSS 2.1 § 16.3.1, text decoration propagates to all children in flow.
             //
             // TODO(pcwalton): When we have out-of-flow children, don't unconditionally propagate.
-            child_base.flags.propagate_text_decoration_from_parent(self.base.flags);
 
-            child_base.flags.propagate_text_alignment_from_parent(self.base.flags)
+            // FIXME(ksh8281): avoid copy
+            child_base.flags_info.propagate_text_decoration_from_parent(self.base.flags_info);
+
+            child_base.flags_info.propagate_text_alignment_from_parent(self.base.flags_info)
         }
     }
 
