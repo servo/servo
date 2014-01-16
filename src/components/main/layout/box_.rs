@@ -532,38 +532,35 @@ impl Box {
         // needed. We could use display list optimization to clean this up, but it still seems
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a box".
+        let info = self.inline_info.borrow();
+        match info.get() {
+            &Some(ref box_info) => {
+                let mut bg_rect = absolute_bounds.clone();
+                for info in box_info.parent_info.rev_iter() {
+                    // TODO (ksh8281) compute vertical-align, line-height
+                    bg_rect.origin.y = box_info.baseline + offset.y - info.font_ascent;
+                    bg_rect.size.height = info.font_ascent + info.font_descent;
+                    let background_color = info.style.get().resolve_color(
+                        info.style.get().Background.background_color);
 
+                    if !background_color.alpha.approx_eq(&0.0) {
+                        list.with_mut(|list| {
+                            let solid_color_display_item = ~SolidColorDisplayItem {
+                                base: BaseDisplayItem {
+                                          bounds: bg_rect.clone(),
+                                          extra: ExtraDisplayListData::new(self),
+                                      },
+                                      color: background_color.to_gfx_color(),
+                            };
 
-        self.inline_info.with( |info| {
-            match info {
-                &Some(ref box_info) => {
-                    let mut bg_rect = absolute_bounds.clone();
-                    for info in box_info.parent_info.rev_iter() {
-                        // TODO (ksh8281) compute vertical-align, line-height
-                        bg_rect.origin.y = box_info.baseline + offset.y - info.font_ascent;
-                        bg_rect.size.height = info.font_ascent + info.font_descent;
-                        let background_color = info.style.get().resolve_color(
-                            info.style.get().Background.background_color);
-
-                        if !background_color.alpha.approx_eq(&0.0) {
-                            list.with_mut(|list| {
-                                let solid_color_display_item = ~SolidColorDisplayItem {
-                                    base: BaseDisplayItem {
-                                        bounds: bg_rect.clone(),
-                                        extra: ExtraDisplayListData::new(self),
-                                    },
-                                    color: background_color.to_gfx_color(),
-                                };
-
-                                list.append_item(SolidColorDisplayItemClass(solid_color_display_item))
-                            });
-                        }
-
+                            list.append_item(SolidColorDisplayItemClass(solid_color_display_item))
+                        });
                     }
-                },
-                &None => {}
-            }
-        });
+
+                }
+            },
+            &None => {}
+        }
         let style = self.style();
         let background_color = style.resolve_color(style.Background.background_color);
         if !background_color.alpha.approx_eq(&0.0) {

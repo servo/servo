@@ -418,39 +418,7 @@ impl<'fc> FlowConstructor<'fc> {
 
         match opt_box_accumulator {
             Some(ref mut boxes) => {
-                let parent_box = self.build_box_for_node(node);
-                let font_style = parent_box.font_style();
-                let font_group = self.layout_context.font_ctx.get_resolved_font_for_style(&font_style);
-                let (font_ascent,font_descent) = font_group.borrow().with_mut( |fg| {
-                    fg.fonts[0].borrow().with_mut( |font| {
-                        (font.metrics.ascent,font.metrics.descent)
-                    })
-                });
-
-                for box_ in boxes.mut_iter() {
-                    if box_.inline_info.with( |data| data.is_none() ) {
-                        box_.inline_info.set(Some(InlineInfo::new()));
-                    }
-
-                    box_.inline_info.with_mut( |info| {
-                        match info {
-                            &Some(ref mut info) => {
-                                // TODO(ksh8281) compute margin,border,padding
-                                info.parent_info.push(
-                                    InlineParentInfo {
-                                        padding: Zero::zero(),
-                                        border: Zero::zero(),
-                                        margin: Zero::zero(),
-                                        style: parent_box.style.clone(),
-                                        font_ascent: font_ascent,
-                                        font_descent: font_descent,
-                                    });
-                            },
-                            &None => {}
-                        }
-                    });
-
-                }
+                self.set_inline_info_for_inline_child(boxes, node)
             },
             None => {}
         }
@@ -467,6 +435,39 @@ impl<'fc> FlowConstructor<'fc> {
         }
     }
 
+    fn set_inline_info_for_inline_child(&mut self, boxes: &mut ~[Box], parent_node: LayoutNode) {
+        let parent_box = self.build_box_for_node(parent_node);
+        let font_style = parent_box.font_style();
+        let font_group = self.layout_context.font_ctx.get_resolved_font_for_style(&font_style);
+        let (font_ascent,font_descent) = font_group.borrow().with_mut( |fg| {
+            fg.fonts[0].borrow().with_mut( |font| {
+                (font.metrics.ascent,font.metrics.descent)
+            })
+        });
+
+        for box_ in boxes.mut_iter() {
+            if box_.inline_info.with( |data| data.is_none() ) {
+                box_.inline_info.set(Some(InlineInfo::new()));
+            }
+
+            let mut info = box_.inline_info.borrow_mut();
+            match info.get() {
+                &Some(ref mut info) => {
+                    // TODO(ksh8281) compute margin,border,padding
+                    info.parent_info.push(
+                        InlineParentInfo {
+                            padding: Zero::zero(),
+                            border: Zero::zero(),
+                            margin: Zero::zero(),
+                            style: parent_box.style.clone(),
+                            font_ascent: font_ascent,
+                            font_descent: font_descent,
+                        });
+                },
+                &None => {}
+            }
+        }
+    }
     /// Creates an `InlineBoxesConstructionResult` for replaced content. Replaced content doesn't
     /// render its children, so this just nukes a child's boxes and creates a `Box`.
     fn build_boxes_for_replaced_inline_content(&mut self, node: LayoutNode) -> ConstructionResult {
