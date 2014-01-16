@@ -4,7 +4,7 @@
 
 use css::node_style::StyledNode;
 use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox, SplitDidFit};
-use layout::box_::{SplitDidNotFit, UnscannedTextBox};
+use layout::box_::{SplitDidNotFit, UnscannedTextBox, InlineInfo};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
@@ -837,6 +837,19 @@ impl Flow for InlineFlow {
 
                 cur_box.position.borrow_mut().get().origin.y = cur_box.position.get().origin.y +
                     adjust_offset;
+
+                if cur_box.inline_info.with(|info| info.is_none()) {
+                    cur_box.inline_info.set(Some(InlineInfo::new()));
+                }
+                cur_box.inline_info.with_mut( |info| {
+                    match info {
+                        &Some(ref mut info) => {
+                            // TODO (ksh8281) compute vertical-align, line-height
+                            info.baseline = line.bounds.origin.y + baseline_offset;
+                        },
+                        &None => {}
+                    }
+                });
             }
 
             // This is used to set the top y position of the next linebox in the next loop.
