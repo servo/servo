@@ -20,10 +20,11 @@ enum CompressionMode {
 // * Issue #114: record skipped and kept chars for mapping original to new text
 //
 // * Untracked: various edge cases for bidi, CJK, etc.
-pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bool) -> (~str, bool) {
+pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bool, new_line_pos: &mut ~[uint]) -> (~str, bool) {
     let mut out_str: ~str = ~"";
     let out_whitespace = match mode {
         CompressNone | DiscardNewline => {
+            let mut new_line_index = 0;
             for ch in text.chars() {
                 if is_discardable_char(ch, mode) {
                     // TODO: record skipped char
@@ -31,8 +32,17 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
                     // TODO: record kept char
                     if ch == '\t' {
                         // TODO: set "has tab" flag
+                    } else if ch == '\n' {
+                        // Save new-line's position for line-break
+                        // This value is relative(not absolute)
+                        new_line_pos.push(new_line_index);
+                        new_line_index = 0;
                     }
-                    out_str.push_char(ch);
+
+                    if ch != '\n' {
+                        new_line_index += 1;
+                    }
+                    out_str.push_char(ch);                        
                 }
             }
             text.len() > 0 && is_in_whitespace(text.char_at_reverse(0), mode)
@@ -139,7 +149,8 @@ fn test_transform_compress_none() {
     let mode = CompressNone;
 
     for i in range(0, test_strs.len()) {
-        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
+        let mut new_line_pos = ~[];
+        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
         assert_eq!(&trimmed_str, &test_strs[i])
     }
 }
@@ -167,7 +178,8 @@ fn test_transform_discard_newline() {
     let mode = DiscardNewline;
 
     for i in range(0, test_strs.len()) {
-        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
+        let mut new_line_pos = ~[];
+        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
         assert_eq!(&trimmed_str, &oracle_strs[i])
     }
 }
@@ -195,7 +207,8 @@ fn test_transform_compress_whitespace() {
     let mode = CompressWhitespace;
 
     for i in range(0, test_strs.len()) {
-        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
+        let mut new_line_pos = ~[];
+        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
         assert_eq!(&trimmed_str, &oracle_strs[i])
     }
 }
@@ -222,7 +235,8 @@ fn test_transform_compress_whitespace_newline() {
     let mode = CompressWhitespaceNewline;
 
     for i in range(0, test_strs.len()) {
-        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
+        let mut new_line_pos = ~[];
+        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
         assert_eq!(&trimmed_str, &oracle_strs[i])
     }
 }
@@ -252,7 +266,8 @@ fn test_transform_compress_whitespace_newline_no_incoming() {
     let mode = CompressWhitespaceNewline;
 
     for i in range(0, test_strs.len()) {
-        let (trimmed_str, _out) = transform_text(test_strs[i], mode, false);
+        let mut new_line_pos = ~[];
+        let (trimmed_str, _out) = transform_text(test_strs[i], mode, false, &mut new_line_pos);
         assert_eq!(&trimmed_str, &oracle_strs[i])
     }
 }

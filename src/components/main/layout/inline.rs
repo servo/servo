@@ -22,7 +22,7 @@ use servo_util::range::Range;
 use std::cell::RefCell;
 use std::u16;
 use std::util;
-use style::computed_values::{text_align, vertical_align};
+use style::computed_values::{text_align, vertical_align, white_space};
 
 /// Lineboxes are represented as offsets into the child list, rather than
 /// as an object that "owns" boxes. Choosing a different set of line
@@ -116,7 +116,11 @@ impl LineboxScanner {
                 box_
             };
 
-            let box_was_appended = self.try_append_to_line(cur_box, flow);
+            let box_was_appended = match cur_box.white_space() {
+                white_space::normal => self.try_append_to_line(cur_box, flow),
+                white_space::pre => self.try_append_to_line_by_new_line(cur_box),
+            };
+
             if !box_was_appended {
                 debug!("LineboxScanner: Box wasn't appended, because line {:u} was full.",
                         self.lines.len());
@@ -304,6 +308,35 @@ impl LineboxScanner {
         debug!("LineboxScanner: case=adding box collides vertically with floats: breaking line");
         self.work_list.push_front(in_box);
         false
+    }
+
+    fn try_append_to_line_by_new_line(&mut self, in_box: Box) -> bool {
+        if in_box.new_line_pos.len() == 0 {
+            // In case of box does not include new-line character
+            self.push_box_to_line(in_box);
+            true
+        } else {
+            // In case of box includes new-line character
+            match in_box.split_by_new_line() {
+                SplitDidFit(left, right) => {
+                    match (left, right) {
+                        (Some(left_box), Some(right_box)) => {
+                            self.push_box_to_line(left_box);
+                            self.work_list.push_front(right_box);
+                        }
+                        (Some(left_box), None) => {
+                            self.push_box_to_line(left_box);
+                        }
+                        (None, Some(right_box)) => {
+                            self.work_list.push_front(right_box);
+                        }
+                        (None, None) => error!("LineboxScanner: This split case makes no sense!"),
+                    }
+                }
+                _ => {}
+            }
+            false
+        }
     }
 
     /// Tries to append the given box to the line, splitting it if necessary. Returns false only if
