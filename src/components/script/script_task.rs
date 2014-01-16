@@ -531,10 +531,7 @@ impl ScriptTask {
                 ReflowCompleteMsg(id, reflow_id) => self.handle_reflow_complete_msg(id, reflow_id),
                 ResizeInactiveMsg(id, new_size) => self.handle_resize_inactive_msg(id, new_size),
                 ExitPipelineMsg(id) => if self.handle_exit_pipeline_msg(id) { return false },
-                ExitWindowMsg(id) => {
-                    self.handle_exit_window_msg(id);
-                    return false
-                },
+                ExitWindowMsg(id) => self.handle_exit_window_msg(id),
                 ResizeMsg(..) => fail!("should have handled ResizeMsg already"),
             }
         }
@@ -614,9 +611,13 @@ impl ScriptTask {
         }
     }
 
-    fn handle_exit_window_msg(&mut self, id: PipelineId) {
+    /// We have gotten a window.close from script, which we pass on to the compositor.
+    /// We do not shut down the script task now, because the compositor will ask the
+    /// constellation to shut down the pipeline, which will clean everything up
+    /// normally. If we do exit, we will tear down the DOM nodes, possibly at a point
+    /// where layout is still accessing them.
+    fn handle_exit_window_msg(&mut self, _: PipelineId) {
         debug!("script task handling exit window msg");
-        self.handle_exit_pipeline_msg(id);
 
         // TODO(tkuehn): currently there is only one window,
         // so this can afford to be naive and just shut down the

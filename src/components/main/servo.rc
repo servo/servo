@@ -135,7 +135,6 @@ pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
 fn run(opts: Opts) {
     let mut pool = green::SchedPool::new(green::PoolConfig::new());
 
-    let (exit_response_from_constellation, exit_chan) = Chan::new();
     let (compositor_port, compositor_chan) = CompositorChan::new();
     let profiler_chan = Profiler::create(opts.profiler_period);
 
@@ -154,13 +153,13 @@ fn run(opts: Opts) {
                                                       image_cache_task,
                                                       profiler_chan_clone);
 
-        // Send the constallation Chan as the result
-        result_chan.send(constellation_chan.clone());
-
         // Send the URL command to the constellation.
         for filename in opts.urls.iter() {
             constellation_chan.send(InitLoadUrlMsg(make_url(filename.clone(), None)))
         }
+
+        // Send the constallation Chan as the result
+        result_chan.send(constellation_chan);
     });
 
     let constellation_chan = result_port.recv();
@@ -169,9 +168,7 @@ fn run(opts: Opts) {
     CompositorTask::create(opts,
                            compositor_port,
                            constellation_chan,
-                           profiler_chan,
-                           exit_chan,
-                           exit_response_from_constellation);
+                           profiler_chan);
 
     pool.shutdown();
 }

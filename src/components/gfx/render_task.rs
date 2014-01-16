@@ -187,6 +187,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     |ctx| render_task.buffer_map.clear(ctx));
             }
 
+            debug!("render_task: shutdown_chan send");
             shutdown_chan.send(());
         });
     }
@@ -201,6 +202,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                         self.epoch.next();
                         self.compositor.set_layer_page_size_and_color(self.id, render_layer.size, self.epoch, render_layer.color);
                     } else {
+                        debug!("render_task: render ready msg");
                         self.constellation_chan.send(RendererReadyMsg(self.id));
                     }
                     self.render_layer = Some(render_layer);
@@ -232,6 +234,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     self.paint_permission = false;
                 }
                 ExitMsg(response_ch) => {
+                    debug!("render_task: exitmsg response send");
                     response_ch.send(());
                     break;
                 }
@@ -383,6 +386,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
             if self.paint_permission {
                 self.compositor.paint(self.id, layer_buffer_set, self.epoch);
             } else {
+                debug!("render_task: RendererReadyMsg send");
                 self.constellation_chan.send(RendererReadyMsg(self.id));
             }
             self.compositor.set_render_state(IdleRenderState);

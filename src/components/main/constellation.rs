@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::{CompositorChan, SetIds, SetLayerClipRect};
+use compositing::{CompositorChan, SetIds, SetLayerClipRect, ShutdownComplete};
 
 use extra::url::Url;
 use geom::rect::Rect;
@@ -315,9 +315,9 @@ impl Constellation {
     /// Handles loading pages, navigation, and granting access to the compositor
     fn handle_request(&mut self, request: Msg) -> bool {
         match request {
-            ExitMsg(sender) => {
+            ExitMsg => {
                 debug!("constellation exiting");
-                self.handle_exit(sender);
+                self.handle_exit();
                 return false;
             }
             FailureMsg(pipeline_id, subpage_id) => {
@@ -363,14 +363,13 @@ impl Constellation {
         true
     }
 
-    fn handle_exit(&self, sender: Chan<()>) {
+    fn handle_exit(&self) {
         for (_id, ref pipeline) in self.pipelines.iter() {
             pipeline.exit();
         }
         self.image_cache_task.exit();
         self.resource_task.send(resource_task::Exit);
-
-        sender.send(());
+        self.compositor_chan.send(ShutdownComplete);
     }
 
     fn handle_failure_msg(&mut self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>) {
@@ -804,6 +803,7 @@ impl Constellation {
 
     fn set_ids(&self, frame_tree: @mut FrameTree) {
         let (port, chan) = Chan::new();
+        debug!("Constellation sending SetIds");
         self.compositor_chan.send(SetIds(frame_tree.to_sendable(), chan, self.chan.clone()));
         match port.recv_opt() {
             Some(()) => {
