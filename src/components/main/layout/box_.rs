@@ -88,6 +88,9 @@ pub struct Box {
 
     /// positioned box offsets
     position_offsets: RefCell<SideOffsets2D<Au>>,
+
+    /// Inline data
+    inline_info: RefCell<Option<InlineInfo>>,
 }
 
 /// Info specific to the kind of box. Keep this enum small.
@@ -224,6 +227,34 @@ pub enum SplitBoxResult {
     SplitDidNotFit(Option<Box>, Option<Box>)
 }
 
+
+/// data for inline boxes
+#[deriving(Clone)]
+pub struct InlineInfo {
+    parent_info: ~[InlineParentInfo],
+    baseline: Au,
+}
+
+impl InlineInfo {
+    pub fn new() -> InlineInfo {
+        InlineInfo {
+            parent_info: ~[],
+            baseline: Au::new(0),
+        }
+    }
+}
+
+#[deriving(Clone)]
+pub struct InlineParentInfo {
+    padding: SideOffsets2D<Au>,
+    border: SideOffsets2D<Au>,
+    margin: SideOffsets2D<Au>,
+    style: Arc<ComputedValues>,
+    font_ascent: Au,
+    font_descent: Au,
+}
+
+
 impl Box {
     /// Constructs a new `Box` instance.
     pub fn new(node: LayoutNode, specific: SpecificBoxInfo) -> Box {
@@ -263,6 +294,7 @@ impl Box {
             margin: RefCell::new(Zero::zero()),
             specific: specific,
             position_offsets: RefCell::new(Zero::zero()),
+            inline_info: RefCell::new(None),
         }
     }
 
@@ -285,7 +317,8 @@ impl Box {
             padding: RefCell::new(self.padding.get()),
             margin: RefCell::new(self.margin.get()),
             specific: specific,
-            position_offsets: RefCell::new(Zero::zero())
+            position_offsets: RefCell::new(Zero::zero()),
+            inline_info: self.inline_info.clone(),
         }
     }
 
@@ -493,11 +526,41 @@ impl Box {
     pub fn paint_background_if_applicable<E:ExtraDisplayListData>(
                                           &self,
                                           list: &RefCell<DisplayList<E>>,
-                                          absolute_bounds: &Rect<Au>) {
+                                          absolute_bounds: &Rect<Au>,
+                                          offset: &Point2D<Au>) {
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
         // needed. We could use display list optimization to clean this up, but it still seems
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a box".
+        let info = self.inline_info.borrow();
+        match info.get() {
+            &Some(ref box_info) => {
+                let mut bg_rect = absolute_bounds.clone();
+                for info in box_info.parent_info.rev_iter() {
+                    // TODO (ksh8281) compute vertical-align, line-height
+                    bg_rect.origin.y = box_info.baseline + offset.y - info.font_ascent;
+                    bg_rect.size.height = info.font_ascent + info.font_descent;
+                    let background_color = info.style.get().resolve_color(
+                        info.style.get().Background.background_color);
+
+                    if !background_color.alpha.approx_eq(&0.0) {
+                        list.with_mut(|list| {
+                            let solid_color_display_item = ~SolidColorDisplayItem {
+                                base: BaseDisplayItem {
+                                          bounds: bg_rect.clone(),
+                                          extra: ExtraDisplayListData::new(self),
+                                      },
+                                      color: background_color.to_gfx_color(),
+                            };
+
+                            list.append_item(SolidColorDisplayItemClass(solid_color_display_item))
+                        });
+                    }
+
+                }
+            },
+            &None => {}
+        }
         let style = self.style();
         let background_color = style.resolve_color(style.Background.background_color);
         if !background_color.alpha.approx_eq(&0.0) {
@@ -598,7 +661,7 @@ impl Box {
         }
 
         // Add the background to the list, if applicable.
-        self.paint_background_if_applicable(list, &absolute_box_bounds);
+        self.paint_background_if_applicable(list, &absolute_box_bounds, &offset);
 
         match self.specific {
             UnscannedTextBox(_) => fail!("Shouldn't see unscanned boxes here."),
