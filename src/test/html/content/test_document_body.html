@@ -11,7 +11,6 @@
                 is(document.body && document.body.tagName, "BODY", "test1-2, existing document's body");
             }
 
-            /* TODO: Depends on https://github.com/mozilla/servo/issues/1430
             // test2: replace document's body with new body
             {
                 let new_body = document.createElement("body");
@@ -27,7 +26,6 @@
                 document.body = new_frameset;
                 is(new_frameset, document.body, "test2-1, replace document's body with new frameset");
             }
-            */
 
             // test4: append an invalid element to a new document
             {

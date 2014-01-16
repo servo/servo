@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+    </head>
+    <body>
+        <script>
+            // test1: 1-to-1
+            {
+                var root = document.createElement("div");
+                var elem = document.createElement("div");
+                var foo = document.createTextNode("foo");
+                var bar = document.createTextNode("bar");
+
+                elem.appendChild(bar);
+                is(elem.replaceChild(bar, bar), bar, "test1-0, 1-to-1");
+                is(elem.childNodes[0], bar, "test1-1, 1-to-1");
+
+                root.appendChild(foo);
+                is(root.replaceChild(bar, foo), foo, "test1-2, 1-to-1");
+                is(elem.childNodes.length, 0, "test1-3, 1-to-1");
+                is(root.childNodes[0], bar, "test1-4, 1-to-1");
+
+                elem.appendChild(foo);
+                is(root.replaceChild(elem, bar), bar, "test1-5, 1-to-1");
+                is(root.childNodes[0].childNodes[0], foo, "test1-6, 1-to-1");
+            }
+
+            // test2: doctype
+            {
+                var doc_doctype = document.doctype;
+                var new_doctype = document.implementation.createDocumentType("html", null, null);
+
+                isnot(doc_doctype, new_doctype, "test2-0, doctype");
+                is(document.replaceChild(new_doctype, doc_doctype), doc_doctype, "test2-1, doctype");
+                is(document.doctype, new_doctype, "test2-2, doctype");
+            }
+
+            // test3: documentElement
+            {
+                var doc_elem = document.documentElement;
+                var new_elem = document.createElement("html");
+
+                isnot(doc_elem, new_elem, "test3-0, documentElement");
+                is(document.replaceChild(new_elem, doc_elem), doc_elem, "test3-1, documentElement");
+                is(document.documentElement, new_elem, "test3-2, documentElement");
+            }
+
+            finish();
+        </script>
+    </body>
+</html>
