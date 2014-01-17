@@ -87,7 +87,6 @@ pub struct Document {
     reflector_: Reflector,
     window: @mut Window,
     doctype: DocumentType,
-    title: ~str,
     idmap: HashMap<DOMString, AbstractNode>,
     implementation: Option<@mut DOMImplementation>
 }
@@ -120,7 +119,6 @@ impl Document {
             reflector_: Reflector::new(),
             window: window,
             doctype: doctype,
-            title: ~"",
             idmap: HashMap::new(),
             implementation: None
         }
