@@ -22,6 +22,36 @@
                 is_a(doctype && doctype, DocumentType, "test2-2, createDocumentType");
             }
 
+            // test3: createHTMLDocument
+            {
+                var htmldoc = document.implementation.createHTMLDocument("example title");
+                isnot(htmldoc, null, "test3-0, createHTMLDocument");
+                is_a(htmldoc, Document, "test3-1, createHTMLDocument");
+                is_a(htmldoc, HTMLDocument, "test3-2, createHTMLDocument");
+                is(htmldoc.childNodes.length, 2, "test3-3, createHTMLDocument");
+
+                is_a(htmldoc.doctype && htmldoc.doctype, DocumentType, "test3-4, createHTMLDocument");
+                is(htmldoc.doctype.name, "html", "test3-5, createHTMLDocument");
+
+                is_a(htmldoc.documentElement && htmldoc.documentElement, HTMLHtmlElement, "test3-6, createHTMLDocument");
+                is(htmldoc.documentElement.childNodes.length, 2, "test3-7, createHTMLDocument");
+                is(htmldoc.documentElement.tagName, "HTML", "test3-8, createHTMLDocument");
+
+                is_a(htmldoc.head && htmldoc.head, HTMLHeadElement, "test3-9, createHTMLDocument");
+                is(htmldoc.head.tagName, "HEAD", "test3-10, createHTMLDocument");
+                is(htmldoc.head, htmldoc.documentElement.childNodes[0], "test3-11, createHTMLDocument");
+                is(htmldoc.head.childNodes.length, 1, "test3-12, createHTMLDocument");
+
+                is_a(htmldoc.head.childNodes[0], HTMLTitleElement, "test3-13, createHTMLDocument");
+                is(htmldoc.head.childNodes[0].tagName, "TITLE", "test3-14, createHTMLDocument");
+                is(htmldoc.title, "example title", "test3-15, createHTMLDocument");
+
+                is_a(htmldoc.body && htmldoc.body, HTMLBodyElement, "test3-16, createHTMLDocument");
+                is(htmldoc.body.tagName, "BODY", "test3-17, createHTMLDocument");
+                is(htmldoc.body, htmldoc.documentElement.childNodes[1], "test3-18, createHTMLDocument");
+                is(htmldoc.body.childNodes.length, 0, "test3-19, createHTMLDocument");
+            }
+
             finish();
         </script>
     </head>
