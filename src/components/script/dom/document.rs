@@ -88,7 +88,8 @@ pub struct Document {
     window: @mut Window,
     doctype: DocumentType,
     idmap: HashMap<DOMString, AbstractNode>,
-    implementation: Option<@mut DOMImplementation>
+    implementation: Option<@mut DOMImplementation>,
+    contenttype: DOMString
 }
 
 impl Document {
@@ -120,7 +121,13 @@ impl Document {
             window: window,
             doctype: doctype,
             idmap: HashMap::new(),
-            implementation: None
+            implementation: None,
+            contenttype: match doctype {
+                // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
+                HTML => ~"text/html",
+                // http://dom.spec.whatwg.org/#concept-document-content-type
+                SVG | XML => ~"application/xml"
+            }
         }
     }
 
@@ -162,6 +169,11 @@ impl Document {
             self.implementation = Some(DOMImplementation::new(self.window));
         }
         self.implementation.unwrap()
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-contenttype
+    pub fn ContentType(&self) -> DOMString {
+        self.contenttype.clone()
     }
 
     pub fn GetDoctype(&self) -> Option<AbstractNode> {
