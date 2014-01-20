@@ -64,17 +64,14 @@ pub struct ShapedGlyphEntry {
 impl ShapedGlyphData {
     pub fn new(buffer: *hb_buffer_t) -> ShapedGlyphData {
         unsafe {
-            let glyph_count = 0;
+            let glyph_count = 0 as c_uint;
             let glyph_infos = hb_buffer_get_glyph_infos(buffer, &glyph_count);
-            let glyph_count = glyph_count as uint;
             assert!(glyph_infos.is_not_null());
-            let pos_count = 0;
-            let pos_infos = hb_buffer_get_glyph_positions(buffer, &pos_count);
+            let pos_infos = hb_buffer_get_glyph_positions(buffer, &glyph_count);
             assert!(pos_infos.is_not_null());
-            assert!(glyph_count == pos_count as uint);
 
             ShapedGlyphData {
-                count: glyph_count,
+                count: glyph_count as uint,
                 glyph_infos: glyph_infos,
                 pos_infos: pos_infos,
             }
@@ -231,7 +228,11 @@ impl Shaper {
         // so, we must be careful to increment this when saving glyph entries.
         let mut char_idx = 0;
 
-        assert!(glyph_count <= char_max);
+        // FIXME(recrack) : glyph_count is depending on the font.
+        // Example : (I, II is roman upper character unicode)
+        // I = glyph_count(1u), char_max(1u)
+        // II = glyph_count(2u), char_max(1u)
+        //assert!(glyph_count <= char_max);
 
         debug!("Shaped text[char count={:u}], got back {:u} glyph info records.",
                char_max,
