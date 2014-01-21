@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLTableRowElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLTableRowElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLTableRowElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLTableRowElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLTableRowElementDerived for EventTarget {
+    fn is_htmltablerowelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLTableRowElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLTableRowElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTableRowElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLTableRowElement {
         HTMLTableRowElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableRowElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLTableRowElement> {
         let element = HTMLTableRowElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLTableRowElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLTableRowElementBinding::Wrap)
     }
 }
 

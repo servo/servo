@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLCollectionBinding;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, Fallible};
-use dom::node::AbstractNode;
+use dom::element::Element;
 use dom::window::Window;
 
 use js::jsapi::{JSObject, JSContext};
@@ -13,13 +14,13 @@ use js::jsapi::{JSObject, JSContext};
 use std::ptr;
 
 pub struct HTMLCollection {
-    elements: ~[AbstractNode],
+    elements: ~[JSManaged<Element>],
     reflector_: Reflector,
     window: @mut Window,
 }
 
 impl HTMLCollection {
-    pub fn new_inherited(window: @mut Window, elements: ~[AbstractNode]) -> HTMLCollection {
+    pub fn new_inherited(window: @mut Window, elements: ~[JSManaged<Element>]) -> HTMLCollection {
         HTMLCollection {
             elements: elements,
             reflector_: Reflector::new(),
@@ -27,7 +28,7 @@ impl HTMLCollection {
         }
     }
 
-    pub fn new(window: @mut Window, elements: ~[AbstractNode]) -> @mut HTMLCollection {
+    pub fn new(window: @mut Window, elements: ~[JSManaged<Element>]) -> @mut HTMLCollection {
         reflect_dom_object(@mut HTMLCollection::new_inherited(window, elements),
                            window, HTMLCollectionBinding::Wrap)
     }
@@ -36,7 +37,7 @@ impl HTMLCollection {
         self.elements.len() as u32
     }
 
-    pub fn Item(&self, index: u32) -> Option<AbstractNode> {
+    pub fn Item(&self, index: u32) -> Option<JSManaged<Element>> {
         if index < self.Length() {
             Some(self.elements[index])
         } else {
@@ -48,7 +49,7 @@ impl HTMLCollection {
         Ok(ptr::null())
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<AbstractNode> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JSManaged<Element>> {
         *found = true;
         self.Item(index)
     }

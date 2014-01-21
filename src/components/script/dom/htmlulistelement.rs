@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLUListElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLUListElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLUListElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLUListElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLUListElementDerived for EventTarget {
+    fn is_htmlulistelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLUListElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLUListElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLUListElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLUListElement {
         HTMLUListElement {
             htmlelement: HTMLElement::new_inherited(HTMLUListElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLUListElement> {
         let element = HTMLUListElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLUListElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLUListElementBinding::Wrap)
     }
 }
 

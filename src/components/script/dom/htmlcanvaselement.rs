@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLCanvasElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLCanvasElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLCanvasElementDerived for EventTarget {
+    fn is_htmlcanvaselement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLCanvasElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLCanvasElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLCanvasElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLCanvasElement> {
         let element = HTMLCanvasElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLCanvasElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLCanvasElementBinding::Wrap)
     }
 }
 

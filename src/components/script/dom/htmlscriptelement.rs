@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLScriptElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLScriptElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLScriptElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLScriptElementDerived for EventTarget {
+    fn is_htmlscriptelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLScriptElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLScriptElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLScriptElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement: HTMLElement::new_inherited(HTMLScriptElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLScriptElement> {
         let element = HTMLScriptElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLScriptElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLScriptElementBinding::Wrap)
     }
 }
 

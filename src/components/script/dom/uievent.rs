@@ -7,8 +7,8 @@ use dom::bindings::codegen::InheritTypes::UIEventDerived;
 use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
-use dom::node::AbstractNode;
 use dom::event::{Event, EventTypeId, UIEventTypeId};
+use dom::node::Node;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 
@@ -92,7 +92,7 @@ impl UIEvent {
         0
     }
 
-    pub fn GetRangeParent(&self) -> Option<AbstractNode> {
+    pub fn GetRangeParent(&self) -> Option<JSManaged<Node>> {
         //TODO
         None
     }

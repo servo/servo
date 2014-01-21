@@ -3,24 +3,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLAudioElementBinding;
-use dom::document::AbstractDocument;
+use dom::bindings::codegen::InheritTypes::HTMLAudioElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
+use dom::document::Document;
 use dom::element::HTMLAudioElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlmediaelement::HTMLMediaElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLAudioElement {
     htmlmediaelement: HTMLMediaElement
 }
 
+impl HTMLAudioElementDerived for EventTarget {
+    fn is_htmlaudioelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLAudioElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLAudioElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLAudioElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLAudioElement {
         HTMLAudioElement {
             htmlmediaelement: HTMLMediaElement::new_inherited(HTMLAudioElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLAudioElement> {
         let element = HTMLAudioElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLAudioElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLAudioElementBinding::Wrap)
     }
 }

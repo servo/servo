@@ -4,9 +4,11 @@
 
 use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
+use dom::bindings::codegen::InheritTypes::DocumentCast;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, Fallible, Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::utils::FailureUnknown;
-use dom::document::{AbstractDocument, Document, XML};
+use dom::document::{Document, XML};
 use dom::htmldocument::HTMLDocument;
 use dom::window::Window;
 
@@ -35,10 +37,10 @@ impl DOMParser {
     pub fn ParseFromString(&self,
                            _s: DOMString,
                            ty: DOMParserBinding::SupportedType)
-                           -> Fallible<AbstractDocument> {
+                           -> Fallible<JSManaged<Document>> {
         match ty {
             Text_html => {
-                Ok(HTMLDocument::new(self.owner))
+                Ok(DocumentCast::from(HTMLDocument::new(self.owner)))
             }
             Text_xml => {
                 Ok(Document::new(self.owner, XML))

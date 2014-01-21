@@ -3,24 +3,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLSpanElementBinding;
-use dom::document::AbstractDocument;
+use dom::bindings::codegen::InheritTypes::HTMLSpanElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
+use dom::document::Document;
 use dom::element::HTMLSpanElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLSpanElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLSpanElementDerived for EventTarget {
+    fn is_htmlspanelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLSpanElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLSpanElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLSpanElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLSpanElement {
         HTMLSpanElement {
             htmlelement: HTMLElement::new_inherited(HTMLSpanElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLSpanElement> {
         let element = HTMLSpanElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLSpanElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLSpanElementBinding::Wrap)
     }
 }

@@ -8,7 +8,7 @@ use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::event::{Event, MouseEventTypeId};
-use dom::eventtarget::AbstractEventTarget;
+use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
@@ -24,7 +24,7 @@ pub struct MouseEvent {
     alt_key: bool,
     meta_key: bool,
     button: u16,
-    related_target: Option<AbstractEventTarget>
+    related_target: Option<JSManaged<EventTarget>>
 }
 
 impl MouseEventDerived for Event {
@@ -109,7 +109,7 @@ impl MouseEvent {
         0
     }
 
-    pub fn GetRelatedTarget(&self) -> Option<AbstractEventTarget> {
+    pub fn GetRelatedTarget(&self) -> Option<JSManaged<EventTarget>> {
         self.related_target
     }
 
@@ -133,7 +133,7 @@ impl MouseEvent {
                           shiftKeyArg: bool,
                           metaKeyArg: bool,
                           buttonArg: u16,
-                          relatedTargetArg: Option<AbstractEventTarget>) -> ErrorResult {
+                          relatedTargetArg: Option<JSManaged<EventTarget>>) -> ErrorResult {
         self.mouseevent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x = screenXArg;
         self.screen_y = screenYArg;

@@ -6,15 +6,16 @@
 //! and layout tasks.
 
 use dom::bindings::codegen::RegisterBindings;
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, DocumentCast, ElementCast};
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, GlobalStaticData};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::Element;
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
 use dom::event::Event;
-use dom::eventtarget::AbstractEventTarget;
 use dom::htmldocument::HTMLDocument;
 use dom::namespace::Null;
-use dom::node::AbstractNode;
+use dom::node::{Node, NodeHelpers};
 use dom::window::{TimerData, TimerHandle, Window};
 use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
@@ -130,7 +131,7 @@ pub struct Page {
     resize_event: Option<Size2D<uint>>,
 
     /// Pending scroll to fragment event, if any
-    fragment_node: Option<AbstractNode>
+    fragment_node: Option<JSManaged<Element>>
 }
 
 pub struct PageTree {
@@ -222,23 +223,24 @@ impl Page {
     pub fn damage(&mut self, level: DocumentDamageLevel) {
         let root = match self.frame {
             None => return,
-            Some(ref frame) => frame.document.document().GetDocumentElement()
+            Some(ref frame) => frame.document.value().GetDocumentElement()
         };
         match root {
             None => {},
             Some(root) => {
+                let root: JSManaged<Node> = NodeCast::from(root);
                 match self.damage {
                     None => {}
                     Some(ref mut damage) => {
                         // FIXME(pcwalton): This is wrong. We should trace up to the nearest ancestor.
-                        damage.root = root;
+                        damage.root = root.to_uintptr();
                         damage.level.add(level);
                         return
                     }
                 }
 
                 self.damage = Some(DocumentDamage {
-                    root: root,
+                    root: root.to_uintptr(),
                     level: level,
                 })
             }
@@ -291,7 +293,7 @@ impl Page {
         let root = match self.frame {
             None => return,
             Some(ref frame) => {
-                frame.document.document().GetDocumentElement()
+                frame.document.value().GetDocumentElement()
             }
         };
 
@@ -313,8 +315,9 @@ impl Page {
                 self.last_reflow_id += 1;
 
                 // Send new document and relevant styles to layout.
+                let root: JSManaged<Node> = NodeCast::from(root);
                 let reflow = ~Reflow {
-                    document_root: root,
+                    document_root: root.to_uintptr(),
                     url: self.url.get_ref().first().clone(),
                     goal: goal,
                     window_size: self.window_size,
@@ -364,7 +367,7 @@ impl Page {
 /// Information for one frame in the browsing context.
 pub struct Frame {
     /// The document for this frame.
-    document: AbstractDocument,
+    document: JSManaged<Document>,
     /// The window object for this frame.
     window: @mut Window,
 }
@@ -688,7 +691,7 @@ impl ScriptTask {
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
-        let document = HTMLDocument::new(window);
+        let mut document = DocumentCast::from(HTMLDocument::new(window));
         let html_parsing_result = hubbub_html_parser::parse_html(cx.ptr,
                                                                  document,
                                                                  url.clone(),
@@ -738,7 +741,7 @@ impl ScriptTask {
         }
 
         // Kick off the initial reflow of the page.
-        document.document().content_changed();
+        document.mut_value().content_changed();
 
         let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_owned());
 
@@ -768,35 +771,36 @@ impl ScriptTask {
         // the initial load.
         let mut event = Event::new(window);
         event.mut_value().InitEvent(~"load", false, false);
-        let doctarget = AbstractEventTarget::from_document(document);
-        let wintarget = AbstractEventTarget::from_window(window);
+        let doctarget = EventTargetCast::from(document);
+        //let wintarget = EventTargetCast::from(window);
+        let wintarget = doctarget; //XXXjdm temporary until window becomes JSManaged
         window.eventtarget.dispatch_event_with_target(wintarget, Some(doctarget), event);
 
         page.fragment_node = fragment.map_default(None, |fragid| self.find_fragment_node(page, fragid));
     }
 
-    fn find_fragment_node(&self, page: &mut Page, fragid: ~str) -> Option<AbstractNode> {
+    fn find_fragment_node(&self, page: &mut Page, fragid: ~str) -> Option<JSManaged<Element>> {
         let document = page.frame.expect("root frame is None").document; 
-        match document.document().GetElementById(fragid.to_owned()) {
+        match document.value().GetElementById(fragid.to_owned()) {
             Some(node) => Some(node),
             None => {
-                let doc_node = AbstractNode::from_document(document);
+                let doc_node: JSManaged<Node> = NodeCast::from(document);
                 let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
                 anchors.find(|node| {
-                    node.with_imm_element(|elem| {
-                        match elem.get_attr(Null, "name") {
-                            Some(name) => eq_slice(name, fragid),
-                            None => false
-                        }
-                    })
-                })
+                    let elem: JSManaged<Element> = ElementCast::to(*node);
+                    match elem.value().get_attr(Null, "name") {
+                        Some(name) => eq_slice(name, fragid),
+                        None => false
+                    }
+                }).map(|node| ElementCast::to(node))
             }
         }
     }
 
-    fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &mut Page, node: AbstractNode) {
+    fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &mut Page, node: JSManaged<Element>) {
         let (port, chan) = Chan::new();
-        match page.query_layout(ContentBoxQuery(node, chan), port) {
+        let node: JSManaged<Node> = NodeCast::from(node);
+        match page.query_layout(ContentBoxQuery(node.to_uintptr(), chan), port) {
             ContentBoxResponse(rect) => {
                 let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(), 
                                     to_frac_px(rect.origin.y).to_f32().unwrap());
@@ -843,14 +847,16 @@ impl ScriptTask {
                 debug!("ClickEvent: clicked at {:?}", point);
 
                 let document = page.frame.expect("root frame is None").document;
-                let root = document.document().GetDocumentElement();
+                let root = document.value().GetDocumentElement();
                 if root.is_none() {
                     return;
                 }
                 let (port, chan) = Chan::new();
-                match page.query_layout(HitTestQuery(root.unwrap(), point, chan), port) {
+                let root: JSManaged<Node> = NodeCast::from(root.unwrap());
+                match page.query_layout(HitTestQuery(root.to_uintptr(), point, chan), port) {
                     Ok(node) => match node {
-                        HitTestResponse(node) => {
+                        HitTestResponse(node_addr) => {
+                            let node: JSManaged<Node> = JSManaged::from_uintptr(node_addr);
                             debug!("clicked on {:s}", node.debug_str());
                             let mut node = node;
                             // traverse node generations until a node that is an element is found
@@ -863,11 +869,10 @@ impl ScriptTask {
                                 }
                             }
                             if node.is_element() {
-                                node.with_imm_element(|element| {
-                                    if "a" == element.tag_name {
-                                        self.load_url_from_element(page, element)
-                                    }
-                                })
+                                let element: JSManaged<Element> = ElementCast::to(node);
+                                if "a" == element.value().tag_name {
+                                    self.load_url_from_element(page, element.value())
+                                }
                             }
                         }
                     },

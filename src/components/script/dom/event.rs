@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::eventtarget::AbstractEventTarget;
-use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
 use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
+use dom::eventtarget::EventTarget;
+use dom::window::Window;
 
 use geom::point::Point2D;
 
@@ -37,8 +37,8 @@ pub enum EventTypeId {
 pub struct Event {
     type_id: EventTypeId,
     reflector_: Reflector,
-    current_target: Option<AbstractEventTarget>,
-    target: Option<AbstractEventTarget>,
+    current_target: Option<JSManaged<EventTarget>>,
+    target: Option<JSManaged<EventTarget>>,
     type_: ~str,
     phase: EventPhase,
     default_prevented: bool,
@@ -87,11 +87,11 @@ impl Event {
         self.type_.clone()
     }
 
-    pub fn GetTarget(&self) -> Option<AbstractEventTarget> {
+    pub fn GetTarget(&self) -> Option<JSManaged<EventTarget>> {
         self.target
     }
 
-    pub fn GetCurrentTarget(&self) -> Option<AbstractEventTarget> {
+    pub fn GetCurrentTarget(&self) -> Option<JSManaged<EventTarget>> {
         self.current_target
     }
 

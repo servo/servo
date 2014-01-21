@@ -3,11 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLIFrameElementBinding;
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived};
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLIframeElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use dom::windowproxy::WindowProxy;
 
 use extra::url::Url;
@@ -31,6 +34,15 @@ pub struct HTMLIFrameElement {
     sandbox: Option<u8>
 }
 
+impl HTMLIFrameElementDerived for EventTarget {
+    fn is_htmliframeelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLIframeElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 pub struct IFrameSize {
     pipeline_id: PipelineId,
     subpage_id: SubpageId,
@@ -43,7 +55,7 @@ impl HTMLIFrameElement {
 }
 
 impl HTMLIFrameElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLIFrameElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIframeElementTypeId, localName, document),
             frame: None,
@@ -52,9 +64,9 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLIFrameElement> {
         let element = HTMLIFrameElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLIFrameElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLIFrameElementBinding::Wrap)
     }
 }
 
@@ -83,12 +95,13 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn Sandbox(&self, _abstract_self: AbstractNode) -> DOMString {
+    pub fn Sandbox(&self, _abstract_self: JSManaged<HTMLIFrameElement>) -> DOMString {
         self.htmlelement.element.get_string_attribute("sandbox")
     }
 
-    pub fn SetSandbox(&mut self, abstract_self: AbstractNode, sandbox: DOMString) {
-        self.htmlelement.element.set_string_attribute(abstract_self, "sandbox",
+    pub fn SetSandbox(&mut self, abstract_self: JSManaged<HTMLIFrameElement>, sandbox: DOMString) {
+        self.htmlelement.element.set_string_attribute(ElementCast::from(abstract_self),
+                                                      "sandbox",
                                                       sandbox);
     }
 
@@ -142,7 +155,7 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn GetContentDocument(&self) -> Option<AbstractDocument> {
+    pub fn GetContentDocument(&self) -> Option<JSManaged<Document>> {
         None
     }
 
@@ -198,7 +211,7 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn GetSVGDocument(&self) -> Option<AbstractDocument> {
+    pub fn GetSVGDocument(&self) -> Option<JSManaged<Document>> {
         None
     }
 }

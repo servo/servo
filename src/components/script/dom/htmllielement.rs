@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLLIElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLLIElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLLIElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLLIElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLLIElementDerived for EventTarget {
+    fn is_htmllielement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLLIElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLLIElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLLIElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLLIElement {
         HTMLLIElement {
             htmlelement: HTMLElement::new_inherited(HTMLLIElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLLIElement> {
         let element = HTMLLIElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLLIElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLLIElementBinding::Wrap)
     }
 }
 

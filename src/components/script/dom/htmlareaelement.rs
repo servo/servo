@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLAreaElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLAreaElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLAreaElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLAreaElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLAreaElementDerived for EventTarget {
+    fn is_htmlareaelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLAreaElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLAreaElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLAreaElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLAreaElement {
         HTMLAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLAreaElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLAreaElement> {
         let element = HTMLAreaElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLAreaElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLAreaElementBinding::Wrap)
     }
 }
 

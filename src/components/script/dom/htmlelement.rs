@@ -3,28 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
-use dom::node::{AbstractNode, Node};
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::namespace;
+use dom::node::{Node, ElementNodeTypeId};
 use js::jsapi::{JSContext, JSVal};
 use js::JSVAL_NULL;
-use dom::namespace;
 
 pub struct HTMLElement {
     element: Element
 }
 
+impl HTMLElementDerived for EventTarget {
+    fn is_htmlelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(_)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> HTMLElement {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, document: JSManaged<Document>) -> HTMLElement {
         HTMLElement {
             element: Element::new_inherited(type_id, tag_name, namespace::HTML, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLElement> {
         let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document);
-        Node::reflect_node(@mut element, document, HTMLElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLElementBinding::Wrap)
     }
 }
 
@@ -133,7 +145,7 @@ impl HTMLElement {
     pub fn SetClassName(&self, _class: DOMString) {
     }
 
-    pub fn GetOffsetParent(&self) -> Option<AbstractNode> {
+    pub fn GetOffsetParent(&self) -> Option<JSManaged<Element>> {
         None
     }
 

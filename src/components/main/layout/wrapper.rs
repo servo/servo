@@ -15,12 +15,15 @@
 //!     onto these objects and cause use-after-free.
 
 use extra::url::Url;
+use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLIFrameElementCast};
+use script::dom::bindings::codegen::InheritTypes::{TextCast, ElementCast};
+use script::dom::bindings::jsmanaged::JSManaged;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::HTMLImageElement;
 use script::dom::namespace::Namespace;
-use script::dom::node::{AbstractNode, DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
+use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId, NodeHelpers};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use std::cast;
@@ -31,7 +34,7 @@ use style::{PropertyDeclarationBlock, TElement, TNode};
 #[deriving(Clone, Eq)]
 pub struct LayoutNode<'a> {
     /// The wrapped node.
-    priv node: AbstractNode,
+    priv node: JSManaged<Node>,
 
     /// Being chained to a value prevents `LayoutNode`s from escaping.
     priv chain: &'a (),
@@ -39,7 +42,7 @@ pub struct LayoutNode<'a> {
 
 impl<'ln> LayoutNode<'ln> {
     /// Creates a new layout node, scoped to the given closure.
-    pub unsafe fn with_layout_node<R>(node: AbstractNode, f: <'a> |LayoutNode<'a>| -> R) -> R {
+    pub unsafe fn with_layout_node<R>(node: JSManaged<Node>, f: <'a> |LayoutNode<'a>| -> R) -> R {
         let heavy_iron_ball = ();
         f(LayoutNode {
             node: node,
@@ -48,7 +51,7 @@ impl<'ln> LayoutNode<'ln> {
     }
 
     /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> LayoutNode<'ln> {
+    unsafe fn new_with_this_lifetime(&self, node: JSManaged<Node>) -> LayoutNode<'ln> {
         LayoutNode {
             node: node,
             chain: self.chain,
@@ -58,7 +61,7 @@ impl<'ln> LayoutNode<'ln> {
     /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
     /// and as such is marked `unsafe`.
     pub unsafe fn get<'a>(&'a self) -> &'a Node {
-        cast::transmute(self.node.node())
+        cast::transmute(self.node.value())
     }
 
     /// Returns the first child of this node.
@@ -100,42 +103,16 @@ impl<'ln> LayoutNode<'ln> {
     ///
     /// FIXME(pcwalton): Don't copy URLs.
     pub fn image_url(&self) -> Option<Url> {
-        unsafe {
-            self.with_image_element(|image_element| {
-                image_element.image.as_ref().map(|url| (*url).clone())
-            })
-        }
-    }
-
-    /// Downcasts this node to an image element and calls the given closure.
-    ///
-    /// FIXME(pcwalton): RAII.
-    unsafe fn with_image_element<R>(self, f: |&HTMLImageElement| -> R) -> R {
-        if !self.node.is_image_element() {
-            fail!(~"node is not an image element");
-        }
-        self.node.transmute(f)
+        let image_element: JSManaged<HTMLImageElement> = HTMLImageElementCast::to(self.node);
+        image_element.value().image.as_ref().map(|url| (*url).clone())
     }
 
     /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
     /// not an iframe element, fails.
     pub fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
-        unsafe {
-            self.with_iframe_element(|iframe_element| {
-                let size = iframe_element.size.unwrap();
-                (size.pipeline_id, size.subpage_id)
-            })
-        }
-    }
-
-    /// Downcasts this node to an iframe element and calls the given closure.
-    ///
-    /// FIXME(pcwalton): RAII.
-    unsafe fn with_iframe_element<R>(self, f: |&HTMLIFrameElement| -> R) -> R {
-        if !self.node.is_iframe_element() {
-            fail!(~"node is not an iframe element");
-        }
-        self.node.transmute(f)
+        let iframe_element: JSManaged<HTMLIFrameElement> = HTMLIFrameElementCast::to(self.node);
+        let size = iframe_element.value().size.unwrap();
+        (size.pipeline_id, size.subpage_id)
     }
 
     /// Returns true if this node is a text node or false otherwise.
@@ -147,25 +124,19 @@ impl<'ln> LayoutNode<'ln> {
     /// Returns true if this node consists entirely of ignorable whitespace and false otherwise.
     /// Ignorable whitespace is defined as whitespace that would be removed per CSS 2.1 § 16.6.1.
     pub fn is_ignorable_whitespace(&self) -> bool {
-        unsafe {
-            self.is_text() && self.with_text(|text| text.element.data.is_whitespace())
+        if !self.is_text() {
+            return false;
         }
+        let text: JSManaged<Text> = TextCast::to(self.node);
+        text.value().element.data.is_whitespace()
     }
 
     /// If this is a text node, copies out the text. If this is not a text node, fails.
     ///
     /// FIXME(pcwalton): Don't copy text. Atomically reference count instead.
     pub fn text(&self) -> ~str {
-        unsafe {
-            self.with_text(|text| text.element.data.to_str())
-        }
-    }
-
-    /// Downcasts this node to a text node and calls the given closure.
-    ///
-    /// FIXME(pcwalton): RAII.
-    unsafe fn with_text<R>(self, f: |&Text| -> R) -> R {
-        self.node.with_imm_text(f)
+        let text: JSManaged<Text> = TextCast::to(self.node);
+        text.value().element.data.to_str()
     }
 
     /// Dumps this node tree, for debugging.
@@ -231,19 +202,19 @@ impl<'ln> LayoutNode<'ln> {
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.node().parent_node.map(|node| self.new_with_this_lifetime(node))
+            self.node.parent_node().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
     fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
+            self.node.prev_sibling().map(|node| self.new_with_this_lifetime(node))
         }
     }
     
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
+            self.node.next_sibling().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
@@ -264,15 +235,15 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
     fn with_element<R>(&self, f: |&LayoutElement<'ln>| -> R) -> R {
-        self.node.with_imm_element(|element| {
-            // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
-            // implementations.
-            unsafe {
-                f(&LayoutElement {
-                    element: cast::transmute_region(element),
-                })
-            }
-        })
+        let elem: JSManaged<Element> = ElementCast::to(self.node);
+        let element = elem.value();
+        // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
+        // implementations.
+        unsafe {
+            f(&LayoutElement {
+                element: cast::transmute_region(element),
+            })
+        }
     }
 }
 

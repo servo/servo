@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLDivElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLDivElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLDivElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLDivElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLDivElementDerived for EventTarget {
+    fn is_htmldivelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLDivElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLDivElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLDivElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLDivElement {
         HTMLDivElement {
             htmlelement: HTMLElement::new_inherited(HTMLDivElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLDivElement> {
         let element = HTMLDivElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLDivElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLDivElementBinding::Wrap)
     }
 }
 

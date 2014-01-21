@@ -6,15 +6,11 @@ use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, DOMString, Fallible};
 use dom::bindings::utils::{InvalidState};
 use dom::bindings::codegen::EventListenerBinding::EventListener;
-use dom::document::AbstractDocument;
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
-use dom::node::AbstractNode;
-use dom::window::Window;
+use dom::node::NodeTypeId;
 
-use std::cast;
 use std::hashmap::HashMap;
-use std::unstable::raw::Box;
 
 #[deriving(Eq)]
 pub enum ListenerPhase {
@@ -25,7 +21,7 @@ pub enum ListenerPhase {
 #[deriving(Eq)]
 pub enum EventTargetTypeId {
     WindowTypeId,
-    NodeTypeId
+    NodeTargetTypeId(NodeTypeId)
 }
 
 #[deriving(Eq)]
@@ -38,84 +34,6 @@ pub struct EventTarget {
     type_id: EventTargetTypeId,
     reflector_: Reflector,
     handlers: HashMap<~str, ~[EventListenerEntry]>,
-}
-
-pub struct AbstractEventTarget {
-    eventtarget: *mut Box<EventTarget>
-}
-
-impl AbstractEventTarget {
-    pub fn from_box<T>(box_: *mut Box<T>) -> AbstractEventTarget {
-        AbstractEventTarget {
-            eventtarget: box_ as *mut Box<EventTarget>
-        }
-    }
-
-    pub fn from_node(node: AbstractNode) -> AbstractEventTarget {
-        unsafe {
-            cast::transmute(node)
-        }
-    }
-
-    pub fn from_window(window: @mut Window) -> AbstractEventTarget {
-        AbstractEventTarget {
-            eventtarget: unsafe { cast::transmute(window) }
-        }
-    }
-
-    pub fn from_document(document: AbstractDocument) -> AbstractEventTarget {
-        unsafe {
-            cast::transmute(document)
-        }
-    }
-
-    pub fn type_id(&self) -> EventTargetTypeId {
-        self.eventtarget().type_id
-    }
-
-    pub fn is_window(&self) -> bool {
-        self.type_id() == WindowTypeId
-    }
-
-    pub fn is_node(&self) -> bool {
-        self.type_id() == NodeTypeId
-    }
-
-    //
-    // Downcasting borrows
-    //
-
-    fn transmute<'a, T>(&'a self) -> &'a T {
-        unsafe {
-            let box_: *Box<T> = self.eventtarget as *Box<T>;
-            &(*box_).data
-        }
-    }
-
-    fn transmute_mut<'a, T>(&'a mut self) -> &'a mut T {
-        unsafe {
-            let box_: *mut Box<T> = self.eventtarget as *mut Box<T>;
-            &mut (*box_).data
-        }
-    }
-
-    pub fn eventtarget<'a>(&'a self) -> &'a EventTarget {
-        self.transmute()
-    }
-
-    pub fn mut_eventtarget<'a>(&'a mut self) -> &'a mut EventTarget {
-        self.transmute_mut()
-    }
-}
-
-impl Reflectable for AbstractEventTarget {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget().reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.mut_eventtarget().mut_reflector()
-    }
 }
 
 impl EventTarget {
@@ -178,14 +96,14 @@ impl EventTarget {
         }
     }
 
-    pub fn DispatchEvent(&self, abstract_self: AbstractEventTarget,
+    pub fn DispatchEvent(&self, abstract_self: JSManaged<EventTarget>,
                          event: JSManaged<Event>) -> Fallible<bool> {
         self.dispatch_event_with_target(abstract_self, None, event)
     }
 
     pub fn dispatch_event_with_target(&self,
-                                      abstract_self: AbstractEventTarget,
-                                      abstract_target: Option<AbstractEventTarget>,
+                                      abstract_self: JSManaged<EventTarget>,
+                                      abstract_target: Option<JSManaged<EventTarget>>,
                                       event: JSManaged<Event>) -> Fallible<bool> {
         if event.value().dispatching || !event.value().initialized {
             return Err(InvalidState);

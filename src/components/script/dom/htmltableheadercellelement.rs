@@ -3,24 +3,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLTableHeaderCellElementBinding;
-use dom::document::AbstractDocument;
+use dom::bindings::codegen::InheritTypes::HTMLTableHeaderCellElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
+use dom::document::Document;
 use dom::element::HTMLTableHeaderCellElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmltablecellelement::HTMLTableCellElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLTableHeaderCellElement {
     htmltablecellelement: HTMLTableCellElement,
 }
 
+impl HTMLTableHeaderCellElementDerived for EventTarget {
+    fn is_htmltableheadercellelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLTableHeaderCellElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLTableHeaderCellElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTableHeaderCellElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLTableHeaderCellElement {
         HTMLTableHeaderCellElement {
             htmltablecellelement: HTMLTableCellElement::new_inherited(HTMLTableHeaderCellElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLTableHeaderCellElement> {
         let element = HTMLTableHeaderCellElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLTableHeaderCellElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLTableHeaderCellElementBinding::Wrap)
     }
 }

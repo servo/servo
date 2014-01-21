@@ -3,11 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLObjectElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLObjectElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::htmlformelement::HTMLFormElement;
+use dom::node::{Node, ElementNodeTypeId};
 use dom::validitystate::ValidityState;
 use dom::windowproxy::WindowProxy;
 
@@ -15,16 +19,25 @@ pub struct HTMLObjectElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLObjectElementDerived for EventTarget {
+    fn is_htmlobjectelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLObjectElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLObjectElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLObjectElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLObjectElement {
         HTMLObjectElement {
             htmlelement: HTMLElement::new_inherited(HTMLObjectElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLObjectElement> {
         let element = HTMLObjectElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLObjectElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLObjectElementBinding::Wrap)
     }
 }
 
@@ -61,7 +74,7 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode> {
+    pub fn GetForm(&self) -> Option<JSManaged<HTMLFormElement>> {
         None
     }
 
@@ -81,7 +94,7 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn GetContentDocument(&self) -> Option<AbstractDocument> {
+    pub fn GetContentDocument(&self) -> Option<JSManaged<Document>> {
         None
     }
 
@@ -94,7 +107,7 @@ impl HTMLObjectElement {
     }
 
     pub fn Validity(&self) -> @mut ValidityState {
-        let global = self.htmlelement.element.node.owner_doc().document().window;
+        let global = self.htmlelement.element.node.owner_doc().value().window;
         ValidityState::new(global)
     }
 
@@ -189,7 +202,7 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn GetSVGDocument(&self) -> Option<AbstractDocument> {
+    pub fn GetSVGDocument(&self) -> Option<JSManaged<Document>> {
         None
     }
 }

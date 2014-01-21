@@ -3,28 +3,41 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLFieldSetElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLFieldSetElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLFieldSetElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::htmlformelement::HTMLFormElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use dom::validitystate::ValidityState;
 
 pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLFieldSetElementDerived for EventTarget {
+    fn is_htmlfieldsetelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLFieldSetElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLFieldSetElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLFieldSetElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement: HTMLElement::new_inherited(HTMLFieldSetElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLFieldSetElement> {
         let element = HTMLFieldSetElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLFieldSetElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLFieldSetElementBinding::Wrap)
     }
 }
 
@@ -37,7 +50,7 @@ impl HTMLFieldSetElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode> {
+    pub fn GetForm(&self) -> Option<JSManaged<HTMLFormElement>> {
         None
     }
 
@@ -54,7 +67,7 @@ impl HTMLFieldSetElement {
     }
 
     pub fn Elements(&self) -> @mut HTMLCollection {
-        let window = self.htmlelement.element.node.owner_doc().document().window;
+        let window = self.htmlelement.element.node.owner_doc().value().window;
         HTMLCollection::new(window, ~[])
     }
 
@@ -63,7 +76,7 @@ impl HTMLFieldSetElement {
     }
 
     pub fn Validity(&self) -> @mut ValidityState {
-        let global = self.htmlelement.element.node.owner_doc().document().window;
+        let global = self.htmlelement.element.node.owner_doc().value().window;
         ValidityState::new(global)
     }
 

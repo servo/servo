@@ -3,27 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLButtonElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLButtonElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLButtonElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::htmlformelement::HTMLFormElement;
+use dom::node::{Node, ElementNodeTypeId};
 use dom::validitystate::ValidityState;
 
 pub struct HTMLButtonElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLButtonElementDerived for EventTarget {
+    fn is_htmlbuttonelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLButtonElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLButtonElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLButtonElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement: HTMLElement::new_inherited(HTMLButtonElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLButtonElement> {
         let element = HTMLButtonElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLButtonElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLButtonElementBinding::Wrap)
     }
 }
 
@@ -44,7 +57,7 @@ impl HTMLButtonElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode> {
+    pub fn GetForm(&self) -> Option<JSManaged<HTMLFormElement>> {
         None
     }
 
@@ -120,7 +133,7 @@ impl HTMLButtonElement {
     }
 
     pub fn Validity(&self) -> @mut ValidityState {
-        let global = self.htmlelement.element.node.owner_doc().document().window;
+        let global = self.htmlelement.element.node.owner_doc().value().window;
         ValidityState::new(global)
     }
 

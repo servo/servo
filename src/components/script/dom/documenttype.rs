@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::InheritTypes::DocumentTypeDerived;
 use dom::bindings::codegen::DocumentTypeBinding;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::DOMString;
-use dom::document::AbstractDocument;
-use dom::node::{AbstractNode, Node, DoctypeNodeTypeId};
+use dom::document::Document;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::node::{Node, DoctypeNodeTypeId};
 
 /// The `DOCTYPE` tag.
 pub struct DocumentType {
@@ -16,12 +19,21 @@ pub struct DocumentType {
     force_quirks: bool
 }
 
+impl DocumentTypeDerived for EventTarget {
+    fn is_documenttype(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(DoctypeNodeTypeId) => true,
+            _ => false
+        }
+    }
+}
+
 impl DocumentType {
     pub fn new_inherited(name: ~str,
                          public_id: Option<~str>,
                          system_id: Option<~str>,
                          force_quirks: bool,
-                         document: AbstractDocument)
+                         document: JSManaged<Document>)
             -> DocumentType {
         DocumentType {
             node: Node::new_inherited(DoctypeNodeTypeId, document),
@@ -36,14 +48,14 @@ impl DocumentType {
                public_id: Option<~str>,
                system_id: Option<~str>,
                force_quirks: bool,
-               document: AbstractDocument)
-               -> AbstractNode {
+               document: JSManaged<Document>)
+               -> JSManaged<DocumentType> {
         let documenttype = DocumentType::new_inherited(name,
                                                        public_id,
                                                        system_id,
                                                        force_quirks,
                                                        document);
-        Node::reflect_node(@mut documenttype, document, DocumentTypeBinding::Wrap)
+        Node::reflect_node(~documenttype, document, DocumentTypeBinding::Wrap)
     }
 }
 

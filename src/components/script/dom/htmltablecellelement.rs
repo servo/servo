@@ -2,17 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::InheritTypes::HTMLTableCellElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
-use dom::element::ElementTypeId;
+use dom::document::Document;
+use dom::element::{ElementTypeId, HTMLTableCellElementTypeId};
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
+use dom::node::ElementNodeTypeId;
 
 pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLTableCellElementDerived for EventTarget {
+    fn is_htmltablecellelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLTableCellElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLTableCellElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> HTMLTableCellElement {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, document: JSManaged<Document>) -> HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, document)
         }

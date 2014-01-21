@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::NodeListBinding;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::node::AbstractNode;
+use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 
 enum NodeListType {
-    Simple(~[AbstractNode]),
-    Children(AbstractNode)
+    Simple(~[JSManaged<Node>]),
+    Children(JSManaged<Node>)
 }
 
 pub struct NodeList {
@@ -34,11 +35,11 @@ impl NodeList {
                            window, NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list(window: @mut Window, elements: ~[AbstractNode]) -> @mut NodeList {
+    pub fn new_simple_list(window: @mut Window, elements: ~[JSManaged<Node>]) -> @mut NodeList {
         NodeList::new(window, Simple(elements))
     }
 
-    pub fn new_child_list(window: @mut Window, node: AbstractNode) -> @mut NodeList {
+    pub fn new_child_list(window: @mut Window, node: JSManaged<Node>) -> @mut NodeList {
         NodeList::new(window, Children(node))
     }
 
@@ -49,7 +50,7 @@ impl NodeList {
         }
     }
 
-    pub fn Item(&self, index: u32) -> Option<AbstractNode> {
+    pub fn Item(&self, index: u32) -> Option<JSManaged<Node>> {
         match self.list_type {
             _ if index >= self.Length() => None,
             Simple(ref elems) => Some(elems[index]),
@@ -57,7 +58,7 @@ impl NodeList {
         }
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<AbstractNode> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JSManaged<Node>> {
         let item = self.Item(index);
         *found = item.is_some();
         item

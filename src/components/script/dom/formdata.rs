@@ -5,8 +5,9 @@
 use dom::bindings::utils::{Fallible, Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::DOMString;
 use dom::bindings::codegen::FormDataBinding;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::blob::Blob;
-use dom::node::AbstractNode;
+use dom::htmlformelement::HTMLFormElement;
 use dom::window::Window;
 
 use std::hashmap::HashMap;
@@ -20,11 +21,11 @@ pub struct FormData {
     data: HashMap<~str, FormDatum>,
     reflector_: Reflector,
     window: @mut Window,
-    form: Option<AbstractNode>
+    form: Option<JSManaged<HTMLFormElement>>
 }
 
 impl FormData {
-    pub fn new_inherited(form: Option<AbstractNode>, window: @mut Window) -> FormData {
+    pub fn new_inherited(form: Option<JSManaged<HTMLFormElement>>, window: @mut Window) -> FormData {
         FormData {
             data: HashMap::new(),
             reflector_: Reflector::new(),
@@ -33,11 +34,11 @@ impl FormData {
         }
     }
 
-    pub fn new(form: Option<AbstractNode>, window: @mut Window) -> @mut FormData {
+    pub fn new(form: Option<JSManaged<HTMLFormElement>>, window: @mut Window) -> @mut FormData {
         reflect_dom_object(@mut FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(window: @mut Window, form: Option<AbstractNode>)
+    pub fn Constructor(window: @mut Window, form: Option<JSManaged<HTMLFormElement>>)
                        -> Fallible<@mut FormData> {
         Ok(FormData::new(form, window))
     }

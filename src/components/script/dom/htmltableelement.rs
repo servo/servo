@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLTableElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLTableElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLTableElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLTableElementDerived for EventTarget {
+    fn is_htmltableelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLTableElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLTableElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTableElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLTableElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLTableElementBinding::Wrap)
     }
 }
 

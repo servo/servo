@@ -3,12 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLImageElementBinding;
+use dom::bindings::codegen::InheritTypes::{NodeCast, HTMLImageElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast};
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLImageElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::namespace::Null;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use extra::url::Url;
 use servo_util::geometry::to_px;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
@@ -22,17 +26,26 @@ pub struct HTMLImageElement {
     image: Option<Url>,
 }
 
+impl HTMLImageElementDerived for EventTarget {
+    fn is_htmlimageelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLImageElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLImageElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLImageElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, document),
             image: None,
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLImageElement> {
         let element = HTMLImageElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLImageElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLImageElementBinding::Wrap)
     }
 }
 
@@ -61,7 +74,7 @@ impl HTMLImageElement {
     pub fn AfterSetAttr(&mut self, name: DOMString, _value: DOMString) {
         if "src" == name {
             let document = self.htmlelement.element.node.owner_doc();
-            let window = document.document().window;
+            let window = document.value().window;
             let url = window.page.url.as_ref().map(|&(ref url, _)| url.clone());
             self.update_image(window.image_cache_task.clone(), url);
         }
@@ -73,7 +86,7 @@ impl HTMLImageElement {
         // `self.update_image()` will see the missing src attribute and return early.
         if "src" == name {
             let document = self.htmlelement.element.node.owner_doc();
-            let window = document.document().window;
+            let window = document.value().window;
             self.update_image(window.image_cache_task.clone(), None);
         }
     }
@@ -86,13 +99,13 @@ impl HTMLImageElement {
         Ok(())
     }
 
-    pub fn Src(&self, _abstract_self: AbstractNode) -> DOMString {
+    pub fn Src(&self, _abstract_self: JSManaged<HTMLImageElement>) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self, abstract_self: AbstractNode, src: DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, abstract_self: JSManaged<HTMLImageElement>, src: DOMString) -> ErrorResult {
         let node = &mut self.htmlelement.element;
-        node.set_attr(abstract_self, ~"src", src.clone());
+        node.set_attr(ElementCast::from(abstract_self), ~"src", src.clone());
         Ok(())
     }
 
@@ -120,37 +133,41 @@ impl HTMLImageElement {
         Ok(())
     }
 
-    pub fn Width(&self, abstract_self: AbstractNode) -> u32 {
+    pub fn Width(&self, abstract_self: JSManaged<HTMLImageElement>) -> u32 {
         let node = &self.htmlelement.element.node;
-        let page = node.owner_doc().document().window.page;
+        let page = node.owner_doc().value().window.page;
         let (port, chan) = Chan::new();
-        match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
+        let this_node: JSManaged<Node> = NodeCast::from(abstract_self);
+        let addr = this_node.to_uintptr();
+        match page.query_layout(ContentBoxQuery(addr, chan), port) {
             ContentBoxResponse(rect) => {
                 to_px(rect.size.width) as u32
             }
         }
     }
 
-    pub fn SetWidth(&mut self, abstract_self: AbstractNode, width: u32) -> ErrorResult {
+    pub fn SetWidth(&mut self, abstract_self: JSManaged<HTMLImageElement>, width: u32) -> ErrorResult {
         let node = &mut self.htmlelement.element;
-        node.set_attr(abstract_self, ~"width", width.to_str());
+        node.set_attr(ElementCast::from(abstract_self), ~"width", width.to_str());
         Ok(())
     }
 
-    pub fn Height(&self, abstract_self: AbstractNode) -> u32 {
+    pub fn Height(&self, abstract_self: JSManaged<HTMLImageElement>) -> u32 {
         let node = &self.htmlelement.element.node;
-        let page = node.owner_doc().document().window.page;
+        let page = node.owner_doc().value().window.page;
         let (port, chan) = Chan::new();
-        match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
+        let this_node: JSManaged<Node> = NodeCast::from(abstract_self);
+        let addr = this_node.to_uintptr();
+        match page.query_layout(ContentBoxQuery(addr, chan), port) {
             ContentBoxResponse(rect) => {
                 to_px(rect.size.height) as u32
             }
         }
     }
 
-    pub fn SetHeight(&mut self, abstract_self: AbstractNode, height: u32) -> ErrorResult {
+    pub fn SetHeight(&mut self, abstract_self: JSManaged<HTMLImageElement>, height: u32) -> ErrorResult {
         let node = &mut self.htmlelement.element;
-        node.set_attr(abstract_self, ~"height", height.to_str());
+        node.set_attr(ElementCast::from(abstract_self), ~"height", height.to_str());
         Ok(())
     }
 

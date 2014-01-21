@@ -3,10 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLDocumentBinding;
+use dom::bindings::codegen::InheritTypes::HTMLDocumentDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
-use dom::document::{AbstractDocument, Document, HTML};
+use dom::document::{Document, HTML, HTMLDocumentTypeId};
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::namespace::Null;
+use dom::node::DocumentNodeTypeId;
 use dom::window::Window;
 
 use js::jsapi::JSTracer;
@@ -17,6 +21,15 @@ pub struct HTMLDocument {
     parent: Document
 }
 
+impl HTMLDocumentDerived for EventTarget {
+    fn is_htmldocument(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(DocumentNodeTypeId(HTMLDocumentTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLDocument {
     pub fn new_inherited(window: @mut Window) -> HTMLDocument {
         HTMLDocument {
@@ -24,9 +37,9 @@ impl HTMLDocument {
         }
     }
 
-    pub fn new(window: @mut Window) -> AbstractDocument {
+    pub fn new(window: @mut Window) -> JSManaged<HTMLDocument> {
         let document = HTMLDocument::new_inherited(window);
-        Document::reflect_document(@mut document, window, HTMLDocumentBinding::Wrap)
+        Document::reflect_document(~document, window, HTMLDocumentBinding::Wrap)
     }
 }
 

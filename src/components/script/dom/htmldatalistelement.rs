@@ -3,32 +3,44 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLDataListElementBinding;
-use dom::document::AbstractDocument;
+use dom::bindings::codegen::InheritTypes::HTMLDataListElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
+use dom::document::Document;
 use dom::element::HTMLDataListElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLDataListElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLDataListElementDerived for EventTarget {
+    fn is_htmldatalistelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLDataListElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLDataListElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLDataListElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLDataListElement {
         HTMLDataListElement {
             htmlelement: HTMLElement::new_inherited(HTMLDataListElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLDataListElement> {
         let element = HTMLDataListElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLDataListElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLDataListElementBinding::Wrap)
     }
 }
 
 impl HTMLDataListElement {
     pub fn Options(&self) -> @mut HTMLCollection {
-        let window = self.htmlelement.element.node.owner_doc().document().window;
+        let window = self.htmlelement.element.node.owner_doc().value().window;
         HTMLCollection::new(window, ~[])
     }
 }

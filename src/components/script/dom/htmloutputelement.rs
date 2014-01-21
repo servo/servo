@@ -3,32 +3,45 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLOutputElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLOutputElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::htmlformelement::HTMLFormElement;
+use dom::node::{Node, ElementNodeTypeId};
 use dom::validitystate::ValidityState;
 
 pub struct HTMLOutputElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLOutputElementDerived for EventTarget {
+    fn is_htmloutputelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLOutputElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLOutputElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLOutputElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLOutputElement {
         HTMLOutputElement {
             htmlelement: HTMLElement::new_inherited(HTMLOutputElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLOutputElement> {
         let element = HTMLOutputElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLOutputElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLOutputElementBinding::Wrap)
     }
 }
 
 impl HTMLOutputElement {
-    pub fn GetForm(&self) -> Option<AbstractNode> {
+    pub fn GetForm(&self) -> Option<JSManaged<HTMLFormElement>> {
         None
     }
 
@@ -68,7 +81,7 @@ impl HTMLOutputElement {
     }
 
     pub fn Validity(&self) -> @mut ValidityState {
-        let global = self.htmlelement.element.node.owner_doc().document().window;
+        let global = self.htmlelement.element.node.owner_doc().value().window;
         ValidityState::new(global)
     }
 

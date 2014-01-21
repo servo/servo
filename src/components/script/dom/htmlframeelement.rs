@@ -3,27 +3,39 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLFrameElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLFrameElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLFrameElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use dom::windowproxy::WindowProxy;
 
 pub struct HTMLFrameElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLFrameElementDerived for EventTarget {
+    fn is_htmlframeelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLFrameElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLFrameElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLFrameElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLFrameElement {
         HTMLFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLFrameElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLFrameElement> {
         let element = HTMLFrameElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLFrameElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLFrameElementBinding::Wrap)
     }
 }
 
@@ -76,7 +88,7 @@ impl HTMLFrameElement {
         Ok(())
     }
 
-    pub fn GetContentDocument(&self) -> Option<AbstractDocument> {
+    pub fn GetContentDocument(&self) -> Option<JSManaged<Document>> {
         None
     }
 

@@ -2,79 +2,44 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::comment::Comment;
-use dom::bindings::codegen::InheritTypes::EventCast;
+use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{DocumentBase, NodeCast, DocumentCast};
+use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::jsmanaged::JSManaged;
-use dom::bindings::utils::{Reflectable, Reflector, Traceable, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, Traceable, reflect_dom_object2};
 use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest};
 use dom::bindings::utils::DOMString;
 use dom::bindings::utils::{xml_name_type, InvalidXMLName};
+use dom::comment::Comment;
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::Event;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
-use dom::htmldocument::HTMLDocument;
+use dom::htmlelement::HTMLElement;
+use dom::htmlheadelement::HTMLHeadElement;
+use dom::htmltitleelement::HTMLTitleElement;
 use dom::mouseevent::MouseEvent;
 use dom::namespace::Null;
-use dom::node::{AbstractNode, Node, ElementNodeTypeId, DocumentNodeTypeId};
+use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers, INode};
 use dom::text::Text;
 use dom::uievent::UIEvent;
 use dom::window::Window;
-use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 
 use js::jsapi::{JSObject, JSContext, JSTracer};
 use std::ascii::StrAsciiExt;
-use std::cast;
 use std::hashmap::HashMap;
 use std::str::eq_slice;
-use std::unstable::raw::Box;
 
 #[deriving(Eq)]
 pub enum DocumentTypeId {
     PlainDocumentTypeId,
     HTMLDocumentTypeId
-}
-
-#[deriving(Eq)]
-pub struct AbstractDocument {
-    document: *mut Box<Document>
-}
-
-impl AbstractDocument {
-    pub fn document<'a>(&'a self) -> &'a Document {
-        unsafe {
-            &(*self.document).data
-        }
-    }
-
-    pub fn mut_document<'a>(&'a self) -> &'a mut Document {
-        unsafe {
-            &mut (*self.document).data
-        }
-    }
-
-    unsafe fn transmute<T, R>(&self, f: |&T| -> R) -> R {
-        let box_: *Box<T> = cast::transmute(self.document);
-        f(&(*box_).data)
-    }
-
-    pub fn with_html<R>(&self, callback: |&HTMLDocument| -> R) -> R {
-        match self.document().doctype {
-            HTML => unsafe { self.transmute(callback) },
-            _ => fail!("attempt to downcast a non-HTMLDocument to HTMLDocument")
-        }
-    }
-
-    pub fn from_box<T>(ptr: *mut Box<T>) -> AbstractDocument {
-        AbstractDocument {
-            document: ptr as *mut Box<Document>
-        }
-    }
 }
 
 #[deriving(Eq)]
@@ -90,25 +55,32 @@ pub struct Document {
     window: @mut Window,
     doctype: DocumentType,
     title: ~str,
-    idmap: HashMap<DOMString, AbstractNode>
+    idmap: HashMap<DOMString, JSManaged<Element>>
+}
+
+impl DocumentDerived for EventTarget {
+    fn is_document(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(DocumentNodeTypeId(_)) => true,
+            _ => false
+        }
+    }
 }
 
 impl Document {
-    pub fn reflect_document<D: Reflectable>
-            (document:  @mut D,
+    pub fn reflect_document<D: Reflectable+DocumentBase>
+            (document:  ~D,
              window:    @mut Window,
-             wrap_fn:   extern "Rust" fn(*JSContext, *JSObject, @mut D) -> *JSObject)
-             -> AbstractDocument {
+             wrap_fn:   extern "Rust" fn(*JSContext, *JSObject, ~D) -> *JSObject)
+             -> JSManaged<D> {
         assert!(document.reflector().get_jsobject().is_null());
-        let document = reflect_dom_object(document, window, wrap_fn);
-        assert!(document.reflector().get_jsobject().is_not_null());
+        let raw_doc = reflect_dom_object2(document, window, wrap_fn);
+        assert!(raw_doc.reflector().get_jsobject().is_not_null());
 
-        // JS object now owns the Document, so transmute_copy is needed
-        let abstract = AbstractDocument {
-            document: unsafe { cast::transmute_copy(&document) }
-        };
-        abstract.mut_document().node.set_owner_doc(abstract);
-        abstract
+        let document = DocumentCast::from(raw_doc);
+        let mut node: JSManaged<Node> = NodeCast::from(document);
+        node.mut_value().set_owner_doc(document);
+        raw_doc
     }
 
     pub fn new_inherited(window: @mut Window, doctype: DocumentType) -> Document {
@@ -126,25 +98,15 @@ impl Document {
         }
     }
 
-    pub fn new(window: @mut Window, doctype: DocumentType) -> AbstractDocument {
+    pub fn new(window: @mut Window, doctype: DocumentType) -> JSManaged<Document> {
         let document = Document::new_inherited(window, doctype);
-        Document::reflect_document(@mut document, window, DocumentBinding::Wrap)
+        Document::reflect_document(~document, window, DocumentBinding::Wrap)
     }
 }
 
 impl Document {
-    pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
+    pub fn Constructor(owner: @mut Window) -> Fallible<JSManaged<Document>> {
         Ok(Document::new(owner, XML))
-    }
-}
-
-impl Reflectable for AbstractDocument {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.document().reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.mut_document().mut_reflector()
     }
 }
 
@@ -159,7 +121,7 @@ impl Reflectable for Document {
 }
 
 impl Document {
-    pub fn GetDocumentElement(&self) -> Option<AbstractNode> {
+    pub fn GetDocumentElement(&self) -> Option<JSManaged<Element>> {
         self.node.child_elements().next()
     }
 
@@ -175,7 +137,7 @@ impl Document {
         HTMLCollection::new(self.window, ~[])
     }
 
-    pub fn GetElementById(&self, id: DOMString) -> Option<AbstractNode> {
+    pub fn GetElementById(&self, id: DOMString) -> Option<JSManaged<Element>> {
         // TODO: "in tree order, within the context object's tree"
         // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
         match self.idmap.find_equiv(&id) {
@@ -184,8 +146,8 @@ impl Document {
         }
     }
 
-    pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: DOMString)
-                         -> Fallible<AbstractNode> {
+    pub fn CreateElement(&self, abstract_self: JSManaged<Document>, local_name: DOMString)
+                         -> Fallible<JSManaged<Element>> {
         if xml_name_type(local_name) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(InvalidCharacter);
@@ -194,16 +156,16 @@ impl Document {
         Ok(build_element_from_tag(local_name, abstract_self))
     }
 
-    pub fn CreateDocumentFragment(&self, abstract_self: AbstractDocument) -> AbstractNode {
+    pub fn CreateDocumentFragment(&self, abstract_self: JSManaged<Document>) -> JSManaged<DocumentFragment> {
         DocumentFragment::new(abstract_self)
     }
 
-    pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: DOMString)
-                          -> AbstractNode {
+    pub fn CreateTextNode(&self, abstract_self: JSManaged<Document>, data: DOMString)
+                          -> JSManaged<Text> {
         Text::new(data, abstract_self)
     }
 
-    pub fn CreateComment(&self, abstract_self: AbstractDocument, data: DOMString) -> AbstractNode {
+    pub fn CreateComment(&self, abstract_self: JSManaged<Document>, data: DOMString) -> JSManaged<Comment> {
         Comment::new(data, abstract_self)
     }
 
@@ -216,7 +178,7 @@ impl Document {
         }
     }
 
-    pub fn Title(&self, _: AbstractDocument) -> DOMString {
+    pub fn Title(&self, _: JSManaged<Document>) -> DOMString {
         let mut title = ~"";
         match self.doctype {
             SVG => {
@@ -226,18 +188,14 @@ impl Document {
                 match self.GetDocumentElement() {
                     None => {},
                     Some(root) => {
-                        for node in root.traverse_preorder() {
-                            if node.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
-                                continue;
-                            }
+                        let root: JSManaged<Node> = NodeCast::from(root);
+                        let title_type = ElementNodeTypeId(HTMLTitleElementTypeId);
+                        let title_elem = root.traverse_preorder().find(|node| node.type_id() == title_type);
+                        for node in title_elem.iter() {
                             for child in node.children() {
-                                if child.is_text() {
-                                    child.with_imm_text(|text| {
-                                        title = title + text.element.Data();
-                                    });
-                                }
+                                let text: JSManaged<Text> = TextCast::to(child);
+                                title = title + text.value().element.Data();
                             }
-                            break;
                         }
                     }
                 }
@@ -249,7 +207,7 @@ impl Document {
         title
     }
 
-    pub fn SetTitle(&self, abstract_self: AbstractDocument, title: DOMString) -> ErrorResult {
+    pub fn SetTitle(&self, abstract_self: JSManaged<Document>, title: DOMString) -> ErrorResult {
         match self.doctype {
             SVG => {
                 fail!("no SVG document yet")
@@ -258,28 +216,30 @@ impl Document {
                 match self.GetDocumentElement() {
                     None => {},
                     Some(root) => {
-                        for node in root.traverse_preorder() {
-                            if node.type_id() != ElementNodeTypeId(HTMLHeadElementTypeId) {
-                                continue;
-                            }
+                        let root: JSManaged<Node> = NodeCast::from(root);
+                        let head_type = ElementNodeTypeId(HTMLHeadElementTypeId);
+                        let mut children = root.traverse_preorder();
+                        let mut head = children.find(|child| child.value().type_id == head_type);
+                        for node in head.mut_iter() {
                             let mut has_title = false;
-                            for child in node.children() {
-                                if child.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
-                                    continue;
-                                }
+                            let title_type = ElementNodeTypeId(HTMLTitleElementTypeId);
+                            let mut children = node.value().children();
+                            let mut title_node = children.find(|child| child.value().type_id == title_type);
+                            for child in title_node.mut_iter() {
                                 has_title = true;
-                                for title_child in child.children() {
+                                for title_child in child.value().children() {
                                     child.RemoveChild(title_child);
                                 }
-                                child.AppendChild(self.CreateTextNode(abstract_self, title.clone()));
-                                break;
+                                let new_text = self.CreateTextNode(abstract_self, title.clone());
+                                child.AppendChild(NodeCast::from(new_text));
                             }
                             if !has_title {
-                                let new_title = HTMLTitleElement::new(~"title", abstract_self);
-                                new_title.AppendChild(self.CreateTextNode(abstract_self, title.clone()));
+                                let new_title: JSManaged<Node> =
+                                    NodeCast::from(HTMLTitleElement::new(~"title", abstract_self));
+                                let new_text = self.CreateTextNode(abstract_self, title.clone());
+                                new_title.AppendChild(NodeCast::from(new_text));
                                 node.AppendChild(new_title);
                             }
-                            break;
                         }
                     }
                 }
@@ -288,46 +248,46 @@ impl Document {
         Ok(())
     }
 
-    fn get_html_element(&self) -> Option<AbstractNode> {
+    fn get_html_element(&self) -> Option<JSManaged<HTMLElement>> {
         self.GetDocumentElement().filtered(|root| {
-            match root.type_id() {
-                ElementNodeTypeId(HTMLHtmlElementTypeId) => true,
-                _ => false
-            }
-        })
+            root.value().node.type_id == ElementNodeTypeId(HTMLHtmlElementTypeId)
+        }).map(|elem| HTMLElementCast::to(elem))
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-head
-    pub fn GetHead(&self) -> Option<AbstractNode> {
+    pub fn GetHead(&self) -> Option<JSManaged<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
-            root.children().find(|child| {
-                child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
+            root.value().element.node.children().find(|child| {
+                child.value().type_id == ElementNodeTypeId(HTMLHeadElementTypeId)
+            }).map(|node| {
+                let head: JSManaged<HTMLHeadElement> = HTMLHeadElementCast::to(node);
+                head
             })
         })
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
-    pub fn GetBody(&self, _: AbstractDocument) -> Option<AbstractNode> {
+    pub fn GetBody(&self, _: JSManaged<Document>) -> Option<JSManaged<HTMLElement>> {
         match self.get_html_element() {
             None => None,
             Some(root) => {
-                root.children().find(|child| {
-                    match child.type_id() {
+                root.value().element.node.children().find(|child| {
+                    match child.value().type_id {
                         ElementNodeTypeId(HTMLBodyElementTypeId) |
                         ElementNodeTypeId(HTMLFrameSetElementTypeId) => true,
                         _ => false
                     }
-                })
+                }).map(|node| HTMLElementCast::to(node))
             }
         }
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
-    pub fn SetBody(&self, abstract_self: AbstractDocument, new_body: Option<AbstractNode>) -> ErrorResult {
+    pub fn SetBody(&self, abstract_self: JSManaged<Document>, new_body: Option<JSManaged<HTMLElement>>) -> ErrorResult {
         // Step 1.
         match new_body {
             Some(node) => {
-                match node.type_id() {
+                match node.value().element.node.type_id {
                     ElementNodeTypeId(HTMLBodyElementTypeId) | ElementNodeTypeId(HTMLFrameSetElementTypeId) => {}
                     _ => return Err(HierarchyRequest)
                 }
@@ -336,7 +296,7 @@ impl Document {
         }
 
         // Step 2.
-        let old_body: Option<AbstractNode> = self.GetBody(abstract_self);
+        let old_body: Option<JSManaged<HTMLElement>> = self.GetBody(abstract_self);
         if old_body == new_body {
             return Ok(());
         }
@@ -346,10 +306,15 @@ impl Document {
             // Step 4.
             None => return Err(HierarchyRequest),
             Some(root) => {
+                let new_body: JSManaged<Node> = NodeCast::from(new_body.unwrap());
+                let root: JSManaged<Node> = NodeCast::from(root);
                 match old_body {
-                    Some(child) => { root.ReplaceChild(new_body.unwrap(), child); }
-                    None => { root.AppendChild(new_body.unwrap()); }
-                }
+                    Some(child) => {
+                        let child: JSManaged<Node> = NodeCast::from(child);
+                        root.ReplaceChild(new_body, child)
+                    }
+                    None => root.AppendChild(new_body)
+                };
             }
         }
         Ok(())
@@ -365,13 +330,13 @@ impl Document {
         match self.GetDocumentElement() {
             None => {},
             Some(root) => {
+                let root: JSManaged<Node> = NodeCast::from(root);
                 for child in root.traverse_preorder() {
                     if child.is_element() {
-                        child.with_imm_element(|elem| {
-                            if callback(elem) {
-                                elements.push(child);
-                            }
-                        });
+                        let elem: JSManaged<Element> = ElementCast::to(child);
+                        if callback(elem.value()) {
+                            elements.push(elem);
+                        }
                     }
                 }
             }
@@ -391,15 +356,15 @@ impl Document {
         self.window.wait_until_safe_to_modify_dom();
     }
 
-    pub fn register_nodes_with_id(&mut self, root: &AbstractNode) {
-        foreach_ided_elements(root, |id: &DOMString, abstract_node: &AbstractNode| {
+    pub fn register_nodes_with_id(&mut self, root: &JSManaged<Element>) {
+        foreach_ided_elements(root, |id: &DOMString, abstract_node: &JSManaged<Element>| {
             // TODO: "in tree order, within the context object's tree"
             // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
             self.idmap.find_or_insert(id.clone(), *abstract_node);
         });
     }
 
-    pub fn unregister_nodes_with_id(&mut self, root: &AbstractNode) {
+    pub fn unregister_nodes_with_id(&mut self, root: &JSManaged<Element>) {
         foreach_ided_elements(root, |id: &DOMString, _| {
             // TODO: "in tree order, within the context object's tree"
             // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
@@ -408,7 +373,7 @@ impl Document {
     }
 
     pub fn update_idmap(&mut self,
-                        abstract_self: AbstractNode,
+                        abstract_self: JSManaged<Element>,
                         new_id: Option<DOMString>,
                         old_id: Option<DOMString>) {
         // remove old ids:
@@ -427,10 +392,10 @@ impl Document {
                 // TODO: support the case if multiple elements
                 // which haves same id are in the same document.
                 self.idmap.mangle(new_id, abstract_self,
-                                  |_, new_node: AbstractNode| -> AbstractNode {
+                                  |_, new_node: JSManaged<Element>| -> JSManaged<Element> {
                                       new_node
                                   },
-                                  |_, old_node: &mut AbstractNode, new_node: AbstractNode| {
+                                  |_, old_node: &mut JSManaged<Element>, new_node: JSManaged<Element>| {
                                       *old_node = new_node;
                                   });
             }
@@ -440,20 +405,19 @@ impl Document {
 }
 
 #[inline(always)]
-fn foreach_ided_elements(root: &AbstractNode, callback: |&DOMString, &AbstractNode|) {
+fn foreach_ided_elements(root: &JSManaged<Element>, callback: |&DOMString, &JSManaged<Element>|) {
+    let root: JSManaged<Node> = NodeCast::from(*root);
     for node in root.traverse_preorder() {
         if !node.is_element() {
             continue;
         }
-
-        node.with_imm_element(|element| {
-            match element.get_attr(Null, "id") {
-                Some(id) => {
-                    callback(&id.to_str(), &node);
-                }
-                None => ()
+        let element: JSManaged<Element> = ElementCast::to(node);
+        match element.value().get_attr(Null, "id") {
+            Some(id) => {
+                callback(&id.to_str(), &element);
             }
-        });
+            None => ()
+        }
     }
 }
 

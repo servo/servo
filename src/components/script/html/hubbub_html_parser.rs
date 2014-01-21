@@ -2,14 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::document::AbstractDocument;
+use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, TextCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLImageElementCast};
+use dom::bindings::jsmanaged::JSManaged;
+use dom::document::Document;
 use dom::element::{HTMLLinkElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmliframeelement::IFrameSize;
 use dom::htmlformelement::HTMLFormElement;
 use dom::namespace::Null;
-use dom::node::{AbstractNode, ElementNodeTypeId};
+use dom::node::{ElementNodeTypeId, INode, NodeHelpers};
 use dom::types::*;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use script_task::page_from_context;
@@ -36,7 +39,7 @@ macro_rules! handle_element(
      $ctor: ident
      $(, $arg:expr )*) => (
         if eq_slice($localName, $string) {
-            return $ctor::new($localName, $document $(, $arg)*);
+            return ElementCast::from($ctor::new($localName, $document $(, $arg)*));
         }
     )
 )
@@ -76,11 +79,11 @@ trait NodeWrapping {
     unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> Self;
 }
 
-impl NodeWrapping for AbstractNode {
+impl<T: NodeBase> NodeWrapping for JSManaged<T> {
     unsafe fn to_hubbub_node(self) -> hubbub::NodeDataPtr {
         cast::transmute(self)
     }
-    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> AbstractNode {
+    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> JSManaged<T> {
         cast::transmute(n)
     }
 }
@@ -158,7 +161,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-pub fn build_element_from_tag(tag: ~str, document: AbstractDocument) -> AbstractNode {
+pub fn build_element_from_tag(tag: ~str, document: JSManaged<Document>) -> JSManaged<Element> {
     // TODO (Issue #85): use atoms
     handle_element!(document, tag, "a",         HTMLAnchorElement);
     handle_element!(document, tag, "applet",    HTMLAppletElement);
@@ -238,11 +241,11 @@ pub fn build_element_from_tag(tag: ~str, document: AbstractDocument) -> Abstract
     handle_element!(document, tag, "ul",        HTMLUListElement);
     handle_element!(document, tag, "video",     HTMLVideoElement);
 
-    return HTMLUnknownElement::new(tag, document);
+    return ElementCast::from(HTMLUnknownElement::new(tag, document));
 }
 
 pub fn parse_html(cx: *JSContext,
-                  document: AbstractDocument,
+                  document: JSManaged<Document>,
                   url: Url,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
@@ -291,8 +294,8 @@ pub fn parse_html(cx: *JSContext,
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
 
-    let document_node = AbstractNode::from_document(document);
-    parser.set_document_node(unsafe { document_node.to_hubbub_node() });
+    //let document_node: JSManaged<Node> = NodeCast::from(document);
+    parser.set_document_node(unsafe { document.to_hubbub_node() });
     parser.enable_scripting(true);
     parser.enable_styling(true);
 
@@ -303,7 +306,7 @@ pub fn parse_html(cx: *JSContext,
     let tree_handler = hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
-            let comment = Comment::new(data, document);
+            let comment: JSManaged<Node> = NodeCast::from(Comment::new(data, document));
             unsafe { comment.to_hubbub_node() }
         },
         create_doctype: |doctype: ~hubbub::Doctype| {
@@ -312,89 +315,86 @@ pub fn parse_html(cx: *JSContext,
                                 public_id: public_id,
                                 system_id: system_id,
                                 force_quirks: force_quirks } = doctype;
-            let node = DocumentType::new(name,
-                                         public_id,
-                                         system_id,
-                                         force_quirks,
-                                         document);
+            let node: JSManaged<Node> = NodeCast::from(
+                DocumentType::new(name,
+                                  public_id,
+                                  system_id,
+                                  force_quirks,
+                                  document));
             unsafe {
                 node.to_hubbub_node()
             }
         },
         create_element: |tag: ~hubbub::Tag| {
             debug!("create element");
-            let node = build_element_from_tag(tag.name.clone(), document);
+            let mut element = build_element_from_tag(tag.name.clone(), document);
 
             debug!("-- attach attrs");
-            node.as_mut_element(|element| {
-                for attr in tag.attributes.iter() {
-                    element.set_attr(node,
-                                     attr.name.clone(),
-                                     attr.value.clone());
-                }
-            });
+            for attr in tag.attributes.iter() {
+                element.mut_value().set_attr(element,
+                                             attr.name.clone(),
+                                             attr.value.clone());
+            }
 
             // Spawn additional parsing, network loads, etc. from tag and attrs
-            match node.type_id() {
+            match element.value().node.type_id {
                 // Handle CSS style sheets from <link> elements
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                    node.with_imm_element(|element| {
-                        match (element.get_attr(Null, "rel"), element.get_attr(Null, "href")) {
-                            (Some(rel), Some(href)) => {
-                                if "stylesheet" == rel {
-                                    debug!("found CSS stylesheet: {:s}", href);
-                                    let url = make_url(href.to_str(), Some(url2.clone()));
-                                    css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
-                                }
+                    match (element.value().get_attr(Null, "rel"),
+                           element.value().get_attr(Null, "href")) {
+                        (Some(rel), Some(href)) => {
+                            if "stylesheet" == rel {
+                                debug!("found CSS stylesheet: {:s}", href);
+                                let url = make_url(href.to_str(), Some(url2.clone()));
+                                css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
                             }
-                            _ => {}
                         }
-                    });
+                        _ => {}
+                    }
                 }
 
                 ElementNodeTypeId(HTMLIframeElementTypeId) => {
                     let iframe_chan = discovery_chan.clone();
-                    node.with_mut_iframe_element(|iframe_element| {
-                        let sandboxed = iframe_element.is_sandboxed();
-                        let elem = &mut iframe_element.htmlelement.element;
-                        let src_opt = elem.get_attr(Null, "src").map(|x| x.to_str());
-                        for src in src_opt.iter() {
-                            let iframe_url = make_url(src.clone(), Some(url2.clone()));
-                            iframe_element.frame = Some(iframe_url.clone());
+                    let mut iframe_element: JSManaged<HTMLIFrameElement> =
+                        HTMLIFrameElementCast::to(element);
+                    let sandboxed = iframe_element.value().is_sandboxed();
+                    //let elem = &mut iframe_element.mut_value().htmlelement.element;
+                    let src_opt = element.value().get_attr(Null, "src").map(|x| x.to_str());
+                    for src in src_opt.iter() {
+                        let iframe_url = make_url(src.clone(), Some(url2.clone()));
+                        iframe_element.mut_value().frame = Some(iframe_url.clone());
                             
-                            // Subpage Id
-                            let subpage_id = next_subpage_id.get();
-                            next_subpage_id.set(SubpageId(*subpage_id + 1));
+                        // Subpage Id
+                        let subpage_id = next_subpage_id.get();
+                        next_subpage_id.set(SubpageId(*subpage_id + 1));
 
-                            // Pipeline Id
-                            let pipeline_id = {
-                                let page = page_from_context(cx);
-                                unsafe { (*page).id }
-                            };
+                        // Pipeline Id
+                        let pipeline_id = {
+                            let page = page_from_context(cx);
+                            unsafe { (*page).id }
+                        };
 
-                            iframe_element.size = Some(IFrameSize {
-                                pipeline_id: pipeline_id,
-                                subpage_id: subpage_id,
-                            });
-                            iframe_chan.send(HtmlDiscoveredIFrame((iframe_url,
-                                                                   subpage_id,
-                                                                   sandboxed)));
-                        }
-                    });
+                        iframe_element.mut_value().size = Some(IFrameSize {
+                            pipeline_id: pipeline_id,
+                            subpage_id: subpage_id,
+                        });
+                        iframe_chan.send(HtmlDiscoveredIFrame((iframe_url,
+                                                               subpage_id,
+                                                               sandboxed)));
+                    }
                 }
 
                 //FIXME: This should be taken care of by set_attr, but we don't have
                 //       access to a window so HTMLImageElement::AfterSetAttr bails.
                 ElementNodeTypeId(HTMLImageElementTypeId) => {
-                    node.with_mut_image_element(|image_element| {
-                        image_element.update_image(image_cache_task.clone(), Some(url2.clone()));
-                    });
+                    let mut image_element: JSManaged<HTMLImageElement> = HTMLImageElementCast::to(element);
+                    image_element.mut_value().update_image(image_cache_task.clone(), Some(url2.clone()));
                 }
 
                 _ => {}
             }
 
-            unsafe { node.to_hubbub_node() }
+            unsafe { element.to_hubbub_node() }
         },
         create_text: |data: ~str| {
             debug!("create text");
@@ -406,8 +406,8 @@ pub fn parse_html(cx: *JSContext,
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
             unsafe {
                 debug!("append child {:x} {:x}", parent, child);
-                let parent: AbstractNode = NodeWrapping::from_hubbub_node(parent);
-                let child: AbstractNode = NodeWrapping::from_hubbub_node(child);
+                let parent: JSManaged<Node> = NodeWrapping::from_hubbub_node(parent);
+                let child: JSManaged<Node> = NodeWrapping::from_hubbub_node(child);
                 parent.AppendChild(child);
             }
             child
@@ -451,44 +451,41 @@ pub fn parse_html(cx: *JSContext,
         },
         complete_script: |script| {
             unsafe {
-                let scriptnode: AbstractNode = NodeWrapping::from_hubbub_node(script);
-                scriptnode.with_imm_element(|script| {
-                    match script.get_attr(Null, "src") {
-                        Some(src) => {
-                            debug!("found script: {:s}", src);
-                            let new_url = make_url(src.to_str(), Some(url3.clone()));
-                            js_chan2.send(JSTaskNewFile(new_url));
-                        }
-                        None => {
-                            let mut data = ~[];
-                            debug!("iterating over children {:?}", scriptnode.first_child());
-                            for child in scriptnode.children() {
-                                debug!("child = {:?}", child);
-                                child.with_imm_text(|text| {
-                                    data.push(text.element.data.to_str());  // FIXME: Bad copy.
-                                });
-                            }
-
-                            debug!("script data = {:?}", data);
-                            js_chan2.send(JSTaskNewInlineScript(data.concat(), url3.clone()));
-                        }
+                let script: JSManaged<Element> = NodeWrapping::from_hubbub_node(script);
+                match script.value().get_attr(Null, "src") {
+                    Some(src) => {
+                        debug!("found script: {:s}", src);
+                        let new_url = make_url(src.to_str(), Some(url3.clone()));
+                        js_chan2.send(JSTaskNewFile(new_url));
                     }
-                });
+                    None => {
+                        let mut data = ~[];
+                        let scriptnode: JSManaged<Node> = NodeCast::from(script);
+                        debug!("iterating over children {:?}", scriptnode.first_child());
+                        for child in scriptnode.children() {
+                            debug!("child = {:?}", child);
+                            let text: JSManaged<Text> = TextCast::to(child);
+                            data.push(text.value().element.data.to_str());  // FIXME: Bad copy.
+                        }
+
+                        debug!("script data = {:?}", data);
+                        js_chan2.send(JSTaskNewInlineScript(data.concat(), url3.clone()));
+                    }
+                }
             }
             debug!("complete script");
         },
         complete_style: |style| {
             // We've reached the end of a <style> so we can submit all the text to the parser.
             unsafe {
-                let style: AbstractNode = NodeWrapping::from_hubbub_node(style);
+                let style: JSManaged<Node> = NodeWrapping::from_hubbub_node(style);
                 let url = FromStr::from_str("http://example.com/"); // FIXME
                 let mut data = ~[];
                 debug!("iterating over children {:?}", style.first_child());
                 for child in style.children() {
                     debug!("child = {:?}", child);
-                    child.with_imm_text(|text| {
-                        data.push(text.element.data.to_str());  // FIXME: Bad copy.
-                    });
+                    let text: JSManaged<Text> = TextCast::to(child);
+                    data.push(text.value().element.data.to_str());  // FIXME: Bad copy.
                 }
 
                 debug!("style data = {:?}", data);

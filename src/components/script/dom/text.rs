@@ -3,10 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::TextBinding;
+use dom::bindings::codegen::InheritTypes::TextDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::characterdata::CharacterData;
-use dom::document::AbstractDocument;
-use dom::node::{AbstractNode, Node, TextNodeTypeId};
+use dom::document::Document;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::node::{Node, TextNodeTypeId};
 use dom::window::Window;
 
 /// An HTML text node.
@@ -14,23 +17,32 @@ pub struct Text {
     element: CharacterData,
 }
 
+impl TextDerived for EventTarget {
+    fn is_text(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(TextNodeTypeId) => true,
+            _ => false
+        }
+    }
+}
+
 impl Text {
-    pub fn new_inherited(text: ~str, document: AbstractDocument) -> Text {
+    pub fn new_inherited(text: ~str, document: JSManaged<Document>) -> Text {
         Text {
             element: CharacterData::new_inherited(TextNodeTypeId, text, document)
         }
     }
 
-    pub fn new(text: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(text: ~str, document: JSManaged<Document>) -> JSManaged<Text> {
         let node = Text::new_inherited(text, document);
-        Node::reflect_node(@mut node, document, TextBinding::Wrap)
+        Node::reflect_node(~node, document, TextBinding::Wrap)
     }
 
-    pub fn Constructor(owner: @mut Window, text: DOMString) -> Fallible<AbstractNode> {
+    pub fn Constructor(owner: @mut Window, text: DOMString) -> Fallible<JSManaged<Text>> {
         Ok(Text::new(text.clone(), owner.Document()))
     }
 
-    pub fn SplitText(&self, _offset: u32) -> Fallible<AbstractNode> {
+    pub fn SplitText(&self, _offset: u32) -> Fallible<JSManaged<Text>> {
         fail!("unimplemented")
     }
 

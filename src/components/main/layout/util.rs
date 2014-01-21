@@ -7,12 +7,12 @@ use layout::construct::{ConstructionResult, NoConstructionResult};
 use layout::wrapper::LayoutNode;
 
 use extra::arc::Arc;
-use script::dom::node::AbstractNode;
 use script::layout_interface::LayoutChan;
 use servo_util::range::Range;
 use std::cast;
 use std::cell::{Ref, RefMut};
 use std::iter::Enumerate;
+use std::libc;
 use std::libc::uintptr_t;
 use std::vec::VecIterator;
 use style::{ComputedValues, PropertyDeclaration};
@@ -216,7 +216,7 @@ impl OpaqueNode {
     }
 
     /// Converts a DOM node (script view) to an `OpaqueNode`.
-    pub fn from_script_node(node: &AbstractNode) -> OpaqueNode {
+    pub fn from_script_node(node: &libc::uintptr_t) -> OpaqueNode {
         unsafe {
             OpaqueNode(cast::transmute_copy(node))
         }
@@ -224,7 +224,7 @@ impl OpaqueNode {
 
     /// Unsafely converts an `OpaqueNode` to a DOM node (script view). Use this only if you
     /// absolutely know what you're doing.
-    pub unsafe fn to_script_node(&self) -> AbstractNode {
+    pub unsafe fn to_script_node(&self) -> libc::uintptr_t {
         cast::transmute(**self)
     }
 

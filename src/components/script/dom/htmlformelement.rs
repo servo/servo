@@ -3,27 +3,39 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLFormElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
-use dom::element::HTMLFormElementTypeId;
+use dom::document::Document;
+use dom::element::{Element, HTMLFormElementTypeId};
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLFormElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLFormElementDerived for EventTarget {
+    fn is_htmlformelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLFormElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLFormElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLFormElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(HTMLFormElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLFormElement> {
         let element = HTMLFormElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLFormElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLFormElementBinding::Wrap)
     }
 }
 
@@ -101,7 +113,7 @@ impl HTMLFormElement {
     }
 
     pub fn Elements(&self) -> @mut HTMLCollection {
-        let window = self.htmlelement.element.node.owner_doc().document().window;
+        let window = self.htmlelement.element.node.owner_doc().value().window;
         HTMLCollection::new(window, ~[])
     }
 
@@ -120,7 +132,7 @@ impl HTMLFormElement {
         false
     }
 
-    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> AbstractNode {
+    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> JSManaged<Element> {
         fail!("Not implemented.")
     }
 }

@@ -3,12 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::WindowBinding;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::bindings::utils::{trace_option, trace_reflector};
 use dom::bindings::utils::DOMString;
-use dom::document::AbstractDocument;
+use dom::document::Document;
+use dom::element::Element;
 use dom::eventtarget::{EventTarget, WindowTypeId};
-use dom::node::AbstractNode;
 use dom::location::Location;
 use dom::navigator::Navigator;
 
@@ -107,7 +108,7 @@ impl Window {
         self.timer_chan.send(TimerMessage_TriggerExit);
     }
 
-    pub fn Document(&self) -> AbstractDocument {
+    pub fn Document(&self) -> JSManaged<Document> {
         self.page.frame.unwrap().document
     }
 
@@ -138,7 +139,7 @@ impl Window {
     pub fn Blur(&self) {
     }
 
-    pub fn GetFrameElement(&self) -> Option<AbstractNode> {
+    pub fn GetFrameElement(&self) -> Option<JSManaged<Element>> {
         None
     }
 

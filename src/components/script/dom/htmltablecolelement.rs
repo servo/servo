@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLTableColElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLTableColElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLTableColElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLTableColElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLTableColElementDerived for EventTarget {
+    fn is_htmltablecolelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLTableColElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLTableColElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTableColElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLTableColElement {
         HTMLTableColElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableColElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLTableColElement> {
         let element = HTMLTableColElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLTableColElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLTableColElementBinding::Wrap)
     }
 }
 

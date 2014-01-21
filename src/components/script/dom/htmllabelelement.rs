@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLLabelElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLLabelElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::DOMString;
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLLabelElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLLabelElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLLabelElementDerived for EventTarget {
+    fn is_htmllabelelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLLabelElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLLabelElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLLabelElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLLabelElement {
         HTMLLabelElement {
             htmlelement: HTMLElement::new_inherited(HTMLLabelElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLLabelElement> {
         let element = HTMLLabelElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLLabelElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLLabelElementBinding::Wrap)
     }
 }
 

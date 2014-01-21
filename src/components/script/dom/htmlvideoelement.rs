@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLVideoElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLVideoElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLVideoElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlmediaelement::HTMLMediaElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLVideoElement {
     htmlmediaelement: HTMLMediaElement
 }
 
+impl HTMLVideoElementDerived for EventTarget {
+    fn is_htmlvideoelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLVideoElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLVideoElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLVideoElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLVideoElement {
         HTMLVideoElement {
             htmlmediaelement: HTMLMediaElement::new_inherited(HTMLVideoElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLVideoElement> {
         let element = HTMLVideoElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLVideoElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLVideoElementBinding::Wrap)
     }
 }
 

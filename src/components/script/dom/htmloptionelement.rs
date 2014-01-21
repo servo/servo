@@ -3,26 +3,39 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLOptionElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLOptionElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLOptionElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::htmlformelement::HTMLFormElement;
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLOptionElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLOptionElementDerived for EventTarget {
+    fn is_htmloptionelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLOptionElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLOptionElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLOptionElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement: HTMLElement::new_inherited(HTMLOptionElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLOptionElement> {
         let element = HTMLOptionElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLOptionElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLOptionElementBinding::Wrap)
     }
 }
 
@@ -35,7 +48,7 @@ impl HTMLOptionElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode> {
+    pub fn GetForm(&self) -> Option<JSManaged<HTMLFormElement>> {
         None
     }
 

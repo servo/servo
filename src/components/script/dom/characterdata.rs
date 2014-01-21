@@ -4,18 +4,31 @@
 
 //! DOM bindings for `CharacterData`.
 
+use dom::bindings::codegen::InheritTypes::CharacterDataDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::document::AbstractDocument;
-use dom::node::{Node, NodeTypeId};
+use dom::document::Document;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId};
 
 pub struct CharacterData {
     node: Node,
     data: ~str
 }
 
+impl CharacterDataDerived for EventTarget {
+    fn is_characterdata(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(TextNodeTypeId) |
+            NodeTargetTypeId(CommentNodeTypeId) => true,
+            _ => false
+        }
+    }
+}
+
 impl CharacterData {
-    pub fn new_inherited(id: NodeTypeId, data: ~str, document: AbstractDocument) -> CharacterData {
+    pub fn new_inherited(id: NodeTypeId, data: ~str, document: JSManaged<Document>) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(id, document),
             data: data

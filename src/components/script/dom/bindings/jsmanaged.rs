@@ -4,12 +4,27 @@
 
 use std::cast;
 use std::unstable::raw::Box;
+use std::libc;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::window;
 use js::jsapi::{JSContext, JSObject};
 
 pub struct JSManaged<T> {
     ptr: *mut T
+}
+
+impl<T> Eq for JSManaged<T> {
+    fn eq(&self, other: &JSManaged<T>) -> bool {
+        self.ptr == other.ptr
+    }
+}
+
+impl <T> Clone for JSManaged<T> {
+    fn clone(&self) -> JSManaged<T> {
+        JSManaged {
+            ptr: self.ptr
+        }
+    }
 }
  
 impl<T: Reflectable> JSManaged<T> {
@@ -30,6 +45,16 @@ impl<T: Reflectable> JSManaged<T> {
     pub unsafe fn from_box(box_: *mut Box<T>) -> JSManaged<T> {
         JSManaged {
             ptr: &mut (*box_).data
+        }
+    }
+
+    pub fn to_uintptr(&self) -> libc::uintptr_t {
+        self.ptr as libc::uintptr_t
+    }
+
+    pub fn from_uintptr(addr: libc::uintptr_t) -> JSManaged<T> {
+        JSManaged {
+            ptr: addr as *mut T
         }
     }
 }

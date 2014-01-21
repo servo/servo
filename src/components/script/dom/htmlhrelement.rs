@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLHRElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLHRElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLHRElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLHRElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLHRElementDerived for EventTarget {
+    fn is_htmlhrelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLHRElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLHRElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLHRElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLHRElement {
         HTMLHRElement {
             htmlelement: HTMLElement::new_inherited(HTMLHRElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLHRElement> {
         let element = HTMLHRElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLHRElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLHRElementBinding::Wrap)
     }
 }
 

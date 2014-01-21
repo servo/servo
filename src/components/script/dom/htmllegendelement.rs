@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLLegendElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLLegendElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLLegendElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLLegendElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLLegendElementDerived for EventTarget {
+    fn is_htmllegendelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLLegendElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLLegendElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLLegendElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLLegendElement {
         HTMLLegendElement {
             htmlelement: HTMLElement::new_inherited(HTMLLegendElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLLegendElement> {
         let element = HTMLLegendElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLLegendElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLLegendElementBinding::Wrap)
     }
 }
 

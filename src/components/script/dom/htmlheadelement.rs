@@ -3,24 +3,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLHeadElementBinding;
-use dom::document::AbstractDocument;
+use dom::bindings::codegen::InheritTypes::HTMLHeadElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
+use dom::document::Document;
 use dom::element::HTMLHeadElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLHeadElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLHeadElementDerived for EventTarget {
+    fn is_htmlheadelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLHeadElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLHeadElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLHeadElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLHeadElement {
         HTMLHeadElement {
             htmlelement: HTMLElement::new_inherited(HTMLHeadElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLHeadElement> {
         let element = HTMLHeadElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLHeadElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLHeadElementBinding::Wrap)
     }
 }

@@ -3,26 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLMetaElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLMetaElementDerived;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, ErrorResult};
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLMetaElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 
 pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLMetaElementDerived for EventTarget {
+    fn is_htmlmetaelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLMetaElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLMetaElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLMetaElement {
+    pub fn new_inherited(localName: ~str, document: JSManaged<Document>) -> HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(HTMLMetaElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: ~str, document: JSManaged<Document>) -> JSManaged<HTMLMetaElement> {
         let element = HTMLMetaElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLMetaElementBinding::Wrap)
+        Node::reflect_node(~element, document, HTMLMetaElementBinding::Wrap)
     }
 }
 
