@@ -31,13 +31,13 @@ impl HTMLDocumentDerived for EventTarget {
 }
 
 impl HTMLDocument {
-    pub fn new_inherited(window: @mut Window) -> HTMLDocument {
+    pub fn new_inherited(window: JSManaged<Window>) -> HTMLDocument {
         HTMLDocument {
             parent: Document::new_inherited(window, HTML)
         }
     }
 
-    pub fn new(window: @mut Window) -> JSManaged<HTMLDocument> {
+    pub fn new(window: JSManaged<Window>) -> JSManaged<HTMLDocument> {
         let document = HTMLDocument::new_inherited(window);
         Document::reflect_document(~document, window, HTMLDocumentBinding::Wrap)
     }

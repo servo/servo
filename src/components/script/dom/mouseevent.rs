@@ -50,13 +50,13 @@ impl MouseEvent {
         }
     }
 
-    pub fn new(window: @mut Window) -> JSManaged<MouseEvent> {
+    pub fn new(window: JSManaged<Window>) -> JSManaged<MouseEvent> {
         reflect_dom_object2(~MouseEvent::new_inherited(),
-                            window,
+                            window.value(),
                             MouseEventBinding::Wrap)
     }
 
-    pub fn Constructor(owner: @mut Window,
+    pub fn Constructor(owner: JSManaged<Window>,
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<JSManaged<MouseEvent>> {
         let mut ev = MouseEvent::new(owner);

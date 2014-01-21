@@ -16,11 +16,11 @@ use std::ptr;
 pub struct HTMLCollection {
     elements: ~[JSManaged<Element>],
     reflector_: Reflector,
-    window: @mut Window,
+    window: JSManaged<Window>,
 }
 
 impl HTMLCollection {
-    pub fn new_inherited(window: @mut Window, elements: ~[JSManaged<Element>]) -> HTMLCollection {
+    pub fn new_inherited(window: JSManaged<Window>, elements: ~[JSManaged<Element>]) -> HTMLCollection {
         HTMLCollection {
             elements: elements,
             reflector_: Reflector::new(),
@@ -28,9 +28,9 @@ impl HTMLCollection {
         }
     }
 
-    pub fn new(window: @mut Window, elements: ~[JSManaged<Element>]) -> @mut HTMLCollection {
+    pub fn new(window: JSManaged<Window>, elements: ~[JSManaged<Element>]) -> @mut HTMLCollection {
         reflect_dom_object(@mut HTMLCollection::new_inherited(window, elements),
-                           window, HTMLCollectionBinding::Wrap)
+                           window.value(), HTMLCollectionBinding::Wrap)
     }
     
     pub fn Length(&self) -> u32 {

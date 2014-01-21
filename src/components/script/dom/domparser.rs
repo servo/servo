@@ -13,24 +13,24 @@ use dom::htmldocument::HTMLDocument;
 use dom::window::Window;
 
 pub struct DOMParser {
-    owner: @mut Window, //XXXjdm Document instead?
+    owner: JSManaged<Window>, //XXXjdm Document instead?
     reflector_: Reflector
 }
 
 impl DOMParser {
-    pub fn new_inherited(owner: @mut Window) -> DOMParser {
+    pub fn new_inherited(owner: JSManaged<Window>) -> DOMParser {
         DOMParser {
             owner: owner,
             reflector_: Reflector::new()
         }
     }
 
-    pub fn new(owner: @mut Window) -> @mut DOMParser {
-        reflect_dom_object(@mut DOMParser::new_inherited(owner), owner,
+    pub fn new(owner: JSManaged<Window>) -> @mut DOMParser {
+        reflect_dom_object(@mut DOMParser::new_inherited(owner), owner.value(),
                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(owner: @mut Window) -> Fallible<@mut DOMParser> {
+    pub fn Constructor(owner: JSManaged<Window>) -> Fallible<@mut DOMParser> {
         Ok(DOMParser::new(owner))
     }
 

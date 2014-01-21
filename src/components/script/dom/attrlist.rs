@@ -11,12 +11,12 @@ use dom::window::Window;
 
 pub struct AttrList {
     reflector_: Reflector,
-    window: @mut Window,
+    window: JSManaged<Window>,
     owner: JSManaged<Element>,
 }
 
 impl AttrList {
-    pub fn new_inherited(window: @mut Window, elem: JSManaged<Element>) -> AttrList {
+    pub fn new_inherited(window: JSManaged<Window>, elem: JSManaged<Element>) -> AttrList {
         AttrList {
             reflector_: Reflector::new(),
             window: window,
@@ -24,9 +24,9 @@ impl AttrList {
         }
     }
 
-    pub fn new(window: @mut Window, elem: JSManaged<Element>) -> @mut AttrList {
+    pub fn new(window: JSManaged<Window>, elem: JSManaged<Element>) -> @mut AttrList {
         reflect_dom_object(@mut AttrList::new_inherited(window, elem),
-                           window, AttrListBinding::Wrap)
+                           window.value(), AttrListBinding::Wrap)
     }
 
     pub fn Length(&self) -> u32 {

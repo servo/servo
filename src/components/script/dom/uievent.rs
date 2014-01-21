@@ -33,13 +33,13 @@ impl UIEvent {
         }
     }
 
-    pub fn new(window: @mut Window) -> JSManaged<UIEvent> {
+    pub fn new(window: JSManaged<Window>) -> JSManaged<UIEvent> {
         reflect_dom_object2(~UIEvent::new_inherited(UIEventTypeId),
-                            window,
+                            window.value(),
                             UIEventBinding::Wrap)
     }
 
-    pub fn Constructor(owner: @mut Window,
+    pub fn Constructor(owner: JSManaged<Window>,
                        type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<JSManaged<UIEvent>> {
         let mut ev = UIEvent::new(owner);

@@ -294,7 +294,6 @@ pub fn parse_html(cx: *JSContext,
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
 
-    //let document_node: JSManaged<Node> = NodeCast::from(document);
     parser.set_document_node(unsafe { document.to_hubbub_node() });
     parser.enable_scripting(true);
     parser.enable_styling(true);
@@ -358,7 +357,6 @@ pub fn parse_html(cx: *JSContext,
                     let mut iframe_element: JSManaged<HTMLIFrameElement> =
                         HTMLIFrameElementCast::to(element);
                     let sandboxed = iframe_element.value().is_sandboxed();
-                    //let elem = &mut iframe_element.mut_value().htmlelement.element;
                     let src_opt = element.value().get_attr(Null, "src").map(|x| x.to_str());
                     for src in src_opt.iter() {
                         let iframe_url = make_url(src.clone(), Some(url2.clone()));

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::ClientRectListBinding;
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::clientrect::ClientRect;
 use dom::window::Window;
@@ -10,11 +11,11 @@ use dom::window::Window;
 pub struct ClientRectList {
     reflector_: Reflector,
     rects: ~[@mut ClientRect],
-    window: @mut Window,
+    window: JSManaged<Window>,
 }
 
 impl ClientRectList {
-    pub fn new_inherited(window: @mut Window,
+    pub fn new_inherited(window: JSManaged<Window>,
                          rects: ~[@mut ClientRect]) -> ClientRectList {
         ClientRectList {
             reflector_: Reflector::new(),
@@ -23,10 +24,10 @@ impl ClientRectList {
         }
     }
 
-    pub fn new(window: @mut Window,
+    pub fn new(window: JSManaged<Window>,
                rects: ~[@mut ClientRect]) -> @mut ClientRectList {
         reflect_dom_object(@mut ClientRectList::new_inherited(window, rects),
-                           window, ClientRectListBinding::Wrap)
+                           window.value(), ClientRectListBinding::Wrap)
     }
 
     pub fn Length(&self) -> u32 {

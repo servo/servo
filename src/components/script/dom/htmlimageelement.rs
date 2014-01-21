@@ -74,7 +74,7 @@ impl HTMLImageElement {
     pub fn AfterSetAttr(&mut self, name: DOMString, _value: DOMString) {
         if "src" == name {
             let document = self.htmlelement.element.node.owner_doc();
-            let window = document.value().window;
+            let window = document.value().window.value();
             let url = window.page.url.as_ref().map(|&(ref url, _)| url.clone());
             self.update_image(window.image_cache_task.clone(), url);
         }
@@ -86,7 +86,7 @@ impl HTMLImageElement {
         // `self.update_image()` will see the missing src attribute and return early.
         if "src" == name {
             let document = self.htmlelement.element.node.owner_doc();
-            let window = document.value().window;
+            let window = document.value().window.value();
             self.update_image(window.image_cache_task.clone(), None);
         }
     }
@@ -135,7 +135,8 @@ impl HTMLImageElement {
 
     pub fn Width(&self, abstract_self: JSManaged<HTMLImageElement>) -> u32 {
         let node = &self.htmlelement.element.node;
-        let page = node.owner_doc().value().window.page;
+        let doc = node.owner_doc();
+        let page = doc.value().window.value().page;
         let (port, chan) = Chan::new();
         let this_node: JSManaged<Node> = NodeCast::from(abstract_self);
         let addr = this_node.to_uintptr();
@@ -154,7 +155,8 @@ impl HTMLImageElement {
 
     pub fn Height(&self, abstract_self: JSManaged<HTMLImageElement>) -> u32 {
         let node = &self.htmlelement.element.node;
-        let page = node.owner_doc().value().window.page;
+        let doc = node.owner_doc();
+        let page = doc.value().window.value().page;
         let (port, chan) = Chan::new();
         let this_node: JSManaged<Node> = NodeCast::from(abstract_self);
         let addr = this_node.to_uintptr();

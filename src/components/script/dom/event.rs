@@ -73,9 +73,9 @@ impl Event {
         }
     }
 
-    pub fn new(window: @mut Window) -> JSManaged<Event> {
+    pub fn new(window: JSManaged<Window>) -> JSManaged<Event> {
         reflect_dom_object2(~Event::new_inherited(HTMLEventTypeId),
-                            window,
+                            window.value(),
                             EventBinding::Wrap)
     }
 
@@ -141,7 +141,7 @@ impl Event {
         self.trusted
     }
 
-    pub fn Constructor(global: @mut Window,
+    pub fn Constructor(global: JSManaged<Window>,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<JSManaged<Event>> {
         let mut ev = Event::new(global);

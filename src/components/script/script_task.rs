@@ -13,6 +13,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
 use dom::event::Event;
+use dom::eventtarget::EventTarget;
 use dom::htmldocument::HTMLDocument;
 use dom::namespace::Null;
 use dom::node::{Node, NodeHelpers};
@@ -341,6 +342,7 @@ impl Page {
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
 
+        assert!(global.is_not_null());
         let compartment = match js_context.new_compartment_with_global(global) {
               Ok(c) => c,
               Err(()) => fail!("Failed to create a compartment"),
@@ -369,7 +371,7 @@ pub struct Frame {
     /// The document for this frame.
     document: JSManaged<Document>,
     /// The window object for this frame.
-    window: @mut Window,
+    window: JSManaged<Window>,
 }
 
 /// Encapsulation of the javascript information associated with each frame.
@@ -563,11 +565,11 @@ impl ScriptTask {
     fn handle_fire_timer_msg(&mut self, id: PipelineId, timer_data: ~TimerData) {
         let page = self.page_tree.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.").page;
-        let window = page.frame.expect("ScriptTask: Expect a timeout to have a document").window;
-        if !window.active_timers.contains(&TimerHandle { handle: timer_data.handle, cancel_chan: None }) {
+        let mut window = page.frame.expect("ScriptTask: Expect a timeout to have a document").window;
+        if !window.value().active_timers.contains(&TimerHandle { handle: timer_data.handle, cancel_chan: None }) {
             return;
         }
-        window.active_timers.remove(&TimerHandle { handle: timer_data.handle, cancel_chan: None });
+        window.mut_value().active_timers.remove(&TimerHandle { handle: timer_data.handle, cancel_chan: None });
         unsafe {
             let this_value = if timer_data.args.len() > 0 {
                 RUST_JSVAL_TO_OBJECT(timer_data.args[0])
@@ -772,9 +774,8 @@ impl ScriptTask {
         let mut event = Event::new(window);
         event.mut_value().InitEvent(~"load", false, false);
         let doctarget = EventTargetCast::from(document);
-        //let wintarget = EventTargetCast::from(window);
-        let wintarget = doctarget; //XXXjdm temporary until window becomes JSManaged
-        window.eventtarget.dispatch_event_with_target(wintarget, Some(doctarget), event);
+        let mut wintarget: JSManaged<EventTarget> = EventTargetCast::from(window);
+        wintarget.mut_value().dispatch_event_with_target(wintarget, Some(doctarget), event);
 
         page.fragment_node = fragment.map_default(None, |fragid| self.find_fragment_node(page, fragid));
     }

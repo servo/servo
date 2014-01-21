@@ -584,7 +584,7 @@ impl Node {
              wrap_fn:   extern "Rust" fn(*JSContext, *JSObject, ~N) -> *JSObject)
              -> JSManaged<N> {
         assert!(node.reflector().get_jsobject().is_null());
-        let node = reflect_dom_object2(node, document.value().window, wrap_fn);
+        let node = reflect_dom_object2(node, document.value().window.value(), wrap_fn);
         assert!(node.reflector().get_jsobject().is_not_null());
         node
     }

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::jsmanaged::JSManaged;
 use dom::bindings::utils::{DOMString, Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::Fallible;
 use dom::bindings::codegen::BlobBinding;
@@ -9,24 +10,24 @@ use dom::window::Window;
 
 pub struct Blob {
     reflector_: Reflector,
-    window: @mut Window,
+    window: JSManaged<Window>,
 }
 
 impl Blob {
-    pub fn new_inherited(window: @mut Window) -> Blob {
+    pub fn new_inherited(window: JSManaged<Window>) -> Blob {
         Blob {
             reflector_: Reflector::new(),
             window: window,
         }
     }
 
-    pub fn new(window: @mut Window) -> @mut Blob {
-        reflect_dom_object(@mut Blob::new_inherited(window), window, BlobBinding::Wrap)
+    pub fn new(window: JSManaged<Window>) -> @mut Blob {
+        reflect_dom_object(@mut Blob::new_inherited(window), window.value(), BlobBinding::Wrap)
     }
 }
 
 impl Blob {
-    pub fn Constructor(window: @mut Window) -> Fallible<@mut Blob> {
+    pub fn Constructor(window: JSManaged<Window>) -> Fallible<@mut Blob> {
         Ok(Blob::new(window))
     }
 

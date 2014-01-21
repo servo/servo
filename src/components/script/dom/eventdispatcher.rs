@@ -25,7 +25,7 @@ pub fn dispatch_event(target: JSManaged<EventTarget>,
     let mut chain = ~[];
 
     //TODO: no chain if not participating in a tree
-    if target.is_node() {
+    if target.value().is_node() {
         let target_node: JSManaged<Node> = NodeCast::to(target);
         for ancestor in target_node.value().ancestors() {
             let ancestor_target: JSManaged<EventTarget> = EventTargetCast::from(ancestor);

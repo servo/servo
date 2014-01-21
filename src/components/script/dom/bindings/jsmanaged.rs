@@ -42,6 +42,13 @@ impl<T: Reflectable> JSManaged<T> {
         }
     }
 
+    pub unsafe fn from_raw(raw: *mut T) -> JSManaged<T> {
+        JSManaged {
+            ptr: raw
+        }
+    }
+
+
     pub unsafe fn from_box(box_: *mut Box<T>) -> JSManaged<T> {
         JSManaged {
             ptr: &mut (*box_).data

@@ -52,7 +52,7 @@ pub enum DocumentType {
 pub struct Document {
     node: Node,
     reflector_: Reflector,
-    window: @mut Window,
+    window: JSManaged<Window>,
     doctype: DocumentType,
     title: ~str,
     idmap: HashMap<DOMString, JSManaged<Element>>
@@ -70,11 +70,11 @@ impl DocumentDerived for EventTarget {
 impl Document {
     pub fn reflect_document<D: Reflectable+DocumentBase>
             (document:  ~D,
-             window:    @mut Window,
+             window:    JSManaged<Window>,
              wrap_fn:   extern "Rust" fn(*JSContext, *JSObject, ~D) -> *JSObject)
              -> JSManaged<D> {
         assert!(document.reflector().get_jsobject().is_null());
-        let raw_doc = reflect_dom_object2(document, window, wrap_fn);
+        let raw_doc = reflect_dom_object2(document, window.value(), wrap_fn);
         assert!(raw_doc.reflector().get_jsobject().is_not_null());
 
         let document = DocumentCast::from(raw_doc);
@@ -83,7 +83,7 @@ impl Document {
         raw_doc
     }
 
-    pub fn new_inherited(window: @mut Window, doctype: DocumentType) -> Document {
+    pub fn new_inherited(window: JSManaged<Window>, doctype: DocumentType) -> Document {
         let node_type = match doctype {
             HTML => HTMLDocumentTypeId,
             SVG | XML => PlainDocumentTypeId
@@ -98,14 +98,14 @@ impl Document {
         }
     }
 
-    pub fn new(window: @mut Window, doctype: DocumentType) -> JSManaged<Document> {
+    pub fn new(window: JSManaged<Window>, doctype: DocumentType) -> JSManaged<Document> {
         let document = Document::new_inherited(window, doctype);
         Document::reflect_document(~document, window, DocumentBinding::Wrap)
     }
 }
 
 impl Document {
-    pub fn Constructor(owner: @mut Window) -> Fallible<JSManaged<Document>> {
+    pub fn Constructor(owner: JSManaged<Window>) -> Fallible<JSManaged<Document>> {
         Ok(Document::new(owner, XML))
     }
 }
@@ -349,11 +349,11 @@ impl Document {
     }
 
     pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
-        self.window.damage_and_reflow(damage);
+        self.window.value().damage_and_reflow(damage);
     }
 
     pub fn wait_until_safe_to_modify_dom(&self) {
-        self.window.wait_until_safe_to_modify_dom();
+        self.window.value().wait_until_safe_to_modify_dom();
     }
 
     pub fn register_nodes_with_id(&mut self, root: &JSManaged<Element>) {

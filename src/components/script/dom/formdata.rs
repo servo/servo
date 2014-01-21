@@ -20,12 +20,12 @@ enum FormDatum {
 pub struct FormData {
     data: HashMap<~str, FormDatum>,
     reflector_: Reflector,
-    window: @mut Window,
+    window: JSManaged<Window>,
     form: Option<JSManaged<HTMLFormElement>>
 }
 
 impl FormData {
-    pub fn new_inherited(form: Option<JSManaged<HTMLFormElement>>, window: @mut Window) -> FormData {
+    pub fn new_inherited(form: Option<JSManaged<HTMLFormElement>>, window: JSManaged<Window>) -> FormData {
         FormData {
             data: HashMap::new(),
             reflector_: Reflector::new(),
@@ -34,11 +34,11 @@ impl FormData {
         }
     }
 
-    pub fn new(form: Option<JSManaged<HTMLFormElement>>, window: @mut Window) -> @mut FormData {
-        reflect_dom_object(@mut FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
+    pub fn new(form: Option<JSManaged<HTMLFormElement>>, window: JSManaged<Window>) -> @mut FormData {
+        reflect_dom_object(@mut FormData::new_inherited(form, window), window.value(), FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(window: @mut Window, form: Option<JSManaged<HTMLFormElement>>)
+    pub fn Constructor(window: JSManaged<Window>, form: Option<JSManaged<HTMLFormElement>>)
                        -> Fallible<@mut FormData> {
         Ok(FormData::new(form, window))
     }

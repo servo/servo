@@ -16,11 +16,11 @@ enum NodeListType {
 pub struct NodeList {
     list_type: NodeListType,
     reflector_: Reflector,
-    window: @mut Window,
+    window: JSManaged<Window>,
 }
 
 impl NodeList {
-    pub fn new_inherited(window: @mut Window,
+    pub fn new_inherited(window: JSManaged<Window>,
                          list_type: NodeListType) -> NodeList {
         NodeList {
             list_type: list_type,
@@ -29,17 +29,17 @@ impl NodeList {
         }
     }
 
-    pub fn new(window: @mut Window,
+    pub fn new(window: JSManaged<Window>,
                list_type: NodeListType) -> @mut NodeList {
         reflect_dom_object(@mut NodeList::new_inherited(window, list_type),
-                           window, NodeListBinding::Wrap)
+                           window.value(), NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list(window: @mut Window, elements: ~[JSManaged<Node>]) -> @mut NodeList {
+    pub fn new_simple_list(window: JSManaged<Window>, elements: ~[JSManaged<Node>]) -> @mut NodeList {
         NodeList::new(window, Simple(elements))
     }
 
-    pub fn new_child_list(window: @mut Window, node: JSManaged<Node>) -> @mut NodeList {
+    pub fn new_child_list(window: JSManaged<Window>, node: JSManaged<Node>) -> @mut NodeList {
         NodeList::new(window, Children(node))
     }
 

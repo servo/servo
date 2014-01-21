@@ -38,7 +38,7 @@ impl Comment {
         Node::reflect_node(~node, document, CommentBinding::Wrap)
     }
 
-    pub fn Constructor(owner: @mut Window, data: DOMString) -> Fallible<JSManaged<Comment>> {
-        Ok(Comment::new(data, owner.Document()))
+    pub fn Constructor(owner: JSManaged<Window>, data: DOMString) -> Fallible<JSManaged<Comment>> {
+        Ok(Comment::new(data, owner.value().Document()))
     }
 }

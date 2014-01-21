@@ -39,7 +39,7 @@ impl DocumentFragment {
 }
 
 impl DocumentFragment {
-    pub fn Constructor(owner: @mut Window) -> Fallible<JSManaged<DocumentFragment>> {
-        Ok(DocumentFragment::new(owner.Document()))
+    pub fn Constructor(owner: JSManaged<Window>) -> Fallible<JSManaged<DocumentFragment>> {
+        Ok(DocumentFragment::new(owner.value().Document()))
     }
 }

@@ -38,8 +38,8 @@ impl Text {
         Node::reflect_node(~node, document, TextBinding::Wrap)
     }
 
-    pub fn Constructor(owner: @mut Window, text: DOMString) -> Fallible<JSManaged<Text>> {
-        Ok(Text::new(text.clone(), owner.Document()))
+    pub fn Constructor(owner: JSManaged<Window>, text: DOMString) -> Fallible<JSManaged<Text>> {
+        Ok(Text::new(text.clone(), owner.value().Document()))
     }
 
     pub fn SplitText(&self, _offset: u32) -> Fallible<JSManaged<Text>> {

@@ -240,8 +240,8 @@ impl Window {
                script_chan: ScriptChan,
                compositor: @ScriptListener,
                image_cache_task: ImageCacheTask)
-               -> @mut Window {
-        let win = @mut Window {
+               -> JSManaged<Window> {
+        let mut win = ~Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
             page: page,
             script_chan: script_chan.clone(),
@@ -267,7 +267,9 @@ impl Window {
             next_timer_handle: 0
         };
 
+        let raw: *mut Window = &mut *win;
         let global = WindowBinding::Wrap(cx, ptr::null(), win);
+        assert!(global.is_not_null());
         unsafe {
             let fn_names = ["window","self"];
             for str in fn_names.iter() {
@@ -282,7 +284,9 @@ impl Window {
             }
 
         }
-        win
+        unsafe {
+            JSManaged::from_raw(raw)
+        }
     }
 }
 

@@ -212,7 +212,7 @@ impl Element {
 
         if old_raw_value.is_none() {
             let win = self.node.owner_doc().value().window;
-            let new_attr = Attr::new_ns(win, local_name.clone(), value.clone(),
+            let new_attr = Attr::new_ns(win.value(), local_name.clone(), value.clone(),
                                         name.clone(), namespace.clone(),
                                         prefix);
             self.attrs.push(new_attr);
@@ -474,7 +474,7 @@ impl Element {
         let (port, chan) = Chan::new();
         let addr = node.to_uintptr();
         let rects =
-            match win.page.query_layout(ContentBoxesQuery(addr, chan), port) {
+            match win.value().page.query_layout(ContentBoxesQuery(addr, chan), port) {
                 ContentBoxesResponse(rects) => {
                     rects.map(|r| {
                         ClientRect::new(
@@ -495,7 +495,7 @@ impl Element {
         let node: JSManaged<Node> = NodeCast::from(abstract_self);
         let (port, chan) = Chan::new();
         let addr = node.to_uintptr();
-        match win.page.query_layout(ContentBoxQuery(addr, chan), port) {
+        match win.value().page.query_layout(ContentBoxQuery(addr, chan), port) {
             ContentBoxResponse(rect) => {
                 ClientRect::new(
                     win,
