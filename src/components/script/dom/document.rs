@@ -88,7 +88,8 @@ pub struct Document {
     window: @mut Window,
     doctype: DocumentType,
     idmap: HashMap<DOMString, AbstractNode>,
-    implementation: Option<@mut DOMImplementation>
+    implementation: Option<@mut DOMImplementation>,
+    content_type: DOMString
 }
 
 impl Document {
@@ -109,7 +110,7 @@ impl Document {
         abstract
     }
 
-    pub fn new_inherited(window: @mut Window, doctype: DocumentType) -> Document {
+    pub fn new_inherited(window: @mut Window, doctype: DocumentType, content_type: Option<DOMString>) -> Document {
         let node_type = match doctype {
             HTML => HTMLDocumentTypeId,
             SVG | XML => PlainDocumentTypeId
@@ -120,19 +121,28 @@ impl Document {
             window: window,
             doctype: doctype,
             idmap: HashMap::new(),
-            implementation: None
+            implementation: None,
+            content_type: match content_type {
+                Some(string) => string.clone(),
+                None => match doctype {
+                    // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
+                    HTML => ~"text/html",
+                    // http://dom.spec.whatwg.org/#concept-document-content-type
+                    SVG | XML => ~"application/xml"
+                }
+            }
         }
     }
 
-    pub fn new(window: @mut Window, doctype: DocumentType) -> AbstractDocument {
-        let document = Document::new_inherited(window, doctype);
+    pub fn new(window: @mut Window, doctype: DocumentType, content_type: Option<DOMString>) -> AbstractDocument {
+        let document = Document::new_inherited(window, doctype, content_type);
         Document::reflect_document(@mut document, window, DocumentBinding::Wrap)
     }
 }
 
 impl Document {
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
-        Ok(Document::new(owner, XML))
+        Ok(Document::new(owner, XML, None))
     }
 }
 
@@ -162,6 +172,11 @@ impl Document {
             self.implementation = Some(DOMImplementation::new(self.window));
         }
         self.implementation.unwrap()
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-content_type
+    pub fn ContentType(&self) -> DOMString {
+        self.content_type.clone()
     }
 
     pub fn GetDoctype(&self) -> Option<AbstractNode> {
