@@ -37,7 +37,7 @@ pub struct Element {
     namespace: Namespace,
     attrs: ~[JSManaged<Attr>],
     style_attribute: Option<style::PropertyDeclarationBlock>,
-    attr_list: Option<@mut AttrList>
+    attr_list: Option<JSManaged<AttrList>>
 }
 
 impl ElementDerived for EventTarget {
@@ -375,7 +375,7 @@ impl Element {
         self.set_string_attribute(abstract_self, "id", id);
     }
 
-    pub fn Attributes(&mut self, abstract_self: JSManaged<Element>) -> @mut AttrList {
+    pub fn Attributes(&mut self, abstract_self: JSManaged<Element>) -> JSManaged<AttrList> {
         match self.attr_list {
             None => {
                 let window = self.node.owner_doc().value().window;
@@ -440,15 +440,15 @@ impl Element {
         self.GetAttributeNS(namespace, local_name).is_some()
     }
 
-    pub fn GetElementsByTagName(&self, _localname: DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByTagName(&self, _localname: DOMString) -> JSManaged<HTMLCollection> {
         HTMLCollection::new(self.node.owner_doc().value().window, ~[])
     }
 
-    pub fn GetElementsByTagNameNS(&self, _namespace: Option<DOMString>, _localname: DOMString) -> Fallible<@mut HTMLCollection> {
+    pub fn GetElementsByTagNameNS(&self, _namespace: Option<DOMString>, _localname: DOMString) -> Fallible<JSManaged<HTMLCollection>> {
         Ok(HTMLCollection::new(self.node.owner_doc().value().window, ~[]))
     }
 
-    pub fn GetElementsByClassName(&self, _names: DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByClassName(&self, _names: DOMString) -> JSManaged<HTMLCollection> {
         HTMLCollection::new(self.node.owner_doc().value().window, ~[])
     }
 

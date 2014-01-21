@@ -48,7 +48,7 @@ impl HTMLMapElement {
         Ok(())
     }
 
-    pub fn Areas(&self) -> @mut HTMLCollection {
+    pub fn Areas(&self) -> JSManaged<HTMLCollection> {
         let window = self.htmlelement.element.node.owner_doc().value().window;
         HTMLCollection::new(window, ~[])
     }

@@ -5,7 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::AttrListBinding;
 use dom::bindings::jsmanaged::JSManaged;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::element::Element;
 use dom::window::Window;
 
@@ -13,6 +13,7 @@ pub struct AttrList {
     reflector_: Reflector,
     window: JSManaged<Window>,
     owner: JSManaged<Element>,
+    force_box_layout: @int
 }
 
 impl AttrList {
@@ -20,13 +21,14 @@ impl AttrList {
         AttrList {
             reflector_: Reflector::new(),
             window: window,
-            owner: elem
+            owner: elem,
+            force_box_layout: @1
         }
     }
 
-    pub fn new(window: JSManaged<Window>, elem: JSManaged<Element>) -> @mut AttrList {
-        reflect_dom_object(@mut AttrList::new_inherited(window, elem),
-                           window.value(), AttrListBinding::Wrap)
+    pub fn new(window: JSManaged<Window>, elem: JSManaged<Element>) -> JSManaged<AttrList> {
+        reflect_dom_object2(~AttrList::new_inherited(window, elem),
+                            window.value(), AttrListBinding::Wrap)
     }
 
     pub fn Length(&self) -> u32 {

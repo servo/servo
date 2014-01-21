@@ -39,7 +39,7 @@ impl HTMLDataListElement {
 }
 
 impl HTMLDataListElement {
-    pub fn Options(&self) -> @mut HTMLCollection {
+    pub fn Options(&self) -> JSManaged<HTMLCollection> {
         let window = self.htmlelement.element.node.owner_doc().value().window;
         HTMLCollection::new(window, ~[])
     }

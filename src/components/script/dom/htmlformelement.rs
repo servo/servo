@@ -112,7 +112,7 @@ impl HTMLFormElement {
         Ok(())
     }
 
-    pub fn Elements(&self) -> @mut HTMLCollection {
+    pub fn Elements(&self) -> JSManaged<HTMLCollection> {
         let window = self.htmlelement.element.node.owner_doc().value().window;
         HTMLCollection::new(window, ~[])
     }

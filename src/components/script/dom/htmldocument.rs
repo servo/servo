@@ -44,38 +44,38 @@ impl HTMLDocument {
 }
 
 impl HTMLDocument {
-    pub fn Images(&self) -> @mut HTMLCollection {
+    pub fn Images(&self) -> JSManaged<HTMLCollection> {
         self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "img"))
     }
 
-    pub fn Embeds(&self) -> @mut HTMLCollection {
+    pub fn Embeds(&self) -> JSManaged<HTMLCollection> {
         self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "embed"))
     }
 
-    pub fn Plugins(&self) -> @mut HTMLCollection {
+    pub fn Plugins(&self) -> JSManaged<HTMLCollection> {
         self.Embeds()
     }
 
-    pub fn Links(&self) -> @mut HTMLCollection {
+    pub fn Links(&self) -> JSManaged<HTMLCollection> {
         self.parent.createHTMLCollection(|elem|
             (eq_slice(elem.tag_name, "a") || eq_slice(elem.tag_name, "area"))
             && elem.get_attr(Null, "href").is_some())
     }
 
-    pub fn Forms(&self) -> @mut HTMLCollection {
+    pub fn Forms(&self) -> JSManaged<HTMLCollection> {
         self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "form"))
     }
 
-    pub fn Scripts(&self) -> @mut HTMLCollection {
+    pub fn Scripts(&self) -> JSManaged<HTMLCollection> {
         self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "script"))
     }
 
-    pub fn Anchors(&self) -> @mut HTMLCollection {
+    pub fn Anchors(&self) -> JSManaged<HTMLCollection> {
         self.parent.createHTMLCollection(|elem|
             eq_slice(elem.tag_name, "a") && elem.get_attr(Null, "name").is_some())
     }
 
-    pub fn Applets(&self) -> @mut HTMLCollection {
+    pub fn Applets(&self) -> JSManaged<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
         self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "applet"))
     }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::HTMLCollectionBinding;
 use dom::bindings::jsmanaged::JSManaged;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::element::Element;
 use dom::window::Window;
@@ -17,6 +17,7 @@ pub struct HTMLCollection {
     elements: ~[JSManaged<Element>],
     reflector_: Reflector,
     window: JSManaged<Window>,
+    force_box_layout: @int
 }
 
 impl HTMLCollection {
@@ -25,12 +26,13 @@ impl HTMLCollection {
             elements: elements,
             reflector_: Reflector::new(),
             window: window,
+            force_box_layout: @1
         }
     }
 
-    pub fn new(window: JSManaged<Window>, elements: ~[JSManaged<Element>]) -> @mut HTMLCollection {
-        reflect_dom_object(@mut HTMLCollection::new_inherited(window, elements),
-                           window.value(), HTMLCollectionBinding::Wrap)
+    pub fn new(window: JSManaged<Window>, elements: ~[JSManaged<Element>]) -> JSManaged<HTMLCollection> {
+        reflect_dom_object2(~HTMLCollection::new_inherited(window, elements),
+                            window.value(), HTMLCollectionBinding::Wrap)
     }
     
     pub fn Length(&self) -> u32 {

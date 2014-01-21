@@ -125,15 +125,15 @@ impl Document {
         self.node.child_elements().next()
     }
 
-    pub fn GetElementsByTagName(&self, tag: DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByTagName(&self, tag: DOMString) -> JSManaged<HTMLCollection> {
         self.createHTMLCollection(|elem| eq_slice(elem.tag_name, tag))
     }
 
-    pub fn GetElementsByTagNameNS(&self, _ns: Option<DOMString>, _tag: DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByTagNameNS(&self, _ns: Option<DOMString>, _tag: DOMString) -> JSManaged<HTMLCollection> {
         HTMLCollection::new(self.window, ~[])
     }
 
-    pub fn GetElementsByClassName(&self, _class: DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByClassName(&self, _class: DOMString) -> JSManaged<HTMLCollection> {
         HTMLCollection::new(self.window, ~[])
     }
 
@@ -320,12 +320,12 @@ impl Document {
         Ok(())
     }
 
-    pub fn GetElementsByName(&self, name: DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByName(&self, name: DOMString) -> JSManaged<HTMLCollection> {
         self.createHTMLCollection(|elem|
             elem.get_attr(Null, "name").is_some() && eq_slice(elem.get_attr(Null, "name").unwrap(), name))
     }
 
-    pub fn createHTMLCollection(&self, callback: |elem: &Element| -> bool) -> @mut HTMLCollection {
+    pub fn createHTMLCollection(&self, callback: |elem: &Element| -> bool) -> JSManaged<HTMLCollection> {
         let mut elements = ~[];
         match self.GetDocumentElement() {
             None => {},
