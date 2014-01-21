@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Fallible, Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Fallible, Reflectable, Reflector, reflect_dom_object2};
 use dom::bindings::utils::DOMString;
 use dom::bindings::codegen::FormDataBinding;
 use dom::bindings::jsmanaged::JSManaged;
@@ -34,12 +34,12 @@ impl FormData {
         }
     }
 
-    pub fn new(form: Option<JSManaged<HTMLFormElement>>, window: JSManaged<Window>) -> @mut FormData {
-        reflect_dom_object(@mut FormData::new_inherited(form, window), window.value(), FormDataBinding::Wrap)
+    pub fn new(form: Option<JSManaged<HTMLFormElement>>, window: JSManaged<Window>) -> JSManaged<FormData> {
+        reflect_dom_object2(~FormData::new_inherited(form, window), window.value(), FormDataBinding::Wrap)
     }
 
     pub fn Constructor(window: JSManaged<Window>, form: Option<JSManaged<HTMLFormElement>>)
-                       -> Fallible<@mut FormData> {
+                       -> Fallible<JSManaged<FormData>> {
         Ok(FormData::new(form, window))
     }
 
