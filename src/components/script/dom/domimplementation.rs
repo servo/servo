@@ -62,15 +62,12 @@ impl DOMImplementation {
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     pub fn CreateHTMLDocument(&self, title: Option<DOMString>) -> AbstractDocument {
-        // Step 1.
+        // Step 1-2.
         let abstract_doc = HTMLDocument::new(self.owner);
         assert!(abstract_doc.document().doctype == HTML);
 
         let abstract_node = AbstractNode::from_document(abstract_doc);
         assert!(abstract_node.type_id() == DocumentNodeTypeId(HTMLDocumentTypeId));
-
-        // Step 2.
-        // FIXME: https://github.com/mozilla/servo/pull/1519
 
         {
             // Step 3.

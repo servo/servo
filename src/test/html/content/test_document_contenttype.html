@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            // test1: HTML document
+            {
+                is_a(document, HTMLDocument, "test1-0, HTML document");
+                is(document.contentType, "text/html", "test1-1, HTML document");
+            }
+
+            // test2: XML document
+            {
+                var doc = new Document;
+                is_not_a(doc, HTMLDocument, "test2-0, XML document");
+                is(doc.contentType, "application/xml", "test2-1, XML document");
+            }
+
+            finish();
+        </script>
+    </head>
+</html>

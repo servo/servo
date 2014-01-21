@@ -20,7 +20,7 @@ pub struct HTMLDocument {
 impl HTMLDocument {
     pub fn new_inherited(window: @mut Window) -> HTMLDocument {
         HTMLDocument {
-            parent: Document::new_inherited(window, HTML)
+            parent: Document::new_inherited(window, HTML, None)
         }
     }
 
