@@ -14,7 +14,7 @@ use std::hashmap::HashMap;
 
 enum FormDatum {
     StringData(DOMString),
-    BlobData { blob: @mut Blob, name: DOMString }
+    BlobData { blob: JSManaged<Blob>, name: DOMString }
 }
 
 pub struct FormData {
@@ -43,7 +43,7 @@ impl FormData {
         Ok(FormData::new(form, window))
     }
 
-    pub fn Append(&mut self, name: DOMString, value: @mut Blob, filename: Option<DOMString>) {
+    pub fn Append(&mut self, name: DOMString, value: JSManaged<Blob>, filename: Option<DOMString>) {
         let blob = BlobData {
             blob: value,
             name: filename.unwrap_or(~"default")

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::jsmanaged::JSManaged;
-use dom::bindings::utils::{DOMString, Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{DOMString, Reflectable, Reflector, reflect_dom_object2};
 use dom::bindings::utils::Fallible;
 use dom::bindings::codegen::BlobBinding;
 use dom::window::Window;
@@ -21,13 +21,13 @@ impl Blob {
         }
     }
 
-    pub fn new(window: JSManaged<Window>) -> @mut Blob {
-        reflect_dom_object(@mut Blob::new_inherited(window), window.value(), BlobBinding::Wrap)
+    pub fn new(window: JSManaged<Window>) -> JSManaged<Blob> {
+        reflect_dom_object2(~Blob::new_inherited(window), window.value(), BlobBinding::Wrap)
     }
 }
 
 impl Blob {
-    pub fn Constructor(window: JSManaged<Window>) -> Fallible<@mut Blob> {
+    pub fn Constructor(window: JSManaged<Window>) -> Fallible<JSManaged<Blob>> {
         Ok(Blob::new(window))
     }
 
@@ -39,7 +39,7 @@ impl Blob {
         ~""
     }
 
-    pub fn Slice(&self, _start: i64, _end: i64, _contentType: Option<DOMString>) -> @mut Blob {
+    pub fn Slice(&self, _start: i64, _end: i64, _contentType: Option<DOMString>) -> JSManaged<Blob> {
         Blob::new(self.window)
     }
 
