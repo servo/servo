@@ -1120,6 +1120,9 @@ impl Box {
                 };
 
 
+                // FIXME(ksh8281): we shouldn't assign height this way
+                // we need box.assign_height
+                // now, we can't know about size of parent's height
                 let height = match (MaybeAuto::from_style(self.style().Box.height,container_width),
                                    image_box_info.dom_height) {
                     (Specified(height),_) => {
