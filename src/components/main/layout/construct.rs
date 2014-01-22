@@ -28,12 +28,17 @@ use layout::context::LayoutContext;
 use layout::float_context::FloatType;
 use layout::flow::{BaseFlow, Flow, LeafSet, MutableOwnedFlowUtils};
 use layout::inline::InlineFlow;
+use layout::table_wrapper::TableWrapperFlow;
+use layout::table_colgroup::TableColGroupFlow;
+use layout::table_rowgroup::TableRowGroupFlow;
+use layout::table_row::TableRowFlow;
+use layout::table_cell::TableCellFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
 use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal};
 
 use gfx::font_context::FontContext;
-use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
+use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId, HTMLTableColElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, TextNodeTypeId};
 use style::computed_values::{display, position, float};
@@ -600,6 +605,110 @@ impl<'fc> FlowConstructor<'fc> {
             self.build_boxes_for_replaced_inline_content(node)
         }
     }
+
+    fn build_children_of_table_flow(&mut self,
+                                    flow: &mut ~Flow, 
+                                    node: LayoutNode) {
+        // Ignore inline flows we might need to create.
+        for kid in node.children() {
+            match kid.swap_out_construction_result() {
+                NoConstructionResult | ConstructionItemConstructionResult(_) => {}
+                FlowConstructionResult(kid_flow) => {
+                    let mut kid_flow = Some(kid_flow);
+                    self.layout_context.leaf_set.access(|leaf_set| {
+                        flow.add_new_child(kid_flow.take_unwrap(), leaf_set)
+                    })
+                }
+            }
+        }
+    }
+
+    /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with possibly
+    /// other `BlockFlow`s or `TableFlow`s underneath it.
+    fn build_flow_for_table_wrapper(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let box_ = self.build_box_for_node(node);
+        let mut wrapper_flow = ~TableWrapperFlow::from_box(base, box_, is_fixed) as ~Flow;
+
+        // TODO: We tried to create 'TableFlow' without box, which covers only 'TableRowGroupFlow's 
+        //      (table-row-group, table-header-group, table-footer-group). But, in case of no box,
+        //      display items of children of this flow were not displayed.
+
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&wrapper_flow));
+
+        self.build_children_of_table_flow(&mut wrapper_flow, node);
+        wrapper_flow
+    }
+
+    /// Builds a flow for a node with `display: table-row-group`. This yields a `TableRowGroupFlow` with possibly
+    /// other `TableRowFlow`s underneath it.
+    fn build_flow_for_table_rowgroup(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let box_ = self.build_box_for_node(node);
+        let mut flow = ~TableRowGroupFlow::from_box(base, box_, is_fixed) as ~Flow;
+
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
+
+        self.build_children_of_table_flow(&mut flow, node);
+        flow
+    }
+
+    /// Builds a flow for a node with `display: table-row`. This yields a `TableRowFlow` with possibly
+    /// other `TableCellFlow`s underneath it.
+    fn build_flow_for_table_row(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let box_ = self.build_box_for_node(node);
+        let mut flow = ~TableRowFlow::from_box(base, box_, is_fixed) as ~Flow;
+
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
+
+        self.build_children_of_table_flow(&mut flow, node);
+        flow
+    }
+
+    /// Builds a flow for a node with `display: table-cell`. This yields a `TableCellFlow` with possibly
+    /// other `BlockFlow`s or `InlineFlow`s underneath it.
+    fn build_flow_for_table_cell(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let box_ = self.build_box_for_node(node);
+        let mut flow = ~TableCellFlow::from_box(base, box_, is_fixed) as ~Flow;
+
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
+
+        self.build_children_of_block_flow(&mut flow, node);
+        flow
+    }
+
+    /// Builds a flow for a node with `display: table-col-group`. This yields a `TableColGroupFlow`.
+    fn build_flow_for_table_colgroup(&mut self, node: LayoutNode) -> ~Flow {
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let box_ = self.build_box_for_node(node);
+        let mut col_boxes = ~[];
+        for kid in node.children() {
+            if kid.type_id() != ElementNodeTypeId(HTMLTableColElementTypeId) { continue; }
+            match kid.swap_out_construction_result() {
+                ConstructionItemConstructionResult(InlineBoxesConstructionItem(
+                        InlineBoxesConstructionResult {
+                            splits: _,
+                            boxes: boxes
+                        })) => {
+
+                    col_boxes.push_all_move(boxes)
+                }
+                _ => {}
+            }
+        }
+        if col_boxes.is_empty() {
+            debug!("add TableColBox for empty colgroup");
+            col_boxes.push( Box::new(node, GenericBox) );
+        }
+        let flow = ~TableColGroupFlow::from_box(base, box_, col_boxes) as ~Flow;
+
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
+
+        flow
+    }
+
 }
 
 impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
@@ -639,7 +748,43 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             (display::inline, float::none, _) => {
                 let construction_result = self.build_boxes_for_inline(node);
                 node.set_flow_construction_result(construction_result)
+            }
 
+            // Table items contribute table flow construction results.
+            (display::table, _, _) => {
+                let flow = self.build_flow_for_table_wrapper(node, false);
+                node.set_flow_construction_result(FlowConstructionResult(flow))
+            }
+
+            // Table items contribute table flow construction results.
+            (display::table_column_group, _, _) => {
+                let flow = self.build_flow_for_table_colgroup(node);
+                node.set_flow_construction_result(FlowConstructionResult(flow))
+            }
+
+            // Table items contribute table flow construction results.
+            (display::table_column, _, _) => {
+                let construction_result = self.build_boxes_for_replaced_inline_content(node);
+                node.set_flow_construction_result(construction_result)
+            }
+
+            // Table items contribute table flow construction results.
+            (display::table_row_group, _, _) | (display::table_header_group, _, _) |
+            (display::table_footer_group, _, _) => {
+                let flow = self.build_flow_for_table_rowgroup(node, false);
+                node.set_flow_construction_result(FlowConstructionResult(flow))
+            }
+
+            // Table items contribute table flow construction results.
+            (display::table_row, _, _) => {
+                let flow = self.build_flow_for_table_row(node, false);
+                node.set_flow_construction_result(FlowConstructionResult(flow))
+            }
+
+            // Table items contribute table flow construction results.
+            (display::table_cell, _, _) => {
+                let flow = self.build_flow_for_table_cell(node, false);
+                node.set_flow_construction_result(FlowConstructionResult(flow))
             }
 
             // Block flows that are not floated contribute block flow construction results.

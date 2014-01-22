@@ -96,6 +96,12 @@ pub mod layout {
     pub mod inline;
     pub mod model;
     pub mod parallel;
+    pub mod table_wrapper;
+    pub mod table;
+    pub mod table_colgroup;
+    pub mod table_rowgroup;
+    pub mod table_row;
+    pub mod table_cell;
     pub mod text;
     pub mod util;
     pub mod incremental;
