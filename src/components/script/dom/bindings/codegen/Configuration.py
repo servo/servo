@@ -158,10 +158,9 @@ class Descriptor(DescriptorProvider):
             if self.workers:
                 nativeTypeDefault = "workers::" + ifaceName
             else:
-                nativeTypeDefault = ifaceName
+                nativeTypeDefault = 'JSManaged<%s>' % ifaceName
 
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
-        self.pointerType = desc.get('pointerType', '@mut ')
         self.concreteType = desc.get('concreteType', ifaceName)
         self.needsAbstract = desc.get('needsAbstract', [])
         self.hasInstanceInterface = desc.get('hasInstanceInterface', None)

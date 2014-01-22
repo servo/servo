@@ -408,7 +408,6 @@ class FakeCastableDescriptor():
         self.castable = True
         self.workers = descriptor.workers
         self.nativeType = "*Box<%s>" % descriptor.concreteType
-        self.pointerType = descriptor.pointerType
         self.name = descriptor.name
         self.hasXPConnectImpls = descriptor.hasXPConnectImpls
         class FakeInterface:
@@ -935,8 +934,7 @@ for (uint32_t i = 0; i < length; ++i) {
         forceOwningType = (descriptor.interface.isCallback() and
                            not descriptor.workers) or isMember
 
-        typeName = descriptor.nativeType
-        typePtr = descriptor.pointerType + typeName
+        typePtr = descriptor.nativeType
 
         # Compute a few things:
         #  - declType is the type we want to return as the first element of our
@@ -1731,9 +1729,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
             returnType.unroll().inner.identifier.name)
         result = CGGeneric(descriptor.nativeType)
         if returnType.nullable():
-            result = CGWrapper(result, pre=("Option<" + descriptor.pointerType), post=">")
-        else:
-            result = CGWrapper(result, pre=descriptor.pointerType)
+            result = CGWrapper(result, pre=("Option<"), post=">")
         return result, False
     if returnType.isCallback():
         # XXXbz we're going to assume that callback types are always
@@ -2502,7 +2498,7 @@ def DOMObjectIsMoved(descriptor):
     return descriptor.nativeType.find('JSManaged') is not -1
 
 def DOMObjectPointerType(descriptor):
-    return "~" if DOMObjectIsMoved(descriptor) else "@mut "
+    return "~"
 
 def DOMObjectPointerArg(descriptor):
     return DOMObjectPointerType(descriptor) + descriptor.concreteType
@@ -5441,9 +5437,9 @@ class CGNativeMember(ClassMethod):
                     else:
                         typeDecl = "NonNull<%s>"
                 else:
-                    typeDecl = "%s%s"
+                    typeDecl = "%s"
             descriptor = self.descriptorProvider.getDescriptor(iface.identifier.name)
-            return (typeDecl % (descriptor.pointerType, descriptor.nativeType),
+            return (typeDecl % descriptor.nativeType,
                     False, False)
 
         if type.isSpiderMonkeyInterface():
