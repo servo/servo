@@ -17,6 +17,7 @@ use script::script_task::{AttachLayoutMsg, NewLayoutInfo, ScriptTask, ScriptChan
 use script::script_task;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, SubpageId};
 use servo_net::image_cache_task::ImageCacheTask;
+use servo_net::history_task::HistoryTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::ProfilerChan;
 
@@ -49,6 +50,7 @@ impl Pipeline {
                        constellation_chan: ConstellationChan,
                        compositor_chan: CompositorChan,
                        image_cache_task: ImageCacheTask,
+                       history_task: HistoryTask,
                        profiler_chan: ProfilerChan,
                        opts: Opts,
                        script_pipeline: &Pipeline)
@@ -73,6 +75,7 @@ impl Pipeline {
                            script_pipeline.script_chan.clone(),
                            render_chan.clone(),
                            image_cache_task.clone(),
+                           history_task.clone(),
                            opts.clone(),
                            profiler_chan,
                            layout_shutdown_chan);
@@ -99,6 +102,7 @@ impl Pipeline {
                   constellation_chan: ConstellationChan,
                   compositor_chan: CompositorChan,
                   image_cache_task: ImageCacheTask,
+                  history_task: HistoryTask,
                   resource_task: ResourceTask,
                   profiler_chan: ProfilerChan,
                   window_size: Size2D<uint>,
@@ -144,6 +148,7 @@ impl Pipeline {
                            script_chan.clone(),
                            render_chan.clone(),
                            image_cache_task,
+                           history_task,
                            opts.clone(),
                            profiler_chan,
                            layout_shutdown_chan);

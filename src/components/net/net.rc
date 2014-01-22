@@ -29,6 +29,7 @@ pub mod http_loader;
 pub mod data_loader;
 pub mod image_cache_task;
 pub mod local_image_cache;
+pub mod history_task;
 pub mod resource_task;
 pub mod util;
 

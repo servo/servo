@@ -13,8 +13,8 @@
 extern mod extra;
 extern mod cssparser;
 extern mod encoding;
+extern mod servo_net = "net";
 extern mod servo_util = "util";
-
 
 // Public API
 pub use stylesheets::Stylesheet;
