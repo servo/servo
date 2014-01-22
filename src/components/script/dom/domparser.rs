@@ -6,7 +6,7 @@ use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
 use dom::bindings::utils::{DOMString, Fallible, Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::utils::FailureUnknown;
-use dom::document::{AbstractDocument, Document, XML};
+use dom::document::{AbstractDocument, Document};
 use dom::htmldocument::HTMLDocument;
 use dom::window::Window;
 
@@ -41,7 +41,7 @@ impl DOMParser {
                 Ok(HTMLDocument::new(self.owner))
             }
             Text_xml => {
-                Ok(Document::new(self.owner, XML))
+                Document::Constructor(self.owner)
             }
             _ => {
                 Err(FailureUnknown)
