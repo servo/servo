@@ -20,6 +20,8 @@ extern mod js;
 extern mod layers;
 extern mod opengles;
 extern mod png;
+#[cfg(target_os="android")]
+extern mod rustuv;
 extern mod script;
 extern mod servo_net = "net";
 extern mod servo_msg = "msg";
