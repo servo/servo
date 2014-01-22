@@ -24,13 +24,14 @@ use std::comm::{Chan, Port, SharedChan};
 use extra::arc::Arc;
 
 use buffer_map::BufferMap;
-use display_list::DisplayList;
+use font_context::{FontContext, FontContextInfo};
+use display_list::DisplayListCollection;
 use font_context::{FontContext, FontContextInfo};
 use opts::Opts;
 use render_context::RenderContext;
 
 pub struct RenderLayer<T> {
-    display_list: Arc<DisplayList<T>>,
+    display_list_collection: Arc<DisplayListCollection<T>>,
     size: Size2D<uint>,
     color: Color
 }
@@ -305,7 +306,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                         
                         // Draw the display list.
                         profile(time::RenderingDrawingCategory, self.profiler_chan.clone(), || {
-                            render_layer.display_list.get().draw_into_context(&mut ctx);
+                            render_layer.display_list_collection.get().draw_lists_into_context(&mut ctx);
                             ctx.draw_target.flush();
                         });
                     }

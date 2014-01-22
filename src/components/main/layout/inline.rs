@@ -16,7 +16,7 @@ use layout::float_context::{PlacementInfo, FloatLeft};
 use extra::container::Deque;
 use extra::ringbuf::RingBuf;
 use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::DisplayList;
+use gfx::display_list::DisplayListCollection;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use std::cell::RefCell;
@@ -495,11 +495,12 @@ impl InlineFlow {
                                      &self,
                                      builder: &DisplayListBuilder,
                                      dirty: &Rect<Au>,
-                                     list: &RefCell<DisplayList<E>>)
-                                     -> bool {
+                                     index: uint,
+                                     lists: &RefCell<DisplayListCollection<E>>)
+                                     -> uint {
         let abs_rect = Rect(self.base.abs_position, self.base.position.size);
         if !abs_rect.intersects(dirty) {
-            return true;
+            return index;
         }
 
         // TODO(#228): Once we form line boxes and have their cached bounds, we can be smarter and
@@ -509,14 +510,14 @@ impl InlineFlow {
                self.boxes.len());
 
         for box_ in self.boxes.iter() {
-            box_.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, list)
+            box_.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, index, lists);
         }
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
         // should the flow be nested inside the box somehow?
 
         // For now, don't traverse the subtree rooted here
-        true
+        index
     }
 
     /// Returns the relative offset from the baseline for this box, taking into account the value
