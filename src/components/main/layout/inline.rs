@@ -646,6 +646,7 @@ impl Flow for InlineFlow {
 
         for box_ in self.boxes.iter() {
             debug!("Flow[{:d}]: measuring {:s}", self.base.id, box_.debug_str());
+            box_.compute_borders(box_.style());
             let (this_minimum_width, this_preferred_width) =
                 box_.minimum_and_preferred_widths();
             min_width = Au::max(min_width, this_minimum_width);
@@ -710,7 +711,6 @@ impl Flow for InlineFlow {
         //
         // TODO(pcwalton): Cache the linebox scanner?
         debug!("assign_height_inline: floats_in: {:?}", self.base.floats_in);
-
         // assign height for inline boxes
         for box_ in self.boxes.iter() {
             box_.assign_height();
@@ -720,7 +720,6 @@ impl Flow for InlineFlow {
 
         // Access the linebox scanner.
         scanner.scan_for_lines(self);
-
         let mut line_height_offset = Au::new(0);
 
         // All lines use text alignment of the flow.
@@ -743,6 +742,7 @@ impl Flow for InlineFlow {
 
             for box_i in line.range.eachi() {
                 let cur_box = &self.boxes[box_i];
+                let top = cur_box.noncontent_top();
 
                 // FIXME(pcwalton): Move into `box.rs` like the rest of box-specific layout code?
                 let (top_from_base, bottom_from_base, ascent) = match cur_box.specific {
@@ -751,21 +751,9 @@ impl Flow for InlineFlow {
 
                         // TODO: margin, border, padding's top and bottom should be calculated in
                         // advance, since baseline of image is bottom margin edge.
-                        let mut top;
-                        let mut bottom;
-                        {
-                            top = cur_box.border.get().top + cur_box.padding.get().top +
-                                cur_box.margin.get().top;
-                            bottom = cur_box.border.get().bottom + cur_box.padding.get().bottom +
-                                cur_box.margin.get().bottom;
-                        }
-
+                        let bottom = cur_box.noncontent_bottom();
                         let noncontent_height = top + bottom;
                         height = height + noncontent_height;
-
-                        let mut position_ref = cur_box.position.borrow_mut();
-                        position_ref.get().size.height = height;
-                        position_ref.get().translate(&Point2D(Au::new(0), -height));
 
                         let ascent = height + bottom;
                         (height, Au::new(0), ascent)
@@ -845,7 +833,7 @@ impl Flow for InlineFlow {
                     bottommost = bottom_from_base;
                 }
 
-                cur_box.position.borrow_mut().get().origin.y = line.bounds.origin.y + offset;
+                cur_box.position.borrow_mut().get().origin.y = line.bounds.origin.y + offset + top;
             }
 
             // Calculate the distance from baseline to the top of the biggest box with 'bottom'
