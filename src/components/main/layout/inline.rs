@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use css::node_style::StyledNode;
-use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox, SplitDidFit, TableColBox};
-use layout::box_::{SplitDidNotFit, UnscannedTextBox, InlineInfo};
+use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, InlineInfo, ImageBox};
+use layout::box_::{ScannedTextBox, SplitDidFit, SplitDidNotFit};
+use layout::box_::{TableCellBox, TableColumnBox, TableRowBox, UnscannedTextBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
@@ -774,10 +775,11 @@ impl Flow for InlineFlow {
 
                         (text_offset, line_height - text_offset, text_ascent)
                     },
-                    GenericBox | IframeBox(_) | TableColBox(_) => {
+                    GenericBox | IframeBox(_) | TableCellBox | TableRowBox => {
                         let height = cur_box.position.get().size.height;
                         (height, Au::new(0), height)
                     },
+                    TableColumnBox(_) => fail!("Table column boxes do not have height"),
                     UnscannedTextBox(_) => {
                         fail!("Unscanned text boxes should have been scanned by now.")
                     }

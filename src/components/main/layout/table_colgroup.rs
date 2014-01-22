@@ -4,7 +4,7 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::{Box, TableColBox};
+use layout::box_::{Box, TableColumnBox};
 use layout::context::LayoutContext;
 use layout::flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
 use layout::model::{MaybeAuto};
@@ -69,7 +69,7 @@ impl Flow for TableColGroupFlow {
             let width = MaybeAuto::from_style(box_.style().Box.width, Au::new(0)).specified_or_zero();
 
             let span:int = match box_.specific {
-                TableColBox(col_box) => col_box.span.unwrap_or(1),
+                TableColumnBox(col_box) => col_box.span.unwrap_or(1),
                 _ => fail!("Other box come out in TableColGroupFlow. {:?}", box_.specific)
             };
             for _ in range(0, span) {

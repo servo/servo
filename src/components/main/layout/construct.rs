@@ -23,8 +23,8 @@
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
 use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo};
+use layout::box_::{TableCellBox, TableColumnBox, TableColumnBoxInfo, TableRowBox};
 use layout::box_::{UnscannedTextBox, UnscannedTextBoxInfo, InlineInfo, InlineParentInfo};
-use layout::box_::{TableColBox, TableColBoxInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
 use layout::flow::{BaseFlow, Flow, LeafSet, MutableOwnedFlowUtils, ImmutableFlowUtils};
@@ -40,7 +40,10 @@ use layout::util::{LayoutDataAccess, OpaqueNode};
 use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal};
 
 use gfx::font_context::FontContext;
-use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId, HTMLTableColElementTypeId};
+use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
+use script::dom::element::{HTMLTableDataCellElementTypeId};
+use script::dom::element::{HTMLTableHeaderCellElementTypeId, HTMLTableColElementTypeId};
+use script::dom::element::{HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, TextNodeTypeId};
 use style::computed_values::{display, position, float};
@@ -263,7 +266,11 @@ impl<'fc> FlowConstructor<'fc> {
                 }
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => IframeBox(IframeBoxInfo::new(&node)),
-            ElementNodeTypeId(HTMLTableColElementTypeId) => TableColBox(TableColBoxInfo::new(&node)),
+            ElementNodeTypeId(HTMLTableColElementTypeId) => TableColumnBox(TableColumnBoxInfo::new(&node)),
+            ElementNodeTypeId(HTMLTableDataCellElementTypeId) |
+            ElementNodeTypeId(HTMLTableHeaderCellElementTypeId) => TableCellBox,
+            ElementNodeTypeId(HTMLTableRowElementTypeId) |
+            ElementNodeTypeId(HTMLTableSectionElementTypeId) => TableRowBox,
             TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(&node)),
             _ => GenericBox,
         };
@@ -735,8 +742,8 @@ impl<'fc> FlowConstructor<'fc> {
             }
         }
         if col_boxes.is_empty() {
-            debug!("add TableColBox for empty colgroup");
-            let specific = TableColBox(TableColBoxInfo::new(&node));
+            debug!("add TableColumnBox for empty colgroup");
+            let specific = TableColumnBox(TableColumnBoxInfo::new(&node));
             col_boxes.push( Box::new(node, specific) );
         }
         let flow = ~TableColGroupFlow::from_box(base, box_, col_boxes) as ~Flow;
