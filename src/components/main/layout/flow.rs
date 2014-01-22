@@ -200,6 +200,12 @@ pub trait ImmutableFlowUtils {
     /// Returns true if this flow is a child of table flow.
     fn is_child_of_table_flow(self) -> bool;
 
+    /// Returns true if this flow is a table colgroup flow.
+    fn is_table_colgroup(self) -> bool;
+
+    /// Returns true if this flow is a table rowgroup flow.
+    fn is_table_rowgroup(self) -> bool;
+
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool;
 
@@ -639,6 +645,22 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         match self.class() {
             TableColGroupFlowClass | TableRowGroupFlowClass => true,
             BlockFlowClass | InlineFlowClass | TableWrapperFlowClass |
+                TableFlowClass | TableRowFlowClass | TableCellFlowClass => false,
+        }
+    }
+
+    fn is_table_colgroup(self) -> bool {
+        match self.class() {
+            TableColGroupFlowClass => true,
+            BlockFlowClass | InlineFlowClass | TableWrapperFlowClass |
+                TableFlowClass | TableRowFlowClass | TableRowGroupFlowClass | TableCellFlowClass => false,
+        }
+    }
+
+    fn is_table_rowgroup(self) -> bool {
+        match self.class() {
+            TableRowGroupFlowClass => true,
+            BlockFlowClass | InlineFlowClass | TableColGroupFlowClass | TableWrapperFlowClass |
                 TableFlowClass | TableRowFlowClass | TableCellFlowClass => false,
         }
     }

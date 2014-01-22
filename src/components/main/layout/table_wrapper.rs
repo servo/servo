@@ -13,6 +13,7 @@ use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
 use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
 
 use std::cell::RefCell;
+use style::computed_values::table_layout;
 use geom::{Point2D, Rect, SideOffsets2D};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
@@ -60,7 +61,13 @@ pub struct TableWrapperFlow {
     is_fixed: bool,
 
     /// Additional floating flow members.
-    float: Option<~FloatedTableInfo>
+    float: Option<~FloatedTableInfo>,
+
+    /// Column widths
+    col_widths: ~[Au],
+
+    /// Table-layout property
+    is_fixed_table_layout: bool,
 }
 
 impl TableWrapperFlow {
@@ -69,16 +76,21 @@ impl TableWrapperFlow {
             base: base,
             box_: None,
             is_fixed: false,
-            float: None
+            float: None,
+            col_widths: ~[],
+            is_fixed_table_layout: false,
         }
     }
 
     pub fn from_box(base: BaseFlow, box_: Box, is_fixed: bool) -> TableWrapperFlow {
+        let is_fixed_table_layout = box_.style().Table.table_layout == table_layout::fixed;
         TableWrapperFlow {
             base: base,
             box_: Some(box_),
             is_fixed: is_fixed,
-            float: None
+            float: None,
+            col_widths: ~[],
+            is_fixed_table_layout: is_fixed_table_layout,
         }
     }
 
@@ -87,7 +99,9 @@ impl TableWrapperFlow {
             base: base,
             box_: Some(box_),
             is_fixed: false,
-            float: Some(~FloatedTableInfo::new(float_type))
+            float: Some(~FloatedTableInfo::new(float_type)),
+            col_widths: ~[],
+            is_fixed_table_layout: false,
         }
     }
 
@@ -96,7 +110,9 @@ impl TableWrapperFlow {
             base: base,
             box_: None,
             is_fixed: false,
-            float: Some(~FloatedTableInfo::new(float_type))
+            float: Some(~FloatedTableInfo::new(float_type)),
+            col_widths: ~[],
+            is_fixed_table_layout: false,
         }
     }
 
@@ -110,6 +126,7 @@ impl TableWrapperFlow {
         }
         self.box_ = None;
         self.float = None;
+        self.is_fixed_table_layout = false;
     }
 
     /// Computes left and right margins and width based on CSS 2.1 section 10.3.3.
@@ -542,18 +559,46 @@ impl Flow for TableWrapperFlow {
     min/pref widths based on child context widths and dimensions of
     any boxes it is responsible for flowing.  */
 
-    /* TODO: absolute contexts */
-    /* TODO: inline-blocks */
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
         let mut min_width = Au::new(0);
         let mut pref_width = Au::new(0);
         let mut num_floats = 0;
 
         /* find max width from child block contexts */
-        for child_ctx in self.base.child_iter() {
-            assert!(child_ctx.starts_block_flow() || child_ctx.starts_table_flow());
+        for kid in self.base.child_iter() {
+            assert!(kid.starts_block_flow() || kid.starts_table_flow());
 
-            let child_base = flow::mut_base(*child_ctx);
+            if kid.is_table_colgroup() {
+                self.col_widths.push_all(kid.as_table_colgroup().widths);
+            } else if kid.is_table_rowgroup() {
+                // calculate the number of columns and expand columns 
+                if self.is_fixed_table_layout {
+                    let mut child_widths = kid.as_table_rowgroup().col_widths.mut_iter();
+                    for col_width in self.col_widths.mut_iter() {
+                        match child_widths.next() {
+                            Some(child_width) => {
+                                if *col_width == Au(0) {
+                                    *col_width = *child_width;
+                                }
+                            },
+                            None => break
+                        }
+                    }
+                }
+                let num_child_cols = kid.as_table_rowgroup().col_widths.len();
+                let num_cols = self.col_widths.len();
+                println!("{:?} column(s) from colgroup, but the child has {:?} column(s)", num_cols, num_child_cols);
+                let diff = if num_child_cols > num_cols { 
+                    num_child_cols - num_cols 
+                } else {
+                    0
+                };
+                for _ in range(0, diff) {
+                    self.col_widths.push( Au::new(0) );
+                }
+            }
+
+            let child_base = flow::mut_base(*kid);
             min_width = geometry::max(min_width, child_base.min_width);
             pref_width = geometry::max(pref_width, child_base.pref_width);
             num_floats = num_floats + child_base.num_floats;
@@ -601,6 +646,16 @@ impl Flow for TableWrapperFlow {
         let mut remaining_width = self.base.position.size.width;
         let mut x_offset = Au::new(0);
 
+        let mut no_width_cnt = Au(0);
+        let mut fix_cell_width = Au(0);
+        for col_width in self.col_widths.iter() {
+            if *col_width == Au(0) {
+                no_width_cnt = no_width_cnt.add(&Au(1));
+            } else {
+                fix_cell_width = fix_cell_width.add(col_width);
+            }
+        }
+
         if self.is_float() {
             self.float.get_mut_ref().containing_width = remaining_width;
 
@@ -644,7 +699,7 @@ impl Flow for TableWrapperFlow {
                                                                  box_.offset(), 
                                                                  self.is_fixed);
             x_offset = x;
-            remaining_width = w;
+            remaining_width = geometry::max( fix_cell_width, w );
 
             // The associated box is the border box of this flow.
             let mut position_ref = box_.position.borrow_mut();
@@ -663,6 +718,18 @@ impl Flow for TableWrapperFlow {
             self.base.position.size.width = remaining_width;
         }
 
+        let default_cell_width = if fix_cell_width >= remaining_width {
+            self.base.position.size.width = remaining_width;
+            Au(0)
+        } else if fix_cell_width < remaining_width && no_width_cnt == Au(0) {
+            for col_width in self.col_widths.mut_iter() {
+                *col_width = *col_width * remaining_width / fix_cell_width;
+            }
+            Au(0)
+        } else {
+            (remaining_width - fix_cell_width) / no_width_cnt
+        };
+
         let has_inorder_children = if self.is_float() {
             self.base.num_floats > 0
         } else {
@@ -673,6 +740,16 @@ impl Flow for TableWrapperFlow {
         let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
             assert!(kid.starts_block_flow() || kid.starts_table_flow());
+            
+            if kid.is_table_rowgroup() {
+                kid.as_table_rowgroup().col_widths = self.col_widths.map(|width| {
+                    if *width == Au(0) {
+                        default_cell_width
+                    } else {
+                        *width
+                    }
+                });
+            }
 
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;

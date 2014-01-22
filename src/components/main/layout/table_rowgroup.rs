@@ -60,7 +60,10 @@ pub struct TableRowGroupFlow {
     is_fixed: bool,
 
     /// Additional floating flow members.
-    float: Option<~FloatedTableInfo>
+    float: Option<~FloatedTableInfo>,
+
+    /// Column widths 
+    col_widths: ~[Au],
 }
 
 impl TableRowGroupFlow {
@@ -69,7 +72,8 @@ impl TableRowGroupFlow {
             base: base,
             box_: None,
             is_fixed: false,
-            float: None
+            float: None,
+            col_widths: ~[],
         }
     }
 
@@ -78,7 +82,8 @@ impl TableRowGroupFlow {
             base: base,
             box_: Some(box_),
             is_fixed: is_fixed,
-            float: None
+            float: None,
+            col_widths: ~[],
         }
     }
 
@@ -87,7 +92,8 @@ impl TableRowGroupFlow {
             base: base,
             box_: Some(box_),
             is_fixed: false,
-            float: Some(~FloatedTableInfo::new(float_type))
+            float: Some(~FloatedTableInfo::new(float_type)),
+            col_widths: ~[],
         }
     }
 
@@ -96,7 +102,8 @@ impl TableRowGroupFlow {
             base: base,
             box_: None,
             is_fixed: false,
-            float: Some(~FloatedTableInfo::new(float_type))
+            float: Some(~FloatedTableInfo::new(float_type)),
+            col_widths: ~[],
         }
     }
 
@@ -110,6 +117,7 @@ impl TableRowGroupFlow {
         }
         self.box_ = None;
         self.float = None;
+        self.col_widths = ~[];
     }
 
     /// Computes left and right margins and width based on CSS 2.1 section 10.3.3.
@@ -542,18 +550,30 @@ impl Flow for TableRowGroupFlow {
     min/pref widths based on child context widths and dimensions of
     any boxes it is responsible for flowing.  */
 
-    /* TODO: absolute contexts */
-    /* TODO: inline-blocks */
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
         let mut min_width = Au::new(0);
         let mut pref_width = Au::new(0);
         let mut num_floats = 0;
 
         /* find max width from child block contexts */
-        for child_ctx in self.base.child_iter() {
-            assert!(child_ctx.starts_table_flow());
+        for kid in self.base.child_iter() {
+            assert!(kid.starts_table_flow());
+            if self.col_widths.is_empty() {
+                self.col_widths = kid.as_table_row().col_widths.slice_from(0).to_owned();
+            } else {
+                let num_cols = self.col_widths.len();
+                let num_child_cols = kid.as_table_row().col_widths.len();
+                let diff = if num_child_cols > num_cols {
+                    num_child_cols - num_cols
+                } else {
+                    0
+                };
+                for _ in range(0, diff) {
+                    self.col_widths.push ( Au::new(0) );
+                }
+            }
 
-            let child_base = flow::mut_base(*child_ctx);
+            let child_base = flow::mut_base(*kid);
             min_width = geometry::max(min_width, child_base.min_width);
             pref_width = geometry::max(pref_width, child_base.pref_width);
             num_floats = num_floats + child_base.num_floats;
@@ -673,6 +693,8 @@ impl Flow for TableRowGroupFlow {
         let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
             assert!(kid.starts_table_flow());
+
+            kid.as_table_row().col_widths = self.col_widths.slice_from(0).to_owned();
 
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;

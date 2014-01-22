@@ -24,6 +24,7 @@ use css::node_style::StyledNode;
 use layout::block::BlockFlow;
 use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo};
 use layout::box_::{UnscannedTextBox, UnscannedTextBoxInfo, InlineInfo, InlineParentInfo};
+use layout::box_::{TableColBox, TableColBoxInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
 use layout::flow::{BaseFlow, Flow, LeafSet, MutableOwnedFlowUtils};
@@ -261,6 +262,7 @@ impl<'fc> FlowConstructor<'fc> {
                 }
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => IframeBox(IframeBoxInfo::new(&node)),
+            ElementNodeTypeId(HTMLTableColElementTypeId) => TableColBox(TableColBoxInfo::new(&node)),
             TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(&node)),
             _ => GenericBox,
         };
@@ -700,7 +702,8 @@ impl<'fc> FlowConstructor<'fc> {
         }
         if col_boxes.is_empty() {
             debug!("add TableColBox for empty colgroup");
-            col_boxes.push( Box::new(node, GenericBox) );
+            let specific = TableColBox(TableColBoxInfo::new(&node));
+            col_boxes.push( Box::new(node, specific) );
         }
         let flow = ~TableColGroupFlow::from_box(base, box_, col_boxes) as ~Flow;
 

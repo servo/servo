@@ -543,18 +543,16 @@ impl Flow for TableCellFlow {
     min/pref widths based on child context widths and dimensions of
     any boxes it is responsible for flowing.  */
 
-    /* TODO: absolute contexts */
-    /* TODO: inline-blocks */
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
         let mut min_width = Au::new(0);
         let mut pref_width = Au::new(0);
         let mut num_floats = 0;
 
         /* find max width from child block contexts */
-        for child_ctx in self.base.child_iter() {
-            assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow() || child_ctx.starts_table_flow());
+        for kid in self.base.child_iter() {
+            assert!(kid.starts_block_flow() || kid.starts_inline_flow() || kid.starts_table_flow());
 
-            let child_base = flow::mut_base(*child_ctx);
+            let child_base = flow::mut_base(*kid);
             min_width = geometry::max(min_width, child_base.min_width);
             pref_width = geometry::max(pref_width, child_base.pref_width);
             num_floats = num_floats + child_base.num_floats;
@@ -599,7 +597,7 @@ impl Flow for TableCellFlow {
                self.base.id);
 
         // The position was set to the containing block by the flow's parent.
-        let mut remaining_width = self.base.position.size.width;
+        let remaining_width = self.base.position.size.width;
         let mut x_offset = Au::new(0);
 
         if self.is_float() {
@@ -639,13 +637,13 @@ impl Flow for TableCellFlow {
                                               margin_left));
 
             let screen_size = ctx.screen_size;
-            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width, 
+            let (x, _w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width, 
                                                                  screen_size.height, 
                                                                  width, 
                                                                  box_.offset(), 
                                                                  self.is_fixed);
             x_offset = x;
-            remaining_width = w;
+            //remaining_width = w;
 
             // The associated box is the border box of this flow.
             let mut position_ref = box_.position.borrow_mut();

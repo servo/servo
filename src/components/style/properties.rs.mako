@@ -712,6 +712,9 @@ pub mod longhands {
     ${single_keyword("white-space", "normal pre", inherited=True)}
 
     // CSS 2.1, Section 17 - Tables
+    ${new_style_struct("Table")}
+
+    ${single_keyword("table-layout", "auto fixed", inherited=False)}
 
     // CSS 2.1, Section 18 - User interface
 }

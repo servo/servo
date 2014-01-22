@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use css::node_style::StyledNode;
-use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox, SplitDidFit};
+use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox, SplitDidFit, TableColBox};
 use layout::box_::{SplitDidNotFit, UnscannedTextBox, InlineInfo};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
@@ -774,7 +774,7 @@ impl Flow for InlineFlow {
 
                         (text_offset, line_height - text_offset, text_ascent)
                     },
-                    GenericBox | IframeBox(_) => {
+                    GenericBox | IframeBox(_) | TableColBox(_) => {
                         let height = cur_box.position.get().size.height;
                         (height, Au::new(0), height)
                     },

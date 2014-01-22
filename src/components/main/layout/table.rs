@@ -552,10 +552,10 @@ impl Flow for TableFlow {
         let mut num_floats = 0;
 
         /* find max width from child block contexts */
-        for child_ctx in self.base.child_iter() {
-            if !child_ctx.starts_table_flow() { continue; }
+        for kid in self.base.child_iter() {
+            if !kid.starts_table_flow() { continue; }
 
-            let child_base = flow::mut_base(*child_ctx);
+            let child_base = flow::mut_base(*kid);
             min_width = geometry::max(min_width, child_base.min_width);
             pref_width = geometry::max(pref_width, child_base.pref_width);
             num_floats = num_floats + child_base.num_floats;

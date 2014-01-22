@@ -60,7 +60,10 @@ pub struct TableRowFlow {
     is_fixed: bool,
 
     /// Additional floating flow members.
-    float: Option<~FloatedTableInfo>
+    float: Option<~FloatedTableInfo>,
+
+    /// Column widths.
+    col_widths: ~[Au],
 }
 
 impl TableRowFlow {
@@ -69,7 +72,8 @@ impl TableRowFlow {
             base: base,
             box_: None,
             is_fixed: false,
-            float: None
+            float: None,
+            col_widths: ~[],
         }
     }
 
@@ -78,7 +82,8 @@ impl TableRowFlow {
             base: base,
             box_: Some(box_),
             is_fixed: is_fixed,
-            float: None
+            float: None,
+            col_widths: ~[],
         }
     }
 
@@ -87,7 +92,8 @@ impl TableRowFlow {
             base: base,
             box_: Some(box_),
             is_fixed: false,
-            float: Some(~FloatedTableInfo::new(float_type))
+            float: Some(~FloatedTableInfo::new(float_type)),
+            col_widths: ~[],
         }
     }
 
@@ -96,7 +102,8 @@ impl TableRowFlow {
             base: base,
             box_: None,
             is_fixed: false,
-            float: Some(~FloatedTableInfo::new(float_type))
+            float: Some(~FloatedTableInfo::new(float_type)),
+            col_widths: ~[],
         }
     }
 
@@ -284,6 +291,7 @@ impl TableRowFlow {
             margin_bottom = box_.margin.get().bottom;
         }
 
+        let mut max_y = Au::new(0);
         for kid in self.base.child_iter() {
             kid.collapse_margins(top_margin_collapsible,
                                  &mut first_in_flow,
@@ -295,8 +303,9 @@ impl TableRowFlow {
             let child_node = flow::mut_base(*kid);
             cur_y = cur_y - collapsing;
             child_node.position.origin.y = cur_y;
-            cur_y = cur_y + child_node.position.size.height;
+            max_y = geometry::max(max_y, child_node.position.size.height);
         }
+        cur_y = cur_y + max_y;
 
         // The bottom margin collapses with its last in-flow block-level child's bottom margin
         // if the parent has no bottom boder, no bottom padding.
@@ -542,18 +551,22 @@ impl Flow for TableRowFlow {
     min/pref widths based on child context widths and dimensions of
     any boxes it is responsible for flowing.  */
 
-    /* TODO: absolute contexts */
-    /* TODO: inline-blocks */
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
         let mut min_width = Au::new(0);
         let mut pref_width = Au::new(0);
         let mut num_floats = 0;
 
         /* find max width from child block contexts */
-        for child_ctx in self.base.child_iter() {
-            assert!(child_ctx.starts_table_flow());
+        for kid in self.base.child_iter() {
+            assert!(kid.starts_table_flow());
 
-            let child_base = flow::mut_base(*child_ctx);
+            for child_box in kid.as_table_cell().box_.iter() {
+                let child_specified_width = MaybeAuto::from_style(child_box.style().Box.width, 
+                                                                  Au::new(0)).specified_or_zero();
+                self.col_widths.push(child_specified_width);
+            }
+
+            let child_base = flow::mut_base(*kid);
             min_width = geometry::max(min_width, child_base.min_width);
             pref_width = geometry::max(pref_width, child_base.pref_width);
             num_floats = num_floats + child_base.num_floats;
@@ -677,9 +690,10 @@ impl Flow for TableRowFlow {
 
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;
-            child_base.position.size.width = remaining_width;
+            child_base.position.size.width = self.col_widths[idx];
             child_base.flags_info.flags.set_inorder(has_inorder_children);
 
+            x_offset = x_offset + self.col_widths[idx];
             idx = idx + 1;
 
             if !child_base.flags_info.flags.inorder() {

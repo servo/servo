@@ -4,9 +4,10 @@
 
 //! CSS table formatting contexts.
 
-use layout::box_::Box;
+use layout::box_::{Box, TableColBox};
 use layout::context::LayoutContext;
 use layout::flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
+use layout::model::{MaybeAuto};
 use servo_util::geometry::Au;
 
 /// A table formatting context.
@@ -19,6 +20,9 @@ pub struct TableColGroupFlow {
 
     /// The table column boxes
     cols: ~[Box],
+
+    /// The specified widths of table columns
+    widths: ~[Au],
 }
 
 impl TableColGroupFlow {
@@ -27,6 +31,7 @@ impl TableColGroupFlow {
             base: base,
             box_: None,
             cols: ~[],
+            widths: ~[],
         }
     }
 
@@ -35,6 +40,7 @@ impl TableColGroupFlow {
             base: base,
             box_: Some(box_),
             cols: boxes,
+            widths: ~[],
         }
     }
 
@@ -44,6 +50,7 @@ impl TableColGroupFlow {
         }
         self.box_ = None;
         self.cols = ~[];
+        self.widths = ~[];
     }
 }
 
@@ -56,15 +63,19 @@ impl Flow for TableColGroupFlow {
         self
     }
 
-    /* Recursively (bottom-up) determine the context's preferred and
-    minimum widths.  When called on this context, all child contexts
-    have had their min/pref widths set. This function must decide
-    min/pref widths based on child context widths and dimensions of
-    any boxes it is responsible for flowing.  */
-
-    /* TODO: absolute contexts */
-    /* TODO: inline-blocks */
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
+        for box_ in self.cols.iter() {
+            // get the specified value from width property
+            let width = MaybeAuto::from_style(box_.style().Box.width, Au::new(0)).specified_or_zero();
+
+            let span:int = match box_.specific {
+                TableColBox(col_box) => col_box.span.unwrap_or(1),
+                _ => fail!("Other box come out in TableColGroupFlow. {:?}", box_.specific)
+            };
+            for _ in range(0, span) {
+                self.widths.push(width);
+            }
+        }
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
