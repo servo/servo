@@ -11,6 +11,7 @@ use dom::window::Window;
 pub struct Blob {
     reflector_: Reflector,
     window: JSManaged<Window>,
+    force_box_layout: @int
 }
 
 impl Blob {
@@ -18,6 +19,7 @@ impl Blob {
         Blob {
             reflector_: Reflector::new(),
             window: window,
+            force_box_layout: @1
         }
     }
 

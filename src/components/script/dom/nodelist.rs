@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::NodeListBinding;
 use dom::bindings::jsmanaged::JSManaged;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 
@@ -17,6 +17,7 @@ pub struct NodeList {
     list_type: NodeListType,
     reflector_: Reflector,
     window: JSManaged<Window>,
+    force_box_layout: @int
 }
 
 impl NodeList {
@@ -26,20 +27,21 @@ impl NodeList {
             list_type: list_type,
             reflector_: Reflector::new(),
             window: window,
+            force_box_layout: @1
         }
     }
 
     pub fn new(window: JSManaged<Window>,
-               list_type: NodeListType) -> @mut NodeList {
-        reflect_dom_object(@mut NodeList::new_inherited(window, list_type),
-                           window.value(), NodeListBinding::Wrap)
+               list_type: NodeListType) -> JSManaged<NodeList> {
+        reflect_dom_object2(~NodeList::new_inherited(window, list_type),
+                            window.value(), NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list(window: JSManaged<Window>, elements: ~[JSManaged<Node>]) -> @mut NodeList {
+    pub fn new_simple_list(window: JSManaged<Window>, elements: ~[JSManaged<Node>]) -> JSManaged<NodeList> {
         NodeList::new(window, Simple(elements))
     }
 
-    pub fn new_child_list(window: JSManaged<Window>, node: JSManaged<Node>) -> @mut NodeList {
+    pub fn new_child_list(window: JSManaged<Window>, node: JSManaged<Node>) -> JSManaged<NodeList> {
         NodeList::new(window, Children(node))
     }
 

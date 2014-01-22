@@ -122,7 +122,7 @@ impl MouseEvent {
                           typeArg: DOMString,
                           canBubbleArg: bool,
                           cancelableArg: bool,
-                          viewArg: Option<@mut WindowProxy>,
+                          viewArg: Option<JSManaged<WindowProxy>>,
                           detailArg: i32,
                           screenXArg: i32,
                           screenYArg: i32,

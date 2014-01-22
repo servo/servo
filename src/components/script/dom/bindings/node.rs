@@ -36,7 +36,7 @@ impl Traceable for Node {
         trace_node(tracer, self.last_child, "last child");
         trace_node(tracer, self.next_sibling, "next sibling");
         trace_node(tracer, self.prev_sibling, "prev sibling");
-        let owner_doc = self.owner_doc();
-        trace_reflector(tracer, "document", owner_doc.reflector());
+        /*let owner_doc = self.owner_doc();
+        trace_reflector(tracer, "document", owner_doc.reflector());*/
     }
 }

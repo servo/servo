@@ -66,8 +66,8 @@ pub struct Window {
     script_chan: ScriptChan,
     compositor: @ScriptListener,
     timer_chan: SharedChan<TimerControlMsg>,
-    location: Option<@mut Location>,
-    navigator: Option<@mut Navigator>,
+    location: Option<JSManaged<Location>>,
+    navigator: Option<JSManaged<Navigator>>,
     image_cache_task: ImageCacheTask,
     active_timers: ~HashSet<TimerHandle>,
     next_timer_handle: i32,
@@ -143,14 +143,14 @@ impl Window {
         None
     }
 
-    pub fn Location(&mut self) -> @mut Location {
+    pub fn Location(&mut self) -> JSManaged<Location> {
         if self.location.is_none() {
             self.location = Some(Location::new(self, self.page));
         }
         self.location.unwrap()
     }
 
-    pub fn Navigator(&mut self) -> @mut Navigator {
+    pub fn Navigator(&mut self) -> JSManaged<Navigator> {
         if self.navigator.is_none() {
             self.navigator = Some(Navigator::new(self));
         }

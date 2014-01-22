@@ -14,7 +14,7 @@ use dom::windowproxy::WindowProxy;
 
 pub struct UIEvent {
     event: Event,
-    view: Option<@mut WindowProxy>,
+    view: Option<JSManaged<WindowProxy>>,
     detail: i32
 }
 
@@ -48,7 +48,7 @@ impl UIEvent {
         Ok(ev)
     }
 
-    pub fn GetView(&self) -> Option<@mut WindowProxy> {
+    pub fn GetView(&self) -> Option<JSManaged<WindowProxy>> {
         self.view
     }
 
@@ -60,7 +60,7 @@ impl UIEvent {
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
-                       view: Option<@mut WindowProxy>,
+                       view: Option<JSManaged<WindowProxy>>,
                        detail: i32) {
         self.event.InitEvent(type_, can_bubble, cancelable);
         self.view = view;

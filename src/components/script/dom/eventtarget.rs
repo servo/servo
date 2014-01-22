@@ -34,6 +34,7 @@ pub struct EventTarget {
     type_id: EventTargetTypeId,
     reflector_: Reflector,
     handlers: HashMap<~str, ~[EventListenerEntry]>,
+    force_box_layout: @int
 }
 
 impl EventTarget {
@@ -42,6 +43,7 @@ impl EventTarget {
             type_id: type_id,
             reflector_: Reflector::new(),
             handlers: HashMap::new(),
+            force_box_layout: @1
         }
     }
 

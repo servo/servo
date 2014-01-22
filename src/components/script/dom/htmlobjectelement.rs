@@ -98,7 +98,7 @@ impl HTMLObjectElement {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<@mut WindowProxy> {
+    pub fn GetContentWindow(&self) -> Option<JSManaged<WindowProxy>> {
         None
     }
 
@@ -106,7 +106,7 @@ impl HTMLObjectElement {
         false
     }
 
-    pub fn Validity(&self) -> @mut ValidityState {
+    pub fn Validity(&self) -> JSManaged<ValidityState> {
         let global = self.htmlelement.element.node.owner_doc().value().window;
         ValidityState::new(global)
     }

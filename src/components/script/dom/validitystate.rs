@@ -4,13 +4,14 @@
 
 use dom::bindings::codegen::ValidityStateBinding;
 use dom::bindings::jsmanaged::JSManaged;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::window::Window;
 
 pub struct ValidityState {
     reflector_: Reflector,
     window: JSManaged<Window>,
     state: u8,
+    force_box_layout: @int
 }
 
 impl ValidityState {
@@ -19,12 +20,13 @@ impl ValidityState {
             reflector_: Reflector::new(),
             window: window,
             state: 0,
+            force_box_layout: @1
         }
     }
 
-    pub fn new(window: JSManaged<Window>) -> @mut ValidityState {
-        reflect_dom_object(@mut ValidityState::new_inherited(window), window.value(),
-                           ValidityStateBinding::Wrap)
+    pub fn new(window: JSManaged<Window>) -> JSManaged<ValidityState> {
+        reflect_dom_object2(~ValidityState::new_inherited(window), window.value(),
+                            ValidityStateBinding::Wrap)
     }
 }
 

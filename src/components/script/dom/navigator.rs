@@ -3,23 +3,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::NavigatorBinding;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::jsmanaged::JSManaged;
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::window::Window;
 
 pub struct Navigator {
-    reflector_: Reflector //XXXjdm cycle: window->navigator->window
+    reflector_: Reflector, //XXXjdm cycle: window->navigator->window
+    force_box_layout: @int
 }
 
 impl Navigator {
     pub fn new_inherited() -> Navigator {
         Navigator {
-            reflector_: Reflector::new()
+            reflector_: Reflector::new(),
+            force_box_layout: @1
         }
     }
 
-    pub fn new(window: &Window) -> @mut Navigator {
-        reflect_dom_object(@mut Navigator::new_inherited(), window, NavigatorBinding::Wrap)
+    pub fn new(window: &Window) -> JSManaged<Navigator> {
+        reflect_dom_object2(~Navigator::new_inherited(), window, NavigatorBinding::Wrap)
     }
 
     pub fn DoNotTrack(&self) -> DOMString {

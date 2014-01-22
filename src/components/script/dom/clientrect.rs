@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::ClientRectBinding;
 use dom::bindings::jsmanaged::JSManaged;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::window::Window;
 use servo_util::geometry::Au;
 
@@ -15,6 +15,7 @@ pub struct ClientRect {
     left: f32,
     right: f32,
     window: JSManaged<Window>,
+    force_box_layout: @int
 }
 
 impl ClientRect {
@@ -28,14 +29,15 @@ impl ClientRect {
             right: right.to_nearest_px() as f32,
             reflector_: Reflector::new(),
             window: window,
+            force_box_layout: @1
         }
     }
 
     pub fn new(window: JSManaged<Window>,
                top: Au, bottom: Au,
-               left: Au, right: Au) -> @mut ClientRect {
+               left: Au, right: Au) -> JSManaged<ClientRect> {
         let rect = ClientRect::new_inherited(window, top, bottom, left, right);
-        reflect_dom_object(@mut rect, window.value(), ClientRectBinding::Wrap)
+        reflect_dom_object2(~rect, window.value(), ClientRectBinding::Wrap)
     }
 
 

@@ -159,7 +159,7 @@ impl HTMLIFrameElement {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<@mut WindowProxy> {
+    pub fn GetContentWindow(&self) -> Option<JSManaged<WindowProxy>> {
         None
     }
 

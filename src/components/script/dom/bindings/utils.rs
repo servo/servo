@@ -595,7 +595,7 @@ pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Ref
     }
 }
 
-pub fn trace_option<T: Reflectable>(tracer: *mut JSTracer, description: &str, option: Option<@mut T>) {
+pub fn trace_option<T: Reflectable>(tracer: *mut JSTracer, description: &str, option: Option<JSManaged<T>>) {
     option.map(|some| trace_reflector(tracer, description, some.reflector()));
 }
 

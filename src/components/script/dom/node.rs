@@ -59,7 +59,7 @@ pub struct Node {
     priv owner_doc: Option<JSManaged<Document>>,
 
     /// The live list of children return by .childNodes.
-    child_list: Option<@mut NodeList>,
+    child_list: Option<JSManaged<NodeList>>,
 
     /// A bitfield of flags for node items.
     priv flags: NodeFlags,
@@ -742,7 +742,7 @@ impl Node {
         }
     }
 
-    pub fn ChildNodes(&mut self, abstract_self: JSManaged<Node>) -> @mut NodeList {
+    pub fn ChildNodes(&mut self, abstract_self: JSManaged<Node>) -> JSManaged<NodeList> {
         match self.child_list {
             None => {
                 let window = self.owner_doc().value().window;

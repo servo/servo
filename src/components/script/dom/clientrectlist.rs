@@ -4,37 +4,39 @@
 
 use dom::bindings::codegen::ClientRectListBinding;
 use dom::bindings::jsmanaged::JSManaged;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::clientrect::ClientRect;
 use dom::window::Window;
 
 pub struct ClientRectList {
     reflector_: Reflector,
-    rects: ~[@mut ClientRect],
+    rects: ~[JSManaged<ClientRect>],
     window: JSManaged<Window>,
+    force_box_layout: @int
 }
 
 impl ClientRectList {
     pub fn new_inherited(window: JSManaged<Window>,
-                         rects: ~[@mut ClientRect]) -> ClientRectList {
+                         rects: ~[JSManaged<ClientRect>]) -> ClientRectList {
         ClientRectList {
             reflector_: Reflector::new(),
             rects: rects,
             window: window,
+            force_box_layout: @1
         }
     }
 
     pub fn new(window: JSManaged<Window>,
-               rects: ~[@mut ClientRect]) -> @mut ClientRectList {
-        reflect_dom_object(@mut ClientRectList::new_inherited(window, rects),
-                           window.value(), ClientRectListBinding::Wrap)
+               rects: ~[JSManaged<ClientRect>]) -> JSManaged<ClientRectList> {
+        reflect_dom_object2(~ClientRectList::new_inherited(window, rects),
+                            window.value(), ClientRectListBinding::Wrap)
     }
 
     pub fn Length(&self) -> u32 {
         self.rects.len() as u32
     }
 
-    pub fn Item(&self, index: u32) -> Option<@mut ClientRect> {
+    pub fn Item(&self, index: u32) -> Option<JSManaged<ClientRect>> {
         if index < self.rects.len() as u32 {
             Some(self.rects[index])
         } else {
@@ -42,7 +44,7 @@ impl ClientRectList {
         }
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<@mut ClientRect> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JSManaged<ClientRect>> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
     }

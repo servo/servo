@@ -6,7 +6,7 @@ use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
 use dom::bindings::codegen::InheritTypes::DocumentCast;
 use dom::bindings::jsmanaged::JSManaged;
-use dom::bindings::utils::{DOMString, Fallible, Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{DOMString, Fallible, Reflector, Reflectable, reflect_dom_object2};
 use dom::bindings::utils::FailureUnknown;
 use dom::document::{Document, XML};
 use dom::htmldocument::HTMLDocument;
@@ -14,23 +14,25 @@ use dom::window::Window;
 
 pub struct DOMParser {
     owner: JSManaged<Window>, //XXXjdm Document instead?
-    reflector_: Reflector
+    reflector_: Reflector,
+    force_box_layout: @int
 }
 
 impl DOMParser {
     pub fn new_inherited(owner: JSManaged<Window>) -> DOMParser {
         DOMParser {
             owner: owner,
-            reflector_: Reflector::new()
+            reflector_: Reflector::new(),
+            force_box_layout: @1
         }
     }
 
-    pub fn new(owner: JSManaged<Window>) -> @mut DOMParser {
-        reflect_dom_object(@mut DOMParser::new_inherited(owner), owner.value(),
-                           DOMParserBinding::Wrap)
+    pub fn new(owner: JSManaged<Window>) -> JSManaged<DOMParser> {
+        reflect_dom_object2(~DOMParser::new_inherited(owner), owner.value(),
+                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(owner: JSManaged<Window>) -> Fallible<@mut DOMParser> {
+    pub fn Constructor(owner: JSManaged<Window>) -> Fallible<JSManaged<DOMParser>> {
         Ok(DOMParser::new(owner))
     }
 

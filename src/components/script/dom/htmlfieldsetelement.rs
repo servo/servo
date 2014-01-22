@@ -75,7 +75,7 @@ impl HTMLFieldSetElement {
         false
     }
 
-    pub fn Validity(&self) -> @mut ValidityState {
+    pub fn Validity(&self) -> JSManaged<ValidityState> {
         let global = self.htmlelement.element.node.owner_doc().value().window;
         ValidityState::new(global)
     }

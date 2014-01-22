@@ -468,7 +468,7 @@ impl Element {
     pub fn MozRequestPointerLock(&self) {
     }
 
-    pub fn GetClientRects(&self, abstract_self: JSManaged<Element>) -> @mut ClientRectList {
+    pub fn GetClientRects(&self, abstract_self: JSManaged<Element>) -> JSManaged<ClientRectList> {
         let win = self.node.owner_doc().value().window;
         let node: JSManaged<Node> = NodeCast::from(abstract_self);
         let (port, chan) = Chan::new();
@@ -490,7 +490,7 @@ impl Element {
         ClientRectList::new(win, rects)
     }
 
-    pub fn GetBoundingClientRect(&self, abstract_self: JSManaged<Element>) -> @mut ClientRect {
+    pub fn GetBoundingClientRect(&self, abstract_self: JSManaged<Element>) -> JSManaged<ClientRect> {
         let win = self.node.owner_doc().value().window;
         let node: JSManaged<Node> = NodeCast::from(abstract_self);
         let (port, chan) = Chan::new();

@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::LocationBinding;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::jsmanaged::JSManaged;
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::window::Window;
 
@@ -11,7 +12,7 @@ use script_task::{Page};
 
 pub struct Location {
     reflector_: Reflector, //XXXjdm cycle: window->Location->window
-    page: @mut Page
+    page: @mut Page,
 }
 
 impl Location {
@@ -22,8 +23,8 @@ impl Location {
         }
     }
 
-    pub fn new(window: &Window, page: @mut Page) -> @mut Location {
-        reflect_dom_object(@mut Location::new_inherited(page), window, LocationBinding::Wrap)
+    pub fn new(window: &Window, page: @mut Page) -> JSManaged<Location> {
+        reflect_dom_object2(~Location::new_inherited(page), window, LocationBinding::Wrap)
     }
 
     pub fn Assign(&self, _url: DOMString) {
