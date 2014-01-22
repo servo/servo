@@ -8,15 +8,13 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object2};
 use dom::window::Window;
 
 pub struct WindowProxy {
-    reflector_: Reflector,
-    force_box_layout: @int
+    reflector_: Reflector
 }
 
 impl WindowProxy {
     pub fn new(owner: JSManaged<Window>) -> JSManaged<WindowProxy> {
         let proxy = ~WindowProxy {
-            reflector_: Reflector::new(),
-            force_box_layout: @1
+            reflector_: Reflector::new()
         };
         reflect_dom_object2(proxy, owner.value(), WindowProxyBinding::Wrap)
     }

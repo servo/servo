@@ -10,16 +10,14 @@ use dom::window::Window;
 
 pub struct Blob {
     reflector_: Reflector,
-    window: JSManaged<Window>,
-    force_box_layout: @int
+    window: JSManaged<Window>
 }
 
 impl Blob {
     pub fn new_inherited(window: JSManaged<Window>) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            window: window,
-            force_box_layout: @1
+            window: window
         }
     }
 

@@ -639,7 +639,8 @@ pub fn reflect_dom_object2<T: Reflectable>
 }
 
 pub struct Reflector {
-    object: *JSObject
+    object: *JSObject,
+    force_box_layout: @int
 }
 
 impl Reflector {
@@ -659,7 +660,8 @@ impl Reflector {
 
     pub fn new() -> Reflector {
         Reflector {
-            object: ptr::null()
+            object: ptr::null(),
+            force_box_layout: @1
         }
     }
 }

@@ -11,8 +11,7 @@ use dom::window::Window;
 pub struct ClientRectList {
     reflector_: Reflector,
     rects: ~[JSManaged<ClientRect>],
-    window: JSManaged<Window>,
-    force_box_layout: @int
+    window: JSManaged<Window>
 }
 
 impl ClientRectList {
@@ -21,8 +20,7 @@ impl ClientRectList {
         ClientRectList {
             reflector_: Reflector::new(),
             rects: rects,
-            window: window,
-            force_box_layout: @1
+            window: window
         }
     }
 

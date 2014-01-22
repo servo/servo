@@ -55,8 +55,7 @@ pub struct Document {
     window: JSManaged<Window>,
     doctype: DocumentType,
     title: ~str,
-    idmap: HashMap<DOMString, JSManaged<Element>>,
-    force_box_layout: @int
+    idmap: HashMap<DOMString, JSManaged<Element>>
 }
 
 impl DocumentDerived for EventTarget {
@@ -95,8 +94,7 @@ impl Document {
             window: window,
             doctype: doctype,
             title: ~"",
-            idmap: HashMap::new(),
-            force_box_layout: @1
+            idmap: HashMap::new()
         }
     }
 

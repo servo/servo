@@ -17,8 +17,7 @@ pub struct Attr {
     value: DOMString,
     name: DOMString,
     namespace: Namespace,
-    prefix: Option<DOMString>,
-    force_box_layout: @int
+    prefix: Option<DOMString>
 }
 
 impl Reflectable for Attr {
@@ -41,8 +40,7 @@ impl Attr {
             value: value,
             name: name, //TODO: Intern attribute names
             namespace: namespace,
-            prefix: prefix,
-            force_box_layout: @1
+            prefix: prefix
         }
     }
 

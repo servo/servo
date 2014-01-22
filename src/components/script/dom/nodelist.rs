@@ -16,8 +16,7 @@ enum NodeListType {
 pub struct NodeList {
     list_type: NodeListType,
     reflector_: Reflector,
-    window: JSManaged<Window>,
-    force_box_layout: @int
+    window: JSManaged<Window>
 }
 
 impl NodeList {
@@ -26,8 +25,7 @@ impl NodeList {
         NodeList {
             list_type: list_type,
             reflector_: Reflector::new(),
-            window: window,
-            force_box_layout: @1
+            window: window
         }
     }
 

@@ -10,8 +10,7 @@ use dom::window::Window;
 pub struct ValidityState {
     reflector_: Reflector,
     window: JSManaged<Window>,
-    state: u8,
-    force_box_layout: @int
+    state: u8
 }
 
 impl ValidityState {
@@ -19,8 +18,7 @@ impl ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
             window: window,
-            state: 0,
-            force_box_layout: @1
+            state: 0
         }
     }
 

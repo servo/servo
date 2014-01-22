@@ -21,8 +21,7 @@ pub struct FormData {
     data: HashMap<~str, FormDatum>,
     reflector_: Reflector,
     window: JSManaged<Window>,
-    form: Option<JSManaged<HTMLFormElement>>,
-    force_box_layout: @int
+    form: Option<JSManaged<HTMLFormElement>>
 }
 
 impl FormData {
@@ -31,8 +30,7 @@ impl FormData {
             data: HashMap::new(),
             reflector_: Reflector::new(),
             window: window,
-            form: form,
-            force_box_layout: @1
+            form: form
         }
     }
 

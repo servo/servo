@@ -12,8 +12,7 @@ use dom::window::Window;
 pub struct AttrList {
     reflector_: Reflector,
     window: JSManaged<Window>,
-    owner: JSManaged<Element>,
-    force_box_layout: @int
+    owner: JSManaged<Element>
 }
 
 impl AttrList {
@@ -21,8 +20,7 @@ impl AttrList {
         AttrList {
             reflector_: Reflector::new(),
             window: window,
-            owner: elem,
-            force_box_layout: @1
+            owner: elem
         }
     }
 

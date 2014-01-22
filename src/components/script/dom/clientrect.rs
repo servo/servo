@@ -14,8 +14,7 @@ pub struct ClientRect {
     bottom: f32,
     left: f32,
     right: f32,
-    window: JSManaged<Window>,
-    force_box_layout: @int
+    window: JSManaged<Window>
 }
 
 impl ClientRect {
@@ -28,8 +27,7 @@ impl ClientRect {
             left: left.to_nearest_px() as f32,
             right: right.to_nearest_px() as f32,
             reflector_: Reflector::new(),
-            window: window,
-            force_box_layout: @1
+            window: window
         }
     }
 

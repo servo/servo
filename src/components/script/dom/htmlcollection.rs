@@ -16,8 +16,7 @@ use std::ptr;
 pub struct HTMLCollection {
     elements: ~[JSManaged<Element>],
     reflector_: Reflector,
-    window: JSManaged<Window>,
-    force_box_layout: @int
+    window: JSManaged<Window>
 }
 
 impl HTMLCollection {
@@ -25,8 +24,7 @@ impl HTMLCollection {
         HTMLCollection {
             elements: elements,
             reflector_: Reflector::new(),
-            window: window,
-            force_box_layout: @1
+            window: window
         }
     }
 

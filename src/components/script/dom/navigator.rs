@@ -9,15 +9,13 @@ use dom::bindings::utils::{DOMString, Fallible};
 use dom::window::Window;
 
 pub struct Navigator {
-    reflector_: Reflector, //XXXjdm cycle: window->navigator->window
-    force_box_layout: @int
+    reflector_: Reflector //XXXjdm cycle: window->navigator->window
 }
 
 impl Navigator {
     pub fn new_inherited() -> Navigator {
         Navigator {
-            reflector_: Reflector::new(),
-            force_box_layout: @1
+            reflector_: Reflector::new()
         }
     }
 

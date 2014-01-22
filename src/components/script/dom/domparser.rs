@@ -14,16 +14,14 @@ use dom::window::Window;
 
 pub struct DOMParser {
     owner: JSManaged<Window>, //XXXjdm Document instead?
-    reflector_: Reflector,
-    force_box_layout: @int
+    reflector_: Reflector
 }
 
 impl DOMParser {
     pub fn new_inherited(owner: JSManaged<Window>) -> DOMParser {
         DOMParser {
             owner: owner,
-            reflector_: Reflector::new(),
-            force_box_layout: @1
+            reflector_: Reflector::new()
         }
     }
 
