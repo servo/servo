@@ -8,6 +8,8 @@
 *.dummy
 *.pkl
 *.pyc
+*.swp
+*.swo
 servo-test
 Makefile
 Servo.app
