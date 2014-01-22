@@ -778,9 +778,9 @@ impl Box {
                         text_run: text_box.run.clone(),
                         range: text_box.range,
                         text_color: text_color,
-                        overline_color: flow_flags.overline_color,
-                        underline_color: flow_flags.underline_color,
-                        line_through_color: flow_flags.line_through_color,
+                        overline_color: flow_flags.overline_color(text_color),
+                        underline_color: flow_flags.underline_color(text_color),
+                        line_through_color: flow_flags.line_through_color(text_color),
                         flags: text_flags,
                     };
 
