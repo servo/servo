@@ -27,7 +27,7 @@ use std::cell::RefCell;
 use std::cmp::ApproxEq;
 use std::num::Zero;
 use style::{ComputedValues, TElement, TNode, cascade};
-use style::computed_values::{LengthOrPercentage, overflow};
+use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto, overflow, LPA_Auto};
 use style::computed_values::{border_style, clear, font_family, line_height};
 use style::computed_values::{text_align, text_decoration, vertical_align, visibility};
 
@@ -37,7 +37,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToG
 use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
 use layout::flow::Flow;
 use layout::flow;
-use layout::model::{MaybeAuto, Auto, specified};
+use layout::model::{MaybeAuto, specified, Auto, Specified};
 use layout::util::OpaqueNode;
 use layout::wrapper::LayoutNode;
 
@@ -108,9 +108,9 @@ pub enum SpecificBoxInfo {
 pub struct ImageBoxInfo {
     /// The image held within this box.
     image: RefCell<ImageHolder>,
-    /// The width attribute supplied by the DOM, if any.
+    computed_width: RefCell<Option<Au>>,
+    computed_height: RefCell<Option<Au>>,
     dom_width: Option<Au>,
-    /// The height attribute supplied by the DOM, if any.
     dom_height: Option<Au>,
 }
 
@@ -121,6 +121,7 @@ impl ImageBoxInfo {
     /// me.
     pub fn new(node: &LayoutNode, image_url: Url, local_image_cache: MutexArc<LocalImageCache>)
                -> ImageBoxInfo {
+
         fn convert_length(node: &LayoutNode, name: &str) -> Option<Au> {
             node.with_element(|element| {
                 element.get_attr(None, name).and_then(|string| {
@@ -132,27 +133,61 @@ impl ImageBoxInfo {
 
         ImageBoxInfo {
             image: RefCell::new(ImageHolder::new(image_url, local_image_cache)),
-            dom_width: convert_length(node, "width"),
-            dom_height: convert_length(node, "height"),
+            computed_width: RefCell::new(None),
+            computed_height: RefCell::new(None),
+            dom_width: convert_length(node,"width"),
+            dom_height: convert_length(node,"height"),
         }
     }
 
-    // Calculates the width of an image, accounting for the width attribute.
-    fn image_width(&self) -> Au {
-        // TODO(brson): Consult margins and borders?
-        self.dom_width.unwrap_or_else(|| {
-            let mut image_ref = self.image.borrow_mut();
-            Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0, 0)).width)
-        })
+    /// Returns the calculated width of the image, accounting for the width attribute.
+    pub fn computed_width(&self) -> Au {
+        match self.computed_width.borrow().get() {
+            &Some(width) => {
+                width
+            },
+            &None => {
+                fail!("width is not computed yet!");
+            }
+        }
+    }
+    /// Returns width of image(just original width)
+    pub fn image_width(&self) -> Au {
+        let mut image_ref = self.image.borrow_mut();
+        Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0,0)).width)
     }
 
-    // Calculate the height of an image, accounting for the height attribute.
+    pub fn style_length(style_length: LengthOrPercentageOrAuto,
+                        dom_length: Option<Au>,
+                        container_width: Au) -> MaybeAuto {
+        match (MaybeAuto::from_style(style_length,container_width),dom_length) {
+            (Specified(length),_) => {
+                Specified(length)
+            },
+            (Auto,Some(length)) => {
+                Specified(length)
+            },
+            (Auto,None) => {
+                Auto
+            }
+        }
+    }
+    /// Returns the calculated height of the image, accounting for the height attribute.
+    pub fn computed_height(&self) -> Au {
+        match self.computed_height.borrow().get() {
+            &Some(height) => {
+                height
+            },
+            &None => {
+                fail!("image size is not computed yet!");
+            }
+        }
+    }
+
+    /// Returns height of image(just original height)
     pub fn image_height(&self) -> Au {
-        // TODO(brson): Consult margins and borders?
-        self.dom_height.unwrap_or_else(|| {
-            let mut image_ref = self.image.borrow_mut();
-            Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0, 0)).height)
-        })
+        let mut image_ref = self.image.borrow_mut();
+        Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0,0)).height)
     }
 }
 
@@ -939,23 +974,28 @@ impl Box {
         (guessed_width + additional_minimum, guessed_width + additional_preferred)
     }
 
-    /// Returns, and computes, the height of this box.
-    ///
-    /// FIXME(pcwalton): Rename to just `height`?
-    /// FIXME(pcwalton): This function *mutates* the height? Gross! Refactor please.
-    pub fn box_height(&self) -> Au {
+
+    pub fn content_width(&self) -> Au {
         match self.specific {
             GenericBox | IframeBox(_) => Au(0),
             ImageBox(ref image_box_info) => {
-                let mut image_ref = image_box_info.image.borrow_mut();
-                let size = image_ref.get().get_size();
-                let height = Au::from_px(size.unwrap_or(Size2D(0, 0)).height);
-
-                // Eww. Refactor this.
-                self.position.borrow_mut().get().size.height = height;
-                debug!("box_height: found image height: {}", height);
-
-                height
+                image_box_info.computed_width()
+            }
+            ScannedTextBox(ref text_box_info) => {
+                let (range, run) = (&text_box_info.range, &text_box_info.run);
+                let text_bounds = run.get().metrics_for_range(range).bounding_box;
+                text_bounds.size.width
+            }
+            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
+        }
+    }
+    /// Returns, and computes, the height of this box.
+    ///
+    pub fn content_height(&self) -> Au {
+        match self.specific {
+            GenericBox | IframeBox(_) => Au(0),
+            ImageBox(ref image_box_info) => {
+                image_box_info.computed_height()
             }
             ScannedTextBox(ref text_box_info) => {
                 // Compute the height based on the line-height and font size.
@@ -1077,15 +1117,79 @@ impl Box {
     }
 
     /// Assigns the appropriate width to this box.
-    pub fn assign_width(&self) {
+    pub fn assign_width(&self,container_width: Au) {
         match self.specific {
             GenericBox | IframeBox(_) => {
-                // FIXME(pcwalton): This seems clownshoes; can we remove?
-                self.position.borrow_mut().get().size.width = Au::from_px(45)
             }
             ImageBox(ref image_box_info) => {
-                let image_width = image_box_info.image_width();
-                self.position.borrow_mut().get().size.width = image_width
+                // TODO(ksh8281): compute border,margin,padding
+                let width = ImageBoxInfo::style_length(self.style().Box.width,
+                                                       image_box_info.dom_width,
+                                                       container_width);
+
+                // FIXME(ksh8281): we shouldn't figure height this way
+                // now, we don't know about size of parent's height
+                let height = ImageBoxInfo::style_length(self.style().Box.height,
+                                                       image_box_info.dom_height,
+                                                       Au::new(0));
+
+                let width = match (width,height) {
+                    (Auto,Auto) => {
+                        image_box_info.image_width()
+                    },
+                    (Auto,Specified(h)) => {
+                        let scale = image_box_info.
+                            image_height().to_f32().unwrap() / h.to_f32().unwrap();
+                        Au::new((image_box_info.image_width().to_f32().unwrap() / scale) as i32)
+                    },
+                    (Specified(w),_) => {
+                        w
+                    }
+                };
+
+                let mut position = self.position.borrow_mut();
+                position.get().size.width = width;
+                image_box_info.computed_width.set(Some(width));
+            }
+            ScannedTextBox(_) => {
+                // Scanned text boxes will have already had their widths assigned by this point.
+            }
+            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
+        }
+    }
+
+    pub fn assign_height(&self) {
+        match self.specific {
+            GenericBox | IframeBox(_) => {
+            }
+            ImageBox(ref image_box_info) => {
+                // TODO(ksh8281): compute border,margin,padding
+                let width = image_box_info.computed_width();
+                // FIXME(ksh8281): we shouldn't assign height this way
+                // we don't know about size of parent's height
+                let height = ImageBoxInfo::style_length(self.style().Box.height,
+                                                        image_box_info.dom_height,
+                                                        Au::new(0));
+
+                let height = match (self.style().Box.width, 
+                                    image_box_info.dom_width,
+                                    height) {
+                    (LPA_Auto, None, Auto) => {
+                        image_box_info.image_height()
+                    },
+                    (_,_,Auto) => {
+                        let scale = image_box_info.image_width().to_f32().unwrap()
+                            / width.to_f32().unwrap();
+                        Au::new((image_box_info.image_height().to_f32().unwrap() / scale) as i32)
+                    },
+                    (_,_,Specified(h)) => {
+                        h
+                    }
+                };
+
+                let mut position = self.position.borrow_mut();
+                position.get().size.height = height;
+                image_box_info.computed_height.set(Some(height));
             }
             ScannedTextBox(_) => {
                 // Scanned text boxes will have already had their widths assigned by this point.
