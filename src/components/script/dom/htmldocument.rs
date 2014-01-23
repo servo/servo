@@ -11,7 +11,6 @@ use dom::window::Window;
 
 use js::jsapi::JSTracer;
 use std::str::eq_slice;
-use style::TElement;
 
 pub struct HTMLDocument {
     parent: Document
@@ -46,7 +45,7 @@ impl HTMLDocument {
     pub fn Links(&self) -> @mut HTMLCollection {
         self.parent.createHTMLCollection(|elem|
             (eq_slice(elem.tag_name, "a") || eq_slice(elem.tag_name, "area"))
-            && elem.get_attr(Null, "href").is_some())
+            && elem.get_attribute(Null, "href").is_some())
     }
 
     pub fn Forms(&self) -> @mut HTMLCollection {
@@ -59,7 +58,7 @@ impl HTMLDocument {
 
     pub fn Anchors(&self) -> @mut HTMLCollection {
         self.parent.createHTMLCollection(|elem|
-            eq_slice(elem.tag_name, "a") && elem.get_attr(Null, "name").is_some())
+            eq_slice(elem.tag_name, "a") && elem.get_attribute(Null, "name").is_some())
     }
 
     pub fn Applets(&self) -> @mut HTMLCollection {

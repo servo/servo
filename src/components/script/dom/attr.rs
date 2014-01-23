@@ -65,6 +65,10 @@ impl Attr {
         util::swap(&mut self.value, &mut value);
         value
     }
+
+    pub fn value_ref<'a>(&'a self) -> &'a str {
+        self.value.as_slice()
+    }
 }
 
 impl Attr {

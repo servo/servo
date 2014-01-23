@@ -23,8 +23,10 @@ use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
 
-use std::str::eq;
 use std::ascii::StrAsciiExt;
+use std::cast;
+use std::str::eq;
+use std::unstable::raw::Box;
 
 pub struct Element {
     node: Node,
@@ -155,9 +157,19 @@ impl Element {
         }).map(|&x| x)
     }
 
-    // FIXME(pcwalton): This is kind of confusingly named relative to the above...
-    pub fn get_attr(&self, namespace: Namespace, name: &str) -> Option<~str> {
-        self.get_attribute(namespace, name).map(|attr| attr.value.clone())
+    pub unsafe fn get_attr_val_for_layout(&self, namespace: Namespace, name: &str) 
+                                          -> Option<&'static str> {
+        // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
+        let name = name.to_ascii_lower();
+        self.attrs.iter().find(|attr: & &@mut Attr| {
+            // unsafely avoid a borrow because this is accessed by many tasks
+            // during parallel layout
+            let attr: ***Box<Attr> = cast::transmute(attr);
+            name == (***attr).data.local_name && (***attr).data.namespace == namespace
+       }).map(|attr| {
+            let attr: **Box<Attr> = cast::transmute(attr);
+            cast::transmute((**attr).data.value.as_slice())
+        })
     }
 
     pub fn set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
@@ -352,8 +364,8 @@ impl Element {
     }
 
     pub fn get_string_attribute(&self, name: &str) -> DOMString {
-        match self.get_attr(Null, name) {
-            Some(x) => x,
+        match self.get_attribute(Null, name) {
+            Some(x) => x.Value(),
             None => ~""
         }
     }
@@ -390,7 +402,7 @@ impl Element {
     }
 
     pub fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
-        self.get_attr(Null, name).map(|s| s.to_owned())
+        self.get_attribute(Null, name).map(|s| s.Value())
     }
 
     pub fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString> {
