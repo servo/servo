@@ -198,6 +198,9 @@ impl IOCompositor {
         // Drain compositor port, sometimes messages contain channels that are blocking
         // another task from finishing (i.e. SetIds)
         while self.port.try_recv().is_some() {}
+
+        // Tell the profiler to shut down.
+        self.profiler_chan.send(time::ExitMsg);
     }
 
     fn handle_message(&mut self) {

@@ -1338,7 +1338,7 @@ impl Box {
                iframe_box.pipeline_id,
                iframe_box.subpage_id);
         let msg = FrameRectMsg(iframe_box.pipeline_id, iframe_box.subpage_id, rect);
-        layout_context.shared.constellation_chan.send(msg)
+        layout_context.constellation_chan.send(msg)
     }
 }
 

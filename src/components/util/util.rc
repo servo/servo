@@ -9,6 +9,7 @@
 
 extern mod extra;
 extern mod geom;
+extern mod native;
 
 pub mod cache;
 pub mod geometry;
@@ -19,4 +20,5 @@ pub mod vec;
 pub mod debug;
 pub mod io;
 pub mod task;
+pub mod workqueue;
 
