@@ -186,7 +186,7 @@ impl<'a> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {
 
     #[inline]
     fn should_process(&mut self, flow: &mut Flow) -> bool {
-        !flow::base(flow).flags.inorder()
+        !flow::base(flow).flags_info.flags.inorder()
     }
 }
 
