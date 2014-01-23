@@ -287,7 +287,7 @@ pub mod longhands {
                       "parse_non_negative")}
 
 
-    <%self:single_component_value name="line-height">
+    <%self:single_component_value name="line-height" inherited="True">
         #[deriving(Clone)]
         pub enum SpecifiedValue {
             SpecifiedNormal,

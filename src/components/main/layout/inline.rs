@@ -640,11 +640,13 @@ impl Flow for InlineFlow {
             }
         }
 
+        // FIXME(ksh8281) avoid copy
+        let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
             let child_base = flow::mut_base(*kid);
             child_base.position.size.width = self.base.position.size.width;
-            child_base.flags.set_inorder(self.base.flags.inorder());
-            child_base.flags.propagate_text_alignment_from_parent(self.base.flags)
+            child_base.flags_info.flags.set_inorder(self.base.flags_info.flags.inorder());
+            child_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
         }
         // There are no child contexts, so stop here.
 
@@ -689,7 +691,7 @@ impl Flow for InlineFlow {
         let mut line_height_offset = Au::new(0);
 
         // All lines use text alignment of the flow.
-        let text_align = self.base.flags.text_align();
+        let text_align = self.base.flags_info.flags.text_align();
 
         // Now, go through each line and lay out the boxes inside.
         for line in self.lines.mut_iter() {

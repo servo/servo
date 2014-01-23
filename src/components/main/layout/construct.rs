@@ -407,8 +407,11 @@ impl<'fc> FlowConstructor<'fc> {
                 ConstructionItemConstructionResult(InlineBoxesConstructionItem(
                         InlineBoxesConstructionResult {
                             splits: opt_splits,
-                            boxes: boxes
+                            boxes: mut boxes
                         })) => {
+                    // fill inline info
+                    self.set_inline_info_for_inline_child(&mut boxes, node);
+
                     // Bubble up {ib} splits.
                     match opt_splits {
                         None => {}
@@ -434,13 +437,6 @@ impl<'fc> FlowConstructor<'fc> {
                     opt_box_accumulator.push_all_move(boxes)
                 }
             }
-        }
-
-        match opt_box_accumulator {
-            Some(ref mut boxes) => {
-                self.set_inline_info_for_inline_child(boxes, node)
-            },
-            None => {}
         }
 
         // Finally, make a new construction result.

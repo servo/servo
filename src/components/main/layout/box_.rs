@@ -35,7 +35,7 @@ use css::node_style::StyledNode;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
-use layout::flow::Flow;
+use layout::flow::{Flow, FlowFlagsInfo};
 use layout::flow;
 use layout::model::{MaybeAuto, specified, Auto, Specified};
 use layout::util::OpaqueNode;
@@ -782,14 +782,26 @@ impl Box {
                     list.append_item(ClipDisplayItemClass(item));
                 });
 
-                let color = self.style().Color.color.to_gfx_color();
+                let text_color = self.style().Color.color.to_gfx_color();
 
                 // Set the various text display item flags.
-                let flow_flags = flow::base(flow).flags;
+                let mut flow_flags = flow::base(flow).flags_info.clone();
+
+                let inline_info = self.inline_info.borrow();
+                match inline_info.get() {
+                    &Some(ref info) => {
+                        for data in info.parent_info.rev_iter() {
+                            let parent_info = FlowFlagsInfo::new(data.style.get());
+                            //FIXME(ksh8281) avoid copy
+                            flow_flags.propagate_text_decoration_from_parent(&parent_info);
+                        }
+                    },
+                    &None => {}
+                }
                 let mut text_flags = TextDisplayItemFlags::new();
-                text_flags.set_override_underline(flow_flags.override_underline());
-                text_flags.set_override_overline(flow_flags.override_overline());
-                text_flags.set_override_line_through(flow_flags.override_line_through());
+                text_flags.set_override_underline(flow_flags.flags.override_underline());
+                text_flags.set_override_overline(flow_flags.flags.override_overline());
+                text_flags.set_override_line_through(flow_flags.flags.override_line_through());
 
                 // Create the text box.
                 list.with_mut(|list| {
@@ -800,7 +812,10 @@ impl Box {
                         },
                         text_run: text_box.run.clone(),
                         range: text_box.range,
-                        color: color,
+                        text_color: text_color,
+                        overline_color: flow_flags.overline_color(text_color),
+                        underline_color: flow_flags.underline_color(text_color),
+                        line_through_color: flow_flags.line_through_color(text_color),
                         flags: text_flags,
                     };
 
