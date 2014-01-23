@@ -25,7 +25,7 @@ use extra::arc::Arc;
 
 use buffer_map::BufferMap;
 use display_list::DisplayList;
-use font_context::FontContext;
+use font_context::{FontContext, FontContextInfo};
 use opts::Opts;
 use render_context::RenderContext;
 
@@ -159,9 +159,11 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     port: port,
                     compositor: compositor,
                     constellation_chan: constellation_chan,
-                    font_ctx: ~FontContext::new(opts.render_backend.clone(),
-                                                false,
-                                                profiler_chan.clone()),
+                    font_ctx: ~FontContext::new(FontContextInfo {
+                        backend: opts.render_backend.clone(),
+                        needs_font_list: false,
+                        profiler_chan: profiler_chan.clone(),
+                    }),
                     opts: opts,
                     profiler_chan: profiler_chan,
 

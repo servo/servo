@@ -8,6 +8,8 @@
 use azure::azure_hl::{BackendType, CairoBackend, CoreGraphicsBackend};
 use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBackend};
 use extra::getopts::groups;
+use std::num;
+use std::rt;
 
 /// Global flags for Servo, currently set on the command line.
 #[deriving(Clone)]
@@ -34,6 +36,10 @@ pub struct Opts {
     /// it to produce output on that interval (`-p`).
     profiler_period: Option<f64>,
 
+    /// The number of threads to use for layout (`-y`). Defaults to 1, which results in a recursive
+    /// sequential algorithm.
+    layout_threads: uint,
+
     /// True to exit after the page load (`-x`).
     exit_after_load: bool,
 
@@ -59,6 +65,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         groups::optopt("t", "threads", "Number of render threads", "1"),
         groups::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
         groups::optflag("x", "exit", "Exit after load flag"),
+        groups::optopt("y", "layout-threads", "Number of threads to use for layout", "1"),
         groups::optflag("z", "headless", "Headless mode"),
         groups::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
         groups::optflag("h", "help", "Print this message")
@@ -119,6 +126,11 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
 
     let cpu_painting = opt_match.opt_present("c");
 
+    let layout_threads: uint = match opt_match.opt_str("y") {
+        Some(layout_threads_str) => from_str(layout_threads_str).unwrap(),
+        None => num::max(rt::default_sched_threads() * 3 / 4, 1),
+    };
+
     Opts {
         urls: urls,
         render_backend: render_backend,
@@ -126,6 +138,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         cpu_painting: cpu_painting,
         tile_size: tile_size,
         profiler_period: profiler_period,
+        layout_threads: layout_threads,
         exit_after_load: opt_match.opt_present("x"),
         output_file: opt_match.opt_str("o"),
         headless: opt_match.opt_present("z"),

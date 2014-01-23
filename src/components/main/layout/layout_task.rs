@@ -9,22 +9,23 @@ use css::matching::MatchMethods;
 use css::select::new_stylist;
 use css::node_style::StyledNode;
 use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionResult};
-use layout::context::LayoutContext;
+use layout::context::{LayoutContext, SharedLayoutInfo};
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
 use layout::extra::LayoutAuxMethods;
-use layout::flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
+use layout::flow::{Flow, ImmutableFlowUtils, LeafSet, MutableFlowUtils, PreorderFlowTraversal};
 use layout::flow::{PostorderFlowTraversal};
 use layout::flow;
-use layout::incremental::{RestyleDamage};
+use layout::incremental::RestyleDamage;
+use layout::parallel::{AssignHeightsAndStoreOverflowTraversalKind, BubbleWidthsTraversalKind};
+use layout::parallel::{ParallelPostorderFlowTraversal};
 use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
 use layout::wrapper::LayoutNode;
 
-use extra::arc::{Arc, RWArc, MutexArc};
-use geom::point::Point2D;
+use extra::arc::{Arc, MutexArc, RWArc};
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator, DisplayList};
-use gfx::font_context::FontContext;
+use gfx::font_context::{FontContext, FontContextInfo};
 use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
@@ -78,13 +79,19 @@ pub struct LayoutTask {
     /// The local image cache.
     local_image_cache: MutexArc<LocalImageCache>,
 
+    /// The set of leaves in the flow tree.
+    leaf_set: MutexArc<LeafSet>,
+
     /// The size of the viewport.
-    screen_size: Option<Size2D<Au>>,
+    screen_size: Size2D<Au>,
 
     /// A cached display list.
     display_list: Option<Arc<DisplayList<OpaqueNode>>>,
 
     stylist: RWArc<Stylist>,
+
+    /// The workers that we use for parallel operation.
+    parallel_traversal: Option<ParallelPostorderFlowTraversal>,
 
     /// The channel on which messages can be sent to the profiler.
     profiler_chan: ProfilerChan,
@@ -135,7 +142,7 @@ impl PreorderFlowTraversal for PropagateDamageTraversal {
 
 /// The bubble-widths traversal, the first part of layout computation. This computes preferred
 /// and intrinsic widths and bubbles them up the tree.
-struct BubbleWidthsTraversal<'a>(&'a mut LayoutContext);
+pub struct BubbleWidthsTraversal<'a>(&'a mut LayoutContext);
 
 impl<'a> PostorderFlowTraversal for BubbleWidthsTraversal<'a> {
     #[inline]
@@ -167,7 +174,7 @@ impl<'a> PreorderFlowTraversal for AssignWidthsTraversal<'a> {
 /// The assign-heights-and-store-overflow traversal, the last (and most expensive) part of layout
 /// computation. Determines the final heights for all layout objects, computes positions, and
 /// computes overflow regions. In Gecko this corresponds to `FinishAndStoreOverflow`.
-struct AssignHeightsAndStoreOverflowTraversal<'a>(&'a mut LayoutContext);
+pub struct AssignHeightsAndStoreOverflowTraversal<'a>(&'a mut LayoutContext);
 
 impl<'a> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {
     #[inline]
@@ -239,6 +246,18 @@ impl LayoutTask {
            opts: &Opts,
            profiler_chan: ProfilerChan)
            -> LayoutTask {
+        let local_image_cache = MutexArc::new(LocalImageCache(image_cache_task.clone()));
+        let screen_size = Size2D(Au(0), Au(0));
+        let font_context_info = FontContextInfo {
+            backend: opts.render_backend,
+            needs_font_list: true,
+            profiler_chan: profiler_chan.clone(),
+        };
+        let parallel_traversal = if opts.layout_threads != 1 {
+            Some(ParallelPostorderFlowTraversal::new(font_context_info, opts.layout_threads))
+        } else {
+            None
+        };
 
         LayoutTask {
             id: id,
@@ -248,12 +267,13 @@ impl LayoutTask {
             script_chan: script_chan,
             render_chan: render_chan,
             image_cache_task: image_cache_task.clone(),
-            local_image_cache: MutexArc::new(LocalImageCache(image_cache_task)),
-            screen_size: None,
+            local_image_cache: local_image_cache,
+            screen_size: screen_size,
+            leaf_set: MutexArc::new(LeafSet::new()),
 
             display_list: None,
-
             stylist: RWArc::new(new_stylist()),
+            parallel_traversal: parallel_traversal,
             profiler_chan: profiler_chan,
             opts: opts.clone()
         }
@@ -268,16 +288,20 @@ impl LayoutTask {
 
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context(&self) -> LayoutContext {
-        let image_cache = self.local_image_cache.clone();
-        let font_ctx = ~FontContext::new(self.opts.render_backend, true,
-                                            self.profiler_chan.clone());
-        let screen_size = self.screen_size.unwrap();
+        let font_ctx = ~FontContext::new(FontContextInfo {
+            backend: self.opts.render_backend,
+            needs_font_list: true,
+            profiler_chan: self.profiler_chan.clone(),
+        });
 
         LayoutContext {
-            image_cache: image_cache,
+            shared: SharedLayoutInfo {
+                image_cache: self.local_image_cache.clone(),
+                screen_size: self.screen_size.clone(),
+                constellation_chan: self.constellation_chan.clone(),
+                leaf_set: self.leaf_set.clone(),
+            },
             font_ctx: font_ctx,
-            screen_size: Rect(Point2D(Au(0), Au(0)), screen_size),
-            constellation_chan: self.constellation_chan.clone(),
         }
     }
 
@@ -344,6 +368,12 @@ impl LayoutTask {
     /// crash.
     fn exit_now(&mut self) {
         let (response_port, response_chan) = Chan::new();
+        
+        match self.parallel_traversal {
+            None => {}
+            Some(ref mut traversal) => traversal.shutdown(),
+        }
+
         self.render_chan.send(render_task::ExitMsg(response_chan));
         response_port.recv()
     }
@@ -388,18 +418,46 @@ impl LayoutTask {
     fn solve_constraints(&mut self,
                          layout_root: &mut Flow,
                          layout_context: &mut LayoutContext) {
-        let _ = layout_root.traverse_postorder(&mut BubbleWidthsTraversal(layout_context));
+        layout_root.traverse_postorder(&mut BubbleWidthsTraversal(layout_context));
 
         // FIXME(kmc): We want to prune nodes without the Reflow restyle damage
         // bit, but FloatContext values can't be reused, so we need to
         // recompute them every time.
-        // NOTE: this currently computes borders, so any pruning should separate that operation out.
-        let _ = layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
+        // NOTE: this currently computes borders, so any pruning should separate that operation
+        // out.
+        layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
 
-        // For now, this is an inorder traversal
-        // FIXME: prune this traversal as well
-        let _ = layout_root.traverse_postorder(&mut
-            AssignHeightsAndStoreOverflowTraversal(layout_context));
+        // FIXME(pcwalton): Prune this pass as well.
+        layout_root.traverse_postorder(&mut AssignHeightsAndStoreOverflowTraversal(
+                layout_context));
+    }
+
+    /// Performs layout constraint solving in parallel.
+    ///
+    /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
+    /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
+    #[inline(never)]
+    fn solve_constraints_parallel(&mut self,
+                                  layout_root: &mut Flow,
+                                  layout_context: &mut LayoutContext) {
+        match self.parallel_traversal {
+            None => fail!("solve_contraints_parallel() called with no parallel traversal ready"),
+            Some(ref mut traversal) => {
+                traversal.start(BubbleWidthsTraversalKind,
+                                layout_context,
+                                self.profiler_chan.clone());
+
+                // NOTE: this currently computes borders, so any pruning should separate that
+                // operation out.
+                // TODO(pcwalton): Run this in parallel as well. This will require a bit more work
+                // because this is a top-down traversal, unlike the others.
+                layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
+
+                traversal.start(AssignHeightsAndStoreOverflowTraversalKind,
+                                layout_context,
+                                self.profiler_chan.clone());
+            }
+        }
     }
 
     /// The high-level routine that performs layout tasks.
@@ -416,8 +474,9 @@ impl LayoutTask {
 
         // Reset the image cache.
         unsafe {
-            self.local_image_cache.unsafe_access(
-                |cache| cache.next_round(self.make_on_image_available_cb()));
+            self.local_image_cache.unsafe_access(|local_image_cache| {
+                local_image_cache.next_round(self.make_on_image_available_cb())
+            });
         }
 
         // true => Do the reflow with full style damage, because content
@@ -427,12 +486,12 @@ impl LayoutTask {
             _ => false
         };
 
-        let screen_size = Size2D(Au::from_px(data.window_size.width as int),
-                                 Au::from_px(data.window_size.height as int));
-        if self.screen_size != Some(screen_size) {
-            all_style_damage = true;
+        let current_screen_size = Size2D(Au::from_px(data.window_size.width as int),
+                                         Au::from_px(data.window_size.height as int));
+        if self.screen_size != current_screen_size {
+            all_style_damage = true
         }
-        self.screen_size = Some(screen_size);
+        self.screen_size = current_screen_size;
 
         // Create a layout context for use throughout the following passes.
         let mut layout_ctx = self.build_layout_context();
@@ -469,11 +528,17 @@ impl LayoutTask {
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         profile(time::LayoutMainCategory, self.profiler_chan.clone(), || {
-            self.solve_constraints(layout_root, &mut layout_ctx)
+            match self.parallel_traversal {
+                None => {
+                    // Sequential mode.
+                    self.solve_constraints(layout_root, &mut layout_ctx)
+                }
+                Some(_) => {
+                    // Parallel mode.
+                    self.solve_constraints_parallel(layout_root, &mut layout_ctx)
+                }
+            }
         });
-
-        debug!("layout: constraint solving done:");
-        debug!("{:?}", layout_root.dump());
 
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
@@ -519,9 +584,16 @@ impl LayoutTask {
 
                 self.display_list = Some(display_list.clone());
 
+                debug!("Layout done!");
+
                 self.render_chan.send(RenderMsg(render_layer));
             });
         }
+
+        // FIXME(pcwalton): Hack because we don't yet reference count flows. When we do reference
+        // count them, then the destructor should remove the flow from the leaf set once the count
+        // hits zero.
+        self.leaf_set.access(|leaf_set| leaf_set.clear());
 
         // Tell script that we're done.
         //
