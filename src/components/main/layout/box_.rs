@@ -29,7 +29,7 @@ use std::num::Zero;
 use style::{ComputedValues, TElement, TNode, cascade};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto, overflow, LPA_Auto};
 use style::computed_values::{border_style, clear, font_family, line_height};
-use style::computed_values::{text_align, text_decoration, vertical_align, visibility};
+use style::computed_values::{text_align, text_decoration, vertical_align, visibility, white_space};
 
 use css::node_style::StyledNode;
 use layout::context::LayoutContext;
@@ -91,6 +91,9 @@ pub struct Box {
 
     /// Inline data
     inline_info: RefCell<Option<InlineInfo>>,
+
+    /// New-line chracter(\n)'s positions(relative, not absolute)
+    new_line_pos: ~[uint],
 }
 
 /// Info specific to the kind of box. Keep this enum small.
@@ -330,6 +333,7 @@ impl Box {
             specific: specific,
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: RefCell::new(None),
+            new_line_pos: ~[],
         }
     }
 
@@ -419,6 +423,7 @@ impl Box {
             specific: specific,
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: self.inline_info.clone(),
+            new_line_pos: self.new_line_pos.clone(),
         }
     }
 
@@ -576,6 +581,10 @@ impl Box {
 
     pub fn vertical_align(&self) -> vertical_align::T {
         self.style().Box.vertical_align
+    }
+
+    pub fn white_space(&self) -> white_space::T {
+        self.style().Text.white_space
     }
 
     /// Returns the text decoration of this box, according to the style of the nearest ancestor
@@ -1020,6 +1029,45 @@ impl Box {
                 self.calculate_line_height(em_size)
             }
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
+        }
+    }
+
+    /// Split box which includes new-line character
+    pub fn split_by_new_line(&self) -> SplitBoxResult {
+        match self.specific {
+            GenericBox | IframeBox(_) | ImageBox(_) => CannotSplit,
+            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
+            ScannedTextBox(ref text_box_info) => {
+                let mut new_line_pos = self.new_line_pos.clone();
+                let cur_new_line_pos = new_line_pos.shift();
+
+                let left_range = Range::new(text_box_info.range.begin(), cur_new_line_pos);
+                let right_range = Range::new(text_box_info.range.begin() + cur_new_line_pos + 1, text_box_info.range.length() - (cur_new_line_pos + 1));
+
+                // Left box is for left text of first founded new-line character.
+                let left_box = if left_range.length() > 0 {
+                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
+                    let new_metrics = new_text_box_info.run.get().metrics_for_range(&left_range);
+                    let mut new_box = self.transform(new_metrics.bounding_box.size, ScannedTextBox(new_text_box_info));
+                    new_box.new_line_pos = ~[];
+                    Some(new_box)
+                } else {
+                    None
+                };
+
+                // Right box is for right text of first founded new-line character.
+                let right_box = if right_range.length() > 0 {
+                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), right_range);
+                    let new_metrics = new_text_box_info.run.get().metrics_for_range(&right_range);
+                    let mut new_box = self.transform(new_metrics.bounding_box.size, ScannedTextBox(new_text_box_info));
+                    new_box.new_line_pos = new_line_pos;
+                    Some(new_box)
+                } else {
+                    None
+                };
+
+                SplitDidFit(left_box, right_box)
+            }
         }
     }
 
