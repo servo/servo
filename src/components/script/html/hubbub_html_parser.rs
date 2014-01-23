@@ -28,7 +28,7 @@ use std::comm::{Port, SharedChan};
 use std::from_str::FromStr;
 use std::str::eq_slice;
 use std::str;
-use style::{Stylesheet, TElement};
+use style::Stylesheet;
 
 macro_rules! handle_element(
     ($document: expr,
@@ -339,11 +339,11 @@ pub fn parse_html(cx: *JSContext,
                 // Handle CSS style sheets from <link> elements
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
                     node.with_imm_element(|element| {
-                        match (element.get_attr(Null, "rel"), element.get_attr(Null, "href")) {
+                        match (element.get_attribute(Null, "rel"), element.get_attribute(Null, "href")) {
                             (Some(rel), Some(href)) => {
-                                if "stylesheet" == rel {
-                                    debug!("found CSS stylesheet: {:s}", href);
-                                    let url = make_url(href.to_str(), Some(url2.clone()));
+                                if "stylesheet" == rel.value_ref() {
+                                    debug!("found CSS stylesheet: {:s}", href.value_ref());
+                                    let url = make_url(href.Value(), Some(url2.clone()));
                                     css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
                                 }
                             }
@@ -357,7 +357,7 @@ pub fn parse_html(cx: *JSContext,
                     node.with_mut_iframe_element(|iframe_element| {
                         let sandboxed = iframe_element.is_sandboxed();
                         let elem = &mut iframe_element.htmlelement.element;
-                        let src_opt = elem.get_attr(Null, "src").map(|x| x.to_str());
+                        let src_opt = elem.get_attribute(Null, "src").map(|x| x.Value());
                         for src in src_opt.iter() {
                             let iframe_url = make_url(src.clone(), Some(url2.clone()));
                             iframe_element.frame = Some(iframe_url.clone());
@@ -453,10 +453,10 @@ pub fn parse_html(cx: *JSContext,
             unsafe {
                 let scriptnode: AbstractNode = NodeWrapping::from_hubbub_node(script);
                 scriptnode.with_imm_element(|script| {
-                    match script.get_attr(Null, "src") {
+                    match script.get_attribute(Null, "src") {
                         Some(src) => {
-                            debug!("found script: {:s}", src);
-                            let new_url = make_url(src.to_str(), Some(url3.clone()));
+                            debug!("found script: {:s}", src.Value());
+                            let new_url = make_url(src.Value(), Some(url3.clone()));
                             js_chan2.send(JSTaskNewFile(new_url));
                         }
                         None => {

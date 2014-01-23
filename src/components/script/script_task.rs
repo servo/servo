@@ -786,8 +786,8 @@ impl ScriptTask {
                 let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
                 anchors.find(|node| {
                     node.with_imm_element(|elem| {
-                        match elem.get_attr(Null, "name") {
-                            Some(name) => eq_slice(name, fragid),
+                        match elem.get_attribute(Null, "name") {
+                            Some(name) => eq_slice(name.value_ref(), fragid),
                             None => false
                         }
                     })
@@ -885,15 +885,15 @@ impl ScriptTask {
 
     fn load_url_from_element(&self, page: @mut Page, element: &Element) {
         // if the node's element is "a," load url from href attr
-        let attr = element.get_attr(Null, "href");
+        let attr = element.get_attribute(Null, "href");
         for href in attr.iter() {
-            debug!("ScriptTask: clicked on link to {:s}", *href);
-            let click_frag = href.starts_with("#");
+            debug!("ScriptTask: clicked on link to {:s}", href.Value());
+            let click_frag = href.value_ref().starts_with("#");
             let current_url = page.url.as_ref().map(|&(ref url, _)| {
                 url.clone()
             });
             debug!("ScriptTask: current url is {:?}", current_url);
-            let url = make_url(href.to_owned(), current_url);
+            let url = make_url(href.Value(), current_url);
 
             if click_frag {
                 match self.find_fragment_node(page, url.fragment.unwrap()) {
