@@ -95,6 +95,7 @@ pub mod layout {
     pub mod layout_task;
     pub mod inline;
     pub mod model;
+    pub mod parallel;
     pub mod text;
     pub mod util;
     pub mod incremental;

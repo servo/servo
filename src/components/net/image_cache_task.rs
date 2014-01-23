@@ -370,11 +370,11 @@ impl ImageCache {
         match self.wait_map.pop(&url) {
             Some(waiters) => {
                 unsafe {
-                    waiters.unsafe_access( |waiters| {
+                    waiters.unsafe_access(|waiters| {
                         for response in waiters.iter() {
                             response.send(f());
                         }
-                    })
+                    });
                 }
             }
             None => ()
@@ -404,9 +404,7 @@ impl ImageCache {
                     let waiters = self.wait_map.find_mut(&url).unwrap();
                     let mut response = Some(response);
                     unsafe {
-                        waiters.unsafe_access(|waiters| {
-                            waiters.push(response.take().unwrap());
-                        });
+                        waiters.unsafe_access(|waiters| waiters.push(response.take().unwrap()))
                     }
                 } else {
                     self.wait_map.insert(url, MutexArc::new(~[response]));

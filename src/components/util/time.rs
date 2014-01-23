@@ -52,6 +52,7 @@ pub enum ProfilerCategory {
     LayoutSelectorMatchCategory,
     LayoutTreeBuilderCategory,
     LayoutMainCategory,
+    LayoutParallelWarmupCategory,
     LayoutShapingCategory,
     LayoutDispListBuildCategory,
     GfxRegenAvailableFontsCategory,
@@ -78,6 +79,7 @@ impl ProfilerCategory {
         buckets.insert(LayoutSelectorMatchCategory, ~[]);
         buckets.insert(LayoutTreeBuilderCategory, ~[]);
         buckets.insert(LayoutMainCategory, ~[]);
+        buckets.insert(LayoutParallelWarmupCategory, ~[]);
         buckets.insert(LayoutShapingCategory, ~[]);
         buckets.insert(LayoutDispListBuildCategory, ~[]);
         buckets.insert(GfxRegenAvailableFontsCategory, ~[]);
@@ -93,7 +95,8 @@ impl ProfilerCategory {
     pub fn format(self) -> ~str {
         let padding = match self {
             LayoutAuxInitCategory | LayoutSelectorMatchCategory | LayoutTreeBuilderCategory |
-            LayoutMainCategory | LayoutDispListBuildCategory | LayoutShapingCategory=> " - ",
+            LayoutMainCategory | LayoutDispListBuildCategory | LayoutShapingCategory |
+            LayoutParallelWarmupCategory => " - ",
             _ => ""
         };
         format!("{:s}{:?}", padding, self)

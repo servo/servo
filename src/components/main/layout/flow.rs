@@ -33,6 +33,8 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
+use layout::parallel::{FlowParallelInfo, UnsafeFlow};
+use layout::parallel;
 use layout::wrapper::LayoutNode;
 
 use extra::dlist::{DList, DListIterator, MutDListIterator};
@@ -43,6 +45,8 @@ use gfx::display_list::{ClipDisplayItemClass, DisplayList};
 use servo_util::geometry::Au;
 use std::cast;
 use std::cell::RefCell;
+use std::hashmap::{HashSet, HashSetIterator};
+use std::sync::atomics::Relaxed;
 use style::ComputedValues;
 use style::computed_values::text_align;
 
@@ -158,6 +162,9 @@ pub trait ImmutableFlowUtils {
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool;
 
+    /// Returns the number of children that this flow possesses.
+    fn child_count(self) -> uint;
+
     /// Returns true if this flow is a block flow, an inline flow, or a float flow.
     fn starts_block_flow(self) -> bool;
 
@@ -182,9 +189,6 @@ pub trait MutableFlowUtils {
 
     // Mutators
 
-    /// Adds a new flow as a child of this flow.
-    fn add_new_child(self, new_child: ~Flow);
-
     /// Invokes a closure with the first child of this flow.
     fn with_first_child<R>(self, f: |Option<&mut ~Flow>| -> R) -> R;
 
@@ -207,6 +211,12 @@ pub trait MutableFlowUtils {
                           dirty: &Rect<Au>,
                           list: &RefCell<DisplayList<E>>)
                           -> bool;
+}
+
+pub trait MutableOwnedFlowUtils {
+    /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
+    /// it's present.
+    fn add_new_child(&mut self, new_child: ~Flow, leaf_set: &mut LeafSet);
 }
 
 pub enum FlowClass {
@@ -233,7 +243,7 @@ pub trait PostorderFlowTraversal {
     fn process(&mut self, flow: &mut Flow) -> bool;
 
     /// Returns false if this node must be processed in-order. If this returns false, we skip the
-    /// operation for this node, but continue processing the descendants. This is called *after*
+    /// operation for this node, but continue processing the ancestors. This is called *after*
     /// child nodes are visited.
     fn should_process(&mut self, _flow: &mut Flow) -> bool {
         true
@@ -319,6 +329,9 @@ impl FlowFlags {
 }
 
 /// Data common to all flows.
+///
+/// TODO(pcwalton): Plant a destructor bomb on this type. It is bad if it goes out of scope,
+/// because of the leaf list.
 pub struct BaseFlow {
     restyle_damage: RestyleDamage,
 
@@ -341,6 +354,11 @@ pub struct BaseFlow {
     /// The amount of overflow of this flow, relative to the containing block. Must include all the
     /// pixels of all the display list items for correct invalidation.
     overflow: Rect<Au>,
+
+    /// Data used during parallel traversals.
+    ///
+    /// TODO(pcwalton): Group with other transient data to save space.
+    parallel: FlowParallelInfo,
 
     floats_in: FloatContext,
     floats_out: FloatContext,
@@ -383,6 +401,9 @@ impl BaseFlow {
             pref_width: Au::new(0),
             position: Au::zero_rect(),
             overflow: Au::zero_rect(),
+
+            parallel: FlowParallelInfo::new(),
+
             floats_in: Invalid,
             floats_out: Invalid,
             num_floats: 0,
@@ -409,6 +430,11 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool {
         base(self).children.len() == 0
+    }
+
+    /// Returns the number of children that this flow possesses.
+    fn child_count(self) -> uint {
+        base(self).children.len()
     }
 
     /// Returns true if this flow is a block flow, an inline-block flow, or a float flow.
@@ -484,11 +510,6 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         traversal.process(self)
     }
 
-    /// Adds a new flow as a child of this flow.
-    fn add_new_child(self, new_child: ~Flow) {
-        mut_base(self).children.push_back(new_child)
-    }
-
     /// Invokes a closure with the first child of this flow.
     fn with_first_child<R>(self, f: |Option<&mut ~Flow>| -> R) -> R {
         f(mut_base(self).children.front_mut())
@@ -559,6 +580,64 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
 
         });
         true
+    }
+}
+
+impl MutableOwnedFlowUtils for ~Flow {
+    /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
+    /// it's present.
+    fn add_new_child(&mut self, mut new_child: ~Flow, leaf_set: &mut LeafSet) {
+        if self.child_count() == 0 {
+            leaf_set.remove(self)
+        }
+
+        {
+            let kid_base = mut_base(new_child);
+            kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
+        }
+
+        let base = mut_base(*self);
+        base.children.push_back(new_child);
+        let _ = base.parallel.children_count.fetch_add(1, Relaxed);
+    }
+}
+
+/// Keeps track of the leaves of the flow tree. This is used to efficiently start bottom-up
+/// parallel traversals.
+#[deriving(Clone)]
+pub struct LeafSet {
+    priv set: HashSet<UnsafeFlow>,
+}
+
+impl LeafSet {
+    /// Creates a new leaf set.
+    pub fn new() -> LeafSet {
+        LeafSet {
+            set: HashSet::new(),
+        }
+    }
+
+    /// Inserts a newly-created flow into the leaf set.
+    pub fn insert(&mut self, flow: &~Flow) {
+        self.set.insert(parallel::owned_flow_to_unsafe_flow(flow));
+    }
+
+    /// Removes a flow from the leaf set. Asserts that the flow was indeed in the leaf set. (This
+    /// invariant is needed for memory safety, as there must always be exactly one leaf set.)
+    fn remove(&mut self, flow: &~Flow) {
+        let flow = parallel::owned_flow_to_unsafe_flow(flow);
+        if !self.set.contains(&flow) {
+            fail!("attempted to remove a flow from the leaf set that wasn't in the set!")
+        }
+        self.set.remove(&flow);
+    }
+
+    pub fn clear(&mut self) {
+        self.set.clear()
+    }
+
+    pub fn iter<'a>(&'a self) -> HashSetIterator<'a,UnsafeFlow> {
+        self.set.iter()
     }
 }
 
