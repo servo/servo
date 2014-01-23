@@ -705,6 +705,8 @@ impl Flow for BlockFlow {
             self.base.flags_info.flags.inorder() || self.base.num_floats > 0
         };
 
+        // FIXME(ksh8281): avoid copy
+        let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
             assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
@@ -721,10 +723,8 @@ impl Flow for BlockFlow {
             //
             // TODO(pcwalton): When we have out-of-flow children, don't unconditionally propagate.
 
-            // FIXME(ksh8281): avoid copy
-            child_base.flags_info.propagate_text_decoration_from_parent(self.base.flags_info);
-
-            child_base.flags_info.propagate_text_alignment_from_parent(self.base.flags_info)
+            child_base.flags_info.propagate_text_decoration_from_parent(&flags_info);
+            child_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
         }
     }
 

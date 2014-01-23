@@ -259,11 +259,12 @@ pub trait PostorderFlowTraversal {
     }
 }
 
+#[deriving(Clone)]
 pub struct FlowFlagsInfo{
     flags: FlowFlags,
 
     /// text-decoration colors
-    rare_flow_flags: Option<RareFlowFlags>,
+    rare_flow_flags: Option<~RareFlowFlags>,
 }
 
 #[deriving(Clone)]
@@ -274,6 +275,7 @@ pub struct RareFlowFlags {
 }
 
 /// Flags used in flows, tightly packed to save space.
+#[deriving(Clone)]
 pub struct FlowFlags(u8);
 
 /// The bitmask of flags that represent text decoration fields that get propagated downward.
@@ -301,8 +303,8 @@ impl FlowFlagsInfo {
         flags.set_override_line_through(text_decoration.line_through);
 
         // TODO(ksh8281) compute text-decoration-color,style,line
-        let rare_flow_flags = if flags.is_text_decoration_enable() {
-            Some(RareFlowFlags {
+        let rare_flow_flags = if flags.is_text_decoration_enabled() {
+            Some(~RareFlowFlags {
                 underline_color: style.Color.color.to_gfx_color(),
                 overline_color: style.Color.color.to_gfx_color(),
                 line_through_color: style.Color.color.to_gfx_color(),
@@ -351,12 +353,12 @@ impl FlowFlagsInfo {
     }
 
     /// Propagates text decoration flags from an appropriate parent flow per CSS 2.1 § 16.3.1.
-    pub fn propagate_text_decoration_from_parent(&mut self, parent: FlowFlagsInfo) {
-        if !parent.flags.is_text_decoration_enable() {
+    pub fn propagate_text_decoration_from_parent(&mut self, parent: &FlowFlagsInfo) {
+        if !parent.flags.is_text_decoration_enabled() {
             return ;
         }
 
-        if !self.flags.is_text_decoration_enable() && parent.flags.is_text_decoration_enable() {
+        if !self.flags.is_text_decoration_enabled() && parent.flags.is_text_decoration_enabled() {
             self.rare_flow_flags = parent.rare_flow_flags.clone();
             return ;
         }
@@ -416,7 +418,7 @@ impl FlowFlagsInfo {
     }
 
     /// Propagates text alignment flags from an appropriate parent flow per CSS 2.1.
-    pub fn propagate_text_alignment_from_parent(&mut self, parent: FlowFlagsInfo) {
+    pub fn propagate_text_alignment_from_parent(&mut self, parent: &FlowFlagsInfo) {
         self.flags.set_text_align_override(parent.flags);
     }
 }
@@ -462,7 +464,7 @@ impl FlowFlags {
     }
 
     #[inline]
-    pub fn is_text_decoration_enable(&self) -> bool {
+    pub fn is_text_decoration_enabled(&self) -> bool {
         (**self & TEXT_DECORATION_OVERRIDE_BITMASK) != 0
     }
 }

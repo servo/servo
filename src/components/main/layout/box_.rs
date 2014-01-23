@@ -750,7 +750,7 @@ impl Box {
                 let text_color = self.style().Color.color.to_gfx_color();
 
                 // Set the various text display item flags.
-                let mut flow_flags = flow::base(flow).flags_info;
+                let mut flow_flags = flow::base(flow).flags_info.clone();
 
                 let inline_info = self.inline_info.borrow();
                 match inline_info.get() {
@@ -758,7 +758,7 @@ impl Box {
                         for data in info.parent_info.rev_iter() {
                             let parent_info = FlowFlagsInfo::new(data.style.get());
                             //FIXME(ksh8281) avoid copy
-                            flow_flags.propagate_text_decoration_from_parent(parent_info);
+                            flow_flags.propagate_text_decoration_from_parent(&parent_info);
                         }
                     },
                     &None => {}
