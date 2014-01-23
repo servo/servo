@@ -18,7 +18,7 @@ pub trait TNode<E:TElement> : Clone {
 }
 
 pub trait TElement {
-    fn get_attr(&self, namespace: Option<~str>, attr: &str) -> Option<~str>;
+    fn get_attr(&self, namespace: Option<~str>, attr: &str) -> Option<&'static str>;
     fn get_link(&self) -> Option<~str>;
     fn get_local_name<'a>(&'a self) -> &'a str;
     fn get_namespace_url<'a>(&'a self) -> &'a str;

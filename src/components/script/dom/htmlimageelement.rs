@@ -15,7 +15,6 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::url::make_url;
-use style::TElement;
 
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
@@ -41,7 +40,7 @@ impl HTMLImageElement {
     /// prefetching the image. This method must be called after `src` is changed.
     pub fn update_image(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
         let elem = &mut self.htmlelement.element;
-        let src_opt = elem.get_attr(Null, "src").map(|x| x.to_str());
+        let src_opt = elem.get_attribute(Null, "src").map(|x| x.Value());
         match src_opt {
             None => {}
             Some(src) => {

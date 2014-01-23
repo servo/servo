@@ -385,9 +385,9 @@ impl<'le> TElement for LayoutElement<'le> {
         self.element.namespace.to_str().unwrap_or("")
     }
 
-    fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<~str> {
+    fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<&'static str> {
         let namespace = Namespace::from_str(ns_url);
-        self.element.get_attr(namespace, name)
+        unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
     fn get_link(&self) -> Option<~str> {
@@ -397,7 +397,9 @@ impl<'le> TElement for LayoutElement<'le> {
             // selector-link
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
             ElementNodeTypeId(HTMLAreaElementTypeId) |
-            ElementNodeTypeId(HTMLLinkElementTypeId) => self.get_attr(None, "href"),
+            ElementNodeTypeId(HTMLLinkElementTypeId) => {
+                self.get_attr(None, "href").map(|val| val.to_owned())
+            }
             _ => None,
         }
     }
