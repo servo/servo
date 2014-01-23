@@ -709,6 +709,8 @@ pub mod longhands {
         }
     </%self:longhand>
 
+    ${single_keyword("white-space", "normal pre", inherited=True)}
+
     // CSS 2.1, Section 17 - Tables
 
     // CSS 2.1, Section 18 - User interface

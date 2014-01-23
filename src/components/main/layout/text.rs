@@ -10,9 +10,10 @@ use layout::flow::Flow;
 
 use extra::arc::Arc;
 use gfx::text::text_run::TextRun;
-use gfx::text::util::{CompressWhitespaceNewline, transform_text};
+use gfx::text::util::{CompressWhitespaceNewline, transform_text, CompressNone};
 use servo_util::range::Range;
 use std::vec;
+use style::computed_values::white_space;
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
 pub struct TextRunScanner {
@@ -111,11 +112,18 @@ impl TextRunScanner {
                 let decoration = old_box.text_decoration();
 
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
-                let compression = CompressWhitespaceNewline;
+                let compression = match old_box.white_space() {
+                    white_space::normal => CompressWhitespaceNewline,
+                    white_space::pre => CompressNone,
+                };
+
+                let mut new_line_pos = ~[];
 
                 let (transformed_text, whitespace) = transform_text(*text,
                                                                     compression,
-                                                                    last_whitespace);
+                                                                    last_whitespace,
+                                                                    &mut new_line_pos);
+
                 new_whitespace = whitespace;
 
                 if transformed_text.len() > 0 {
@@ -131,14 +139,32 @@ impl TextRunScanner {
                     let range = Range::new(0, run.char_len());
                     let new_metrics = run.metrics_for_range(&range);
                     let new_text_box_info = ScannedTextBoxInfo::new(Arc::new(run), range);
-                    let new_box = old_box.transform(new_metrics.bounding_box.size,
+                    let mut new_box = old_box.transform(new_metrics.bounding_box.size,
                                                     ScannedTextBox(new_text_box_info));
+                    new_box.new_line_pos = new_line_pos;
                     out_boxes.push(new_box)
                 }
             },
             (false, true) => {
+                // TODO(#177): Text run creation must account for the renderability of text by
+                // font group fonts. This is probably achieved by creating the font group above
+                // and then letting `FontGroup` decide which `Font` to stick into the text run.
+                let in_box = &in_boxes[self.clump.begin()];
+                let font_style = in_box.font_style();
+                let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
+                let decoration = in_box.text_decoration();
+
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
-                let compression = CompressWhitespaceNewline;
+                let compression = match in_box.white_space() {
+                    white_space::normal => CompressWhitespaceNewline,
+                    white_space::pre => CompressNone,
+                };
+
+                struct NewLinePositions {
+                    new_line_pos: ~[uint],
+                }
+
+                let mut new_line_positions: ~[NewLinePositions] = ~[];
 
                 // First, transform/compress text of all the nodes.
                 let mut last_whitespace_in_clump = new_whitespace;
@@ -152,9 +178,14 @@ impl TextRunScanner {
                         _ => fail!("Expected an unscanned text box!"),
                     };
 
+                    let mut new_line_pos = ~[];
+
                     let (new_str, new_whitespace) = transform_text(*in_box,
                                                                    compression,
-                                                                   last_whitespace_in_clump);
+                                                                   last_whitespace_in_clump,
+                                                                   &mut new_line_pos);
+                    new_line_positions.push(NewLinePositions { new_line_pos: new_line_pos });
+
                     last_whitespace_in_clump = new_whitespace;
                     new_str
                 });
@@ -173,15 +204,6 @@ impl TextRunScanner {
                 }
 
                 // Now create the run.
-                //
-                // TODO(#177): Text run creation must account for the renderability of text by
-                // font group fonts. This is probably achieved by creating the font group above
-                // and then letting `FontGroup` decide which `Font` to stick into the text run.
-                let in_box = &in_boxes[self.clump.begin()];
-                let font_style = in_box.font_style();
-                let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
-                let decoration = in_box.text_decoration();
-
                 // TextRuns contain a cycle which is usually resolved by the teardown
                 // sequence. If no clump takes ownership, however, it will leak.
                 let clump = self.clump;
@@ -208,8 +230,9 @@ impl TextRunScanner {
 
                     let new_text_box_info = ScannedTextBoxInfo::new(run.get_ref().clone(), range);
                     let new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
-                    let new_box = in_boxes[i].transform(new_metrics.bounding_box.size,
+                    let mut new_box = in_boxes[i].transform(new_metrics.bounding_box.size,
                                                         ScannedTextBox(new_text_box_info));
+                    new_box.new_line_pos = new_line_positions[i].new_line_pos.clone();
                     out_boxes.push(new_box)
                 }
             }
