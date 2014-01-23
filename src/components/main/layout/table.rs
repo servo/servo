@@ -13,6 +13,7 @@ use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
 use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
 
 use std::cell::RefCell;
+use style::computed_values::table_layout;
 use geom::{Point2D, Rect, SideOffsets2D};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
@@ -60,7 +61,13 @@ pub struct TableFlow {
     is_fixed: bool,
 
     /// Additional floating flow members.
-    float: Option<~FloatedTableInfo>
+    float: Option<~FloatedTableInfo>,
+
+    /// Column widths
+    col_widths: ~[Au],
+
+    /// Table-layout property
+    is_fixed_table_layout: bool,
 }
 
 impl TableFlow {
@@ -69,16 +76,22 @@ impl TableFlow {
             base: base,
             box_: None,
             is_fixed: false,
-            float: None
+            float: None,
+            col_widths: ~[],
+            is_fixed_table_layout: false,
+
         }
     }
 
-    pub fn from_box(base: BaseFlow, is_fixed: bool) -> TableFlow {
+    pub fn from_box(base: BaseFlow, box_: Box, is_fixed: bool) -> TableFlow {
+        let is_fixed_table_layout = box_.style().Table.table_layout == table_layout::fixed;
         TableFlow {
             base: base,
-            box_: None,
+            box_: Some(box_),
             is_fixed: is_fixed,
-            float: None
+            float: None,
+            col_widths: ~[],
+            is_fixed_table_layout: is_fixed_table_layout,
         }
     }
 
@@ -87,7 +100,9 @@ impl TableFlow {
             base: base,
             box_: Some(box_),
             is_fixed: false,
-            float: Some(~FloatedTableInfo::new(float_type))
+            float: Some(~FloatedTableInfo::new(float_type)),
+            col_widths: ~[],
+            is_fixed_table_layout: false,
         }
     }
 
@@ -96,7 +111,9 @@ impl TableFlow {
             base: base,
             box_: None,
             is_fixed: false,
-            float: Some(~FloatedTableInfo::new(float_type))
+            float: Some(~FloatedTableInfo::new(float_type)),
+            col_widths: ~[],
+            is_fixed_table_layout: false,
         }
     }
 
@@ -342,13 +359,13 @@ impl TableFlow {
                 box_.border.get().top + box_.border.get().bottom;
 
             let (y, h) = box_.get_y_coord_and_new_height_if_fixed(screen_height,
-                                                                  height, 
-                                                                  clearance + margin.top, 
+                                                                  height,
+                                                                  clearance + margin.top,
                                                                   self.is_fixed);
             position.origin.y = y;
             height = h;
 
-            if self.is_fixed { 
+            if self.is_fixed {
                 for kid in self.base.child_iter() {
                     let child_node = flow::mut_base(*kid);
                     child_node.position.origin.y = position.origin.y + top_offset;
@@ -553,7 +570,37 @@ impl Flow for TableFlow {
 
         /* find max width from child block contexts */
         for kid in self.base.child_iter() {
-            if !kid.starts_table_flow() { continue; }
+            assert!(kid.starts_block_flow() || kid.starts_table_flow());
+
+            if kid.is_table_colgroup() {
+                self.col_widths.push_all(kid.as_table_colgroup().widths);
+            } else if kid.is_table_rowgroup() {
+                // calculate the number of columns and expand columns
+                if self.is_fixed_table_layout {
+                    let mut child_widths = kid.as_table_rowgroup().col_widths.mut_iter();
+                    for col_width in self.col_widths.mut_iter() {
+                        match child_widths.next() {
+                            Some(child_width) => {
+                                if *col_width == Au(0) {
+                                    *col_width = *child_width;
+                                }
+                            },
+                            None => break
+                        }
+                    }
+                }
+                let num_child_cols = kid.as_table_rowgroup().col_widths.len();
+                let num_cols = self.col_widths.len();
+                println!("{:?} column(s) from colgroup, but the child has {:?} column(s)", num_cols, num_child_cols);
+                let diff = if num_child_cols > num_cols {
+                    num_child_cols - num_cols
+                } else {
+                    0
+                };
+                for _ in range(0, diff) {
+                    self.col_widths.push( Au::new(0) );
+                }
+            }
 
             let child_base = flow::mut_base(*kid);
             min_width = geometry::max(min_width, child_base.min_width);
@@ -603,6 +650,16 @@ impl Flow for TableFlow {
         let mut remaining_width = self.base.position.size.width;
         let mut x_offset = Au::new(0);
 
+        let mut no_width_cnt = Au(0);
+        let mut fix_cell_width = Au(0);
+        for col_width in self.col_widths.iter() {
+            if *col_width == Au(0) {
+                no_width_cnt = no_width_cnt.add(&Au(1));
+            } else {
+                fix_cell_width = fix_cell_width.add(col_width);
+            }
+        }
+
         if self.is_float() {
             self.float.get_mut_ref().containing_width = remaining_width;
 
@@ -613,7 +670,7 @@ impl Flow for TableFlow {
         for box_ in self.box_.iter() {
             let style = box_.style();
 
-            // The text alignment of a table flow is the text alignment of its box's style.
+            // The text alignment of a table_wrapper flow is the text alignment of its box's style.
             self.base.flags_info.flags.set_text_align(style.Text.text_align);
 
             // Can compute padding here since we know containing block width.
@@ -646,7 +703,7 @@ impl Flow for TableFlow {
                                                                  box_.offset(), 
                                                                  self.is_fixed);
             x_offset = x;
-            remaining_width = w;
+            remaining_width = geometry::max( fix_cell_width, w );
 
             // The associated box is the border box of this flow.
             let mut position_ref = box_.position.borrow_mut();
@@ -665,6 +722,18 @@ impl Flow for TableFlow {
             self.base.position.size.width = remaining_width;
         }
 
+        let default_cell_width = if fix_cell_width >= remaining_width {
+            self.base.position.size.width = remaining_width;
+            Au(0)
+        } else if fix_cell_width < remaining_width && no_width_cnt == Au(0) {
+            for col_width in self.col_widths.mut_iter() {
+                *col_width = *col_width * remaining_width / fix_cell_width;
+            }
+            Au(0)
+        } else {
+            (remaining_width - fix_cell_width) / no_width_cnt
+        };
+
         let has_inorder_children = if self.is_float() {
             self.base.num_floats > 0
         } else {
@@ -674,7 +743,17 @@ impl Flow for TableFlow {
         // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
-            if !kid.starts_table_flow() { continue; }
+            assert!(kid.starts_block_flow() || kid.starts_table_flow());
+
+            if kid.is_table_rowgroup() {
+                kid.as_table_rowgroup().col_widths = self.col_widths.map(|width| {
+                    if *width == Au(0) {
+                        default_cell_width
+                    } else {
+                        *width
+                    }
+                });
+            }
 
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;

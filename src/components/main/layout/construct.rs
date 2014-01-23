@@ -27,9 +27,10 @@ use layout::box_::{UnscannedTextBox, UnscannedTextBoxInfo, InlineInfo, InlinePar
 use layout::box_::{TableColBox, TableColBoxInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
-use layout::flow::{BaseFlow, Flow, LeafSet, MutableOwnedFlowUtils};
+use layout::flow::{BaseFlow, Flow, LeafSet, MutableOwnedFlowUtils, ImmutableFlowUtils};
 use layout::inline::InlineFlow;
 use layout::table_wrapper::TableWrapperFlow;
+use layout::table::TableFlow;
 use layout::table_colgroup::TableColGroupFlow;
 use layout::table_rowgroup::TableRowGroupFlow;
 use layout::table_row::TableRowFlow;
@@ -608,8 +609,30 @@ impl<'fc> FlowConstructor<'fc> {
         }
     }
 
+    fn build_children_of_table_wrapper_flow(&mut self,
+                                           table_wrapper_flow: &mut ~Flow,
+                                           table_flow: &mut ~Flow,
+                                           node: LayoutNode) {
+        for kid in node.children() {
+            match kid.swap_out_construction_result() {
+                NoConstructionResult | ConstructionItemConstructionResult(_) => {}
+                FlowConstructionResult(kid_flow) => {
+                    let mut kid_flow = Some(kid_flow);
+                    self.layout_context.leaf_set.access(|leaf_set| {
+                        if kid_flow.get_ref().is_block_like() {
+                            table_wrapper_flow.add_new_child(kid_flow.take_unwrap(), leaf_set);
+                        } else if kid_flow.get_ref().starts_table_flow() {
+                            table_flow.add_new_child(kid_flow.take_unwrap(), leaf_set);
+                        }
+                    })
+                }
+            }
+        }
+    }
+
+
     fn build_children_of_table_flow(&mut self,
-                                    flow: &mut ~Flow, 
+                                    flow: &mut ~Flow,
                                     node: LayoutNode) {
         // Ignore inline flows we might need to create.
         for kid in node.children() {
@@ -628,17 +651,28 @@ impl<'fc> FlowConstructor<'fc> {
     /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with possibly
     /// other `BlockFlow`s or `TableFlow`s underneath it.
     fn build_flow_for_table_wrapper(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+        // We first populate the TableFlow with TableRowGroupFlow and TableColGroupFlow.
+        // We then populate the TableWrapperFlow with caption blocks, and attach
+        // the TableFlow to the Table WrapperFlow
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = self.build_box_for_node(node);
         let mut wrapper_flow = ~TableWrapperFlow::from_box(base, box_, is_fixed) as ~Flow;
-
-        // TODO: We tried to create 'TableFlow' without box, which covers only 'TableRowGroupFlow's 
-        //      (table-row-group, table-header-group, table-footer-group). But, in case of no box,
-        //      display items of children of this flow were not displayed.
-
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&wrapper_flow));
 
-        self.build_children_of_table_flow(&mut wrapper_flow, node);
+        let table_base = BaseFlow::new(self.next_flow_id(), node);
+        let table_box_ = self.build_box_for_node(node);
+        let mut table_flow = ~TableFlow::from_box(table_base, table_box_, is_fixed) as ~Flow;
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&table_flow));
+
+        self.build_children_of_table_wrapper_flow(&mut wrapper_flow, &mut table_flow, node);
+
+        // NOTE: The order of captions and table are not the same order as in the DOM tree.
+        // All caption blocks are placed before the table flow
+        let mut table_flow = Some(table_flow);
+        self.layout_context.leaf_set.access(|leaf_set| {
+            wrapper_flow.add_new_child(table_flow.take_unwrap(), leaf_set)
+        });
+
         wrapper_flow
     }
 
