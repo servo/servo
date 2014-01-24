@@ -332,7 +332,7 @@ servo:	$(DEPS_servo)
 else
 servo:  $(DEPS_servo)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_servo) -o -Z gen-crate-map $@ $< --lib
+	$(Q)$(RUSTC) $(RFLAGS_servo) -Z gen-crate-map -o $@ $< --lib
 endif
 
 # Darwin app packaging
