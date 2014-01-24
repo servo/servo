@@ -220,7 +220,8 @@ impl TextRunScanner {
                 // Make new boxes with the run and adjusted text indices.
                 debug!("TextRunScanner: pushing box(es) in range: {}", self.clump);
                 for i in clump.eachi() {
-                    let range = new_ranges[i - self.clump.begin()];
+                    let logical_offset = i - self.clump.begin();
+                    let range = new_ranges[logical_offset];
                     if range.length() == 0 {
                         debug!("Elided an `UnscannedTextbox` because it was zero-length after \
                                 compression; {:s}",
@@ -232,7 +233,7 @@ impl TextRunScanner {
                     let new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
                     let mut new_box = in_boxes[i].transform(new_metrics.bounding_box.size,
                                                         ScannedTextBox(new_text_box_info));
-                    new_box.new_line_pos = new_line_positions[i].new_line_pos.clone();
+                    new_box.new_line_pos = new_line_positions[logical_offset].new_line_pos.clone();
                     out_boxes.push(new_box)
                 }
             }
