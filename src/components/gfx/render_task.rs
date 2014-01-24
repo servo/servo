@@ -20,7 +20,6 @@ use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::spawn_named;
 
-use std::comm::{Chan, Port, SharedChan};
 use extra::arc::Arc;
 
 use buffer_map::BufferMap;
@@ -58,38 +57,6 @@ pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferReq
     BufferRequest {
         screen_rect: screen_rect,
         page_rect: page_rect,
-    }
-}
-
-// FIXME(rust#9155): this should be a newtype struct, but
-// generic newtypes ICE when compiled cross-crate
-pub struct RenderChan<T> {
-    chan: SharedChan<Msg<T>>,
-}
-
-impl<T: Send> Clone for RenderChan<T> {
-    fn clone(&self) -> RenderChan<T> {
-        RenderChan {
-            chan: self.chan.clone(),
-        }
-    }
-}
-
-impl<T: Send> RenderChan<T> {
-    pub fn new() -> (Port<Msg<T>>, RenderChan<T>) {
-        let (port, chan) = SharedChan::new();
-        let render_chan = RenderChan {
-            chan: chan,
-        };
-        (port, render_chan)
-    }
-
-    pub fn send(&self, msg: Msg<T>) {
-        assert!(self.try_send(msg), "RenderChan.send: render port closed")
-    }
-
-    pub fn try_send(&self, msg: Msg<T>) -> bool {
-        self.chan.try_send(msg)
     }
 }
 
