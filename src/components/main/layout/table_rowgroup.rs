@@ -62,7 +62,7 @@ pub struct TableRowGroupFlow {
     /// Additional floating flow members.
     float: Option<~FloatedTableInfo>,
 
-    /// Column widths 
+    /// Column widths
     col_widths: ~[Au],
 }
 
@@ -245,7 +245,7 @@ impl TableRowGroupFlow {
             position.origin.y = y;
             height = h;
 
-            if self.is_fixed { 
+            if self.is_fixed {
                 for kid in self.base.child_iter() {
                     let child_node = flow::mut_base(*kid);
                     child_node.position.origin.y = position.origin.y + top_offset;
@@ -450,7 +450,7 @@ impl Flow for TableRowGroupFlow {
         for kid in self.base.child_iter() {
             assert!(kid.starts_table_flow());
             if self.col_widths.is_empty() {
-                self.col_widths = kid.as_table_row().col_widths.slice_from(0).to_owned();
+                self.col_widths = kid.as_table_row().col_widths.clone();
             } else {
                 let num_cols = self.col_widths.len();
                 let num_child_cols = kid.as_table_row().col_widths.len();
@@ -460,7 +460,7 @@ impl Flow for TableRowGroupFlow {
                     0
                 };
                 for _ in range(0, diff) {
-                    self.col_widths.push ( Au::new(0) );
+                    self.col_widths.push (Au::new(0));
                 }
             }
 
@@ -521,10 +521,10 @@ impl Flow for TableRowGroupFlow {
             self.base.flags_info.flags.set_text_align(style.Text.text_align);
 
             let screen_size = ctx.screen_size;
-            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width, 
-                                                                 screen_size.height, 
-                                                                 remaining_width, 
-                                                                 box_.offset(), 
+            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width,
+                                                                 screen_size.height,
+                                                                 remaining_width,
+                                                                 box_.offset(),
                                                                  self.is_fixed);
             x_offset = x;
             remaining_width = w;
@@ -552,7 +552,7 @@ impl Flow for TableRowGroupFlow {
         for kid in self.base.child_iter() {
             assert!(kid.starts_table_flow());
 
-            kid.as_table_row().col_widths = self.col_widths.slice_from(0).to_owned();
+            kid.as_table_row().col_widths = self.col_widths.clone();
 
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;

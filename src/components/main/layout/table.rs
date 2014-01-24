@@ -466,13 +466,16 @@ impl Flow for TableFlow {
             if kid.is_table_colgroup() {
                 self.col_widths.push_all(kid.as_table_colgroup().widths);
             } else if kid.is_table_rowgroup() {
-                // calculate the number of columns and expand columns
+                // read column widths from table-row-group, and assign
+                // width=0 for the columns not defined in column-group
+                // FIXME: need to read widths from either table-header-group OR
+                // first table-row
                 if self.is_fixed_table_layout {
                     let mut child_widths = kid.as_table_rowgroup().col_widths.mut_iter();
                     for col_width in self.col_widths.mut_iter() {
                         match child_widths.next() {
                             Some(child_width) => {
-                                if *col_width == Au(0) {
+                                if *col_width == Au::new(0) {
                                     *col_width = *child_width;
                                 }
                             },
@@ -536,13 +539,13 @@ impl Flow for TableFlow {
         let mut remaining_width = self.base.position.size.width;
         let mut x_offset = Au::new(0);
 
-        let mut no_width_cnt = Au(0);
-        let mut fix_cell_width = Au(0);
+        let mut num_unspecified_widths = 0;
+        let mut total_cell_widths = Au::new(0);
         for col_width in self.col_widths.iter() {
-            if *col_width == Au(0) {
-                no_width_cnt = no_width_cnt.add(&Au(1));
+            if *col_width == Au::new(0) {
+                num_unspecified_widths += 1;
             } else {
-                fix_cell_width = fix_cell_width.add(col_width);
+                total_cell_widths = total_cell_widths.add(col_width);
             }
         }
 
@@ -565,11 +568,11 @@ impl Flow for TableFlow {
             box_.compute_padding(style, remaining_width);
 
             let screen_size = ctx.screen_size;
-            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width,
-                                                                 screen_size.height,
-                                                                 remaining_width,
-                                                                 box_.offset(),
-                                                                 self.is_fixed);
+            let (x, _w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width,
+                                                                  screen_size.height,
+                                                                  remaining_width,
+                                                                  box_.offset(),
+                                                                  self.is_fixed);
             x_offset = x;
             padding_and_borders = box_.padding.get().left + box_.padding.get().right +
                                   box_.border.get().left + box_.border.get().right;
@@ -580,24 +583,24 @@ impl Flow for TableFlow {
                 position_ref.get().origin.x = x_offset;
                 x_offset = x_offset + box_.padding.get().left;
             }
-                                  
+
             position_ref.get().size.width = remaining_width;
         }
 
         if self.is_float() {
             self.base.position.size.width = remaining_width;
         }
-        
-        remaining_width = remaining_width - padding_and_borders; 
 
-        let default_cell_width = if fix_cell_width < remaining_width && 
-                                    no_width_cnt == Au(0) {
+        remaining_width = remaining_width - padding_and_borders;
+
+        let final_cell_width = if (total_cell_widths < remaining_width) &&
+                                    (num_unspecified_widths == 0) {
             for col_width in self.col_widths.mut_iter() {
-                *col_width = *col_width * remaining_width / fix_cell_width;
+                *col_width = *col_width * remaining_width / total_cell_widths;
             }
             Au(0)
-        } else if no_width_cnt != Au(0) {
-            (remaining_width - fix_cell_width) / no_width_cnt
+        } else if num_unspecified_widths != 0 {
+            (remaining_width - total_cell_widths) / Au::new(num_unspecified_widths)
         } else {
             Au(0)
         };
@@ -616,7 +619,7 @@ impl Flow for TableFlow {
             if kid.is_table_rowgroup() {
                 kid.as_table_rowgroup().col_widths = self.col_widths.map(|width| {
                     if *width == Au(0) {
-                        default_cell_width
+                        final_cell_width
                     } else {
                         *width
                     }

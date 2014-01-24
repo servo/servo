@@ -246,7 +246,7 @@ impl TableRowFlow {
             position.origin.y = y;
             height = h;
 
-            if self.is_fixed { 
+            if self.is_fixed {
                 for kid in self.base.child_iter() {
                     let child_node = flow::mut_base(*kid);
                     child_node.position.origin.y = position.origin.y + top_offset;
@@ -452,7 +452,7 @@ impl Flow for TableRowFlow {
             assert!(kid.starts_table_flow());
 
             for child_box in kid.as_table_cell().box_.iter() {
-                let child_specified_width = MaybeAuto::from_style(child_box.style().Box.width, 
+                let child_specified_width = MaybeAuto::from_style(child_box.style().Box.width,
                                                                   Au::new(0)).specified_or_zero();
                 self.col_widths.push(child_specified_width);
             }
@@ -514,10 +514,10 @@ impl Flow for TableRowFlow {
             self.base.flags_info.flags.set_text_align(style.Text.text_align);
 
             let screen_size = ctx.screen_size;
-            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width, 
-                                                                 screen_size.height, 
-                                                                 remaining_width, 
-                                                                 box_.offset(), 
+            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width,
+                                                                 screen_size.height,
+                                                                 remaining_width,
+                                                                 box_.offset(),
                                                                  self.is_fixed);
             x_offset = x;
             remaining_width = w;
@@ -542,17 +542,17 @@ impl Flow for TableRowFlow {
 
         // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
-        let mut idx = 0;
+        let mut i = 0;
         for kid in self.base.child_iter() {
             assert!(kid.starts_table_flow());
 
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;
-            child_base.position.size.width = self.col_widths[idx];
+            child_base.position.size.width = self.col_widths[i];
             child_base.flags_info.flags.set_inorder(has_inorder_children);
 
-            x_offset = x_offset + self.col_widths[idx];
-            idx = idx + 1;
+            x_offset = x_offset + self.col_widths[i];
+            i += 1;
 
             if !child_base.flags_info.flags.inorder() {
                 child_base.floats_in = FloatContext::new(0);
