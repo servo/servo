@@ -7,12 +7,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-extern mod std;
 extern mod extra;
+extern mod png;
+extern mod std;
 
 use std::io;
 use std::io::{File, Reader};
 use std::io::process::ExitStatus;
+use std::num::abs;
 use std::os;
 use std::run::{Process, ProcessOptions};
 use std::str;
@@ -45,6 +47,7 @@ fn main() {
     }
 }
 
+#[deriving(Eq)]
 enum ReftestKind {
     Same,
     Different,
@@ -131,12 +134,29 @@ fn check_reftest(reftest: Reftest) {
     assert!(retval == ExitStatus(0));
 
     // check the pngs are bit equal
-    let args = ~[left_filename.clone(), right_filename.clone()];
-    let mut process = Process::new("cmp", args, ProcessOptions::new()).unwrap();
-    let retval = process.finish();
+    let left = png::load_png(&from_str::<Path>(left_filename).unwrap()).unwrap();
+    let right = png::load_png(&from_str::<Path>(right_filename).unwrap()).unwrap();
 
-    match reftest.kind {
-        Same => assert!(retval == ExitStatus(0)),
-        Different => assert!(retval != ExitStatus(0)),
+    let pixels: ~[u8] = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
+            let a_signed = a as i8;
+            let b_signed = b as i8;
+            255-abs(a_signed - b_signed) as u8
+        }).collect();
+
+    if pixels.iter().any(|&a| a < 255) {
+        let output = from_str::<Path>(format!("/tmp/servo-reftest-{:06u}-diff.png", reftest.id)).unwrap();
+
+        let img = png::Image {
+            width: left.width,
+            height: left.height,
+            color_type: png::RGBA8,
+            pixels: pixels,
+        };
+        let res = png::store_png(&img, &output);
+        assert!(res.is_ok());
+
+        assert!(reftest.kind == Different);
+    } else {
+        assert!(reftest.kind == Same);
     }
 }

@@ -66,6 +66,9 @@ pub struct IOCompositor {
     /// Tracks whether the renderer has finished its first rendering
     composite_ready: bool,
 
+    /// Tracks whether we are in the process of shutting down.
+    shutting_down: bool,
+
     /// Tracks whether we should close compositor.
     done: bool,
 
@@ -123,6 +126,7 @@ impl IOCompositor {
             window_size: Size2D(window_size.width as uint, window_size.height as uint),
             graphics_context: CompositorTask::create_graphics_context(),
             composite_ready: false,
+            shutting_down: false,
             done: false,
             recomposite: false,
             world_zoom: 1f32,
@@ -198,68 +202,74 @@ impl IOCompositor {
 
     fn handle_message(&mut self) {
         loop {
-            match self.port.try_recv() {
-                None => break,
+            match (self.port.try_recv(), self.shutting_down) {
+                (None, _) => break,
 
-                Some(Exit(chan)) => {
+                (Some(Exit(chan)), _) => {
                     debug!("shutting down the constellation");
                     self.constellation_chan.send(ExitMsg);
                     chan.send(());
+                    self.shutting_down = true;
                 }
 
-                Some(ShutdownComplete) => {
+                (Some(ShutdownComplete), _) => {
                     debug!("constellation completed shutdown");
                     self.done = true;
                 }
 
-                Some(ChangeReadyState(ready_state)) => {
+                (Some(ChangeReadyState(ready_state)), false) => {
                     self.window.set_ready_state(ready_state);
                 }
 
-                Some(ChangeRenderState(render_state)) => {
+                (Some(ChangeRenderState(render_state)), false) => {
                     self.change_render_state(render_state);
                 }
 
-                Some(SetUnRenderedColor(_id, color)) => {
+                (Some(SetUnRenderedColor(_id, color)), false) => {
                     self.set_unrendered_color(_id, color);
                 }
 
 
-                Some(SetIds(frame_tree, response_chan, new_constellation_chan)) => {
+                (Some(SetIds(frame_tree, response_chan, new_constellation_chan)), _) => {
                     self.set_ids(frame_tree, response_chan, new_constellation_chan);
                 }
 
-                Some(GetGraphicsMetadata(chan)) => {
+                (Some(GetGraphicsMetadata(chan)), false) => {
                     chan.send(Some(azure_hl::current_graphics_metadata()));
                 }
 
-                Some(NewLayer(_id, new_size)) => {
+                (Some(NewLayer(_id, new_size)), false) => {
                     self.create_new_layer(_id, new_size);
                 }
 
-                Some(SetLayerPageSize(id, new_size, epoch)) => {
+                (Some(SetLayerPageSize(id, new_size, epoch)), false) => {
                     self.set_layer_page_size(id, new_size, epoch);
                 }
 
-                Some(SetLayerClipRect(id, new_rect)) => {
+                (Some(SetLayerClipRect(id, new_rect)), false) => {
                     self.set_layer_clip_rect(id, new_rect);
                 }
 
-                Some(DeleteLayer(id)) => {
+                (Some(DeleteLayer(id)), _) => {
                     self.delete_layer(id);
                 }
 
-                Some(Paint(id, new_layer_buffer_set, epoch)) => {
+                (Some(Paint(id, new_layer_buffer_set, epoch)), false) => {
                     self.paint(id, new_layer_buffer_set, epoch);
                 }
 
-                Some(InvalidateRect(id, rect)) => {
+                (Some(InvalidateRect(id, rect)), false) => {
                     self.invalidate_rect(id, rect);
                 }
 
-                Some(ScrollFragmentPoint(id, point)) => {
+                (Some(ScrollFragmentPoint(id, point)), false) => {
                     self.scroll_fragment_to_point(id, point);
                 }
+
+                // When we are shutting_down, we need to avoid performing operations
+                // such as Paint that may crash because we have begun tearing down
+                // the rest of our resources.
+                (_, true) => { }
             }
         }
     }
@@ -504,12 +514,14 @@ impl IOCompositor {
                 if exit {
                     debug!("shutting down the constellation for FinishedWindowEvent");
                     self.constellation_chan.send(ExitMsg);
+                    self.shutting_down = true;
                 }
             }
 
             QuitWindowEvent => {
                 debug!("shutting down the constellation for QuitWindowEvent");
                 self.constellation_chan.send(ExitMsg);
+                self.shutting_down = true;
             }
         }
     }
@@ -665,6 +677,7 @@ impl IOCompositor {
 
             debug!("shutting down the constellation after generating an output file");
             self.constellation_chan.send(ExitMsg);
+            self.shutting_down = true;
         }
 
         self.window.present();
