@@ -482,14 +482,9 @@ impl Flow for TableFlow {
                 }
                 let num_child_cols = kid.as_table_rowgroup().col_widths.len();
                 let num_cols = self.col_widths.len();
-                println!("{:?} column(s) from colgroup, but the child has {:?} column(s)", num_cols, num_child_cols);
-                let diff = if num_child_cols > num_cols {
-                    num_child_cols - num_cols
-                } else {
-                    0
-                };
-                for _ in range(0, diff) {
-                    self.col_widths.push( Au::new(0) );
+                debug!("{:?} column(s) from colgroup, but the child has {:?} column(s)", num_cols, num_child_cols);
+                for i in range(num_cols, num_child_cols) {
+                    self.col_widths.push( kid.as_table_rowgroup().col_widths[i] );
                 }
             }
 
@@ -578,7 +573,6 @@ impl Flow for TableFlow {
             x_offset = x;
             padding_and_borders = box_.padding.get().left + box_.padding.get().right +
                                   box_.border.get().left + box_.border.get().right;
-            remaining_width = geometry::max(fix_cell_width + padding_and_borders, w);
 
             // The associated box is the border box of this flow.
             let mut position_ref = box_.position.borrow_mut();
@@ -596,16 +590,16 @@ impl Flow for TableFlow {
         
         remaining_width = remaining_width - padding_and_borders; 
 
-        let default_cell_width = if fix_cell_width >= remaining_width {
-            self.base.position.size.width = remaining_width;
-            Au(0)
-        } else if fix_cell_width < remaining_width && no_width_cnt == Au(0) {
+        let default_cell_width = if fix_cell_width < remaining_width && 
+                                    no_width_cnt == Au(0) {
             for col_width in self.col_widths.mut_iter() {
                 *col_width = *col_width * remaining_width / fix_cell_width;
             }
             Au(0)
-        } else {
+        } else if no_width_cnt != Au(0) {
             (remaining_width - fix_cell_width) / no_width_cnt
+        } else {
+            Au(0)
         };
 
         let has_inorder_children = if self.is_float() {
