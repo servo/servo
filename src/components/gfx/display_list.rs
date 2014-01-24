@@ -40,6 +40,12 @@ impl<E> DisplayList<E> {
         }
     }
 
+    fn dump(&self) {
+        for item in self.list.iter() {
+            item.debug_with_level(0);
+        }
+    }
+
     /// Appends the given item to the display list.
     pub fn append_item(&mut self, item: DisplayItem<E>) {
         // FIXME(Issue #150): crashes
@@ -55,7 +61,8 @@ impl<E> DisplayList<E> {
             //debug!("drawing {}", *item);
             item.draw_into_context(render_context)
         }
-        debug!("Ending display list.")
+        debug!("Ending display list.");
+        debug!("{:?}", self.dump());
     }
 
     /// Returns a preorder iterator over the given display list.
@@ -276,6 +283,17 @@ impl<E> DisplayItem<E> {
         }
     }
 
+    pub fn debug_with_level(&self, level: uint) {
+            let mut indent = ~"";
+            for _ in range(0, level) {
+                indent.push_str("| ")
+            }
+            debug!("{}+ {}", indent, self.debug_str());
+            for child in self.children() {
+                child.debug_with_level(level + 1);
+            }
+    }
+
     pub fn debug_str(&self) -> ~str {
         let class = match *self {
             SolidColorDisplayItemClass(_) => "SolidColor",
@@ -284,11 +302,7 @@ impl<E> DisplayItem<E> {
             BorderDisplayItemClass(_) => "Border",
             ClipDisplayItemClass(_) => "Clip",
         };
-        let mut string = format!("{} @ {:?}", class, self.base().bounds);
-        for child in self.children() {
-            string = format!("{}\n  {}", string, child.debug_str());
-        }
-        string
+        format!("{} @ {:?}", class, self.base().bounds)
     }
 }
 
