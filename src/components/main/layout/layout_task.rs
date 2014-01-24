@@ -12,8 +12,8 @@ use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionR
 use layout::context::{LayoutContext, SharedLayoutInfo};
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
 use layout::extra::LayoutAuxMethods;
-use layout::flow::{Flow, ImmutableFlowUtils, LeafSet, MutableFlowUtils, PreorderFlowTraversal};
-use layout::flow::{PostorderFlowTraversal};
+use layout::flow::{Flow, ImmutableFlowUtils, LeafSet, MutableFlowUtils, MutableOwnedFlowUtils};
+use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::RestyleDamage;
 use layout::parallel::{AssignHeightsAndStoreOverflowTraversalKind, BubbleWidthsTraversalKind};
@@ -590,10 +590,7 @@ impl LayoutTask {
             });
         }
 
-        // FIXME(pcwalton): Hack because we don't yet reference count flows. When we do reference
-        // count them, then the destructor should remove the flow from the leaf set once the count
-        // hits zero.
-        self.leaf_set.access(|leaf_set| leaf_set.clear());
+        self.leaf_set.access(|leaf_set| layout_root.destroy(leaf_set));
 
         // Tell script that we're done.
         //

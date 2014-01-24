@@ -26,7 +26,7 @@ use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBox
 use layout::box_::{UnscannedTextBox, UnscannedTextBoxInfo, InlineInfo, InlineParentInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
-use layout::flow::{BaseFlow, Flow, MutableOwnedFlowUtils};
+use layout::flow::{BaseFlow, Flow, LeafSet, MutableOwnedFlowUtils};
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::LayoutDataAccess;
@@ -56,12 +56,36 @@ pub enum ConstructionResult {
     ConstructionItemConstructionResult(ConstructionItem),
 }
 
+impl ConstructionResult {
+    fn destroy(&mut self, leaf_set: &mut LeafSet) {
+        match *self {
+            NoConstructionResult => {}
+            FlowConstructionResult(ref mut flow) => flow.destroy(leaf_set),
+            ConstructionItemConstructionResult(ref mut item) => item.destroy(leaf_set),
+        }
+    }
+}
+
 /// Represents the output of flow construction for a DOM node that has not yet resulted in a
 /// complete flow. Construction items bubble up the tree until they find a `Flow` to be
 /// attached to.
 enum ConstructionItem {
     /// Inline boxes and associated {ib} splits that have not yet found flows.
     InlineBoxesConstructionItem(InlineBoxesConstructionResult),
+}
+
+impl ConstructionItem {
+    fn destroy(&mut self, leaf_set: &mut LeafSet) {
+        match *self {
+            InlineBoxesConstructionItem(ref mut result) => {
+                for splits in result.splits.mut_iter() {
+                    for split in splits.mut_iter() {
+                        split.destroy(leaf_set)
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Represents inline boxes and {ib} splits that are bubbling up from an inline.
@@ -105,6 +129,12 @@ struct InlineBlockSplit {
 
     /// The flow that caused this {ib} split.
     flow: ~Flow,
+}
+
+impl InlineBlockSplit {
+    fn destroy(&mut self, leaf_set: &mut LeafSet) {
+        self.flow.destroy(leaf_set)
+    }
 }
 
 /// Methods on optional vectors.
@@ -539,9 +569,12 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // `display: none` contributes no flow construction result. Nuke the flow construction
             // results of children.
             (display::none, _, _) => {
-                for child in node.children() {
-                    child.set_flow_construction_result(NoConstructionResult)
-                }
+                self.layout_context.shared.leaf_set.access(|leaf_set| {
+                    for child in node.children() {
+                        let mut old_result = child.swap_out_construction_result();
+                        old_result.destroy(leaf_set)
+                    }
+                })
             }
 
             // Inline items contribute inline box construction results.
