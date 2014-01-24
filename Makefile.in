@@ -294,14 +294,14 @@ CACHE_DIR = $(BINDINGS_SRC)/_cache
 
 bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/, BindingGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py ParserResults.pkl)
 
-$(AUTOGEN_SRC_script): %Binding.rs: $(bindinggen_dependencies) \
-                                    $(WEBIDLS_script)
+$(AUTOGEN_SRC_script): $(BINDINGS_SRC)/%Binding.rs: $(bindinggen_dependencies) \
+                                                    $(addprefix $(WEBIDLS_SRC)/, %.webidl)
 	@$(call E, "Maybe generating $(shell basename $@)...")
 	$(Q)PYTHONDONTWRITEBYTECODE=1 $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/BindingGen.py rs \
-	  $(BINDINGS_SRC)/Bindings.conf $*Binding $(subst $(BINDINGS_SRC), $(WEBIDLS_SRC), $*.webidl)
+	  $(BINDINGS_SRC)/Bindings.conf $*Binding $(addprefix $(WEBIDLS_SRC)/, $*.webidl)
 	$(Q)touch $@
 
 globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/, GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done
