@@ -219,6 +219,9 @@ pub trait MutableOwnedFlowUtils {
     /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
     /// it's present.
     fn add_new_child(&mut self, new_child: ~Flow, leaf_set: &mut LeafSet);
+
+    /// Destroys the flow.
+    fn destroy(&mut self, leaf_set: &mut LeafSet);
 }
 
 pub enum FlowClass {
@@ -470,9 +473,6 @@ impl FlowFlags {
 }
 
 /// Data common to all flows.
-///
-/// TODO(pcwalton): Plant a destructor bomb on this type. It is bad if it goes out of scope,
-/// because of the leaf list.
 pub struct BaseFlow {
     restyle_damage: RestyleDamage,
 
@@ -506,8 +506,22 @@ pub struct BaseFlow {
     num_floats: uint,
     abs_position: Point2D<Au>,
 
+    /// Whether this flow has been destroyed.
+    ///
+    /// TODO(pcwalton): Pack this into the flags? Need to be careful because manipulation of this
+    /// flag can have memory safety implications.
+    priv destroyed: bool,
+
     /// Various flags for flows and some info
     flags_info: FlowFlagsInfo,
+}
+
+impl Drop for BaseFlow {
+    fn drop(&mut self) {
+        if !self.destroyed {
+            fail!("Flow destroyed by going out of scope—this is unsafe! Use `destroy()` instead!")
+        }
+    }
 }
 
 pub struct BoxIterator {
@@ -549,6 +563,8 @@ impl BaseFlow {
             floats_out: Invalid,
             num_floats: 0,
             abs_position: Point2D(Au::new(0), Au::new(0)),
+
+            destroyed: false,
 
             flags_info: FlowFlagsInfo::new(style.get()),
         }
@@ -722,6 +738,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         });
         true
     }
+
 }
 
 impl MutableOwnedFlowUtils for ~Flow {
@@ -740,6 +757,25 @@ impl MutableOwnedFlowUtils for ~Flow {
         let base = mut_base(*self);
         base.children.push_back(new_child);
         let _ = base.parallel.children_count.fetch_add(1, Relaxed);
+    }
+
+    /// Destroys the flow.
+    fn destroy(&mut self, leaf_set: &mut LeafSet) {
+        let is_leaf = {
+            let base = mut_base(*self);
+            base.children.len() == 0
+        };
+
+        if is_leaf {
+            leaf_set.remove(self);
+        } else {
+            for kid in child_iter(*self) {
+                kid.destroy(leaf_set)
+            }
+        }
+
+        let base = mut_base(*self);
+        base.destroyed = true
     }
 }
 
@@ -766,11 +802,16 @@ impl LeafSet {
     /// Removes a flow from the leaf set. Asserts that the flow was indeed in the leaf set. (This
     /// invariant is needed for memory safety, as there must always be exactly one leaf set.)
     fn remove(&mut self, flow: &~Flow) {
-        let flow = parallel::owned_flow_to_unsafe_flow(flow);
-        if !self.set.contains(&flow) {
+        if !self.contains(flow) {
             fail!("attempted to remove a flow from the leaf set that wasn't in the set!")
         }
+        let flow = parallel::owned_flow_to_unsafe_flow(flow);
         self.set.remove(&flow);
+    }
+
+    pub fn contains(&mut self, flow: &~Flow) -> bool {
+        let flow = parallel::owned_flow_to_unsafe_flow(flow);
+        self.set.contains(&flow)
     }
 
     pub fn clear(&mut self) {
