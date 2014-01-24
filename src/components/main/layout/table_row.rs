@@ -9,11 +9,11 @@ use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{BaseFlow, TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
-use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
+use layout::model::{MaybeAuto, Specified, Auto};
 use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
 
 use std::cell::RefCell;
-use geom::{Point2D, Rect, SideOffsets2D};
+use geom::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
 use servo_util::geometry;
@@ -117,115 +117,6 @@ impl TableRowFlow {
         }
         self.box_ = None;
         self.float = None;
-    }
-
-    /// Computes left and right margins and width based on CSS 2.1 section 10.3.3.
-    /// Requires borders and padding to already be computed.
-    fn compute_horiz(&self,
-                     width: MaybeAuto,
-                     left_margin: MaybeAuto,
-                     right_margin: MaybeAuto,
-                     available_width: Au)
-                     -> (Au, Au, Au) {
-        // If width is not 'auto', and width + margins > available_width, all 'auto' margins are
-        // treated as 0.
-        let (left_margin, right_margin) = match width {
-            Auto => (left_margin, right_margin),
-            Specified(width) => {
-                let left = left_margin.specified_or_zero();
-                let right = right_margin.specified_or_zero();
-
-                if((left + right + width) > available_width) {
-                    (Specified(left), Specified(right))
-                } else {
-                    (left_margin, right_margin)
-                }
-            }
-        };
-
-        //Invariant: left_margin_Au + width_Au + right_margin_Au == available_width
-        let (left_margin_Au, width_Au, right_margin_Au) = match (left_margin, width, right_margin) {
-            //If all have a computed value other than 'auto', the system is over-constrained and we need to discard a margin.
-            //if direction is ltr, ignore the specified right margin and solve for it. If it is rtl, ignore the specified
-            //left margin. FIXME(eatkinson): this assumes the direction is ltr
-            (Specified(margin_l), Specified(width), Specified(_margin_r)) => (margin_l, width, available_width - (margin_l + width )),
-
-            //If exactly one value is 'auto', solve for it
-            (Auto, Specified(width), Specified(margin_r)) => (available_width - (width + margin_r), width, margin_r),
-            (Specified(margin_l), Auto, Specified(margin_r)) => (margin_l, available_width - (margin_l + margin_r), margin_r),
-            (Specified(margin_l), Specified(width), Auto) => (margin_l, width, available_width - (margin_l + width)),
-
-            //If width is set to 'auto', any other 'auto' value becomes '0', and width is solved for
-            (Auto, Auto, Specified(margin_r)) => (Au::new(0), available_width - margin_r, margin_r),
-            (Specified(margin_l), Auto, Auto) => (margin_l, available_width - margin_l, Au::new(0)),
-            (Auto, Auto, Auto) => (Au::new(0), available_width, Au::new(0)),
-
-            //If left and right margins are auto, they become equal
-            (Auto, Specified(width), Auto) => {
-                let margin = (available_width - width).scale_by(0.5);
-                (margin, width, margin)
-            }
-
-        };
-        //return values in same order as params
-        (width_Au, left_margin_Au, right_margin_Au)
-    }
-
-    fn compute_table_margins(&self, box_: &Box, remaining_width: Au, available_width: Au)
-                             -> (Au, Au, Au) {
-        let style = box_.style();
-
-        let (width, maybe_margin_left, maybe_margin_right) =
-            (MaybeAuto::from_style(style.Box.width, remaining_width),
-             MaybeAuto::from_style(style.Margin.margin_left, remaining_width),
-             MaybeAuto::from_style(style.Margin.margin_right, remaining_width));
-
-        let (width, margin_left, margin_right) = self.compute_horiz(width,
-                                                                    maybe_margin_left,
-                                                                    maybe_margin_right,
-                                                                    available_width);
-
-        // If the tentative used width is greater than 'max-width', width should be recalculated,
-        // but this time using the computed value of 'max-width' as the computed value for 'width'.
-        let (width, margin_left, margin_right) = {
-            match specified_or_none(style.Box.max_width, remaining_width) {
-                Some(value) if value < width => self.compute_horiz(Specified(value),
-                                                                   maybe_margin_left,
-                                                                   maybe_margin_right,
-                                                                   available_width),
-                _ => (width, margin_left, margin_right)
-            }
-        };
-
-        // If the resulting width is smaller than 'min-width', width should be recalculated,
-        // but this time using the value of 'min-width' as the computed value for 'width'.
-        let (width, margin_left, margin_right) = {
-            let computed_min_width = specified(style.Box.min_width, remaining_width);
-            if computed_min_width > width {
-                self.compute_horiz(Specified(computed_min_width),
-                                   maybe_margin_left,
-                                   maybe_margin_right,
-                                   available_width)
-            } else {
-                (width, margin_left, margin_right)
-            }
-        };
-
-        return (width, margin_left, margin_right);
-    }
-
-    fn compute_float_margins(&self, box_: &Box, remaining_width: Au) -> (Au, Au, Au) {
-        let style = box_.style();
-        let margin_left = MaybeAuto::from_style(style.Margin.margin_left,
-                                                remaining_width).specified_or_zero();
-        let margin_right = MaybeAuto::from_style(style.Margin.margin_right,
-                                                 remaining_width).specified_or_zero();
-        let shrink_to_fit = geometry::min(self.base.pref_width,
-                                          geometry::max(self.base.min_width, remaining_width));
-        let width = MaybeAuto::from_style(style.Box.width,
-                                          remaining_width).specified_or_default(shrink_to_fit);
-        debug!("assign_widths_float -- width: {}", width);
-        return (width, margin_left, margin_right);
     }
 
     // inline(always) because this is only ever called by in-order or non-in-order top-level
@@ -582,11 +473,6 @@ impl Flow for TableRowFlow {
         /* if not an anonymous block context, add in block box's widths.
            these widths will not include child elements, just padding etc. */
         for box_ in self.box_.iter() {
-            {
-                // Can compute border width here since it doesn't depend on anything.
-                box_.compute_borders(box_.style())
-            }
-
             let (this_minimum_width, this_preferred_width) = box_.minimum_and_preferred_widths();
             min_width = min_width + this_minimum_width;
             pref_width = pref_width + this_preferred_width;
@@ -627,33 +513,10 @@ impl Flow for TableRowFlow {
             // The text alignment of a table_row flow is the text alignment of its box's style.
             self.base.flags_info.flags.set_text_align(style.Text.text_align);
 
-            // Can compute padding here since we know containing block width.
-            box_.compute_padding(style, remaining_width);
-
-            // Margins are 0 right now so base.noncontent_width() is just borders + padding.
-            let available_width = remaining_width - box_.noncontent_width();
-
-            // Top and bottom margins for blocks are 0 if auto.
-            let margin_top = MaybeAuto::from_style(style.Margin.margin_top,
-                                                   remaining_width).specified_or_zero();
-            let margin_bottom = MaybeAuto::from_style(style.Margin.margin_bottom,
-                                                      remaining_width).specified_or_zero();
-
-            let (width, margin_left, margin_right) = if self.is_float() {
-                self.compute_float_margins(box_, remaining_width)
-            } else {
-                self.compute_table_margins(box_, remaining_width, available_width)
-            };
-
-            box_.margin.set(SideOffsets2D::new(margin_top,
-                                              margin_right,
-                                              margin_bottom,
-                                              margin_left));
-
             let screen_size = ctx.screen_size;
             let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width, 
                                                                  screen_size.height, 
-                                                                 width, 
+                                                                 remaining_width, 
                                                                  box_.offset(), 
                                                                  self.is_fixed);
             x_offset = x;
@@ -662,14 +525,9 @@ impl Flow for TableRowFlow {
             // The associated box is the border box of this flow.
             let mut position_ref = box_.position.borrow_mut();
             if self.is_fixed {
-                position_ref.get().origin.x = x_offset + box_.margin.get().left;
-                x_offset = x_offset + box_.padding.get().left;
-            } else {
-                position_ref.get().origin.x = box_.margin.get().left;
+                position_ref.get().origin.x = x_offset;
             }
-            let padding_and_borders = box_.padding.get().left + box_.padding.get().right +
-                box_.border.get().left + box_.border.get().right;
-            position_ref.get().size.width = remaining_width + padding_and_borders;
+            position_ref.get().size.width = remaining_width;
         }
 
         if self.is_float() {

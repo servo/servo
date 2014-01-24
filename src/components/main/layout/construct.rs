@@ -22,8 +22,8 @@
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo};
-use layout::box_::{TableCellBox, TableColumnBox, TableColumnBoxInfo, TableRowBox};
+use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo, TableBox};
+use layout::box_::{TableCellBox, TableColumnBox, TableColumnBoxInfo, TableRowBox, TableWrapperBox};
 use layout::box_::{UnscannedTextBox, UnscannedTextBoxInfo, InlineInfo, InlineParentInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
@@ -41,9 +41,9 @@ use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal};
 
 use gfx::font_context::FontContext;
 use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
-use script::dom::element::{HTMLTableDataCellElementTypeId};
-use script::dom::element::{HTMLTableHeaderCellElementTypeId, HTMLTableColElementTypeId};
-use script::dom::element::{HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId};
+use script::dom::element::{HTMLTableElementTypeId, HTMLTableSectionElementTypeId};
+use script::dom::element::{HTMLTableDataCellElementTypeId, HTMLTableHeaderCellElementTypeId};
+use script::dom::element::{HTMLTableColElementTypeId, HTMLTableRowElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, TextNodeTypeId};
 use style::computed_values::{display, position, float};
@@ -266,6 +266,7 @@ impl<'fc> FlowConstructor<'fc> {
                 }
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => IframeBox(IframeBoxInfo::new(&node)),
+            ElementNodeTypeId(HTMLTableElementTypeId) => TableWrapperBox,
             ElementNodeTypeId(HTMLTableColElementTypeId) => TableColumnBox(TableColumnBoxInfo::new(&node)),
             ElementNodeTypeId(HTMLTableDataCellElementTypeId) |
             ElementNodeTypeId(HTMLTableHeaderCellElementTypeId) => TableCellBox,
@@ -662,12 +663,12 @@ impl<'fc> FlowConstructor<'fc> {
         // We then populate the TableWrapperFlow with caption blocks, and attach
         // the TableFlow to the Table WrapperFlow
         let base = BaseFlow::new(self.next_flow_id(), node);
-        let box_ = self.build_box_for_node(node);
+        let box_ = Box::new(node, TableWrapperBox);
         let mut wrapper_flow = ~TableWrapperFlow::from_box(base, box_, is_fixed) as ~Flow;
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&wrapper_flow));
 
         let table_base = BaseFlow::new(self.next_flow_id(), node);
-        let table_box_ = self.build_box_for_node(node);
+        let table_box_ = Box::new(node, TableBox);
         let mut table_flow = ~TableFlow::from_box(table_base, table_box_, is_fixed) as ~Flow;
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&table_flow));
 
@@ -687,7 +688,7 @@ impl<'fc> FlowConstructor<'fc> {
     /// other `TableRowFlow`s underneath it.
     fn build_flow_for_table_rowgroup(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
-        let box_ = self.build_box_for_node(node);
+        let box_ = Box::new(node, TableRowBox);
         let mut flow = ~TableRowGroupFlow::from_box(base, box_, is_fixed) as ~Flow;
 
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
@@ -700,7 +701,7 @@ impl<'fc> FlowConstructor<'fc> {
     /// other `TableCellFlow`s underneath it.
     fn build_flow_for_table_row(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
-        let box_ = self.build_box_for_node(node);
+        let box_ = Box::new(node, TableRowBox);
         let mut flow = ~TableRowFlow::from_box(base, box_, is_fixed) as ~Flow;
 
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
@@ -713,7 +714,7 @@ impl<'fc> FlowConstructor<'fc> {
     /// other `BlockFlow`s or `InlineFlow`s underneath it.
     fn build_flow_for_table_cell(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
-        let box_ = self.build_box_for_node(node);
+        let box_ = Box::new(node, TableCellBox);
         let mut flow = ~TableCellFlow::from_box(base, box_, is_fixed) as ~Flow;
 
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
@@ -725,7 +726,7 @@ impl<'fc> FlowConstructor<'fc> {
     /// Builds a flow for a node with `display: table-col-group`. This yields a `TableColGroupFlow`.
     fn build_flow_for_table_colgroup(&mut self, node: LayoutNode) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
-        let box_ = self.build_box_for_node(node);
+        let box_ = Box::new(node, TableColumnBox(TableColumnBoxInfo::new(&node)));
         let mut col_boxes = ~[];
         for kid in node.children() {
             if kid.type_id() != ElementNodeTypeId(HTMLTableColElementTypeId) { continue; }

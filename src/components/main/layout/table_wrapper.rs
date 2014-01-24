@@ -614,11 +614,6 @@ impl Flow for TableWrapperFlow {
         /* if not an anonymous block context, add in block box's widths.
            these widths will not include child elements, just padding etc. */
         for box_ in self.box_.iter() {
-            {
-                // Can compute border width here since it doesn't depend on anything.
-                box_.compute_borders(box_.style())
-            }
-
             let (this_minimum_width, this_preferred_width) = box_.minimum_and_preferred_widths();
             min_width = min_width + this_minimum_width;
             pref_width = pref_width + this_preferred_width;
@@ -669,9 +664,6 @@ impl Flow for TableWrapperFlow {
             // The text alignment of a table_wrapper flow is the text alignment of its box's style.
             self.base.flags_info.flags.set_text_align(style.Text.text_align);
 
-            // Can compute padding here since we know containing block width.
-            box_.compute_padding(style, remaining_width);
-
             // Margins are 0 right now so base.noncontent_width() is just borders + padding.
             let available_width = remaining_width - box_.noncontent_width();
 
@@ -705,13 +697,10 @@ impl Flow for TableWrapperFlow {
             let mut position_ref = box_.position.borrow_mut();
             if self.is_fixed {
                 position_ref.get().origin.x = x_offset + box_.margin.get().left;
-                x_offset = x_offset + box_.padding.get().left;
             } else {
                 position_ref.get().origin.x = box_.margin.get().left;
             }
-            let padding_and_borders = box_.padding.get().left + box_.padding.get().right +
-                box_.border.get().left + box_.border.get().right;
-            position_ref.get().size.width = remaining_width + padding_and_borders;
+            position_ref.get().size.width = remaining_width;
         }
 
         if self.is_float() {

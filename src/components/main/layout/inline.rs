@@ -4,8 +4,8 @@
 
 use css::node_style::StyledNode;
 use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, InlineInfo, ImageBox};
-use layout::box_::{ScannedTextBox, SplitDidFit, SplitDidNotFit};
-use layout::box_::{TableCellBox, TableColumnBox, TableRowBox, UnscannedTextBox};
+use layout::box_::{ScannedTextBox, SplitDidFit, SplitDidNotFit, TableBox, TableCellBox};
+use layout::box_::{TableColumnBox, TableRowBox, TableWrapperBox, UnscannedTextBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
@@ -775,7 +775,8 @@ impl Flow for InlineFlow {
 
                         (text_offset, line_height - text_offset, text_ascent)
                     },
-                    GenericBox | IframeBox(_) | TableCellBox | TableRowBox => {
+                    GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
+                    TableWrapperBox => {
                         let height = cur_box.position.get().size.height;
                         (height, Au::new(0), height)
                     },

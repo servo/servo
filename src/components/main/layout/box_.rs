@@ -104,9 +104,11 @@ pub enum SpecificBoxInfo {
     ImageBox(ImageBoxInfo),
     IframeBox(IframeBoxInfo),
     ScannedTextBox(ScannedTextBoxInfo),
+    TableBox,
     TableCellBox,
     TableColumnBox(TableColumnBoxInfo),
     TableRowBox,
+    TableWrapperBox,
     UnscannedTextBox(UnscannedTextBoxInfo),
 }
 
@@ -472,9 +474,15 @@ impl Box {
                 padding_left = self.compute_padding_length(style.Padding.padding_left, Au::new(0));
                 padding_right = self.compute_padding_length(style.Padding.padding_right, Au::new(0));
             }
-            TableCellBox => {
+            TableBox | TableCellBox => {
                 padding_left = self.compute_padding_length(style.Padding.padding_left, Au::new(0));
                 padding_right = self.compute_padding_length(style.Padding.padding_right, Au::new(0));
+            }
+            TableWrapperBox => {
+                margin_left = MaybeAuto::from_style(style.Margin.margin_left,
+                                                    Au::new(0)).specified_or_zero();
+                margin_right = MaybeAuto::from_style(style.Margin.margin_right,
+                                                     Au::new(0)).specified_or_zero();
             }
             TableRowBox => {}
             ScannedTextBox(_) | TableColumnBox(_) | UnscannedTextBox(_) => return Au(0),
@@ -509,8 +517,8 @@ impl Box {
 
         match self.specific {
             TableColumnBox(_) => {}
-            GenericBox | IframeBox(_) | ImageBox(_) | TableCellBox | TableRowBox |
-            ScannedTextBox(_) | UnscannedTextBox(_) => {
+            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
+            TableRowBox | TableWrapperBox | ScannedTextBox(_) | UnscannedTextBox(_) => {
                 self.border.set(SideOffsets2D::new(width(style.Border.border_top_width,
                                                          style.Border.border_top_style),
                                                    width(style.Border.border_right_width,
@@ -538,8 +546,8 @@ impl Box {
     /// Populates the box model padding parameters from the given computed style.
     pub fn compute_padding(&self, style: &ComputedValues, containing_block_width: Au) {
         match self.specific {
-            TableColumnBox(_) | TableRowBox => {}
-            GenericBox | IframeBox(_) | ImageBox(_) | TableCellBox |
+            TableColumnBox(_) | TableRowBox | TableWrapperBox => {}
+            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
             ScannedTextBox(_) | UnscannedTextBox(_) => {
                 let padding = SideOffsets2D::new(self.compute_padding_length(style.Padding.padding_top,
                                                                              containing_block_width),
@@ -998,7 +1006,6 @@ impl Box {
     /// representing the box's stacking context. When asked to construct its constituent display
     /// items, each box puts its display items into the correct stack layer according to CSS 2.1
     /// Appendix E. Finally, the builder flattens the list.
-    /// FIXME(sonwow): TableRowBox's border should not display.
     pub fn build_display_list<E:ExtraDisplayListData>(
                               &self,
                               builder: &DisplayListBuilder,
@@ -1134,7 +1141,8 @@ impl Box {
                     });
                 });
             },
-            GenericBox | IframeBox(..) | TableCellBox | TableRowBox => {
+            GenericBox | IframeBox(..) | TableBox | TableCellBox | TableRowBox |
+            TableWrapperBox => {
                 list.with_mut(|list| {
                     let item = ~ClipDisplayItem {
                         base: BaseDisplayItem {
@@ -1249,8 +1257,8 @@ impl Box {
             IframeBox(ref iframe_box) => {
                 self.finalize_position_and_size_of_iframe(iframe_box, offset, builder.ctx)
             }
-            GenericBox | ImageBox(_) | ScannedTextBox(_) | TableCellBox | TableColumnBox(_) |
-            TableRowBox | UnscannedTextBox(_) => {}
+            GenericBox | ImageBox(_) | ScannedTextBox(_) | TableBox | TableCellBox |
+            TableColumnBox(_) | TableRowBox | TableWrapperBox | UnscannedTextBox(_) => {}
         }
 
         // Add a border, if applicable.
@@ -1260,12 +1268,11 @@ impl Box {
     }
 
     /// Returns the *minimum width* and *preferred width* of this box as defined by CSS 2.1.
-    /// FIXME(sonwow): TableColumnBox => fail or default value?
     pub fn minimum_and_preferred_widths(&self) -> (Au, Au) {
         let guessed_width = self.guess_width();
         let (additional_minimum, additional_preferred) = match self.specific {
-            GenericBox | IframeBox(_) | TableCellBox | TableColumnBox(_) |
-            TableRowBox => (Au(0), Au(0)),
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableColumnBox(_) |
+            TableRowBox | TableWrapperBox => (Au(0), Au(0)),
             ImageBox(ref image_box_info) => {
                 let image_width = image_box_info.image_width();
                 (image_width, image_width)
@@ -1290,7 +1297,8 @@ impl Box {
 
     pub fn content_width(&self) -> Au {
         match self.specific {
-            GenericBox | IframeBox(_) | TableCellBox | TableRowBox => Au(0),
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
+            TableWrapperBox => Au(0),
             ImageBox(ref image_box_info) => {
                 image_box_info.computed_width()
             }
@@ -1304,11 +1312,10 @@ impl Box {
         }
     }
     /// Returns, and computes, the height of this box.
-    ///
-    /// FIXME(sonwow): TableCellBox/TableRowBox => fail or return Au(0)?
     pub fn content_height(&self) -> Au {
         match self.specific {
-            GenericBox | IframeBox(_) | TableCellBox | TableRowBox => Au(0),
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
+            TableWrapperBox => Au(0),
             ImageBox(ref image_box_info) => {
                 image_box_info.computed_height()
             }
@@ -1327,8 +1334,8 @@ impl Box {
     /// Split box which includes new-line character
     pub fn split_by_new_line(&self) -> SplitBoxResult {
         match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) | TableCellBox |
-            TableRowBox => CannotSplit,
+            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
+            TableRowBox | TableWrapperBox => CannotSplit,
             TableColumnBox(_) => fail!("Table column boxes do not need to split"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
@@ -1364,10 +1371,10 @@ impl Box {
     }
 
     /// Attempts to split this box so that its width is no more than `max_width`.
-    /// FIXME(sonwow): TableCellBox/TableRowBox => fail or CannotSplit?
     pub fn split_to_width(&self, max_width: Au, starts_line: bool) -> SplitBoxResult {
         match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) | TableCellBox | TableRowBox => CannotSplit,
+            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
+            TableRowBox | TableWrapperBox => CannotSplit,
             TableColumnBox(_) => fail!("Table column boxes do not have width"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
@@ -1482,10 +1489,10 @@ impl Box {
     }
 
     /// Assigns the appropriate width to this box.
-    /// FIXME(sonwow): TableCellBox/TableRowBox => fail or default value?
     pub fn assign_width(&self,container_width: Au) {
         match self.specific {
-            GenericBox | IframeBox(_) | TableCellBox | TableRowBox => {
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
+            TableWrapperBox => {
                 // FIXME(pcwalton): This seems clownshoes; can we remove?
                 self.position.borrow_mut().get().size.width = Au::from_px(45)
             }
@@ -1533,7 +1540,8 @@ impl Box {
 
     pub fn assign_height(&self) {
         match self.specific {
-            GenericBox | IframeBox(_) | TableCellBox | TableRowBox => {}
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
+            TableWrapperBox => {}
             ImageBox(ref image_box_info) => {
                 // TODO(ksh8281): compute border,margin,padding
                 let width = image_box_info.computed_width();
@@ -1605,9 +1613,11 @@ impl Box {
             IframeBox(_) => "IframeBox",
             ImageBox(_) => "ImageBox",
             ScannedTextBox(_) => "ScannedTextBox",
+            TableBox => "TableBox",
             TableCellBox => "TableCellBox",
             TableColumnBox(_) => "TableColumnBox",
             TableRowBox => "TableRowBox",
+            TableWrapperBox => "TableWrapperBox",
             UnscannedTextBox(_) => "UnscannedTextBox",
         };
 
