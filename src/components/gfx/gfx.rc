@@ -47,7 +47,7 @@ mod render_context;
 pub mod color;
 pub mod display_list;
 pub mod render_task;
-
+pub mod render_chan;
 // Fonts
 pub mod font;
 pub mod font_context;
