@@ -115,4 +115,4 @@
 	url = https://github.com/mozilla-servo/rust-egl.git
 [submodule "src/platform/android/servo-android-glue"]
 	path = src/platform/android/servo-android-glue
-	url = https://github.com/webconvforge/servo-android-glue.git
+	url = https://github.com/mozilla-servo/servo-android-glue.git
