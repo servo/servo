@@ -413,7 +413,7 @@ impl<'le> TElement for LayoutElement<'le> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
-    fn get_link(&self) -> Option<~str> {
+    fn get_link(&self) -> Option<&'static str> {
         // FIXME: This is HTML only.
         match self.element.node.type_id {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
@@ -422,7 +422,6 @@ impl<'le> TElement for LayoutElement<'le> {
             ElementNodeTypeId(HTMLAreaElementTypeId) |
             ElementNodeTypeId(HTMLLinkElementTypeId) => {
                 unsafe { self.element.get_attr_val_for_layout(&namespace::Null, "href") }
-                .map(|val| val.to_owned())
             }
             _ => None,
         }
