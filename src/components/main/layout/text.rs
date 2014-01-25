@@ -5,10 +5,10 @@
 //! Text layout.
 
 use layout::box_::{Box, ScannedTextBox, ScannedTextBoxInfo, UnscannedTextBox};
-use layout::context::LayoutContext;
 use layout::flow::Flow;
 
 use extra::arc::Arc;
+use gfx::font_context::FontContext;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{CompressWhitespaceNewline, transform_text, CompressNone};
 use servo_util::range::Range;
@@ -27,7 +27,7 @@ impl TextRunScanner {
         }
     }
 
-    pub fn scan_for_runs(&mut self, ctx: &mut LayoutContext, flow: &mut Flow) {
+    pub fn scan_for_runs(&mut self, font_context: &mut FontContext, flow: &mut Flow) {
         {
             let inline = flow.as_immutable_inline();
             debug!("TextRunScanner: scanning {:u} boxes for text runs...", inline.boxes.len());
@@ -40,13 +40,16 @@ impl TextRunScanner {
             if box_i > 0 && !can_coalesce_text_nodes(flow.as_immutable_inline().boxes,
                                                      box_i - 1,
                                                      box_i) {
-                last_whitespace = self.flush_clump_to_list(ctx, flow, last_whitespace, &mut out_boxes);
+                last_whitespace = self.flush_clump_to_list(font_context,
+                                                           flow,
+                                                           last_whitespace,
+                                                           &mut out_boxes);
             }
             self.clump.extend_by(1);
         }
         // handle remaining clumps
         if self.clump.length() > 0 {
-            self.flush_clump_to_list(ctx, flow, last_whitespace, &mut out_boxes);
+            self.flush_clump_to_list(font_context, flow, last_whitespace, &mut out_boxes);
         }
 
         debug!("TextRunScanner: swapping out boxes.");
@@ -73,7 +76,7 @@ impl TextRunScanner {
     /// FIXME(pcwalton): Stop cloning boxes. Instead we will need to consume the `in_box`es as we
     /// iterate over them.
     pub fn flush_clump_to_list(&mut self,
-                               ctx: &mut LayoutContext,
+                               font_context: &mut FontContext,
                                flow: &mut Flow,
                                last_whitespace: bool,
                                out_boxes: &mut ~[Box])
@@ -130,7 +133,7 @@ impl TextRunScanner {
                     // TODO(#177): Text run creation must account for the renderability of text by
                     // font group fonts. This is probably achieved by creating the font group above
                     // and then letting `FontGroup` decide which `Font` to stick into the text run.
-                    let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
+                    let fontgroup = font_context.get_resolved_font_for_style(&font_style);
                     let run = ~fontgroup.borrow().with(|fg| fg.create_textrun(transformed_text.clone(), decoration));
 
                     debug!("TextRunScanner: pushing single text box in range: {} ({})",
@@ -151,7 +154,7 @@ impl TextRunScanner {
                 // and then letting `FontGroup` decide which `Font` to stick into the text run.
                 let in_box = &in_boxes[self.clump.begin()];
                 let font_style = in_box.font_style();
-                let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
+                let fontgroup = font_context.get_resolved_font_for_style(&font_style);
                 let decoration = in_box.text_decoration();
 
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.

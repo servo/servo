@@ -9,7 +9,7 @@ use css::matching::MatchMethods;
 use css::select::new_stylist;
 use css::node_style::StyledNode;
 use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionResult};
-use layout::context::{LayoutContext, SharedLayoutInfo};
+use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
 use layout::extra::LayoutAuxMethods;
 use layout::flow::{Flow, ImmutableFlowUtils, LeafSet, MutableFlowUtils, MutableOwnedFlowUtils};
@@ -17,7 +17,8 @@ use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::RestyleDamage;
 use layout::parallel::{AssignHeightsAndStoreOverflowTraversalKind, BubbleWidthsTraversalKind};
-use layout::parallel::{ParallelPostorderFlowTraversal};
+use layout::parallel::{UnsafeFlow};
+use layout::parallel;
 use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
 use layout::wrapper::LayoutNode;
 
@@ -25,7 +26,7 @@ use extra::arc::{Arc, MutexArc, RWArc};
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator, DisplayList};
-use gfx::font_context::{FontContext, FontContextInfo};
+use gfx::font_context::FontContextInfo;
 use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
@@ -46,10 +47,12 @@ use servo_util::geometry::Au;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::spawn_named;
+use servo_util::workqueue::WorkQueue;
 use std::cast::transmute;
 use std::cast;
 use std::cell::RefCell;
 use std::comm::Port;
+use std::ptr;
 use std::util;
 use style::{AuthorOrigin, Stylesheet, Stylist};
 
@@ -91,7 +94,7 @@ pub struct LayoutTask {
     stylist: RWArc<Stylist>,
 
     /// The workers that we use for parallel operation.
-    parallel_traversal: Option<ParallelPostorderFlowTraversal>,
+    parallel_traversal: Option<WorkQueue<*mut LayoutContext,UnsafeFlow>>,
 
     /// The channel on which messages can be sent to the profiler.
     profiler_chan: ProfilerChan,
@@ -142,12 +145,14 @@ impl PreorderFlowTraversal for PropagateDamageTraversal {
 
 /// The bubble-widths traversal, the first part of layout computation. This computes preferred
 /// and intrinsic widths and bubbles them up the tree.
-pub struct BubbleWidthsTraversal<'a>(&'a mut LayoutContext);
+pub struct BubbleWidthsTraversal<'a> {
+    layout_context: &'a mut LayoutContext,
+}
 
 impl<'a> PostorderFlowTraversal for BubbleWidthsTraversal<'a> {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.bubble_widths(**self);
+        flow.bubble_widths(self.layout_context);
         true
     }
 
@@ -174,13 +179,15 @@ impl<'a> PreorderFlowTraversal for AssignWidthsTraversal<'a> {
 /// The assign-heights-and-store-overflow traversal, the last (and most expensive) part of layout
 /// computation. Determines the final heights for all layout objects, computes positions, and
 /// computes overflow regions. In Gecko this corresponds to `FinishAndStoreOverflow`.
-pub struct AssignHeightsAndStoreOverflowTraversal<'a>(&'a mut LayoutContext);
+pub struct AssignHeightsAndStoreOverflowTraversal<'a> {
+    layout_context: &'a mut LayoutContext,
+}
 
 impl<'a> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.assign_height(**self);
-        flow.store_overflow(**self);
+        flow.assign_height(self.layout_context);
+        flow.store_overflow(self.layout_context);
         true
     }
 
@@ -248,13 +255,8 @@ impl LayoutTask {
            -> LayoutTask {
         let local_image_cache = MutexArc::new(LocalImageCache(image_cache_task.clone()));
         let screen_size = Size2D(Au(0), Au(0));
-        let font_context_info = FontContextInfo {
-            backend: opts.render_backend,
-            needs_font_list: true,
-            profiler_chan: profiler_chan.clone(),
-        };
         let parallel_traversal = if opts.layout_threads != 1 {
-            Some(ParallelPostorderFlowTraversal::new(font_context_info, opts.layout_threads))
+            Some(WorkQueue::new(opts.layout_threads, ptr::mut_null()))
         } else {
             None
         };
@@ -288,20 +290,18 @@ impl LayoutTask {
 
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context(&self) -> LayoutContext {
-        let font_ctx = ~FontContext::new(FontContextInfo {
+        let font_context_info = FontContextInfo {
             backend: self.opts.render_backend,
             needs_font_list: true,
             profiler_chan: self.profiler_chan.clone(),
-        });
+        };
 
         LayoutContext {
-            shared: SharedLayoutInfo {
-                image_cache: self.local_image_cache.clone(),
-                screen_size: self.screen_size.clone(),
-                constellation_chan: self.constellation_chan.clone(),
-                leaf_set: self.leaf_set.clone(),
-            },
-            font_ctx: font_ctx,
+            image_cache: self.local_image_cache.clone(),
+            screen_size: self.screen_size.clone(),
+            constellation_chan: self.constellation_chan.clone(),
+            leaf_set: self.leaf_set.clone(),
+            font_context_info: font_context_info,
         }
     }
 
@@ -418,7 +418,12 @@ impl LayoutTask {
     fn solve_constraints(&mut self,
                          layout_root: &mut Flow,
                          layout_context: &mut LayoutContext) {
-        layout_root.traverse_postorder(&mut BubbleWidthsTraversal(layout_context));
+        {
+            let mut traversal = BubbleWidthsTraversal {
+                layout_context: layout_context,
+            };
+            layout_root.traverse_postorder(&mut traversal);
+        }
 
         // FIXME(kmc): We want to prune nodes without the Reflow restyle damage
         // bit, but FloatContext values can't be reused, so we need to
@@ -428,8 +433,12 @@ impl LayoutTask {
         layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
 
         // FIXME(pcwalton): Prune this pass as well.
-        layout_root.traverse_postorder(&mut AssignHeightsAndStoreOverflowTraversal(
-                layout_context));
+        {
+            let mut traversal = AssignHeightsAndStoreOverflowTraversal {
+                layout_context: layout_context,
+            };
+            layout_root.traverse_postorder(&mut traversal);
+        }
     }
 
     /// Performs layout constraint solving in parallel.
@@ -443,9 +452,11 @@ impl LayoutTask {
         match self.parallel_traversal {
             None => fail!("solve_contraints_parallel() called with no parallel traversal ready"),
             Some(ref mut traversal) => {
-                traversal.start(BubbleWidthsTraversalKind,
-                                layout_context,
-                                self.profiler_chan.clone());
+                parallel::traverse_flow_tree(BubbleWidthsTraversalKind,
+                                             &self.leaf_set,
+                                             self.profiler_chan.clone(),
+                                             layout_context,
+                                             traversal);
 
                 // NOTE: this currently computes borders, so any pruning should separate that
                 // operation out.
@@ -453,9 +464,11 @@ impl LayoutTask {
                 // because this is a top-down traversal, unlike the others.
                 layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
 
-                traversal.start(AssignHeightsAndStoreOverflowTraversalKind,
-                                layout_context,
-                                self.profiler_chan.clone());
+                parallel::traverse_flow_tree(AssignHeightsAndStoreOverflowTraversalKind,
+                                             &self.leaf_set,
+                                             self.profiler_chan.clone(),
+                                             layout_context,
+                                             traversal);
             }
         }
     }
