@@ -8,19 +8,14 @@ use css::node_style::StyledNode;
 use layout::incremental;
 use layout::util::LayoutDataAccess;
 use layout::wrapper::LayoutNode;
-use servo_util::task::spawn_named;
 
-use extra::arc::{Arc, RWArc};
-use std::cast;
-use std::libc::uintptr_t;
-use std::rt;
-use std::vec;
+use extra::arc::Arc;
 use style::{TNode, Stylist, cascade};
 use style::{Before, After};
 
 pub trait MatchMethods {
     fn match_node(&self, stylist: &Stylist);
-    fn match_subtree(&self, stylist: RWArc<Stylist>);
+    fn match_subtree(&self, stylist: &Stylist);
 
     fn cascade_subtree(&self, parent: Option<LayoutNode>);
 }
@@ -47,53 +42,12 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             None => fail!("no layout data")
         }
     }
-    fn match_subtree(&self, stylist: RWArc<Stylist>) {
-        let num_tasks = rt::default_sched_threads() * 2;
-        let mut node_count = 0;
-        let mut nodes_per_task = vec::from_elem(num_tasks, ~[]);
 
+    fn match_subtree(&self, stylist: &Stylist) {
         for node in self.traverse_preorder() {
             if node.is_element() {
-                nodes_per_task[node_count % num_tasks].push(node);
-                node_count += 1;
+                node.match_node(stylist);
             }
-        }
-
-        let (port, chan) = SharedChan::new();
-        let mut num_spawned = 0;
-
-        for nodes in nodes_per_task.move_iter() {
-            if nodes.len() > 0 {
-                let chan = chan.clone();
-                let stylist = stylist.clone();
-
-                // FIXME(pcwalton): This transmute is to work around the fact that we have no
-                // mechanism for safe fork/join parallelism. If we had such a thing, then we could
-                // close over the lifetime-bounded `LayoutNode`. But we can't, so we force it with
-                // a transmute.
-                let evil: uintptr_t = unsafe {
-                    cast::transmute(nodes)
-                };
-
-                let evil = Some(evil);
-                spawn_named("MatchMethods for LayoutNode", proc() {
-                    let mut evil = evil;
-                    let nodes: ~[LayoutNode] = unsafe {
-                        cast::transmute(evil.take_unwrap())
-                    };
-
-                    stylist.read(|stylist| {
-                        for node in nodes.iter() {
-                            node.match_node(stylist);
-                        }
-                    });
-                    chan.send(());
-                });
-                num_spawned += 1;
-            }
-        }
-        for _ in range(0, num_spawned) {
-            port.recv();
         }
     }
 
