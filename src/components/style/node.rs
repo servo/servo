@@ -5,6 +5,9 @@
 //! Traits that nodes must implement. Breaks the otherwise-cyclic dependency between layout and
 //! style.
 
+use selectors::AttrSelector;
+
+
 pub trait TNode<E:TElement> : Clone {
     fn parent_node(&self) -> Option<Self>;
     fn prev_sibling(&self) -> Option<Self>;
@@ -15,6 +18,8 @@ pub trait TNode<E:TElement> : Clone {
 
     /// FIXME(pcwalton): This should not use the `with` pattern.
     fn with_element<'a, R>(&self, f: |&E| -> R) -> R;
+
+    fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool;
 }
 
 pub trait TElement {

@@ -19,12 +19,13 @@ use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementType
 use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::HTMLImageElement;
+use script::dom::namespace;
 use script::dom::namespace::Namespace;
 use script::dom::node::{AbstractNode, DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use std::cast;
-use style::{PropertyDeclarationBlock, TElement, TNode};
+use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector};
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `AbstractNode`.
@@ -246,7 +247,7 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
             self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
         }
     }
-    
+
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
@@ -277,6 +278,21 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
                 f(&LayoutElement {
                     element: cast::transmute_region(element),
                 })
+            }
+        })
+    }
+
+    fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
+        self.with_element(|element| {
+            let name = if element.element.html_element_in_html_document() {
+                attr.lower_name.as_slice()
+            } else {
+                attr.name.as_slice()
+            };
+            // FIXME: avoid .clone() here? See #1367
+            match element.get_attr(attr.namespace.clone(), name) {
+                Some(value) => test(value),
+                None => false,
             }
         })
     }
@@ -377,14 +393,17 @@ impl<'le> LayoutElement<'le> {
 }
 
 impl<'le> TElement for LayoutElement<'le> {
+    #[inline]
     fn get_local_name<'a>(&'a self) -> &'a str {
         self.element.tag_name.as_slice()
     }
 
+    #[inline]
     fn get_namespace_url<'a>(&'a self) -> &'a str {
         self.element.namespace.to_str().unwrap_or("")
     }
 
+    #[inline]
     fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<&'static str> {
         let namespace = Namespace::from_str(ns_url);
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
@@ -398,7 +417,8 @@ impl<'le> TElement for LayoutElement<'le> {
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
             ElementNodeTypeId(HTMLAreaElementTypeId) |
             ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                self.get_attr(None, "href").map(|val| val.to_owned())
+                unsafe { self.element.get_attr_val_for_layout(namespace::Null, "href") }
+                .map(|val| val.to_owned())
             }
             _ => None,
         }
