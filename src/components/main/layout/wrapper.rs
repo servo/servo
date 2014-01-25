@@ -14,7 +14,6 @@
 //! (2) Layout is not allowed to see anything with `Abstract` in the name, because it could hang
 //!     onto these objects and cause use-after-free.
 
-use std::ascii::StrAsciiExt;
 use extra::url::Url;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId};
@@ -26,7 +25,7 @@ use script::dom::node::{AbstractNode, DocumentNodeTypeId, ElementNodeTypeId, Nod
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use std::cast;
-use style::{PropertyDeclarationBlock, TElement, TNode};
+use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector};
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `AbstractNode`.
@@ -282,6 +281,21 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
             }
         })
     }
+
+    fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
+        self.with_element(|element| {
+            let name = if element.element.html_element_in_html_document() {
+                attr.lower_name.as_slice()
+            } else {
+                attr.name.as_slice()
+            };
+            // FIXME: avoid .clone() here? See #1367
+            match element.get_attr(attr.namespace.clone(), name) {
+                Some(value) => test(value),
+                None => false,
+            }
+        })
+    }
 }
 
 pub struct LayoutNodeChildrenIterator<'a> {
@@ -379,31 +393,20 @@ impl<'le> LayoutElement<'le> {
 }
 
 impl<'le> TElement for LayoutElement<'le> {
+    #[inline]
     fn get_local_name<'a>(&'a self) -> &'a str {
         self.element.tag_name.as_slice()
     }
 
+    #[inline]
     fn get_namespace_url<'a>(&'a self) -> &'a str {
         self.element.namespace.to_str().unwrap_or("")
     }
 
+    #[inline]
     fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<&'static str> {
         let namespace = Namespace::from_str(ns_url);
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
-    }
-
-    fn match_attr(&self, ns_url: Option<~str>, name: &str, test: &|&str| -> bool) -> bool {
-        let temp;
-        let name = if self.element.html_element_in_html_document() {
-            temp = name.to_ascii_lower();
-            temp.as_slice()
-        } else {
-            name
-        };
-        match self.get_attr(ns_url, name) {
-            Some(value) => (*test)(value),
-            None => false,
-        }
     }
 
     fn get_link(&self) -> Option<~str> {

@@ -513,22 +513,22 @@ fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, ele
             })
         }
 
-        AttrExists(ref attr) => match_attribute(attr, element, |_| true),
-        AttrEqual(ref attr, ref value) => match_attribute(attr, element, |v| v == value.as_slice()),
-        AttrIncludes(ref attr, ref value) => match_attribute(attr, element, |attr_value| {
+        AttrExists(ref attr) => element.match_attr(attr, |_| true),
+        AttrEqual(ref attr, ref value) => element.match_attr(attr, |v| v == value.as_slice()),
+        AttrIncludes(ref attr, ref value) => element.match_attr(attr, |attr_value| {
             attr_value.split(SELECTOR_WHITESPACE).any(|v| v == value.as_slice())
         }),
         AttrDashMatch(ref attr, ref value, ref dashing_value)
-        => match_attribute(attr, element, |attr_value| {
+        => element.match_attr(attr, |attr_value| {
             attr_value == value.as_slice() || attr_value.starts_with(dashing_value.as_slice())
         }),
-        AttrPrefixMatch(ref attr, ref value) => match_attribute(attr, element, |attr_value| {
+        AttrPrefixMatch(ref attr, ref value) => element.match_attr(attr, |attr_value| {
             attr_value.starts_with(value.as_slice())
         }),
-        AttrSubstringMatch(ref attr, ref value) => match_attribute(attr, element, |attr_value| {
+        AttrSubstringMatch(ref attr, ref value) => element.match_attr(attr, |attr_value| {
             attr_value.contains(value.as_slice())
         }),
-        AttrSuffixMatch(ref attr, ref value) => match_attribute(attr, element, |attr_value| {
+        AttrSuffixMatch(ref attr, ref value) => element.match_attr(attr, |attr_value| {
             attr_value.ends_with(value.as_slice())
         }),
 
@@ -696,18 +696,6 @@ fn matches_last_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
     }
 }
 
-#[inline]
-fn match_attribute<E:TElement,
-                   N:TNode<E>>(
-                   attr: &AttrSelector,
-                   element: &N,
-                   test: |&str| -> bool)
-                   -> bool {
-    element.with_element(|element: &E| {
-        // FIXME: avoid .clone() here? See #1367
-        element.match_attr(attr.namespace.clone(), attr.name, &test)
-    })
-}
 
 #[cfg(test)]
 mod tests {
