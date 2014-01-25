@@ -120,7 +120,7 @@ impl SelectorMap {
                                     hash: &HashMap<~str,~[Rule]>,
                                     key: &str,
                                     matching_rules: &mut ~[Rule]) {
-        match hash.find(&key.to_str()) {
+        match hash.find_equiv(&key) {
             Some(rules) => {
                 SelectorMap::get_matching_rules(node, *rules, matching_rules)
             }
