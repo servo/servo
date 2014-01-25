@@ -136,7 +136,6 @@ pub mod dom {
     pub mod htmlunknownelement;
     pub mod location;
     pub mod mouseevent;
-    pub mod namespace;
     pub mod navigator;
     pub mod node;
     pub mod nodelist;

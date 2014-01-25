@@ -20,11 +20,11 @@ use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementType
 use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::HTMLImageElement;
-use script::dom::namespace;
-use script::dom::namespace::Namespace;
 use script::dom::node::{AbstractNode, DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
+use servo_util::namespace;
+use servo_util::namespace::Namespace;
 use std::cast;
 use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector};
 

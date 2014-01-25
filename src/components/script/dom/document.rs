@@ -16,7 +16,6 @@ use dom::event::{AbstractEvent, Event};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::mouseevent::MouseEvent;
-use dom::namespace::Null;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, DocumentNodeTypeId};
 use dom::text::Text;
 use dom::uievent::UIEvent;
@@ -24,6 +23,7 @@ use dom::window::Window;
 use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
+use servo_util::namespace::Null;
 
 use js::jsapi::{JSObject, JSContext, JSTracer};
 use std::ascii::StrAsciiExt;

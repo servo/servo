@@ -15,13 +15,13 @@ use dom::clientrectlist::ClientRectList;
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ElementNodeTypeId, Node, NodeIterator};
 use dom::document;
-use dom::namespace;
-use dom::namespace::{Namespace, Null};
 use dom::htmlserializer::serialize;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
+use servo_util::namespace;
+use servo_util::namespace::{Namespace, Null};
 
 use std::ascii::StrAsciiExt;
 use std::cast;

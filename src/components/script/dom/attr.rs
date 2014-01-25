@@ -5,8 +5,8 @@
 use dom::bindings::codegen::AttrBinding;
 use dom::bindings::utils::{Reflectable, Reflector, DOMString};
 use dom::bindings::utils::reflect_dom_object;
-use dom::namespace::{Namespace, Null};
 use dom::window::Window;
+use servo_util::namespace::{Namespace, Null};
 
 use std::util;
 
