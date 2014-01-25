@@ -488,9 +488,9 @@ fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, ele
                 element.get_local_name().eq_ignore_ascii_case(name.as_slice())
             })
         }
-        NamespaceSelector(ref url) => {
+        NamespaceSelector(ref namespace) => {
             element.with_element(|element: &E| {
-                element.get_namespace_url() == url.as_slice()
+                element.get_namespace() == namespace
             })
         }
         // TODO: case-sensitivity depends on the document type and quirks mode
@@ -626,7 +626,7 @@ fn matches_generic_nth_child<'a,
                 element.with_element(|element: &E| {
                     node.with_element(|node: &E| {
                         if element.get_local_name() == node.get_local_name() &&
-                           element.get_namespace_url() == node.get_namespace_url() {
+                           element.get_namespace() == node.get_namespace() {
                             index += 1;
                         }
                     })

@@ -290,8 +290,8 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
                 attr.name.as_slice()
             };
             match attr.namespace {
-                Some(ref url) => {
-                    match element.get_attr(&namespace::Namespace::from_str(url.as_slice()), name) {
+                Some(ref ns) => {
+                    match element.get_attr(ns, name) {
                         Some(value) => test(value),
                         None => false,
                     }
@@ -404,8 +404,8 @@ impl<'le> TElement for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_namespace_url<'a>(&'a self) -> &'a str {
-        self.element.namespace.to_str().unwrap_or("")
+    fn get_namespace<'a>(&'a self) -> &'a Namespace {
+        &self.element.namespace
     }
 
     #[inline]

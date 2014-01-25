@@ -4,11 +4,12 @@
 
 use std::hashmap::HashMap;
 use cssparser::ast::*;
+use servo_util::namespace::Namespace;
 use errors::log_css_error;
 
 pub struct NamespaceMap {
-    default: Option<~str>,  // Optional URL
-    prefix_map: HashMap<~str, ~str>,  // prefix -> URL
+    default: Option<Namespace>,
+    prefix_map: HashMap<~str, Namespace>,
 }
 
 
@@ -29,7 +30,7 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
     );
     if rule.block.is_some() { syntax_error!() }
     let mut prefix: Option<~str> = None;
-    let mut url: Option<~str> = None;
+    let mut ns: Option<Namespace> = None;
     let mut iter = rule.prelude.move_skip_whitespace();
     for component_value in iter {
         match component_value {
@@ -38,25 +39,25 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
                 prefix = Some(value);
             },
             URL(value) | String(value) => {
-                if url.is_some() { syntax_error!() }
-                url = Some(value);
+                if ns.is_some() { syntax_error!() }
+                ns = Some(Namespace::from_str(value.as_slice()));
                 break
             },
             _ => syntax_error!(),
         }
     }
     if iter.next().is_some() { syntax_error!() }
-    match (prefix, url) {
-        (Some(prefix), Some(url)) => {
-            if namespaces.prefix_map.swap(prefix, url).is_some() {
+    match (prefix, ns) {
+        (Some(prefix), Some(ns)) => {
+            if namespaces.prefix_map.swap(prefix, ns).is_some() {
                 log_css_error(location, "Duplicate @namespace rule");
             }
         },
-        (None, Some(url)) => {
+        (None, Some(ns)) => {
             if namespaces.default.is_some() {
                 log_css_error(location, "Duplicate @namespace rule");
             }
-            namespaces.default = Some(url);
+            namespaces.default = Some(ns);
         },
         _ => syntax_error!()
     }

@@ -27,6 +27,6 @@ pub trait TElement {
     fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str>;
     fn get_link(&self) -> Option<~str>;
     fn get_local_name<'a>(&'a self) -> &'a str;
-    fn get_namespace_url<'a>(&'a self) -> &'a str;
+    fn get_namespace<'a>(&'a self) -> &'a Namespace;
 }
 
