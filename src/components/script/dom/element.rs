@@ -157,16 +157,15 @@ impl Element {
         }).map(|&x| x)
     }
 
-    #[inline]
     pub unsafe fn get_attr_val_for_layout(&self, namespace: Namespace, name: &str) 
                                           -> Option<&'static str> {
+        // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
+        let name = name.to_ascii_lower();
         self.attrs.iter().find(|attr: & &@mut Attr| {
             // unsafely avoid a borrow because this is accessed by many tasks
             // during parallel layout
-            // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
             let attr: ***Box<Attr> = cast::transmute(attr);
-            name.eq_ignore_ascii_case((***attr).data.local_name) &&
-                (***attr).data.namespace == namespace
+            name == (***attr).data.local_name && (***attr).data.namespace == namespace
        }).map(|attr| {
             let attr: **Box<Attr> = cast::transmute(attr);
             cast::transmute((**attr).data.value.as_slice())
