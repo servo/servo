@@ -5,17 +5,26 @@
 //! Data needed by the layout task.
 
 use extra::arc::MutexArc;
+use green::task::GreenTask;
 use layout::flow::LeafSet;
+use std::cast;
+use std::ptr;
+use std::rt::Runtime;
+use std::rt::local::Local;
+use std::rt::task::Task;
 
 use geom::size::Size2D;
-use gfx::font_context::FontContext;
+use gfx::font_context::{FontContext, FontContextInfo};
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 
+#[thread_local]
+static mut FONT_CONTEXT: *mut FontContext = 0 as *mut FontContext;
+
 /// Data shared by all layout workers.
 #[deriving(Clone)]
-pub struct SharedLayoutInfo {
+pub struct LayoutContext {
     /// The local image cache.
     image_cache: MutexArc<LocalImageCache>,
 
@@ -27,14 +36,30 @@ pub struct SharedLayoutInfo {
 
     /// The set of leaf flows.
     leaf_set: MutexArc<LeafSet>,
+
+    /// Information needed to construct a font context.
+    font_context_info: FontContextInfo,
 }
 
-/// Data specific to a layout worker.
-pub struct LayoutContext {
-    /// Shared layout info.
-    shared: SharedLayoutInfo,
+impl LayoutContext {
+    pub fn font_context<'a>(&'a mut self) -> &'a mut FontContext {
+        // Sanity check.
+        let mut task = Local::borrow(None::<Task>);
+        match task.get().maybe_take_runtime::<GreenTask>() {
+            Some(green) => {
+                task.get().put_runtime(green as ~Runtime);
+                fail!("can't call this on a green task!")
+            }
+            None => {}
+        }
 
-    /// The current font context.
-    font_ctx: ~FontContext,
+        unsafe {
+            if FONT_CONTEXT == ptr::mut_null() {
+                let context = ~FontContext::new(self.font_context_info.clone());
+                FONT_CONTEXT = cast::transmute(context)
+            }
+            cast::transmute(FONT_CONTEXT)
+        }
+    }
 }
 

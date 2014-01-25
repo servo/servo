@@ -329,7 +329,7 @@ impl BlockFlow {
         // top or bottom borders nor top or bottom padding, and it has a 'height' of either 0 or 'auto',
         // and it does not contain a line box, and all of its in-flow children's margins (if any) collapse.
 
-        let screen_height = ctx.shared.screen_size.height;
+        let screen_height = ctx.screen_size.height;
 
         let mut height = if self.is_root {
             // FIXME(pcwalton): The max is taken here so that you can scroll the page, but this is
@@ -627,7 +627,7 @@ impl Flow for BlockFlow {
         if self.is_root {
             debug!("Setting root position");
             self.base.position.origin = Au::zero_point();
-            self.base.position.size.width = ctx.shared.screen_size.width;
+            self.base.position.size.width = ctx.screen_size.width;
             self.base.floats_in = FloatContext::new(self.base.num_floats);
             self.base.flags_info.flags.set_inorder(false);
         }
@@ -672,7 +672,7 @@ impl Flow for BlockFlow {
                                                margin_bottom,
                                                margin_left));
 
-            let screen_size = ctx.shared.screen_size;
+            let screen_size = ctx.screen_size;
             let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width, 
                                                                  screen_size.height,
                                                                  width,

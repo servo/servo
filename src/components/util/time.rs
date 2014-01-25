@@ -37,10 +37,12 @@ impl ProfilerChan {
 }
 
 pub enum ProfilerMsg {
-    // Normal message used for reporting time
+    /// Normal message used for reporting time
     TimeMsg(ProfilerCategory, f64),
-    // Message used to force print the profiling metrics
+    /// Message used to force print the profiling metrics
     PrintMsg,
+    /// Tells the profiler to shut down.
+    ExitMsg,
 }
 
 #[deriving(Eq, Clone, TotalEq, TotalOrd)]
@@ -136,7 +138,12 @@ impl Profiler {
             None => {
                 // no-op to handle profiler messages when the profiler is inactive
                 spawn_named("Profiler", proc() {
-                    while port.recv_opt().is_some() {}
+                    loop {
+                        match port.recv_opt() {
+                            None | Some(ExitMsg) => break,
+                            _ => {}
+                        }
+                    }
                 });
             }
         }
@@ -156,13 +163,17 @@ impl Profiler {
         loop {
             let msg = self.port.recv_opt();
             match msg {
-               Some (msg) => self.handle_msg(msg),
+               Some(msg) => {
+                   if !self.handle_msg(msg) {
+                       break
+                   }
+               }
                None => break
             }
         }
     }
 
-    fn handle_msg(&mut self, msg: ProfilerMsg) {
+    fn handle_msg(&mut self, msg: ProfilerMsg) -> bool {
         match msg {
             TimeMsg(category, t) => self.buckets.find_mut(&category).unwrap().push(t),
             PrintMsg => match self.last_msg {
@@ -170,8 +181,10 @@ impl Profiler {
                 Some(TimeMsg(..)) => self.print_buckets(),
                 _ => ()
             },
+            ExitMsg => return false,
         };
         self.last_msg = Some(msg);
+        true
     }
 
     fn print_buckets(&mut self) {
