@@ -7,7 +7,6 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLImageElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::namespace::Null;
 use dom::node::{AbstractNode, Node};
 use extra::url::Url;
 use servo_util::geometry::to_px;
@@ -15,6 +14,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::url::make_url;
+use servo_util::namespace::Null;
 
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,

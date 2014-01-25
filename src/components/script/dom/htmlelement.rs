@@ -9,7 +9,7 @@ use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
 use dom::node::{AbstractNode, Node};
 use js::jsapi::{JSContext, JSVal};
 use js::JSVAL_NULL;
-use dom::namespace;
+use servo_util::namespace;
 
 pub struct HTMLElement {
     element: Element

@@ -9,6 +9,9 @@ use extra::arc::Arc;
 use cssparser::ast::*;
 use cssparser::parse_nth;
 
+use servo_util::namespace::Namespace;
+use servo_util::namespace;
+
 use namespaces::NamespaceMap;
 
 
@@ -55,7 +58,7 @@ pub enum SimpleSelector {
     IDSelector(~str),
     ClassSelector(~str),
     LocalNameSelector(~str),
-    NamespaceSelector(~str),
+    NamespaceSelector(Namespace),
 
     // Attribute selectors
     AttrExists(AttrSelector),  // [foo]
@@ -89,7 +92,8 @@ pub enum SimpleSelector {
 pub struct AttrSelector {
     name: ~str,
     lower_name: ~str,
-    namespace: Option<~str>,
+    /// None means "any namespace", `*|attr`
+    namespace: Option<Namespace>,
 }
 
 
@@ -270,7 +274,7 @@ fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
         QualifiedName(namespace, local_name) => {
             let mut simple_selectors = ~[];
             match namespace {
-                Some(url) => simple_selectors.push(NamespaceSelector(url)),
+                Some(ns) => simple_selectors.push(NamespaceSelector(ns)),
                 None => (),
             }
             match local_name {
@@ -357,7 +361,8 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
 enum QualifiedNameParseResult {
     InvalidQualifiedName,
     NotAQualifiedName,
-    QualifiedName(Option<~str>, Option<~str>)  // Namespace URL, local name. None means '*'
+    // Namespace URL, local name. None means '*'
+    QualifiedName(Option<Namespace>, Option<~str>)
 }
 
 fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &NamespaceMap)
@@ -365,22 +370,22 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
     #[inline]
     fn default_namespace(namespaces: &NamespaceMap, local_name: Option<~str>)
                          -> QualifiedNameParseResult {
-        QualifiedName(namespaces.default.as_ref().map(|url| url.to_owned()), local_name)
+        QualifiedName(namespaces.default.as_ref().map(|ns| ns.clone()), local_name)
     }
 
     #[inline]
-    fn explicit_namespace(iter: &mut Iter, allow_universal: bool, namespace_url: Option<~str>)
+    fn explicit_namespace(iter: &mut Iter, allow_universal: bool, namespace: Option<Namespace>)
                          -> QualifiedNameParseResult {
         assert!(iter.next() == Some(Delim('|')),
                 "Implementation error, this should not happen.");
         match iter.peek() {
             Some(&Delim('*')) if allow_universal => {
                 iter.next();
-                QualifiedName(namespace_url, None)
+                QualifiedName(namespace, None)
             },
             Some(&Ident(_)) => {
                 let local_name = get_next_ident(iter);
-                QualifiedName(namespace_url, Some(local_name))
+                QualifiedName(namespace, Some(local_name))
             },
             _ => InvalidQualifiedName,
         }
@@ -391,11 +396,11 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
             let value = get_next_ident(iter);
             match iter.peek() {
                 Some(&Delim('|')) => {
-                    let namespace_url = match namespaces.prefix_map.find(&value) {
+                    let namespace = match namespaces.prefix_map.find(&value) {
                         None => return InvalidQualifiedName,  // Undeclared namespace prefix
-                        Some(ref url) => url.to_owned(),
+                        Some(ref ns) => (*ns).clone(),
                     };
-                    explicit_namespace(iter, allow_universal, Some(namespace_url))
+                    explicit_namespace(iter, allow_universal, Some(namespace))
                 },
                 _ => default_namespace(namespaces, Some(value)),
             }
@@ -410,7 +415,7 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
                 },
             }
         },
-        Some(&Delim('|')) => explicit_namespace(iter, allow_universal, Some(~"")),
+        Some(&Delim('|')) => explicit_namespace(iter, allow_universal, Some(namespace::Null)),
         _ => NotAQualifiedName,
     }
 }

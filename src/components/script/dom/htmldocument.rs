@@ -6,8 +6,8 @@ use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::document::{AbstractDocument, Document, HTML};
 use dom::htmlcollection::HTMLCollection;
-use dom::namespace::Null;
 use dom::window::Window;
+use servo_util::namespace::Null;
 
 use js::jsapi::JSTracer;
 use std::str::eq_slice;
