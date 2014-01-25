@@ -701,14 +701,11 @@ fn match_attribute<E:TElement,
                    N:TNode<E>>(
                    attr: &AttrSelector,
                    element: &N,
-                   f: |&str| -> bool)
+                   test: |&str| -> bool)
                    -> bool {
     element.with_element(|element: &E| {
         // FIXME: avoid .clone() here? See #1367
-        match element.get_attr(attr.namespace.clone(), attr.name) {
-            None => false,
-            Some(value) => f(value)
-        }
+        element.match_attr(attr.namespace.clone(), attr.name, &test)
     })
 }
 

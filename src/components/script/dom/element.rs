@@ -7,7 +7,7 @@
 use dom::attr::Attr;
 use dom::attrlist::AttrList;
 use dom::bindings::utils::{Reflectable, DOMString, ErrorResult, Fallible, Reflector};
-use dom::bindings::utils::{null_str_as_empty, NamespaceError};
+use dom::bindings::utils::NamespaceError;
 use dom::bindings::utils::{InvalidCharacter, QName, Name, InvalidXMLName, xml_name_type};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
@@ -137,30 +137,23 @@ impl Element {
         }
     }
 
-    pub fn normalize_attr_name(&self, name: Option<DOMString>) -> ~str {
-        //FIXME: Throw for XML-invalid names
+    pub fn html_element_in_html_document(&self) -> bool {
         let owner = self.node.owner_doc();
-        if owner.document().doctype == document::HTML { // && self.namespace == Namespace::HTML
-            null_str_as_empty(&name).to_ascii_lower()
-        } else {
-            null_str_as_empty(&name)
-        }
+        self.namespace == namespace::HTML &&
+        // FIXME: check that this matches what the spec calls "is in an HTML document"
+        owner.document().doctype == document::HTML
     }
 
     pub fn get_attribute(&self,
                          namespace: Namespace,
                          name: &str) -> Option<@mut Attr> {
-        // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
-        let name = name.to_ascii_lower();
         self.attrs.iter().find(|attr| {
             name == attr.local_name && attr.namespace == namespace
         }).map(|&x| x)
     }
 
-    pub unsafe fn get_attr_val_for_layout(&self, namespace: Namespace, name: &str) 
+    pub unsafe fn get_attr_val_for_layout(&self, namespace: Namespace, name: &str)
                                           -> Option<&'static str> {
-        // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
-        let name = name.to_ascii_lower();
         self.attrs.iter().find(|attr: & &@mut Attr| {
             // unsafely avoid a borrow because this is accessed by many tasks
             // during parallel layout
@@ -174,8 +167,6 @@ impl Element {
 
     pub fn set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
                     -> ErrorResult {
-        // FIXME: HTML-in-HTML only.
-        let name = name.to_ascii_lower();
         self.set_attribute(abstract_self, namespace::Null, name, value)
     }
 
@@ -402,6 +393,11 @@ impl Element {
     }
 
     pub fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
+        let name = if self.html_element_in_html_document() {
+            name.to_ascii_lower()
+        } else {
+            name
+        };
         self.get_attribute(Null, name).map(|s| s.Value())
     }
 
@@ -413,6 +409,12 @@ impl Element {
 
     pub fn SetAttribute(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
                         -> ErrorResult {
+        // FIXME: If name does not match the Name production in XML, throw an "InvalidCharacterError" exception.
+        let name = if self.html_element_in_html_document() {
+            name.to_ascii_lower()
+        } else {
+            name
+        };
         self.set_attr(abstract_self, name, value)
     }
 
@@ -435,6 +437,11 @@ impl Element {
     pub fn RemoveAttribute(&mut self,
                            abstract_self: AbstractNode,
                            name: DOMString) -> ErrorResult {
+        let name = if self.html_element_in_html_document() {
+            name.to_ascii_lower()
+        } else {
+            name
+        };
         self.remove_attribute(abstract_self, namespace::Null, name)
     }
 

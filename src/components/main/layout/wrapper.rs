@@ -14,11 +14,13 @@
 //! (2) Layout is not allowed to see anything with `Abstract` in the name, because it could hang
 //!     onto these objects and cause use-after-free.
 
+use std::ascii::StrAsciiExt;
 use extra::url::Url;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::HTMLImageElement;
+use script::dom::namespace;
 use script::dom::namespace::Namespace;
 use script::dom::node::{AbstractNode, DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
 use script::dom::text::Text;
@@ -246,7 +248,7 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
             self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
         }
     }
-    
+
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
@@ -390,6 +392,20 @@ impl<'le> TElement for LayoutElement<'le> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
+    fn match_attr(&self, ns_url: Option<~str>, name: &str, test: &|&str| -> bool) -> bool {
+        let temp;
+        let name = if self.element.html_element_in_html_document() {
+            temp = name.to_ascii_lower();
+            temp.as_slice()
+        } else {
+            name
+        };
+        match self.get_attr(ns_url, name) {
+            Some(value) => (*test)(value),
+            None => false,
+        }
+    }
+
     fn get_link(&self) -> Option<~str> {
         // FIXME: This is HTML only.
         match self.element.node.type_id {
@@ -398,7 +414,8 @@ impl<'le> TElement for LayoutElement<'le> {
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
             ElementNodeTypeId(HTMLAreaElementTypeId) |
             ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                self.get_attr(None, "href").map(|val| val.to_owned())
+                unsafe { self.element.get_attr_val_for_layout(namespace::Null, "href") }
+                .map(|val| val.to_owned())
             }
             _ => None,
         }
