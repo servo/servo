@@ -15,7 +15,6 @@
 //!     onto these objects and cause use-after-free.
 
 use extra::url::Url;
-use script::dom::bindings::utils::null_str_as_empty_ref;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
@@ -290,10 +289,15 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
             } else {
                 attr.name.as_slice()
             };
-            // FIXME: avoid .clone() here? See #1367
-            match element.get_attr(attr.namespace.clone(), name) {
-                Some(value) => test(value),
-                None => false,
+            match attr.namespace {
+                Some(ref url) => {
+                    match element.get_attr(&namespace::Namespace::from_str(url.as_slice()), name) {
+                        Some(value) => test(value),
+                        None => false,
+                    }
+                },
+                // FIXME: support `*|attr`, attribute selectors in any namespace
+                None => return false,
             }
         })
     }
@@ -405,8 +409,7 @@ impl<'le> TElement for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<&'static str> {
-        let namespace = Namespace::from_str(null_str_as_empty_ref(&ns_url));
+    fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'static str> {
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 
@@ -418,7 +421,7 @@ impl<'le> TElement for LayoutElement<'le> {
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
             ElementNodeTypeId(HTMLAreaElementTypeId) |
             ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                unsafe { self.element.get_attr_val_for_layout(namespace::Null, "href") }
+                unsafe { self.element.get_attr_val_for_layout(&namespace::Null, "href") }
                 .map(|val| val.to_owned())
             }
             _ => None,

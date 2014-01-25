@@ -152,13 +152,14 @@ impl Element {
         }).map(|&x| x)
     }
 
-    pub unsafe fn get_attr_val_for_layout(&self, namespace: Namespace, name: &str)
+    #[inline]
+    pub unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str)
                                           -> Option<&'static str> {
         self.attrs.iter().find(|attr: & &@mut Attr| {
             // unsafely avoid a borrow because this is accessed by many tasks
             // during parallel layout
             let attr: ***Box<Attr> = cast::transmute(attr);
-            name == (***attr).data.local_name && (***attr).data.namespace == namespace
+            name == (***attr).data.local_name && (***attr).data.namespace == *namespace
        }).map(|attr| {
             let attr: **Box<Attr> = cast::transmute(attr);
             cast::transmute((**attr).data.value.as_slice())

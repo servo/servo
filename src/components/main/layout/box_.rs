@@ -22,6 +22,7 @@ use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::*;
+use servo_util::namespace;
 use std::cast;
 use std::cell::RefCell;
 use std::cmp::ApproxEq;
@@ -127,7 +128,7 @@ impl ImageBoxInfo {
 
         fn convert_length(node: &LayoutNode, name: &str) -> Option<Au> {
             node.with_element(|element| {
-                element.get_attr(None, name).and_then(|string| {
+                element.get_attr(&namespace::Null, name).and_then(|string| {
                     let n: Option<int> = FromStr::from_str(string);
                     n
                 }).and_then(|pixels| Some(Au::from_px(pixels)))

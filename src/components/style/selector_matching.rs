@@ -7,6 +7,8 @@ use std::ascii::StrAsciiExt;
 use std::hashmap::HashMap;
 use std::str;
 
+use servo_util::namespace;
+
 use media_queries::{Device, Screen};
 use node::{TElement, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
@@ -73,7 +75,7 @@ impl SelectorMap {
         // At the end, we're going to sort the rules that we added, so remember where we began.
         let init_len = matching_rules_list.len();
         node.with_element(|element: &E| {
-            match element.get_attr(None, "id") {
+            match element.get_attr(&namespace::Null, "id") {
                 Some(id) => {
                     SelectorMap::get_matching_rules_from_hash(node,
                                                               &self.id_hash,
@@ -83,7 +85,7 @@ impl SelectorMap {
                 None => {}
             }
 
-            match element.get_attr(None, "class") {
+            match element.get_attr(&namespace::Null, "class") {
                 Some(ref class_attr) => {
                     for class in class_attr.split(SELECTOR_WHITESPACE) {
                         SelectorMap::get_matching_rules_from_hash(
@@ -495,7 +497,7 @@ fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, ele
         // TODO: cache and intern IDs on elements.
         IDSelector(ref id) => {
             element.with_element(|element: &E| {
-                match element.get_attr(None, "id") {
+                match element.get_attr(&namespace::Null, "id") {
                     Some(attr) => str::eq_slice(attr, *id),
                     None => false
                 }
@@ -504,7 +506,7 @@ fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, ele
         // TODO: cache and intern classe names on elements.
         ClassSelector(ref class) => {
             element.with_element(|element: &E| {
-                match element.get_attr(None, "class") {
+                match element.get_attr(&namespace::Null, "class") {
                     None => false,
                     // TODO: case-sensitivity depends on the document type and quirks mode
                     Some(ref class_attr)
