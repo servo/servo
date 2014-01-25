@@ -13,7 +13,6 @@ use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, M
 use dom::event::Event;
 use dom::eventtarget::AbstractEventTarget;
 use dom::htmldocument::HTMLDocument;
-use dom::namespace::Null;
 use dom::node::AbstractNode;
 use dom::window::{TimerData, TimerHandle, Window};
 use html::hubbub_html_parser::HtmlParserResult;
@@ -47,6 +46,7 @@ use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::url::make_url;
 use servo_util::task::spawn_named;
+use servo_util::namespace::Null;
 use std::comm::{Port, SharedChan};
 use std::ptr;
 use std::str::eq_slice;

@@ -5,8 +5,8 @@
 use dom::bindings::codegen::AttrBinding;
 use dom::bindings::utils::{Reflectable, Reflector, DOMString};
 use dom::bindings::utils::reflect_dom_object;
-use dom::namespace::{Namespace, Null};
 use dom::window::Window;
+use servo_util::namespace::{Namespace, Null};
 
 use std::util;
 
@@ -89,7 +89,10 @@ impl Attr {
     }
 
     pub fn GetNamespaceURI(&self) -> Option<DOMString> {
-        self.namespace.to_str().map(|s| s.to_owned())
+        match self.namespace.to_str() {
+            "" => None,
+            url => Some(url.to_owned()),
+        }
     }
 
     pub fn GetPrefix(&self) -> Option<DOMString> {
