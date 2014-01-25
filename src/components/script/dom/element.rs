@@ -7,7 +7,7 @@
 use dom::attr::Attr;
 use dom::attrlist::AttrList;
 use dom::bindings::utils::{Reflectable, DOMString, ErrorResult, Fallible, Reflector};
-use dom::bindings::utils::NamespaceError;
+use dom::bindings::utils::{null_str_as_empty_ref, NamespaceError};
 use dom::bindings::utils::{InvalidCharacter, QName, Name, InvalidXMLName, xml_name_type};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
@@ -402,7 +402,7 @@ impl Element {
     }
 
     pub fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString> {
-        let namespace = Namespace::from_str(namespace);
+        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
         self.get_attribute(namespace, local_name)
             .map(|attr| attr.value.clone())
     }
@@ -430,7 +430,7 @@ impl Element {
             QName => {}
         }
 
-        let namespace = Namespace::from_str(namespace_url);
+        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace_url));
         self.set_attribute(abstract_self, namespace, name, value)
     }
 
@@ -449,7 +449,7 @@ impl Element {
                              abstract_self: AbstractNode,
                              namespace: Option<DOMString>,
                              localname: DOMString) -> ErrorResult {
-        let namespace = Namespace::from_str(namespace);
+        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
         self.remove_attribute(abstract_self, namespace, localname)
     }
 

@@ -15,6 +15,7 @@
 //!     onto these objects and cause use-after-free.
 
 use extra::url::Url;
+use script::dom::bindings::utils::null_str_as_empty_ref;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
@@ -405,7 +406,7 @@ impl<'le> TElement for LayoutElement<'le> {
 
     #[inline]
     fn get_attr(&self, ns_url: Option<~str>, name: &str) -> Option<&'static str> {
-        let namespace = Namespace::from_str(ns_url);
+        let namespace = Namespace::from_str(null_str_as_empty_ref(&ns_url));
         unsafe { self.element.get_attr_val_for_layout(namespace, name) }
     }
 

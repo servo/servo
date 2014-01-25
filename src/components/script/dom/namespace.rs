@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_str_as_empty_ref};
-
 #[deriving(Eq, Clone)]
 pub enum Namespace {
     Null,
@@ -17,8 +15,9 @@ pub enum Namespace {
 }
 
 impl Namespace {
-    pub fn from_str(url: Option<DOMString>) -> Namespace {
-        match null_str_as_empty_ref(&url) {
+    /// Empty string for "no namespace"
+    pub fn from_str(url: &str) -> Namespace {
+        match url {
             "http://www.w3.org/1999/xhtml" => HTML,
             "http://www.w3.org/XML/1998/namespace" => XML,
             "http://www.w3.org/2000/xmlns/" => XMLNS,
