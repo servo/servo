@@ -88,6 +88,7 @@ pub enum SimpleSelector {
 #[deriving(Eq, Clone)]
 pub struct AttrSelector {
     name: ~str,
+    lower_name: ~str,
     namespace: Option<~str>,
 }
 
@@ -423,6 +424,7 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
         QualifiedName(_, None) => fail!("Implementation error, this should not happen."),
         QualifiedName(namespace, Some(local_name)) => AttrSelector {
             namespace: namespace,
+            lower_name: local_name.to_ascii_lower(),
             name: local_name,
         },
     };
