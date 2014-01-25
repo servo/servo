@@ -89,7 +89,10 @@ impl Attr {
     }
 
     pub fn GetNamespaceURI(&self) -> Option<DOMString> {
-        self.namespace.to_str().map(|s| s.to_owned())
+        match self.namespace.to_str() {
+            "" => None,
+            url => Some(url.to_owned()),
+        }
     }
 
     pub fn GetPrefix(&self) -> Option<DOMString> {
