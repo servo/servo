@@ -24,9 +24,9 @@ use layout::wrapper::{DomLeafSet, LayoutNode};
 use extra::arc::{Arc, MutexArc};
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator};
-use gfx::display_list::{DisplayList, DisplayListCollection};
-use gfx::font_context::FontContextInfo;
+use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator, DisplayList};
+use gfx::display_list::{DisplayListCollection};
+use gfx::font_context::{FontContext, FontContextInfo};
 use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
@@ -415,8 +415,21 @@ impl LayoutTask {
     /// is intertwined with selector matching, making it difficult to compare directly. It is
     /// marked `#[inline(never)]` to aid benchmarking in sampling profilers.
     #[inline(never)]
-    fn construct_flow_tree(&self, layout_context: &mut LayoutContext, node: LayoutNode) -> ~Flow {
-        node.traverse_postorder_mut(&mut FlowConstructor::init(layout_context));
+    fn construct_flow_tree(&mut self, layout_context: &mut LayoutContext, node: LayoutNode)
+                           -> ~Flow {
+        match self.parallel_traversal {
+            None => {
+                let font_context = ~FontContext::new(layout_context.font_context_info.clone());
+                node.traverse_postorder_mut(&mut FlowConstructor::new(layout_context,
+                                                                      Some(font_context)));
+            }
+            Some(ref mut traversal) => {
+                parallel::construct_flow_tree(&self.dom_leaf_set,
+                                              self.profiler_chan.clone(),
+                                              layout_context,
+                                              traversal)
+            }
+        }
 
         let mut layout_data_ref = node.mutate_layout_data();
         let result = match *layout_data_ref.get() {

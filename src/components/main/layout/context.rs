@@ -62,13 +62,15 @@ pub struct LayoutContext {
 impl LayoutContext {
     pub fn font_context<'a>(&'a mut self) -> &'a mut FontContext {
         // Sanity check.
-        let mut task = Local::borrow(None::<Task>);
-        match task.get().maybe_take_runtime::<GreenTask>() {
-            Some(green) => {
-                task.get().put_runtime(green as ~Runtime);
-                fail!("can't call this on a green task!")
+        {
+            let mut task = Local::borrow(None::<Task>);
+            match task.get().maybe_take_runtime::<GreenTask>() {
+                Some(green) => {
+                    task.get().put_runtime(green as ~Runtime);
+                    fail!("can't call this on a green task!")
+                }
+                None => {}
             }
-            None => {}
         }
 
         unsafe {
