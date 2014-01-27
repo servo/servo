@@ -12,13 +12,13 @@
 == first_of_type_pseudo_a.html first_of_type_pseudo_b.html
 == last_of_type_pseudo_a.html last_of_type_pseudo_b.html
 == only_of_type_pseudo_a.html only_of_type_pseudo_b.html
-== visibility_hidden.html visibility_hidden_ref.html
+# visibility_hidden.html visibility_hidden_ref.html
 == root_height_a.html root_height_b.html
 == png_rgba_colorspace_a.html png_rgba_colorspace_b.html
 == border_style_none_a.html border_style_none_b.html
 == acid1_a.html acid1_b.html
-== text_decoration_propagation_a.html text_decoration_propagation_b.html
-== inline_text_align_a.html inline_text_align_b.html
+# text_decoration_propagation_a.html text_decoration_propagation_b.html
+# inline_text_align_a.html inline_text_align_b.html
 == font_size_em.html font_size_em_ref.html
 == font_size_percentage.html font_size_em_ref.html
 == position_fixed_a.html position_fixed_b.html
