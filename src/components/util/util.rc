@@ -23,3 +23,5 @@ pub mod task;
 pub mod workqueue;
 pub mod namespace;
 pub mod sort;
+pub mod smallvec;
+
