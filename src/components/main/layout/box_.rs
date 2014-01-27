@@ -29,7 +29,7 @@ use std::cmp::ApproxEq;
 use std::num::Zero;
 use style::{ComputedValues, TElement, TNode};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto, overflow, LPA_Auto};
-use style::computed_values::{border_style, clear, font_family, line_height};
+use style::computed_values::{border_style, clear, font_family, line_height, position};
 use style::computed_values::{text_align, text_decoration, vertical_align, visibility, white_space};
 
 use css::node_style::StyledNode;
@@ -651,6 +651,59 @@ impl Box {
             &None => {}
         }
     }
+    pub fn relative_position(&self, container_block_size: &Size2D<Au>) -> Point2D<Au> {
+        fn left_right(style: &ComputedValues,block_width: Au) -> Au {
+            // TODO(ksh8281) : consider RTL(right-to-left) culture
+            match (style.PositionOffsets.left, style.PositionOffsets.right) {
+                (LPA_Auto, _) => {
+                    -MaybeAuto::from_style(style.PositionOffsets.right, block_width)
+                        .specified_or_zero()
+                }
+                (_, _) => {
+                    MaybeAuto::from_style(style.PositionOffsets.left, block_width)
+                        .specified_or_zero()
+                }
+            }
+        }
+
+        fn top_bottom(style: &ComputedValues,block_height: Au) -> Au {
+            match (style.PositionOffsets.top, style.PositionOffsets.bottom) {
+                (LPA_Auto, _) => {
+                    -MaybeAuto::from_style(style.PositionOffsets.bottom, block_height)
+                        .specified_or_zero()
+                }
+                (_, _) => {
+                    MaybeAuto::from_style(style.PositionOffsets.top, block_height)
+                        .specified_or_zero()
+                }
+            }
+        }
+
+        let mut rel_pos: Point2D<Au> = Point2D {
+            x: Au::new(0),
+            y: Au::new(0),
+        };
+
+        if self.style().Box.position == position::relative {
+            rel_pos.x = rel_pos.x + left_right(self.style(), container_block_size.width);
+            rel_pos.y = rel_pos.y + top_bottom(self.style(), container_block_size.height);
+        }
+
+        let info = self.inline_info.borrow();
+        match info.get() {
+            &Some(ref info) => {
+                for info in info.parent_info.iter() {
+                    if info.style.get().Box.position == position::relative {
+                        rel_pos.x = rel_pos.x + left_right(info.style.get(), container_block_size.width);
+                        rel_pos.y = rel_pos.y + top_bottom(info.style.get(), container_block_size.height);
+                    }
+                }
+            },
+            &None => {}
+        }
+        rel_pos
+    }
+
     /// Always inline for SCCP.
     ///
     /// FIXME(pcwalton): Just replace with the clear type from the style module for speed?

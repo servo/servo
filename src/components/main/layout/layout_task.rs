@@ -615,7 +615,7 @@ impl LayoutTask {
                 let display_list_builder = DisplayListBuilder {
                     ctx: &layout_ctx,
                 };
-                layout_root.build_display_lists(&display_list_builder, &dirty, 0u, display_list_collection);
+                layout_root.build_display_lists(&display_list_builder, &root_size, &dirty, 0u, display_list_collection);
 
                 let display_list_collection = Arc::new(display_list_collection.unwrap());
 

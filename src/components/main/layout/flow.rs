@@ -40,6 +40,7 @@ use layout::wrapper::ThreadSafeLayoutNode;
 use extra::dlist::{DList, DListIterator, MutDListIterator};
 use extra::container::Deque;
 use geom::point::Point2D;
+use geom::Size2D;
 use geom::rect::Rect;
 use gfx::display_list::{ClipDisplayItemClass, DisplayListCollection, DisplayList};
 use layout::display_list_builder::ToGfxColor;
@@ -207,6 +208,7 @@ pub trait MutableFlowUtils {
     fn build_display_lists<E:ExtraDisplayListData>(
                           self,
                           builder: &DisplayListBuilder,
+                          container_block_size: &Size2D<Au>,
                           dirty: &Rect<Au>,
                           index: uint,
                           mut list: &RefCell<DisplayListCollection<E>>)
@@ -726,14 +728,15 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
     fn build_display_lists<E:ExtraDisplayListData>(
                           self,
                           builder: &DisplayListBuilder,
+                          container_block_size: &Size2D<Au>,
                           dirty: &Rect<Au>,
                           mut index: uint,
                           lists: &RefCell<DisplayListCollection<E>>)
                           -> bool {
         debug!("Flow: building display list for f{}", base(self).id);
         index = match self.class() {
-            BlockFlowClass => self.as_block().build_display_list_block(builder, dirty, index, lists),
-            InlineFlowClass => self.as_inline().build_display_list_inline(builder, dirty, index, lists),
+            BlockFlowClass => self.as_block().build_display_list_block(builder, container_block_size, dirty, index, lists),
+            InlineFlowClass => self.as_inline().build_display_list_inline(builder, container_block_size, dirty, index, lists),
         };
 
         if lists.with_mut(|lists| lists.lists[index].list.len() == 0) {
@@ -744,8 +747,21 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
             let mut child_lists = DisplayListCollection::new();
             child_lists.add_list(DisplayList::new());
             let child_lists = RefCell::new(child_lists);
+            let container_block_size = match self.class() {
+                BlockFlowClass => {
+                    if self.as_block().box_.is_some() {
+                        self.as_block().box_.get_ref().position.get().size
+                    } else {
+                        base(self).position.size
+                    }
+                },
+                _ => {
+                    base(self).position.size
+                }
+            };
+
             for kid in child_iter(self) {
-                kid.build_display_lists(builder, dirty, 0u, &child_lists);
+                kid.build_display_lists(builder, &container_block_size, dirty, 0u, &child_lists);
             }
 
             let mut child_lists = Some(child_lists.unwrap());
