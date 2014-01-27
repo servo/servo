@@ -14,7 +14,6 @@ extern mod std;
 use std::io;
 use std::io::{File, Reader};
 use std::io::process::ExitStatus;
-use std::num::abs;
 use std::os;
 use std::run::{Process, ProcessOptions};
 use std::str;
@@ -139,9 +138,16 @@ fn check_reftest(reftest: Reftest) {
     let right = png::load_png(&from_str::<Path>(right_filename).unwrap()).unwrap();
 
     let pixels: ~[u8] = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
-            let a_signed = a as i8;
-            let b_signed = b as i8;
-            255-abs(a_signed - b_signed) as u8
+            if (a as i8 - b as i8 == 0) {
+                // White for correct
+                0xFF 
+            } else {
+                // "1100" in the RGBA channel with an error for an incorrect value
+                // This results in some number of C0 and FFs, which is much more
+                // readable (and distinguishable) than the previous difference-wise
+                // scaling but does not require reconstructing the actual RGBA pixel.
+                0xC0
+            }
         }).collect();
 
     if pixels.iter().any(|&a| a < 255) {
