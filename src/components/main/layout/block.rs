@@ -649,6 +649,7 @@ impl Flow for BlockFlow {
             // The text alignment of a block flow is the text alignment of its box's style.
             self.base.flags_info.flags.set_text_align(style.Text.text_align);
 
+            box_.assign_width(remaining_width);
             // Can compute padding here since we know containing block width.
             box_.compute_padding(style, remaining_width);
 
@@ -739,6 +740,11 @@ impl Flow for BlockFlow {
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
+        //assign height for box
+        for box_ in self.box_.iter() {
+            box_.assign_height();
+        }
+
         if self.is_float() {
             debug!("assign_height_float: assigning height for float {}", self.base.id);
             self.assign_height_float(ctx);

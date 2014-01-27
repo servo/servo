@@ -363,6 +363,7 @@ impl FlowFlagsInfo {
 
         if !self.flags.is_text_decoration_enabled() && parent.flags.is_text_decoration_enabled() {
             self.rare_flow_flags = parent.rare_flow_flags.clone();
+            self.flags.set_text_decoration_override(parent.flags);
             return ;
         }
 
