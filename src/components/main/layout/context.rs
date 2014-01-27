@@ -7,6 +7,7 @@
 use extra::arc::MutexArc;
 use green::task::GreenTask;
 use layout::flow::LeafSet;
+use layout::util::OpaqueNode;
 use std::cast;
 use std::ptr;
 use std::rt::Runtime;
@@ -45,6 +46,9 @@ pub struct LayoutContext {
     ///
     /// FIXME(pcwalton): Make this no longer an unsafe pointer once we have fast `RWArc`s.
     stylist: *Stylist,
+
+    /// The root node at which we're starting the layout.
+    reflow_root: OpaqueNode,
 }
 
 impl LayoutContext {

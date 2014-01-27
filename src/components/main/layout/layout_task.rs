@@ -289,7 +289,7 @@ impl LayoutTask {
     }
 
     // Create a layout context for use in building display lists, hit testing, &c.
-    fn build_layout_context(&self) -> LayoutContext {
+    fn build_layout_context(&self, reflow_root: &LayoutNode) -> LayoutContext {
         let font_context_info = FontContextInfo {
             backend: self.opts.render_backend,
             needs_font_list: true,
@@ -303,6 +303,7 @@ impl LayoutTask {
             leaf_set: self.leaf_set.clone(),
             font_context_info: font_context_info,
             stylist: &*self.stylist,
+            reflow_root: OpaqueNode::from_layout_node(reflow_root),
         }
     }
 
@@ -505,7 +506,7 @@ impl LayoutTask {
         self.screen_size = current_screen_size;
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_ctx = self.build_layout_context();
+        let mut layout_ctx = self.build_layout_context(node);
 
         // Initialize layout data for each node.
         //
@@ -522,13 +523,19 @@ impl LayoutTask {
                     match self.parallel_traversal {
                         None => node.match_subtree(self.stylist),
                         Some(ref mut traversal) => {
-                            parallel::match_subtree(node, &mut layout_ctx, traversal)
+                            parallel::match_and_cascade_subtree(node, &mut layout_ctx, traversal)
                         }
                     }
                 });
-                profile(time::LayoutSelectorCascadeCategory, self.profiler_chan.clone(), || {
-                    node.cascade_subtree(None);
-                });
+
+                // If we're doing layout sequentially, do the cascade separately.
+                //
+                // TODO(pcwalton): Integrate this into `match_subtree`.
+                if self.parallel_traversal.is_none() {
+                    profile(time::LayoutSelectorCascadeCategory, self.profiler_chan.clone(), || {
+                        node.cascade_subtree(None);
+                    });
+                }
             }
         }
 

@@ -11,6 +11,7 @@ use layout::context::LayoutContext;
 use layout::flow::{Flow, LeafSet, PostorderFlowTraversal};
 use layout::flow;
 use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, BubbleWidthsTraversal};
+use layout::util::OpaqueNode;
 use layout::wrapper::LayoutNode;
 
 use extra::arc::MutexArc;
@@ -115,27 +116,35 @@ impl<'a> ParallelPostorderFlowTraversal for BubbleWidthsTraversal<'a> {}
 
 impl<'a> ParallelPostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {}
 
-fn match_node(unsafe_layout_node: UnsafeLayoutNode,
-              proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeLayoutNode>) {
+fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
+                          proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeLayoutNode>) {
     unsafe {
         let layout_context: &mut LayoutContext = cast::transmute(*proxy.user_data());
 
         // Get a real layout node.
         let node: LayoutNode = cast::transmute(unsafe_layout_node);
 
+        // Perform the CSS selector matching.
+        let stylist: &Stylist = cast::transmute(layout_context.stylist);
+        node.match_node(stylist);
+
+        // Perform the CSS cascade.
+        let parent_opt = if OpaqueNode::from_layout_node(&node) == layout_context.reflow_root {
+            None
+        } else {
+            node.parent_node()
+        };
+        node.cascade_node(parent_opt);
+
         // Enqueue kids.
         for kid in node.children() {
             if kid.is_element() {
                 proxy.push(WorkUnit {
-                    fun: match_node,
+                    fun: match_and_cascade_node,
                     data: layout_node_to_unsafe_layout_node(&kid),
                 });
             }
         }
-
-        // Perform the CSS selector matching.
-        let stylist: &Stylist = cast::transmute(layout_context.stylist);
-        node.match_node(stylist);
     }
 }
 
@@ -160,16 +169,16 @@ fn assign_heights_and_store_overflow(unsafe_flow: UnsafeFlow,
     assign_heights_traversal.run_parallel(unsafe_flow)
 }
 
-pub fn match_subtree(root_node: &LayoutNode,
-                     layout_context: &mut LayoutContext,
-                     queue: &mut WorkQueue<*mut LayoutContext,UnsafeLayoutNode>) {
+pub fn match_and_cascade_subtree(root_node: &LayoutNode,
+                                 layout_context: &mut LayoutContext,
+                                 queue: &mut WorkQueue<*mut LayoutContext,UnsafeLayoutNode>) {
     unsafe {
         queue.data = cast::transmute(layout_context)
     }
 
     // Enqueue the root node.
     queue.push(WorkUnit {
-        fun: match_node,
+        fun: match_and_cascade_node,
         data: layout_node_to_unsafe_layout_node(root_node),
     });
 
