@@ -29,7 +29,7 @@ use layout::float_context::FloatType;
 use layout::flow::{BaseFlow, Flow, LeafSet, MutableOwnedFlowUtils};
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
-use layout::util::LayoutDataAccess;
+use layout::util::{LayoutDataAccess, OpaqueNode};
 use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal};
 
 use gfx::font_context::FontContext;
@@ -425,7 +425,7 @@ impl<'fc> FlowConstructor<'fc> {
                                                   -> ConstructionResult {
         let mut opt_inline_block_splits = None;
         let mut opt_box_accumulator = None;
-
+ 
         // Concatenate all the boxes of our kids, creating {ib} splits as necessary.
         for kid in node.children() {
             match kid.swap_out_construction_result() {
@@ -442,10 +442,8 @@ impl<'fc> FlowConstructor<'fc> {
                 ConstructionItemConstructionResult(InlineBoxesConstructionItem(
                         InlineBoxesConstructionResult {
                             splits: opt_splits,
-                            boxes: mut boxes
+                            boxes: boxes
                         })) => {
-                    // fill inline info
-                    self.set_inline_info_for_inline_child(&mut boxes, node);
 
                     // Bubble up {ib} splits.
                     match opt_splits {
@@ -474,6 +472,49 @@ impl<'fc> FlowConstructor<'fc> {
             }
         }
 
+        // fill inline info
+        match opt_inline_block_splits {
+            Some(ref splits) => {
+                match opt_box_accumulator {
+                    Some(ref boxes) => {
+                        // Both
+                        let mut total: ~[&Box] = ~[];
+                        for split in splits.iter() {
+                            for box_ in split.predecessor_boxes.iter() {
+                                total.push(box_);
+                            }
+                        }
+                        for box_ in boxes.iter() {
+                            total.push(box_);
+                        }
+                        self.set_inline_info_for_inline_child(&total, node);
+
+                    },
+                    None => {
+                        let mut total: ~[&Box] = ~[];
+                        for split in splits.iter() {
+                            for box_ in split.predecessor_boxes.iter() {
+                                total.push(box_);
+                            }
+                        }
+                        self.set_inline_info_for_inline_child(&total, node);
+                    }
+                }
+            },
+            None => {
+                match opt_box_accumulator {
+                    Some(ref boxes) => {
+                        let mut total: ~[&Box] = ~[];
+                        for box_ in boxes.iter() {
+                            total.push(box_);
+                        }
+                        self.set_inline_info_for_inline_child(&total, node);
+                    },
+                    None => {}
+                }
+            }
+        }
+
         // Finally, make a new construction result.
         if opt_inline_block_splits.len() > 0 || opt_box_accumulator.len() > 0 {
             let construction_item = InlineBoxesConstructionItem(InlineBoxesConstructionResult {
@@ -486,7 +527,7 @@ impl<'fc> FlowConstructor<'fc> {
         }
     }
 
-    fn set_inline_info_for_inline_child(&mut self, boxes: &mut ~[Box], parent_node: LayoutNode) {
+    fn set_inline_info_for_inline_child(&mut self, boxes: &~[&Box], parent_node: LayoutNode) {
         let parent_box = self.build_box_for_node(parent_node);
         let font_style = parent_box.font_style();
         let font_group = self.font_context.get_resolved_font_for_style(&font_style);
@@ -496,23 +537,35 @@ impl<'fc> FlowConstructor<'fc> {
             })
         });
 
-        for box_ in boxes.mut_iter() {
+        let boxes_len = boxes.len();
+        parent_box.compute_borders(parent_box.style());
+
+        for (i,box_) in boxes.iter().enumerate() {
             if box_.inline_info.with( |data| data.is_none() ) {
                 box_.inline_info.set(Some(InlineInfo::new()));
+            }
+
+            let mut border = parent_box.border.get();
+            if i != 0 {
+                border.left = Zero::zero();
+            }
+            if i != (boxes_len - 1) {
+                border.right = Zero::zero();
             }
 
             let mut info = box_.inline_info.borrow_mut();
             match info.get() {
                 &Some(ref mut info) => {
-                    // TODO(ksh8281) compute margin,border,padding
+                    // TODO(ksh8281) compute margin,padding
                     info.parent_info.push(
                         InlineParentInfo {
                             padding: Zero::zero(),
-                            border: Zero::zero(),
+                            border: border,
                             margin: Zero::zero(),
                             style: parent_box.style.clone(),
                             font_ascent: font_ascent,
                             font_descent: font_descent,
+                            node: OpaqueNode::from_layout_node(&parent_node),
                         });
                 },
                 &None => {}
@@ -670,13 +723,22 @@ fn strip_ignorable_whitespace_from_start(opt_boxes: &mut Option<~[Box]>) {
             // FIXME(pcwalton): This is slow because vector shift is broken. :(
             let mut found_nonwhitespace = false;
             let mut result = ~[];
+            let mut last_removed_box: Option<Box> = None;
             for box_ in boxes.move_iter() {
                 if !found_nonwhitespace && box_.is_whitespace_only() {
                     debug!("stripping ignorable whitespace from start");
+                    last_removed_box = Some(box_);
                     continue
                 }
 
                 found_nonwhitespace = true;
+                match last_removed_box {
+                    Some(ref last_removed_box) => {
+                        box_.merge_noncontent_inline_left(last_removed_box);
+                    },
+                    None => {}
+                }
+                last_removed_box = None;
                 result.push(box_)
             }
 
@@ -692,7 +754,10 @@ fn strip_ignorable_whitespace_from_end(opt_boxes: &mut Option<~[Box]>) {
         Some(ref mut boxes) => {
             while boxes.len() > 0 && boxes.last().is_whitespace_only() {
                 debug!("stripping ignorable whitespace from end");
-                let _ = boxes.pop();
+                let box_ = boxes.pop();
+                if boxes.len() > 0 {
+                    boxes[boxes.len() - 1].merge_noncontent_inline_right(&box_);
+                }
             }
         }
     }
