@@ -2,19 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Implements parallel traversals over the flow tree.
+//! Implements parallel traversals over the DOM and flow trees.
+//!
+//! This code is highly unsafe. Keep this file small and easy to audit.
 
+use css::matching::MatchMethods;
 use layout::context::LayoutContext;
 use layout::flow::{Flow, LeafSet, PostorderFlowTraversal};
 use layout::flow;
 use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, BubbleWidthsTraversal};
+use layout::wrapper::LayoutNode;
 
 use extra::arc::MutexArc;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use std::cast;
+use std::ptr;
 use std::sync::atomics::{AtomicInt, Relaxed, SeqCst};
+use style::{Stylist, TNode};
 
 pub enum TraversalKind {
     BubbleWidthsTraversalKind,
@@ -36,6 +42,14 @@ pub fn owned_flow_to_unsafe_flow(flow: *~Flow) -> UnsafeFlow {
 pub fn mut_owned_flow_to_unsafe_flow(flow: *mut ~Flow) -> UnsafeFlow {
     unsafe {
         cast::transmute_copy(&*flow)
+    }
+}
+
+pub type UnsafeLayoutNode = (uint, uint);
+
+fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode {
+    unsafe {
+        cast::transmute_copy(node)
     }
 }
 
@@ -101,6 +115,30 @@ impl<'a> ParallelPostorderFlowTraversal for BubbleWidthsTraversal<'a> {}
 
 impl<'a> ParallelPostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {}
 
+fn match_node(unsafe_layout_node: UnsafeLayoutNode,
+              proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeLayoutNode>) {
+    unsafe {
+        let layout_context: &mut LayoutContext = cast::transmute(*proxy.user_data());
+
+        // Get a real layout node.
+        let node: LayoutNode = cast::transmute(unsafe_layout_node);
+
+        // Enqueue kids.
+        for kid in node.children() {
+            if kid.is_element() {
+                proxy.push(WorkUnit {
+                    fun: match_node,
+                    data: layout_node_to_unsafe_layout_node(&kid),
+                });
+            }
+        }
+
+        // Perform the CSS selector matching.
+        let stylist: &Stylist = cast::transmute(layout_context.stylist);
+        node.match_node(stylist);
+    }
+}
+
 fn bubble_widths(unsafe_flow: UnsafeFlow, proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
     let layout_context: &mut LayoutContext = unsafe {
         cast::transmute(*proxy.user_data())
@@ -120,6 +158,24 @@ fn assign_heights_and_store_overflow(unsafe_flow: UnsafeFlow,
         layout_context: layout_context,
     };
     assign_heights_traversal.run_parallel(unsafe_flow)
+}
+
+pub fn match_subtree(root_node: &LayoutNode,
+                     layout_context: &mut LayoutContext,
+                     queue: &mut WorkQueue<*mut LayoutContext,UnsafeLayoutNode>) {
+    unsafe {
+        queue.data = cast::transmute(layout_context)
+    }
+
+    // Enqueue the root node.
+    queue.push(WorkUnit {
+        fun: match_node,
+        data: layout_node_to_unsafe_layout_node(root_node),
+    });
+
+    queue.run();
+
+    queue.data = ptr::mut_null()
 }
 
 pub fn traverse_flow_tree(kind: TraversalKind,
@@ -147,6 +203,8 @@ pub fn traverse_flow_tree(kind: TraversalKind,
         })
     });
 
-    queue.run()
+    queue.run();
+
+    queue.data = ptr::mut_null()
 }
 

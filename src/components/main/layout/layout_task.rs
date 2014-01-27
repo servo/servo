@@ -22,7 +22,7 @@ use layout::parallel;
 use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
 use layout::wrapper::LayoutNode;
 
-use extra::arc::{Arc, MutexArc, RWArc};
+use extra::arc::{Arc, MutexArc};
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator, DisplayList};
@@ -91,7 +91,7 @@ pub struct LayoutTask {
     /// A cached display list.
     display_list: Option<Arc<DisplayList<OpaqueNode>>>,
 
-    stylist: RWArc<Stylist>,
+    stylist: ~Stylist,
 
     /// The workers that we use for parallel operation.
     parallel_traversal: Option<WorkQueue<*mut LayoutContext,UnsafeFlow>>,
@@ -274,7 +274,7 @@ impl LayoutTask {
             leaf_set: MutexArc::new(LeafSet::new()),
 
             display_list: None,
-            stylist: RWArc::new(new_stylist()),
+            stylist: ~new_stylist(),
             parallel_traversal: parallel_traversal,
             profiler_chan: profiler_chan,
             opts: opts.clone()
@@ -302,6 +302,7 @@ impl LayoutTask {
             constellation_chan: self.constellation_chan.clone(),
             leaf_set: self.leaf_set.clone(),
             font_context_info: font_context_info,
+            stylist: &*self.stylist,
         }
     }
 
@@ -379,10 +380,7 @@ impl LayoutTask {
     }
 
     fn handle_add_stylesheet(&mut self, sheet: Stylesheet) {
-        let mut sheet = Some(sheet);
-        self.stylist.write(|stylist| {
-            stylist.add_stylesheet(sheet.take_unwrap(), AuthorOrigin);
-        });
+        self.stylist.add_stylesheet(sheet, AuthorOrigin)
     }
 
     /// Builds the flow tree.
@@ -521,7 +519,12 @@ impl LayoutTask {
             ReflowDocumentDamage => {}
             _ => {
                 profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone(), || {
-                    node.match_subtree(self.stylist.clone());
+                    match self.parallel_traversal {
+                        None => node.match_subtree(self.stylist),
+                        Some(ref mut traversal) => {
+                            parallel::match_subtree(node, &mut layout_ctx, traversal)
+                        }
+                    }
                 });
                 profile(time::LayoutSelectorCascadeCategory, self.profiler_chan.clone(), || {
                     node.cascade_subtree(None);
