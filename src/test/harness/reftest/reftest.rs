@@ -81,6 +81,7 @@ fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
             let kind = match parts[0] {
                 "==" => Same,
                 "!=" => Different,
+                "#" => continue,
                 _ => fail!("reftest line: '{:s}' has invalid kind '{:s}'",
                            line, parts[0])
             };
