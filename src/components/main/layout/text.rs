@@ -18,6 +18,8 @@ use style::computed_values::white_space;
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
 pub struct TextRunScanner {
     clump: Range,
+    /// when flush_clump, some boxes not makes result.
+    /// if the lost box has border,margin,padding of inline, we should restore that stuff.
     last_lost_box_index: Option<uint>
 }
 
