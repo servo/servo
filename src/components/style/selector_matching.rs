@@ -51,6 +51,8 @@ struct SelectorMap {
     element_hash: HashMap<~str, ~[Rule]>,
     // For Rules that don't have ID, class, or element selectors.
     universal_rules: ~[Rule],
+    /// Whether this hash is empty.
+    empty: bool,
 }
 
 impl SelectorMap {
@@ -60,6 +62,7 @@ impl SelectorMap {
             class_hash: HashMap::new(),
             element_hash: HashMap::new(),
             universal_rules: ~[],
+            empty: true,
         }
     }
 
@@ -72,6 +75,10 @@ impl SelectorMap {
                               &self,
                               node: &N,
                               matching_rules_list: &mut ~[Rule]) {
+        if self.empty {
+            return
+        }
+
         // At the end, we're going to sort the rules that we added, so remember where we began.
         let init_len = matching_rules_list.len();
         node.with_element(|element: &E| {
@@ -147,6 +154,8 @@ impl SelectorMap {
     /// Insert rule into the correct hash.
     /// Order in which to try: id_hash, class_hash, element_hash, universal_rules.
     fn insert(&mut self, rule: Rule) {
+        self.empty = false;
+
         match SelectorMap::get_id_name(&rule) {
             Some(id_name) => {
                 match self.id_hash.find_mut(&id_name) {
