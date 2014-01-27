@@ -18,6 +18,7 @@ use gfx::font_context::{FontContext, FontContextInfo};
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
+use style::Stylist;
 
 #[thread_local]
 static mut FONT_CONTEXT: *mut FontContext = 0 as *mut FontContext;
@@ -39,6 +40,11 @@ pub struct LayoutContext {
 
     /// Information needed to construct a font context.
     font_context_info: FontContextInfo,
+
+    /// The CSS selector stylist.
+    ///
+    /// FIXME(pcwalton): Make this no longer an unsafe pointer once we have fast `RWArc`s.
+    stylist: *Stylist,
 }
 
 impl LayoutContext {
