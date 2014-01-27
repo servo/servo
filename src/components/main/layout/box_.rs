@@ -321,14 +321,20 @@ impl Box {
         }
     }
 
+    // CSS Section 10.6.4
+    // We have to solve the constraint equation:
+    // top + bottom + height + (vertical border + padding) = height of
+    // containing block (`screen_height`)
+    //
+    // `y`: static position of the element
     //TODO(ibnc) take into account padding.
-    pub fn get_y_coord_and_new_height_if_fixed(&self, 
+    pub fn get_y_coord_and_new_height_if_fixed(&self,
                                                screen_height: Au,
                                                mut height: Au,
                                                mut y: Au,
                                                is_fixed: bool)
                                                -> (Au, Au) {
-        if is_fixed { 
+        if is_fixed {
             let position_offsets = self.position_offsets.get();
             match (position_offsets.top, position_offsets.bottom) {
                 (Au(0), Au(0)) => {}
@@ -352,6 +358,7 @@ impl Box {
         return (y, height);
     }
 
+    // CSS Section 10.3.7
     //TODO(ibnc) removing padding when width needs to be stretched.
     pub fn get_x_coord_and_new_width_if_fixed(&self,
                                               screen_width: Au,
@@ -1461,7 +1468,7 @@ impl Box {
                                                         image_box_info.dom_height,
                                                         Au::new(0));
 
-                let height = match (self.style().Box.width, 
+                let height = match (self.style().Box.width,
                                     image_box_info.dom_width,
                                     height) {
                     (LPA_Auto, None, Auto) => {
@@ -1545,7 +1552,7 @@ impl Box {
                 *value.right,
                 *value.bottom,
                 *value.left)
-    } 
+    }
 
     /// Sends the size and position of this iframe box to the constellation. This is out of line to
     /// guide inlining.
@@ -1571,4 +1578,3 @@ impl Box {
         layout_context.constellation_chan.send(msg)
     }
 }
-
