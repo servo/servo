@@ -154,13 +154,10 @@ impl LayoutDataRef {
     /// Borrows the layout data immutably, *asserting that there are no mutators*. Bad things will
     /// happen if you try to mutate the layout data while this is held. This is the only thread-
     /// safe layout data accessor.
-    ///
-    /// FIXME(pcwalton): Enforce this invariant via the type system. Will require traversal
-    /// functions to be trusted, but c'est la vie.
-    // #[inline]
-    // pub unsafe fn borrow_unchecked<'a>(&'a self) -> &'a () {
-    //     self.data.borrow_unchecked()
-    // }
+    #[inline]
+    pub unsafe fn borrow_unchecked(&self) -> *Option<LayoutData> {
+        cast::transmute(&self.data_cell)
+    }
 
     /// Borrows the layout data immutably. This function is *not* thread-safe.
     #[inline]

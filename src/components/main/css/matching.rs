@@ -17,6 +17,7 @@ pub trait MatchMethods {
     fn match_node(&self, stylist: &Stylist);
     fn match_subtree(&self, stylist: &Stylist);
 
+    unsafe fn cascade_node(&self, parent: Option<LayoutNode>);
     fn cascade_subtree(&self, parent: Option<LayoutNode>);
 }
 
@@ -51,18 +52,34 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         }
     }
 
-    fn cascade_subtree(&self, parent: Option<LayoutNode>) {
+    unsafe fn cascade_node(&self, parent: Option<LayoutNode>) {
         macro_rules! cascade_node(
             ($applicable_declarations: ident, $style: ident) => {{
+                // Get our parent's style. This must be unsafe so that we don't touch the parent's
+                // borrow flags.
+                //
+                // FIXME(pcwalton): Isolate this unsafety into the `wrapper` module to allow
+                // enforced safe, race-free access to the parent style.
                 let parent_style = match parent {
-                    Some(ref parent) => Some(parent.style()),
-                    None => None
+                    None => None,
+                    Some(parent_node) => {
+                        let parent_layout_data = parent_node.borrow_layout_data_unchecked();
+                        match *parent_layout_data {
+                            None => fail!("no parent data?!"),
+                            Some(ref parent_layout_data) => {
+                                match parent_layout_data.data.style {
+                                    None => fail!("parent hasn't been styled yet?!"),
+                                    Some(ref style) => Some(style.get()),
+                                }
+                            }
+                        }
+                    }
                 };
 
                 let computed_values = {
                     let layout_data_ref = self.borrow_layout_data();
                     let layout_data = layout_data_ref.get().as_ref().unwrap();
-                    Arc::new(cascade(layout_data.data.$applicable_declarations, parent_style.map(|parent_style| parent_style.get())))
+                    Arc::new(cascade(layout_data.data.$applicable_declarations, parent_style))
                 };
 
                 let mut layout_data_ref = self.mutate_layout_data();
@@ -101,6 +118,12 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             if after_len > 0 {
                 cascade_node!(after_applicable_declarations, after_style);
             }
+        }
+    }
+
+    fn cascade_subtree(&self, parent: Option<LayoutNode>) {
+        unsafe {
+            self.cascade_node(parent);
         }
 
         for kid in self.children() {
