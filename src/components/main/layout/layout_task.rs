@@ -522,6 +522,8 @@ impl LayoutTask {
             _ => {
                 profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone(), || {
                     node.match_subtree(self.stylist.clone());
+                });
+                profile(time::LayoutSelectorCascadeCategory, self.profiler_chan.clone(), || {
                     node.cascade_subtree(None);
                 });
             }
