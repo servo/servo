@@ -1141,15 +1141,20 @@ impl Node<ScriptView> {
                        abstract_self: AbstractNode<ScriptView>,
                        node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
  
-        //Recognize a style element, parse it and send it to layout task via AddStylesheet.
+        // Recognize a style element, parse it and send it to layout task via AddStylesheet.
         if node.type_id() == ElementNodeTypeId(HTMLStyleElementTypeId) {
             let win = self.owner_doc().document().window;
             let url = win.page.get_url();
             let data = node.node().GetTextContent(node);
-            let sheet = parse_inline_css(url, data.unwrap_or_else(|| ~" "));
-            win.page.layout_chan.send(AddStylesheetMsg(sheet));
+
+            match data {
+                Some(data) => {
+                        let sheet = parse_inline_css(&url, data);
+                        win.page.layout_chan.send(AddStylesheetMsg(sheet));
+                        }
+                None => ()
+            }
         }
-    
         Node::pre_insert(node, abstract_self, None)
     }
 
