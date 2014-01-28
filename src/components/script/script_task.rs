@@ -223,10 +223,12 @@ impl<'self> Iterator<@mut Page> for PageTreeIterator<'self> {
 
 impl Page {
     
-    //Retrieves the page url.
+    // Retrieves the page URL.
     pub fn get_url(&self) -> Url {
+    //FIXME: We need to make get_url return &Url instead of Url.
         self.url.get_ref().first().clone()
     }
+
     
     /// Adds the given damage.
     fn damage(&mut self, level: DocumentDamageLevel) {
