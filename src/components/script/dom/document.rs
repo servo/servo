@@ -98,7 +98,7 @@ pub struct Document {
 
 impl Document {
 
-    //Fetches url from page in script_task.rs
+    // Fetches the URL from this document's Page.
     pub fn get_url(&self) -> Url {
        self.window.page.get_url()
     }
