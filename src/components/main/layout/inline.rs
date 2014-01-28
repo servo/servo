@@ -327,10 +327,7 @@ impl LineboxScanner {
                         (Some(left_box), None) => {
                             self.push_box_to_line(left_box);
                         }
-                        (None, Some(right_box)) => {
-                            self.work_list.push_front(right_box);
-                        }
-                        (None, None) => error!("LineboxScanner: This split case makes no sense!"),
+                        _ => error!("LineboxScanner: This split case makes no sense!"),
                     }
                 }
                 _ => {}
