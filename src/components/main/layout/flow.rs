@@ -167,6 +167,9 @@ pub trait ImmutableFlowUtils {
     /// Returns the number of children that this flow possesses.
     fn child_count(self) -> uint;
 
+    /// Return true if this flow is a Block Container.
+    fn is_block_container(self) -> bool;
+
     /// Returns true if this flow is a block flow, an inline flow, or a float flow.
     fn starts_block_flow(self) -> bool;
 
@@ -604,6 +607,23 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         base(self).children.len()
     }
 
+    /// Return true if this flow is a Block Container.
+    ///
+    /// Except for table boxes and replaced elements, block-level boxes (`BlockFlow`) are
+    /// also block container boxes.
+    /// Non-replaced inline blocks and non-replaced table cells are also block
+    /// containers.
+    fn is_block_container(self) -> bool {
+        match self.class() {
+            // TODO: Change this when inline-blocks are supported.
+            InlineFlowClass => false,
+            BlockFlowClass => {
+                // FIXME: Actually check the type of the node
+                self.child_count() != 0
+            }
+        }
+    }
+
     /// Returns true if this flow is a block flow, an inline-block flow, or a float flow.
     fn starts_block_flow(self) -> bool {
         match self.class() {
@@ -720,37 +740,36 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
             return true;
         }
 
-        let mut child_lists = DisplayListCollection::new();
-        child_lists.add_list(DisplayList::new());
-        let child_lists = RefCell::new(child_lists);
-        for kid in child_iter(self) {
-            kid.build_display_lists(builder, dirty, 0u, &child_lists);
-        }
-
-        let mut child_lists = Some(child_lists.unwrap());
-        // Find parent ClipDisplayItemClass and push all child display items
-        // under it
-        // FIXME: Once we have children for InlineFlow, this might lead to
-        // children display items being pushed under the ClipDisplayItemClass
-        // created by the last box of the InlineFlow. Fix the logic.
-        lists.with_mut(|lists| {
-            let mut child_lists = child_lists.take_unwrap();
-            let result = lists.lists[index].list.mut_rev_iter().position(|item| {
-                match *item {
-                    ClipDisplayItemClass(ref mut item) => {
-                        item.child_list.push_all_move(child_lists.lists.shift().list);
-                        true
-                    },
-                    _ => false,
-                }
-            });
-
-            if result.is_none() {
-                fail!("fail to find parent item");
+        if self.is_block_container() {
+            let mut child_lists = DisplayListCollection::new();
+            child_lists.add_list(DisplayList::new());
+            let child_lists = RefCell::new(child_lists);
+            for kid in child_iter(self) {
+                kid.build_display_lists(builder, dirty, 0u, &child_lists);
             }
 
-            lists.lists.push_all_move(child_lists.lists);
-        });
+            let mut child_lists = Some(child_lists.unwrap());
+            // Find parent ClipDisplayItemClass and push all child display items
+            // under it
+            lists.with_mut(|lists| {
+                let mut child_lists = child_lists.take_unwrap();
+                let result = lists.lists[index].list.mut_rev_iter().position(|item| {
+                    match *item {
+                        ClipDisplayItemClass(ref mut item) => {
+                            item.child_list.push_all_move(child_lists.lists.shift().list);
+                            true
+                        },
+                        _ => false,
+                    }
+                });
+
+                if result.is_none() {
+                    fail!("fail to find parent item");
+                }
+
+                lists.lists.push_all_move(child_lists.lists);
+            });
+        }
         true
     }
 

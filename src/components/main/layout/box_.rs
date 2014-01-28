@@ -967,18 +967,6 @@ impl Box {
         match self.specific {
             UnscannedTextBox(_) => fail!("Shouldn't see unscanned boxes here."),
             ScannedTextBox(ref text_box) => {
-                lists.with_mut(|lists| {
-                    let item = ~ClipDisplayItem {
-                        base: BaseDisplayItem {
-                            bounds: absolute_box_bounds,
-                            extra: ExtraDisplayListData::new(self),
-                        },
-                        child_list: ~[],
-                        need_clip: false
-                    };
-                    lists.lists[index].append_item(ClipDisplayItemClass(item));
-                });
-
                 let text_color = self.style().Color.color.to_gfx_color();
 
                 // Set the various text display item flags.
@@ -998,7 +986,7 @@ impl Box {
                 text_flags.set_override_underline(flow_flags.flags.override_underline());
                 text_flags.set_override_overline(flow_flags.flags.override_overline());
                 text_flags.set_override_line_through(flow_flags.flags.override_line_through());
-                
+
                 let mut bounds = absolute_box_bounds.clone();
                 bounds.origin.x = bounds.origin.x + self.noncontent_left()
                                   + self.noncontent_inline_left();
@@ -1104,18 +1092,6 @@ impl Box {
                 });
             },
             ImageBox(ref image_box) => {
-                lists.with_mut(|lists| {
-                    let item = ~ClipDisplayItem {
-                        base: BaseDisplayItem {
-                            bounds: absolute_box_bounds,
-                            extra: ExtraDisplayListData::new(self),
-                        },
-                        child_list: ~[],
-                        need_clip: false
-                    };
-                    lists.lists[index].append_item(ClipDisplayItemClass(item));
-                });
-
                 let mut image_ref = image_box.image.borrow_mut();
                 let mut bounds = absolute_box_bounds.clone();
                 bounds.origin.x = bounds.origin.x + self.noncontent_left()
