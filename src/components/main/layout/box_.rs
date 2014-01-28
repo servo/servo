@@ -1283,14 +1283,12 @@ impl Box {
                 let right_range = Range::new(text_box_info.range.begin() + cur_new_line_pos + 1, text_box_info.range.length() - (cur_new_line_pos + 1));
 
                 // Left box is for left text of first founded new-line character.
-                let left_box = if left_range.length() > 0 {
+                let left_box = {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
                     let new_metrics = new_text_box_info.run.get().metrics_for_range(&left_range);
                     let mut new_box = self.transform(new_metrics.bounding_box.size, ScannedTextBox(new_text_box_info));
                     new_box.new_line_pos = ~[];
                     Some(new_box)
-                } else {
-                    None
                 };
 
                 // Right box is for right text of first founded new-line character.
