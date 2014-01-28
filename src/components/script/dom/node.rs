@@ -27,11 +27,8 @@ use std::cast;
 use std::unstable::raw::Box;
 use std::util;
 
-use script_task::{Page};
 use std::option::Option;
 use layout_interface::{AddStylesheetMsg};
-use style::Stylesheet;
-use extra::url::Url;
 use html::cssparse::{parse_inline_css};
 
 //
