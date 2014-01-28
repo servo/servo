@@ -6,6 +6,7 @@ use extra::arc::Arc;
 use std::ascii::StrAsciiExt;
 use std::hashmap::HashMap;
 use std::str;
+use std::to_bytes;
 
 use servo_util::namespace;
 
@@ -23,6 +24,36 @@ pub enum StylesheetOrigin {
 
 /// The definition of whitespace per CSS Selectors Level 3 § 4.
 static SELECTOR_WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
+
+/// A newtype struct used to perform lowercase ASCII comparisons without allocating a whole new
+/// string.
+struct LowercaseAsciiString<'a>(&'a str);
+
+impl<'a> Equiv<~str> for LowercaseAsciiString<'a> {
+    fn equiv(&self, other: &~str) -> bool {
+        let LowercaseAsciiString(this) = *self;
+        this.eq_ignore_ascii_case(*other)
+    }
+}
+
+impl<'a> IterBytes for LowercaseAsciiString<'a> {
+    #[inline]
+    fn iter_bytes(&self, _: bool, f: to_bytes::Cb) -> bool {
+        for b in self.bytes() {
+            // FIXME(pcwalton): This is a nasty hack for performance. We temporarily violate the
+            // `Ascii` type's invariants by using `to_ascii_nocheck`, but it's OK as we simply
+            // convert to a byte afterward.
+            unsafe {
+                if !f([ b.to_ascii_nocheck().to_lower().to_byte() ]) {
+                    return false
+                }
+            }
+        }
+        // Terminate the string with a non-UTF-8 character, to match what the built-in string
+        // `ToBytes` implementation does. (See `libstd/to_bytes.rs`.)
+        f([ 0xff ])
+    }
+}
 
 /// Map node attributes to Rules whose last simple selector starts with them.
 ///
@@ -95,8 +126,10 @@ impl SelectorMap {
             match element.get_attr(&namespace::Null, "class") {
                 Some(ref class_attr) => {
                     for class in class_attr.split(SELECTOR_WHITESPACE) {
-                        SelectorMap::get_matching_rules_from_hash(
-                            node, &self.class_hash, class, matching_rules_list);
+                        SelectorMap::get_matching_rules_from_hash(node,
+                                                                  &self.class_hash,
+                                                                  class,
+                                                                  matching_rules_list);
                     }
                 }
                 None => {}
@@ -104,10 +137,10 @@ impl SelectorMap {
 
             // HTML elements in HTML documents must be matched case-insensitively.
             // TODO(pradeep): Case-sensitivity depends on the document type.
-            SelectorMap::get_matching_rules_from_hash(node,
-                                                      &self.element_hash,
-                                                      element.get_local_name().to_ascii_lower(),
-                                                      matching_rules_list);
+            SelectorMap::get_matching_rules_from_hash_ignoring_case(node,
+                                                                    &self.element_hash,
+                                                                    element.get_local_name(),
+                                                                    matching_rules_list);
             SelectorMap::get_matching_rules(node,
                                             self.universal_rules,
                                             matching_rules_list);
@@ -130,6 +163,20 @@ impl SelectorMap {
                                     key: &str,
                                     matching_rules: &mut ~[Rule]) {
         match hash.find_equiv(&key) {
+            Some(rules) => {
+                SelectorMap::get_matching_rules(node, *rules, matching_rules)
+            }
+            None => {}
+        }
+    }
+
+    fn get_matching_rules_from_hash_ignoring_case<E:TElement,
+                                                  N:TNode<E>>(
+                                                  node: &N,
+                                                  hash: &HashMap<~str,~[Rule]>,
+                                                  key: &str,
+                                                  matching_rules: &mut ~[Rule]) {
+        match hash.find_equiv(&LowercaseAsciiString(key)) {
             Some(rules) => {
                 SelectorMap::get_matching_rules(node, *rules, matching_rules)
             }
