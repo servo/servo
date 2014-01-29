@@ -51,21 +51,24 @@ thead, tbody,
     s, strike, del  { text-decoration: line-through }
     hr              { border: 1px inset }
 
-/* lists */
-dd                  { display: block; margin-left: 40px }
-p, dl, multicol     { display: block; margin: 1em 0 }
-ul                  { display: block; list-style-type: disc; 
-                      margin: 1em 0; padding-left: 40px }
+p                   { display: block; margin: 1em 0 }
 
-ol                  { display: block; list-style-type: decimal;
-                      margin: 1em 0; padding-left: 40px }
-
+/* 14.3.8 Lists : http://www.whatwg.org/specs/web-apps/current-work/multipage/rendering.html#lists */
+dd, dl, dt, ol, ul  { display: block; }
 li                  { display: list-item }
+
+dl, ol, ul          { margin-top: 1em; margin-bottom: 1em; }
 
 /* nested lists have no top/bottom margins */
 ul ul, ul ol, ul dl,
 ol ul, ol ol, ol dl,
 dl ul, dl ol, dl dl { margin-top: 0; margin-bottom: 0 }
+
+dd                  { margin-left: 40px; }  /* LTR-specific: use 'margin-right' for rtl elements */
+ol, ul              { padding-left: 40px; } /* LTR-specific: use 'padding-right' for rtl elements */
+
+ol                  { list-style-type: decimal; }
+ul                  { list-style-type: disc; }
 
 /* 2 deep unordered lists use a circle */
 ol ul,   ul ul      { list-style-type: circle; }
@@ -75,14 +78,14 @@ ol ol ul, ol ul ul,
 ul ol ul, ul ul ul  { list-style-type: square; }
 
 /* The type attribute on ol and ul elements */
-ul[type="disc"]     { list-style-type: disc; }
-ul[type="circle"]   { list-style-type: circle; }
-ul[type="square"]   { list-style-type: square; }
-ol[type="1"]        { list-style-type: decimal; }
-ol[type="a"]        { list-style-type: lower-alpha; }
-ol[type="A"]        { list-style-type: upper-alpha; }
-ol[type="i"]        { list-style-type: lower-roman; }
-ol[type="I"]        { list-style-type: upper-roman; }
+ol[type="1"], li[type="1"] { list-style-type: decimal; }
+ol[type="a"], li[type="a"] { list-style-type: lower-alpha; }
+ol[type="A"], li[type="A"] { list-style-type: upper-alpha; }
+ol[type="i"], li[type="i"] { list-style-type: lower-roman; }
+ol[type="I"], li[type="I"] { list-style-type: upper-roman; }
+ul[type="disc"], li[type="disc"] { list-style-type: disc; }
+ul[type="circle"], li[type="circle"] { list-style-type: circle; }
+ul[type="square"], li[type="square"] { list-style-type: square; }
 
 u, ins              { text-decoration: underline }
 br:before           { content: "\A"; white-space: pre-line }

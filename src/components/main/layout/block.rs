@@ -120,6 +120,10 @@ impl BlockFlow {
         self.float.is_some()
     }
 
+    pub fn is_list(&self) -> bool {
+        self.base.listdata.is_some()
+    }
+
     pub fn teardown(&mut self) {
         for box_ in self.box_.iter() {
             box_.teardown();
@@ -492,16 +496,32 @@ impl BlockFlow {
         box_.position.set(position);
     }
 
+    /// wrapper of build_display_list. For switching to html list.
+    pub fn build_display_list_wrapper<E:ExtraDisplayListData>(
+                                      &self,
+                                      builder: &DisplayListBuilder,
+                                      dirty: &Rect<Au>,
+                                      offset: Point2D<Au>,
+                                      flow: &Flow,
+                                      list: &RefCell<DisplayList<E>>) {
+        if self.is_list() {
+            for box_ in self.box_.iter() {
+                box_.add_marker_to_display_list(builder, dirty, flow, list)
+            }
+        }
+
+        // add box that starts block context
+        for box_ in self.box_.iter() {
+            box_.build_display_list(builder, dirty, offset, flow, list)
+        }
+    }
+
     pub fn build_display_list_block<E:ExtraDisplayListData>(
                                     &mut self,
                                     builder: &DisplayListBuilder,
                                     dirty: &Rect<Au>,
                                     list: &RefCell<DisplayList<E>>)
                                     -> bool {
-        if self.is_float() {
-            return self.build_display_list_float(builder, dirty, list);
-        }
-
         let abs_rect = Rect(self.base.abs_position, self.base.position.size);
         if !abs_rect.intersects(dirty) {
             return true;
@@ -509,10 +529,8 @@ impl BlockFlow {
 
         debug!("build_display_list_block: adding display element");
 
-        // add box that starts block context
-        for box_ in self.box_.iter() {
-            box_.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, list)
-        }
+        self.build_display_list_wrapper(builder, dirty, self.base.abs_position, (&*self) as &Flow, list);
+
         // TODO: handle any out-of-flow elements
         let this_position = self.base.abs_position;
 
@@ -536,11 +554,8 @@ impl BlockFlow {
         }
 
         let offset = self.base.abs_position + self.float.get_ref().rel_pos;
-        // add box that starts block context
-        for box_ in self.box_.iter() {
-            box_.build_display_list(builder, dirty, offset, (&*self) as &Flow, list)
-        }
-
+        
+        self.build_display_list_wrapper(builder, dirty, offset, (&*self) as &Flow, list);
 
         // TODO: handle any out-of-flow elements
 

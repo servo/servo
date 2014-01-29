@@ -21,6 +21,7 @@ use layout::parallel::{UnsafeFlow};
 use layout::parallel;
 use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
 use layout::wrapper::LayoutNode;
+use layout::counter_style;
 
 use extra::arc::{Arc, MutexArc};
 use geom::rect::Rect;
@@ -579,6 +580,7 @@ impl LayoutTask {
                 let dirty = flow::base(layout_root).position.clone();
                 let display_list_builder = DisplayListBuilder {
                     ctx: &layout_ctx,
+                    numbers: &counter_style::Numbers::new(),
                 };
                 layout_root.build_display_list(&display_list_builder, &dirty, display_list);
 

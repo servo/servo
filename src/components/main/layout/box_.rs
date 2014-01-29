@@ -14,6 +14,7 @@ use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextD
 use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags, ClipDisplayItem};
 use gfx::display_list::{ClipDisplayItemClass};
 use gfx::font::FontStyle;
+use gfx::font_context::FontContext;
 
 use gfx::text::text_run::TextRun;
 use servo_msg::constellation_msg::{FrameRectMsg, PipelineId, SubpageId};
@@ -1210,6 +1211,62 @@ impl Box {
         self.paint_borders_if_applicable(list, &absolute_box_bounds);
     }
 
+    /// Adds list marker into displaylist. This refers listdata in FlowData.
+    /// FIXME(aydin.kim) : Is it better that we add ListBox and handle in build_display_list?
+    pub fn add_marker_to_display_list<E:ExtraDisplayListData>(
+                                      &self,
+                                      builder: &DisplayListBuilder,
+                                      dirty: &Rect<Au>,
+                                      flow: &Flow,
+                                      list: &RefCell<DisplayList<E>>) {
+        if self.style().Box.visibility != visibility::visible {
+            return;
+        }
+
+        let listdata = flow::base(flow).listdata.unwrap();
+        let convert = builder.numbers;
+        let text = convert.to_list_style_type(listdata.list_style_type, listdata.sequence);
+
+        let color = self.style().Color.color.to_gfx_color();
+        let font_style = self.font_style();
+        //FIXME(aydin.kim) : In the future, we do not have to create new font context. Need to get unicode chracter values from css style sheet directly. when we will complete that works, this code has to be modified.
+        let mut font_context = ~FontContext::new(builder.ctx.font_context_info.clone());
+        let fontgroup = font_context.get_resolved_font_for_style(&font_style);
+        let text = RefCell::new(text);
+        let run = ~fontgroup.borrow().with(|fg| fg.create_textrun(text.get(), text_decoration::none));
+        let text_range = Range::new(0, text.get().len());
+        let text_bounds = run.metrics_for_range(&text_range).bounding_box;
+        let em_size = text_bounds.size.height;
+        let line_height = self.calculate_line_height(em_size);
+        let text_offset = (line_height - em_size).scale_by(0.5);
+        let marker_offset = &Point2D(-run.min_width_for_range(&text_range), text_offset);
+
+        let marker_bound = Rect(flow::base(flow).abs_position, text_bounds.size).translate(marker_offset);
+        if !marker_bound.intersects(dirty) {
+            return;
+        }
+
+
+        // Create the text box.
+        list.with_mut(|list| {
+            let text_display_item = ~TextDisplayItem {
+                base: BaseDisplayItem {
+                    bounds: marker_bound,
+                    extra: ExtraDisplayListData::new(self),
+                },
+                text_run: Arc::new(run.clone()),
+                range: text_range,
+                text_color: color,
+                overline_color: color,
+                underline_color: color,
+                line_through_color: color,
+                flags: TextDisplayItemFlags::new(),
+            };
+
+            list.append_item(TextDisplayItemClass(text_display_item))
+        });
+
+    }
     /// Returns the *minimum width* and *preferred width* of this box as defined by CSS 2.1.
     pub fn minimum_and_preferred_widths(&self) -> (Au, Au) {
         let guessed_width = self.guess_width();
