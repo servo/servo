@@ -298,36 +298,9 @@ pub struct InlineParentInfo {
 impl Box {
     /// Constructs a new `Box` instance.
     pub fn new(node: LayoutNode, specific: SpecificBoxInfo) -> Box {
-        // Find the nearest ancestor element and take its style. (It should be either that node or
-        // its immediate parent.)
-        // CSS 2.1 § 9.2.1.1,9.2.2.1 This is for non-inherited properties on anonymous boxes
-        // example:
-        //
-        //     <div style="border: solid">
-        //         <p>Foo</p>
-        //         Bar
-        //         <p>Baz</p>
-        //     </div>
-        //
-        // An anonymous block box is generated around `Bar`, but it shouldn't inherit the border.
-
-        let node_style = if node.is_element() {
-            node.style().clone()
-        } else {
-            let mut nearest_ancestor_element = node;
-            while !nearest_ancestor_element.is_element() {
-                nearest_ancestor_element =
-                    nearest_ancestor_element.parent_node().expect("no nearest element?!");
-            }
-
-            // Anonymous box: inheriting from the ancestor with no specified declarations.
-            Arc::new(cascade(&[Arc::new(~[])],
-                             Some(nearest_ancestor_element.style().get())))
-        };
-
         Box {
             node: OpaqueNode::from_layout_node(&node),
-            style: node_style,
+            style: node.style().clone(),
             position: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),

@@ -139,9 +139,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         }
 
         for kid in self.children() {
-            if kid.is_element() {
-                kid.cascade_subtree(Some(*self));
-            }
+            kid.cascade_subtree(Some(*self));
         }
     }
 }

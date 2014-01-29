@@ -134,15 +134,15 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
             // Perform the CSS selector matching.
             let stylist: &Stylist = cast::transmute(layout_context.stylist);
             node.match_node(stylist);
-
-            // Perform the CSS cascade.
-            let parent_opt = if OpaqueNode::from_layout_node(&node) == layout_context.reflow_root {
-                None
-            } else {
-                node.parent_node()
-            };
-            node.cascade_node(parent_opt);
         }
+
+        // Perform the CSS cascade.
+        let parent_opt = if OpaqueNode::from_layout_node(&node) == layout_context.reflow_root {
+            None
+        } else {
+            node.parent_node()
+        };
+        node.cascade_node(parent_opt);
 
         // Enqueue kids.
         let mut child_count = 0;
