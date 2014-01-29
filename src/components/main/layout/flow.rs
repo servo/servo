@@ -197,12 +197,6 @@ pub trait MutableFlowUtils {
     /// Invokes a closure with the last child of this flow.
     fn with_last_child<R>(self, f: |Option<&mut ~Flow>| -> R) -> R;
 
-    /// Removes the first child of this flow and destroys it.
-    fn remove_first(self);
-
-    /// Removes the last child of this flow and destroys it.
-    fn remove_last(self);
-
     /// Computes the overflow region for this flow.
     fn store_overflow(self, _: &mut LayoutContext);
 
@@ -218,7 +212,14 @@ pub trait MutableFlowUtils {
 pub trait MutableOwnedFlowUtils {
     /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
     /// it's present.
-    fn add_new_child(&mut self, new_child: ~Flow, leaf_set: &mut LeafSet);
+    fn add_new_child(&mut self, new_child: ~Flow);
+
+    /// Marks the flow as a leaf. The flow must not have children and must not be marked as a
+    /// nonleaf.
+    fn mark_as_leaf(&mut self, leaf_set: &mut LeafSet);
+
+    /// Marks the flow as a nonleaf. The flow must not be marked as a leaf.
+    fn mark_as_nonleaf(&mut self);
 
     /// Destroys the flow.
     fn destroy(&mut self, leaf_set: &mut LeafSet);
@@ -263,7 +264,7 @@ pub trait PostorderFlowTraversal {
 }
 
 #[deriving(Clone)]
-pub struct FlowFlagsInfo{
+pub struct FlowFlagsInfo {
     flags: FlowFlags,
 
     /// text-decoration colors
@@ -284,12 +285,12 @@ pub struct FlowFlags(u8);
 /// The bitmask of flags that represent text decoration fields that get propagated downward.
 ///
 /// NB: If you update this field, you must update the bitfields below.
-static TEXT_DECORATION_OVERRIDE_BITMASK: u8 = 0b00001110;
+static TEXT_DECORATION_OVERRIDE_BITMASK: u8 = 0b0000_1110;
 
 /// The bitmask of flags that represent the text alignment field.
 ///
 /// NB: If you update this field, you must update the bitfields below.
-static TEXT_ALIGN_BITMASK: u8 = 0b00110000;
+static TEXT_ALIGN_BITMASK: u8 = 0b0011_0000;
 
 /// The number of bits we must shift off to handle the text alignment field.
 ///
@@ -428,22 +429,29 @@ impl FlowFlagsInfo {
 }
 
 // Whether we need an in-order traversal.
-bitfield!(FlowFlags, inorder, set_inorder, 0x01)
+bitfield!(FlowFlags, inorder, set_inorder, 0b0000_0001)
 
 // Whether this flow forces `text-decoration: underline` on.
 //
 // NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
-bitfield!(FlowFlags, override_underline, set_override_underline, 0x02)
+bitfield!(FlowFlags, override_underline, set_override_underline, 0b0000_0010)
 
 // Whether this flow forces `text-decoration: overline` on.
 //
 // NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
-bitfield!(FlowFlags, override_overline, set_override_overline, 0x04)
+bitfield!(FlowFlags, override_overline, set_override_overline, 0b0000_0100)
 
 // Whether this flow forces `text-decoration: line-through` on.
 //
 // NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
-bitfield!(FlowFlags, override_line_through, set_override_line_through, 0x08)
+bitfield!(FlowFlags, override_line_through, set_override_line_through, 0b0000_1000)
+
+// Whether this flow is marked as a leaf. Flows marked as leaves must not have any more kids added
+// to them.
+bitfield!(FlowFlags, is_leaf, set_is_leaf, 0b0100_0000)
+
+// Whether this flow is marked as a nonleaf. Flows marked as nonleaves must have children.
+bitfield!(FlowFlags, is_nonleaf, set_is_nonleaf, 0b1000_0000)
 
 // The text alignment for this flow.
 impl FlowFlags {
@@ -678,16 +686,6 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         f(mut_base(self).children.back_mut())
     }
 
-    /// Removes the first child of this flow and destroys it.
-    fn remove_first(self) {
-        let _ = mut_base(self).children.pop_front();
-    }
-
-    /// Removes the last child of this flow and destroys it.
-    fn remove_last(self) {
-        let _ = mut_base(self).children.pop_back();
-    }
-
     fn store_overflow(self, _: &mut LayoutContext) {
         let my_position = mut_base(self).position;
         let mut overflow = my_position;
@@ -743,21 +741,43 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
 }
 
 impl MutableOwnedFlowUtils for ~Flow {
-    /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
-    /// it's present.
-    fn add_new_child(&mut self, mut new_child: ~Flow, leaf_set: &mut LeafSet) {
-        if self.child_count() == 0 {
-            leaf_set.remove(self)
-        }
-
+    /// Adds a new flow as a child of this flow. Fails if this flow is marked as a leaf.
+    fn add_new_child(&mut self, mut new_child: ~Flow) {
         {
             let kid_base = mut_base(new_child);
             kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
         }
 
         let base = mut_base(*self);
+        assert!(!base.flags_info.flags.is_leaf());
         base.children.push_back(new_child);
         let _ = base.parallel.children_count.fetch_add(1, Relaxed);
+    }
+
+    /// Marks the flow as a leaf. The flow must not have children and must not be marked as a
+    /// nonleaf.
+    fn mark_as_leaf(&mut self, leaf_set: &mut LeafSet) {
+        {
+            let base = mut_base(*self);
+            if base.flags_info.flags.is_nonleaf() {
+                fail!("attempted to mark a nonleaf flow as a leaf!")
+            }
+            if base.children.len() != 0 {
+                fail!("attempted to mark a flow with children as a leaf!")
+            }
+            base.flags_info.flags.set_is_leaf(true)
+        }
+        leaf_set.insert(self)
+    }
+
+    /// Marks the flow as a nonleaf. The flow must not be marked as a leaf.
+    fn mark_as_nonleaf(&mut self) {
+        let base = mut_base(*self);
+        if base.flags_info.flags.is_leaf() {
+            fail!("attempted to mark a leaf flow as a nonleaf!")
+        }
+        base.flags_info.flags.set_is_nonleaf(true)
+        // We don't check to make sure there are no children as they might be added later.
     }
 
     /// Destroys the flow.
@@ -796,7 +816,7 @@ impl LeafSet {
     }
 
     /// Inserts a newly-created flow into the leaf set.
-    pub fn insert(&mut self, flow: &~Flow) {
+    fn insert(&mut self, flow: &~Flow) {
         self.set.insert(parallel::owned_flow_to_unsafe_flow(flow));
     }
 
