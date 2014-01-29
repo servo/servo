@@ -143,6 +143,24 @@ impl PreorderFlowTraversal for PropagateDamageTraversal {
     }
 }
 
+/// The flow tree verification traversal. This is only on in debug builds.
+#[cfg(debug)]
+struct FlowTreeVerificationTraversal;
+
+#[cfg(debug)]
+impl PreorderFlowTraversal for FlowTreeVerificationTraversal {
+    #[inline]
+    fn process(&mut self, flow: &mut Flow) -> bool {
+        let base = flow::base(flow);
+        if !base.flags_info.flags.is_leaf() && !base.flags_info.flags.is_nonleaf() {
+            println("flow tree verification failed: flow wasn't a leaf or a nonleaf!");
+            flow.dump();
+            fail!("flow tree verification failed")
+        }
+        true
+    }
+}
+
 /// The bubble-widths traversal, the first part of layout computation. This computes preferred
 /// and intrinsic widths and bubbles them up the tree.
 pub struct BubbleWidthsTraversal<'a> {
@@ -472,6 +490,19 @@ impl LayoutTask {
         }
     }
 
+    /// Verifies that every node was either marked as a leaf or as a nonleaf in the flow tree.
+    /// This is only on in debug builds.
+    #[inline(never)]
+    #[cfg(debug)]
+    fn verify_flow_tree(&mut self, layout_root: &mut ~Flow) {
+        let mut traversal = FlowTreeVerificationTraversal;
+        layout_root.traverse_preorder(&mut traversal);
+    }
+
+    #[cfg(not(debug))]
+    fn verify_flow_tree(&mut self, _: &mut ~Flow) {
+    }
+
     /// The high-level routine that performs layout tasks.
     fn handle_reflow(&mut self, data: &Reflow) {
         // FIXME: Isolate this transmutation into a "bridge" module.
@@ -547,6 +578,11 @@ impl LayoutTask {
                     self.profiler_chan.clone(),
                     || self.construct_flow_tree(&mut layout_ctx, *node))
         });
+
+        // Verification of the flow tree, which ensures that all nodes were either marked as leaves
+        // or as non-leaves. This becomes a no-op in release builds. (It is inconsequential to
+        // memory safety but is a useful debugging tool.)
+        self.verify_flow_tree(&mut layout_root);
 
         // Propagate damage.
         profile(time::LayoutDamagePropagateCategory, self.profiler_chan.clone(), || {
