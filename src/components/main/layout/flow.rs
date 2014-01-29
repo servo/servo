@@ -16,7 +16,7 @@
 ///
 /// * `BlockFlow`: A flow that establishes a block context. It has several child flows, each of
 ///   which are positioned according to block formatting context rules (CSS block boxes). Block
-///   flows also contain a single `GenericBox` to represent their rendered borders, padding, etc.
+///   flows also contain a single box to represent their rendered borders, padding, etc.
 ///   The BlockFlow at the root of the tree has special behavior: it stretches to the boundaries of
 ///   the viewport.
 ///
@@ -26,7 +26,7 @@
 ///   similar methods.
 
 use css::node_style::StyledNode;
-use layout::block::BlockFlow;
+use layout::block::{BlockFlow};
 use layout::box_::Box;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
@@ -208,6 +208,7 @@ pub trait MutableFlowUtils {
                           self,
                           builder: &DisplayListBuilder,
                           container_block_size: &Size2D<Au>,
+                          absolute_cb_abs_position: Point2D<Au>,
                           dirty: &Rect<Au>,
                           index: uint,
                           mut list: &RefCell<DisplayListCollection<E>>)
@@ -498,8 +499,9 @@ pub struct BaseFlow {
     min_width: Au,
     pref_width: Au,
 
-    /// The position of the upper left corner of the border box of this flow, relative to the
-    /// containing block.
+    /// The upper left corner of the box representing this flow, relative to
+    /// the box representing its parent flow.
+    /// For absolute flows, this represents the position wrt to its Containing Block.
     position: Rect<Au>,
 
     /// The amount of overflow of this flow, relative to the containing block. Must include all the
@@ -514,7 +516,11 @@ pub struct BaseFlow {
     /// The floats next to this flow.
     floats: Floats,
 
-    /// The number of floated descendants of this flow (including this flow, if it's floated).
+    /// For normal flows, this is the number of floated descendants that are
+    /// not contained within any other floated descendant of this flow. For
+    /// floats, it is 1.
+    /// It is used to allocate float data if necessary and to
+    /// decide whether to do an in-order traversal for assign_height.
     num_floats: uint,
 
     /// The position of this flow in page coordinates, computed during display list construction.
@@ -707,6 +713,19 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         f(mut_base(self).children.back_mut())
     }
 
+    /// Calculate and set overflow for current flow.
+    ///
+    /// CSS Section 11.1
+    /// This is ideally the union of all flows for which we define the
+    /// Containing Block.
+    ///
+    /// Assumption: This is called in a bottom-up traversal, so kids' overflows have
+    /// already been set.
+    /// So, currently this is a union of the overflows of all kids and our own
+    /// flow rectangle.
+    /// FIXME: Handle the overflow of absolute flow descendants, because their
+    /// assign-heights happen after the normal
+    /// assign-height-and-store-overflow traversal
     fn store_overflow(self, _: &mut LayoutContext) {
         let my_position = mut_base(self).position;
         let mut overflow = my_position;
@@ -723,17 +742,29 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
     /// For InlineFlow, add display items for all its boxes onto list`.
     /// For BlockFlow, add a ClipDisplayItemClass for itself and its children,
     /// plus any other display items like border.
+    ///
+    /// `container_block_size`: Size of the Containing Block for the current
+    /// flow. This is used for relative positioning (which resolves percentage
+    /// values for 'top', etc. after all Containing Block heights have been computed.)
+    /// `absolute_cb_abs_position`: Absolute position of the Containing Block
+    /// for the flow if it is absolutely positioned.
     fn build_display_lists<E:ExtraDisplayListData>(
                           self,
                           builder: &DisplayListBuilder,
                           container_block_size: &Size2D<Au>,
+                          absolute_cb_abs_position: Point2D<Au>,
                           dirty: &Rect<Au>,
                           mut index: uint,
                           lists: &RefCell<DisplayListCollection<E>>)
                           -> bool {
         debug!("Flow: building display list");
         index = match self.class() {
-            BlockFlowClass => self.as_block().build_display_list_block(builder, container_block_size, dirty, index, lists),
+            BlockFlowClass => self.as_block().build_display_list_block(builder,
+                                                                       container_block_size,
+                                                                       absolute_cb_abs_position,
+                                                                       dirty,
+                                                                       index,
+                                                                       lists),
             InlineFlowClass => self.as_inline().build_display_list_inline(builder, container_block_size, dirty, index, lists),
         };
 
@@ -745,21 +776,31 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
             let mut child_lists = DisplayListCollection::new();
             child_lists.add_list(DisplayList::new());
             let child_lists = RefCell::new(child_lists);
-            let container_block_size = match self.class() {
-                BlockFlowClass => {
-                    if self.as_block().box_.is_some() {
-                        self.as_block().box_.get_ref().border_box.get().size
+            let is_positioned = self.as_block().is_positioned();
+            let container_block_size;
+            let abs_cb_position;
+            let flow_pos = base(self).abs_position;
+            match self.as_block().box_ {
+                Some(ref box_) => {
+                    // FIXME: This should be the size of the content box (which is the
+                    // Containing Block formed by a BlockFlow), not the border box.
+                    container_block_size = box_.border_box.get().size;
+
+                    abs_cb_position = if is_positioned {
+                        let padding_box_pos = flow_pos + box_.border_box.get().origin
+                            + Point2D(box_.border.get().left, box_.border.get().top);
+                        padding_box_pos
                     } else {
-                        base(self).position.size
-                    }
-                },
-                _ => {
-                    base(self).position.size
+                        absolute_cb_abs_position
+                    };
                 }
-            };
+                None => fail!("Flow: block container should have a box_")
+            }
 
             for kid in child_iter(self) {
-                kid.build_display_lists(builder, &container_block_size, dirty, 0u, &child_lists);
+                kid.build_display_lists(builder, &container_block_size,
+                                        abs_cb_position,
+                                        dirty, 0u, &child_lists);
             }
 
             let mut child_lists = Some(child_lists.unwrap());
@@ -828,4 +869,3 @@ impl MutableOwnedFlowUtils for ~Flow {
         self_borrowed.destroy();
     }
 }
-

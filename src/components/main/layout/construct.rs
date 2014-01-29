@@ -410,8 +410,9 @@ impl<'a> FlowConstructor<'a> {
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
     /// other `BlockFlow`s or `InlineFlow`s underneath it, depending on whether {ib} splits needed
     /// to happen.
-    fn build_flow_for_block(&mut self, node: &ThreadSafeLayoutNode, is_fixed: bool) -> ~Flow {
-        let mut flow = ~BlockFlow::from_node(self, node, is_fixed) as ~Flow;
+    fn build_flow_for_block(&mut self, node: &ThreadSafeLayoutNode, positioning: position::T)
+                            -> ~Flow {
+        let mut flow = ~BlockFlow::from_node(self, node, positioning) as ~Flow;
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }
@@ -433,7 +434,7 @@ impl<'a> FlowConstructor<'a> {
                                                   -> ConstructionResult {
         let mut opt_inline_block_splits = None;
         let mut opt_box_accumulator = None;
- 
+
         // Concatenate all the boxes of our kids, creating {ib} splits as necessary.
         for kid in node.children() {
             match kid.swap_out_construction_result() {
@@ -636,7 +637,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
     #[inline(always)]
     fn process(&mut self, node: &ThreadSafeLayoutNode) -> bool {
         // Get the `display` property for this node, and determine whether this node is floated.
-        let (display, float, position) = match node.type_id() {
+        let (display, float, positioning) = match node.type_id() {
             ElementNodeTypeId(_) => {
                 let style = node.style().get();
                 (style.Box.get().display, style.Box.get().float, style.Box.get().position)
@@ -652,7 +653,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
         debug!("building flow for node: {:?} {:?}", display, float);
 
         // Switch on display and floatedness.
-        match (display, float, position) {
+        match (display, float, positioning) {
             // `display: none` contributes no flow construction result. Nuke the flow construction
             // results of children.
             (display::none, _, _) => {
@@ -673,12 +674,12 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // TODO(pcwalton): Make this only trigger for blocks and handle the other `display`
             // properties separately.
 
-            (_, _, position::fixed) => {
-                let flow = self.build_flow_for_block(node, true);
+            (_, _, position::absolute) | (_, _, position::fixed) => {
+                let flow = self.build_flow_for_block(node, positioning);
                 node.set_flow_construction_result(FlowConstructionResult(flow))
             }
             (_, float::none, _) => {
-                let flow = self.build_flow_for_block(node, false);
+                let flow = self.build_flow_for_block(node, positioning);
                 node.set_flow_construction_result(FlowConstructionResult(flow))
             }
 
@@ -779,7 +780,7 @@ trait ObjectElement {
     /// Returns true if this node has object data that is correct uri.
     fn has_object_data(&self) -> bool;
 
-    /// Returns the "data" attribute value parsed as a URL    
+    /// Returns the "data" attribute value parsed as a URL
     fn get_object_data(&self, base_url: &Url) -> Option<Url>;
 }
 
@@ -793,7 +794,7 @@ impl<'ln> ObjectElement for ThreadSafeLayoutNode<'ln> {
         match self.get_type_and_data() {
             (None, Some(uri)) => is_image_data(uri),
             _ => false
-        }   
+        }
     }
 
     fn get_object_data(&self, base_url: &Url) -> Option<Url> {
@@ -854,4 +855,3 @@ fn strip_ignorable_whitespace_from_end(opt_boxes: &mut Option<~[Box]>) {
         *opt_boxes = None
     }
 }
-

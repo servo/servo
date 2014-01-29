@@ -119,6 +119,18 @@ impl FlowParallelInfo {
 
 /// A parallel bottom-up flow traversal.
 trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
+    /// Process current flow and potentially traverse its ancestors.
+    ///
+    /// If we are the last child that finished processing, recursively process
+    /// our parent. Else, stop.
+    /// Also, stop at the root (obviously :P).
+    ///
+    /// Thus, if we start with all the leaves of a tree, we end up traversing
+    /// the whole tree bottom-up because each parent will be processed exactly
+    /// once (by the last child that finishes processing).
+    ///
+    /// The only communication between siblings is that they both
+    /// fetch-and-subtract the parent's children count.
     fn run_parallel(&mut self,
                     mut unsafe_flow: UnsafeFlow,
                     _: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
@@ -144,8 +156,9 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                     break
                 }
 
-                // No, we're not at the root yet. Then are we the last sibling of our parent? If
-                // so, we can continue on with our parent; otherwise, we've gotta wait.
+                // No, we're not at the root yet. Then are we the last child
+                // of our parent to finish processing? If so, we can continue
+                // on with our parent; otherwise, we've gotta wait.
                 let parent: &mut ~Flow = cast::transmute(&unsafe_parent);
                 let parent_base = flow::mut_base(*parent);
                 if parent_base.parallel.children_count.fetch_sub(1, SeqCst) == 1 {
@@ -426,4 +439,3 @@ pub fn traverse_flow_tree_preorder(root: &mut ~Flow,
 
     queue.data = ptr::mut_null()
 }
-

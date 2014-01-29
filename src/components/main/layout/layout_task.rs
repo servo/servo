@@ -23,6 +23,7 @@ use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use extra::url::Url;
 use extra::arc::{Arc, MutexArc};
+use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator};
@@ -276,7 +277,7 @@ impl LayoutTask {
            chan: LayoutChan,
            constellation_chan: ConstellationChan,
            script_chan: ScriptChan,
-           render_chan: RenderChan<OpaqueNode>, 
+           render_chan: RenderChan<OpaqueNode>,
            image_cache_task: ImageCacheTask,
            opts: &Opts,
            profiler_chan: ProfilerChan)
@@ -402,7 +403,7 @@ impl LayoutTask {
     /// crash.
     fn exit_now(&mut self) {
         let (response_port, response_chan) = Chan::new();
-        
+
         match self.parallel_traversal {
             None => {}
             Some(ref mut traversal) => traversal.shutdown(),
@@ -614,6 +615,7 @@ impl LayoutTask {
         if data.goal == ReflowForDisplay {
             profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone(), || {
                 let root_size = flow::base(layout_root).position.size;
+                let root_abs_position = Point2D(Au::new(0), Au::new(0));
                 let mut display_list_collection = DisplayListCollection::new();
                 display_list_collection.add_list(DisplayList::<OpaqueNode>::new());
                 let display_list_collection = ~RefCell::new(display_list_collection);
@@ -621,14 +623,16 @@ impl LayoutTask {
                 let display_list_builder = DisplayListBuilder {
                     ctx: &layout_ctx,
                 };
-                layout_root.build_display_lists(&display_list_builder, &root_size, &dirty, 0u, display_list_collection);
+                layout_root.build_display_lists(&display_list_builder, &root_size,
+                                                root_abs_position,
+                                                &dirty, 0u, display_list_collection);
 
                 let display_list_collection = Arc::new(display_list_collection.unwrap());
 
                 let mut color = color::rgba(255.0, 255.0, 255.0, 255.0);
 
                 for child in node.traverse_preorder() {
-                    if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) || 
+                    if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) ||
                             child.type_id() == ElementNodeTypeId(HTMLBodyElementTypeId) {
                         let element_bg_color = {
                             let thread_safe_child = ThreadSafeLayoutNode::new(&child);
@@ -768,7 +772,7 @@ impl LayoutTask {
                                   Au::from_frac_px(point.y as f64));
                     let resp = hit_test(x,y,display_list.list);
                     if resp.is_some() {
-                        reply_chan.send(Ok(resp.unwrap())); 
+                        reply_chan.send(Ok(resp.unwrap()));
                         return
                     }
                 }
@@ -842,4 +846,3 @@ impl LayoutTask {
             util::replace(layout_data_ref.get(), None));
     }
 }
-
