@@ -54,19 +54,19 @@ pub struct Node {
     abstract: Option<AbstractNode>,
 
     /// The parent of this node.
-    parent_node: Option<AbstractNode>,
+    priv parent_node: Option<AbstractNode>,
 
     /// The first child of this node.
-    first_child: Option<AbstractNode>,
+    priv first_child: Option<AbstractNode>,
 
     /// The last child of this node.
-    last_child: Option<AbstractNode>,
+    priv last_child: Option<AbstractNode>,
 
     /// The next sibling of this node.
-    next_sibling: Option<AbstractNode>,
+    priv next_sibling: Option<AbstractNode>,
 
     /// The previous sibling of this node.
-    prev_sibling: Option<AbstractNode>,
+    priv prev_sibling: Option<AbstractNode>,
 
     /// The document that this node belongs to.
     priv owner_doc: Option<AbstractDocument>,
@@ -1546,31 +1546,31 @@ impl Node {
     // Low-level pointer stitching
     //
 
-    pub fn set_parent_node(&mut self, new_parent_node: Option<AbstractNode>) {
+    fn set_parent_node(&mut self, new_parent_node: Option<AbstractNode>) {
         let doc = self.owner_doc();
         doc.document().wait_until_safe_to_modify_dom();
         self.parent_node = new_parent_node
     }
 
-    pub fn set_first_child(&mut self, new_first_child: Option<AbstractNode>) {
+    fn set_first_child(&mut self, new_first_child: Option<AbstractNode>) {
         let doc = self.owner_doc();
         doc.document().wait_until_safe_to_modify_dom();
         self.first_child = new_first_child
     }
 
-    pub fn set_last_child(&mut self, new_last_child: Option<AbstractNode>) {
+    fn set_last_child(&mut self, new_last_child: Option<AbstractNode>) {
         let doc = self.owner_doc();
         doc.document().wait_until_safe_to_modify_dom();
         self.last_child = new_last_child
     }
 
-    pub fn set_prev_sibling(&mut self, new_prev_sibling: Option<AbstractNode>) {
+    fn set_prev_sibling(&mut self, new_prev_sibling: Option<AbstractNode>) {
         let doc = self.owner_doc();
         doc.document().wait_until_safe_to_modify_dom();
         self.prev_sibling = new_prev_sibling
     }
 
-    pub fn set_next_sibling(&mut self, new_next_sibling: Option<AbstractNode>) {
+    fn set_next_sibling(&mut self, new_next_sibling: Option<AbstractNode>) {
         let doc = self.owner_doc();
         doc.document().wait_until_safe_to_modify_dom();
         self.next_sibling = new_next_sibling
