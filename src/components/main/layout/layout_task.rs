@@ -248,7 +248,7 @@ impl LayoutTask {
            chan: LayoutChan,
            constellation_chan: ConstellationChan,
            script_chan: ScriptChan,
-           render_chan: RenderChan<OpaqueNode>, 
+           render_chan: RenderChan<OpaqueNode>,
            image_cache_task: ImageCacheTask,
            opts: &Opts,
            profiler_chan: ProfilerChan)
@@ -370,7 +370,7 @@ impl LayoutTask {
     /// crash.
     fn exit_now(&mut self) {
         let (response_port, response_chan) = Chan::new();
-        
+
         match self.parallel_traversal {
             None => {}
             Some(ref mut traversal) => traversal.shutdown(),
@@ -587,7 +587,7 @@ impl LayoutTask {
                 let mut color = color::rgba(255.0, 255.0, 255.0, 255.0);
 
                 for child in node.traverse_preorder() {
-                    if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) || 
+                    if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) ||
                             child.type_id() == ElementNodeTypeId(HTMLBodyElementTypeId) {
                         let element_bg_color = child.style()
                                                     .get()

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Fixed Table</title>
+    <style>
+      table {
+        table-layout: fixed;
+        width: 600px;
+        border: solid black 2px;
+      }
+      caption { border: solid blue 1px; }
+      td { border: solid red 1px; }      
+      th { border: solid red 1px; }      
+    </style>
+  </head>
+  <body>
+    <table>
+        <caption>This is a 3x3 fixed table</caption>
+        <colgroup>
+          <col style="width: 200px" />
+        </colgroup>
+        <tbody>
+          <tr><th style="width: 100px">Header 1</th><td style="width: 100px">Cell 1</td><td>Cell 2</td></tr>
+          <tr><th style="width: 300px">Header 2</th><td style="width: 300px">Cell 3</th><td>Cell 4</td></tr>
+          <tr><th>Header 3</th><td>Cell 5</th></tr>
+        </tbody>
+    </table>
+  </body>
+<html>

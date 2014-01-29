@@ -22,18 +22,28 @@
 
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
-use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo};
+use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo, TableBox};
+use layout::box_::{TableCellBox, TableColumnBox, TableColumnBoxInfo, TableRowBox, TableWrapperBox};
 use layout::box_::{UnscannedTextBox, UnscannedTextBoxInfo, InlineInfo, InlineParentInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
-use layout::flow::{BaseFlow, Flow, LeafSet, MutableOwnedFlowUtils};
+use layout::flow::{BaseFlow, Flow, LeafSet, MutableOwnedFlowUtils, ImmutableFlowUtils};
 use layout::inline::InlineFlow;
+use layout::table_wrapper::TableWrapperFlow;
+use layout::table::TableFlow;
+use layout::table_colgroup::TableColGroupFlow;
+use layout::table_rowgroup::TableRowGroupFlow;
+use layout::table_row::TableRowFlow;
+use layout::table_cell::TableCellFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
 use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal};
 
 use gfx::font_context::FontContext;
 use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
+use script::dom::element::{HTMLTableElementTypeId, HTMLTableSectionElementTypeId};
+use script::dom::element::{HTMLTableDataCellElementTypeId, HTMLTableHeaderCellElementTypeId};
+use script::dom::element::{HTMLTableColElementTypeId, HTMLTableRowElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, TextNodeTypeId};
 use style::computed_values::{display, position, float};
@@ -256,6 +266,12 @@ impl<'fc> FlowConstructor<'fc> {
                 }
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => IframeBox(IframeBoxInfo::new(&node)),
+            ElementNodeTypeId(HTMLTableElementTypeId) => TableWrapperBox,
+            ElementNodeTypeId(HTMLTableColElementTypeId) => TableColumnBox(TableColumnBoxInfo::new(&node)),
+            ElementNodeTypeId(HTMLTableDataCellElementTypeId) |
+            ElementNodeTypeId(HTMLTableHeaderCellElementTypeId) => TableCellBox,
+            ElementNodeTypeId(HTMLTableRowElementTypeId) |
+            ElementNodeTypeId(HTMLTableSectionElementTypeId) => TableRowBox,
             TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(&node)),
             _ => GenericBox,
         };
@@ -600,6 +616,144 @@ impl<'fc> FlowConstructor<'fc> {
             self.build_boxes_for_replaced_inline_content(node)
         }
     }
+
+    fn build_children_of_table_wrapper_flow(&mut self,
+                                           table_wrapper_flow: &mut ~Flow,
+                                           table_flow: &mut ~Flow,
+                                           node: LayoutNode) {
+        for kid in node.children() {
+            match kid.swap_out_construction_result() {
+                NoConstructionResult | ConstructionItemConstructionResult(_) => {}
+                FlowConstructionResult(kid_flow) => {
+                    let mut kid_flow = Some(kid_flow);
+                    self.layout_context.leaf_set.access(|leaf_set| {
+                        if kid_flow.get_ref().is_block_like() {
+                            table_wrapper_flow.add_new_child(kid_flow.take_unwrap(), leaf_set);
+                        } else if kid_flow.get_ref().starts_table_flow() {
+                            table_flow.add_new_child(kid_flow.take_unwrap(), leaf_set);
+                        }
+                    })
+                }
+            }
+        }
+    }
+
+
+    fn build_children_of_table_flow(&mut self,
+                                    flow: &mut ~Flow,
+                                    node: LayoutNode) {
+        // Ignore inline flows we might need to create.
+        for kid in node.children() {
+            match kid.swap_out_construction_result() {
+                NoConstructionResult | ConstructionItemConstructionResult(_) => {}
+                FlowConstructionResult(kid_flow) => {
+                    let mut kid_flow = Some(kid_flow);
+                    self.layout_context.leaf_set.access(|leaf_set| {
+                        flow.add_new_child(kid_flow.take_unwrap(), leaf_set)
+                    })
+                }
+            }
+        }
+    }
+
+    /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with possibly
+    /// other `BlockFlow`s or `TableFlow`s underneath it.
+    fn build_flow_for_table_wrapper(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+        // We first populate the TableFlow with TableRowGroupFlow and TableColGroupFlow.
+        // We then populate the TableWrapperFlow with caption blocks, and attach
+        // the TableFlow to the Table WrapperFlow
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let box_ = Box::new(node, TableWrapperBox);
+        let mut wrapper_flow = ~TableWrapperFlow::from_box(base, box_, is_fixed) as ~Flow;
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&wrapper_flow));
+
+        let table_base = BaseFlow::new(self.next_flow_id(), node);
+        let table_box_ = Box::new(node, TableBox);
+        let mut table_flow = ~TableFlow::from_box(table_base, table_box_, is_fixed) as ~Flow;
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&table_flow));
+
+        self.build_children_of_table_wrapper_flow(&mut wrapper_flow, &mut table_flow, node);
+
+        // NOTE: The order of captions and table are not the same order as in the DOM tree.
+        // All caption blocks are placed before the table flow
+        let mut table_flow = Some(table_flow);
+        self.layout_context.leaf_set.access(|leaf_set| {
+            wrapper_flow.add_new_child(table_flow.take_unwrap(), leaf_set)
+        });
+
+        wrapper_flow
+    }
+
+    /// Builds a flow for a node with `display: table-row-group`. This yields a `TableRowGroupFlow` with possibly
+    /// other `TableRowFlow`s underneath it.
+    fn build_flow_for_table_rowgroup(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let box_ = Box::new(node, TableRowBox);
+        let mut flow = ~TableRowGroupFlow::from_box(base, box_, is_fixed) as ~Flow;
+
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
+
+        self.build_children_of_table_flow(&mut flow, node);
+        flow
+    }
+
+    /// Builds a flow for a node with `display: table-row`. This yields a `TableRowFlow` with possibly
+    /// other `TableCellFlow`s underneath it.
+    fn build_flow_for_table_row(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let box_ = Box::new(node, TableRowBox);
+        let mut flow = ~TableRowFlow::from_box(base, box_, is_fixed) as ~Flow;
+
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
+
+        self.build_children_of_table_flow(&mut flow, node);
+        flow
+    }
+
+    /// Builds a flow for a node with `display: table-cell`. This yields a `TableCellFlow` with possibly
+    /// other `BlockFlow`s or `InlineFlow`s underneath it.
+    fn build_flow_for_table_cell(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let box_ = Box::new(node, TableCellBox);
+        let mut flow = ~TableCellFlow::from_box(base, box_, is_fixed) as ~Flow;
+
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
+
+        self.build_children_of_block_flow(&mut flow, node);
+        flow
+    }
+
+    /// Builds a flow for a node with `display: table-col-group`. This yields a `TableColGroupFlow`.
+    fn build_flow_for_table_colgroup(&mut self, node: LayoutNode) -> ~Flow {
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let box_ = Box::new(node, TableColumnBox(TableColumnBoxInfo::new(&node)));
+        let mut col_boxes = ~[];
+        for kid in node.children() {
+            if kid.type_id() != ElementNodeTypeId(HTMLTableColElementTypeId) { continue; }
+            match kid.swap_out_construction_result() {
+                ConstructionItemConstructionResult(InlineBoxesConstructionItem(
+                        InlineBoxesConstructionResult {
+                            splits: _,
+                            boxes: boxes
+                        })) => {
+
+                    col_boxes.push_all_move(boxes)
+                }
+                _ => {}
+            }
+        }
+        if col_boxes.is_empty() {
+            debug!("add TableColumnBox for empty colgroup");
+            let specific = TableColumnBox(TableColumnBoxInfo::new(&node));
+            col_boxes.push( Box::new(node, specific) );
+        }
+        let flow = ~TableColGroupFlow::from_box(base, box_, col_boxes) as ~Flow;
+
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
+
+        flow
+    }
+
 }
 
 impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
@@ -639,7 +793,43 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             (display::inline, float::none, _) => {
                 let construction_result = self.build_boxes_for_inline(node);
                 node.set_flow_construction_result(construction_result)
+            }
 
+            // Table items contribute table flow construction results.
+            (display::table, _, _) => {
+                let flow = self.build_flow_for_table_wrapper(node, false);
+                node.set_flow_construction_result(FlowConstructionResult(flow))
+            }
+
+            // Table items contribute table flow construction results.
+            (display::table_column_group, _, _) => {
+                let flow = self.build_flow_for_table_colgroup(node);
+                node.set_flow_construction_result(FlowConstructionResult(flow))
+            }
+
+            // Table items contribute table flow construction results.
+            (display::table_column, _, _) => {
+                let construction_result = self.build_boxes_for_replaced_inline_content(node);
+                node.set_flow_construction_result(construction_result)
+            }
+
+            // Table items contribute table flow construction results.
+            (display::table_row_group, _, _) | (display::table_header_group, _, _) |
+            (display::table_footer_group, _, _) => {
+                let flow = self.build_flow_for_table_rowgroup(node, false);
+                node.set_flow_construction_result(FlowConstructionResult(flow))
+            }
+
+            // Table items contribute table flow construction results.
+            (display::table_row, _, _) => {
+                let flow = self.build_flow_for_table_row(node, false);
+                node.set_flow_construction_result(FlowConstructionResult(flow))
+            }
+
+            // Table items contribute table flow construction results.
+            (display::table_cell, _, _) => {
+                let flow = self.build_flow_for_table_cell(node, false);
+                node.set_flow_construction_result(FlowConstructionResult(flow))
             }
 
             // Block flows that are not floated contribute block flow construction results.

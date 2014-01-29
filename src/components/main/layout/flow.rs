@@ -35,6 +35,12 @@ use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
 use layout::parallel::{FlowParallelInfo, UnsafeFlow};
 use layout::parallel;
+use layout::table_wrapper::TableWrapperFlow;
+use layout::table::TableFlow;
+use layout::table_colgroup::TableColGroupFlow;
+use layout::table_rowgroup::TableRowGroupFlow;
+use layout::table_row::TableRowFlow;
+use layout::table_cell::TableCellFlow;
 use layout::wrapper::LayoutNode;
 
 use extra::dlist::{DList, DListIterator, MutDListIterator};
@@ -78,6 +84,36 @@ pub trait Flow {
     /// If this is an inline flow, returns the underlying object. Fails otherwise.
     fn as_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
         fail!("called as_inline() on a non-inline flow")
+    }
+
+    /// If this is a table wrapper flow, returns the underlying object. Fails otherwise.
+    fn as_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
+        fail!("called as_table_wrapper() on a non-tablewrapper flow")
+    }
+
+    /// If this is a table flow, returns the underlying object. Fails otherwise.
+    fn as_table<'a>(&'a mut self) -> &'a mut TableFlow {
+        fail!("called as_table() on a non-table flow")
+    }
+
+    /// If this is a table colgroup flow, returns the underlying object. Fails otherwise.
+    fn as_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
+        fail!("called as_table_colgroup() on a non-tablecolgroup flow")
+    }
+
+    /// If this is a table rowgroup flow, returns the underlying object. Fails otherwise.
+    fn as_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
+        fail!("called as_table_rowgroup() on a non-tablerowgroup flow")
+    }
+
+    /// If this is a table row flow, returns the underlying object. Fails otherwise.
+    fn as_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
+        fail!("called as_table_row() on a non-tablerow flow")
+    }
+
+    /// If this is a table cell flow, returns the underlying object. Fails otherwise.
+    fn as_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
+        fail!("called as_table_cell() on a non-tablecell flow")
     }
 
     // Main methods
@@ -161,6 +197,15 @@ pub trait ImmutableFlowUtils {
     /// Returns true if this flow is a block or a float flow.
     fn is_block_like(self) -> bool;
 
+    /// Returns true if this flow is a child of table flow.
+    fn is_child_of_table_flow(self) -> bool;
+
+    /// Returns true if this flow is a table colgroup flow.
+    fn is_table_colgroup(self) -> bool;
+
+    /// Returns true if this flow is a table rowgroup flow.
+    fn is_table_rowgroup(self) -> bool;
+
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool;
 
@@ -172,6 +217,9 @@ pub trait ImmutableFlowUtils {
 
     /// Returns true if this flow is an inline flow.
     fn starts_inline_flow(self) -> bool;
+
+    /// Returns true if this flow is one of table-related flows.
+    fn starts_table_flow(self) -> bool;
 
     /// Dumps the flow tree for debugging.
     fn dump(self);
@@ -227,6 +275,12 @@ pub trait MutableOwnedFlowUtils {
 pub enum FlowClass {
     BlockFlowClass,
     InlineFlowClass,
+    TableWrapperFlowClass,
+    TableFlowClass,
+    TableColGroupFlowClass,
+    TableRowGroupFlowClass,
+    TableRowFlowClass,
+    TableCellFlowClass,
 }
 
 /// A top-down traversal.
@@ -581,7 +635,33 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn is_block_like(self) -> bool {
         match self.class() {
             BlockFlowClass => true,
-            InlineFlowClass => false,
+            InlineFlowClass | TableWrapperFlowClass | TableFlowClass |
+                TableColGroupFlowClass | TableRowGroupFlowClass |
+                TableRowFlowClass | TableCellFlowClass => false,
+        }
+    }
+
+    fn is_child_of_table_flow(self) -> bool {
+        match self.class() {
+            TableColGroupFlowClass | TableRowGroupFlowClass => true,
+            BlockFlowClass | InlineFlowClass | TableWrapperFlowClass |
+                TableFlowClass | TableRowFlowClass | TableCellFlowClass => false,
+        }
+    }
+
+    fn is_table_colgroup(self) -> bool {
+        match self.class() {
+            TableColGroupFlowClass => true,
+            BlockFlowClass | InlineFlowClass | TableWrapperFlowClass |
+                TableFlowClass | TableRowFlowClass | TableRowGroupFlowClass | TableCellFlowClass => false,
+        }
+    }
+
+    fn is_table_rowgroup(self) -> bool {
+        match self.class() {
+            TableRowGroupFlowClass => true,
+            BlockFlowClass | InlineFlowClass | TableColGroupFlowClass | TableWrapperFlowClass |
+                TableFlowClass | TableRowFlowClass | TableCellFlowClass => false,
         }
     }
 
@@ -599,7 +679,9 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn starts_block_flow(self) -> bool {
         match self.class() {
             BlockFlowClass => true,
-            InlineFlowClass => false,
+            InlineFlowClass | TableWrapperFlowClass | TableFlowClass |
+                TableColGroupFlowClass | TableRowGroupFlowClass |
+                TableRowFlowClass | TableCellFlowClass => false,
         }
     }
 
@@ -607,7 +689,19 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn starts_inline_flow(self) -> bool {
         match self.class() {
             InlineFlowClass => true,
-            BlockFlowClass => false,
+            BlockFlowClass | TableWrapperFlowClass | TableFlowClass |
+                TableColGroupFlowClass | TableRowGroupFlowClass |
+                TableRowFlowClass | TableCellFlowClass => false,
+        }
+    }
+
+    /// Returns true if this flow is one of table-related flows.
+    fn starts_table_flow(self) -> bool {
+        match self.class() {
+            TableWrapperFlowClass | TableFlowClass |
+                TableColGroupFlowClass | TableRowGroupFlowClass |
+                TableRowFlowClass | TableCellFlowClass => true,
+            InlineFlowClass | BlockFlowClass => false,
         }
     }
 
@@ -709,6 +803,12 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         match self.class() {
             BlockFlowClass => self.as_block().build_display_list_block(builder, dirty, list),
             InlineFlowClass => self.as_inline().build_display_list_inline(builder, dirty, list),
+            TableWrapperFlowClass => self.as_table_wrapper().build_display_list_table(builder, dirty, list),
+            TableFlowClass => self.as_table().build_display_list_table(builder, dirty, list),
+            TableRowGroupFlowClass => self.as_table_rowgroup().build_display_list_table(builder, dirty, list),
+            TableRowFlowClass => self.as_table_row().build_display_list_table(builder, dirty, list),
+            TableCellFlowClass => self.as_table_cell().build_display_list_table(builder, dirty, list),
+            TableColGroupFlowClass => false,
         };
 
         if list.with_mut(|list| list.list.len() == 0) {

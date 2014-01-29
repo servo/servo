@@ -2,24 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! CSS block formatting contexts.
+//! CSS table formatting contexts.
 
 use layout::box_::Box;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
+use layout::flow::{BaseFlow, TableFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
-use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
+use layout::model::{MaybeAuto, Specified, Auto};
 use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
 
 use std::cell::RefCell;
-use geom::{Point2D, Rect, SideOffsets2D};
+use style::computed_values::table_layout;
+use geom::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 
 /// Information specific to floated blocks.
-pub struct FloatedBlockInfo {
+pub struct FloatedTableInfo {
     containing_width: Au,
 
     /// Offset relative to where the parent tried to position this flow
@@ -35,9 +36,9 @@ pub struct FloatedBlockInfo {
     float_type: FloatType
 }
 
-impl FloatedBlockInfo {
-    pub fn new(float_type: FloatType) -> FloatedBlockInfo {
-        FloatedBlockInfo {
+impl FloatedTableInfo {
+    pub fn new(float_type: FloatType) -> FloatedTableInfo {
+        FloatedTableInfo {
             containing_width: Au(0),
             rel_pos: Point2D(Au(0), Au(0)),
             index: None,
@@ -47,72 +48,72 @@ impl FloatedBlockInfo {
     }
 }
 
-/// A block formatting context.
-pub struct BlockFlow {
+/// A table formatting context.
+pub struct TableFlow {
     /// Data common to all flows.
     base: BaseFlow,
 
     /// The associated box.
     box_: Option<Box>,
 
-    //TODO: is_fixed and is_root should be bit fields to conserve memory.
-    /// Whether this block flow is the root flow.
-    is_root: bool,
-
+    //TODO: is_fixed should be bit fields to conserve memory.
+    /// Position property
     is_fixed: bool,
 
     /// Additional floating flow members.
-    float: Option<~FloatedBlockInfo>
+    float: Option<~FloatedTableInfo>,
+
+    /// Column widths
+    col_widths: ~[Au],
+
+    /// Table-layout property
+    is_fixed_table_layout: bool,
 }
 
-impl BlockFlow {
-    pub fn new(base: BaseFlow) -> BlockFlow {
-        BlockFlow {
+impl TableFlow {
+    pub fn new(base: BaseFlow) -> TableFlow {
+        TableFlow {
             base: base,
             box_: None,
-            is_root: false,
             is_fixed: false,
-            float: None
+            float: None,
+            col_widths: ~[],
+            is_fixed_table_layout: false,
+
         }
     }
 
-    pub fn from_box(base: BaseFlow, box_: Box, is_fixed: bool) -> BlockFlow {
-        BlockFlow {
+    pub fn from_box(base: BaseFlow, box_: Box, is_fixed: bool) -> TableFlow {
+        let is_fixed_table_layout = box_.style().Table.table_layout == table_layout::fixed;
+        TableFlow {
             base: base,
             box_: Some(box_),
-            is_root: false,
             is_fixed: is_fixed,
-            float: None
+            float: None,
+            col_widths: ~[],
+            is_fixed_table_layout: is_fixed_table_layout,
         }
     }
 
-    pub fn float_from_box(base: BaseFlow, float_type: FloatType, box_: Box) -> BlockFlow {
-        BlockFlow {
+    pub fn float_from_box(base: BaseFlow, float_type: FloatType, box_: Box) -> TableFlow {
+        TableFlow {
             base: base,
             box_: Some(box_),
-            is_root: false,
             is_fixed: false,
-            float: Some(~FloatedBlockInfo::new(float_type))
+            float: Some(~FloatedTableInfo::new(float_type)),
+            col_widths: ~[],
+            is_fixed_table_layout: false,
         }
     }
 
-    pub fn new_root(base: BaseFlow) -> BlockFlow {
-        BlockFlow {
+    pub fn new_float(base: BaseFlow, float_type: FloatType) -> TableFlow {
+        TableFlow {
             base: base,
             box_: None,
-            is_root: true,
             is_fixed: false,
-            float: None
-        }
-    }
-
-    pub fn new_float(base: BaseFlow, float_type: FloatType) -> BlockFlow {
-        BlockFlow {
-            base: base,
-            box_: None,
-            is_root: false,
-            is_fixed: false,
-            float: Some(~FloatedBlockInfo::new(float_type))
+            float: Some(~FloatedTableInfo::new(float_type)),
+            col_widths: ~[],
+            is_fixed_table_layout: false,
         }
     }
 
@@ -128,119 +129,10 @@ impl BlockFlow {
         self.float = None;
     }
 
-    /// Computes left and right margins and width based on CSS 2.1 section 10.3.3.
-    /// Requires borders and padding to already be computed.
-    fn compute_horiz(&self,
-                     width: MaybeAuto,
-                     left_margin: MaybeAuto,
-                     right_margin: MaybeAuto,
-                     available_width: Au)
-                     -> (Au, Au, Au) {
-        // If width is not 'auto', and width + margins > available_width, all 'auto' margins are
-        // treated as 0.
-        let (left_margin, right_margin) = match width {
-            Auto => (left_margin, right_margin),
-            Specified(width) => {
-                let left = left_margin.specified_or_zero();
-                let right = right_margin.specified_or_zero();
-
-                if((left + right + width) > available_width) {
-                    (Specified(left), Specified(right))
-                } else {
-                    (left_margin, right_margin)
-                }
-            }
-        };
-
-        //Invariant: left_margin_Au + width_Au + right_margin_Au == available_width
-        let (left_margin_Au, width_Au, right_margin_Au) = match (left_margin, width, right_margin) {
-            //If all have a computed value other than 'auto', the system is over-constrained and we need to discard a margin.
-            //if direction is ltr, ignore the specified right margin and solve for it. If it is rtl, ignore the specified
-            //left margin. FIXME(eatkinson): this assumes the direction is ltr
-            (Specified(margin_l), Specified(width), Specified(_margin_r)) => (margin_l, width, available_width - (margin_l + width )),
-
-            //If exactly one value is 'auto', solve for it
-            (Auto, Specified(width), Specified(margin_r)) => (available_width - (width + margin_r), width, margin_r),
-            (Specified(margin_l), Auto, Specified(margin_r)) => (margin_l, available_width - (margin_l + margin_r), margin_r),
-            (Specified(margin_l), Specified(width), Auto) => (margin_l, width, available_width - (margin_l + width)),
-
-            //If width is set to 'auto', any other 'auto' value becomes '0', and width is solved for
-            (Auto, Auto, Specified(margin_r)) => (Au::new(0), available_width - margin_r, margin_r),
-            (Specified(margin_l), Auto, Auto) => (margin_l, available_width - margin_l, Au::new(0)),
-            (Auto, Auto, Auto) => (Au::new(0), available_width, Au::new(0)),
-
-            //If left and right margins are auto, they become equal
-            (Auto, Specified(width), Auto) => {
-                let margin = (available_width - width).scale_by(0.5);
-                (margin, width, margin)
-            }
-
-        };
-        //return values in same order as params
-        (width_Au, left_margin_Au, right_margin_Au)
-    }
-
-    fn compute_block_margins(&self, box_: &Box, remaining_width: Au, available_width: Au)
-                             -> (Au, Au, Au) {
-        let style = box_.style();
-
-        let (width, maybe_margin_left, maybe_margin_right) =
-            (MaybeAuto::from_style(style.Box.width, remaining_width),
-             MaybeAuto::from_style(style.Margin.margin_left, remaining_width),
-             MaybeAuto::from_style(style.Margin.margin_right, remaining_width));
-
-        let (width, margin_left, margin_right) = self.compute_horiz(width,
-                                                                    maybe_margin_left,
-                                                                    maybe_margin_right,
-                                                                    available_width);
-
-        // If the tentative used width is greater than 'max-width', width should be recalculated,
-        // but this time using the computed value of 'max-width' as the computed value for 'width'.
-        let (width, margin_left, margin_right) = {
-            match specified_or_none(style.Box.max_width, remaining_width) {
-                Some(value) if value < width => self.compute_horiz(Specified(value),
-                                                                   maybe_margin_left,
-                                                                   maybe_margin_right,
-                                                                   available_width),
-                _ => (width, margin_left, margin_right)
-            }
-        };
-
-        // If the resulting width is smaller than 'min-width', width should be recalculated,
-        // but this time using the value of 'min-width' as the computed value for 'width'.
-        let (width, margin_left, margin_right) = {
-            let computed_min_width = specified(style.Box.min_width, remaining_width);
-            if computed_min_width > width {
-                self.compute_horiz(Specified(computed_min_width),
-                                   maybe_margin_left,
-                                   maybe_margin_right,
-                                   available_width)
-            } else {
-                (width, margin_left, margin_right)
-            }
-        };
-
-        return (width, margin_left, margin_right);
-    }
-
-    fn compute_float_margins(&self, box_: &Box, remaining_width: Au) -> (Au, Au, Au) {
-        let style = box_.style();
-        let margin_left = MaybeAuto::from_style(style.Margin.margin_left,
-                                                remaining_width).specified_or_zero();
-        let margin_right = MaybeAuto::from_style(style.Margin.margin_right,
-                                                 remaining_width).specified_or_zero();
-        let shrink_to_fit = geometry::min(self.base.pref_width,
-                                          geometry::max(self.base.min_width, remaining_width));
-        let width = MaybeAuto::from_style(style.Box.width,
-                                          remaining_width).specified_or_default(shrink_to_fit);
-        debug!("assign_widths_float -- width: {}", width);
-        return (width, margin_left, margin_right);
-    }
-
     // inline(always) because this is only ever called by in-order or non-in-order top-level
     // methods
     #[inline(always)]
-    fn assign_height_block_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
+    fn assign_height_table_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
         let mut cur_y = Au::new(0);
         let mut clearance = Au::new(0);
         let mut top_offset = Au::new(0);
@@ -288,11 +180,11 @@ impl BlockFlow {
         let mut bottom_margin_collapsible = false;
         let mut first_in_flow = true;
         for box_ in self.box_.iter() {
-            if !self.is_root && box_.border.get().top == Au(0) && box_.padding.get().top == Au(0) {
+            if box_.border.get().top == Au(0) && box_.padding.get().top == Au(0) {
                 collapsible = box_.margin.get().top;
                 top_margin_collapsible = true;
             }
-            if !self.is_root && box_.border.get().bottom == Au(0) &&
+            if box_.border.get().bottom == Au(0) &&
                     box_.padding.get().bottom == Au(0) {
                 bottom_margin_collapsible = true;
             }
@@ -329,17 +221,8 @@ impl BlockFlow {
         // top or bottom borders nor top or bottom padding, and it has a 'height' of either 0 or 'auto',
         // and it does not contain a line box, and all of its in-flow children's margins (if any) collapse.
 
-        let screen_height = ctx.screen_size.height;
 
-        let mut height = if self.is_root {
-            // FIXME(pcwalton): The max is taken here so that you can scroll the page, but this is
-            // not correct behavior according to CSS 2.1 § 10.5. Instead I think we should treat
-            // the root element as having `overflow: scroll` and use the layers-based scrolling
-            // infrastructure to make it scrollable.
-            Au::max(screen_height, cur_y)
-        } else {
-            cur_y - top_offset - collapsing
-        };
+        let mut height = cur_y - top_offset - collapsing;
 
         for box_ in self.box_.iter() {
             let style = box_.style();
@@ -354,6 +237,7 @@ impl BlockFlow {
         }
 
         let mut noncontent_height = Au::new(0);
+        let screen_height = ctx.screen_size.height;
         for box_ in self.box_.iter() {
             let mut position = box_.position.get();
             let mut margin = box_.margin.get();
@@ -369,11 +253,10 @@ impl BlockFlow {
                                                                   height,
                                                                   clearance + margin.top,
                                                                   self.is_fixed);
-
             position.origin.y = y;
             height = h;
 
-            if self.is_fixed { 
+            if self.is_fixed {
                 for kid in self.base.child_iter() {
                     let child_node = flow::mut_base(*kid);
                     child_node.position.origin.y = position.origin.y + top_offset;
@@ -492,7 +375,7 @@ impl BlockFlow {
         box_.position.set(position);
     }
 
-    pub fn build_display_list_block<E:ExtraDisplayListData>(
+    pub fn build_display_list_table<E:ExtraDisplayListData>(
                                     &mut self,
                                     builder: &DisplayListBuilder,
                                     dirty: &Rect<Au>,
@@ -507,9 +390,9 @@ impl BlockFlow {
             return true;
         }
 
-        debug!("build_display_list_block: adding display element");
+        debug!("build_display_list_table[TABLE]: adding display element");
 
-        // add box that starts block context
+        // add box that starts table context
         for box_ in self.box_.iter() {
             box_.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, list)
         }
@@ -536,7 +419,7 @@ impl BlockFlow {
         }
 
         let offset = self.base.abs_position + self.float.get_ref().rel_pos;
-        // add box that starts block context
+        // add box that starts table context
         for box_ in self.box_.iter() {
             box_.build_display_list(builder, dirty, offset, (&*self) as &Flow, list)
         }
@@ -554,12 +437,12 @@ impl BlockFlow {
     }
 }
 
-impl Flow for BlockFlow {
+impl Flow for TableFlow {
     fn class(&self) -> FlowClass {
-        BlockFlowClass
+        TableFlowClass
     }
 
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_table<'a>(&'a mut self) -> &'a mut TableFlow {
         self
     }
 
@@ -577,10 +460,38 @@ impl Flow for BlockFlow {
         let mut num_floats = 0;
 
         /* find max width from child block contexts */
-        for child_ctx in self.base.child_iter() {
-            assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow() || child_ctx.starts_table_flow());
+        for kid in self.base.child_iter() {
+            assert!(kid.starts_block_flow() || kid.starts_table_flow());
 
-            let child_base = flow::mut_base(*child_ctx);
+            if kid.is_table_colgroup() {
+                self.col_widths.push_all(kid.as_table_colgroup().widths);
+            } else if kid.is_table_rowgroup() {
+                // read column widths from table-row-group, and assign
+                // width=0 for the columns not defined in column-group
+                // FIXME: need to read widths from either table-header-group OR
+                // first table-row
+                if self.is_fixed_table_layout {
+                    let mut child_widths = kid.as_table_rowgroup().col_widths.mut_iter();
+                    for col_width in self.col_widths.mut_iter() {
+                        match child_widths.next() {
+                            Some(child_width) => {
+                                if *col_width == Au::new(0) {
+                                    *col_width = *child_width;
+                                }
+                            },
+                            None => break
+                        }
+                    }
+                }
+                let num_child_cols = kid.as_table_rowgroup().col_widths.len();
+                let num_cols = self.col_widths.len();
+                debug!("{:?} column(s) from colgroup, but the child has {:?} column(s)", num_cols, num_child_cols);
+                for i in range(num_cols, num_child_cols) {
+                    self.col_widths.push( kid.as_table_rowgroup().col_widths[i] );
+                }
+            }
+
+            let child_base = flow::mut_base(*kid);
             min_width = geometry::max(min_width, child_base.min_width);
             pref_width = geometry::max(pref_width, child_base.pref_width);
             num_floats = num_floats + child_base.num_floats;
@@ -620,21 +531,23 @@ impl Flow for BlockFlow {
                if self.is_float() {
                    "float"
                } else {
-                   "block"
+                   "table"
                },
                self.base.id);
-
-        if self.is_root {
-            debug!("Setting root position");
-            self.base.position.origin = Au::zero_point();
-            self.base.position.size.width = ctx.screen_size.width;
-            self.base.floats_in = FloatContext::new(self.base.num_floats);
-            self.base.flags_info.flags.set_inorder(false);
-        }
 
         // The position was set to the containing block by the flow's parent.
         let mut remaining_width = self.base.position.size.width;
         let mut x_offset = Au::new(0);
+
+        let mut num_unspecified_widths = 0;
+        let mut total_cell_widths = Au::new(0);
+        for col_width in self.col_widths.iter() {
+            if *col_width == Au::new(0) {
+                num_unspecified_widths += 1;
+            } else {
+                total_cell_widths = total_cell_widths.add(col_width);
+            }
+        }
 
         if self.is_float() {
             self.float.get_mut_ref().containing_width = remaining_width;
@@ -643,62 +556,54 @@ impl Flow for BlockFlow {
             self.base.flags_info.flags.set_inorder(false);
         }
 
+        let mut padding_and_borders = Au::new(0);
+
         for box_ in self.box_.iter() {
             let style = box_.style();
 
-            // The text alignment of a block flow is the text alignment of its box's style.
+            // The text alignment of a table_wrapper flow is the text alignment of its box's style.
             self.base.flags_info.flags.set_text_align(style.Text.text_align);
 
-            box_.assign_width(remaining_width);
             // Can compute padding here since we know containing block width.
             box_.compute_padding(style, remaining_width);
 
-            // Margins are 0 right now so base.noncontent_width() is just borders + padding.
-            let available_width = remaining_width - box_.noncontent_width();
-
-            // Top and bottom margins for blocks are 0 if auto.
-            let margin_top = MaybeAuto::from_style(style.Margin.margin_top,
-                                                   remaining_width).specified_or_zero();
-            let margin_bottom = MaybeAuto::from_style(style.Margin.margin_bottom,
-                                                      remaining_width).specified_or_zero();
-
-            let (width, margin_left, margin_right) = if self.is_float() {
-                self.compute_float_margins(box_, remaining_width)
-            } else {
-                self.compute_block_margins(box_, remaining_width, available_width)
-            };
-
-            box_.margin.set(SideOffsets2D::new(margin_top,
-                                               margin_right,
-                                               margin_bottom,
-                                               margin_left));
-
             let screen_size = ctx.screen_size;
-            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width, 
-                                                                 screen_size.height,
-                                                                 width,
-                                                                 box_.offset(),
-                                                                 self.is_fixed);
-
+            let (x, _w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width,
+                                                                  screen_size.height,
+                                                                  remaining_width,
+                                                                  box_.offset(),
+                                                                  self.is_fixed);
             x_offset = x;
-            remaining_width = w;
+            padding_and_borders = box_.padding.get().left + box_.padding.get().right +
+                                  box_.border.get().left + box_.border.get().right;
 
             // The associated box is the border box of this flow.
             let mut position_ref = box_.position.borrow_mut();
             if self.is_fixed {
-                position_ref.get().origin.x = x_offset + box_.margin.get().left;
+                position_ref.get().origin.x = x_offset;
                 x_offset = x_offset + box_.padding.get().left;
-            } else {
-                position_ref.get().origin.x = box_.margin.get().left;
             }
-            let padding_and_borders = box_.padding.get().left + box_.padding.get().right +
-                box_.border.get().left + box_.border.get().right;
-            position_ref.get().size.width = remaining_width + padding_and_borders;
+
+            position_ref.get().size.width = remaining_width;
         }
 
         if self.is_float() {
             self.base.position.size.width = remaining_width;
         }
+
+        remaining_width = remaining_width - padding_and_borders;
+
+        let final_cell_width = if (total_cell_widths < remaining_width) &&
+                                    (num_unspecified_widths == 0) {
+            for col_width in self.col_widths.mut_iter() {
+                *col_width = *col_width * remaining_width / total_cell_widths;
+            }
+            Au(0)
+        } else if num_unspecified_widths != 0 {
+            (remaining_width - total_cell_widths) / Au::new(num_unspecified_widths)
+        } else {
+            Au(0)
+        };
 
         let has_inorder_children = if self.is_float() {
             self.base.num_floats > 0
@@ -709,7 +614,17 @@ impl Flow for BlockFlow {
         // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
-            assert!(kid.starts_block_flow() || kid.starts_inline_flow() || kid.starts_table_flow());
+            assert!(kid.starts_block_flow() || kid.starts_table_flow());
+
+            if kid.is_table_rowgroup() {
+                kid.as_table_rowgroup().col_widths = self.col_widths.map(|width| {
+                    if *width == Au(0) {
+                        final_cell_width
+                    } else {
+                        *width
+                    }
+                });
+            }
 
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;
@@ -723,8 +638,8 @@ impl Flow for BlockFlow {
             // Per CSS 2.1 § 16.3.1, text decoration propagates to all children in flow.
             //
             // TODO(pcwalton): When we have out-of-flow children, don't unconditionally propagate.
-
             child_base.flags_info.propagate_text_decoration_from_parent(&flags_info);
+
             child_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
         }
     }
@@ -734,29 +649,18 @@ impl Flow for BlockFlow {
             debug!("assign_height_inorder_float: assigning height for float {}", self.base.id);
             self.assign_height_float_inorder();
         } else {
-            debug!("assign_height_inorder: assigning height for block {}", self.base.id);
-            self.assign_height_block_base(ctx, true);
+            debug!("assign_height_inorder: assigning height for table {}", self.base.id);
+            self.assign_height_table_base(ctx, true);
         }
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
-        //assign height for box
-        for box_ in self.box_.iter() {
-            box_.assign_height();
-        }
-
         if self.is_float() {
             debug!("assign_height_float: assigning height for float {}", self.base.id);
             self.assign_height_float(ctx);
         } else {
-            debug!("assign_height: assigning height for block {}", self.base.id);
-            // This is the only case in which a block flow can start an inorder
-            // subtraversal.
-            if self.is_root && self.base.num_floats > 0 {
-                self.assign_height_inorder(ctx);
-                return;
-            }
-            self.assign_height_block_base(ctx, false);
+            debug!("assign_height: assigning height for table {}", self.base.id);
+            self.assign_height_table_base(ctx, false);
         }
     }
 
@@ -796,17 +700,11 @@ impl Flow for BlockFlow {
         *first_in_flow = false;
     }
 
-    fn mark_as_root(&mut self) {
-        self.is_root = true
-    }
-
     fn debug_str(&self) -> ~str {
         let txt = if self.is_float() {
             ~"FloatFlow: "
-        } else if self.is_root {
-            ~"RootFlow: "
         } else {
-            ~"BlockFlow: "
+            ~"TableFlow: "
         };
         txt.append(match self.box_ {
             Some(ref rb) => rb.debug_str(),
