@@ -5,6 +5,7 @@
 use resource_task::{Metadata, Payload, Done, LoadResponse, LoaderTask, start_sending};
 
 use std::vec;
+use std::hashmap::HashSet;
 use extra::url::Url;
 use http::client::RequestWriter;
 use http::method::Get;
@@ -19,9 +20,37 @@ pub fn factory() -> LoaderTask {
     f
 }
 
+fn send_error(url: Url, start_chan: Chan<LoadResponse>) {
+    start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
+}
+
 fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
+    // FIXME: At the time of writing this FIXME, servo didn't have any central
+    //        location for configuration. If you're reading this and such a
+    //        repository DOES exist, please update this constant to use it.
+    let max_redirects = 50u;
+    let mut iters = 0u;
+
+    let mut redirected_to = HashSet::new();
+
     // Loop to handle redirects.
     loop {
+        iters = iters + 1;
+
+        if iters > max_redirects {
+            info!("too many redirects");
+            send_error(url, start_chan);
+            return;
+        }
+
+        if redirected_to.contains(&url) {
+            info!("redirect loop");
+            send_error(url, start_chan);
+            return;
+        }
+
+        redirected_to.insert(url.clone());
+
         assert!("http" == url.scheme);
 
         info!("requesting {:s}", url.to_str());
@@ -30,7 +59,7 @@ fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
         let mut response = match request.read_response() {
             Ok(r) => r,
             Err(_) => {
-                start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
+                send_error(url, start_chan);
                 return;
             }
         };
@@ -42,7 +71,6 @@ fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
                 info!(" - {:s}: {:s}", header.header_name(), header.header_value());
             });
 
-        // FIXME: detect redirect loops
         if 3 == (response.status.code() / 100) {
             match response.headers.location {
                 Some(new_url) => {
