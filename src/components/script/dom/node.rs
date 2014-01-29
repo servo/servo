@@ -111,6 +111,14 @@ impl Drop for Node {
     }
 }
 
+/// suppress observers flag
+/// http://dom.spec.whatwg.org/#concept-node-insert
+/// http://dom.spec.whatwg.org/#concept-node-remove
+enum SuppressObserver {
+    Suppressed,
+    Unsuppressed
+}
+
 /// Encapsulates the abstract layout data.
 pub struct LayoutData {
     priv chan: Option<LayoutChan>,
@@ -1040,7 +1048,7 @@ impl Node {
     fn adopt(node: AbstractNode, document: AbstractDocument) {
         // Step 1.
         match node.parent_node() {
-            Some(parent) => Node::remove(node, parent, false),
+            Some(parent) => Node::remove(node, parent, Unsuppressed),
             None => (),
         }
 
@@ -1186,7 +1194,7 @@ impl Node {
         Node::adopt(node, parent.node().owner_doc());
 
         // Step 10.
-        Node::insert(node, parent, referenceChild, false);
+        Node::insert(node, parent, referenceChild, Unsuppressed);
 
         // Step 11.
         return Ok(node)
@@ -1196,7 +1204,7 @@ impl Node {
     fn insert(node: AbstractNode,
               parent: AbstractNode,
               child: Option<AbstractNode>,
-              suppress_observers: bool) {
+              suppress_observers: SuppressObserver) {
         // XXX assert owner_doc
         // Step 1-3: ranges.
         // Step 4.
@@ -1210,7 +1218,7 @@ impl Node {
         match node.type_id() {
             DocumentFragmentNodeTypeId => {
                 for c in node.children() {
-                    Node::remove(c, node, true);
+                    Node::remove(c, node, Suppressed);
                 }
             },
             _ => (),
@@ -1224,10 +1232,13 @@ impl Node {
         }
 
         // Step 9.
-        if !suppress_observers {
-            for node in nodes.iter() {
-                node.node_inserted();
+        match suppress_observers {
+            Unsuppressed => {
+                for node in nodes.iter() {
+                    node.node_inserted();
+                }
             }
+            Suppressed => ()
         }
     }
 
@@ -1253,12 +1264,12 @@ impl Node {
 
         // Step 4.
         for child in parent.children() {
-            Node::remove(child, parent, true);
+            Node::remove(child, parent, Suppressed);
         }
 
         // Step 5.
         match node {
-            Some(node) => Node::insert(node, parent, None, true),
+            Some(node) => Node::insert(node, parent, None, Suppressed),
             None => (),
         }
 
@@ -1281,14 +1292,14 @@ impl Node {
         }
 
         // Step 2.
-        Node::remove(child, parent, false);
+        Node::remove(child, parent, Unsuppressed);
 
         // Step 3.
         Ok(child)
     }
 
     // http://dom.spec.whatwg.org/#concept-node-remove
-    fn remove(node: AbstractNode, parent: AbstractNode, suppress_observers: bool) {
+    fn remove(node: AbstractNode, parent: AbstractNode, suppress_observers: SuppressObserver) {
         assert!(node.parent_node() == Some(parent));
 
         // Step 1-5: ranges.
@@ -1298,8 +1309,9 @@ impl Node {
         node.mut_node().flags.set_is_in_doc(false);
 
         // Step 9.
-        if !suppress_observers {
-            node.node_removed();
+        match suppress_observers {
+            Suppressed => (),
+            Unsuppressed => node.node_removed(),
         }
     }
 
@@ -1455,13 +1467,11 @@ impl Node {
         Node::adopt(node, parent.node().owner_doc());
 
         {
-            let suppress_observers = true;
-
             // Step 10.
-            Node::remove(child, parent, suppress_observers);
+            Node::remove(child, parent, Suppressed);
 
             // Step 11.
-            Node::insert(node, parent, reference_child, suppress_observers);
+            Node::insert(node, parent, reference_child, Suppressed);
         }
 
         // Step 12-14.
