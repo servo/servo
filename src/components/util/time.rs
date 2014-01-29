@@ -50,10 +50,12 @@ pub enum ProfilerCategory {
     CompositingCategory,
     LayoutQueryCategory,
     LayoutPerformCategory,
+    LayoutStyleRecalcCategory,
     LayoutAuxInitCategory,
     LayoutSelectorMatchCategory,
     LayoutSelectorCascadeCategory,
     LayoutTreeBuilderCategory,
+    LayoutDamagePropagateCategory,
     LayoutMainCategory,
     LayoutParallelWarmupCategory,
     LayoutShapingCategory,
@@ -78,6 +80,7 @@ impl ProfilerCategory {
         buckets.insert(CompositingCategory, ~[]);
         buckets.insert(LayoutQueryCategory, ~[]);
         buckets.insert(LayoutPerformCategory, ~[]);
+        buckets.insert(LayoutStyleRecalcCategory, ~[]);
         buckets.insert(LayoutAuxInitCategory, ~[]);
         buckets.insert(LayoutSelectorMatchCategory, ~[]);
         buckets.insert(LayoutSelectorCascadeCategory, ~[]);
@@ -85,6 +88,7 @@ impl ProfilerCategory {
         buckets.insert(LayoutMainCategory, ~[]);
         buckets.insert(LayoutParallelWarmupCategory, ~[]);
         buckets.insert(LayoutShapingCategory, ~[]);
+        buckets.insert(LayoutDamagePropagateCategory, ~[]);
         buckets.insert(LayoutDispListBuildCategory, ~[]);
         buckets.insert(GfxRegenAvailableFontsCategory, ~[]);
         buckets.insert(RenderingDrawingCategory, ~[]);
@@ -98,9 +102,16 @@ impl ProfilerCategory {
     // and should be printed to indicate this
     pub fn format(self) -> ~str {
         let padding = match self {
-            LayoutAuxInitCategory | LayoutSelectorMatchCategory | LayoutSelectorCascadeCategory |
-            LayoutTreeBuilderCategory | LayoutMainCategory | LayoutDispListBuildCategory |
-            LayoutShapingCategory | LayoutParallelWarmupCategory => " - ",
+            LayoutStyleRecalcCategory |
+            LayoutMainCategory |
+            LayoutDispListBuildCategory |
+            LayoutShapingCategory |
+            LayoutDamagePropagateCategory => "+ ",
+            LayoutAuxInitCategory |
+            LayoutSelectorCascadeCategory |
+            LayoutParallelWarmupCategory |
+            LayoutSelectorMatchCategory |
+            LayoutTreeBuilderCategory => "| + ",
             _ => ""
         };
         format!("{:s}{:?}", padding, self)
@@ -190,7 +201,7 @@ impl Profiler {
     }
 
     fn print_buckets(&mut self) {
-        println(format!("{:31s} {:15s} {:15s} {:15s} {:15s} {:15s}",
+        println(format!("{:39s} {:15s} {:15s} {:15s} {:15s} {:15s}",
                          "_category_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
         for (category, data) in self.buckets.iter() {
@@ -210,7 +221,7 @@ impl Profiler {
                      data[data_len / 2],
                      data.iter().min().unwrap(),
                      data.iter().max().unwrap());
-                println(format!("{:-30s}: {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
+                println(format!("{:-35s}: {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
                              category.format(), mean, median, min, max, data_len));
             }
         }
