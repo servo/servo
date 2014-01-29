@@ -508,47 +508,53 @@ impl LayoutTask {
         // Create a layout context for use throughout the following passes.
         let mut layout_ctx = self.build_layout_context(node);
 
-        // Initialize layout data for each node.
-        //
-        // FIXME: This is inefficient. We don't need an entire traversal to do this!
-        profile(time::LayoutAuxInitCategory, self.profiler_chan.clone(), || {
-            node.initialize_style_for_subtree(self.chan.clone());
-        });
+        let mut layout_root = profile(time::LayoutStyleRecalcCategory,
+                                      self.profiler_chan.clone(),
+                                      || {
+            // Initialize layout data for each node.
+            //
+            // FIXME: This is inefficient. We don't need an entire traversal to do this!
+            profile(time::LayoutAuxInitCategory, self.profiler_chan.clone(), || {
+                node.initialize_style_for_subtree(self.chan.clone());
+            });
 
-        // Perform CSS selector matching if necessary.
-        match data.damage.level {
-            ReflowDocumentDamage => {}
-            _ => {
-                profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone(), || {
-                    match self.parallel_traversal {
-                        None => node.match_subtree(self.stylist),
-                        Some(ref mut traversal) => {
-                            parallel::match_and_cascade_subtree(node, &mut layout_ctx, traversal)
+            // Perform CSS selector matching if necessary.
+            match data.damage.level {
+                ReflowDocumentDamage => {}
+                _ => {
+                    profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone(), || {
+                        match self.parallel_traversal {
+                            None => node.match_subtree(self.stylist),
+                            Some(ref mut traversal) => {
+                                parallel::match_and_cascade_subtree(node, &mut layout_ctx, traversal)
+                            }
                         }
-                    }
-                });
-
-                // If we're doing layout sequentially, do the cascade separately.
-                //
-                // TODO(pcwalton): Integrate this into `match_subtree`.
-                if self.parallel_traversal.is_none() {
-                    profile(time::LayoutSelectorCascadeCategory, self.profiler_chan.clone(), || {
-                        node.cascade_subtree(None);
                     });
+
+                    // If we're doing layout sequentially, do the cascade separately.
+                    //
+                    // TODO(pcwalton): Integrate this into `match_subtree`.
+                    if self.parallel_traversal.is_none() {
+                        profile(time::LayoutSelectorCascadeCategory, self.profiler_chan.clone(), || {
+                            node.cascade_subtree(None);
+                        });
+                    }
                 }
             }
-        }
 
-        // Construct the flow tree.
-        let mut layout_root = profile(time::LayoutTreeBuilderCategory,
-                                      self.profiler_chan.clone(),
-                                      || self.construct_flow_tree(&mut layout_ctx, *node));
+            // Construct the flow tree.
+            profile(time::LayoutTreeBuilderCategory,
+                    self.profiler_chan.clone(),
+                    || self.construct_flow_tree(&mut layout_ctx, *node))
+        });
 
         // Propagate damage.
-        layout_root.traverse_preorder(&mut PropagateDamageTraversal {
-            all_style_damage: all_style_damage
+        profile(time::LayoutDamagePropagateCategory, self.profiler_chan.clone(), || {
+            layout_root.traverse_preorder(&mut PropagateDamageTraversal {
+                all_style_damage: all_style_damage
+            });
+            layout_root.traverse_postorder(&mut ComputeDamageTraversal.clone());
         });
-        layout_root.traverse_postorder(&mut ComputeDamageTraversal.clone());
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
