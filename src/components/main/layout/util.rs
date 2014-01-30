@@ -11,6 +11,7 @@ use script::dom::bindings::utils::Reflectable;
 use script::dom::node::AbstractNode;
 use script::layout_interface::{LayoutChan, UntrustedNodeAddress};
 use servo_util::range::Range;
+use servo_util::smallvec::{SmallVec0, SmallVec16};
 use std::cast;
 use std::cell::{Ref, RefMut};
 use std::iter::Enumerate;
@@ -129,11 +130,11 @@ impl ElementMapping {
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
     /// The results of CSS matching for this node.
-    before_applicable_declarations: ~[Arc<~[PropertyDeclaration]>],
+    applicable_declarations: SmallVec16<Arc<~[PropertyDeclaration]>>,
 
-    applicable_declarations: ~[Arc<~[PropertyDeclaration]>],
+    before_applicable_declarations: SmallVec0<Arc<~[PropertyDeclaration]>>,
 
-    after_applicable_declarations: ~[Arc<~[PropertyDeclaration]>],
+    after_applicable_declarations: SmallVec0<Arc<~[PropertyDeclaration]>>,
 
     /// The results of CSS styling for this node.
     before_style: Option<Arc<ComputedValues>>,
@@ -154,9 +155,9 @@ impl PrivateLayoutData {
     /// Creates new layout data.
     pub fn new() -> PrivateLayoutData {
         PrivateLayoutData {
-            applicable_declarations: ~[],
-            before_applicable_declarations: ~[],
-            after_applicable_declarations: ~[],
+            applicable_declarations: SmallVec16::new(),
+            before_applicable_declarations: SmallVec0::new(),
+            after_applicable_declarations: SmallVec0::new(),
             before_style: None,
             style: None,
             after_style: None,

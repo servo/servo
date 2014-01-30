@@ -10,6 +10,7 @@ use layout::util::LayoutDataAccess;
 use layout::wrapper::LayoutNode;
 
 use extra::arc::Arc;
+use servo_util::smallvec::SmallVec;
 use style::{TNode, Stylist, cascade};
 use style::{Before, After};
 
@@ -33,12 +34,22 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         match *layout_data_ref.get() {
             Some(ref mut layout_data) => {
-                layout_data.data.applicable_declarations = stylist.get_applicable_declarations(
-                    self, style_attribute, None);
-                layout_data.data.before_applicable_declarations = stylist.get_applicable_declarations(
-                    self, None, Some(Before));
-                layout_data.data.after_applicable_declarations = stylist.get_applicable_declarations(
-                    self, None, Some(After));
+                stylist.get_applicable_declarations(self,
+                                                    style_attribute,
+                                                    None,
+                                                    &mut layout_data.data.applicable_declarations);
+                stylist.get_applicable_declarations(self,
+                                                    None,
+                                                    Some(Before),
+                                                    &mut layout_data
+                                                        .data
+                                                        .before_applicable_declarations);
+                stylist.get_applicable_declarations(self,
+                                                    None,
+                                                    Some(After),
+                                                    &mut layout_data
+                                                        .data
+                                                        .after_applicable_declarations);
             }
             None => fail!("no layout data")
         }
@@ -79,7 +90,8 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                 let computed_values = {
                     let layout_data_ref = self.borrow_layout_data();
                     let layout_data = layout_data_ref.get().as_ref().unwrap();
-                    Arc::new(cascade(layout_data.data.$applicable_declarations, parent_style))
+                    Arc::new(cascade(layout_data.data.$applicable_declarations.as_slice(),
+                                     parent_style))
                 };
 
                 let mut layout_data_ref = self.mutate_layout_data();
