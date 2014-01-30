@@ -27,9 +27,60 @@ use std::cast::transmute_region;
 use std::vec::VecIterator;
 use style::computed_values::border_style;
 
+pub struct DisplayListCollection<E> {
+    lists: ~[DisplayList<E>]
+}
+
+impl<E> DisplayListCollection<E> {
+    pub fn new() -> DisplayListCollection<E> {
+        DisplayListCollection {
+            lists: ~[]
+        }
+    }
+
+    pub fn iter<'a>(&'a self) -> DisplayListIterator<'a,E> {
+        ParentDisplayListIterator(self.lists.iter())
+    }
+
+    pub fn add_list(&mut self, list: DisplayList<E>) {
+        self.lists.push(list);
+    }
+
+    pub fn draw_lists_into_context(&self, render_context: &mut RenderContext) {
+        for list in self.lists.iter() {
+            list.draw_into_context(render_context);
+        }
+        debug!("{:?}", self.dump());
+    }
+
+    fn dump(&self) {
+        let mut index = 0;
+        for list in self.lists.iter() {
+            debug!("dumping display list {:d}:", index);
+            list.dump();
+            index = index + 1;
+        }
+    }
+}
+
 /// A list of rendering operations to be performed.
 pub struct DisplayList<E> {
     list: ~[DisplayItem<E>]
+}
+
+pub enum DisplayListIterator<'a,E> {
+    EmptyDisplayListIterator,
+    ParentDisplayListIterator(VecIterator<'a,DisplayList<E>>),
+}
+
+impl<'a,E> Iterator<&'a DisplayList<E>> for DisplayListIterator<'a,E> {
+    #[inline]
+    fn next(&mut self) -> Option<&'a DisplayList<E>> {
+        match *self {
+            EmptyDisplayListIterator => None,
+            ParentDisplayListIterator(ref mut subiterator) => subiterator.next(),
+        }
+    }
 }
 
 impl<E> DisplayList<E> {
@@ -62,7 +113,6 @@ impl<E> DisplayList<E> {
             item.draw_into_context(render_context)
         }
         debug!("Ending display list.");
-        debug!("{:?}", self.dump());
     }
 
     /// Returns a preorder iterator over the given display list.

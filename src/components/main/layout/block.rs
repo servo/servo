@@ -14,7 +14,7 @@ use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
 
 use std::cell::RefCell;
 use geom::{Point2D, Rect, SideOffsets2D};
-use gfx::display_list::DisplayList;
+use gfx::display_list::{DisplayList, DisplayListCollection};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 
@@ -496,22 +496,31 @@ impl BlockFlow {
                                     &mut self,
                                     builder: &DisplayListBuilder,
                                     dirty: &Rect<Au>,
-                                    list: &RefCell<DisplayList<E>>)
-                                    -> bool {
+                                    mut index: uint,
+                                    lists: &RefCell<DisplayListCollection<E>>)
+                                    -> uint {
         if self.is_float() {
-            return self.build_display_list_float(builder, dirty, list);
+            self.build_display_list_float(builder, dirty, index, lists);
+            return index;
+        }
+
+        if self.is_fixed {
+            lists.with_mut(|lists| {
+                index = lists.lists.len();
+                lists.add_list(DisplayList::<E>::new());
+            });
         }
 
         let abs_rect = Rect(self.base.abs_position, self.base.position.size);
         if !abs_rect.intersects(dirty) {
-            return true;
+            return index;
         }
 
         debug!("build_display_list_block: adding display element");
 
         // add box that starts block context
         for box_ in self.box_.iter() {
-            box_.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, list)
+            box_.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, index, lists);
         }
         // TODO: handle any out-of-flow elements
         let this_position = self.base.abs_position;
@@ -521,24 +530,26 @@ impl BlockFlow {
             child_base.abs_position = this_position + child_base.position.origin;
         }
 
-        false
+        index
     }
 
     pub fn build_display_list_float<E:ExtraDisplayListData>(
                                     &mut self,
                                     builder: &DisplayListBuilder,
                                     dirty: &Rect<Au>,
-                                    list: &RefCell<DisplayList<E>>)
+                                    index: uint,
+                                    lists: &RefCell<DisplayListCollection<E>>)
                                     -> bool {
         let abs_rect = Rect(self.base.abs_position, self.base.position.size);
         if !abs_rect.intersects(dirty) {
-            return true
+            return true;
         }
+
 
         let offset = self.base.abs_position + self.float.get_ref().rel_pos;
         // add box that starts block context
         for box_ in self.box_.iter() {
-            box_.build_display_list(builder, dirty, offset, (&*self) as &Flow, list)
+            box_.build_display_list(builder, dirty, offset, (&*self) as &Flow, index, lists);
         }
 
 

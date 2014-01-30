@@ -41,7 +41,7 @@ use extra::dlist::{DList, DListIterator, MutDListIterator};
 use extra::container::Deque;
 use geom::point::Point2D;
 use geom::rect::Rect;
-use gfx::display_list::{ClipDisplayItemClass, DisplayList};
+use gfx::display_list::{ClipDisplayItemClass, DisplayListCollection, DisplayList};
 use layout::display_list_builder::ToGfxColor;
 use gfx::color::Color;
 use servo_util::geometry::Au;
@@ -200,12 +200,13 @@ pub trait MutableFlowUtils {
     /// Computes the overflow region for this flow.
     fn store_overflow(self, _: &mut LayoutContext);
 
-    /// Builds a display list for this flow and its children.
-    fn build_display_list<E:ExtraDisplayListData>(
+    /// builds the display lists
+    fn build_display_lists<E:ExtraDisplayListData>(
                           self,
                           builder: &DisplayListBuilder,
                           dirty: &Rect<Au>,
-                          list: &RefCell<DisplayList<E>>)
+                          index: uint,
+                          mut list: &RefCell<DisplayListCollection<E>>)
                           -> bool;
 }
 
@@ -697,33 +698,37 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         mut_base(self).overflow = overflow
     }
 
-    fn build_display_list<E:ExtraDisplayListData>(
+    fn build_display_lists<E:ExtraDisplayListData>(
                           self,
                           builder: &DisplayListBuilder,
                           dirty: &Rect<Au>,
-                          list: &RefCell<DisplayList<E>>)
+                          mut index: uint,
+                          lists: &RefCell<DisplayListCollection<E>>)
                           -> bool {
         debug!("Flow: building display list for f{}", base(self).id);
-        match self.class() {
-            BlockFlowClass => self.as_block().build_display_list_block(builder, dirty, list),
-            InlineFlowClass => self.as_inline().build_display_list_inline(builder, dirty, list),
+        index = match self.class() {
+            BlockFlowClass => self.as_block().build_display_list_block(builder, dirty, index, lists),
+            InlineFlowClass => self.as_inline().build_display_list_inline(builder, dirty, index, lists),
         };
 
-        if list.with_mut(|list| list.list.len() == 0) {
+        if lists.with_mut(|lists| lists.lists[index].list.len() == 0) {
             return true;
         }
 
-        let child_list = ~RefCell::new(DisplayList::new());
+        let mut child_lists = DisplayListCollection::new();
+        child_lists.add_list(DisplayList::new());
+        let child_lists = RefCell::new(child_lists);
         for kid in child_iter(self) {
-            kid.build_display_list(builder,dirty,child_list);
+            kid.build_display_lists(builder, dirty, 0u, &child_lists);
         }
 
-        let mut child_list = Some(child_list.unwrap());
-        list.with_mut(|list| {
-            let result = list.list.mut_rev_iter().position(|item| {
+        let mut child_lists = Some(child_lists.unwrap());
+        lists.with_mut(|lists| {
+            let mut child_lists = child_lists.take_unwrap();
+            let result = lists.lists[index].list.mut_rev_iter().position(|item| {
                 match *item {
                     ClipDisplayItemClass(ref mut item) => {
-                        item.child_list.push_all_move(child_list.take_unwrap().list);
+                        item.child_list.push_all_move(child_lists.lists.shift().list);
                         true
                     },
                     _ => false,
@@ -734,6 +739,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
                 fail!("fail to find parent item");
             }
 
+            lists.lists.push_all_move(child_lists.lists);
         });
         true
     }
