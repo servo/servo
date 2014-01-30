@@ -11,7 +11,6 @@ use css::node_style::StyledNode;
 use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionResult};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
-use layout::extra::LayoutAuxMethods;
 use layout::flow::{Flow, FlowLeafSet, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
@@ -549,37 +548,24 @@ impl LayoutTask {
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
                                       self.profiler_chan.clone(),
                                       || {
-            // Initialize layout data for each node.
-            //
-            // FIXME(pcwalton): This is inefficient. We don't need an entire traversal to do this
-            // in sequential mode!
-            if self.parallel_traversal.is_none() {
-                profile(time::LayoutAuxInitCategory, self.profiler_chan.clone(), || {
-                    node.initialize_style_for_subtree(self.chan.clone());
-                });
-            }
-
             // Perform CSS selector matching if necessary.
             match data.damage.level {
                 ReflowDocumentDamage => {}
                 _ => {
                     profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone(), || {
                         match self.parallel_traversal {
-                            None => node.match_subtree(self.stylist),
+                            None => {
+                                node.match_and_cascade_subtree(self.stylist,
+                                                               &layout_ctx.layout_chan,
+                                                               None)
+                            }
                             Some(ref mut traversal) => {
-                                parallel::match_and_cascade_subtree(node, &mut layout_ctx, traversal)
+                                parallel::match_and_cascade_subtree(node,
+                                                                    &mut layout_ctx,
+                                                                    traversal)
                             }
                         }
-                    });
-
-                    // If we're doing layout sequentially, do the cascade separately.
-                    //
-                    // TODO(pcwalton): Integrate this into `match_subtree`.
-                    if self.parallel_traversal.is_none() {
-                        profile(time::LayoutSelectorCascadeCategory, self.profiler_chan.clone(), || {
-                            node.cascade_subtree(None);
-                        });
-                    }
+                    })
                 }
             }
 
