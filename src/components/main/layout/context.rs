@@ -6,8 +6,9 @@
 
 use extra::arc::MutexArc;
 use green::task::GreenTask;
-use layout::flow::LeafSet;
+use layout::flow::FlowLeafSet;
 use layout::util::OpaqueNode;
+use layout::wrapper::DomLeafSet;
 use std::cast;
 use std::ptr;
 use std::rt::Runtime;
@@ -36,8 +37,11 @@ pub struct LayoutContext {
     /// A channel up to the constellation.
     constellation_chan: ConstellationChan,
 
+    /// The set of leaf DOM nodes.
+    dom_leaf_set: MutexArc<DomLeafSet>,
+
     /// The set of leaf flows.
-    leaf_set: MutexArc<LeafSet>,
+    flow_leaf_set: MutexArc<FlowLeafSet>,
 
     /// Information needed to construct a font context.
     font_context_info: FontContextInfo,

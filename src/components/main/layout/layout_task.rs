@@ -12,7 +12,7 @@ use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionR
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
 use layout::extra::LayoutAuxMethods;
-use layout::flow::{Flow, ImmutableFlowUtils, LeafSet, MutableFlowUtils, MutableOwnedFlowUtils};
+use layout::flow::{Flow, FlowLeafSet, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::RestyleDamage;
@@ -20,7 +20,7 @@ use layout::parallel::{AssignHeightsAndStoreOverflowTraversalKind, BubbleWidthsT
 use layout::parallel::{UnsafeFlow};
 use layout::parallel;
 use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
-use layout::wrapper::LayoutNode;
+use layout::wrapper::{DomLeafSet, LayoutNode};
 
 use extra::arc::{Arc, MutexArc};
 use geom::rect::Rect;
@@ -82,8 +82,11 @@ pub struct LayoutTask {
     /// The local image cache.
     local_image_cache: MutexArc<LocalImageCache>,
 
+    /// The set of leaves in the DOM tree.
+    dom_leaf_set: MutexArc<DomLeafSet>,
+
     /// The set of leaves in the flow tree.
-    leaf_set: MutexArc<LeafSet>,
+    flow_leaf_set: MutexArc<FlowLeafSet>,
 
     /// The size of the viewport.
     screen_size: Size2D<Au>,
@@ -289,7 +292,8 @@ impl LayoutTask {
             image_cache_task: image_cache_task.clone(),
             local_image_cache: local_image_cache,
             screen_size: screen_size,
-            leaf_set: MutexArc::new(LeafSet::new()),
+            dom_leaf_set: MutexArc::new(DomLeafSet::new()),
+            flow_leaf_set: MutexArc::new(FlowLeafSet::new()),
 
             display_list: None,
             stylist: ~new_stylist(),
@@ -318,7 +322,8 @@ impl LayoutTask {
             image_cache: self.local_image_cache.clone(),
             screen_size: self.screen_size.clone(),
             constellation_chan: self.constellation_chan.clone(),
-            leaf_set: self.leaf_set.clone(),
+            dom_leaf_set: self.dom_leaf_set.clone(),
+            flow_leaf_set: self.flow_leaf_set.clone(),
             font_context_info: font_context_info,
             stylist: &*self.stylist,
             reflow_root: OpaqueNode::from_layout_node(reflow_root),
@@ -470,7 +475,7 @@ impl LayoutTask {
             None => fail!("solve_contraints_parallel() called with no parallel traversal ready"),
             Some(ref mut traversal) => {
                 parallel::traverse_flow_tree(BubbleWidthsTraversalKind,
-                                             &self.leaf_set,
+                                             &self.flow_leaf_set,
                                              self.profiler_chan.clone(),
                                              layout_context,
                                              traversal);
@@ -482,7 +487,7 @@ impl LayoutTask {
                 layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
 
                 parallel::traverse_flow_tree(AssignHeightsAndStoreOverflowTraversalKind,
-                                             &self.leaf_set,
+                                             &self.flow_leaf_set,
                                              self.profiler_chan.clone(),
                                              layout_context,
                                              traversal);
@@ -657,7 +662,7 @@ impl LayoutTask {
             });
         }
 
-        self.leaf_set.access(|leaf_set| layout_root.destroy(leaf_set));
+        self.flow_leaf_set.access(|leaf_set| layout_root.destroy(leaf_set));
 
         // Tell script that we're done.
         //

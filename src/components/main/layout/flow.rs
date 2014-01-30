@@ -216,13 +216,13 @@ pub trait MutableOwnedFlowUtils {
 
     /// Marks the flow as a leaf. The flow must not have children and must not be marked as a
     /// nonleaf.
-    fn mark_as_leaf(&mut self, leaf_set: &mut LeafSet);
+    fn mark_as_leaf(&mut self, leaf_set: &mut FlowLeafSet);
 
     /// Marks the flow as a nonleaf. The flow must not be marked as a leaf.
     fn mark_as_nonleaf(&mut self);
 
     /// Destroys the flow.
-    fn destroy(&mut self, leaf_set: &mut LeafSet);
+    fn destroy(&mut self, leaf_set: &mut FlowLeafSet);
 }
 
 pub enum FlowClass {
@@ -756,7 +756,7 @@ impl MutableOwnedFlowUtils for ~Flow {
 
     /// Marks the flow as a leaf. The flow must not have children and must not be marked as a
     /// nonleaf.
-    fn mark_as_leaf(&mut self, leaf_set: &mut LeafSet) {
+    fn mark_as_leaf(&mut self, leaf_set: &mut FlowLeafSet) {
         {
             let base = mut_base(*self);
             if base.flags_info.flags.is_nonleaf() {
@@ -781,7 +781,7 @@ impl MutableOwnedFlowUtils for ~Flow {
     }
 
     /// Destroys the flow.
-    fn destroy(&mut self, leaf_set: &mut LeafSet) {
+    fn destroy(&mut self, leaf_set: &mut FlowLeafSet) {
         let is_leaf = {
             let base = mut_base(*self);
             base.children.len() == 0
@@ -803,14 +803,14 @@ impl MutableOwnedFlowUtils for ~Flow {
 /// Keeps track of the leaves of the flow tree. This is used to efficiently start bottom-up
 /// parallel traversals.
 #[deriving(Clone)]
-pub struct LeafSet {
+pub struct FlowLeafSet {
     priv set: HashSet<UnsafeFlow>,
 }
 
-impl LeafSet {
-    /// Creates a new leaf set.
-    pub fn new() -> LeafSet {
-        LeafSet {
+impl FlowLeafSet {
+    /// Creates a new flow leaf set.
+    pub fn new() -> FlowLeafSet {
+        FlowLeafSet {
             set: HashSet::new(),
         }
     }
