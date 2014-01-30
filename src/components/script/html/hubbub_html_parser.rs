@@ -445,6 +445,7 @@ pub fn parse_html(cx: *JSContext,
         },
         set_quirks_mode: |_mode| {
             debug!("set quirks mode");
+            document.mut_document().set_quirks_mode(_mode);
         },
         encoding_change: |_encname| {
             debug!("encoding change");

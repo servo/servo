@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            // test1: BackCompat
+            {
+                is(document.compatMode, "BackCompat", "test1-0, BackCompat");
+            }
+
+            // test2: Non-parsed documents
+            {
+                var xmldoc = new Document;
+                is(xmldoc.compatMode, "CSS1Compat", "test2-0, Non-parsed documents");
+
+                var htmldoc = document.implementation.createHTMLDocument("title");
+                is(htmldoc.compatMode, "CSS1Compat", "test2-1, Non-parsed documents");
+            }
+            finish();
+        </script>
+    </head>
+</html>

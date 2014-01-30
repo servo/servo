@@ -22,6 +22,7 @@ use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
+use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 use servo_util::namespace::Null;
 
@@ -91,7 +92,8 @@ pub struct Document {
     idmap: HashMap<DOMString, AbstractNode>,
     implementation: Option<@mut DOMImplementation>,
     content_type: DOMString,
-    url: Url
+    url: Url,
+    quirks_mode: QuirksMode
 }
 
 impl Document {
@@ -136,7 +138,9 @@ impl Document {
             url: match url {
                 None => from_str("about:blank").unwrap(),
                 Some(_url) => _url
-            }
+            },
+            // http://dom.spec.whatwg.org/#concept-document-quirks
+            quirks_mode: NoQuirks
         }
     }
 
@@ -189,6 +193,18 @@ impl Document {
     // http://dom.spec.whatwg.org/#dom-document-documenturi
     pub fn DocumentURI(&self) -> DOMString {
         self.URL()
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-compatmode
+    pub fn CompatMode(&self) -> DOMString {
+        match self.quirks_mode {
+            NoQuirks => ~"CSS1Compat",
+            LimitedQuirks | FullQuirks => ~"BackCompat"
+        }
+    }
+
+    pub fn set_quirks_mode(&mut self, mode: QuirksMode) {
+        self.quirks_mode = mode;
     }
 
     // http://dom.spec.whatwg.org/#dom-document-content_type
