@@ -38,8 +38,8 @@ use js::rust::{Compartment, Cx};
 use js;
 use servo_msg::compositor_msg::{FinishedLoading, Loading, PerformingLayout, ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, IFrameSandboxed, IFrameUnsandboxed};
-use servo_msg::constellation_msg::{LoadIframeUrlMsg, LoadUrlMsg, NavigationDirection, PipelineId};
-use servo_msg::constellation_msg::{SubpageId};
+use servo_msg::constellation_msg::{LoadIframeUrlMsg, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
+use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
@@ -745,7 +745,7 @@ impl ScriptTask {
         let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_owned());
 
         // No more reflow required
-        page.url = Some((url, false));
+        page.url = Some((url.clone(), false));
 
         // Receive the JavaScript scripts.
         assert!(js_scripts.is_some());
@@ -775,6 +775,8 @@ impl ScriptTask {
         window.eventtarget.dispatch_event_with_target(wintarget, Some(doctarget), event);
 
         page.fragment_node = fragment.map_default(None, |fragid| self.find_fragment_node(page, fragid));
+
+        self.constellation_chan.send(LoadCompleteMsg(page.id, url));
     }
 
     fn find_fragment_node(&self, page: &mut Page, fragid: ~str) -> Option<AbstractNode> {

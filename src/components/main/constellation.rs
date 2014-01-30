@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::{CompositorChan, SetIds, SetLayerClipRect, ShutdownComplete};
+use compositing::{CompositorChan, LoadComplete, SetIds, SetLayerClipRect, ShutdownComplete};
 
 use extra::url::Url;
 use geom::rect::Rect;
@@ -12,8 +12,9 @@ use pipeline::{Pipeline, CompositionPipeline};
 use script::script_task::{ResizeMsg, ResizeInactiveMsg};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
-use servo_msg::constellation_msg::{LoadIframeUrlMsg, LoadUrlMsg, Msg, NavigateMsg, NavigationType};
-use servo_msg::constellation_msg::{PipelineId, RendererReadyMsg, ResizedWindowMsg, SubpageId};
+use servo_msg::constellation_msg::{LoadCompleteMsg, LoadIframeUrlMsg, LoadUrlMsg, Msg, NavigateMsg};
+use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
+use servo_msg::constellation_msg::SubpageId;
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
@@ -344,6 +345,12 @@ impl Constellation {
             LoadUrlMsg(source_id, url) => {
                 debug!("constellation got URL load message");
                 self.handle_load_url_msg(source_id, url);
+            }
+            // A page loaded through one of several methods above has completed all parsing,
+            // script, and reflow messages have been sent. 
+            LoadCompleteMsg(pipeline_id, url) => {
+                debug!("constellation got load complete message");
+                self.compositor_chan.send(LoadComplete(pipeline_id, url));
             }
             // Handle a forward or back request
             NavigateMsg(direction) => {

@@ -21,6 +21,8 @@ use servo_util::time::ProfilerChan;
 use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
 
+use extra::url::Url;
+
 #[cfg(target_os="linux")]
 use azure::azure_hl;
 
@@ -151,6 +153,9 @@ pub enum Msg {
     SetIds(SendableFrameTree, Chan<()>, ConstellationChan),
 
     SetUnRenderedColor(PipelineId, Color),
+
+    /// The load of a page for a given URL has completed.
+    LoadComplete(PipelineId, Url),
 }
 
 pub enum CompositorMode {
