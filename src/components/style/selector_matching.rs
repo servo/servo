@@ -9,6 +9,7 @@ use std::str;
 use std::to_bytes;
 
 use servo_util::namespace;
+use servo_util::sort;
 
 use media_queries::{Device, Screen};
 use node::{TElement, TNode};
@@ -147,13 +148,7 @@ impl SelectorMap {
         });
 
         // Sort only the rules we just added.
-        matching_rules_list.mut_slice_from(init_len).sort_by(|a, b| {
-            if a < b {
-                Less
-            } else {
-                Greater
-            }
-        });
+        sort::quicksort(matching_rules_list.mut_slice_from(init_len));
     }
 
     fn get_matching_rules_from_hash<E:TElement,
@@ -492,6 +487,15 @@ impl Ord for Rule {
         let this_rank = (self.specificity, self.source_order);
         let other_rank = (other.specificity, other.source_order);
         this_rank < other_rank
+    }
+}
+
+impl Eq for Rule {
+    #[inline]
+    fn eq(&self, other: &Rule) -> bool {
+        let this_rank = (self.specificity, self.source_order);
+        let other_rank = (other.specificity, other.source_order);
+        this_rank == other_rank
     }
 }
 

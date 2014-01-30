@@ -22,3 +22,4 @@ pub mod io;
 pub mod task;
 pub mod workqueue;
 pub mod namespace;
+pub mod sort;
