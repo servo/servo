@@ -8,6 +8,7 @@
 
 use css::matching::MatchMethods;
 use layout::context::LayoutContext;
+use layout::extra::LayoutAuxMethods;
 use layout::flow::{Flow, FlowLeafSet, PostorderFlowTraversal};
 use layout::flow;
 use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, BubbleWidthsTraversal};
@@ -129,6 +130,12 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
 
         // Get a real layout node.
         let node: LayoutNode = cast::transmute(unsafe_layout_node);
+
+        // Initialize layout data.
+        //
+        // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
+        // parser.
+        node.initialize_layout_data(layout_context.layout_chan.clone());
 
         if node.is_element() {
             // Perform the CSS selector matching.
