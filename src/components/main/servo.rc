@@ -100,7 +100,7 @@ pub mod layout {
     pub mod util;
     pub mod incremental;
     pub mod wrapper;
-    mod extra;
+    pub mod extra;
 }
 
 pub mod windowing;
