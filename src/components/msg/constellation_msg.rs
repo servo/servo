@@ -26,11 +26,12 @@ pub enum IFrameSandboxState {
     IFrameUnsandboxed
 }
 
-/// Messages from the compositor to the constellation.
+/// Messages from the compositor and script to the constellation.
 pub enum Msg {
     ExitMsg,
     FailureMsg(PipelineId, Option<SubpageId>),
     InitLoadUrlMsg(Url),
+    LoadCompleteMsg(PipelineId, Url),
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
     LoadUrlMsg(PipelineId, Url),
     LoadIframeUrlMsg(Url, PipelineId, SubpageId, IFrameSandboxState),

@@ -31,7 +31,7 @@ use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use opengles::gl2;
 use png;
-use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerBufferSet, RenderState};
+use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerBufferSet, ReadyState, RenderState};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, NavigateMsg, ResizedWindowMsg, LoadUrlMsg, PipelineId};
 use servo_msg::constellation_msg;
 use servo_util::time::{profile, ProfilerChan, Timer};
@@ -84,6 +84,14 @@ pub struct IOCompositor {
     /// The time of the last zoom action has started.
     zoom_time: f64,
 
+    /// Current display/reflow status of the page
+    ready_state: ReadyState,
+
+    /// Whether the page being rendered has loaded completely.
+    /// Differs from ReadyState because we can finish loading (ready)
+    /// many times for a single page.
+    load_complete: bool,
+
     /// The command line option flags.
     opts: Opts,
 
@@ -132,6 +140,8 @@ impl IOCompositor {
             world_zoom: 1f32,
             zoom_action: false,
             zoom_time: 0f64,
+            ready_state: Blank,
+            load_complete: false,
             compositor_layer: None,
             constellation_chan: constellation_chan,
             profiler_chan: profiler_chan,
@@ -222,6 +232,7 @@ impl IOCompositor {
 
                 (Some(ChangeReadyState(ready_state)), false) => {
                     self.window.set_ready_state(ready_state);
+                    self.ready_state = ready_state;
                 }
 
                 (Some(ChangeRenderState(render_state)), false) => {
@@ -267,6 +278,10 @@ impl IOCompositor {
 
                 (Some(ScrollFragmentPoint(id, point)), false) => {
                     self.scroll_fragment_to_point(id, point);
+                }
+
+                (Some(LoadComplete(..)), false) => {
+                    self.load_complete = true;
                 }
 
                 // When we are shutting_down, we need to avoid performing operations
@@ -540,8 +555,9 @@ impl IOCompositor {
         }
     }
 
-    fn on_load_url_window_event(&self, url_string: ~str) {
+    fn on_load_url_window_event(&mut self, url_string: ~str) {
         debug!("osmain: loading URL `{:s}`", url_string);
+        self.load_complete = false;
         let root_pipeline_id = match self.compositor_layer {
             Some(ref layer) => layer.pipeline.id.clone(),
             None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor layers"),
@@ -650,8 +666,8 @@ impl IOCompositor {
 
         // Render to PNG. We must read from the back buffer (ie, before
         // self.window.present()) as OpenGL ES 2 does not have glReadBuffer().
-        let write_png = self.opts.output_file.is_some();
-        if write_png {
+        if self.load_complete && self.ready_state == FinishedLoading 
+            && self.opts.output_file.is_some() {
             let (width, height) = (self.window_size.width as uint, self.window_size.height as uint);
             let path = from_str::<Path>(*self.opts.output_file.get_ref()).unwrap();
             let mut pixels = gl2::read_pixels(0, 0,
