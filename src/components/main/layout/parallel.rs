@@ -158,6 +158,8 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
         // Prepare for flow construction by adding this node to the leaf set or counting its
         // children.
         if child_count == 0 {
+            // We don't need set the `child_count` field here since that's only used by kids during
+            // bottom-up traversals, and since this node is a leaf it has no kids.
             layout_context.dom_leaf_set.access(|dom_leaf_set| dom_leaf_set.insert(&node));
         } else {
             let mut layout_data_ref = node.mutate_layout_data();
