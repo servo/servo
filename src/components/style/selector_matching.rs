@@ -9,6 +9,7 @@ use std::str;
 use std::to_bytes;
 
 use servo_util::namespace;
+use servo_util::smallvec::{SmallVec, SmallVec16};
 use servo_util::sort;
 
 use media_queries::{Device, Screen};
@@ -106,7 +107,7 @@ impl SelectorMap {
                               N:TNode<E>>(
                               &self,
                               node: &N,
-                              matching_rules_list: &mut ~[Rule]) {
+                              matching_rules_list: &mut SmallVec16<Rule>) {
         if self.empty {
             return
         }
@@ -156,7 +157,7 @@ impl SelectorMap {
                                     node: &N,
                                     hash: &HashMap<~str,~[Rule]>,
                                     key: &str,
-                                    matching_rules: &mut ~[Rule]) {
+                                    matching_rules: &mut SmallVec16<Rule>) {
         match hash.find_equiv(&key) {
             Some(rules) => {
                 SelectorMap::get_matching_rules(node, *rules, matching_rules)
@@ -170,7 +171,7 @@ impl SelectorMap {
                                                   node: &N,
                                                   hash: &HashMap<~str,~[Rule]>,
                                                   key: &str,
-                                                  matching_rules: &mut ~[Rule]) {
+                                                  matching_rules: &mut SmallVec16<Rule>) {
         match hash.find_equiv(&LowercaseAsciiString(key)) {
             Some(rules) => {
                 SelectorMap::get_matching_rules(node, *rules, matching_rules)
@@ -184,7 +185,7 @@ impl SelectorMap {
                           N:TNode<E>>(
                           node: &N,
                           rules: &[Rule],
-                          matching_rules: &mut ~[Rule]) {
+                          matching_rules: &mut SmallVec16<Rule>) {
         for rule in rules.iter() {
             if matches_compound_selector(rule.selector.get(), node) {
                 // TODO(pradeep): Is the cloning inefficient?
@@ -358,12 +359,13 @@ impl Stylist {
     /// Returns the applicable CSS declarations for the given element. This corresponds to
     /// `ElementRuleCollector` in WebKit.
     pub fn get_applicable_declarations<E:TElement,
-                                       N:TNode<E>>(
+                                       N:TNode<E>,
+                                       V:SmallVec<Arc<~[PropertyDeclaration]>>>(
                                        &self,
                                        element: &N,
                                        style_attribute: Option<&PropertyDeclarationBlock>,
-                                       pseudo_element: Option<PseudoElement>)
-                                       -> ~[Arc<~[PropertyDeclaration]>] {
+                                       pseudo_element: Option<PseudoElement>,
+                                       applicable_declarations: &mut V) {
         assert!(element.is_element());
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
@@ -387,8 +389,7 @@ impl Stylist {
         // we have the indices straight at the end.
         let mut rule_map_indices = [ 0, ..6 ];
 
-        // TODO(pcwalton): Small vector optimization.
-        let mut matching_rules_list = ~[];
+        let mut matching_rules_list = SmallVec16::new();
 
         for (i, rule_map) in rule_map_list.iter().enumerate() {
             rule_map_indices[i] = matching_rules_list.len();
@@ -406,7 +407,6 @@ impl Stylist {
         });
 
         // Gather up all rules.
-        let mut applicable_declarations = ~[];
         let mut i = 0;
 
         // Step 1: Normal rules.
@@ -432,8 +432,6 @@ impl Stylist {
             applicable_declarations.push(declaration_iter.next().unwrap());
             i += 1
         }
-
-        applicable_declarations
     }
 }
 
