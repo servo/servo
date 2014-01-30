@@ -38,7 +38,7 @@ impl DOMParser {
                            -> Fallible<AbstractDocument> {
         match ty {
             Text_html => {
-                Ok(HTMLDocument::new(self.owner))
+                Ok(HTMLDocument::new(self.owner, None))
             }
             Text_xml => {
                 Document::Constructor(self.owner)

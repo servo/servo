@@ -9,6 +9,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::window::Window;
 use servo_util::namespace::Null;
 
+use extra::url::Url;
 use js::jsapi::JSTracer;
 use std::str::eq_slice;
 
@@ -17,14 +18,14 @@ pub struct HTMLDocument {
 }
 
 impl HTMLDocument {
-    pub fn new_inherited(window: @mut Window) -> HTMLDocument {
+    pub fn new_inherited(window: @mut Window, url: Option<Url>) -> HTMLDocument {
         HTMLDocument {
-            parent: Document::new_inherited(window, HTML, None)
+            parent: Document::new_inherited(window, url, HTML, None)
         }
     }
 
-    pub fn new(window: @mut Window) -> AbstractDocument {
-        let document = HTMLDocument::new_inherited(window);
+    pub fn new(window: @mut Window, url: Option<Url>) -> AbstractDocument {
+        let document = HTMLDocument::new_inherited(window, url);
         Document::reflect_document(@mut document, window, HTMLDocumentBinding::Wrap)
     }
 }
