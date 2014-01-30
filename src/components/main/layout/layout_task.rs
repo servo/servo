@@ -324,6 +324,7 @@ impl LayoutTask {
             constellation_chan: self.constellation_chan.clone(),
             dom_leaf_set: self.dom_leaf_set.clone(),
             flow_leaf_set: self.flow_leaf_set.clone(),
+            layout_chan: self.chan.clone(),
             font_context_info: font_context_info,
             stylist: &*self.stylist,
             reflow_root: OpaqueNode::from_layout_node(reflow_root),
@@ -549,10 +550,13 @@ impl LayoutTask {
                                       || {
             // Initialize layout data for each node.
             //
-            // FIXME: This is inefficient. We don't need an entire traversal to do this!
-            profile(time::LayoutAuxInitCategory, self.profiler_chan.clone(), || {
-                node.initialize_style_for_subtree(self.chan.clone());
-            });
+            // FIXME(pcwalton): This is inefficient. We don't need an entire traversal to do this
+            // in sequential mode!
+            if self.parallel_traversal.is_none() {
+                profile(time::LayoutAuxInitCategory, self.profiler_chan.clone(), || {
+                    node.initialize_style_for_subtree(self.chan.clone());
+                });
+            }
 
             // Perform CSS selector matching if necessary.
             match data.damage.level {
