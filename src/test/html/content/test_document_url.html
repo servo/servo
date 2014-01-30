@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+    <head>
+        <title></title>
+        <script src="harness.js"></script>
+        <script>
+            // test1: URL & documentURI
+            {
+                isnot(document.URL, null, "test1-0, URL & documentURI");
+                isnot(document.documentURI, null, "test1-1, URL & documentURI");
+                is(document.URL, document.documentURI, "test1-2, URL & documentURI");
+            }
+
+            // test2: new document
+            {
+                var doc = new Document();
+                is(doc.URL, "about:blank", "test2-0, new document");
+            }
+
+            // test3: current document
+            {
+                var url = document.URL.split("/");
+                is(url[0], "file:", "test3-0, current document");
+                is(url[url.length-1], "test_document_url.html", "test3-1, current document");
+            }
+
+            finish();
+        </script>
+    </head>
+    <body>
+    </body>
+</html>

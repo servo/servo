@@ -25,6 +25,7 @@ use html::hubbub_html_parser::build_element_from_tag;
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 use servo_util::namespace::Null;
 
+use extra::url::{Url, from_str};
 use js::jsapi::{JSObject, JSContext, JSTracer};
 use std::ascii::StrAsciiExt;
 use std::cast;
@@ -89,7 +90,8 @@ pub struct Document {
     doctype: DocumentType,
     idmap: HashMap<DOMString, AbstractNode>,
     implementation: Option<@mut DOMImplementation>,
-    content_type: DOMString
+    content_type: DOMString,
+    url: Url
 }
 
 impl Document {
@@ -110,7 +112,7 @@ impl Document {
         abstract
     }
 
-    pub fn new_inherited(window: @mut Window, doctype: DocumentType, content_type: Option<DOMString>) -> Document {
+    pub fn new_inherited(window: @mut Window, url: Option<Url>, doctype: DocumentType, content_type: Option<DOMString>) -> Document {
         let node_type = match doctype {
             HTML => HTMLDocumentTypeId,
             SVG | XML => PlainDocumentTypeId
@@ -130,19 +132,23 @@ impl Document {
                     // http://dom.spec.whatwg.org/#concept-document-content-type
                     SVG | XML => ~"application/xml"
                 }
+            },
+            url: match url {
+                None => from_str("about:blank").unwrap(),
+                Some(_url) => _url
             }
         }
     }
 
-    pub fn new(window: @mut Window, doctype: DocumentType, content_type: Option<DOMString>) -> AbstractDocument {
-        let document = Document::new_inherited(window, doctype, content_type);
+    pub fn new(window: @mut Window, url: Option<Url>, doctype: DocumentType, content_type: Option<DOMString>) -> AbstractDocument {
+        let document = Document::new_inherited(window, url, doctype, content_type);
         Document::reflect_document(@mut document, window, DocumentBinding::Wrap)
     }
 }
 
 impl Document {
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
-        Ok(Document::new(owner, XML, None))
+        Ok(Document::new(owner, None, XML, None))
     }
 }
 
@@ -167,11 +173,22 @@ impl Reflectable for Document {
 }
 
 impl Document {
+    // http://dom.spec.whatwg.org/#dom-document-implementation
     pub fn Implementation(&mut self) -> @mut DOMImplementation {
         if self.implementation.is_none() {
             self.implementation = Some(DOMImplementation::new(self.window));
         }
         self.implementation.unwrap()
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-url
+    pub fn URL(&self) -> DOMString {
+        self.url.to_str()
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-documenturi
+    pub fn DocumentURI(&self) -> DOMString {
+        self.URL()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-content_type
