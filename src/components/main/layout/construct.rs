@@ -26,7 +26,7 @@ use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBox
 use layout::box_::{UnscannedTextBox, UnscannedTextBoxInfo, InlineInfo, InlineParentInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
-use layout::flow::{BaseFlow, Flow, ImmutableFlowUtils, LeafSet, MutableOwnedFlowUtils};
+use layout::flow::{BaseFlow, Flow, FlowLeafSet, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
@@ -58,7 +58,7 @@ pub enum ConstructionResult {
 }
 
 impl ConstructionResult {
-    fn destroy(&mut self, leaf_set: &mut LeafSet) {
+    fn destroy(&mut self, leaf_set: &mut FlowLeafSet) {
         match *self {
             NoConstructionResult => {}
             FlowConstructionResult(ref mut flow) => flow.destroy(leaf_set),
@@ -76,7 +76,7 @@ enum ConstructionItem {
 }
 
 impl ConstructionItem {
-    fn destroy(&mut self, leaf_set: &mut LeafSet) {
+    fn destroy(&mut self, leaf_set: &mut FlowLeafSet) {
         match *self {
             InlineBoxesConstructionItem(ref mut result) => {
                 for splits in result.splits.mut_iter() {
@@ -133,7 +133,7 @@ struct InlineBlockSplit {
 }
 
 impl InlineBlockSplit {
-    fn destroy(&mut self, leaf_set: &mut LeafSet) {
+    fn destroy(&mut self, leaf_set: &mut FlowLeafSet) {
         self.flow.destroy(leaf_set)
     }
 }
@@ -274,7 +274,7 @@ impl<'fc> FlowConstructor<'fc> {
 
         let inline_base = BaseFlow::new(self.next_flow_id(), node);
         let mut inline_flow = ~InlineFlow::from_boxes(inline_base, boxes) as ~Flow;
-        self.layout_context.leaf_set.access(|leaf_set| inline_flow.mark_as_leaf(leaf_set));
+        self.layout_context.flow_leaf_set.access(|leaf_set| inline_flow.mark_as_leaf(leaf_set));
         TextRunScanner::new().scan_for_runs(self.font_context, inline_flow);
 
         flow.add_new_child(inline_flow)
@@ -380,7 +380,7 @@ impl<'fc> FlowConstructor<'fc> {
 
         // The flow is done. If it ended up with no kids, add the flow to the leaf set.
         if flow.child_count() == 0 {
-            self.layout_context.leaf_set.access(|leaf_set| flow.mark_as_leaf(leaf_set))
+            self.layout_context.flow_leaf_set.access(|leaf_set| flow.mark_as_leaf(leaf_set))
         } else {
             flow.mark_as_nonleaf()
         }
@@ -619,7 +619,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // `display: none` contributes no flow construction result. Nuke the flow construction
             // results of children.
             (display::none, _, _) => {
-                self.layout_context.leaf_set.access(|leaf_set| {
+                self.layout_context.flow_leaf_set.access(|leaf_set| {
                     for child in node.children() {
                         let mut old_result = child.swap_out_construction_result();
                         old_result.destroy(leaf_set)

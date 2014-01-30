@@ -25,6 +25,7 @@ use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use std::cast;
+use std::hashmap::{HashMap, HashMapIterator};
 use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector};
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
@@ -425,6 +426,43 @@ impl<'le> TElement for LayoutElement<'le> {
             }
             _ => None,
         }
+    }
+}
+
+pub type UnsafeLayoutNode = (uint, uint);
+
+pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode {
+    unsafe {
+        cast::transmute_copy(node)
+    }
+}
+
+/// Keeps track of the leaves of the DOM. This is used to efficiently start bottom-up traversals.
+pub struct DomLeafSet {
+    priv set: HashMap<UnsafeLayoutNode,()>,
+}
+
+impl DomLeafSet {
+    /// Creates a new DOM leaf set.
+    pub fn new() -> DomLeafSet {
+        DomLeafSet {
+            set: HashMap::new(),
+        }
+    }
+
+    /// Inserts a DOM node into the leaf set.
+    pub fn insert(&mut self, node: &LayoutNode) {
+        self.set.insert(layout_node_to_unsafe_layout_node(node), ());
+    }
+
+    /// Removes all DOM nodes from the set.
+    pub fn clear(&mut self) {
+        self.set.clear()
+    }
+
+    /// Iterates over the DOM nodes in the leaf set.
+    pub fn iter<'a>(&'a self) -> HashMapIterator<'a,UnsafeLayoutNode,()> {
+        self.set.iter()
     }
 }
 
