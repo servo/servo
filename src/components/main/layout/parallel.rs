@@ -8,11 +8,11 @@
 
 use css::matching::MatchMethods;
 use layout::context::LayoutContext;
-use layout::flow::{Flow, LeafSet, PostorderFlowTraversal};
+use layout::flow::{Flow, FlowLeafSet, PostorderFlowTraversal};
 use layout::flow;
 use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, BubbleWidthsTraversal};
-use layout::util::OpaqueNode;
-use layout::wrapper::LayoutNode;
+use layout::util::{LayoutDataAccess, OpaqueNode};
+use layout::wrapper::{layout_node_to_unsafe_layout_node, LayoutNode, UnsafeLayoutNode};
 
 use extra::arc::MutexArc;
 use servo_util::time::{ProfilerChan, profile};
@@ -46,11 +46,17 @@ pub fn mut_owned_flow_to_unsafe_flow(flow: *mut ~Flow) -> UnsafeFlow {
     }
 }
 
-pub type UnsafeLayoutNode = (uint, uint);
+/// Information that we need stored in each DOM node.
+pub struct DomParallelInfo {
+    /// The number of children that still need work done.
+    children_count: AtomicInt,
+}
 
-fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode {
-    unsafe {
-        cast::transmute_copy(node)
+impl DomParallelInfo {
+    pub fn new() -> DomParallelInfo {
+        DomParallelInfo {
+            children_count: AtomicInt::new(0),
+        }
     }
 }
 
@@ -124,25 +130,42 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
         // Get a real layout node.
         let node: LayoutNode = cast::transmute(unsafe_layout_node);
 
-        // Perform the CSS selector matching.
-        let stylist: &Stylist = cast::transmute(layout_context.stylist);
-        node.match_node(stylist);
+        if node.is_element() {
+            // Perform the CSS selector matching.
+            let stylist: &Stylist = cast::transmute(layout_context.stylist);
+            node.match_node(stylist);
 
-        // Perform the CSS cascade.
-        let parent_opt = if OpaqueNode::from_layout_node(&node) == layout_context.reflow_root {
-            None
-        } else {
-            node.parent_node()
-        };
-        node.cascade_node(parent_opt);
+            // Perform the CSS cascade.
+            let parent_opt = if OpaqueNode::from_layout_node(&node) == layout_context.reflow_root {
+                None
+            } else {
+                node.parent_node()
+            };
+            node.cascade_node(parent_opt);
+        }
 
         // Enqueue kids.
+        let mut child_count = 0;
         for kid in node.children() {
-            if kid.is_element() {
-                proxy.push(WorkUnit {
-                    fun: match_and_cascade_node,
-                    data: layout_node_to_unsafe_layout_node(&kid),
-                });
+            child_count += 1;
+
+            proxy.push(WorkUnit {
+                fun: match_and_cascade_node,
+                data: layout_node_to_unsafe_layout_node(&kid),
+            });
+        }
+
+        // Prepare for flow construction by adding this node to the leaf set or counting its
+        // children.
+        if child_count == 0 {
+            layout_context.dom_leaf_set.access(|dom_leaf_set| dom_leaf_set.insert(&node));
+        } else {
+            let mut layout_data_ref = node.mutate_layout_data();
+            match *layout_data_ref.get() {
+                Some(ref mut layout_data) => {
+                    layout_data.data.parallel.children_count.store(child_count as int, Relaxed)
+                }
+                None => fail!("no layout data"),
             }
         }
     }
@@ -188,7 +211,7 @@ pub fn match_and_cascade_subtree(root_node: &LayoutNode,
 }
 
 pub fn traverse_flow_tree(kind: TraversalKind,
-                          leaf_set: &MutexArc<LeafSet>,
+                          leaf_set: &MutexArc<FlowLeafSet>,
                           profiler_chan: ProfilerChan,
                           layout_context: &mut LayoutContext,
                           queue: &mut WorkQueue<*mut LayoutContext,UnsafeFlow>) {

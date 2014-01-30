@@ -4,6 +4,7 @@
 
 use layout::box_::Box;
 use layout::construct::{ConstructionResult, NoConstructionResult};
+use layout::parallel::DomParallelInfo;
 use layout::wrapper::LayoutNode;
 
 use extra::arc::Arc;
@@ -148,6 +149,9 @@ pub struct PrivateLayoutData {
     /// The current results of flow construction for this node. This is either a flow or a
     /// `ConstructionItem`. See comments in `construct.rs` for more details.
     flow_construction_result: ConstructionResult,
+
+    /// Information needed during parallel traversals.
+    parallel: DomParallelInfo,
 }
 
 impl PrivateLayoutData {
@@ -162,6 +166,7 @@ impl PrivateLayoutData {
             after_style: None,
             restyle_damage: None,
             flow_construction_result: NoConstructionResult,
+            parallel: DomParallelInfo::new(),
         }
     }
 }
