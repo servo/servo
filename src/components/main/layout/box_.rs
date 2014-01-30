@@ -27,7 +27,7 @@ use std::cast;
 use std::cell::RefCell;
 use std::cmp::ApproxEq;
 use std::num::Zero;
-use style::{ComputedValues, TElement, TNode, cascade};
+use style::{ComputedValues, TElement, TNode};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto, overflow, LPA_Auto};
 use style::computed_values::{border_style, clear, font_family, line_height};
 use style::computed_values::{text_align, text_decoration, vertical_align, visibility, white_space};
