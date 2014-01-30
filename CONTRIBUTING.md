@@ -29,6 +29,7 @@ follow this format, even those from core contributors.
 - When changing code related to the DOM, add a test to `src/test/html/content`,
   either by adding it to an existing test file or creating a new one.
 
+For specific git instructions, see [GitHub & Critic PR handling 101](https://github.com/mozilla/servo/wiki/Github-&-Critic-PR-handling-101).
 
 ## Conduct
 
