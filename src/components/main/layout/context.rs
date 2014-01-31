@@ -4,7 +4,7 @@
 
 //! Data needed by the layout task.
 
-use extra::arc::MutexArc;
+use extra::arc::{Arc, MutexArc};
 use green::task::GreenTask;
 use layout::flow::FlowLeafSet;
 use layout::util::OpaqueNode;
@@ -39,13 +39,13 @@ pub struct LayoutContext {
     constellation_chan: ConstellationChan,
 
     /// The set of leaf DOM nodes.
-    dom_leaf_set: MutexArc<DomLeafSet>,
+    dom_leaf_set: Arc<DomLeafSet>,
 
     /// A channel up to the layout task.
     layout_chan: LayoutChan,
 
     /// The set of leaf flows.
-    flow_leaf_set: MutexArc<FlowLeafSet>,
+    flow_leaf_set: Arc<FlowLeafSet>,
 
     /// Information needed to construct a font context.
     font_context_info: FontContextInfo,

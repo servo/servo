@@ -15,7 +15,7 @@ use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, BubbleWidthsTr
 use layout::util::{LayoutDataAccess, OpaqueNode};
 use layout::wrapper::{layout_node_to_unsafe_layout_node, LayoutNode, UnsafeLayoutNode};
 
-use extra::arc::MutexArc;
+use extra::arc::Arc;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
@@ -167,7 +167,7 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
         if child_count == 0 {
             // We don't need set the `child_count` field here since that's only used by kids during
             // bottom-up traversals, and since this node is a leaf it has no kids.
-            layout_context.dom_leaf_set.access(|dom_leaf_set| dom_leaf_set.insert(&node));
+            layout_context.dom_leaf_set.get().insert(&node);
         } else {
             let mut layout_data_ref = node.mutate_layout_data();
             match *layout_data_ref.get() {
@@ -220,7 +220,7 @@ pub fn match_and_cascade_subtree(root_node: &LayoutNode,
 }
 
 pub fn traverse_flow_tree(kind: TraversalKind,
-                          leaf_set: &MutexArc<FlowLeafSet>,
+                          leaf_set: &Arc<FlowLeafSet>,
                           profiler_chan: ProfilerChan,
                           layout_context: &mut LayoutContext,
                           queue: &mut WorkQueue<*mut LayoutContext,UnsafeFlow>) {
@@ -234,14 +234,12 @@ pub fn traverse_flow_tree(kind: TraversalKind,
     };
 
     profile(time::LayoutParallelWarmupCategory, profiler_chan, || {
-        leaf_set.access(|leaf_set| {
-            for &flow in leaf_set.iter() {
-                queue.push(WorkUnit {
-                    fun: fun,
-                    data: flow,
-                })
-            }
-        })
+        for (flow, _) in leaf_set.get().iter() {
+            queue.push(WorkUnit {
+                fun: fun,
+                data: *flow,
+            })
+        }
     });
 
     queue.run();

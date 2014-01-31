@@ -83,10 +83,10 @@ pub struct LayoutTask {
     local_image_cache: MutexArc<LocalImageCache>,
 
     /// The set of leaves in the DOM tree.
-    dom_leaf_set: MutexArc<DomLeafSet>,
+    dom_leaf_set: Arc<DomLeafSet>,
 
     /// The set of leaves in the flow tree.
-    flow_leaf_set: MutexArc<FlowLeafSet>,
+    flow_leaf_set: Arc<FlowLeafSet>,
 
     /// The size of the viewport.
     screen_size: Size2D<Au>,
@@ -292,8 +292,8 @@ impl LayoutTask {
             image_cache_task: image_cache_task.clone(),
             local_image_cache: local_image_cache,
             screen_size: screen_size,
-            dom_leaf_set: MutexArc::new(DomLeafSet::new()),
-            flow_leaf_set: MutexArc::new(FlowLeafSet::new()),
+            dom_leaf_set: Arc::new(DomLeafSet::new()),
+            flow_leaf_set: Arc::new(FlowLeafSet::new()),
 
             display_list_collection: None,
             stylist: ~new_stylist(),
@@ -655,7 +655,7 @@ impl LayoutTask {
             });
         }
 
-        self.flow_leaf_set.access(|leaf_set| layout_root.destroy(leaf_set));
+        layout_root.destroy(self.flow_leaf_set.get());
 
         // Tell script that we're done.
         //
