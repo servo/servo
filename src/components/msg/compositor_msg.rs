@@ -9,7 +9,7 @@ use azure::azure_hl::Color;
 use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsContext};
 use layers::platform::surface::{NativeSurface, NativeSurfaceMethods};
 
-use constellation_msg::PipelineId;
+use constellation_msg::{PipelineId, DisplayListData};
 
 use extra::serialize::{Encoder, Encodable};
 
@@ -79,11 +79,11 @@ impl Epoch {
 /// submit them to be drawn to the display.
 pub trait RenderListener {
     fn get_graphics_metadata(&self) -> Option<NativeGraphicsMetadata>;
-    fn new_layer(&self, PipelineId, Size2D<uint>);
+    fn new_layers(&self, PipelineId, ~[~DisplayListData]);
     fn set_layer_page_size_and_color(&self, PipelineId, Size2D<uint>, Epoch, Color);
     fn set_layer_clip_rect(&self, PipelineId, Rect<uint>);
     fn delete_layer(&self, PipelineId);
-    fn paint(&self, id: PipelineId, layer_buffer_set: ~LayerBufferSet, Epoch);
+    fn paint(&self, id: PipelineId, layer_buffer_set: ~LayerBufferSet, Epoch, uint);
     fn set_render_state(&self, render_state: RenderState);
 }
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::{CompositorChan, LoadComplete, SetIds, SetLayerClipRect, ShutdownComplete};
+use compositing::{CompositorChan, LoadComplete, SetIds, SetLayerClipRect, ShutdownComplete, NewLayers};
 
 use extra::url::Url;
 use geom::rect::Rect;
@@ -15,7 +15,7 @@ use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failu
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
 use servo_msg::constellation_msg::{LoadCompleteMsg, LoadIframeUrlMsg, LoadUrlMsg, Msg, NavigateMsg};
 use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
-use servo_msg::constellation_msg::SubpageId;
+use servo_msg::constellation_msg::{SubpageId, NewCompositorLayers};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
@@ -406,6 +406,9 @@ impl Constellation {
             ResizedWindowMsg(new_size) => {
                 debug!("constellation got window resize message");
                 self.handle_resized_window_msg(new_size);
+            }
+            NewCompositorLayers(id, display_collection_data) => {
+                self.compositor_chan.send(NewLayers(id, display_collection_data));
             }
         }
         true

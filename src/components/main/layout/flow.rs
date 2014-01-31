@@ -950,7 +950,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         if self.is_block_container() {
             let block = self.as_block();
             let mut child_lists = DisplayListCollection::new();
-            child_lists.add_list(DisplayList::new());
+            child_lists.add_list(DisplayList::new(0u, 0u));
             let child_lists = RefCell::new(child_lists);
             let container_block_size;
             let abs_cb_position;

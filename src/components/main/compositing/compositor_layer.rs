@@ -77,7 +77,10 @@ pub struct CompositorLayer {
     cpu_painting: bool,
 
     /// The color to use for the unrendered-content void
-    unrendered_color: Color
+    unrendered_color: Color,
+
+    /// the id to associate DisplayLists with the correct CompositorLayer
+    display_list_id: uint
 }
 
 /// Helper struct for keeping CompositorLayer children organized.
@@ -132,6 +135,7 @@ impl CompositorLayer {
             scroll_behavior: Scroll,
             cpu_painting: cpu_painting,
             unrendered_color: gfx::color::rgba(0.0, 0.0, 0.0, 0.0),
+            display_list_id: 0u,
         }
     }
     
@@ -286,7 +290,8 @@ impl CompositorLayer {
                 self.pipeline.render_chan.try_send(UnusedBufferMsg(unused));
             }
             if !request.is_empty() { // ask for tiles
-                self.pipeline.render_chan.try_send(ReRenderMsg(request, scale, self.epoch));
+                self.pipeline.render_chan.try_send(ReRenderMsg(request, scale, self.epoch, self.display_list_id));
+                self.epoch.next();
             }
         }
         if redisplay {
@@ -322,13 +327,12 @@ impl CompositorLayer {
             .fold(false, |a, b| a || b) || redisplay
     }
 
-
     // Move the sublayer to an absolute position in page coordinates relative to its parent,
     // and clip the layer to the specified size in page coordinates.
     // If the layer is hidden and has a defined page size, unhide it.
     // This method returns false if the specified layer is not found.
-    pub fn set_clipping_rect(&mut self, pipeline_id: PipelineId, new_rect: Rect<f32>) -> bool {
-        match self.children.iter().position(|x| pipeline_id == x.child.pipeline.id) {
+    pub fn set_clipping_rect(&mut self, pipeline_id: PipelineId, new_rect: Rect<f32>, display_list_id: uint) -> bool {
+        match self.children.iter().position(|x| pipeline_id == x.child.pipeline.id && display_list_id == x.child.display_list_id) {
             Some(i) => {
                 let child_node = &mut self.children[i];
                 child_node.container.borrow().common.with_mut(|common|
@@ -362,7 +366,7 @@ impl CompositorLayer {
             None => {
                 // ID does not match any of our immediate children, so recurse on 
                 // descendents (including hidden children)
-                self.children.mut_iter().map(|x| &mut x.child).any(|x| x.set_clipping_rect(pipeline_id, new_rect))
+                self.children.mut_iter().map(|x| &mut x.child).any(|x| x.set_clipping_rect(pipeline_id, new_rect, display_list_id))
             }
         }
     }
@@ -503,6 +507,17 @@ impl CompositorLayer {
         }
     }
 
+    pub fn add_child(&mut self, new_layer: ~CompositorLayer, container: Rc<ContainerLayer>) {
+        self.children.push(CompositorLayerChild {
+            child: new_layer,
+            container: container
+        });
+    }
+
+    pub fn mark_as_fixed(&mut self) {
+        self.scroll_behavior = FixedPosition;
+    }
+
     // Collect buffers from the quadtree. This method IS NOT recursive, so child CompositorLayers
     // are not rebuilt directly from this method.
     pub fn build_layer_tree(&mut self, graphics_context: &NativeCompositingGraphicsContext) {
@@ -602,7 +617,7 @@ impl CompositorLayer {
             };
         }
     }
-    
+
     // Add LayerBuffers to the specified layer. Returns the layer buffer set back if the layer that
     // matches the given pipeline ID was not found; otherwise returns None and consumes the layer
     // buffer set.
@@ -613,9 +628,10 @@ impl CompositorLayer {
                        graphics_context: &NativeCompositingGraphicsContext,
                        pipeline_id: PipelineId,
                        mut new_buffers: ~LayerBufferSet,
-                       epoch: Epoch)
+                       epoch: Epoch,
+                       display_list_id: uint)
                        -> Option<~LayerBufferSet> {
-        if self.pipeline.id == pipeline_id {
+        if self.pipeline.id == pipeline_id && self.display_list_id == display_list_id {
             if self.epoch != epoch {
                 debug!("compositor epoch mismatch: {:?} != {:?}, id: {:?}",
                        self.epoch,
@@ -652,7 +668,8 @@ impl CompositorLayer {
             match child_layer.child.add_buffers(graphics_context,
                                                 pipeline_id,
                                                 new_buffers,
-                                                epoch) {
+                                                epoch,
+                                                display_list_id) {
                 None => return None,
                 Some(buffers) => new_buffers = buffers,
             }

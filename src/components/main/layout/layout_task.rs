@@ -631,7 +631,7 @@ impl LayoutTask {
                 let root_size = flow::base(layout_root).position.size;
                 let root_abs_position = Point2D(Au::new(0), Au::new(0));
                 let mut display_list_collection = DisplayListCollection::new();
-                display_list_collection.add_list(DisplayList::<OpaqueNode>::new());
+                display_list_collection.add_list(DisplayList::<OpaqueNode>::new(0,0));
                 let display_list_collection = ~RefCell::new(display_list_collection);
                 let dirty = flow::base(layout_root).position.clone();
                 let display_list_builder = DisplayListBuilder {

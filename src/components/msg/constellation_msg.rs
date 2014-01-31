@@ -45,6 +45,7 @@ pub enum Msg {
     NavigateMsg(NavigationDirection),
     RendererReadyMsg(PipelineId),
     ResizedWindowMsg(Size2D<uint>),
+    NewCompositorLayers(PipelineId, ~[~DisplayListData]),
 }
 
 /// Represents the two different ways to which a page can be navigated
@@ -65,3 +66,10 @@ pub struct PipelineId(uint);
 
 #[deriving(Clone, Eq, IterBytes, Encodable)]
 pub struct SubpageId(uint);
+
+pub struct DisplayListData {
+    id: uint,
+    is_fixed: bool,
+    parent: uint,
+    bounds: Rect<f32>
+}

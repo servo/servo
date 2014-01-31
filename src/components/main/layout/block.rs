@@ -1619,7 +1619,7 @@ impl BlockFlow {
         if self.is_fixed() {
             lists.with_mut(|lists| {
                 index = lists.lists.len();
-                lists.add_list(DisplayList::<E>::new());
+                lists.add_list(DisplayList::<E>::new_fixed(index, 0u));
             });
         }
 
