@@ -237,18 +237,21 @@ impl<'ln> LayoutNode<'ln> {
 }
 
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
+    // FIXME(pcwalton): This is unsafe if called from flow construction. Lock this down.
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.node().parent_node.map(|node| self.new_with_this_lifetime(node))
         }
     }
 
+    // FIXME(pcwalton): This is unsafe if called from flow construction. Lock this down.
     fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
         }
     }
 
+    // FIXME(pcwalton): This is unsafe if called from flow construction. Lock this down.
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))

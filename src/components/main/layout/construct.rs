@@ -212,17 +212,29 @@ pub struct FlowConstructor<'a> {
     next_flow_id: RefCell<int>,
 
     /// The font context.
-    font_context: ~FontContext,
+    font_context: Option<~FontContext>,
 }
 
 impl<'fc> FlowConstructor<'fc> {
     /// Creates a new flow constructor.
-    pub fn init<'a>(layout_context: &'a mut LayoutContext) -> FlowConstructor<'a> {
-        let font_context = ~FontContext::new(layout_context.font_context_info.clone());
+    pub fn new<'a>(layout_context: &'a mut LayoutContext,
+                   font_context: Option<~FontContext>)
+                   -> FlowConstructor<'a> {
         FlowConstructor {
             layout_context: layout_context,
             next_flow_id: RefCell::new(0),
             font_context: font_context,
+        }
+    }
+
+    /// Returns the font context.
+    fn font_context<'a>(&'a mut self) -> &'a mut FontContext {
+        match self.font_context {
+            None => self.layout_context.font_context(),
+            Some(ref mut font_context) => {
+                let font_context: &'a mut FontContext = *font_context;
+                font_context
+            }
         }
     }
 
@@ -275,7 +287,7 @@ impl<'fc> FlowConstructor<'fc> {
         let inline_base = BaseFlow::new(self.next_flow_id(), node);
         let mut inline_flow = ~InlineFlow::from_boxes(inline_base, boxes) as ~Flow;
         inline_flow.mark_as_leaf(self.layout_context.flow_leaf_set.get());
-        TextRunScanner::new().scan_for_runs(self.font_context, inline_flow);
+        TextRunScanner::new().scan_for_runs(self.font_context(), inline_flow);
 
         flow.add_new_child(inline_flow)
     }
@@ -522,7 +534,7 @@ impl<'fc> FlowConstructor<'fc> {
     fn set_inline_info_for_inline_child(&mut self, boxes: &~[&Box], parent_node: LayoutNode) {
         let parent_box = self.build_box_for_node(parent_node);
         let font_style = parent_box.font_style();
-        let font_group = self.font_context.get_resolved_font_for_style(&font_style);
+        let font_group = self.font_context().get_resolved_font_for_style(&font_style);
         let (font_ascent,font_descent) = font_group.borrow().with_mut( |fg| {
             fg.fonts[0].borrow().with_mut( |font| {
                 (font.metrics.ascent,font.metrics.descent)
