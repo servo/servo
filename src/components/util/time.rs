@@ -51,9 +51,7 @@ pub enum ProfilerCategory {
     LayoutQueryCategory,
     LayoutPerformCategory,
     LayoutStyleRecalcCategory,
-    LayoutAuxInitCategory,
     LayoutSelectorMatchCategory,
-    LayoutSelectorCascadeCategory,
     LayoutTreeBuilderCategory,
     LayoutDamagePropagateCategory,
     LayoutMainCategory,
@@ -81,9 +79,7 @@ impl ProfilerCategory {
         buckets.insert(LayoutQueryCategory, ~[]);
         buckets.insert(LayoutPerformCategory, ~[]);
         buckets.insert(LayoutStyleRecalcCategory, ~[]);
-        buckets.insert(LayoutAuxInitCategory, ~[]);
         buckets.insert(LayoutSelectorMatchCategory, ~[]);
-        buckets.insert(LayoutSelectorCascadeCategory, ~[]);
         buckets.insert(LayoutTreeBuilderCategory, ~[]);
         buckets.insert(LayoutMainCategory, ~[]);
         buckets.insert(LayoutParallelWarmupCategory, ~[]);
@@ -107,8 +103,6 @@ impl ProfilerCategory {
             LayoutDispListBuildCategory |
             LayoutShapingCategory |
             LayoutDamagePropagateCategory => "+ ",
-            LayoutAuxInitCategory |
-            LayoutSelectorCascadeCategory |
             LayoutParallelWarmupCategory |
             LayoutSelectorMatchCategory |
             LayoutTreeBuilderCategory => "| + ",

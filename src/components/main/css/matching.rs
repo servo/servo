@@ -5,21 +5,27 @@
 // High-level interface to CSS selector matching.
 
 use css::node_style::StyledNode;
+use layout::extra::LayoutAuxMethods;
 use layout::incremental;
 use layout::util::LayoutDataAccess;
 use layout::wrapper::LayoutNode;
 
 use extra::arc::Arc;
+use script::layout_interface::LayoutChan;
 use servo_util::smallvec::SmallVec;
 use style::{TNode, Stylist, cascade};
 use style::{Before, After};
 
 pub trait MatchMethods {
     fn match_node(&self, stylist: &Stylist);
-    fn match_subtree(&self, stylist: &Stylist);
+
+    /// Performs aux initialization, selector matching, and cascading sequentially.
+    fn match_and_cascade_subtree(&self,
+                                 stylist: &Stylist,
+                                 layout_chan: &LayoutChan,
+                                 parent: Option<LayoutNode>);
 
     unsafe fn cascade_node(&self, parent: Option<LayoutNode>);
-    fn cascade_subtree(&self, parent: Option<LayoutNode>);
 }
 
 impl<'ln> MatchMethods for LayoutNode<'ln> {
@@ -55,11 +61,22 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         }
     }
 
-    fn match_subtree(&self, stylist: &Stylist) {
-        for node in self.traverse_preorder() {
-            if node.is_element() {
-                node.match_node(stylist);
-            }
+    fn match_and_cascade_subtree(&self,
+                                 stylist: &Stylist,
+                                 layout_chan: &LayoutChan,
+                                 parent: Option<LayoutNode>) {
+        self.initialize_layout_data((*layout_chan).clone());
+
+        if self.is_element() {
+            self.match_node(stylist);
+        }
+
+        unsafe {
+            self.cascade_node(parent)
+        }
+
+        for kid in self.children() {
+            kid.match_and_cascade_subtree(stylist, layout_chan, Some(*self))
         }
     }
 
@@ -132,14 +149,5 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             }
         }
     }
-
-    fn cascade_subtree(&self, parent: Option<LayoutNode>) {
-        unsafe {
-            self.cascade_node(parent);
-        }
-
-        for kid in self.children() {
-            kid.cascade_subtree(Some(*self));
-        }
-    }
 }
+
