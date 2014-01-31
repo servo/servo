@@ -44,10 +44,10 @@ use geom::rect::Rect;
 use gfx::display_list::{ClipDisplayItemClass, DisplayListCollection, DisplayList};
 use layout::display_list_builder::ToGfxColor;
 use gfx::color::Color;
+use servo_util::concurrentmap::{ConcurrentHashMap, ConcurrentHashMapIterator};
 use servo_util::geometry::Au;
 use std::cast;
 use std::cell::RefCell;
-use std::hashmap::{HashSet, HashSetIterator};
 use std::sync::atomics::Relaxed;
 use style::ComputedValues;
 use style::computed_values::text_align;
@@ -217,13 +217,13 @@ pub trait MutableOwnedFlowUtils {
 
     /// Marks the flow as a leaf. The flow must not have children and must not be marked as a
     /// nonleaf.
-    fn mark_as_leaf(&mut self, leaf_set: &mut FlowLeafSet);
+    fn mark_as_leaf(&mut self, leaf_set: &FlowLeafSet);
 
     /// Marks the flow as a nonleaf. The flow must not be marked as a leaf.
     fn mark_as_nonleaf(&mut self);
 
     /// Destroys the flow.
-    fn destroy(&mut self, leaf_set: &mut FlowLeafSet);
+    fn destroy(&mut self, leaf_set: &FlowLeafSet);
 }
 
 pub enum FlowClass {
@@ -762,7 +762,7 @@ impl MutableOwnedFlowUtils for ~Flow {
 
     /// Marks the flow as a leaf. The flow must not have children and must not be marked as a
     /// nonleaf.
-    fn mark_as_leaf(&mut self, leaf_set: &mut FlowLeafSet) {
+    fn mark_as_leaf(&mut self, leaf_set: &FlowLeafSet) {
         {
             let base = mut_base(*self);
             if base.flags_info.flags.is_nonleaf() {
@@ -787,7 +787,7 @@ impl MutableOwnedFlowUtils for ~Flow {
     }
 
     /// Destroys the flow.
-    fn destroy(&mut self, leaf_set: &mut FlowLeafSet) {
+    fn destroy(&mut self, leaf_set: &FlowLeafSet) {
         let is_leaf = {
             let base = mut_base(*self);
             base.children.len() == 0
@@ -808,27 +808,26 @@ impl MutableOwnedFlowUtils for ~Flow {
 
 /// Keeps track of the leaves of the flow tree. This is used to efficiently start bottom-up
 /// parallel traversals.
-#[deriving(Clone)]
 pub struct FlowLeafSet {
-    priv set: HashSet<UnsafeFlow>,
+    priv set: ConcurrentHashMap<UnsafeFlow,()>,
 }
 
 impl FlowLeafSet {
     /// Creates a new flow leaf set.
     pub fn new() -> FlowLeafSet {
         FlowLeafSet {
-            set: HashSet::new(),
+            set: ConcurrentHashMap::with_locks_and_buckets(64, 256),
         }
     }
 
     /// Inserts a newly-created flow into the leaf set.
-    fn insert(&mut self, flow: &~Flow) {
-        self.set.insert(parallel::owned_flow_to_unsafe_flow(flow));
+    fn insert(&self, flow: &~Flow) {
+        self.set.insert(parallel::owned_flow_to_unsafe_flow(flow), ());
     }
 
     /// Removes a flow from the leaf set. Asserts that the flow was indeed in the leaf set. (This
     /// invariant is needed for memory safety, as there must always be exactly one leaf set.)
-    fn remove(&mut self, flow: &~Flow) {
+    fn remove(&self, flow: &~Flow) {
         if !self.contains(flow) {
             fail!("attempted to remove a flow from the leaf set that wasn't in the set!")
         }
@@ -836,16 +835,16 @@ impl FlowLeafSet {
         self.set.remove(&flow);
     }
 
-    pub fn contains(&mut self, flow: &~Flow) -> bool {
+    pub fn contains(&self, flow: &~Flow) -> bool {
         let flow = parallel::owned_flow_to_unsafe_flow(flow);
-        self.set.contains(&flow)
+        self.set.contains_key(&flow)
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&self) {
         self.set.clear()
     }
 
-    pub fn iter<'a>(&'a self) -> HashSetIterator<'a,UnsafeFlow> {
+    pub fn iter<'a>(&'a self) -> ConcurrentHashMapIterator<'a,UnsafeFlow,()> {
         self.set.iter()
     }
 }
