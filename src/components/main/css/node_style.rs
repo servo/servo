@@ -6,7 +6,7 @@
 
 use css::node_util::NodeUtil;
 use layout::incremental::RestyleDamage;
-use layout::wrapper::LayoutNode;
+use layout::wrapper::ThreadSafeLayoutNode;
 
 use extra::arc::Arc;
 use style::ComputedValues;
@@ -17,7 +17,7 @@ pub trait StyledNode {
     fn restyle_damage(&self) -> RestyleDamage;
 }
 
-impl<'ln> StyledNode for LayoutNode<'ln> {
+impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
     #[inline]
     fn style<'a>(&'a self) -> &'a Arc<ComputedValues> {
         self.get_css_select_results()
@@ -27,3 +27,4 @@ impl<'ln> StyledNode for LayoutNode<'ln> {
         self.get_restyle_damage()
     }
 }
+

@@ -19,7 +19,7 @@ use layout::parallel::{AssignHeightsAndStoreOverflowTraversalKind, BubbleWidthsT
 use layout::parallel::{UnsafeFlow};
 use layout::parallel;
 use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
-use layout::wrapper::{DomLeafSet, LayoutNode};
+use layout::wrapper::{DomLeafSet, LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use extra::arc::{Arc, MutexArc};
 use geom::rect::Rect;
@@ -416,6 +416,7 @@ impl LayoutTask {
     /// marked `#[inline(never)]` to aid benchmarking in sampling profilers.
     #[inline(never)]
     fn construct_flow_tree(&self, layout_context: &mut LayoutContext, node: LayoutNode) -> ~Flow {
+        let node = ThreadSafeLayoutNode::new(node);
         node.traverse_postorder_mut(&mut FlowConstructor::init(layout_context));
 
         let mut layout_data_ref = node.mutate_layout_data();
@@ -623,13 +624,16 @@ impl LayoutTask {
                 for child in node.traverse_preorder() {
                     if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) || 
                             child.type_id() == ElementNodeTypeId(HTMLBodyElementTypeId) {
-                        let element_bg_color = child.style()
-                                                    .get()
-                                                    .resolve_color(child.style()
-                                                                        .get()
-                                                                        .Background
-                                                                        .background_color)
-                                                    .to_gfx_color();
+                        let element_bg_color = {
+                            let thread_safe_child = ThreadSafeLayoutNode::new(child);
+                            thread_safe_child.style()
+                                             .get()
+                                             .resolve_color(thread_safe_child.style()
+                                                                             .get()
+                                                                             .Background
+                                                                             .background_color)
+                                             .to_gfx_color()
+                        };
                         match element_bg_color {
                             color::rgba(0., 0., 0., 0.) => {}
                             _ => {

@@ -26,7 +26,116 @@ use servo_util::concurrentmap::{ConcurrentHashMap, ConcurrentHashMapIterator};
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use std::cast;
+use std::cell::{Ref, RefMut};
 use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector};
+
+use layout::util::LayoutDataWrapper;
+
+/// Allows some convenience methods on generic layout nodes.
+pub trait TLayoutNode {
+    /// Creates a new layout node with the same lifetime as this layout node.
+    unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> Self;
+
+    /// Returns the type ID of this node. Fails if this node is borrowed mutably.
+    fn type_id(&self) -> NodeTypeId;
+
+    /// Returns the interior of this node as an `AbstractNode`. This is highly unsafe for layout to
+    /// call and as such is marked `unsafe`.
+    unsafe fn get_abstract(&self) -> AbstractNode;
+
+    /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
+    /// and as such is marked `unsafe`.
+    unsafe fn get<'a>(&'a self) -> &'a Node {
+        let node = self.get_abstract();
+        cast::transmute(node.node())
+    }
+
+    fn node_is_element(&self) -> bool {
+        match self.type_id() {
+            ElementNodeTypeId(..) => true,
+            _ => false
+        }
+    }
+
+    fn node_is_document(&self) -> bool {
+        match self.type_id() {
+            DocumentNodeTypeId(..) => true,
+            _ => false
+        }
+    }
+
+    /// If this is an image element, returns its URL. If this is not an image element, fails.
+    ///
+    /// FIXME(pcwalton): Don't copy URLs.
+    fn image_url(&self) -> Option<Url> {
+        unsafe {
+            self.with_image_element(|image_element| {
+                image_element.image.as_ref().map(|url| (*url).clone())
+            })
+        }
+    }
+
+    /// Downcasts this node to an iframe element and calls the given closure.
+    ///
+    /// FIXME(pcwalton): RAII.
+    unsafe fn with_iframe_element<R>(&self, f: |&HTMLIFrameElement| -> R) -> R {
+        if !self.get_abstract().is_iframe_element() {
+            fail!(~"node is not an iframe element");
+        }
+        self.get_abstract().transmute(f)
+    }
+
+    /// Downcasts this node to an image element and calls the given closure.
+    ///
+    /// FIXME(pcwalton): RAII.
+    unsafe fn with_image_element<R>(&self, f: |&HTMLImageElement| -> R) -> R {
+        if !self.get_abstract().is_image_element() {
+            fail!(~"node is not an image element");
+        }
+        self.get_abstract().transmute(f)
+    }
+
+    /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
+    /// not an iframe element, fails.
+    fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
+        unsafe {
+            self.with_iframe_element(|iframe_element| {
+                let size = iframe_element.size.unwrap();
+                (size.pipeline_id, size.subpage_id)
+            })
+        }
+    }
+
+    /// If this is a text node, copies out the text. If this is not a text node, fails.
+    ///
+    /// FIXME(pcwalton): Don't copy text. Atomically reference count instead.
+    fn text(&self) -> ~str {
+        unsafe {
+            self.with_text(|text| text.element.data.to_str())
+        }
+    }
+
+    /// Downcasts this node to a text node and calls the given closure.
+    ///
+    /// FIXME(pcwalton): RAII.
+    unsafe fn with_text<R>(&self, f: |&Text| -> R) -> R {
+        self.get_abstract().with_imm_text(f)
+    }
+
+    /// Returns the first child of this node.
+    fn first_child(&self) -> Option<Self> {
+        unsafe {
+            self.get_abstract().first_child().map(|node| self.new_with_this_lifetime(node))
+        }
+    }
+
+    /// Dumps this node tree, for debugging.
+    fn dump(&self) {
+        unsafe {
+            self.get_abstract().dump()
+        }
+    }
+}
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `AbstractNode`.
@@ -39,6 +148,21 @@ pub struct LayoutNode<'a> {
     priv chain: &'a (),
 }
 
+impl<'ln> TLayoutNode for LayoutNode<'ln> {
+    unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> LayoutNode<'ln> {
+        LayoutNode {
+            node: node,
+            chain: self.chain,
+        }
+    }
+    fn type_id(&self) -> NodeTypeId {
+        self.node.type_id()
+    }
+    unsafe fn get_abstract(&self) -> AbstractNode {
+        self.node
+    }
+}
+
 impl<'ln> LayoutNode<'ln> {
     /// Creates a new layout node, scoped to the given closure.
     pub unsafe fn with_layout_node<R>(node: AbstractNode, f: <'a> |LayoutNode<'a>| -> R) -> R {
@@ -47,40 +171,6 @@ impl<'ln> LayoutNode<'ln> {
             node: node,
             chain: &heavy_iron_ball,
         })
-    }
-
-    /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> LayoutNode<'ln> {
-        LayoutNode {
-            node: node,
-            chain: self.chain,
-        }
-    }
-
-    /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
-    /// and as such is marked `unsafe`.
-    pub unsafe fn get<'a>(&'a self) -> &'a Node {
-        cast::transmute(self.node.node())
-    }
-
-    /// Returns the interior of this node as an `AbstractNode`. This is highly unsafe for layout to
-    /// call and as such is marked `unsafe`.
-    pub unsafe fn get_abstract(&self) -> AbstractNode {
-        self.node
-    }
-
-    /// Returns the first child of this node.
-    pub fn first_child(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.node.first_child().map(|node| self.new_with_this_lifetime(node))
-        }
-    }
-
-    /// Returns the first child of this node.
-    pub fn last_child(&self) -> Option<LayoutNode<'ln>> {
-        unsafe {
-            self.node.last_child().map(|node| self.new_with_this_lifetime(node))
-        }
     }
 
     /// Iterates over this node and all its descendants, in preorder.
@@ -97,142 +187,6 @@ impl<'ln> LayoutNode<'ln> {
         LayoutNodeChildrenIterator {
             current_node: self.first_child(),
         }
-    }
-
-    /// Returns the type ID of this node. Fails if this node is borrowed mutably.
-    pub fn type_id(&self) -> NodeTypeId {
-        self.node.type_id()
-    }
-
-    /// If this is an image element, returns its URL. If this is not an image element, fails.
-    ///
-    /// FIXME(pcwalton): Don't copy URLs.
-    pub fn image_url(&self) -> Option<Url> {
-        unsafe {
-            self.with_image_element(|image_element| {
-                image_element.image.as_ref().map(|url| (*url).clone())
-            })
-        }
-    }
-
-    /// Downcasts this node to an image element and calls the given closure.
-    ///
-    /// FIXME(pcwalton): RAII.
-    unsafe fn with_image_element<R>(self, f: |&HTMLImageElement| -> R) -> R {
-        if !self.node.is_image_element() {
-            fail!(~"node is not an image element");
-        }
-        self.node.transmute(f)
-    }
-
-    /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
-    /// not an iframe element, fails.
-    pub fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
-        unsafe {
-            self.with_iframe_element(|iframe_element| {
-                let size = iframe_element.size.unwrap();
-                (size.pipeline_id, size.subpage_id)
-            })
-        }
-    }
-
-    /// Downcasts this node to an iframe element and calls the given closure.
-    ///
-    /// FIXME(pcwalton): RAII.
-    unsafe fn with_iframe_element<R>(self, f: |&HTMLIFrameElement| -> R) -> R {
-        if !self.node.is_iframe_element() {
-            fail!(~"node is not an iframe element");
-        }
-        self.node.transmute(f)
-    }
-
-    /// Returns true if this node is a text node or false otherwise.
-    #[inline]
-    pub fn is_text(self) -> bool {
-        self.node.is_text()
-    }
-
-    /// Returns true if this node consists entirely of ignorable whitespace and false otherwise.
-    /// Ignorable whitespace is defined as whitespace that would be removed per CSS 2.1 § 16.6.1.
-    pub fn is_ignorable_whitespace(&self) -> bool {
-        unsafe {
-            self.is_text() && self.with_text(|text| text.element.data.is_whitespace())
-        }
-    }
-
-    /// If this is a text node, copies out the text. If this is not a text node, fails.
-    ///
-    /// FIXME(pcwalton): Don't copy text. Atomically reference count instead.
-    pub fn text(&self) -> ~str {
-        unsafe {
-            self.with_text(|text| text.element.data.to_str())
-        }
-    }
-
-    /// Downcasts this node to a text node and calls the given closure.
-    ///
-    /// FIXME(pcwalton): RAII.
-    unsafe fn with_text<R>(self, f: |&Text| -> R) -> R {
-        self.node.with_imm_text(f)
-    }
-
-    /// Dumps this node tree, for debugging.
-    pub fn dump(&self) {
-        self.node.dump()
-    }
-
-    /// Returns a string that describes this node, for debugging.
-    pub fn debug_str(&self) -> ~str {
-        self.node.debug_str()
-    }
-
-    /// Traverses the tree in postorder.
-    ///
-    /// TODO(pcwalton): Offer a parallel version with a compatible API.
-    pub fn traverse_postorder<T:PostorderNodeTraversal>(self, traversal: &T) -> bool {
-        if traversal.should_prune(self) {
-            return true
-        }
-
-        let mut opt_kid = self.first_child();
-        loop {
-            match opt_kid {
-                None => break,
-                Some(kid) => {
-                    if !kid.traverse_postorder(traversal) {
-                        return false
-                    }
-                    opt_kid = kid.next_sibling()
-                }
-            }
-        }
-
-        traversal.process(self)
-    }
-
-    /// Traverses the tree in postorder.
-    ///
-    /// TODO(pcwalton): Offer a parallel version with a compatible API.
-    pub fn traverse_postorder_mut<T:PostorderNodeMutTraversal>(mut self, traversal: &mut T)
-                                  -> bool {
-        if traversal.should_prune(self) {
-            return true
-        }
-
-        let mut opt_kid = self.first_child();
-        loop {
-            match opt_kid {
-                None => break,
-                Some(kid) => {
-                    if !kid.traverse_postorder_mut(traversal) {
-                        return false
-                    }
-                    opt_kid = kid.next_sibling()
-                }
-            }
-        }
-
-        traversal.process(self)
     }
 }
 
@@ -255,20 +209,6 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
         }
     }
 
-    fn is_element(&self) -> bool {
-        match self.node.type_id() {
-            ElementNodeTypeId(..) => true,
-            _ => false
-        }
-    }
-
-    fn is_document(&self) -> bool {
-        match self.node.type_id() {
-            DocumentNodeTypeId(..) => true,
-            _ => false
-        }
-    }
-
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
     fn with_element<R>(&self, f: |&LayoutElement<'ln>| -> R) -> R {
@@ -281,6 +221,14 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
                 })
             }
         })
+    }
+
+    fn is_element(&self) -> bool {
+        self.node_is_element()
+    }
+
+    fn is_document(&self) -> bool {
+        self.node_is_document()
     }
 
     fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
@@ -361,32 +309,6 @@ fn gather_layout_nodes<'a>(cur: &LayoutNode<'a>, refs: &mut ~[LayoutNode<'a>], p
     }
 }
 
-/// A bottom-up, parallelizable traversal.
-pub trait PostorderNodeTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process<'a>(&'a self, node: LayoutNode<'a>) -> bool;
-
-    /// Returns true if this node should be pruned. If this returns true, we skip the operation
-    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
-    /// visited. The default implementation never prunes any nodes.
-    fn should_prune<'a>(&'a self, _node: LayoutNode<'a>) -> bool {
-        false
-    }
-}
-
-/// A bottom-up, parallelizable traversal.
-pub trait PostorderNodeMutTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process<'a>(&'a mut self, node: LayoutNode<'a>) -> bool;
-
-    /// Returns true if this node should be pruned. If this returns true, we skip the operation
-    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
-    /// visited. The default implementation never prunes any nodes.
-    fn should_prune<'a>(&'a self, _node: LayoutNode<'a>) -> bool {
-        false
-    }
-}
-
 /// A wrapper around elements that ensures layout can only ever access safe properties.
 pub struct LayoutElement<'le> {
     priv element: &'le Element,
@@ -426,6 +348,153 @@ impl<'le> TElement for LayoutElement<'le> {
             }
             _ => None,
         }
+    }
+}
+
+/// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
+/// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
+pub struct ThreadSafeLayoutNode<'ln> {
+    /// The wrapped node.
+    priv node: AbstractNode,
+
+    /// Being chained to a value prevents `ThreadSafeLayoutNode`s from escaping.
+    priv chain: &'ln (),
+}
+
+impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
+    /// Creates a new layout node with the same lifetime as this layout node.
+    unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> ThreadSafeLayoutNode<'ln> {
+        ThreadSafeLayoutNode {
+            node: node,
+            chain: self.chain,
+        }
+    }
+    fn type_id(&self) -> NodeTypeId {
+        self.node.type_id()
+    }
+    unsafe fn get_abstract(&self) -> AbstractNode {
+        self.node
+    }
+}
+
+impl<'ln> ThreadSafeLayoutNode<'ln> {
+    /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
+    pub fn new<'a>(node: LayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
+        ThreadSafeLayoutNode {
+            node: node.node,
+            chain: node.chain,
+        }
+    }
+
+    /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
+    unsafe fn next_sibling(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
+    }
+
+    /// Returns an iterator over this node's children.
+    pub fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln> {
+        ThreadSafeLayoutNodeChildrenIterator {
+            current_node: self.first_child(),
+        }
+    }
+
+    /// If this is an element, accesses the element data. Fails if this is not an element node.
+    #[inline]
+    pub fn with_element<R>(&self, f: |&ThreadSafeLayoutElement| -> R) -> R {
+        unsafe {
+            self.get_abstract().with_imm_element(|element| {
+                // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
+                // implementations.
+                f(&ThreadSafeLayoutElement {
+                    element: cast::transmute_region(element),
+                })
+            })
+        }
+    }
+
+    /// Borrows the layout data immutably. Fails on a conflicting borrow.
+    #[inline(always)]
+    pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
+        unsafe {
+            cast::transmute(self.get().layout_data.borrow())
+        }
+    }
+
+    /// Borrows the layout data mutably. Fails on a conflicting borrow.
+    #[inline(always)]
+    pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
+        unsafe {
+            cast::transmute(self.get().layout_data.borrow_mut())
+        }
+    }
+
+    /// Traverses the tree in postorder.
+    ///
+    /// TODO(pcwalton): Offer a parallel version with a compatible API.
+    pub fn traverse_postorder_mut<T:PostorderNodeMutTraversal>(mut self, traversal: &mut T)
+                                  -> bool {
+        if traversal.should_prune(self) {
+            return true
+        }
+
+        let mut opt_kid = self.first_child();
+        loop {
+            match opt_kid {
+                None => break,
+                Some(kid) => {
+                    if !kid.traverse_postorder_mut(traversal) {
+                        return false
+                    }
+                    unsafe {
+                        opt_kid = kid.next_sibling()
+                    }
+                }
+            }
+        }
+
+        traversal.process(self)
+    }
+}
+
+pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
+    priv current_node: Option<ThreadSafeLayoutNode<'a>>,
+}
+
+impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIterator<'a> {
+    fn next(&mut self) -> Option<ThreadSafeLayoutNode<'a>> {
+        let node = self.current_node;
+        self.current_node = self.current_node.and_then(|node| {
+            unsafe {
+                node.next_sibling()
+            }
+        });
+        node
+    }
+}
+
+/// A wrapper around elements that ensures layout can only ever access safe properties and cannot
+/// race on elements.
+pub struct ThreadSafeLayoutElement<'le> {
+    priv element: &'le Element,
+}
+
+impl<'le> ThreadSafeLayoutElement<'le> {
+    #[inline]
+    pub fn get_attr(&self, namespace: &Namespace, name: &str) -> Option<&'static str> {
+        unsafe { self.element.get_attr_val_for_layout(namespace, name) }
+    }
+}
+
+/// A bottom-up, parallelizable traversal.
+pub trait PostorderNodeMutTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process<'a>(&'a mut self, node: ThreadSafeLayoutNode<'a>) -> bool;
+
+    /// Returns true if this node should be pruned. If this returns true, we skip the operation
+    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
+    /// visited. The default implementation never prunes any nodes.
+    fn should_prune<'a>(&'a self, _node: ThreadSafeLayoutNode<'a>) -> bool {
+        false
     }
 }
 

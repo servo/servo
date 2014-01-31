@@ -5,7 +5,7 @@
 use layout::box_::Box;
 use layout::construct::{ConstructionResult, NoConstructionResult};
 use layout::parallel::DomParallelInfo;
-use layout::wrapper::LayoutNode;
+use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use extra::arc::Arc;
 use script::dom::bindings::utils::Reflectable;
@@ -220,6 +220,15 @@ pub struct OpaqueNode(uintptr_t);
 impl OpaqueNode {
     /// Converts a DOM node (layout view) to an `OpaqueNode`.
     pub fn from_layout_node(node: &LayoutNode) -> OpaqueNode {
+        unsafe {
+            let abstract_node = node.get_abstract();
+            let ptr: uintptr_t = cast::transmute(abstract_node.reflector().get_jsobject());
+            OpaqueNode(ptr)
+        }
+    }
+
+    /// Converts a thread-safe DOM node (layout view) to an `OpaqueNode`.
+    pub fn from_thread_safe_layout_node(node: &ThreadSafeLayoutNode) -> OpaqueNode {
         unsafe {
             let abstract_node = node.get_abstract();
             let ptr: uintptr_t = cast::transmute(abstract_node.reflector().get_jsobject());
