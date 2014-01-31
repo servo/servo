@@ -28,7 +28,8 @@ interface Document : Node {
   readonly attribute DOMImplementation implementation;
   readonly attribute DOMString URL;
   readonly attribute DOMString documentURI;
-  // readonly attribute DOMString compatMode;
+  // readonly attribute DOMString origin;
+  readonly attribute DOMString compatMode;
   // readonly attribute DOMString characterSet;
   readonly attribute DOMString contentType;
 
