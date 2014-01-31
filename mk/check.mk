@@ -40,7 +40,7 @@ servo-test: $(DEPS_servo)
 
 reftest: $(S)src/test/harness/reftest/reftest.rs servo
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) -L$(B)/src/support/png/rust-png/ -o $@ $<
+	$(Q)$(RUSTC) -L$(B)/src/support/png/rust-png/ -L$(B)/src/support/png/libpng/ -o $@ $<
 
 contenttest: $(S)src/test/harness/contenttest/contenttest.rs servo
 	@$(call E, compile: $@)
