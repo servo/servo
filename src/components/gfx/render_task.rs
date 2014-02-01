@@ -24,7 +24,6 @@ use std::comm::{Chan, Port, SharedChan};
 use extra::arc::Arc;
 
 use buffer_map::BufferMap;
-use font_context::{FontContext, FontContextInfo};
 use display_list::DisplayListCollection;
 use font_context::{FontContext, FontContextInfo};
 use opts::Opts;
