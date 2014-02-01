@@ -44,7 +44,7 @@ use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
-use servo_util::url::make_url;
+use servo_util::url::parse_url;
 use servo_util::task::spawn_named;
 use servo_util::namespace::Null;
 use std::comm::{Port, SharedChan};
@@ -891,11 +891,11 @@ impl ScriptTask {
         for href in attr.iter() {
             debug!("ScriptTask: clicked on link to {:s}", href.Value());
             let click_frag = href.value_ref().starts_with("#");
-            let current_url = page.url.as_ref().map(|&(ref url, _)| {
+            let base_url = page.url.as_ref().map(|&(ref url, _)| {
                 url.clone()
             });
-            debug!("ScriptTask: current url is {:?}", current_url);
-            let url = make_url(href.Value(), current_url);
+            debug!("ScriptTask: current url is {:?}", base_url);
+            let url = parse_url(href.Value(), base_url);
 
             if click_frag {
                 match self.find_fragment_node(page, url.fragment.unwrap()) {

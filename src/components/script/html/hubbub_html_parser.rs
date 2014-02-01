@@ -19,7 +19,7 @@ use js::jsapi::JSContext;
 use servo_msg::constellation_msg::SubpageId;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
-use servo_util::url::make_url;
+use servo_util::url::parse_url;
 use servo_util::task::spawn_named;
 use servo_util::namespace::Null;
 use std::cast;
@@ -343,7 +343,7 @@ pub fn parse_html(cx: *JSContext,
                             (Some(rel), Some(href)) => {
                                 if "stylesheet" == rel.value_ref() {
                                     debug!("found CSS stylesheet: {:s}", href.value_ref());
-                                    let url = make_url(href.Value(), Some(url2.clone()));
+                                    let url = parse_url(href.Value(), Some(url2.clone()));
                                     css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
                                 }
                             }
@@ -359,7 +359,7 @@ pub fn parse_html(cx: *JSContext,
                         let elem = &mut iframe_element.htmlelement.element;
                         let src_opt = elem.get_attribute(Null, "src").map(|x| x.Value());
                         for src in src_opt.iter() {
-                            let iframe_url = make_url(src.clone(), Some(url2.clone()));
+                            let iframe_url = parse_url(src.clone(), Some(url2.clone()));
                             iframe_element.frame = Some(iframe_url.clone());
                             
                             // Subpage Id
@@ -457,7 +457,7 @@ pub fn parse_html(cx: *JSContext,
                     match script.get_attribute(Null, "src") {
                         Some(src) => {
                             debug!("found script: {:s}", src.Value());
-                            let new_url = make_url(src.Value(), Some(url3.clone()));
+                            let new_url = parse_url(src.Value(), Some(url3.clone()));
                             js_chan2.send(JSTaskNewFile(new_url));
                         }
                         None => {

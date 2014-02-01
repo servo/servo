@@ -20,7 +20,7 @@ use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_util::time::ProfilerChan;
-use servo_util::url::make_url;
+use servo_util::url::parse_url;
 use servo_util::task::spawn_named;
 use std::hashmap::{HashMap, HashSet};
 use std::util::replace;
@@ -391,7 +391,7 @@ impl Constellation {
                                              self.window_size,
                                              self.opts.clone());
         let failure = ~"about:failure";
-        let url = make_url(failure, None);
+        let url = parse_url(failure, None);
         pipeline.load(url);
 
         let frames = self.find_all(pipeline_id);

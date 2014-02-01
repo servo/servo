@@ -563,7 +563,7 @@ impl IOCompositor {
             None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor layers"),
         };
 
-        let msg = LoadUrlMsg(root_pipeline_id, url::make_url(url_string.to_str(), None));
+        let msg = LoadUrlMsg(root_pipeline_id, url::parse_url(url_string.to_str(), None));
         self.constellation_chan.send(msg);
     }
 
