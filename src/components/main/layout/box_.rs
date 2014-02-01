@@ -40,7 +40,7 @@ use layout::flow::{Flow, FlowFlagsInfo};
 use layout::flow;
 use layout::model::{MaybeAuto, specified, Auto, Specified};
 use layout::util::OpaqueNode;
-use layout::wrapper::LayoutNode;
+use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
 /// Boxes (`struct Box`) are the leaves of the layout tree. They cannot position themselves. In
 /// general, boxes do not have a simple correspondence with CSS boxes in the specification:
@@ -123,10 +123,11 @@ impl ImageBoxInfo {
     ///
     /// FIXME(pcwalton): The fact that image boxes store the cache in the box makes little sense to
     /// me.
-    pub fn new(node: &LayoutNode, image_url: Url, local_image_cache: MutexArc<LocalImageCache>)
+    pub fn new(node: &ThreadSafeLayoutNode,
+               image_url: Url,
+               local_image_cache: MutexArc<LocalImageCache>)
                -> ImageBoxInfo {
-
-        fn convert_length(node: &LayoutNode, name: &str) -> Option<Au> {
+        fn convert_length(node: &ThreadSafeLayoutNode, name: &str) -> Option<Au> {
             node.with_element(|element| {
                 element.get_attr(&namespace::Null, name).and_then(|string| {
                     let n: Option<int> = FromStr::from_str(string);
@@ -207,7 +208,7 @@ pub struct IframeBoxInfo {
 
 impl IframeBoxInfo {
     /// Creates the information specific to an iframe box.
-    pub fn new(node: &LayoutNode) -> IframeBoxInfo {
+    pub fn new(node: &ThreadSafeLayoutNode) -> IframeBoxInfo {
         let (pipeline_id, subpage_id) = node.iframe_pipeline_and_subpage_ids();
         IframeBoxInfo {
             pipeline_id: pipeline_id,
@@ -249,7 +250,7 @@ pub struct UnscannedTextBoxInfo {
 
 impl UnscannedTextBoxInfo {
     /// Creates a new instance of `UnscannedTextBoxInfo` from the given DOM node.
-    pub fn new(node: &LayoutNode) -> UnscannedTextBoxInfo {
+    pub fn new(node: &ThreadSafeLayoutNode) -> UnscannedTextBoxInfo {
         // FIXME(pcwalton): Don't copy text; atomically reference count it instead.
         UnscannedTextBoxInfo {
             text: node.text(),
@@ -297,9 +298,9 @@ pub struct InlineParentInfo {
 
 impl Box {
     /// Constructs a new `Box` instance.
-    pub fn new(node: LayoutNode, specific: SpecificBoxInfo) -> Box {
+    pub fn new(node: ThreadSafeLayoutNode, specific: SpecificBoxInfo) -> Box {
         Box {
-            node: OpaqueNode::from_layout_node(&node),
+            node: OpaqueNode::from_thread_safe_layout_node(&node),
             style: node.style().clone(),
             position: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),

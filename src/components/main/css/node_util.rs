@@ -4,11 +4,11 @@
 
 use layout::incremental::RestyleDamage;
 use layout::util::LayoutDataAccess;
-use layout::wrapper::LayoutNode;
+use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
 use extra::arc::Arc;
 use std::cast;
-use style::{ComputedValues, TNode};
+use style::ComputedValues;
 
 pub trait NodeUtil {
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;
@@ -18,17 +18,20 @@ pub trait NodeUtil {
     fn set_restyle_damage(self, damage: RestyleDamage);
 }
 
-impl<'ln> NodeUtil for LayoutNode<'ln> {
-    /** 
-     * Provides the computed style for the given node. If CSS selector
-     * Returns the style results for the given node. If CSS selector
-     * matching has not yet been performed, fails.
-     */
+impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
+    /// Returns the style results for the given node. If CSS selector
+    /// matching has not yet been performed, fails.
     #[inline]
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues> {
         unsafe {
             let layout_data_ref = self.borrow_layout_data();
-            cast::transmute_region(layout_data_ref.get().as_ref().unwrap().data.style.as_ref().unwrap())
+            cast::transmute_region(layout_data_ref.get()
+                                                  .as_ref()
+                                                  .unwrap()
+                                                  .data
+                                                  .style
+                                                  .as_ref()
+                                                  .unwrap())
         }
     }
 
@@ -43,7 +46,7 @@ impl<'ln> NodeUtil for LayoutNode<'ln> {
     fn get_restyle_damage(self) -> RestyleDamage {
         // For DOM elements, if we haven't computed damage yet, assume the worst.
         // Other nodes don't have styles.
-        let default = if self.is_element() {
+        let default = if self.node_is_element() {
             RestyleDamage::all()
         } else {
             RestyleDamage::none()
