@@ -30,7 +30,7 @@ use layout::flow::{BaseFlow, Flow, FlowLeafSet, ImmutableFlowUtils, MutableOwned
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
-use layout::wrapper::{LayoutNode, PostorderNodeMutTraversal};
+use layout::wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
 
 use gfx::font_context::FontContext;
 use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
@@ -234,7 +234,7 @@ impl<'fc> FlowConstructor<'fc> {
     }
 
     /// Builds the `ImageBoxInfo` for the given image. This is out of line to guide inlining.
-    fn build_box_info_for_image(&mut self, node: LayoutNode) -> Option<ImageBoxInfo> {
+    fn build_box_info_for_image(&mut self, node: ThreadSafeLayoutNode) -> Option<ImageBoxInfo> {
         // FIXME(pcwalton): Don't copy URLs.
         match node.image_url() {
             None => None,
@@ -247,7 +247,7 @@ impl<'fc> FlowConstructor<'fc> {
     }
 
     /// Builds a `Box` for the given node.
-    fn build_box_for_node(&mut self, node: LayoutNode) -> Box {
+    fn build_box_for_node(&mut self, node: ThreadSafeLayoutNode) -> Box {
         let specific = match node.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 match self.build_box_info_for_image(node) {
@@ -267,7 +267,10 @@ impl<'fc> FlowConstructor<'fc> {
     /// `#[inline(always)]` because this is performance critical and LLVM will not inline it
     /// otherwise.
     #[inline(always)]
-    fn flush_inline_boxes_to_flow(&mut self, boxes: ~[Box], flow: &mut ~Flow, node: LayoutNode) {
+    fn flush_inline_boxes_to_flow(&mut self,
+                                  boxes: ~[Box],
+                                  flow: &mut ~Flow,
+                                  node: ThreadSafeLayoutNode) {
         if boxes.len() == 0 {
             return
         }
@@ -285,7 +288,7 @@ impl<'fc> FlowConstructor<'fc> {
     fn flush_inline_boxes_to_flow_if_necessary(&mut self,
                                                opt_boxes: &mut Option<~[Box]>,
                                                flow: &mut ~Flow,
-                                               node: LayoutNode) {
+                                               node: ThreadSafeLayoutNode) {
         let opt_boxes = util::replace(opt_boxes, None);
         if opt_boxes.len() > 0 {
             self.flush_inline_boxes_to_flow(opt_boxes.to_vec(), flow, node)
@@ -295,9 +298,7 @@ impl<'fc> FlowConstructor<'fc> {
     /// Builds the children flows underneath a node with `display: block`. After this call,
     /// other `BlockFlow`s or `InlineFlow`s will be populated underneath this node, depending on
     /// whether {ib} splits needed to happen.
-    fn build_children_of_block_flow(&mut self,
-                                    flow: &mut ~Flow,
-                                    node: LayoutNode) {
+    fn build_children_of_block_flow(&mut self, flow: &mut ~Flow, node: ThreadSafeLayoutNode) {
         // Gather up boxes for the inline flows we might need to create.
         let mut opt_boxes_for_inline_flow = None;
         let mut first_box = true;
@@ -389,7 +390,7 @@ impl<'fc> FlowConstructor<'fc> {
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
     /// other `BlockFlow`s or `InlineFlow`s underneath it, depending on whether {ib} splits needed
     /// to happen.
-    fn build_flow_for_block(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+    fn build_flow_for_block(&mut self, node: ThreadSafeLayoutNode, is_fixed: bool) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = self.build_box_for_node(node);
         let mut flow = ~BlockFlow::from_box(base, box_, is_fixed) as ~Flow;
@@ -399,7 +400,7 @@ impl<'fc> FlowConstructor<'fc> {
 
     /// Builds the flow for a node with `float: {left|right}`. This yields a float `BlockFlow` with
     /// a `BlockFlow` underneath it.
-    fn build_flow_for_floated_block(&mut self, node: LayoutNode, float_type: FloatType)
+    fn build_flow_for_floated_block(&mut self, node: ThreadSafeLayoutNode, float_type: FloatType)
                                     -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = self.build_box_for_node(node);
@@ -413,7 +414,7 @@ impl<'fc> FlowConstructor<'fc> {
     /// Concatenates the boxes of kids, adding in our own borders/padding/margins if necessary.
     /// Returns the `InlineBoxesConstructionResult`, if any. There will be no
     /// `InlineBoxesConstructionResult` if this node consisted entirely of ignorable whitespace.
-    fn build_boxes_for_nonreplaced_inline_content(&mut self, node: LayoutNode)
+    fn build_boxes_for_nonreplaced_inline_content(&mut self, node: ThreadSafeLayoutNode)
                                                   -> ConstructionResult {
         let mut opt_inline_block_splits = None;
         let mut opt_box_accumulator = None;
@@ -519,7 +520,9 @@ impl<'fc> FlowConstructor<'fc> {
         }
     }
 
-    fn set_inline_info_for_inline_child(&mut self, boxes: &~[&Box], parent_node: LayoutNode) {
+    fn set_inline_info_for_inline_child(&mut self,
+                                        boxes: &~[&Box],
+                                        parent_node: ThreadSafeLayoutNode) {
         let parent_box = self.build_box_for_node(parent_node);
         let font_style = parent_box.font_style();
         let font_group = self.font_context.get_resolved_font_for_style(&font_style);
@@ -557,7 +560,7 @@ impl<'fc> FlowConstructor<'fc> {
                             style: parent_box.style.clone(),
                             font_ascent: font_ascent,
                             font_descent: font_descent,
-                            node: OpaqueNode::from_layout_node(&parent_node),
+                            node: OpaqueNode::from_thread_safe_layout_node(&parent_node),
                         });
                 },
                 &None => {}
@@ -566,7 +569,8 @@ impl<'fc> FlowConstructor<'fc> {
     }
     /// Creates an `InlineBoxesConstructionResult` for replaced content. Replaced content doesn't
     /// render its children, so this just nukes a child's boxes and creates a `Box`.
-    fn build_boxes_for_replaced_inline_content(&mut self, node: LayoutNode) -> ConstructionResult {
+    fn build_boxes_for_replaced_inline_content(&mut self, node: ThreadSafeLayoutNode)
+                                               -> ConstructionResult {
         for kid in node.children() {
             kid.set_flow_construction_result(NoConstructionResult)
         }
@@ -582,7 +586,7 @@ impl<'fc> FlowConstructor<'fc> {
 
     /// Builds one or more boxes for a node with `display: inline`. This yields an
     /// `InlineBoxesConstructionResult`.
-    fn build_boxes_for_inline(&mut self, node: LayoutNode) -> ConstructionResult {
+    fn build_boxes_for_inline(&mut self, node: ThreadSafeLayoutNode) -> ConstructionResult {
         // Is this node replaced content?
         if !node.is_replaced_content() {
             // Go to a path that concatenates our kids' boxes.
@@ -598,7 +602,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
     // `#[inline(always)]` because this is always called from the traversal function and for some
     // reason LLVM's inlining heuristics go awry here.
     #[inline(always)]
-    fn process(&mut self, node: LayoutNode) -> bool {
+    fn process(&mut self, node: ThreadSafeLayoutNode) -> bool {
         // Get the `display` property for this node, and determine whether this node is floated.
         let (display, float, position) = match node.type_id() {
             ElementNodeTypeId(_) => {
@@ -671,7 +675,7 @@ trait NodeUtils {
     fn swap_out_construction_result(self) -> ConstructionResult;
 }
 
-impl<'ln> NodeUtils for LayoutNode<'ln> {
+impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
     fn is_replaced_content(self) -> bool {
         match self.type_id() {
             TextNodeTypeId |

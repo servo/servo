@@ -35,7 +35,7 @@ use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
 use layout::parallel::{FlowParallelInfo, UnsafeFlow};
 use layout::parallel;
-use layout::wrapper::LayoutNode;
+use layout::wrapper::ThreadSafeLayoutNode;
 
 use extra::dlist::{DList, DListIterator, MutDListIterator};
 use extra::container::Deque;
@@ -553,7 +553,7 @@ impl Iterator<@Box> for BoxIterator {
 
 impl BaseFlow {
     #[inline]
-    pub fn new(id: int, node: LayoutNode) -> BaseFlow {
+    pub fn new(id: int, node: ThreadSafeLayoutNode) -> BaseFlow {
         let style = node.style();
         BaseFlow {
             restyle_damage: node.restyle_damage(),
