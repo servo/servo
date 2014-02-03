@@ -11,13 +11,13 @@ use dom::window::Window;
 
 /// An HTML comment.
 pub struct Comment {
-    element: CharacterData,
+    characterdata: CharacterData,
 }
 
 impl Comment {
     pub fn new_inherited(text: ~str, document: AbstractDocument) -> Comment {
         Comment {
-            element: CharacterData::new_inherited(CommentNodeTypeId, text, document)
+            characterdata: CharacterData::new_inherited(CommentNodeTypeId, text, document)
         }
     }
 

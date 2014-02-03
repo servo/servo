@@ -1015,7 +1015,7 @@ impl Node {
             for node in abstract_self.traverse_preorder() {
                 if node.is_text() {
                     node.with_imm_text(|text| {
-                        content = content + text.element.Data();
+                        content = content + text.characterdata.Data();
                     })
                 }
             }
