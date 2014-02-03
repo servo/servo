@@ -123,12 +123,23 @@ fn check_reftest(reftest: Reftest) {
     let left_filename = format!("/tmp/servo-reftest-{:06u}-left.png", reftest.id);
     let right_filename = format!("/tmp/servo-reftest-{:06u}-right.png", reftest.id);
 
-    let args = ~[~"-o", left_filename.clone(), reftest.left.clone()];
+    let cpu_rendering = if os::getenv("RENDER_WITH_CPU") != None { true } else { false };
+    let mut args;
+
+    if cpu_rendering == true {
+        args = ~[~"-c", ~"-o", left_filename.clone(), reftest.left.clone()];
+    } else {
+        args = ~[~"-o", left_filename.clone(), reftest.left.clone()];
+    }
     let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
     let retval = process.finish();
     assert!(retval == ExitStatus(0));
 
-    let args = ~[~"-o", right_filename.clone(), reftest.right.clone()];
+    if cpu_rendering ==true {
+        args = ~[~"-c", ~"-o", right_filename.clone(), reftest.right.clone()];
+    } else {
+        args = ~[~"-o", right_filename.clone(), reftest.right.clone()];
+    }
     let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
     let retval = process.finish();
     assert!(retval == ExitStatus(0));
