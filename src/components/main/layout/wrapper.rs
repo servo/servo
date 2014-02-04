@@ -127,12 +127,19 @@ pub trait TLayoutNode {
 
     /// Returns the first child of this node.
     pub fn first_child(&self) -> Option<LayoutNode<'ln>> {
-        let first_child = unsafe{ self.node.first_child().map(|node| self.new_with_this_lifetime(node)) };
+        let first_child = unsafe {
+                              self.node.first_child().map(|node| self.new_with_this_lifetime(node)) 
+                          };
 
-        if first_child.is_some() && first_child.unwrap().is_text() {
-            let before_node = first_child.unwrap().get_before_node();
-            if before_node.is_some() {
-                return before_node
+        if first_child.is_some() {
+            match first_child { 
+                Some(first_child) if first_child.is_text() => {
+                    let before_node = first_child.get_pseudo_node(Before);
+                    if before_node.is_some() {
+                        return before_node
+                    }
+                }
+                _ => ()
             }
         }
 
@@ -140,7 +147,9 @@ pub trait TLayoutNode {
     }
 
     pub fn next_pseudo_sibling(&self) -> Option<LayoutNode<'ln>> {
-        unsafe{ self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node)) }
+        unsafe {
+            self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node)) 
+        }
     }
 
     /// Dumps this node tree, for debugging.
@@ -161,7 +170,7 @@ pub struct LayoutNode<'a> {
     /// Being chained to a value prevents `LayoutNode`s from escaping.
     priv chain: &'a (),
 }
-rc/components/main/layout/wrapper.rs
+
 impl<'ln> TLayoutNode for LayoutNode<'ln> {
     unsafe fn new_with_this_lifetime(&self, node: AbstractNode) -> LayoutNode<'ln> {
         LayoutNode {
@@ -227,127 +236,76 @@ impl<'ln> LayoutNode<'ln> {
         let mut pseudo_elements = ~[];
 
         let ldw = self.borrow_layout_data();
+        let ldw_ref = ldw.get().get_ref();
         if self.parent_node().is_none() {
             return ~[];
         }
         let p = self.parent_node().unwrap();
         let p_ldw = p.borrow_layout_data();
-        match *ldw.get() {
-            Some(ref ldw) => {
-                match *p_ldw.get() {
-                    Some(ref p_ldw) => {
-                        if p_ldw.data.before_style.is_some() && ldw.data.before_node.is_none() {
-                                pseudo_elements.push(Before);
-                        }
-                        if p_ldw.data.after_style.is_some() && ldw.data.after_node.is_none() {
-                                pseudo_elements.push(After);
-                        }
-                    }
-                    None => {}
-                }
-            }
-            None => {}
+        let p_ldw_ref = p_ldw.get().get_ref();
+
+        if p_ldw_ref.data.before_style.is_some() && ldw_ref.data.before_node.is_none() {
+            pseudo_elements.push(Before);
+        }
+        if p_ldw_ref.data.after_style.is_some() && ldw_ref.data.after_node.is_none() {
+            pseudo_elements.push(After);
         }
 
         return pseudo_elements
     }
 
-    fn get_before_node(&self) -> Option<LayoutNode<'ln>> {
-        if self.is_text() {
-            let layout_data_ref = self.borrow_layout_data();
-            match *layout_data_ref.get() {
-                Some(ref ldw) => {
-                    match ldw.data.before_parent_node {
-                        Some(ref before_parent_node) => {
-                            if before_parent_node.get_display() == display::inline {
-                                match ldw.data.before_node {
-                                    Some(ref before_node) => {
-                                        return unsafe{ Some(self.new_with_this_lifetime(before_node.node)) }
-                                    }
-                                    None => {}
-                                }
-                            }
-                        }
-                        None => {}
-                    }
-                }
-                None => {}
-            }
-        } else if self.is_element() {
-            match self.first_child() {
-                Some(first_child) => {
-                    let layout_data_ref = first_child.borrow_layout_data();
-                    match *layout_data_ref.get() {
-                        Some(ref ldw) => {
-                            match ldw.data.before_parent_node {
-                                Some(ref before_parent_node) => {
-                                    if before_parent_node.get_display() == display::block {
-                                        match ldw.data.before_parent_node {
-                                            Some(ref before_parent_node) => {
-                                                return unsafe{ Some(self.new_with_this_lifetime(before_parent_node.node)) }
-                                            }
-                                            None => {}
+    fn get_pseudo_node(&self, pseudo_element: PseudoElement) -> Option<LayoutNode<'ln>> {
+        macro_rules! get_pseudo_node(
+                ($pseudo_parent_node: ident, $pseudo_node: ident) => {
+                    if self.is_text() {
+                        let layout_data_ref = self.borrow_layout_data();
+                        return layout_data_ref.get().as_ref().and_then(|ldw|{
+                            ldw.data.$pseudo_parent_node.as_ref().and_then(|$pseudo_parent_node|{
+                                if $pseudo_parent_node.get_display() == display::inline {
+                                    ldw.data.$pseudo_node.as_ref().and_then(|$pseudo_node|{
+                                        unsafe{
+                                            Some(self.new_with_this_lifetime($pseudo_node.node))
                                         }
-                                    }
+                                    })
+                                } else {
+                                    None
                                 }
-                                None => {}
-                            }
-                        }
-                        None => {}
-                    }
-                }
-                None => {}
-            }
-        }
-        None
-    }
-
-    fn get_after_node(&self) -> Option<LayoutNode<'ln>> {
-        if self.is_text() {
-            let layout_data_ref = self.borrow_layout_data();
-            match *layout_data_ref.get() {
-                Some(ref ldw) => {
-                    match ldw.data.after_parent_node {
-                        Some(ref after_parent_node) => {
-                            if after_parent_node.get_display() == display::inline {
-                                match ldw.data.after_node {
-                                    Some(ref after_node) => return unsafe{ Some(self.new_with_this_lifetime(after_node.node)) },
-                                    None => {}
-                                }
-                            }
-                        }
-                        None => {}
-                    }
-                }
-                None => {}
-            }
-        } else if self.is_element() {
-            match self.first_child() {
-                Some(first_child) => {
-                    let layout_data_ref = first_child.borrow_layout_data();
-                    match *layout_data_ref.get() {
-                        Some(ref ldw) => {
-                            match ldw.data.after_parent_node {
-                                Some(ref after_parent_node) => {
-                                    if after_parent_node.get_display() == display::block {
-                                        match ldw.data.after_parent_node {
-                                            Some(ref after_parent_node) => {
-                                                return unsafe{ Some(self.new_with_this_lifetime(after_parent_node.node)) }
-                                            }
-                                            None => {}
+                            })
+                        });
+                    } else if self.is_element() {
+                        match self.first_child() {
+                            Some(first_child) => {
+                                let layout_data_ref = first_child.borrow_layout_data();
+                                return layout_data_ref.get().as_ref().and_then(|ldw|{
+                                    ldw.data.$pseudo_parent_node.as_ref().and_then(|$pseudo_parent_node|{
+                                        if $pseudo_parent_node.get_display() == display::block {
+                                            ldw.data.$pseudo_parent_node.as_ref().and_then(|$pseudo_parent_node|{
+                                                unsafe{
+                                                    Some(self.new_with_this_lifetime($pseudo_parent_node.node))
+                                                }
+                                            })
+                                        } else {
+                                            None
                                         }
-                                    }
-                                }
-                                None => {}
+                                    })
+                                });
+                            }
+                            None => {
+                                return None
                             }
                         }
-                        None => {}
+                    } else {
+                        return None
                     }
                 }
-                None => {}
-            }
+        )
+        if pseudo_element == Before {
+            return get_pseudo_node!(before_parent_node, before_node)
+        } else if pseudo_element == After {
+            return get_pseudo_node!(after_parent_node, after_node)
+        } else {
+            return None
         }
-        None
     }
 }
 
@@ -359,30 +317,23 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     }
 
     fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
-        if self.is_element() && self.node.with_imm_element(|element| element.tag_name == ~"after")
-            || (self.is_text() && self.parent_node().unwrap().node.with_imm_element(|element| element.tag_name == ~"after")) {
-            return unsafe{ self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node)) }
+        if self.is_element() && self.node.with_imm_element(|element| "after" == element.tag_name) || 
+           (self.is_text() && self.parent_node().unwrap().node.with_imm_element(|element| "after" == element.tag_name)) {
+            return unsafe { 
+                       self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
+                   }
         }
 
-        let before_layout_node = self.get_after_node();
-        if before_layout_node.is_some() { return before_layout_node }
-
-        let prev_sibling = unsafe{ self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node)) };
-        match prev_sibling {
-            Some(prev_sibling) => {
-                match prev_sibling.get_after_node() {
-                    Some(after_layout_node) => {
-                        Some(after_layout_node)
-                    }
-                    None => {
-                        Some(prev_sibling)
-                    }
-                }
-            }
-            None => {
-                None
-            }
+        let before_layout_node = self.get_pseudo_node(After);
+        if before_layout_node.is_some() {
+            return before_layout_node
         }
+
+        let prev_sibling = unsafe{
+                               self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
+                           };
+
+        prev_sibling.map(|prev_sibling| prev_sibling.get_pseudo_node(After).or_else(|| Some(prev_sibling)).unwrap()) 
     }
 
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
@@ -391,25 +342,12 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
             return unsafe{ self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node)) }
         }
 
-        let after_layout_node = self.get_after_node();
+        let after_layout_node = self.get_pseudo_node(After);
         if after_layout_node.is_some() { return after_layout_node }
 
         let next_sibling = unsafe{ self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node)) };
-        match next_sibling {
-            Some(next_sibling) => {
-                match next_sibling.get_before_node() {
-                    Some(before_layout_node) => {
-                        Some(before_layout_node)
-                    }
-                    None => {
-                        Some(next_sibling)
-                    }
-                }
-            }
-            None => {
-                None
-            }
-        }
+
+        next_sibling.map(|next_sibling| next_sibling.get_pseudo_node(Before).or_else(|| Some(next_sibling)).unwrap())
     }
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
@@ -476,29 +414,24 @@ pub struct LayoutPseudoNode {
 }
 
 impl LayoutPseudoNode {
-    pub fn from_layout_pseudo(node: AbstractNode) -> LayoutPseudoNode {
-        let node = LayoutPseudoNode {
+    pub fn from_layout_pseudo(node: AbstractNode, display: display::T) -> LayoutPseudoNode {
+        LayoutPseudoNode {
             node: node,
-            display: display::none
-        };
-        node
+            display: display
+        }
     }
 
     fn get_display(&self) -> display::T {
         self.display
-    }
-
-    pub fn set_display(&mut self, display: display::T) {
-        self.display = display
     }
 }
 
 impl Drop for LayoutPseudoNode {
     fn drop(&mut self) {
         if self.node.is_element() {
-            let node: ~Element = unsafe { cast::transmute(self.node) };
+            let _: ~Element = unsafe { cast::transmute(self.node) };
         } else if self.node.is_text() {
-            let node: ~Text = unsafe { cast::transmute(self.node) };
+            let _: ~Text = unsafe { cast::transmute(self.node) };
         }
     }
 }

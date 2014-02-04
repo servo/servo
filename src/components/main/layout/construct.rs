@@ -641,28 +641,23 @@ impl<'fc> FlowConstructor<'fc> {
 
         // Create layout data for pseudo parent node
         let layout_data_ref = p.borrow_layout_data();
-        match *layout_data_ref.get() {
-            Some(ref ldw) => {
-                match ldw.chan {
-                    Some(ref chan) => pseudo_parent_node.initialize_layout_data(chan.clone()),
-                    None => {}
-                }
-                if pseudo_element == Before {
-                    insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(ldw.data.before_style.clone()));
-                    match ldw.data.before_style {
-                        Some(ref before_style) => content = FlowConstructor::get_content(&before_style.get().Box.content),
-                        None() => {}
-                    }
-                } else if pseudo_element == After {
-                    insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(ldw.data.after_style.clone()));
-                    match ldw.data.after_style {
-                        Some(ref after_style) => content = FlowConstructor::get_content(&after_style.get().Box.content),
-                        None() => {}
-                    }
-                }
-            }
+        let pseudo_parent_ldw = layout_data_ref.get().get_ref();  
+
+        match pseudo_parent_ldw.chan {
+            Some(ref chan) => pseudo_parent_node.initialize_layout_data(chan.clone()),
             None => {}
         }
+
+        if pseudo_element == Before {
+            insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(pseudo_parent_ldw.data.before_style.clone()));
+            let before_style = pseudo_parent_ldw.data.before_style.get_ref();
+            content = FlowConstructor::get_content(&before_style.get().Box.content)
+        } else if pseudo_element == After {
+            insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(pseudo_parent_ldw.data.after_style.clone()));
+            let after_style = pseudo_parent_ldw.data.after_style.get_ref();
+            content = FlowConstructor::get_content(&after_style.get().Box.content);
+        }
+
         let pseudo_parent_display = pseudo_parent_node.style().get().Box.display;
 
         // Create pseudo node
@@ -670,55 +665,35 @@ impl<'fc> FlowConstructor<'fc> {
         let pseudo_abstract_node = unsafe { AbstractNode::from_layout_pseudo(pseudo_text) };
         let mut pseudo_node = unsafe { node.new_with_this_lifetime(pseudo_abstract_node) };
         let mut layout_data_ref = node.mutate_layout_data();
-        match *layout_data_ref.get() {
-            Some(ref mut ldw) => {
-                match ldw.chan {
-                    Some(ref chan) => {
-                        pseudo_node.initialize_layout_data(chan.clone());
-                    }
-                    None => {}
-                }
+        let pseudo_child_ldw = layout_data_ref.get().get_mut_ref();
 
-                insert_layout_data(&pseudo_node, ~PrivateLayoutData::new());
-
-                // Store pseudo_parent_node & pseudo_node in node
-                if pseudo_element == Before {
-                    ldw.data.before_parent_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_parent_abstract_node));
-                    match ldw.data.before_parent_node {
-                        Some(ref mut before_parent_node) => before_parent_node.set_display(pseudo_parent_display),
-                        None => {}
-                    }
-                    ldw.data.before_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_abstract_node));
-                } else if pseudo_element == After {
-                    ldw.data.after_parent_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_parent_abstract_node));
-                    match ldw.data.after_parent_node {
-                        Some(ref mut after_parent_node) => after_parent_node.set_display(pseudo_parent_display),
-                        None => {}
-                    }
-                    ldw.data.after_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_abstract_node));
-                }
+        match pseudo_child_ldw.chan {
+            Some(ref chan) => {
+                pseudo_node.initialize_layout_data(chan.clone());
             }
             None => {}
         }
 
+        insert_layout_data(&pseudo_node, ~PrivateLayoutData::new());
+
+        // Store pseudo_parent_node & pseudo_node in node
+        if pseudo_element == Before {
+            pseudo_child_ldw.data.before_parent_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_parent_abstract_node, pseudo_parent_display));
+            pseudo_child_ldw.data.before_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_abstract_node, display::none));
+        } else if pseudo_element == After {
+            pseudo_child_ldw.data.after_parent_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_parent_abstract_node, pseudo_parent_display));
+            pseudo_child_ldw.data.after_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_abstract_node, display::none));
+        }
+     
         // Set relation between pseudo_node and pseudo_parent_node
         pseudo_parent_node.set_first_child(&mut pseudo_node);
         pseudo_node.set_parent_node(&mut pseudo_parent_node);
 
-        // Build block flow or inline boxes for pseudo_parent_node
-        if pseudo_element == Before {
-            if  pseudo_parent_display == display::block {
-                let flow = self.build_flow_for_block(pseudo_parent_node, false);
-                pseudo_parent_node.set_flow_construction_result(FlowConstructionResult(flow));
-            } else if pseudo_parent_display == display::inline {
-                let construction_result = self.build_boxes_for_inline(pseudo_parent_node);
-                pseudo_parent_node.set_flow_construction_result(construction_result);
-            }
-        }
-
         // Set relation with dom nodes
         if pseudo_parent_display == display::inline {
             if pseudo_element == Before {
+                let construction_result = self.build_boxes_for_inline(pseudo_parent_node);
+                pseudo_parent_node.set_flow_construction_result(construction_result);
                 pseudo_node.set_next_sibling(&node);
             } else if pseudo_element == After {
                 pseudo_parent_node.set_prev_sibling(&node);
@@ -731,6 +706,8 @@ impl<'fc> FlowConstructor<'fc> {
             }
         } else if pseudo_parent_display == display::block {
             if pseudo_element == Before {
+                let flow = self.build_flow_for_block(pseudo_parent_node, false);
+                pseudo_parent_node.set_flow_construction_result(FlowConstructionResult(flow));
                 pseudo_parent_node.set_next_sibling(&p);
             } else if pseudo_element == After {
                 pseudo_parent_node.set_prev_sibling(&p);
@@ -961,6 +938,6 @@ fn insert_layout_data(node: &LayoutNode, new_layout_data: ~PrivateLayoutData) {
     let mut layout_data = node.mutate_layout_data();
     match *layout_data.get() {
         Some(ref mut layout_data_wrapper) => layout_data_wrapper.data = new_layout_data,
-        None => {}
+        None => { fail!("Dont have layout_data."); }
     }
 }
