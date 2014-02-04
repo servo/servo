@@ -136,8 +136,8 @@ impl BlockFlow {
                      right_margin: MaybeAuto,
                      available_width: Au)
                      -> (Au, Au, Au) {
-        // If width is not 'auto', and width + margins > available_width, all 'auto' margins are
-        // treated as 0.
+        // If width is not 'auto', and width + margins > available_width, all
+        // 'auto' margins are treated as 0.
         let (left_margin, right_margin) = match width {
             Auto => (left_margin, right_margin),
             Specified(width) => {
@@ -152,34 +152,46 @@ impl BlockFlow {
             }
         };
 
-        //Invariant: left_margin_Au + width_Au + right_margin_Au == available_width
+        // Invariant: left_margin_Au + width_Au + right_margin_Au == available_width
         let (left_margin_Au, width_Au, right_margin_Au) = match (left_margin, width, right_margin) {
-            //If all have a computed value other than 'auto', the system is over-constrained and we need to discard a margin.
-            //if direction is ltr, ignore the specified right margin and solve for it. If it is rtl, ignore the specified
-            //left margin. FIXME(eatkinson): this assumes the direction is ltr
-            (Specified(margin_l), Specified(width), Specified(_margin_r)) => (margin_l, width, available_width - (margin_l + width )),
+            // If all have a computed value other than 'auto', the system is
+            // over-constrained and we need to discard a margin.
+            // If direction is ltr, ignore the specified right margin and
+            // solve for it.
+            // If it is rtl, ignore the specified left margin.
+            // FIXME(eatkinson): this assumes the direction is ltr
+            (Specified(margin_l), Specified(width), Specified(_margin_r)) =>
+                (margin_l, width, available_width - (margin_l + width )),
 
-            //If exactly one value is 'auto', solve for it
-            (Auto, Specified(width), Specified(margin_r)) => (available_width - (width + margin_r), width, margin_r),
-            (Specified(margin_l), Auto, Specified(margin_r)) => (margin_l, available_width - (margin_l + margin_r), margin_r),
-            (Specified(margin_l), Specified(width), Auto) => (margin_l, width, available_width - (margin_l + width)),
+            // If exactly one value is 'auto', solve for it
+            (Auto, Specified(width), Specified(margin_r)) =>
+                (available_width - (width + margin_r), width, margin_r),
+            (Specified(margin_l), Auto, Specified(margin_r)) =>
+                (margin_l, available_width - (margin_l + margin_r), margin_r),
+            (Specified(margin_l), Specified(width), Auto) =>
+                (margin_l, width, available_width - (margin_l + width)),
 
-            //If width is set to 'auto', any other 'auto' value becomes '0', and width is solved for
-            (Auto, Auto, Specified(margin_r)) => (Au::new(0), available_width - margin_r, margin_r),
-            (Specified(margin_l), Auto, Auto) => (margin_l, available_width - margin_l, Au::new(0)),
-            (Auto, Auto, Auto) => (Au::new(0), available_width, Au::new(0)),
+            // If width is set to 'auto', any other 'auto' value becomes '0',
+            // and width is solved for
+            (Auto, Auto, Specified(margin_r)) =>
+                (Au::new(0), available_width - margin_r, margin_r),
+            (Specified(margin_l), Auto, Auto) =>
+                (margin_l, available_width - margin_l, Au::new(0)),
+            (Auto, Auto, Auto) =>
+                (Au::new(0), available_width, Au::new(0)),
 
-            //If left and right margins are auto, they become equal
+            // If left and right margins are auto, they become equal
             (Auto, Specified(width), Auto) => {
                 let margin = (available_width - width).scale_by(0.5);
                 (margin, width, margin)
             }
 
         };
-        //return values in same order as params
+        // Return values in same order as params.
         (width_Au, left_margin_Au, right_margin_Au)
     }
 
+    // Return (content width, left margin, right, margin)
     fn compute_block_margins(&self, box_: &Box, remaining_width: Au, available_width: Au)
                              -> (Au, Au, Au) {
         let style = box_.style();
@@ -194,6 +206,7 @@ impl BlockFlow {
                                                                     maybe_margin_right,
                                                                     available_width);
 
+        // CSS Section 10.4: Minimum and Maximum widths
         // If the tentative used width is greater than 'max-width', width should be recalculated,
         // but this time using the computed value of 'max-width' as the computed value for 'width'.
         let (width, margin_left, margin_right) = {
@@ -223,6 +236,7 @@ impl BlockFlow {
         return (width, margin_left, margin_right);
     }
 
+    // CSS Section 10.3.5
     fn compute_float_margins(&self, box_: &Box, remaining_width: Au) -> (Au, Au, Au) {
         let style = box_.style();
         let margin_left = MaybeAuto::from_style(style.Margin.margin_left,
@@ -243,6 +257,7 @@ impl BlockFlow {
     fn assign_height_block_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
         let mut cur_y = Au::new(0);
         let mut clearance = Au::new(0);
+        // Offset to content edge of box_
         let mut top_offset = Au::new(0);
         let mut bottom_offset = Au::new(0);
         let mut left_offset = Au::new(0);
@@ -280,7 +295,15 @@ impl BlockFlow {
             }
         }
 
+        // The amount of margin that we can potentially collapse with
         let mut collapsible = Au::new(0);
+        // How much to move up by to get to the beginning of
+        // current kid flow.
+        // Example: if previous sibling's margin-bottom is 20px and your
+        // margin-top is 12px, the collapsed margin will be 20px. Since cur_y
+        // will be at the bottom margin edge of the previous sibling, we have
+        // to move up by 12px to get to our top margin edge. So, `collapsing`
+        // will be set to 12px
         let mut collapsing = Au::new(0);
         let mut margin_top = Au::new(0);
         let mut margin_bottom = Au::new(0);
@@ -300,7 +323,9 @@ impl BlockFlow {
             margin_bottom = box_.margin.get().bottom;
         }
 
+        // At this point, cur_y is at the content edge of the flow's box_
         for kid in self.base.child_iter() {
+            // At this point, cur_y is at bottom margin edge of previous kid
             kid.collapse_margins(top_margin_collapsible,
                                  &mut first_in_flow,
                                  &mut margin_top,
@@ -310,8 +335,11 @@ impl BlockFlow {
 
             let child_node = flow::mut_base(*kid);
             cur_y = cur_y - collapsing;
+            // At this point, after moving up by `collapsing`, cur_y is at the
+            // top margin edge of kid
             child_node.position.origin.y = cur_y;
             cur_y = cur_y + child_node.position.size.height;
+            // At this point, cur_y is at the bottom margin edge of kid
         }
 
         // The bottom margin collapses with its last in-flow block-level child's bottom margin
@@ -338,6 +366,9 @@ impl BlockFlow {
             // infrastructure to make it scrollable.
             Au::max(screen_height, cur_y)
         } else {
+            // (cur_y - collapsing) will get you the bottom content edge
+            // top_offset will be at top content edge
+            // hence, height = content height
             cur_y - top_offset - collapsing
         };
 
@@ -347,11 +378,15 @@ impl BlockFlow {
             // At this point, `height` is the height of the containing block, so passing `height`
             // as the second argument here effectively makes percentages relative to the containing
             // block per CSS 2.1 § 10.5.
+            // TODO: We need to pass in the correct containing block height
+            // for absolutely positioned elems
             height = match MaybeAuto::from_style(style.Box.height, height) {
                 Auto => height,
                 Specified(value) => value
             };
         }
+
+        // Here, height is content height of box_
 
         let mut noncontent_height = Au::new(0);
         for box_ in self.box_.iter() {
@@ -359,6 +394,7 @@ impl BlockFlow {
             let mut margin = box_.margin.get();
 
             // The associated box is the border box of this flow.
+            // Margin after collapse
             margin.top = margin_top;
             margin.bottom = margin_bottom;
 
@@ -373,7 +409,7 @@ impl BlockFlow {
             position.origin.y = y;
             height = h;
 
-            if self.is_fixed { 
+            if self.is_fixed {
                 for kid in self.base.child_iter() {
                     let child_node = flow::mut_base(*kid);
                     child_node.position.origin.y = position.origin.y + top_offset;
@@ -383,6 +419,7 @@ impl BlockFlow {
             position.size.height = if self.is_fixed {
                 height
             } else {
+                // Border box height
                 height + noncontent_height
             };
 
@@ -395,6 +432,7 @@ impl BlockFlow {
         self.base.position.size.height = if self.is_fixed {
             height
         } else {
+            // Height of margin box + clearance
             height + noncontent_height
         };
 
@@ -685,7 +723,7 @@ impl Flow for BlockFlow {
                                                margin_left));
 
             let screen_size = ctx.screen_size;
-            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width, 
+            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width,
                                                                  screen_size.height,
                                                                  width,
                                                                  box_.offset(),
@@ -771,6 +809,7 @@ impl Flow for BlockFlow {
         }
     }
 
+    // CSS Section 8.3.1 - Collapsing Margins
     fn collapse_margins(&mut self,
                         top_margin_collapsible: bool,
                         first_in_flow: &mut bool,
@@ -825,4 +864,3 @@ impl Flow for BlockFlow {
         })
     }
 }
-

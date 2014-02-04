@@ -6,20 +6,20 @@
 //! layout constraints to obtain positions and display attributes of tree nodes. Positions are
 //! computed in several tree traversals driven by the fundamental data dependencies required by
 /// inline and block layout.
-/// 
+///
 /// Flows are interior nodes in the layout tree and correspond closely to *flow contexts* in the
 /// CSS specification. Flows are responsible for positioning their child flow contexts and boxes.
 /// Flows have purpose-specific fields, such as auxiliary line box structs, out-of-flow child
 /// lists, and so on.
 ///
 /// Currently, the important types of flows are:
-/// 
+///
 /// * `BlockFlow`: A flow that establishes a block context. It has several child flows, each of
 ///   which are positioned according to block formatting context rules (CSS block boxes). Block
 ///   flows also contain a single `GenericBox` to represent their rendered borders, padding, etc.
 ///   The BlockFlow at the root of the tree has special behavior: it stretches to the boundaries of
 ///   the viewport.
-///   
+///
 /// * `InlineFlow`: A flow that establishes an inline context. It has a flat list of child
 ///   boxes/flows that are subject to inline layout and line breaking and structs to represent
 ///   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
@@ -166,6 +166,9 @@ pub trait ImmutableFlowUtils {
 
     /// Returns the number of children that this flow possesses.
     fn child_count(self) -> uint;
+
+    /// Return true if this flow is a Block Container.
+    fn is_block_container(self) -> bool;
 
     /// Returns true if this flow is a block flow, an inline flow, or a float flow.
     fn starts_block_flow(self) -> bool;
@@ -604,6 +607,23 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         base(self).children.len()
     }
 
+    /// Return true if this flow is a Block Container.
+    ///
+    /// Except for table boxes and replaced elements, block-level boxes (`BlockFlow`) are
+    /// also block container boxes.
+    /// Non-replaced inline blocks and non-replaced table cells are also block
+    /// containers.
+    fn is_block_container(self) -> bool {
+        match self.class() {
+            // TODO: Change this when inline-blocks are supported.
+            InlineFlowClass => false,
+            BlockFlowClass => {
+                // FIXME: Actually check the type of the node
+                self.child_count() != 0
+            }
+        }
+    }
+
     /// Returns true if this flow is a block flow, an inline-block flow, or a float flow.
     fn starts_block_flow(self) -> bool {
         match self.class() {
@@ -698,6 +718,11 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         mut_base(self).overflow = overflow
     }
 
+    /// Push display items for current flow and its children onto `list`.
+    ///
+    /// For InlineFlow, add display items for all its boxes onto list`.
+    /// For BlockFlow, add a ClipDisplayItemClass for itself and its children,
+    /// plus any other display items like border.
     fn build_display_lists<E:ExtraDisplayListData>(
                           self,
                           builder: &DisplayListBuilder,
@@ -715,32 +740,36 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
             return true;
         }
 
-        let mut child_lists = DisplayListCollection::new();
-        child_lists.add_list(DisplayList::new());
-        let child_lists = RefCell::new(child_lists);
-        for kid in child_iter(self) {
-            kid.build_display_lists(builder, dirty, 0u, &child_lists);
-        }
-
-        let mut child_lists = Some(child_lists.unwrap());
-        lists.with_mut(|lists| {
-            let mut child_lists = child_lists.take_unwrap();
-            let result = lists.lists[index].list.mut_rev_iter().position(|item| {
-                match *item {
-                    ClipDisplayItemClass(ref mut item) => {
-                        item.child_list.push_all_move(child_lists.lists.shift().list);
-                        true
-                    },
-                    _ => false,
-                }
-            });
-
-            if result.is_none() {
-                fail!("fail to find parent item");
+        if self.is_block_container() {
+            let mut child_lists = DisplayListCollection::new();
+            child_lists.add_list(DisplayList::new());
+            let child_lists = RefCell::new(child_lists);
+            for kid in child_iter(self) {
+                kid.build_display_lists(builder, dirty, 0u, &child_lists);
             }
 
-            lists.lists.push_all_move(child_lists.lists);
-        });
+            let mut child_lists = Some(child_lists.unwrap());
+            // Find parent ClipDisplayItemClass and push all child display items
+            // under it
+            lists.with_mut(|lists| {
+                let mut child_lists = child_lists.take_unwrap();
+                let result = lists.lists[index].list.mut_rev_iter().position(|item| {
+                    match *item {
+                        ClipDisplayItemClass(ref mut item) => {
+                            item.child_list.push_all_move(child_lists.lists.shift().list);
+                            true
+                        },
+                        _ => false,
+                    }
+                });
+
+                if result.is_none() {
+                    fail!("fail to find parent item");
+                }
+
+                lists.lists.push_all_move(child_lists.lists);
+            });
+        }
         true
     }
 
@@ -848,4 +877,3 @@ impl FlowLeafSet {
         self.set.iter()
     }
 }
-
