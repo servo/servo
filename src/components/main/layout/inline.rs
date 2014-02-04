@@ -53,6 +53,15 @@ struct LineBox {
     range: Range,
     bounds: Rect<Au>,
     green_zone: Size2D<Au>
+    
+    // was_overflown: bool 
+        // if we could have put more content 
+        // on this line if there was such content
+    
+    // was_width_overflown: bool
+        // if we couldn't avoid some content to 
+        // overflow the line (not always the element)
+        
 }
 
 struct LineboxScanner {
@@ -93,6 +102,8 @@ impl LineboxScanner {
     }
 
     fn reset_linebox(&mut self) {
+        self.pending_line.was_overflown = true;
+        self.pending_line.was_width_overflown = false;
         self.pending_line.range.reset(0,0);
         self.pending_line.bounds = Rect(Point2D(Au::new(0), self.cur_y), Size2D(Au::new(0), Au::new(0)));
         self.pending_line.green_zone = Size2D(Au::new(0), Au::new(0))
@@ -100,6 +111,9 @@ impl LineboxScanner {
 
     pub fn scan_for_lines(&mut self, flow: &mut InlineFlow) {
         self.reset_scanner(flow);
+        
+        //QUESTION: Am I correct in assuming no <br> will be handled here?
+        //If not, how are they handled in the "white-space:normal" case?
 
         loop {
             // acquire the next box to lay out from work list or box list
@@ -153,7 +167,15 @@ impl LineboxScanner {
     fn flush_current_line(&mut self) {
         debug!("LineboxScanner: Flushing line {:u}: {:?}",
                self.lines.len(), self.pending_line);
-
+        
+        // compute whether the line is full or not
+        self.pending_line.was_overflown = 
+            (self.pending_line.was_overflown) && (self.work_list.len() > 0); 
+            // FIXME: what about forced breaks?
+            
+        self.pending_line.was_width_overflown = 
+            (self.pending_line.bounds.size.width > self.pending_line.green_zone.width);
+        
         // clear line and add line mapping
         debug!("LineboxScanner: Saving information for flushed line {:u}.", self.lines.len());
         self.lines.push(self.pending_line);
@@ -312,8 +334,10 @@ impl LineboxScanner {
 
     fn try_append_to_line_by_new_line(&mut self, in_box: Box) -> bool {
         if in_box.new_line_pos.len() == 0 {
+            
             // In case of box does not include new-line character
             self.push_box_to_line(in_box);
+            
             true
         } else {
             // In case of box includes new-line character
@@ -383,6 +407,7 @@ impl LineboxScanner {
                         overflowing.",
                         self.lines.len());
                 self.push_box_to_line(in_box);
+                self.pending_line.was_width_overflown = true;
                 return true
             }
         }
@@ -412,6 +437,7 @@ impl LineboxScanner {
                 debug!("LineboxScanner: case=split box didn't fit and line {:u} is empty, so \
                         overflowing and deferring remainder box.",
                         self.lines.len());
+                self.pending_line.was_width_overflown = true;
                 (left, right)
                 // Fall though to push boxes to the line.
             }
