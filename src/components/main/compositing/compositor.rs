@@ -11,9 +11,9 @@ use platform::{Application, Window};
 use windowing::{WindowEvent, WindowMethods,
                 WindowNavigateMsg,
                 IdleWindowEvent, RefreshWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent,
-                MouseWindowEventClass,ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent,
+                MouseWindowEventClass, MouseWindowMoveEventClass,ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent,
                 FinishedWindowEvent, QuitWindowEvent,
-                MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent, MouseMoveEventClass};
+                MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
@@ -515,7 +515,7 @@ impl IOCompositor {
                 self.on_mouse_window_event_class(mouse_window_event);
             }
 
-            MouseMoveEventClass(cursor) => {
+            MouseWindowMoveEventClass(cursor) => {
                 self.on_mouse_window_move_event_class(cursor);
             }
 

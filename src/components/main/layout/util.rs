@@ -170,6 +170,14 @@ impl PrivateLayoutData {
             parallel: DomParallelInfo::new(),
         }
     }
+
+    /// Initialize the function for applicable_declarations.
+    pub fn init_applicable_declarations(&mut self) {
+        //FIXME To implement a clear() on SmallVec and use it(init_applicable_declarations).
+        self.applicable_declarations = SmallVec16::new();
+        self.before_applicable_declarations = SmallVec0::new();
+        self.after_applicable_declarations = SmallVec0::new();
+    }
 }
 
 pub struct LayoutDataWrapper {

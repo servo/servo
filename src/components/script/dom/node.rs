@@ -101,6 +101,8 @@ impl NodeFlags {
 
 /// Specifies whether this node is in a document.
 bitfield!(NodeFlags, is_in_doc, set_is_in_doc, 0x01)
+/// Specifies whether this node is hover state for this node
+bitfield!(NodeFlags, get_in_hover_state, set_is_in_hover_state, 0x02)
 
 #[unsafe_destructor]
 impl Drop for Node {
@@ -545,6 +547,14 @@ impl<'a> AbstractNode {
 
     pub fn is_in_doc(&self) -> bool {
         self.node().flags.is_in_doc()
+    }
+ 
+    pub fn get_hover_state(&self) -> bool {
+        self.node().flags.get_in_hover_state()
+    }
+
+    pub fn set_hover_state(&self, state: bool) {
+        self.mut_node().flags.set_is_in_hover_state(state);
     }
 }
 
@@ -1606,6 +1616,14 @@ impl Node {
         let doc = self.owner_doc();
         doc.document().wait_until_safe_to_modify_dom();
         self.next_sibling = new_next_sibling
+    }
+
+    pub fn get_hover_state(&self) -> bool {
+        self.flags.get_in_hover_state()
+    }
+
+    pub fn set_hover_state(&mut self, state: bool) {
+        self.flags.set_is_in_hover_state(state);
     }
 }
 

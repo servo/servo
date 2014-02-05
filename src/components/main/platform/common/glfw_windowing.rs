@@ -5,9 +5,9 @@
 //! A windowing implementation using GLFW.
 
 use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
-use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
+use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass,  MouseWindowMoveEventClass};
 use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
-use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent, MouseMoveEventClass};
+use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 use windowing::RefreshWindowEvent;
 use windowing::{Forward, Back};
 
@@ -157,8 +157,8 @@ impl WindowMethods<Application> for Window {
                 }
             }));
         window.glfw_window.set_cursor_pos_callback(
-            glfw_callback!(glfw::CursorPosCallback(win: &glfw::Window, xpos: f64, ypos: f64) {
-                local_window().event_queue.push(MouseMoveEventClass(Point2D(xpos as f32, ypos as f32)));
+            glfw_callback!(glfw::CursorPosCallback(_win: &glfw::Window, xpos: f64, ypos: f64) {
+                local_window().event_queue.push(MouseWindowMoveEventClass(Point2D(xpos as f32, ypos as f32)));
             }));
         window.glfw_window.set_scroll_callback(
             glfw_callback!(glfw::ScrollCallback(win: &glfw::Window, xpos: f64, ypos: f64) {

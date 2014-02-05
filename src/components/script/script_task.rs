@@ -9,7 +9,7 @@ use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::utils::{Reflectable, GlobalStaticData};
 use dom::document::AbstractDocument;
 use dom::element::Element;
-use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent, MouseMoveEvent};
+use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use dom::event::Event;
 use dom::eventtarget::AbstractEventTarget;
 use dom::htmldocument::HTMLDocument;
@@ -20,7 +20,7 @@ use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDi
 use html::hubbub_html_parser;
 use layout_interface::{AddStylesheetMsg, DocumentDamage};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
-use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery};
+use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery, MouseOverQuery, MouseOverResponse};
 use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg};
 use layout_interface::{Reflow, ReflowDocumentDamage, ReflowForDisplay, ReflowGoal, ReflowMsg};
 use layout_interface::ContentChangedDocumentDamage;
@@ -405,6 +405,8 @@ pub struct ScriptTask {
 
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
+
+    mouse_over_targets:Option<~[AbstractNode]>
 }
 
 /// Returns the relevant page from the associated JS Context.
@@ -440,6 +442,7 @@ impl ScriptTask {
             compositor: compositor,
 
             js_runtime: js_runtime,
+            mouse_over_targets:None
         };
 
         script_task
@@ -882,7 +885,75 @@ impl ScriptTask {
             }
             MouseDownEvent(..) => {}
             MouseUpEvent(..) => {}
-            MouseMoveEvent(point) => {}
+            MouseMoveEvent(point) => {
+                let document = page.frame.expect("root frame is None").document;
+                let root = document.document().GetDocumentElement();
+                if root.is_none() {
+                    return;
+                }
+                let (port, chan) = Chan::new();
+                match page.query_layout(MouseOverQuery(root.unwrap(), point, chan), port) {
+                    Ok(MouseOverResponse(node_address)) => {
+
+                        let mut target_list:~[AbstractNode] = ~[];
+                        let mut target_compare = false;
+
+                        match self.mouse_over_targets {
+                            Some(ref mut mouse_over_targets) => {
+                                for node in mouse_over_targets.iter() {
+                                    node.set_hover_state(false);
+                                }
+                            }
+                            None => {}
+                        }
+
+                        for node_address in node_address.iter() {
+                            let mut node = AbstractNode::from_untrusted_node_address(self.js_runtime
+                                                                                         .ptr,
+                                                                                     *node_address);
+                            // Traverse node generations until a node that is an element is
+                            // found.
+                            while !node.is_element() {
+                                match node.parent_node() {
+                                    Some(parent) => node = parent,
+                                    None => break,
+                                }
+                            }
+
+                            if node.is_element() {
+                                node.set_hover_state(true);
+
+                                match self.mouse_over_targets {
+                                    Some(ref mouse_over_targets) => {
+                                        if !target_compare {
+                                            target_compare = !mouse_over_targets.contains(&node);
+                                        }
+                                    }
+                                    None => {}
+                                }
+                                target_list.push(node);
+                            }
+                        }
+                        match self.mouse_over_targets {
+                            Some(ref mouse_over_targets) => {
+                                if mouse_over_targets.len() != target_list.len() {
+                                    target_compare = true;
+                                }
+                            }
+                            None => { target_compare = true; }
+                        }
+ 
+                        if target_compare {
+                            if self.mouse_over_targets.is_some() {
+                                page.damage(MatchSelectorsDocumentDamage);
+                                page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor);
+                            }
+                            self.mouse_over_targets = Some(target_list);
+                        }
+                    },
+                    Err(()) => {},
+              }
+            }
         }
     }
 

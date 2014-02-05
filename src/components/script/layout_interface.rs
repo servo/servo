@@ -57,6 +57,7 @@ pub enum LayoutQuery {
     ContentBoxesQuery(AbstractNode, Chan<ContentBoxesResponse>),
     /// Requests the node containing the point of interest
     HitTestQuery(AbstractNode, Point2D<f32>, Chan<Result<HitTestResponse, ()>>),
+    MouseOverQuery(AbstractNode, Point2D<f32>, Chan<Result<MouseOverResponse, ()>>),
 }
 
 /// The address of a node. Layout sends these back. They must be validated via
@@ -66,6 +67,7 @@ pub type UntrustedNodeAddress = *c_void;
 pub struct ContentBoxResponse(Rect<Au>);
 pub struct ContentBoxesResponse(~[Rect<Au>]);
 pub struct HitTestResponse(UntrustedNodeAddress);
+pub struct MouseOverResponse(~[UntrustedNodeAddress]);
 
 /// Determines which part of the 
 #[deriving(Eq, Ord)]

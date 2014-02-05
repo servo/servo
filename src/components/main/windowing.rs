@@ -35,7 +35,7 @@ pub enum WindowEvent {
     /// Sent when a mouse hit test is to be performed.
     MouseWindowEventClass(MouseWindowEvent),
     /// Sent when a mouse move.
-    MouseMoveEventClass(Point2D<f32>),
+    MouseWindowMoveEventClass(Point2D<f32>),
     /// Sent when the user scrolls. Includes the current cursor position.
     ScrollWindowEvent(Point2D<f32>, Point2D<i32>),
     /// Sent when the user zooms.
