@@ -1346,9 +1346,9 @@ impl Node {
         Ok(())
     }
 
-    pub fn InsertBefore(&self, node: AbstractNode, child: Option<AbstractNode>)
+    pub fn InsertBefore(&self, abstract_self: AbstractNode, node: AbstractNode, child: Option<AbstractNode>)
                         -> Fallible<AbstractNode> {
-        Node::pre_insert(node, node, child)
+        Node::pre_insert(node, abstract_self, child)
     }
 
     pub fn wait_until_safe_to_modify_dom(&self) {
