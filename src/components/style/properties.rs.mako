@@ -5,8 +5,10 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 use std::ascii::StrAsciiExt;
+pub use servo_util::url::parse_url;
 pub use extra::arc::Arc;
 use servo_util::cowarc::CowArc;
+
 pub use cssparser::*;
 pub use cssparser::ast::*;
 
@@ -470,9 +472,30 @@ pub mod longhands {
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
     ${new_style_struct("Background", is_inherited=False)}
-
     ${predefined_type("background-color", "CSSColor",
                       "RGBA(RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
+
+    <%self:single_component_value name="background-image">
+            // The computed value is the same as the specified value.
+            pub use to_computed_value = super::computed_as_specified;
+            pub mod computed_value {
+                pub use extra::url::Url;
+                pub type T = Option<Url>;
+            }
+            pub type SpecifiedValue = computed_value::T;
+            #[inline] pub fn get_initial_value() -> SpecifiedValue {
+                None
+            }
+            pub fn from_component_value(component_value: &ComponentValue) -> Option<SpecifiedValue> {
+                match component_value {
+                    &ast::URL(ref url) => {
+                        let image_url = parse_url(url.as_slice(), None);
+                        Some(Some(image_url))
+                    },
+                    _ => None,
+                }
+            }
+    </%self:single_component_value>
 
 
     ${new_style_struct("Color", is_inherited=True)}
@@ -809,12 +832,30 @@ pub mod shorthands {
         </%self:shorthand>
     </%def>
 
-
     // TODO: other background-* properties
-    <%self:shorthand name="background" sub_properties="background-color">
-        one_component_value(input).and_then(specified::CSSColor::parse).map(|color| {
-            Longhands { background_color: Some(color) }
-        })
+    <%self:shorthand name="background" sub_properties="background-color background-image">
+                let mut color = None;
+                let mut image = None;
+                let mut any = false;
+
+                for component_value in input.skip_whitespace() {
+                    if color.is_none() {
+                        match background_color::from_component_value(component_value) {
+                            Some(v) => { color = Some(v); any = true; continue },
+                            None => ()
+                        }
+                    }
+
+                    if image.is_none() {
+                        match background_image::from_component_value(component_value) {
+                            Some(v) => { image = Some(v); any = true; continue },
+                            None => (),
+                        }
+                    }
+                    return None;
+                }
+                if any { Some(Longhands { background_color: color, background_image: image }) }
+                else { None }
     </%self:shorthand>
 
     ${four_sides_shorthand("margin", "margin-%s", "margin_top::from_component_value")}
