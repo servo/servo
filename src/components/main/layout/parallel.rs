@@ -47,6 +47,18 @@ pub fn mut_owned_flow_to_unsafe_flow(flow: *mut ~Flow) -> UnsafeFlow {
     }
 }
 
+pub fn borrowed_flow_to_unsafe_flow(flow: &Flow) -> UnsafeFlow {
+    unsafe {
+        cast::transmute_copy(&flow)
+    }
+}
+
+pub fn mut_borrowed_flow_to_unsafe_flow(flow: &mut Flow) -> UnsafeFlow {
+    unsafe {
+        cast::transmute_copy(&flow)
+    }
+}
+
 /// Information that we need stored in each DOM node.
 pub struct DomParallelInfo {
     /// The number of children that still need work done.

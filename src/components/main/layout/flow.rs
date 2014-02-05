@@ -36,8 +36,8 @@ use layout::inline::InlineFlow;
 use layout::parallel::{FlowParallelInfo, UnsafeFlow};
 use layout::parallel;
 use layout::wrapper::ThreadSafeLayoutNode;
+use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
 
-use extra::dlist::{DList, DListIterator, MutDListIterator};
 use extra::container::Deque;
 use geom::point::Point2D;
 use geom::Size2D;
@@ -134,7 +134,7 @@ pub fn base<'a>(this: &'a Flow) -> &'a BaseFlow {
 }
 
 /// Iterates over the children of this immutable flow.
-pub fn imm_child_iter<'a>(flow: &'a Flow) -> DListIterator<'a,~Flow> {
+pub fn imm_child_iter<'a>(flow: &'a Flow) -> FlowListIterator<'a> {
     base(flow).children.iter()
 }
 
@@ -147,12 +147,12 @@ pub fn mut_base<'a>(this: &'a mut Flow) -> &'a mut BaseFlow {
 }
 
 /// Returns the last child of this flow.
-pub fn last_child<'a>(flow: &'a mut Flow) -> Option<&'a mut ~Flow> {
+pub fn last_child<'a>(flow: &'a mut Flow) -> Option<&'a mut Flow> {
     mut_base(flow).children.back_mut()
 }
 
 /// Iterates over the children of this flow.
-pub fn child_iter<'a>(flow: &'a mut Flow) -> MutDListIterator<'a,~Flow> {
+pub fn child_iter<'a>(flow: &'a mut Flow) -> MutFlowListIterator<'a> {
     mut_base(flow).children.mut_iter()
 }
 
@@ -196,10 +196,10 @@ pub trait MutableFlowUtils {
     // Mutators
 
     /// Invokes a closure with the first child of this flow.
-    fn with_first_child<R>(self, f: |Option<&mut ~Flow>| -> R) -> R;
+    fn with_first_child<R>(self, f: |Option<&mut Flow>| -> R) -> R;
 
     /// Invokes a closure with the last child of this flow.
-    fn with_last_child<R>(self, f: |Option<&mut ~Flow>| -> R) -> R;
+    fn with_last_child<R>(self, f: |Option<&mut Flow>| -> R) -> R;
 
     /// Computes the overflow region for this flow.
     fn store_overflow(self, _: &mut LayoutContext);
@@ -213,6 +213,9 @@ pub trait MutableFlowUtils {
                           index: uint,
                           mut list: &RefCell<DisplayListCollection<E>>)
                           -> bool;
+
+    /// Destroys the flow.
+    fn destroy(self, leaf_set: &FlowLeafSet);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -492,7 +495,9 @@ pub struct BaseFlow {
     restyle_damage: RestyleDamage,
 
     /// The children of this flow.
-    children: DList<~Flow>,
+    children: FlowList,
+    next_sibling: Link,
+    prev_sibling: Rawlink,
 
     /* TODO (Issue #87): debug only */
     id: int,
@@ -563,7 +568,9 @@ impl BaseFlow {
         BaseFlow {
             restyle_damage: node.restyle_damage(),
 
-            children: DList::new(),
+            children: FlowList::new(),
+            next_sibling: None,
+            prev_sibling: Rawlink::none(),
 
             id: id,
 
@@ -585,7 +592,7 @@ impl BaseFlow {
         }
     }
 
-    pub fn child_iter<'a>(&'a mut self) -> MutDListIterator<'a,~Flow> {
+    pub fn child_iter<'a>(&'a mut self) -> MutFlowListIterator<'a> {
         self.children.mut_iter()
     }
 }
@@ -700,12 +707,12 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
     }
 
     /// Invokes a closure with the first child of this flow.
-    fn with_first_child<R>(self, f: |Option<&mut ~Flow>| -> R) -> R {
+    fn with_first_child<R>(self, f: |Option<&mut Flow>| -> R) -> R {
         f(mut_base(self).children.front_mut())
     }
 
     /// Invokes a closure with the last child of this flow.
-    fn with_last_child<R>(self, f: |Option<&mut ~Flow>| -> R) -> R {
+    fn with_last_child<R>(self, f: |Option<&mut Flow>| -> R) -> R {
         f(mut_base(self).children.back_mut())
     }
 
@@ -713,7 +720,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         let my_position = mut_base(self).position;
         let mut overflow = my_position;
         for kid in mut_base(self).child_iter() {
-            let mut kid_overflow = base(*kid).overflow;
+            let mut kid_overflow = base(kid).overflow;
             kid_overflow = kid_overflow.translate(&my_position.origin);
             overflow = overflow.union(&kid_overflow)
         }
@@ -789,6 +796,23 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         true
     }
 
+    /// Destroys the flow.
+    fn destroy(self, leaf_set: &FlowLeafSet) {
+        let is_leaf = {
+            let base = mut_base(self);
+            base.children.len() == 0
+        };
+
+        if is_leaf {
+            leaf_set.remove(self);
+        } else {
+            for kid in child_iter(self) {
+                kid.destroy(leaf_set)
+            }
+        }
+
+        mut_base(self).destroyed = true
+    }
 }
 
 impl MutableOwnedFlowUtils for ~Flow {
@@ -818,7 +842,8 @@ impl MutableOwnedFlowUtils for ~Flow {
             }
             base.flags_info.flags.set_is_leaf(true)
         }
-        leaf_set.insert(self)
+        let self_borrowed: &Flow = *self;
+        leaf_set.insert(self_borrowed);
     }
 
     /// Marks the flow as a nonleaf. The flow must not be marked as a leaf.
@@ -833,21 +858,8 @@ impl MutableOwnedFlowUtils for ~Flow {
 
     /// Destroys the flow.
     fn destroy(&mut self, leaf_set: &FlowLeafSet) {
-        let is_leaf = {
-            let base = mut_base(*self);
-            base.children.len() == 0
-        };
-
-        if is_leaf {
-            leaf_set.remove(self);
-        } else {
-            for kid in child_iter(*self) {
-                kid.destroy(leaf_set)
-            }
-        }
-
-        let base = mut_base(*self);
-        base.destroyed = true
+        let self_borrowed: &mut Flow = *self;
+        self_borrowed.destroy(leaf_set);
     }
 }
 
@@ -866,22 +878,22 @@ impl FlowLeafSet {
     }
 
     /// Inserts a newly-created flow into the leaf set.
-    fn insert(&self, flow: &~Flow) {
-        self.set.insert(parallel::owned_flow_to_unsafe_flow(flow), ());
+    fn insert(&self, flow: &Flow) {
+        self.set.insert(parallel::borrowed_flow_to_unsafe_flow(flow), ());
     }
 
     /// Removes a flow from the leaf set. Asserts that the flow was indeed in the leaf set. (This
     /// invariant is needed for memory safety, as there must always be exactly one leaf set.)
-    fn remove(&self, flow: &~Flow) {
+    fn remove(&self, flow: &Flow) {
         if !self.contains(flow) {
             fail!("attempted to remove a flow from the leaf set that wasn't in the set!")
         }
-        let flow = parallel::owned_flow_to_unsafe_flow(flow);
+        let flow = parallel::borrowed_flow_to_unsafe_flow(flow);
         self.set.remove(&flow);
     }
 
-    pub fn contains(&self, flow: &~Flow) -> bool {
-        let flow = parallel::owned_flow_to_unsafe_flow(flow);
+    pub fn contains(&self, flow: &Flow) -> bool {
+        let flow = parallel::borrowed_flow_to_unsafe_flow(flow);
         self.set.contains_key(&flow)
     }
 
