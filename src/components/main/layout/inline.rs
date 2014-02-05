@@ -54,12 +54,12 @@ struct LineBox {
     bounds: Rect<Au>,
     green_zone: Size2D<Au>,
 
-    // whether we could have put more content 
-    // on this line if there was such content    
+    // whether there still was content to layout out
+    // once the line has been full   
     was_overflown: bool,
     
-    // whether we couldn't avoid some content to 
-    // overflow the line (not always the element)
+    // whether some unbreakable content did
+    // overflow the line width (not always the element)
     was_width_overflown: bool
         
 }
