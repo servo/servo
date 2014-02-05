@@ -18,7 +18,7 @@ use layers::platform::surface::{NativeCompositingGraphicsContext, NativeSurfaceM
 use layers::texturegl::{Texture, TextureTarget};
 #[cfg(target_os="macos")] use layers::texturegl::TextureTargetRectangle;
 use pipeline::CompositionPipeline;
-use script::dom::event::{ClickEvent, MouseDownEvent, MouseUpEvent};
+use script::dom::event::{ClickEvent, MouseDownEvent, MouseUpEvent, MouseMoveEvent};
 use script::script_task::SendEventMsg;
 use servo_msg::compositor_msg::{LayerBuffer, LayerBufferSet, Epoch, Tile};
 use servo_msg::constellation_msg::PipelineId;
@@ -251,7 +251,12 @@ impl CompositorLayer {
         
         self.pipeline.script_chan.send(SendEventMsg(self.pipeline.id.clone(), message));
     }
-    
+
+    pub fn send_mouse_move_event(&self, cursor: Point2D<f32>) {
+        let message = MouseMoveEvent(cursor);
+        self.pipeline.script_chan.send(SendEventMsg(self.pipeline.id.clone(), message));
+    }    
+
     // Given the current window size, determine which tiles need to be (re)rendered
     // and sends them off the the appropriate renderer.
     // Returns a bool that is true if the scene should be repainted.

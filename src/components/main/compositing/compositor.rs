@@ -13,7 +13,7 @@ use windowing::{WindowEvent, WindowMethods,
                 IdleWindowEvent, RefreshWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent,
                 MouseWindowEventClass,ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent,
                 FinishedWindowEvent, QuitWindowEvent,
-                MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
+                MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent, MouseMoveEventClass};
 
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
@@ -515,6 +515,10 @@ impl IOCompositor {
                 self.on_mouse_window_event_class(mouse_window_event);
             }
 
+            MouseMoveEventClass(cursor) => {
+                self.on_mouse_window_move_event_class(cursor);
+            }
+
             ScrollWindowEvent(delta, cursor) => {
                 self.on_scroll_window_event(delta, cursor);
             }
@@ -576,6 +580,12 @@ impl IOCompositor {
         };
         for layer in self.compositor_layer.iter() {
             layer.send_mouse_event(mouse_window_event, point);
+        }
+    }
+
+    fn on_mouse_window_move_event_class(&self, cursor: Point2D<f32>) {
+        for layer in self.compositor_layer.iter() {
+            layer.send_mouse_move_event(cursor);
         }
     }
 

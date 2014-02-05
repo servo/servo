@@ -9,7 +9,7 @@ use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::utils::{Reflectable, GlobalStaticData};
 use dom::document::AbstractDocument;
 use dom::element::Element;
-use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
+use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent, MouseMoveEvent};
 use dom::event::Event;
 use dom::eventtarget::AbstractEventTarget;
 use dom::htmldocument::HTMLDocument;
@@ -882,6 +882,7 @@ impl ScriptTask {
             }
             MouseDownEvent(..) => {}
             MouseUpEvent(..) => {}
+            MouseMoveEvent(point) => {}
         }
     }
 

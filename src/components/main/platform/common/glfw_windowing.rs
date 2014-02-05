@@ -7,7 +7,7 @@
 use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
 use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
 use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
-use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
+use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent, MouseMoveEventClass};
 use windowing::RefreshWindowEvent;
 use windowing::{Forward, Back};
 
@@ -155,6 +155,10 @@ impl WindowMethods<Application> for Window {
                 if button == glfw::MouseButtonLeft || button == glfw::MouseButtonRight {
                     local_window().handle_mouse(button, action, x as i32, y as i32);
                 }
+            }));
+        window.glfw_window.set_cursor_pos_callback(
+            glfw_callback!(glfw::CursorPosCallback(win: &glfw::Window, xpos: f64, ypos: f64) {
+                local_window().event_queue.push(MouseMoveEventClass(Point2D(xpos as f32, ypos as f32)));
             }));
         window.glfw_window.set_scroll_callback(
             glfw_callback!(glfw::ScrollCallback(win: &glfw::Window, xpos: f64, ypos: f64) {
