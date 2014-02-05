@@ -1285,13 +1285,32 @@ impl Box {
             }
         }
     }
+    
+    /// Returns true if the box is pure whitespace
+    pub fn is_pure_whitespace(&self) -> bool {
+        return match self.specific {
+            ScannedTextBox(ref text_box_info) => {
+                text_box_info.run.get().is_pure_whitespace(&text_box_info.range)
+            }
+            _ => {
+                false
+            }
+        }
+    }
+
 
     /// Attempts to split this box so that its width is no more than `max_width`.
     pub fn split_to_width(&self, max_width: Au, starts_line: bool) -> SplitBoxResult {
+        return self.split_to_width_forced(max_width, starts_line, false, true);
+    }
+
+    /// Attempts to split this box so that its width is no more than `max_width`.
+    pub fn split_to_width_forced(&self, max_width: Au, starts_line: bool, forced_first: bool, trim_whitespace_separator: bool) -> SplitBoxResult {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) => CannotSplit,
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
+                let mut first_piece_processed: bool = false;
                 let mut pieces_processed_count: uint = 0;
                 let mut remaining_width: Au = max_width;
                 let mut left_range = Range::new(text_box_info.range.begin(), 0);
@@ -1303,6 +1322,7 @@ impl Box {
                        text_box_info.range,
                        max_width);
 
+                let mut should_continue = true;
                 for (glyphs, offset, slice_range) in text_box_info.run.get().iter_slices_for_range(
                         &text_box_info.range) {
                     debug!("split_to_width: considering slice (offset={}, range={}, \
@@ -1311,11 +1331,18 @@ impl Box {
                            slice_range,
                            remaining_width);
 
-                    let metrics = text_box_info.run.get().metrics_for_slice(glyphs, &slice_range);
-                    let advance = metrics.advance_width;
+                    if !should_continue {
+                        if trim_whitespace_separator && glyphs.is_whitespace() {
+                            /* we can append this whitespace for free */
+                        } else {
+                            break
+                        }
+                    }
 
-                    let should_continue;
-                    if advance <= remaining_width {
+                    let metrics = text_box_info.run.get().metrics_for_slice(glyphs, &slice_range);
+                    let advance = if should_continue { metrics.advance_width } else { Au(0) };
+                    
+                    if advance <= remaining_width || (forced_first && !first_piece_processed) {
                         should_continue = true;
 
                         if starts_line && pieces_processed_count == 0 && glyphs.is_whitespace() {
@@ -1325,6 +1352,7 @@ impl Box {
                             debug!("split_to_width: case=enlarging span");
                             remaining_width = remaining_width - advance;
                             left_range.extend_by(slice_range.length() as int);
+                            first_piece_processed = true;
                         }
                     } else {
                         // The advance is more than the remaining width.
@@ -1332,7 +1360,7 @@ impl Box {
                         let slice_begin = offset + slice_range.begin();
                         let slice_end = offset + slice_range.end();
 
-                        if glyphs.is_whitespace() {
+                        if trim_whitespace_separator && glyphs.is_whitespace() {
                             // If there are still things after the trimmable whitespace, create the
                             // right chunk.
                             if slice_end < text_box_info.range.end() {
@@ -1356,9 +1384,6 @@ impl Box {
 
                     pieces_processed_count += 1;
 
-                    if !should_continue {
-                        break
-                    }
                 }
 
                 let left_box = if left_range.length() > 0 {

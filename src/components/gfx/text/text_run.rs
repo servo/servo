@@ -21,6 +21,16 @@ pub struct TextRun {
     glyphs: Arc<~[Arc<GlyphStore>]>,
 }
 
+impl TextRun {
+    pub fn is_pure_whitespace(&self, range: &Range) -> bool {
+        for (glyphs, _, _) in self.iter_slices_for_range(range) {
+            if glyphs.is_whitespace() { continue; }
+            else { return false; }
+        }
+        return true;
+    }
+}
+
 pub struct SliceIterator<'a> {
     priv glyph_iter: VecIterator<'a, Arc<GlyphStore>>,
     priv range:      Range,
