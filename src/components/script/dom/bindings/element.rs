@@ -107,6 +107,9 @@ generate_traceable_node!(DocumentType)
 generate_cacheable_wrapper!(Text, TextBinding::Wrap)
 generate_traceable!(Text)
 
+generate_cacheable_wrapper!(ProcessingInstruction, ProcessingInstruction::Wrap)
+generate_traceable!(ProcessingInstruction)
+
 generate_cacheable_wrapper_htmlelement!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
 generate_traceable_htmlelement!(HTMLHeadElement)
 
