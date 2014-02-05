@@ -92,6 +92,7 @@ pub mod layout {
     pub mod display_list_builder;
     pub mod float_context;
     pub mod flow;
+    pub mod flow_list;
     pub mod layout_task;
     pub mod inline;
     pub mod model;

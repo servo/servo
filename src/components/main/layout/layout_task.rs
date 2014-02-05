@@ -114,7 +114,7 @@ impl PostorderFlowTraversal for ComputeDamageTraversal {
     fn process(&mut self, flow: &mut Flow) -> bool {
         let mut damage = flow::base(flow).restyle_damage;
         for child in flow::child_iter(flow) {
-            damage.union_in_place(flow::base(*child).restyle_damage.propagate_up())
+            damage.union_in_place(flow::base(child).restyle_damage.propagate_up())
         }
         flow::mut_base(flow).restyle_damage = damage;
         true
@@ -139,7 +139,7 @@ impl PreorderFlowTraversal for PropagateDamageTraversal {
         let prop = flow::base(flow).restyle_damage.propagate_down();
         if prop.is_nonempty() {
             for kid_ctx in flow::child_iter(flow) {
-                flow::mut_base(*kid_ctx).restyle_damage.union_in_place(prop)
+                flow::mut_base(kid_ctx).restyle_damage.union_in_place(prop)
             }
         }
         true

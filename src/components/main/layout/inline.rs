@@ -627,7 +627,7 @@ impl Flow for InlineFlow {
         let mut num_floats = 0;
 
         for kid in self.base.child_iter() {
-            let child_base = flow::mut_base(*kid);
+            let child_base = flow::mut_base(kid);
             num_floats += child_base.num_floats;
             child_base.floats_in = FloatContext::new(child_base.num_floats);
         }
@@ -668,7 +668,7 @@ impl Flow for InlineFlow {
         // FIXME(ksh8281) avoid copy
         let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
-            let child_base = flow::mut_base(*kid);
+            let child_base = flow::mut_base(kid);
             child_base.position.size.width = self.base.position.size.width;
             child_base.flags_info.flags.set_inorder(self.base.flags_info.flags.inorder());
             child_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
