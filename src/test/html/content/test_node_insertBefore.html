@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+    </head>
+    <body>
+        <script type="text/javascript">
+            // test1: insertBefore
+            {
+                var root = document.createElement("div");
+                var after = document.createElement("div");
+                var before = document.createElement("div");
+
+                root.appendChild(after);
+
+                is(root.insertBefore(before, after), before, "test1-0, insertBefore");
+                is(root.childNodes[0], before, "test1-1, insertBefore");
+                is(root.childNodes[1], after, "test1-2, insertBefore");
+            }
+        </script>
+    </body>
+</html>
