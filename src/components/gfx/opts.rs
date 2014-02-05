@@ -90,6 +90,29 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         opt_match.free.clone()
     };
 
+    // TODO: in future, if loading fails we can redirect the passed url
+    // to perform a search in google/bing/whateverz
+    // (e.g. "http://service.com/#q=original_argument).
+    let protocol: ~str = ~"http://";
+    let mut counter: int = 0;
+    let mut corrected_urls: ~[~str] = ~[~"http://www.servo.org"];
+    for url in urls.iter() {
+        if counter == 0 {
+            // Remove the default URL from the list.
+            corrected_urls.pop();
+        }
+
+        let mut sanitized_url;
+        if !url.contains(protocol) {
+            sanitized_url = protocol.clone() + *url;
+        } else {
+            sanitized_url = url.clone();
+        }
+
+        corrected_urls.push(sanitized_url.clone());
+        counter += 1;
+    }
+
     let render_backend = match opt_match.opt_str("r") {
         Some(backend_str) => {
             if backend_str == ~"direct2d" {
@@ -132,7 +155,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
     };
 
     Opts {
-        urls: urls,
+        urls: corrected_urls,
         render_backend: render_backend,
         n_render_threads: n_render_threads,
         cpu_painting: cpu_painting,
