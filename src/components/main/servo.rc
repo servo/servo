@@ -50,7 +50,7 @@ use servo_msg::constellation_msg::InitLoadUrlMsg;
 use gfx::opts;
 
 #[cfg(not(test))]
-use servo_net::image_cache_task::ImageCacheTask;
+use servo_net::image_cache_task::{ImageCacheTask, SyncImageCacheTask};
 #[cfg(not(test))]
 use servo_net::resource_task::ResourceTask;
 #[cfg(not(test))]
@@ -149,7 +149,14 @@ fn run(opts: Opts) {
         let opts = &opts_clone;
         // Create a Servo instance.
         let resource_task = ResourceTask();
-        let image_cache_task = ImageCacheTask(resource_task.clone());
+        // If we are emitting an output file, then we need to block on
+        // image load or we risk emitting an output file missing the
+        // image.
+        let image_cache_task = if opts.output_file.is_some() {
+                SyncImageCacheTask(resource_task.clone())
+            } else {
+                ImageCacheTask(resource_task.clone())
+            };
         let constellation_chan = Constellation::start(compositor_chan,
                                                       opts,
                                                       resource_task,
