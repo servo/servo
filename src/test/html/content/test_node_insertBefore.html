@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
     <head>
+        <title>Node.insertBefore</title>
         <script src="harness.js"></script>
     </head>
     <body>
@@ -16,6 +17,8 @@
                 is(root.insertBefore(before, after), before, "test1-0, insertBefore");
                 is(root.childNodes[0], before, "test1-1, insertBefore");
                 is(root.childNodes[1], after, "test1-2, insertBefore");
+
+                finish();
             }
         </script>
     </body>
