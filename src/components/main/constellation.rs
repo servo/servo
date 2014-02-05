@@ -274,7 +274,7 @@ impl Constellation {
                 pending_frames: ~[],
                 pending_sizes: HashMap::new(),
                 profiler_chan: profiler_chan,
-                window_size: Size2D(500u, 500u),
+                window_size: Size2D(800u, 600u),
                 opts: opts_clone,
             };
             constellation.run();
