@@ -2,12 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
  
- //FIXME(franremy): I need to add is_whitespace to ScannedTextRun
- //then I can count the number of whitespace text runs
- //and scale their width proportionnally using slack_ratio
- //NOTE: ignore the last whitespaces of the line, they're nut
- //NOTE: can there be whitespace inside a box?
-
 use css::node_style::StyledNode;
 use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox, SplitDidFit};
 use layout::box_::{SplitDidNotFit, UnscannedTextBox, InlineInfo};
@@ -145,7 +139,7 @@ impl LineboxScanner {
             // splice the box if needed
             let cur_box = 
                 if splice_as_much_as_possible {
-                    match cur_box_original.split_to_width_forced(/*width*/Au(0), /*is_start_of_line*/false, /*force_nonzero_split*/true, /*trim_whitespace_separators*/false) {
+                    match cur_box_original.split_asap(false, false) {
                         SplitDidFit(Some(cur_box_final), Some(cur_box_remainder)) | SplitDidNotFit(Some(cur_box_final), Some(cur_box_remainder)) => {
                             error!("did split");
                             self.work_list.push_front(cur_box_remainder);
@@ -209,7 +203,6 @@ impl LineboxScanner {
         error!("boxes.len()={}", flow.boxes.len());
         self.pending_line.was_overflown = 
             (self.pending_line.was_overflown) && (self.work_list.len() > 0 || flow.boxes.len() > 0); 
-            // FIXME: what about forced breaks?
             
         self.pending_line.was_width_overflown = 
             (self.pending_line.bounds.size.width > self.pending_line.green_zone.width);
@@ -688,39 +681,37 @@ impl InlineFlow {
     /// Sets box X positions based on alignment for one line.
     fn set_horizontal_box_positions(boxes: &[Box], line: &mut LineBox, linebox_align: text_align::T) {
         
-        // Trim any leading whitespace at the end
+        // Obtain the algorithm we should apply based on the context
+        let final_align = InlineFlow::get_final_align_for_line(line, linebox_align); 
+        
+        // Trim any trailling whitespace at the end, and compute whitespace size
         let mut whitespace_width = Au(0);
-        let mut leading_whitespace_width = Au(0);
-        let mut leading_whitespace_start = -1;
-        for i in line.range.eachi() {
+        let mut is_whitespace_trailling = true;
+        for i in line.range.eachi().invert() {
             let box_ = &boxes[i];
             if(box_.is_pure_whitespace()) {
                 let size = box_.position.get().size;
-                whitespace_width = whitespace_width + size.width;
-                leading_whitespace_width = leading_whitespace_width + size.width;
-                leading_whitespace_start = if(leading_whitespace_start==-1) {i} else {leading_whitespace_start};
-            } else {
-                leading_whitespace_width = Au(0);
-                leading_whitespace_start = -1;
-            }
-        }
-        
-        // FIXME: we should do this in one single pass by iterating from the end
-        whitespace_width = whitespace_width - leading_whitespace_width;
-        line.bounds.size.width = line.bounds.size.width - leading_whitespace_width;
-        for i in line.range.eachi() {
-            if(i>=leading_whitespace_start) {
-                let box_ = &boxes[i];
-                let size = box_.position.get().size;
-                box_.position.set(Rect(Point2D(Au(0), box_.position.get().origin.y), Size2D(Au(0), size.height)));
+                if is_whitespace_trailling {
+                    // Trim trailling whitespace
+                    line.bounds.size.width = line.bounds.size.width - size.width;
+                    box_.position.set(Rect(Point2D(Au(0), box_.position.get().origin.y), Size2D(Au(0), size.height)));
+                } else {
+                    // Compute whitespace size
+                    whitespace_width = whitespace_width + size.width;
+                }
+            } else if is_whitespace_trailling {
+                
+                // Some token was found, whitespace cannot be trailling anymore
+                is_whitespace_trailling = false;
+                
+                // OPTIMIZATION: we only need whitespace_width for justify
+                if(final_align != text_align::justify) { break; }
+                
             }
         }
         
         // Figure out how much width we have.
         let slack_width = Au::max(Au(0), line.green_zone.width - line.bounds.size.width);
-        
-        // Obtain the algorithm we should apply based on the context
-        let final_align = InlineFlow::get_final_align_for_line(line, linebox_align); 
         
         error!("");
         error!("line: {:?}", line);
@@ -738,8 +729,7 @@ impl InlineFlow {
             
             if final_align == text_align::justify {
                 
-                // TODO(burg, issue #213): Implement `text-align: justify`.
-                // ASSERT: we need to break the boxes in as-small-as-possible boxes before this step
+                // ASSERT: boxes were broken in as-small-as-possible segments before this step
                 if whitespace_width != Au(0) {
                     
                     // We don't want any initial offset
@@ -749,9 +739,9 @@ impl InlineFlow {
                     line.bounds.size.width = line.bounds.size.width + slack_width;
                     
                     // Set a special spacing between boxes
-                    let f64_whitespace_width = match whitespace_width.to_f64() { Some(v) => v, _ => 1.0 };
-                    let f64_slack_width = match slack_width.to_f64() { Some(v) => v, _ => 0.0 };
-                    ((f64_whitespace_width+f64_slack_width) / f64_whitespace_width)
+                    let whitespace_width_as_f64 = whitespace_width.to_f64().unwrap_or(1.0);
+                    let slack_width_as_f64 = slack_width.to_f64().unwrap_or(0.0);
+                    ((whitespace_width_as_f64 + slack_width_as_f64) / whitespace_width_as_f64)
                     
                 } else {
                     
@@ -776,7 +766,7 @@ impl InlineFlow {
             let box_ = &boxes[i];
             let size = box_.position.get().size;
             let new_size = 
-                if(box_.is_pure_whitespace()) {
+                if whitespace_ratio != 1.0 && box_.is_pure_whitespace() {
                     Size2D(size.width.scale_by(whitespace_ratio), size.height)
                 } else {
                     size

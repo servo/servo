@@ -22,12 +22,9 @@ pub struct TextRun {
 }
 
 impl TextRun {
+    /// returns true if the specified range only span whitespace
     pub fn is_pure_whitespace(&self, range: &Range) -> bool {
-        for (glyphs, _, _) in self.iter_slices_for_range(range) {
-            if glyphs.is_whitespace() { continue; }
-            else { return false; }
-        }
-        return true;
+        return self.iter_slices_for_range(range).all(|(glyphs, _, _)| glyphs.is_whitespace());
     }
 }
 
