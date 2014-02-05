@@ -494,6 +494,7 @@ impl InlineFlow {
     pub fn build_display_list_inline<E:ExtraDisplayListData>(
                                      &self,
                                      builder: &DisplayListBuilder,
+                                     container_block_size: &Size2D<Au>,
                                      dirty: &Rect<Au>,
                                      index: uint,
                                      lists: &RefCell<DisplayListCollection<E>>)
@@ -510,7 +511,8 @@ impl InlineFlow {
                self.boxes.len());
 
         for box_ in self.boxes.iter() {
-            box_.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, index, lists);
+            let rel_offset: Point2D<Au> = box_.relative_position(container_block_size);
+            box_.build_display_list(builder, dirty, self.base.abs_position + rel_offset, (&*self) as &Flow, index, lists);
         }
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
