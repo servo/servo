@@ -5,12 +5,14 @@
 //! CSS block formatting contexts.
 
 use layout::box_::Box;
+use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
 use layout::flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
 use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
-use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
+use layout::wrapper::ThreadSafeLayoutNode;
 
 use std::cell::RefCell;
 use geom::{Point2D, Rect, SideOffsets2D, Size2D};
@@ -66,30 +68,24 @@ pub struct BlockFlow {
 }
 
 impl BlockFlow {
-    pub fn new(base: BaseFlow) -> BlockFlow {
+    pub fn from_node(constructor: &mut FlowConstructor, node: ThreadSafeLayoutNode, is_fixed: bool)
+                     -> BlockFlow {
         BlockFlow {
-            base: base,
-            box_: None,
-            is_root: false,
-            is_fixed: false,
-            float: None
-        }
-    }
-
-    pub fn from_box(base: BaseFlow, box_: Box, is_fixed: bool) -> BlockFlow {
-        BlockFlow {
-            base: base,
-            box_: Some(box_),
+            base: BaseFlow::new(constructor.next_flow_id(), node),
+            box_: Some(Box::new(constructor, node)),
             is_root: false,
             is_fixed: is_fixed,
             float: None
         }
     }
 
-    pub fn float_from_box(base: BaseFlow, float_type: FloatType, box_: Box) -> BlockFlow {
+    pub fn float_from_node(constructor: &mut FlowConstructor,
+                           node: ThreadSafeLayoutNode,
+                           float_type: FloatType)
+                           -> BlockFlow {
         BlockFlow {
-            base: base,
-            box_: Some(box_),
+            base: BaseFlow::new(constructor.next_flow_id(), node),
+            box_: Some(Box::new(constructor, node)),
             is_root: false,
             is_fixed: false,
             float: Some(~FloatedBlockInfo::new(float_type))

@@ -23,10 +23,11 @@
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
 use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo};
-use layout::box_::{UnscannedTextBox, UnscannedTextBoxInfo, InlineInfo, InlineParentInfo};
+use layout::box_::{InlineInfo, InlineParentInfo, SpecificBoxInfo, UnscannedTextBox};
+use layout::box_::{UnscannedTextBoxInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
-use layout::flow::{BaseFlow, Flow, FlowLeafSet, ImmutableFlowUtils, MutableOwnedFlowUtils};
+use layout::flow::{Flow, FlowLeafSet, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
@@ -227,7 +228,7 @@ impl<'fc> FlowConstructor<'fc> {
     }
 
     /// Returns the next flow ID and bumps the internal counter.
-    fn next_flow_id(&self) -> int {
+    pub fn next_flow_id(&self) -> int {
         let id = self.next_flow_id.get();
         self.next_flow_id.set(id + 1);
         id
@@ -246,9 +247,10 @@ impl<'fc> FlowConstructor<'fc> {
         }
     }
 
-    /// Builds a `Box` for the given node.
-    fn build_box_for_node(&mut self, node: ThreadSafeLayoutNode) -> Box {
-        let specific = match node.type_id() {
+    /// Builds specific `Box` info for the given node.
+    pub fn build_specific_box_info_for_node(&mut self, node: ThreadSafeLayoutNode)
+                                            -> SpecificBoxInfo {
+        match node.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 match self.build_box_info_for_image(node) {
                     None => GenericBox,
@@ -258,8 +260,7 @@ impl<'fc> FlowConstructor<'fc> {
             ElementNodeTypeId(HTMLIframeElementTypeId) => IframeBox(IframeBoxInfo::new(&node)),
             TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(&node)),
             _ => GenericBox,
-        };
-        Box::new(node, specific)
+        }
     }
 
     /// Creates an inline flow from a set of inline boxes and adds it as a child of the given flow.
@@ -275,8 +276,7 @@ impl<'fc> FlowConstructor<'fc> {
             return
         }
 
-        let inline_base = BaseFlow::new(self.next_flow_id(), node);
-        let mut inline_flow = ~InlineFlow::from_boxes(inline_base, boxes) as ~Flow;
+        let mut inline_flow = ~InlineFlow::from_boxes(self.next_flow_id(), node, boxes) as ~Flow;
         inline_flow.mark_as_leaf(self.layout_context.flow_leaf_set.get());
         TextRunScanner::new().scan_for_runs(self.font_context, inline_flow);
 
@@ -391,9 +391,7 @@ impl<'fc> FlowConstructor<'fc> {
     /// other `BlockFlow`s or `InlineFlow`s underneath it, depending on whether {ib} splits needed
     /// to happen.
     fn build_flow_for_block(&mut self, node: ThreadSafeLayoutNode, is_fixed: bool) -> ~Flow {
-        let base = BaseFlow::new(self.next_flow_id(), node);
-        let box_ = self.build_box_for_node(node);
-        let mut flow = ~BlockFlow::from_box(base, box_, is_fixed) as ~Flow;
+        let mut flow = ~BlockFlow::from_node(self, node, is_fixed) as ~Flow;
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }
@@ -402,10 +400,7 @@ impl<'fc> FlowConstructor<'fc> {
     /// a `BlockFlow` underneath it.
     fn build_flow_for_floated_block(&mut self, node: ThreadSafeLayoutNode, float_type: FloatType)
                                     -> ~Flow {
-        let base = BaseFlow::new(self.next_flow_id(), node);
-        let box_ = self.build_box_for_node(node);
-
-        let mut flow = ~BlockFlow::float_from_box(base, float_type, box_) as ~Flow;
+        let mut flow = ~BlockFlow::float_from_node(self, node, float_type) as ~Flow;
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }
@@ -523,7 +518,7 @@ impl<'fc> FlowConstructor<'fc> {
     fn set_inline_info_for_inline_child(&mut self,
                                         boxes: &~[&Box],
                                         parent_node: ThreadSafeLayoutNode) {
-        let parent_box = self.build_box_for_node(parent_node);
+        let parent_box = Box::new(self, parent_node);
         let font_style = parent_box.font_style();
         let font_group = self.font_context.get_resolved_font_for_style(&font_style);
         let (font_ascent,font_descent) = font_group.borrow().with_mut( |fg| {
@@ -578,7 +573,7 @@ impl<'fc> FlowConstructor<'fc> {
         let construction_item = InlineBoxesConstructionItem(InlineBoxesConstructionResult {
             splits: None,
             boxes: ~[
-                self.build_box_for_node(node)
+                Box::new(self, node)
             ],
         });
         ConstructionItemConstructionResult(construction_item)
