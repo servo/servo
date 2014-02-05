@@ -13,7 +13,7 @@ use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
 use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
 
 use std::cell::RefCell;
-use geom::{Point2D, Rect, SideOffsets2D};
+use geom::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::{DisplayList, DisplayListCollection};
 use servo_util::geometry::Au;
 use servo_util::geometry;
@@ -533,12 +533,13 @@ impl BlockFlow {
     pub fn build_display_list_block<E:ExtraDisplayListData>(
                                     &mut self,
                                     builder: &DisplayListBuilder,
+                                    container_block_size: &Size2D<Au>,
                                     dirty: &Rect<Au>,
                                     mut index: uint,
                                     lists: &RefCell<DisplayListCollection<E>>)
                                     -> uint {
         if self.is_float() {
-            self.build_display_list_float(builder, dirty, index, lists);
+            self.build_display_list_float(builder, container_block_size, dirty, index, lists);
             return index;
         }
 
@@ -556,16 +557,28 @@ impl BlockFlow {
 
         debug!("build_display_list_block: adding display element");
 
+        let rel_offset = match self.box_ {
+            Some(ref box_) => {
+                box_.relative_position(container_block_size)
+            },
+            None => {
+                Point2D {
+                    x: Au::new(0),
+                    y: Au::new(0),
+                }
+            }
+        };
+
         // add box that starts block context
         for box_ in self.box_.iter() {
-            box_.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, index, lists);
+            box_.build_display_list(builder, dirty, self.base.abs_position + rel_offset, (&*self) as &Flow, index, lists);
         }
         // TODO: handle any out-of-flow elements
         let this_position = self.base.abs_position;
 
         for child in self.base.child_iter() {
             let child_base = flow::mut_base(*child);
-            child_base.abs_position = this_position + child_base.position.origin;
+            child_base.abs_position = this_position + child_base.position.origin + rel_offset;
         }
 
         index
@@ -574,6 +587,7 @@ impl BlockFlow {
     pub fn build_display_list_float<E:ExtraDisplayListData>(
                                     &mut self,
                                     builder: &DisplayListBuilder,
+                                    container_block_size: &Size2D<Au>,
                                     dirty: &Rect<Au>,
                                     index: uint,
                                     lists: &RefCell<DisplayListCollection<E>>)
@@ -583,8 +597,21 @@ impl BlockFlow {
             return true;
         }
 
+        // position:relative
+        let rel_offset = match self.box_ {
+            Some(ref box_) => {
+                box_.relative_position(container_block_size)
+            },
+            None => {
+                Point2D {
+                    x: Au::new(0),
+                    y: Au::new(0),
+                }
+            }
+        };
 
-        let offset = self.base.abs_position + self.float.get_ref().rel_pos;
+
+        let offset = self.base.abs_position + self.float.get_ref().rel_pos + rel_offset;
         // add box that starts block context
         for box_ in self.box_.iter() {
             box_.build_display_list(builder, dirty, offset, (&*self) as &Flow, index, lists);
@@ -596,7 +623,7 @@ impl BlockFlow {
         // go deeper into the flow tree
         for child in self.base.child_iter() {
             let child_base = flow::mut_base(*child);
-            child_base.abs_position = offset + child_base.position.origin;
+            child_base.abs_position = offset + child_base.position.origin + rel_offset;
         }
 
         false
