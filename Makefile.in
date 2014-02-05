@@ -210,28 +210,28 @@ DONE_SUBMODULES = $(foreach submodule,$(SUBMODULES),$(DONE_$(submodule)))
 
 RFLAGS_util = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
 SRC_util = $(call rwildcard,$(S)src/components/util/,*.rs)
-CRATE_util = $(S)src/components/util/util.rc
+CRATE_util = $(S)src/components/util/util.rs
 DONE_util = $(B)src/components/util/libutil.dummy
 
 DEPS_util = $(CRATE_util) $(SRC_util) $(DONE_SUBMODULES)
 
 RFLAGS_net = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util
 SRC_net = $(call rwildcard,$(S)src/components/net/,*.rs)
-CRATE_net = $(S)src/components/net/net.rc
+CRATE_net = $(S)src/components/net/net.rs
 DONE_net = $(B)src/components/net/libnet.dummy
 
 DEPS_net = $(CRATE_net) $(SRC_net) $(DONE_SUBMODULES) $(DONE_util)
 
 RFLAGS_msg = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
 SRC_msg = $(call rwildcard,$(S)src/components/msg/,*.rs)
-CRATE_msg = $(S)src/components/msg/msg.rc
+CRATE_msg = $(S)src/components/msg/msg.rs
 DONE_msg = $(B)src/components/msg/libmsg.dummy
 
 DEPS_msg = $(CRATE_msg) $(SRC_msg) $(DONE_SUBMODULES)
 
 RFLAGS_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg
 SRC_gfx = $(call rwildcard,$(S)src/components/gfx/,*.rs)
-CRATE_gfx = $(S)src/components/gfx/gfx.rc
+CRATE_gfx = $(S)src/components/gfx/gfx.rs
 DONE_gfx = $(B)src/components/gfx/libgfx.dummy
 
 DEPS_gfx = $(CRATE_gfx) $(SRC_gfx) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg)
@@ -246,7 +246,7 @@ BINDINGS_script = $(patsubst %.webidl, %Binding.rs, $(WEBIDLS_script))
 AUTOGEN_SRC_script = $(foreach var, $(BINDINGS_script), $(subst $(WEBIDLS_SRC), $(BINDINGS_SRC), $(var)))
 
 SRC_script = $(call rwildcard,$(S)src/components/script/,*.rs) $(AUTOGEN_SRC_script)
-CRATE_script = $(S)src/components/script/script.rc
+CRATE_script = $(S)src/components/script/script.rs
 DONE_script = $(B)src/components/script/libscript.dummy
 
 DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg)
@@ -256,7 +256,7 @@ MAKO_ZIP = $(S)src/components/style/Mako-0.8.1.zip
 MAKO_style = $(S)src/components/style/properties.rs
 MAKO_SRC_style = $(MAKO_style).mako
 SRC_style = $(call rwildcard,$(S)src/components/style/,*.rs) $(MAKO_style)
-CRATE_style = $(S)src/components/style/style.rc
+CRATE_style = $(S)src/components/style/style.rs
 DONE_style = $(B)src/components/style/libstyle.dummy
 
 DEPS_style = $(CRATE_style) $(SRC_style) $(DONE_SUBMODULES) $(DONE_util)
@@ -264,7 +264,7 @@ DEPS_style = $(CRATE_style) $(SRC_style) $(DONE_SUBMODULES) $(DONE_util)
 RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg
 
 SRC_servo = $(call rwildcard,$(S)src/components/main/,*.rs)
-CRATE_servo = $(S)src/components/main/servo.rc
+CRATE_servo = $(S)src/components/main/servo.rs
 
 DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_script) $(DONE_net) $(DONE_msg) $(DONE_style)
 
