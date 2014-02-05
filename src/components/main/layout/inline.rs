@@ -9,9 +9,9 @@ use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
 use layout::flow;
-use layout::float_context::FloatContext;
+use layout::float_context::{FloatContext, FloatLeft, PlacementInfo};
 use layout::util::ElementMapping;
-use layout::float_context::{PlacementInfo, FloatLeft};
+use layout::wrapper::ThreadSafeLayoutNode;
 
 use extra::container::Deque;
 use extra::ringbuf::RingBuf;
@@ -466,18 +466,9 @@ pub struct InlineFlow {
 }
 
 impl InlineFlow {
-    pub fn new(base: BaseFlow) -> InlineFlow {
+    pub fn from_boxes(id: int, node: ThreadSafeLayoutNode, boxes: ~[Box]) -> InlineFlow {
         InlineFlow {
-            base: base,
-            boxes: ~[],
-            lines: ~[],
-            elems: ElementMapping::new(),
-        }
-    }
-
-    pub fn from_boxes(base: BaseFlow, boxes: ~[Box]) -> InlineFlow {
-        InlineFlow {
-            base: base,
+            base: BaseFlow::new(id, node),
             boxes: boxes,
             lines: ~[],
             elems: ElementMapping::new(),
