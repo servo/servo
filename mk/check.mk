@@ -82,7 +82,10 @@ check-servo: $(foreach lib_crate,$(SERVO_LIB_CRATES),check-servo-$(lib_crate)) s
 .PHONY: check-ref
 check-ref: reftest
 	@$(call E, check: reftests)
+	@$(call E, rendering with gpu)
 	$(Q)./reftest $(S)src/test/ref/*.list
+	@$(call E, rendering with cpu)
+	$(Q)RENDER_WITH_CPU=true ./reftest $(S)src/test/ref/*.list
 
 .PHONY: check-content
 check-content: contenttest
