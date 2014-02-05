@@ -14,7 +14,6 @@ use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextD
 use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags, ClipDisplayItem};
 use gfx::display_list::{ClipDisplayItemClass, DisplayListCollection};
 use gfx::font::FontStyle;
-
 use gfx::text::text_run::TextRun;
 use servo_msg::constellation_msg::{FrameRectMsg, PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
@@ -33,6 +32,7 @@ use style::computed_values::{border_style, clear, font_family, line_height, posi
 use style::computed_values::{text_align, text_decoration, vertical_align, visibility, white_space};
 
 use css::node_style::StyledNode;
+use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
@@ -298,7 +298,7 @@ pub struct InlineParentInfo {
 
 impl Box {
     /// Constructs a new `Box` instance.
-    pub fn new(node: ThreadSafeLayoutNode, specific: SpecificBoxInfo) -> Box {
+    pub fn new(constructor: &mut FlowConstructor, node: ThreadSafeLayoutNode) -> Box {
         Box {
             node: OpaqueNode::from_thread_safe_layout_node(&node),
             style: node.style().clone(),
@@ -306,7 +306,7 @@ impl Box {
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
-            specific: specific,
+            specific: constructor.build_specific_box_info_for_node(node),
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: RefCell::new(None),
             new_line_pos: ~[],
