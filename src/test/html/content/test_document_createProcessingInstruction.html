@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            // test1: createProcessingInstruction
+            {
+                var pi = document.createProcessingInstruction("xml-stylesheet", "href=\"mycss.css\" type=\"text/css\"");
+                isnot(pi, null, "test1-0: createProcessingInstruction");
+                is_a(pi, ProcessingInstruction, "test1-1: createProcessingInstruction");
+                is(pi.target, "xml-stylesheet", "test1-2: createProcessingInstruction");
+                is(pi.data, "href=\"mycss.css\" type=\"text/css\"", "test1-3: createProcessingInstruction");
+            }
+
+            finish();
+        </script>
+    </head>
+</html>

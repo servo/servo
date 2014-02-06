@@ -18,6 +18,7 @@ use dom::htmldocument::HTMLDocument;
 use dom::mouseevent::MouseEvent;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, DocumentNodeTypeId};
 use dom::text::Text;
+use dom::processinginstruction::ProcessingInstruction;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::htmltitleelement::HTMLTitleElement;
@@ -274,6 +275,23 @@ impl Document {
 
     pub fn CreateComment(&self, abstract_self: AbstractDocument, data: DOMString) -> AbstractNode {
         Comment::new(data, abstract_self)
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
+    pub fn CreateProcessingInstruction(&self, abstract_self: AbstractDocument, target: DOMString,
+                                       data: DOMString) -> Fallible<AbstractNode> {
+        // Step 1.
+        if xml_name_type(target) == InvalidXMLName {
+            return Err(InvalidCharacter);
+        }
+
+        // Step 2.
+        if data.contains("?>") {
+            return Err(InvalidCharacter);
+        }
+
+        // Step 3.
+        Ok(ProcessingInstruction::new(target, data, abstract_self))
     }
 
     pub fn CreateEvent(&self, interface: DOMString) -> Fallible<AbstractEvent> {

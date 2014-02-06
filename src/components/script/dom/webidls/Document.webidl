@@ -50,8 +50,8 @@ interface Document : Node {
   Text createTextNode(DOMString data);
   [Creator]
   Comment createComment(DOMString data);
-  /*[Creator, Throws]
-  ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);*/
+  [Creator, Throws]
+  ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);
 
   /*[Throws]
   Node importNode(Node node, optional boolean deep = true);
