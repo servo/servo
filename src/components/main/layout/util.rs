@@ -130,7 +130,6 @@ impl ElementMapping {
     }
 }
 
-#[deriving(Clone)]
 pub struct PseudoNode {
     parent: LayoutPseudoNode,
     element: LayoutPseudoNode
@@ -209,11 +208,13 @@ impl PrivateLayoutData {
         self.after_applicable_declarations = SmallVec0::new();
     }
 
-    pub fn get_pseudo_element(&self, pseudo_element: PseudoElement) -> Option<PseudoNode> {
+    pub fn get_pseudo_element<'a>(&'a self, pseudo_element: PseudoElement) -> Option<&'a PseudoNode> {
         if pseudo_element == Before {
-            self.before.clone()
+            self.before.as_ref()
+        } else if pseudo_element == After{
+            self.after.as_ref()
         } else {
-            self.after.clone()
+            None
         }
     }
 }
