@@ -77,7 +77,7 @@ impl AbstractDocument {
         }
     }
 
-    pub fn from_node(node: AbstractNode) -> AbstractDocument {
+    pub fn from_node<'a>(node: &'a AbstractNode) -> &'a AbstractDocument {
         if !node.is_document() {
             fail!("node is not a document");
         }

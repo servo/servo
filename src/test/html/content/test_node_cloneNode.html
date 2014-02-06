@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            // test1: createElement
+            {
+            }
+
+            // test2: createDocumentFragment
+            {
+            }
+
+            // test3: createTextNode
+            {
+                var text = document.createTextNode("hello world");
+                var copy = text.cloneNode();
+                is_a(text && text, Text);
+                is_a(copy && copy, Text);
+                is(text.data, copy.data);
+                is(text.wholeText, copy.wholeText);
+            }
+
+            // test4: createComment
+            {
+                var comment = document.createComment("a comment");
+                var copy = comment.cloneNode();
+                is_a(comment && comment, Comment);
+                is_a(copy && copy, Comment);
+                is(comment.data, copy.data);
+            }
+
+            // test5: createProcessingInstruction
+            {
+                var pi = document.createProcessingInstruction("target", "data");
+                var copy = pi.cloneNode();
+                is_a(pi && pi, ProcessingInstruction);
+                is_a(copy && copy, ProcessingInstruction);
+                is(pi.data, copy.data);
+                is(pi.target, pi.target);
+            }
+
+            // test6: implementation.createDocumentType
+            {
+            }
+
+            // test7: implementation.createDocument
+            {
+            }
+
+            // test8: implementation.createHTMLDocument
+            {
+            }
+
+            // test9: node with children
+            {
+                var parent = document.createElement("div");
+                parent.id = "parent";
+
+                var child = document.createElement("div");
+                child.id = "child";
+
+                parent.appendChild(child);
+
+                var deep = true;
+                var copy = parent.cloneNode(deep);
+                is_a(copy && copy, HTMLDivElement);
+                is(parent.id, copy.id);
+                is(copy.childNodes.length, 1);
+                is(copy.childNodes[0].id, child.id);
+
+                deep = false;
+                var copy2 = parent.cloneNode(deep);
+                is_a(copy2 && copy2, HTMLDivElement);
+                is(parent.id, copy2.id);
+                is(copy2.childNodes.length, 0);
+            }
+
+            finish();
+        </script>
+    </head>
+</html>
