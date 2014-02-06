@@ -256,6 +256,14 @@ impl UnscannedTextBoxInfo {
             text: node.text(),
         }
     }
+
+    /// Creates a new instance of `UnscannedTextBoxInfo` from the given text.
+    #[inline]
+    pub fn from_text(text: ~str) -> UnscannedTextBoxInfo {
+        UnscannedTextBoxInfo {
+            text: text,
+        }
+    }
 }
 
 /// Represents the outcome of attempting to split a box.
@@ -307,6 +315,25 @@ impl Box {
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
             specific: constructor.build_specific_box_info_for_node(node),
+            position_offsets: RefCell::new(Zero::zero()),
+            inline_info: RefCell::new(None),
+            new_line_pos: ~[],
+        }
+    }
+
+    /// Constructs a new `Box` instance from an opaque node.
+    pub fn from_opaque_node_and_style(node: OpaqueNode,
+                                      style: Arc<ComputedValues>,
+                                      specific: SpecificBoxInfo)
+                                      -> Box {
+        Box {
+            node: node,
+            style: style,
+            position: RefCell::new(Au::zero_rect()),
+            border: RefCell::new(Zero::zero()),
+            padding: RefCell::new(Zero::zero()),
+            margin: RefCell::new(Zero::zero()),
+            specific: specific,
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: RefCell::new(None),
             new_line_pos: ~[],
