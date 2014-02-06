@@ -37,8 +37,10 @@ use gfx::font_context::FontContext;
 use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, TextNodeTypeId};
-use style::computed_values::{display, position, float};
+use style::computed_values::{display, position, float, white_space};
+use style::ComputedValues;
 
+use extra::arc::Arc;
 use std::cell::RefCell;
 use std::util;
 use std::num::Zero;
@@ -74,6 +76,8 @@ impl ConstructionResult {
 enum ConstructionItem {
     /// Inline boxes and associated {ib} splits that have not yet found flows.
     InlineBoxesConstructionItem(InlineBoxesConstructionResult),
+    /// Potentially ignorable whitespace.
+    WhitespaceConstructionItem(OpaqueNode, Arc<ComputedValues>),
 }
 
 impl ConstructionItem {
@@ -86,6 +90,7 @@ impl ConstructionItem {
                     }
                 }
             }
+            WhitespaceConstructionItem(..) => {}
         }
     }
 }
@@ -369,6 +374,9 @@ impl<'fc> FlowConstructor<'fc> {
                     // Add the boxes to the list we're maintaining.
                     opt_boxes_for_inline_flow.push_all_move(boxes)
                 }
+                ConstructionItemConstructionResult(WhitespaceConstructionItem(..)) => {
+                    // Nothing to do here.
+                }
             }
         }
 
@@ -456,6 +464,15 @@ impl<'fc> FlowConstructor<'fc> {
 
                     // Push residual boxes.
                     opt_box_accumulator.push_all_move(boxes)
+                }
+                ConstructionItemConstructionResult(WhitespaceConstructionItem(whitespace_node,
+                                                                              whitespace_style))
+                        => {
+                    // Instantiate the whitespace box.
+                    opt_box_accumulator.push(Box::from_opaque_node_and_style(
+                            whitespace_node,
+                            whitespace_style,
+                            UnscannedTextBox(UnscannedTextBoxInfo::from_text(~" "))))
                 }
             }
         }
@@ -570,6 +587,14 @@ impl<'fc> FlowConstructor<'fc> {
             kid.set_flow_construction_result(NoConstructionResult)
         }
 
+        // If this node is ignorable whitespace, bail out now.
+        if node.is_ignorable_whitespace() {
+            let opaque_node = OpaqueNode::from_thread_safe_layout_node(&node);
+            return ConstructionItemConstructionResult(WhitespaceConstructionItem(
+                opaque_node,
+                node.style().clone()))
+        }
+
         let construction_item = InlineBoxesConstructionItem(InlineBoxesConstructionResult {
             splits: None,
             boxes: ~[
@@ -628,7 +653,6 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             (display::inline, float::none, _) => {
                 let construction_result = self.build_boxes_for_inline(node);
                 node.set_flow_construction_result(construction_result)
-
             }
 
             // Block flows that are not floated contribute block flow construction results.
@@ -662,6 +686,9 @@ trait NodeUtils {
     /// Returns true if this node doesn't render its kids and false otherwise.
     fn is_replaced_content(self) -> bool;
 
+    /// Returns true if this node is ignorable whitespace.
+    fn is_ignorable_whitespace(self) -> bool;
+
     /// Sets the construction result of a flow.
     fn set_flow_construction_result(self, result: ConstructionResult);
 
@@ -680,6 +707,33 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
             DocumentNodeTypeId(_) |
             ElementNodeTypeId(HTMLImageElementTypeId) => true,
             ElementNodeTypeId(_) => false,
+        }
+    }
+
+    fn is_ignorable_whitespace(self) -> bool {
+        match self.type_id() {
+            TextNodeTypeId => {
+                unsafe {
+                    if !self.with_text(|text| text.element
+                                                  .data
+                                                  .chars()
+                                                  .all(|c| c.is_whitespace())) {
+                        return false
+                    }
+
+                    // NB: See the rules for `white-space` here:
+                    //
+                    //    http://www.w3.org/TR/CSS21/text.html#propdef-white-space
+                    //
+                    // If you implement other values for this property, you will almost certainly
+                    // want to update this check.
+                    match self.style().get().Text.white_space {
+                        white_space::normal => true,
+                        _ => false,
+                    }
+                }
+            }
+            _ => false
         }
     }
 
