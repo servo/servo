@@ -149,7 +149,6 @@ impl TableCellFlow {
             // last_child.floats_out -> self.floats_out (done at the end of this method)
             float_ctx = self.base.floats_in.translate(Point2D(-left_offset, -top_offset));
             for kid in self.base.child_iter() {
-                println!("{:?}", float_ctx);
                 flow::mut_base(*kid).floats_in = float_ctx.clone();
                 kid.assign_height_inorder(ctx);
                 float_ctx = flow::mut_base(*kid).floats_out.clone();

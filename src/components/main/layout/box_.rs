@@ -366,6 +366,36 @@ impl Box {
         }
     }
 
+    /// Constructs a new `Box` instance for an anonymous table object.
+    pub fn new_anonymous_table_box(node: LayoutNode, specific: SpecificBoxInfo) -> Box {
+        // The `node` is the nearest ancestor element of the anonymous table object.
+        // Take its inherited style.
+        // CSS 2.1 § 17.2.1 This is for non-inherited properties on anonymous table boxes
+        // example:
+        //
+        //     <div style="display: table">
+        //         Foo
+        //     </div>
+        //
+        // Anonymous table boxes, TableRowBox and TableCellBox, are generated around `Foo`, but it shouldn't inherit the border.
+
+        let node_style = Arc::new(cascade(&[Arc::new(~[])],
+                                          Some(node.style().get())));
+
+        Box {
+            node: OpaqueNode::from_layout_node(&node),
+            style: node_style,
+            position: RefCell::new(Au::zero_rect()),
+            border: RefCell::new(Zero::zero()),
+            padding: RefCell::new(Zero::zero()),
+            margin: RefCell::new(Zero::zero()),
+            specific: specific,
+            position_offsets: RefCell::new(Zero::zero()),
+            inline_info: RefCell::new(None),
+            new_line_pos: ~[],
+        }
+    }
+
     /// Returns a debug ID of this box. This ID should not be considered stable across multiple
     /// layouts or box manipulations.
     pub fn debug_id(&self) -> uint {

@@ -458,20 +458,27 @@ impl Flow for TableFlow {
         let mut min_width = Au::new(0);
         let mut pref_width = Au::new(0);
         let mut num_floats = 0;
+        let mut first_row = false;
 
         /* find max width from child block contexts */
         for kid in self.base.child_iter() {
-            assert!(kid.starts_block_flow() || kid.starts_table_flow());
+            assert!(kid.is_proper_table_child());
 
             if kid.is_table_colgroup() {
                 self.col_widths.push_all(kid.as_table_colgroup().widths);
-            } else if kid.is_table_rowgroup() {
+            } else if kid.is_table_rowgroup() || kid.is_table_row() {
                 // read column widths from table-row-group, and assign
                 // width=0 for the columns not defined in column-group
                 // FIXME: need to read widths from either table-header-group OR
                 // first table-row
-                if self.is_fixed_table_layout {
-                    let mut child_widths = kid.as_table_rowgroup().col_widths.mut_iter();
+                let kid_col_widths = if kid.is_table_rowgroup() {
+                    &kid.as_table_rowgroup().col_widths
+                } else {
+                    &kid.as_table_row().col_widths
+                };
+                if self.is_fixed_table_layout && !first_row {
+                    first_row = true;
+                    let mut child_widths = kid_col_widths.iter();
                     for col_width in self.col_widths.mut_iter() {
                         match child_widths.next() {
                             Some(child_width) => {
@@ -483,11 +490,11 @@ impl Flow for TableFlow {
                         }
                     }
                 }
-                let num_child_cols = kid.as_table_rowgroup().col_widths.len();
+                let num_child_cols = kid_col_widths.len();
                 let num_cols = self.col_widths.len();
                 debug!("{:?} column(s) from colgroup, but the child has {:?} column(s)", num_cols, num_child_cols);
                 for i in range(num_cols, num_child_cols) {
-                    self.col_widths.push( kid.as_table_rowgroup().col_widths[i] );
+                    self.col_widths.push( kid_col_widths[i] );
                 }
             }
 
@@ -614,16 +621,19 @@ impl Flow for TableFlow {
         // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
-            assert!(kid.starts_block_flow() || kid.starts_table_flow());
+            assert!(kid.is_proper_table_child());
 
+            let final_col_widths = self.col_widths.map(|width| {
+                if *width == Au(0) {
+                    final_cell_width
+                } else {
+                    *width
+                }
+            });
             if kid.is_table_rowgroup() {
-                kid.as_table_rowgroup().col_widths = self.col_widths.map(|width| {
-                    if *width == Au(0) {
-                        final_cell_width
-                    } else {
-                        *width
-                    }
-                });
+                kid.as_table_rowgroup().col_widths = final_col_widths;
+            } else if kid.is_table_row() {
+                kid.as_table_row().col_widths = final_col_widths;
             }
 
             let child_base = flow::mut_base(*kid);

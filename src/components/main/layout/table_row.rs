@@ -449,7 +449,7 @@ impl Flow for TableRowFlow {
 
         /* find max width from child block contexts */
         for kid in self.base.child_iter() {
-            assert!(kid.starts_table_flow());
+            assert!(kid.is_table_cell());
 
             for child_box in kid.as_table_cell().box_.iter() {
                 let child_specified_width = MaybeAuto::from_style(child_box.style().Box.width,
@@ -544,7 +544,7 @@ impl Flow for TableRowFlow {
         let flags_info = self.base.flags_info.clone();
         let mut i = 0;
         for kid in self.base.child_iter() {
-            assert!(kid.starts_table_flow());
+            assert!(kid.is_table_cell());
 
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;

@@ -448,22 +448,16 @@ impl Flow for TableRowGroupFlow {
 
         /* find max width from child block contexts */
         for kid in self.base.child_iter() {
-            assert!(kid.starts_table_flow());
+            assert!(kid.is_table_row());
             if self.col_widths.is_empty() {
                 self.col_widths = kid.as_table_row().col_widths.clone();
             } else {
                 let num_cols = self.col_widths.len();
                 let num_child_cols = kid.as_table_row().col_widths.len();
-                let diff = if num_child_cols > num_cols {
-                    num_child_cols - num_cols
-                } else {
-                    0
-                };
-                for _ in range(0, diff) {
-                    self.col_widths.push (Au::new(0));
+                for _ in range(num_cols, num_child_cols) {
+                    self.col_widths.push(Au::new(0));
                 }
             }
-
             let child_base = flow::mut_base(*kid);
             min_width = geometry::max(min_width, child_base.min_width);
             pref_width = geometry::max(pref_width, child_base.pref_width);
@@ -550,7 +544,7 @@ impl Flow for TableRowGroupFlow {
         // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
-            assert!(kid.starts_table_flow());
+            assert!(kid.is_table_row());
 
             kid.as_table_row().col_widths = self.col_widths.clone();
 

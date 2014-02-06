@@ -31,6 +31,7 @@ use layout::flow::{BaseFlow, Flow, LeafSet, MutableOwnedFlowUtils, ImmutableFlow
 use layout::inline::InlineFlow;
 use layout::table_wrapper::TableWrapperFlow;
 use layout::table::TableFlow;
+use layout::table_caption::TableCaptionFlow;
 use layout::table_colgroup::TableColGroupFlow;
 use layout::table_rowgroup::TableRowGroupFlow;
 use layout::table_row::TableRowFlow;
@@ -83,6 +84,8 @@ impl ConstructionResult {
 enum ConstructionItem {
     /// Inline boxes and associated {ib} splits that have not yet found flows.
     InlineBoxesConstructionItem(InlineBoxesConstructionResult),
+    /// TableColumn Box
+    TableColumnBoxConstructionItem(Box),
 }
 
 impl ConstructionItem {
@@ -94,6 +97,8 @@ impl ConstructionItem {
                         split.destroy(leaf_set)
                     }
                 }
+            }
+            TableColumnBoxConstructionItem(_) => {
             }
         }
     }
@@ -311,6 +316,36 @@ impl<'fc> FlowConstructor<'fc> {
         }
     }
 
+    /// Creates an inline flow from a set of inline boxes and adds it as a child of the given flow.
+    ///
+    /// `#[inline(always)]` because this is performance critical and LLVM will not inline it
+    /// otherwise.
+    #[inline(always)]
+    fn flush_inline_boxes_to_flow_list(&mut self, boxes: ~[Box], flow_list: &mut ~[~Flow], node: LayoutNode) {
+        if boxes.len() == 0 {
+            return
+        }
+
+        let inline_base = BaseFlow::new(self.next_flow_id(), node);
+        let mut inline_flow = ~InlineFlow::from_boxes(inline_base, boxes) as ~Flow;
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&inline_flow));
+        TextRunScanner::new().scan_for_runs(self.font_context, inline_flow);
+
+        flow_list.push(inline_flow);
+    }
+
+    /// Creates an inline flow from a set of inline boxes, if present, and adds it as a child of
+    /// the given flow.
+    fn flush_inline_boxes_to_flow_list_if_necessary(&mut self,
+                                               opt_boxes: &mut Option<~[Box]>,
+                                               flow_list: &mut ~[~Flow],
+                                               node: LayoutNode) {
+        let opt_boxes = util::replace(opt_boxes, None);
+        if opt_boxes.len() > 0 {
+            self.flush_inline_boxes_to_flow_list(opt_boxes.to_vec(), flow_list, node)
+        }
+    }
+
     /// Builds the children flows underneath a node with `display: block`. After this call,
     /// other `BlockFlow`s or `InlineFlow`s will be populated underneath this node, depending on
     /// whether {ib} splits needed to happen.
@@ -392,6 +427,10 @@ impl<'fc> FlowConstructor<'fc> {
 
                     // Add the boxes to the list we're maintaining.
                     opt_boxes_for_inline_flow.push_all_move(boxes)
+                }
+                ConstructionItemConstructionResult(_) => {
+                    // TODO: Implement anonymous table objects for missing parents
+                    // CSS 2.1 § 17.2.1, step 3-2
                 }
             }
         }
@@ -484,6 +523,10 @@ impl<'fc> FlowConstructor<'fc> {
 
                     // Push residual boxes.
                     opt_box_accumulator.push_all_move(boxes)
+                }
+                ConstructionItemConstructionResult(_) => {
+                    // TODO: Implement anonymous table objects for missing parents
+                    // CSS 2.1 § 17.2.1, step 3-2
                 }
             }
         }
@@ -619,40 +662,144 @@ impl<'fc> FlowConstructor<'fc> {
 
     fn build_children_of_table_wrapper_flow(&mut self,
                                            table_wrapper_flow: &mut ~Flow,
-                                           table_flow: &mut ~Flow,
                                            node: LayoutNode) {
         for kid in node.children() {
             match kid.swap_out_construction_result() {
                 NoConstructionResult | ConstructionItemConstructionResult(_) => {}
                 FlowConstructionResult(kid_flow) => {
+                    // Only kid flows with table-caption are matched here.
+                    assert!(kid_flow.is_table_caption());
                     let mut kid_flow = Some(kid_flow);
                     self.layout_context.leaf_set.access(|leaf_set| {
-                        if kid_flow.get_ref().is_block_like() {
-                            table_wrapper_flow.add_new_child(kid_flow.take_unwrap(), leaf_set);
-                        } else if kid_flow.get_ref().starts_table_flow() {
-                            table_flow.add_new_child(kid_flow.take_unwrap(), leaf_set);
-                        }
-                    })
+                        table_wrapper_flow.add_new_child(kid_flow.take_unwrap(), leaf_set);
+                    });
                 }
             }
         }
     }
 
+    fn generate_anonymous_missing_child(&mut self, child_flows: ~[~Flow], flow: &mut ~Flow, node: LayoutNode) {
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let mut anonymous_flow = flow.generate_missing_child_flow(base, node);
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&anonymous_flow));
+
+        let mut consecutive_siblings = ~[];
+        for kid_flow in child_flows.move_iter() {
+            if anonymous_flow.need_anonymous_flow(kid_flow) {
+                consecutive_siblings.push(kid_flow);
+                continue;
+            }
+            if !consecutive_siblings.is_empty() {
+                self.generate_anonymous_missing_child(consecutive_siblings, &mut anonymous_flow, node);
+                consecutive_siblings = ~[];
+            }
+            let mut kid_flow = Some(kid_flow);
+            self.layout_context.leaf_set.access(|leaf_set| {
+                anonymous_flow.add_new_child(kid_flow.take_unwrap(), leaf_set);
+            });
+        }
+        if !consecutive_siblings.is_empty() {
+            self.generate_anonymous_missing_child(consecutive_siblings, &mut anonymous_flow, node);
+        }
+        let mut anonymous_flow = Some(anonymous_flow);
+        self.layout_context.leaf_set.access(|leaf_set| {
+            flow.add_new_child(anonymous_flow.take_unwrap(), leaf_set)
+        })
+    }
 
     fn build_children_of_table_flow(&mut self,
                                     flow: &mut ~Flow,
                                     node: LayoutNode) {
+        let mut consecutive_siblings = ~[];
+        // Gather up boxes for the inline flows we might need to create.
+        let mut opt_boxes_for_inline_flow = None;
+        let mut first_box = true;
         // Ignore inline flows we might need to create.
         for kid in node.children() {
             match kid.swap_out_construction_result() {
-                NoConstructionResult | ConstructionItemConstructionResult(_) => {}
+                NoConstructionResult => {}
                 FlowConstructionResult(kid_flow) => {
-                    let mut kid_flow = Some(kid_flow);
-                    self.layout_context.leaf_set.access(|leaf_set| {
-                        flow.add_new_child(kid_flow.take_unwrap(), leaf_set)
-                    })
+                    // If kid_flow is TableCaptionFlow, kid_flow should be added under TableWrapperFlow.
+                    if flow.is_table() && kid_flow.is_table_caption() { 
+                        kid.set_flow_construction_result(FlowConstructionResult(kid_flow));
+                        continue; 
+                    }
+                    if flow.need_anonymous_flow(kid_flow) {
+                        consecutive_siblings.push(kid_flow);
+                    } else {
+                        self.flush_inline_boxes_to_flow_list_if_necessary(&mut opt_boxes_for_inline_flow,
+                                                                          &mut consecutive_siblings,
+                                                                          node);
+                        if !consecutive_siblings.is_empty() {
+                            self.generate_anonymous_missing_child(consecutive_siblings, flow, node);
+                            consecutive_siblings = ~[];
+                        }
+                        let mut kid_flow = Some(kid_flow);
+                        self.layout_context.leaf_set.access(|leaf_set| {
+                            flow.add_new_child(kid_flow.take_unwrap(), leaf_set)
+                        })
+                    }
+                }
+                ConstructionItemConstructionResult(InlineBoxesConstructionItem(
+                        InlineBoxesConstructionResult {
+                            splits: opt_splits,
+                            boxes: boxes
+                        })) => {
+                    // Add any {ib} splits.
+                    match opt_splits {
+                        None => {}
+                        Some(splits) => {
+                            for split in splits.move_iter() {
+                                // Pull apart the {ib} split object and push its predecessor boxes
+                                // onto the list.
+                                let InlineBlockSplit {
+                                    predecessor_boxes: predecessor_boxes,
+                                    flow: kid_flow
+                                } = split;
+                                opt_boxes_for_inline_flow.push_all_move(predecessor_boxes);
+
+                                // If this is the first box in flow, then strip ignorable
+                                // whitespace per CSS 2.1 § 9.2.1.1.
+                                if first_box {
+                                    strip_ignorable_whitespace_from_start(
+                                        &mut opt_boxes_for_inline_flow);
+                                    first_box = false
+                                }
+
+                                // Flush any inline boxes that we were gathering up.
+                                debug!("flushing {} inline box(es) to flow A",
+                                       opt_boxes_for_inline_flow.as_ref()
+                                                                .map_default(0,
+                                                                             |boxes| boxes.len()));
+                                self.flush_inline_boxes_to_flow_list_if_necessary(
+                                        &mut opt_boxes_for_inline_flow,
+                                        &mut consecutive_siblings,
+                                        node);
+
+                                // Push the flow generated by the {ib} split onto our list of
+                                // flows.
+                                consecutive_siblings.push(kid_flow);
+                            }
+                        }
+                    }
+
+                    // Add the boxes to the list we're maintaining.
+                    opt_boxes_for_inline_flow.push_all_move(boxes)
+                }
+                ConstructionItemConstructionResult(TableColumnBoxConstructionItem(_)) => {
+                    // TODO: Implement anonymous table objects for missing parents
+                    // CSS 2.1 § 17.2.1, step 3-2
                 }
             }
+        }
+        // Perform a final flush of any inline boxes that we were gathering up to handle {ib}
+        // splits, after stripping ignorable whitespace.
+        strip_ignorable_whitespace_from_end(&mut opt_boxes_for_inline_flow);
+        self.flush_inline_boxes_to_flow_list_if_necessary(&mut opt_boxes_for_inline_flow,
+                                                     &mut consecutive_siblings,
+                                                     node);
+        if !consecutive_siblings.is_empty() {
+            self.generate_anonymous_missing_child(consecutive_siblings, flow, node);
         }
     }
 
@@ -672,7 +819,8 @@ impl<'fc> FlowConstructor<'fc> {
         let mut table_flow = ~TableFlow::from_box(table_base, table_box_, is_fixed) as ~Flow;
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&table_flow));
 
-        self.build_children_of_table_wrapper_flow(&mut wrapper_flow, &mut table_flow, node);
+        self.build_children_of_table_flow(&mut table_flow, node);
+        self.build_children_of_table_wrapper_flow(&mut wrapper_flow, node);
 
         // NOTE: The order of captions and table are not the same order as in the DOM tree.
         // All caption blocks are placed before the table flow
@@ -684,8 +832,21 @@ impl<'fc> FlowConstructor<'fc> {
         wrapper_flow
     }
 
-    /// Builds a flow for a node with `display: table-row-group`. This yields a `TableRowGroupFlow` with possibly
-    /// other `TableRowFlow`s underneath it.
+    /// Builds a flow for a node with `display: table-caption`. This yields a `TableCaptionFlow`
+    /// with possibly other `TableCaptionFlow`s underneath it.
+    fn build_flow_for_table_caption(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+        let base = BaseFlow::new(self.next_flow_id(), node);
+        let box_ = self.build_box_for_node(node);
+        let mut flow = ~TableCaptionFlow::from_box(base, box_, is_fixed) as ~Flow;
+
+        self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
+
+        self.build_children_of_block_flow(&mut flow, node);
+        flow
+    }
+
+    /// Builds a flow for a node with `display: table-row-group`. This yields a `TableRowGroupFlow`
+    /// with possibly other `TableRowFlow`s underneath it.
     fn build_flow_for_table_rowgroup(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = Box::new(node, TableRowBox);
@@ -697,8 +858,8 @@ impl<'fc> FlowConstructor<'fc> {
         flow
     }
 
-    /// Builds a flow for a node with `display: table-row`. This yields a `TableRowFlow` with possibly
-    /// other `TableCellFlow`s underneath it.
+    /// Builds a flow for a node with `display: table-row`. This yields a `TableRowFlow` with
+    /// possibly other `TableCellFlow`s underneath it.
     fn build_flow_for_table_row(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = Box::new(node, TableRowBox);
@@ -710,8 +871,8 @@ impl<'fc> FlowConstructor<'fc> {
         flow
     }
 
-    /// Builds a flow for a node with `display: table-cell`. This yields a `TableCellFlow` with possibly
-    /// other `BlockFlow`s or `InlineFlow`s underneath it.
+    /// Builds a flow for a node with `display: table-cell`. This yields a `TableCellFlow` with
+    /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
     fn build_flow_for_table_cell(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = Box::new(node, TableCellBox);
@@ -723,21 +884,32 @@ impl<'fc> FlowConstructor<'fc> {
         flow
     }
 
-    /// Builds a flow for a node with `display: table-col-group`. This yields a `TableColGroupFlow`.
+    /// Creates a box for a node with `display: table-column`.
+    fn build_boxes_for_table_column(&mut self, node: LayoutNode) -> ConstructionResult {
+        // CSS 2.1 § 17.2.1. Treat all child boxes of a `table-column` as `display: none`.
+        for kid in node.children() {
+            kid.set_flow_construction_result(NoConstructionResult)
+        }
+
+        let specific = TableColumnBox(TableColumnBoxInfo::new(&node));
+        let construction_item = TableColumnBoxConstructionItem(
+            Box::new(node, specific)
+        );
+        ConstructionItemConstructionResult(construction_item)
+    }
+
+    /// Builds a flow for a node with `display: table-column-group`.
+    /// This yields a `TableColGroupFlow`.
     fn build_flow_for_table_colgroup(&mut self, node: LayoutNode) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = Box::new(node, TableColumnBox(TableColumnBoxInfo::new(&node)));
         let mut col_boxes = ~[];
         for kid in node.children() {
-            if kid.type_id() != ElementNodeTypeId(HTMLTableColElementTypeId) { continue; }
+            // CSS 2.1 § 17.2.1. Treat all non-column child boxes of `table-column-group`
+            // as `display: none`.
             match kid.swap_out_construction_result() {
-                ConstructionItemConstructionResult(InlineBoxesConstructionItem(
-                        InlineBoxesConstructionResult {
-                            splits: _,
-                            boxes: boxes
-                        })) => {
-
-                    col_boxes.push_all_move(boxes)
+                ConstructionItemConstructionResult(TableColumnBoxConstructionItem(box_)) => {
+                    col_boxes.push(box_);
                 }
                 _ => {}
             }
@@ -802,6 +974,12 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             }
 
             // Table items contribute table flow construction results.
+            (display::table_caption, _, _) => {
+                let flow = self.build_flow_for_table_caption(node, false);
+                node.set_flow_construction_result(FlowConstructionResult(flow))
+            }
+
+            // Table items contribute table flow construction results.
             (display::table_column_group, _, _) => {
                 let flow = self.build_flow_for_table_colgroup(node);
                 node.set_flow_construction_result(FlowConstructionResult(flow))
@@ -809,7 +987,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
 
             // Table items contribute table flow construction results.
             (display::table_column, _, _) => {
-                let construction_result = self.build_boxes_for_replaced_inline_content(node);
+                let construction_result = self.build_boxes_for_table_column(node);
                 node.set_flow_construction_result(construction_result)
             }
 
