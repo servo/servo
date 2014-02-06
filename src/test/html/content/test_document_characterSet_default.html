@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            // test1: default characterSet
+            {
+                // FIXME: https://github.com/mozilla-servo/libhubbub/issues/5
+                is(document.characterSet, "utf-8", "test1-0, default characterSet");
+            }
+
+            finish();
+        </script>
+    </head>
+</html>

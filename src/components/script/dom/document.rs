@@ -93,7 +93,8 @@ pub struct Document {
     implementation: Option<@mut DOMImplementation>,
     content_type: DOMString,
     url: Url,
-    quirks_mode: QuirksMode
+    quirks_mode: QuirksMode,
+    encoding_name: DOMString,
 }
 
 impl Document {
@@ -140,7 +141,9 @@ impl Document {
                 Some(_url) => _url
             },
             // http://dom.spec.whatwg.org/#concept-document-quirks
-            quirks_mode: NoQuirks
+            quirks_mode: NoQuirks,
+            // http://dom.spec.whatwg.org/#concept-document-encoding
+            encoding_name: ~"utf-8",
         }
     }
 
@@ -205,6 +208,15 @@ impl Document {
 
     pub fn set_quirks_mode(&mut self, mode: QuirksMode) {
         self.quirks_mode = mode;
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-characterset
+    pub fn CharacterSet(&self) -> DOMString {
+        self.encoding_name.to_ascii_lower()
+    }
+
+    pub fn set_encoding_name(&mut self, name: DOMString) {
+        self.encoding_name = name;
     }
 
     // http://dom.spec.whatwg.org/#dom-document-content_type
