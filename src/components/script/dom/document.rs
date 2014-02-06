@@ -76,6 +76,15 @@ impl AbstractDocument {
             document: ptr as *mut Box<Document>
         }
     }
+
+    pub fn from_node(node: AbstractNode) -> AbstractDocument {
+        if !node.is_document() {
+            fail!("node is not a document");
+        }
+        unsafe {
+            cast::transmute(node)
+        }
+    }
 }
 
 #[deriving(Eq)]
