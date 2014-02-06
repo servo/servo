@@ -285,9 +285,9 @@ impl BlockFlow {
             // last_child.floats_out -> self.floats_out (done at the end of this method)
             float_ctx = self.base.floats_in.translate(Point2D(-left_offset, -top_offset));
             for kid in self.base.child_iter() {
-                flow::mut_base(*kid).floats_in = float_ctx.clone();
+                flow::mut_base(kid).floats_in = float_ctx.clone();
                 kid.assign_height_inorder(ctx);
-                float_ctx = flow::mut_base(*kid).floats_out.clone();
+                float_ctx = flow::mut_base(kid).floats_out.clone();
             }
         }
 
@@ -329,7 +329,7 @@ impl BlockFlow {
                                  &mut collapsing,
                                  &mut collapsible);
 
-            let child_node = flow::mut_base(*kid);
+            let child_node = flow::mut_base(kid);
             cur_y = cur_y - collapsing;
             // At this point, after moving up by `collapsing`, cur_y is at the
             // top margin edge of kid
@@ -407,7 +407,7 @@ impl BlockFlow {
 
             if self.is_fixed {
                 for kid in self.base.child_iter() {
-                    let child_node = flow::mut_base(*kid);
+                    let child_node = flow::mut_base(kid);
                     child_node.position.origin.y = position.origin.y + top_offset;
                 }
             }
@@ -484,9 +484,9 @@ impl BlockFlow {
         if has_inorder_children {
             let mut float_ctx = FloatContext::new(self.float.get_ref().floated_children);
             for kid in self.base.child_iter() {
-                flow::mut_base(*kid).floats_in = float_ctx.clone();
+                flow::mut_base(kid).floats_in = float_ctx.clone();
                 kid.assign_height_inorder(ctx);
-                float_ctx = flow::mut_base(*kid).floats_out.clone();
+                float_ctx = flow::mut_base(kid).floats_out.clone();
             }
         }
         let mut cur_y = Au(0);
@@ -498,7 +498,7 @@ impl BlockFlow {
         }
 
         for kid in self.base.child_iter() {
-            let child_base = flow::mut_base(*kid);
+            let child_base = flow::mut_base(kid);
             child_base.position.origin.y = cur_y;
             cur_y = cur_y + child_base.position.size.height;
         }
@@ -573,7 +573,7 @@ impl BlockFlow {
         let this_position = self.base.abs_position;
 
         for child in self.base.child_iter() {
-            let child_base = flow::mut_base(*child);
+            let child_base = flow::mut_base(child);
             child_base.abs_position = this_position + child_base.position.origin + rel_offset;
         }
 
@@ -618,7 +618,7 @@ impl BlockFlow {
 
         // go deeper into the flow tree
         for child in self.base.child_iter() {
-            let child_base = flow::mut_base(*child);
+            let child_base = flow::mut_base(child);
             child_base.abs_position = offset + child_base.position.origin + rel_offset;
         }
 
@@ -652,7 +652,7 @@ impl Flow for BlockFlow {
         for child_ctx in self.base.child_iter() {
             assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
-            let child_base = flow::mut_base(*child_ctx);
+            let child_base = flow::mut_base(child_ctx);
             min_width = geometry::max(min_width, child_base.min_width);
             pref_width = geometry::max(pref_width, child_base.pref_width);
             num_floats = num_floats + child_base.num_floats;
@@ -783,7 +783,7 @@ impl Flow for BlockFlow {
         for kid in self.base.child_iter() {
             assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
-            let child_base = flow::mut_base(*kid);
+            let child_base = flow::mut_base(kid);
             child_base.position.origin.x = x_offset;
             child_base.position.size.width = remaining_width;
             child_base.flags_info.flags.set_inorder(has_inorder_children);
