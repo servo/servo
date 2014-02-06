@@ -52,7 +52,6 @@ interface Node : EventTarget {
            attribute DOMString? textContent;
   void normalize();
 
-  [Throws]
   Node cloneNode(optional boolean deep = true);
   boolean isEqualNode(Node? node);
 
