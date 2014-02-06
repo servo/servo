@@ -570,6 +570,11 @@ impl<'fc> FlowConstructor<'fc> {
             kid.set_flow_construction_result(NoConstructionResult)
         }
 
+        // If this node is ignorable (perhaps because it's just whitespace), bail out now.
+        if node.is_ignorable() {
+            return NoConstructionResult
+        }
+
         let construction_item = InlineBoxesConstructionItem(InlineBoxesConstructionResult {
             splits: None,
             boxes: ~[
@@ -628,7 +633,6 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             (display::inline, float::none, _) => {
                 let construction_result = self.build_boxes_for_inline(node);
                 node.set_flow_construction_result(construction_result)
-
             }
 
             // Block flows that are not floated contribute block flow construction results.
@@ -662,6 +666,10 @@ trait NodeUtils {
     /// Returns true if this node doesn't render its kids and false otherwise.
     fn is_replaced_content(self) -> bool;
 
+    /// Returns true if this node is ignorable and produces no construction result (perhaps because
+    /// it's whitespace).
+    fn is_ignorable(self) -> bool;
+
     /// Sets the construction result of a flow.
     fn set_flow_construction_result(self, result: ConstructionResult);
 
@@ -680,6 +688,18 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
             DocumentNodeTypeId(_) |
             ElementNodeTypeId(HTMLImageElementTypeId) => true,
             ElementNodeTypeId(_) => false,
+        }
+    }
+
+    fn is_ignorable(self) -> bool {
+        match self.type_id() {
+            CommentNodeTypeId | DoctypeNodeTypeId => true,
+            TextNodeTypeId => {
+                unsafe {
+                    self.with_text(|text| text.element.data.chars().all(|c| c.is_whitespace()))
+                }
+            }
+            _ => false
         }
     }
 
