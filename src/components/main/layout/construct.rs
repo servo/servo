@@ -31,7 +31,7 @@ use layout::flow::{Flow, FlowLeafSet, ImmutableFlowUtils, MutableOwnedFlowUtils}
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
-use layout::util::PrivateLayoutData;
+use layout::util::{PrivateLayoutData, PseudoNode};
 use layout::wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
 use layout::wrapper::LayoutPseudoNode;
 use layout::extra::LayoutAuxMethods;
@@ -683,11 +683,15 @@ impl<'fc> FlowConstructor<'fc> {
 
         // Store pseudo_parent_node & pseudo_node in node
         if pseudo_element == Before {
-            pseudo_child_ldw.data.before_parent_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_parent_abstract_node, pseudo_parent_display));
-            pseudo_child_ldw.data.before_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_abstract_node, display::none));
+            let parent = LayoutPseudoNode::from_layout_pseudo(pseudo_parent_abstract_node, pseudo_parent_display);
+            let element = LayoutPseudoNode::from_layout_pseudo(pseudo_abstract_node, display::none);
+
+            pseudo_child_ldw.data.before = Some(PseudoNode{parent: parent, element: element});
         } else if pseudo_element == After {
-            pseudo_child_ldw.data.after_parent_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_parent_abstract_node, pseudo_parent_display));
-            pseudo_child_ldw.data.after_node = Some(LayoutPseudoNode::from_layout_pseudo(pseudo_abstract_node, display::none));
+            let parent = LayoutPseudoNode::from_layout_pseudo(pseudo_parent_abstract_node, pseudo_parent_display);
+            let element = LayoutPseudoNode::from_layout_pseudo(pseudo_abstract_node, display::none);
+
+            pseudo_child_ldw.data.after = Some(PseudoNode{parent: parent, element: element});
         }
 
         // Set relation between pseudo_node and pseudo_parent_node
