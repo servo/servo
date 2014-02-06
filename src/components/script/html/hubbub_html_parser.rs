@@ -443,12 +443,13 @@ pub fn parse_html(cx: *JSContext,
         add_attributes: |_node, _attributes| {
             debug!("add attributes");
         },
-        set_quirks_mode: |_mode| {
+        set_quirks_mode: |mode| {
             debug!("set quirks mode");
-            document.mut_document().set_quirks_mode(_mode);
+            document.mut_document().set_quirks_mode(mode);
         },
-        encoding_change: |_encname| {
+        encoding_change: |encname| {
             debug!("encoding change");
+            document.mut_document().set_encoding_name(encname);
         },
         complete_script: |script| {
             unsafe {
