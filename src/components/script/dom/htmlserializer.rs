@@ -5,7 +5,9 @@
 use servo_util::namespace;
 use dom::attr::Attr;
 use dom::node::NodeIterator;
-use dom::node::{DoctypeNodeTypeId, DocumentFragmentNodeTypeId, CommentNodeTypeId, DocumentNodeTypeId, ElementNodeTypeId, TextNodeTypeId, AbstractNode};
+use dom::node::{DoctypeNodeTypeId, DocumentFragmentNodeTypeId, CommentNodeTypeId};
+use dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
+use dom::node::{TextNodeTypeId, AbstractNode};
 
 pub fn serialize(iterator: &mut NodeIterator) -> ~str {
     let mut html = ~"";
@@ -28,6 +30,9 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
                 }
                 DoctypeNodeTypeId => {
                     serialize_doctype(node)
+                }
+                ProcessingInstructionNodeTypeId => {
+                    serialize_processing_instruction(node)
                 }
                 DocumentFragmentNodeTypeId => {
                     ~""
@@ -67,6 +72,12 @@ fn serialize_text(node: AbstractNode) -> ~str {
             },
             _ => escape(text.data, false)
         }
+    })
+}
+
+fn serialize_processing_instruction(node: AbstractNode) -> ~str {
+    node.with_imm_processing_instruction(|processing_instruction| {
+        ~"<?" + processing_instruction.target + " " + processing_instruction.element.data + "?>"
     })
 }
 

@@ -140,6 +140,7 @@ pub mod dom {
     pub mod navigator;
     pub mod node;
     pub mod nodelist;
+    pub mod processinginstruction;
     pub mod uievent;
     pub mod text;
     pub mod validitystate;

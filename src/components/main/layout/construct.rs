@@ -36,7 +36,8 @@ use layout::wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNo
 use gfx::font_context::FontContext;
 use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
-use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, TextNodeTypeId};
+use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
+use script::dom::node::{TextNodeTypeId};
 use style::computed_values::{display, position, float, white_space};
 use style::ComputedValues;
 
@@ -633,7 +634,8 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             CommentNodeTypeId |
             DoctypeNodeTypeId |
             DocumentFragmentNodeTypeId |
-            DocumentNodeTypeId(_) => (display::none, float::none, position::static_),
+            DocumentNodeTypeId(_) |
+            ProcessingInstructionNodeTypeId => (display::none, float::none, position::static_),
         };
 
         debug!("building flow for node: {:?} {:?}", display, float);
@@ -701,6 +703,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
     fn is_replaced_content(self) -> bool {
         match self.type_id() {
             TextNodeTypeId |
+            ProcessingInstructionNodeTypeId |
             CommentNodeTypeId |
             DoctypeNodeTypeId |
             DocumentFragmentNodeTypeId |
