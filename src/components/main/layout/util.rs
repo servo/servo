@@ -180,14 +180,15 @@ impl PrivateLayoutData {
             after_node: None,
             restyle_damage: None,
             flow_construction_result: NoConstructionResult,
+            parallel: DomParallelInfo::new(),
         }
     }
 
     pub fn new_with_style(style: Option<Arc<ComputedValues>>) -> PrivateLayoutData {
         PrivateLayoutData {
-            applicable_declarations: ~[],
-            before_applicable_declarations: ~[],
-            after_applicable_declarations: ~[],
+            applicable_declarations: SmallVec16::new(),
+            before_applicable_declarations: SmallVec0::new(),
+            after_applicable_declarations: SmallVec0::new(),
             before_style: None,
             style: style,
             after_style: None,

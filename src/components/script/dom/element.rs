@@ -15,8 +15,6 @@ use dom::clientrectlist::ClientRectList;
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ElementNodeTypeId, Node, NodeIterator};
 use dom::document;
-use dom::namespace;
-use dom::namespace::{Namespace, HTML, Null};
 use dom::htmlserializer::serialize;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
@@ -24,7 +22,6 @@ use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
-
 use std::ascii::StrAsciiExt;
 use std::cast;
 use std::str::eq;
@@ -143,7 +140,7 @@ impl Element {
         Element {
             node: Node::new_without_doc(ElementNodeTypeId(HTMLUnknownElementTypeId)),
             tag_name: tag_name,
-            namespace: HTML,
+            namespace: namespace::HTML,
             attrs: ~[],
             attr_list: None,
             style_attribute: None,
