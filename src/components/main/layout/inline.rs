@@ -527,7 +527,7 @@ impl InlineFlow {
                                      biggest_top: &mut Au,
                                      biggest_bottom: &mut Au)
                                      -> (Au, bool) {
-        match cur_box.vertical_align() {
+        match InlineFlow::get_inlineElement_vertical_align(cur_box) {
             vertical_align::baseline => (-ascent, false),
             vertical_align::middle => {
                 // TODO: x-height value should be used from font info.
@@ -582,6 +582,25 @@ impl InlineFlow {
                 (-(percent_offset + ascent), false)
             }
         }
+    }
+
+    // Returns vertical-align in inlineElement
+    fn get_inlineElement_vertical_align(cur_box: &Box) -> vertical_align::T {
+        let mut vertical_align = cur_box.vertical_align();
+
+        match cur_box.specific {
+            ScannedTextBox(ref text_box) => {
+                match cur_box.inline_info.get() {
+                    Some(info) =>{
+                        vertical_align = info.parent_info[0].style.get().Box.vertical_align
+                    },
+                    None => {
+                    }
+                }
+            },
+            _ => {}
+        }
+        vertical_align
     }
 
     /// Sets box X positions based on alignment for one line.
@@ -847,7 +866,7 @@ impl Flow for InlineFlow {
             // All boxes' y position is updated following the new baseline offset.
             for box_i in line.range.eachi() {
                 let cur_box = &self.boxes[box_i];
-                let adjust_offset = match cur_box.vertical_align() {
+                let adjust_offset = match InlineFlow::get_inlineElement_vertical_align(cur_box) {
                     vertical_align::top => Au::new(0),
                     vertical_align::bottom => baseline_offset + bottommost,
                     _ => baseline_offset,
