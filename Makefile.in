@@ -41,6 +41,7 @@ endif
 ifdef CFG_ENABLE_DEBUG
   $(info cfg: enabling more debugging (CFG_ENABLE_DEBUG))
   CFG_RUSTC_FLAGS += -Z extra-debug-info
+  CFG_RUSTC_SELF_FLAGS += -Z extra-debug-info
 else
   # Enable debug!() etc even without configure --enable-debug
   # The evaluation of these prints & their arguments is controlled
@@ -91,11 +92,11 @@ $(S)config.stamp : $(S)configure $(S)Makefile.in
 ifneq ($(CFG_LOCAL_RUSTC),1)
 $(CFG_RUSTC): $(B)src/compiler/rust/rust-auto-clean-stamp
 	@$(call E, building rustc)
-	$(Q)CFG_RUSTC_FLAGS= CFG_ENABLE_DEBUG= RUSTFLAGS= $(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust"
+	$(Q)CFG_RUSTC_FLAGS= CFG_ENABLE_DEBUG= RUSTFLAGS="$(CFG_RUSTC_SELF_FLAGS)" $(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust"
 
 clean-rust:
 	@$(call E, cleaning rustc)
-	$(Q)CFG_RUSTC_FLAGS= CFG_ENABLE_DEBUG= RUSTFLAGS= $(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" clean
+	$(Q)CFG_RUSTC_FLAGS= CFG_ENABLE_DEBUG= RUSTFLAGS="$(CFG_RUSTC_SELF_FLAGS)" $(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" clean
 
 else
 $(CFG_RUSTC):
