@@ -209,12 +209,9 @@ impl PrivateLayoutData {
     }
 
     pub fn get_pseudo_element<'a>(&'a self, pseudo_element: PseudoElement) -> Option<&'a PseudoNode> {
-        if pseudo_element == Before {
-            self.before.as_ref()
-        } else if pseudo_element == After{
-            self.after.as_ref()
-        } else {
-            None
+        match pseudo_element {
+            Before => self.before.as_ref(),
+            After => self.after.as_ref()
         }
     }
 }
