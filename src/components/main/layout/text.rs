@@ -18,16 +18,12 @@ use style::computed_values::white_space;
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
 pub struct TextRunScanner {
     clump: Range,
-    /// when flush_clump, some boxes not makes result.
-    /// if the lost box has border,margin,padding of inline, we should restore that stuff.
-    last_lost_box_index: Option<uint>
 }
 
 impl TextRunScanner {
     pub fn new() -> TextRunScanner {
         TextRunScanner {
             clump: Range::empty(),
-            last_lost_box_index: None,
         }
     }
 
@@ -107,7 +103,7 @@ impl TextRunScanner {
                 // FIXME(pcwalton): Stop cloning boxes, as above.
                 debug!("TextRunScanner: pushing single non-text box in range: {}", self.clump);
                 let new_box = in_boxes[self.clump.begin()].clone();
-                self.push_to_outboxes(new_box,in_boxes,out_boxes);
+                out_boxes.push(new_box)
             },
             (true, true)  => {
                 let old_box = &in_boxes[self.clump.begin()];
@@ -150,9 +146,15 @@ impl TextRunScanner {
                     let mut new_box = old_box.transform(new_metrics.bounding_box.size,
                                                     ScannedTextBox(new_text_box_info));
                     new_box.new_line_pos = new_line_pos;
-                    self.push_to_outboxes(new_box,in_boxes,out_boxes);
+                    out_boxes.push(new_box)
+
                 } else {
-                    self.last_lost_box_index = Some(self.clump.begin());
+                    if self.clump.begin() + 1 < in_boxes.len() {
+                        // if the this box has border,margin,padding of inline,
+                        // we should copy that stuff to next box.
+                        in_boxes[self.clump.begin() + 1]
+                            .merge_noncontent_inline_left(&in_boxes[self.clump.begin()]);
+                    }
                 }
             },
             (false, true) => {
@@ -236,6 +238,11 @@ impl TextRunScanner {
                         debug!("Elided an `UnscannedTextbox` because it was zero-length after \
                                 compression; {:s}",
                                in_boxes[i].debug_str());
+                        // in this case, in_boxes[i] is elided
+                        // so, we should merge inline info with next index of in_boxes
+                        if i + 1 < in_boxes.len() {
+                            in_boxes[i + 1].merge_noncontent_inline_left(&in_boxes[i]);
+                        }
                         continue
                     }
 
@@ -244,7 +251,7 @@ impl TextRunScanner {
                     let mut new_box = in_boxes[i].transform(new_metrics.bounding_box.size,
                                                         ScannedTextBox(new_text_box_info));
                     new_box.new_line_pos = new_line_positions[logical_offset].new_line_pos.clone();
-                    self.push_to_outboxes(new_box,in_boxes,out_boxes);
+                    out_boxes.push(new_box)
                 }
             }
         } // End of match.
@@ -272,15 +279,4 @@ impl TextRunScanner {
 
         new_whitespace
     } // End of `flush_clump_to_list`.
-
-    fn push_to_outboxes(&mut self, new_box: Box, in_boxes: &~[Box], out_boxes: &mut ~[Box]) {
-        match self.last_lost_box_index {
-            Some(index) => {
-                new_box.merge_noncontent_inline_left(&in_boxes[index]);
-            }, 
-            None => {}
-        }
-        self.last_lost_box_index = None;
-        out_boxes.push(new_box)
-    }
 }
