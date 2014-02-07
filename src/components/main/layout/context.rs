@@ -21,7 +21,7 @@ use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
-use style::Stylist;
+use style::{ComputedValues, Stylist};
 
 #[thread_local]
 static mut FONT_CONTEXT: *mut FontContext = 0 as *mut FontContext;
@@ -54,6 +54,9 @@ pub struct LayoutContext {
     ///
     /// FIXME(pcwalton): Make this no longer an unsafe pointer once we have fast `RWArc`s.
     stylist: *Stylist,
+
+    /// The initial set of CSS properties.
+    initial_css_values: Arc<ComputedValues>,
 
     /// The root node at which we're starting the layout.
     reflow_root: OpaqueNode,

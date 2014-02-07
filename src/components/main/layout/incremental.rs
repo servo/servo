@@ -107,7 +107,7 @@ impl RestyleDamage {
 macro_rules! add_if_not_equal(
     ($old:ident, $new:ident, $damage:ident,
      [ $($effect:ident),* ], [ $($style_struct:ident.$name:ident),* ]) => ({
-        if $( ($old.$style_struct.$name != $new.$style_struct.$name) )||* {
+        if $( ($old.$style_struct.get().$name != $new.$style_struct.get().$name) )||* {
             $damage.union_in_place( restyle_damage!( $($effect),* ) );
         }
     })

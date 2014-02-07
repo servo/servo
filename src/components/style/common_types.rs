@@ -160,34 +160,125 @@ pub mod specified {
 }
 
 pub mod computed {
-    use cssparser;
     pub use CSSColor = cssparser::Color;
     pub use compute_CSSColor = super::super::longhands::computed_as_specified;
     use super::*;
-    use super::super::longhands;
+    use super::super::{longhands, style_structs};
+    use servo_util::cowarc::CowArc;
     pub use servo_util::geometry::Au;
 
     pub struct Context {
-        current_color: cssparser::RGBA,
-        parent_font_size: Au,
-        font_size: Au,
-        font_weight: longhands::font_weight::computed_value::T,
-        position: longhands::position::SpecifiedValue,
-        float: longhands::float::SpecifiedValue,
+        color: longhands::color::computed_value::T,
+        parent_font_weight: longhands::font_weight::computed_value::T,
+        parent_font_size: longhands::font_size::computed_value::T,
+        font_size: longhands::font_size::computed_value::T,
+        positioned: bool,
+        floated: bool,
+        border_top_present: bool,
+        border_right_present: bool,
+        border_bottom_present: bool,
+        border_left_present: bool,
         is_root_element: bool,
-        border_top_style: longhands::border_top_style::computed_value::T,
-        border_right_style: longhands::border_top_style::computed_value::T,
-        border_bottom_style: longhands::border_top_style::computed_value::T,
-        border_left_style: longhands::border_top_style::computed_value::T,
+        use_parent_font_size: bool,
         // TODO, as needed: root font size, viewport size, etc.
     }
 
+    fn border_is_present(border_style: longhands::border_top_style::computed_value::T) -> bool {
+        match border_style {
+            longhands::border_top_style::none | longhands::border_top_style::hidden => false,
+            _ => true,
+        }
+    }
+
+    impl Context {
+        #[inline]
+        pub fn new(color: &CowArc<style_structs::Color>,
+                   font: &CowArc<style_structs::Font>,
+                   css_box: &CowArc<style_structs::Box>,
+                   border: &CowArc<style_structs::Border>,
+                   is_root_element: bool)
+                   -> Context {
+            let mut context = Context {
+                color: color.get().color,
+                parent_font_weight: font.get().font_weight,
+                parent_font_size: font.get().font_size,
+                font_size: font.get().font_size,
+                positioned: false,
+                floated: false,
+                border_top_present: false,
+                border_right_present: false,
+                border_bottom_present: false,
+                border_left_present: false,
+                is_root_element: is_root_element,
+                use_parent_font_size: true,
+            };
+            context.set_position(css_box.get().position);
+            context.set_float(css_box.get().float);
+            context.set_border_top_style(border.get().border_top_style);
+            context.set_border_right_style(border.get().border_right_style);
+            context.set_border_bottom_style(border.get().border_bottom_style);
+            context.set_border_left_style(border.get().border_left_style);
+            context
+        }
+
+        pub fn set_color(&mut self, color: longhands::color::computed_value::T) {
+            self.color = color
+        }
+
+        pub fn set_position(&mut self, position: longhands::position::computed_value::T) {
+            self.positioned = match position {
+                longhands::position::absolute | longhands::position::fixed => true,
+                _ => false,
+            }
+        }
+
+        pub fn set_font_size(&mut self, font_size: longhands::font_size::computed_value::T) {
+            self.font_size = font_size
+        }
+
+        pub fn set_float(&mut self, float: longhands::float::computed_value::T) {
+            self.floated = float != longhands::float::none
+        }
+
+        pub fn set_border_top_style(&mut self,
+                                    style: longhands::border_top_style::computed_value::T) {
+            self.border_top_present = border_is_present(style)
+        }
+
+        pub fn set_border_right_style(&mut self,
+                                      style: longhands::border_top_style::computed_value::T) {
+            self.border_right_present = border_is_present(style)
+        }
+
+        pub fn set_border_bottom_style(&mut self,
+                                       style: longhands::border_top_style::computed_value::T) {
+            self.border_bottom_present = border_is_present(style)
+        }
+
+        pub fn set_border_left_style(&mut self,
+                                     style: longhands::border_top_style::computed_value::T) {
+            self.border_left_present = border_is_present(style)
+        }
+    }
+
     #[inline]
-    pub fn compute_Au(value: specified::Length, context: &Context, em_is_parent: bool) -> Au {
+    pub fn compute_Au(value: specified::Length, context: &Context) -> Au {
         match value {
             specified::Au_(value) => value,
-            specified::Em(value) if em_is_parent => context.parent_font_size.scale_by(value),
             specified::Em(value) => context.font_size.scale_by(value),
+            specified::Ex(value) => {
+                let x_height = 0.5;  // TODO: find that from the font
+                context.font_size.scale_by(value * x_height)
+            },
+        }
+    }
+
+    /// A special version of `compute_Au` used for `font-size`.
+    #[inline]
+    pub fn compute_Au_from_parent(value: specified::Length, context: &Context) -> Au {
+        match value {
+            specified::Au_(value) => value,
+            specified::Em(value) => context.parent_font_size.scale_by(value),
             specified::Ex(value) => {
                 let x_height = 0.5;  // TODO: find that from the font
                 context.font_size.scale_by(value * x_height)
@@ -203,7 +294,7 @@ pub mod computed {
     pub fn compute_LengthOrPercentage(value: specified::LengthOrPercentage, context: &Context)
                                    -> LengthOrPercentage {
         match value {
-            specified::LP_Length(value) => LP_Length(compute_Au(value, context, false)),
+            specified::LP_Length(value) => LP_Length(compute_Au(value, context)),
             specified::LP_Percentage(value) => LP_Percentage(value),
         }
     }
@@ -217,7 +308,7 @@ pub mod computed {
     pub fn compute_LengthOrPercentageOrAuto(value: specified::LengthOrPercentageOrAuto,
                                             context: &Context) -> LengthOrPercentageOrAuto {
         match value {
-            specified::LPA_Length(value) => LPA_Length(compute_Au(value, context, false)),
+            specified::LPA_Length(value) => LPA_Length(compute_Au(value, context)),
             specified::LPA_Percentage(value) => LPA_Percentage(value),
             specified::LPA_Auto => LPA_Auto,
         }
@@ -232,7 +323,7 @@ pub mod computed {
     pub fn compute_LengthOrPercentageOrNone(value: specified::LengthOrPercentageOrNone,
                                             context: &Context) -> LengthOrPercentageOrNone {
         match value {
-            specified::LPN_Length(value) => LPN_Length(compute_Au(value, context, false)),
+            specified::LPN_Length(value) => LPN_Length(compute_Au(value, context)),
             specified::LPN_Percentage(value) => LPN_Percentage(value),
             specified::LPN_None => LPN_None,
         }

@@ -13,7 +13,7 @@ use layout::wrapper::LayoutNode;
 use extra::arc::Arc;
 use script::layout_interface::LayoutChan;
 use servo_util::smallvec::{SmallVec, SmallVec0, SmallVec16};
-use style::{After, Before, PropertyDeclaration, Stylist, TNode, cascade};
+use style::{After, Before, ComputedValues, PropertyDeclaration, Stylist, TNode, cascade};
 
 pub struct ApplicableDeclarations {
     normal: SmallVec16<Arc<~[PropertyDeclaration]>>,
@@ -43,12 +43,14 @@ pub trait MatchMethods {
                                  stylist: &Stylist,
                                  layout_chan: &LayoutChan,
                                  applicable_declarations: &mut ApplicableDeclarations,
+                                 initial_values: &ComputedValues,
                                  parent: Option<LayoutNode>);
 
     fn match_node(&self, stylist: &Stylist, applicable_declarations: &mut ApplicableDeclarations);
 
     unsafe fn cascade_node(&self,
                            parent: Option<LayoutNode>,
+                           initial_values: &ComputedValues,
                            applicable_declarations: &ApplicableDeclarations);
 }
 
@@ -79,6 +81,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                                  stylist: &Stylist,
                                  layout_chan: &LayoutChan,
                                  applicable_declarations: &mut ApplicableDeclarations,
+                                 initial_values: &ComputedValues,
                                  parent: Option<LayoutNode>) {
         self.initialize_layout_data((*layout_chan).clone());
 
@@ -87,7 +90,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         }
 
         unsafe {
-            self.cascade_node(parent, applicable_declarations)
+            self.cascade_node(parent, initial_values, applicable_declarations)
         }
 
         applicable_declarations.clear();
@@ -96,12 +99,14 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             kid.match_and_cascade_subtree(stylist,
                                           layout_chan,
                                           applicable_declarations,
+                                          initial_values,
                                           Some(*self))
         }
     }
 
     unsafe fn cascade_node(&self,
                            parent: Option<LayoutNode>,
+                           initial_values: &ComputedValues,
                            applicable_declarations: &ApplicableDeclarations) {
         macro_rules! cascade_node(
             ($applicable_declarations: expr, $style: ident) => {{
@@ -124,30 +129,33 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                             }
                         }
                     }
-                };
+                 };
 
-                let computed_values = match parent_style {
-                    Some(ref style) => {
-                        Arc::new(cascade($applicable_declarations.as_slice(),
-                                         Some(style.get())))
-                    }
-                    None => Arc::new(cascade($applicable_declarations.as_slice(), None)),
-                };
-
-                let mut layout_data_ref = self.mutate_layout_data();
-                match *layout_data_ref.get() {
-                    None => fail!("no layout data"),
-                    Some(ref mut layout_data) => {
-                        let style = &mut layout_data.data.$style;
-                        match *style {
-                            None => (),
-                            Some(ref previous_style) => {
-                                layout_data.data.restyle_damage = Some(incremental::compute_damage(
-                                    previous_style.get(), computed_values.get()).to_int())
-                            }
-                        }
-                        *style = Some(computed_values)
-                    }
+                 let computed_values = match parent_style {
+                     Some(ref style) => {
+                         Arc::new(cascade($applicable_declarations.as_slice(),
+                                          Some(style.get()),
+                                          initial_values))
+                     }
+                     None => Arc::new(cascade($applicable_declarations.as_slice(),
+                                              None,
+                                              initial_values)),
+                 };
+ 
+                 let mut layout_data_ref = self.mutate_layout_data();
+                 match *layout_data_ref.get() {
+                     None => fail!("no layout data"),
+                     Some(ref mut layout_data) => {
+                         let style = &mut layout_data.data.$style;
+                         match *style {
+                             None => (),
+                             Some(ref previous_style) => {
+                                 layout_data.data.restyle_damage = Some(incremental::compute_damage(
+                                     previous_style.get(), computed_values.get()).to_int())
+                             }
+                         }
+                         *style = Some(computed_values)
+                     }
                 }
             }}
         );

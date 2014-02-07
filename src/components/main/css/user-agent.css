@@ -88,7 +88,12 @@ u, ins              { text-decoration: underline }
 br:before           { content: "\A"; white-space: pre-line }
 
 center              { text-align: center }
-:link, :visited     { text-decoration: underline }
+a:link,
+a:visited,
+area:link,
+area:visited,
+link:link,
+link:visited        { text-decoration: underline }
 :focus              { outline: thin dotted invert }
 
 /* Begin bidirectionality settings (do not change) */
@@ -106,6 +111,8 @@ ul, ol, dl          { page-break-before: avoid }
 }
 
 /* Servo additions */
-:link               { color: blue }
+a:link,
+area:link,
+link:link           { color: blue }
 script              { display: none }
 style               { display: none }

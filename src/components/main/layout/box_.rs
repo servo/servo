@@ -373,7 +373,7 @@ impl Box {
                 }
                 (_, _) => {
                     y = position_offsets.top;
-                    match MaybeAuto::from_style(self.style().Box.height, Au(0)) {
+                    match MaybeAuto::from_style(self.style().Box.get().height, Au(0)) {
                         Auto => {
                             height = screen_height - position_offsets.top - position_offsets.bottom;
                         }
@@ -408,7 +408,7 @@ impl Box {
                 }
                 (_, _) => {
                     x = position_offsets.left;
-                    match MaybeAuto::from_style(self.style().Box.width, Au(0)) {
+                    match MaybeAuto::from_style(self.style().Box.get().width, Au(0)) {
                         Auto => {
                             width = screen_width - position_offsets.left - position_offsets.right;
                         }
@@ -446,14 +446,14 @@ impl Box {
         }
 
         let style = self.style();
-        let width = MaybeAuto::from_style(style.Box.width, Au::new(0)).specified_or_zero();
-        let margin_left = MaybeAuto::from_style(style.Margin.margin_left,
+        let width = MaybeAuto::from_style(style.Box.get().width, Au::new(0)).specified_or_zero();
+        let margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
                                                 Au::new(0)).specified_or_zero();
-        let margin_right = MaybeAuto::from_style(style.Margin.margin_right,
+        let margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
                                                  Au::new(0)).specified_or_zero();
 
-        let padding_left = self.compute_padding_length(style.Padding.padding_left, Au::new(0));
-        let padding_right = self.compute_padding_length(style.Padding.padding_right, Au::new(0));
+        let padding_left = self.compute_padding_length(style.Padding.get().padding_left, Au(0));
+        let padding_right = self.compute_padding_length(style.Padding.get().padding_right, Au(0));
 
         width + margin_left + margin_right + padding_left + padding_right +
             self.border.get().left + self.border.get().right
@@ -480,37 +480,45 @@ impl Box {
             }
         }
 
-        self.border.set(SideOffsets2D::new(width(style.Border.border_top_width,
-                                                 style.Border.border_top_style),
-                                           width(style.Border.border_right_width,
-                                                 style.Border.border_right_style),
-                                           width(style.Border.border_bottom_width,
-                                                 style.Border.border_bottom_style),
-                                           width(style.Border.border_left_width,
-                                                 style.Border.border_left_style)))
+        self.border.set(SideOffsets2D::new(width(style.Border.get().border_top_width,
+                                                 style.Border.get().border_top_style),
+                                           width(style.Border.get().border_right_width,
+                                                 style.Border.get().border_right_style),
+                                           width(style.Border.get().border_bottom_width,
+                                                 style.Border.get().border_bottom_style),
+                                           width(style.Border.get().border_left_width,
+                                                 style.Border.get().border_left_style)))
     }
 
     pub fn compute_positioned_offsets(&self, style: &ComputedValues, containing_width: Au, containing_height: Au) {
         self.position_offsets.set(SideOffsets2D::new(
-                MaybeAuto::from_style(style.PositionOffsets.top, containing_height)
+                MaybeAuto::from_style(style.PositionOffsets.get().top, containing_height)
                 .specified_or_zero(),
-                MaybeAuto::from_style(style.PositionOffsets.right, containing_width)
+                MaybeAuto::from_style(style.PositionOffsets.get().right, containing_width)
                 .specified_or_zero(),
-                MaybeAuto::from_style(style.PositionOffsets.bottom, containing_height)
+                MaybeAuto::from_style(style.PositionOffsets.get().bottom, containing_height)
                 .specified_or_zero(),
-                MaybeAuto::from_style(style.PositionOffsets.left, containing_width)
+                MaybeAuto::from_style(style.PositionOffsets.get().left, containing_width)
                 .specified_or_zero()));
     }
 
     /// Populates the box model padding parameters from the given computed style.
     pub fn compute_padding(&self, style: &ComputedValues, containing_block_width: Au) {
-        let padding = SideOffsets2D::new(self.compute_padding_length(style.Padding.padding_top,
+        let padding = SideOffsets2D::new(self.compute_padding_length(style.Padding
+                                                                          .get()
+                                                                          .padding_top,
                                                                      containing_block_width),
-                                         self.compute_padding_length(style.Padding.padding_right,
+                                         self.compute_padding_length(style.Padding
+                                                                          .get()
+                                                                          .padding_right,
                                                                      containing_block_width),
-                                         self.compute_padding_length(style.Padding.padding_bottom,
+                                         self.compute_padding_length(style.Padding
+                                                                          .get()
+                                                                          .padding_bottom,
                                                                      containing_block_width),
-                                         self.compute_padding_length(style.Padding.padding_left,
+                                         self.compute_padding_length(style.Padding
+                                                                          .get()
+                                                                          .padding_left,
                                                                      containing_block_width));
         self.padding.set(padding)
     }
@@ -679,28 +687,28 @@ impl Box {
         }
     }
     pub fn relative_position(&self, container_block_size: &Size2D<Au>) -> Point2D<Au> {
-        fn left_right(style: &ComputedValues,block_width: Au) -> Au {
+        fn left_right(style: &ComputedValues, block_width: Au) -> Au {
             // TODO(ksh8281) : consider RTL(right-to-left) culture
-            match (style.PositionOffsets.left, style.PositionOffsets.right) {
+            match (style.PositionOffsets.get().left, style.PositionOffsets.get().right) {
                 (LPA_Auto, _) => {
-                    -MaybeAuto::from_style(style.PositionOffsets.right, block_width)
+                    -MaybeAuto::from_style(style.PositionOffsets.get().right, block_width)
                         .specified_or_zero()
                 }
                 (_, _) => {
-                    MaybeAuto::from_style(style.PositionOffsets.left, block_width)
+                    MaybeAuto::from_style(style.PositionOffsets.get().left, block_width)
                         .specified_or_zero()
                 }
             }
         }
 
         fn top_bottom(style: &ComputedValues,block_height: Au) -> Au {
-            match (style.PositionOffsets.top, style.PositionOffsets.bottom) {
+            match (style.PositionOffsets.get().top, style.PositionOffsets.get().bottom) {
                 (LPA_Auto, _) => {
-                    -MaybeAuto::from_style(style.PositionOffsets.bottom, block_height)
+                    -MaybeAuto::from_style(style.PositionOffsets.get().bottom, block_height)
                         .specified_or_zero()
                 }
                 (_, _) => {
-                    MaybeAuto::from_style(style.PositionOffsets.top, block_height)
+                    MaybeAuto::from_style(style.PositionOffsets.get().top, block_height)
                         .specified_or_zero()
                 }
             }
@@ -711,7 +719,7 @@ impl Box {
             y: Au::new(0),
         };
 
-        if self.style().Box.position == position::relative {
+        if self.style().Box.get().position == position::relative {
             rel_pos.x = rel_pos.x + left_right(self.style(), container_block_size.width);
             rel_pos.y = rel_pos.y + top_bottom(self.style(), container_block_size.height);
         }
@@ -720,9 +728,11 @@ impl Box {
         match info.get() {
             &Some(ref info) => {
                 for info in info.parent_info.iter() {
-                    if info.style.get().Box.position == position::relative {
-                        rel_pos.x = rel_pos.x + left_right(info.style.get(), container_block_size.width);
-                        rel_pos.y = rel_pos.y + top_bottom(info.style.get(), container_block_size.height);
+                    if info.style.get().Box.get().position == position::relative {
+                        rel_pos.x = rel_pos.x + left_right(info.style.get(),
+                                                           container_block_size.width);
+                        rel_pos.y = rel_pos.y + top_bottom(info.style.get(),
+                                                           container_block_size.height);
                     }
                 }
             },
@@ -737,7 +747,7 @@ impl Box {
     #[inline(always)]
     pub fn clear(&self) -> Option<ClearType> {
         let style = self.style();
-        match style.Box.clear {
+        match style.Box.get().clear {
             clear::none => None,
             clear::left => Some(ClearLeft),
             clear::right => Some(ClearRight),
@@ -755,20 +765,20 @@ impl Box {
         debug!("(font style) start");
 
         // FIXME: Too much allocation here.
-        let font_families = my_style.Font.font_family.map(|family| {
+        let font_families = my_style.Font.get().font_family.map(|family| {
             match *family {
                 font_family::FamilyName(ref name) => (*name).clone(),
             }
         });
         debug!("(font style) font families: `{:?}`", font_families);
 
-        let font_size = my_style.Font.font_size.to_f64().unwrap() / 60.0;
+        let font_size = my_style.Font.get().font_size.to_f64().unwrap() / 60.0;
         debug!("(font style) font size: `{:f}px`", font_size);
 
         FontStyle {
             pt_size: font_size,
-            weight: my_style.Font.font_weight,
-            style: my_style.Font.font_style,
+            weight: my_style.Font.get().font_weight,
+            style: my_style.Font.get().font_style,
             families: font_families,
         }
     }
@@ -781,19 +791,19 @@ impl Box {
     /// Returns the text alignment of the computed style of the nearest ancestor-or-self `Element`
     /// node.
     pub fn text_align(&self) -> text_align::T {
-        self.style().InheritedText.text_align
+        self.style().InheritedText.get().text_align
     }
 
     pub fn line_height(&self) -> line_height::T {
-        self.style().InheritedBox.line_height
+        self.style().InheritedBox.get().line_height
     }
 
     pub fn vertical_align(&self) -> vertical_align::T {
-        self.style().Box.vertical_align
+        self.style().Box.get().vertical_align
     }
 
     pub fn white_space(&self) -> white_space::T {
-        self.style().InheritedText.white_space
+        self.style().InheritedText.get().white_space
     }
 
     /// Returns the text decoration of this box, according to the style of the nearest ancestor
@@ -804,7 +814,7 @@ impl Box {
     /// model. Therefore, this is a best lower bound approximation, but the end result may actually
     /// have the various decoration flags turned on afterward.
     pub fn text_decoration(&self) -> text_decoration::T {
-        self.style().Text.text_decoration
+        self.style().Text.get().text_decoration
     }
 
     /// Returns the sum of margin, border, and padding on the left.
@@ -862,7 +872,7 @@ impl Box {
                     bg_rect.origin.y = box_info.baseline + offset.y - info.font_ascent;
                     bg_rect.size.height = info.font_ascent + info.font_descent;
                     let background_color = info.style.get().resolve_color(
-                        info.style.get().Background.background_color);
+                        info.style.get().Background.get().background_color);
 
                     if !background_color.alpha.approx_eq(&0.0) {
                         lists.with_mut(|lists| {
@@ -886,14 +896,14 @@ impl Box {
                     bg_rect.size.height = bg_rect.size.height + border.top + border.bottom;
 
                     let style = info.style.get();
-                    let top_color = style.resolve_color(style.Border.border_top_color);
-                    let right_color = style.resolve_color(style.Border.border_right_color);
-                    let bottom_color = style.resolve_color(style.Border.border_bottom_color);
-                    let left_color = style.resolve_color(style.Border.border_left_color);
-                    let top_style = style.Border.border_top_style;
-                    let right_style = style.Border.border_right_style;
-                    let bottom_style = style.Border.border_bottom_style;
-                    let left_style = style.Border.border_left_style;
+                    let top_color = style.resolve_color(style.Border.get().border_top_color);
+                    let right_color = style.resolve_color(style.Border.get().border_right_color);
+                    let bottom_color = style.resolve_color(style.Border.get().border_bottom_color);
+                    let left_color = style.resolve_color(style.Border.get().border_left_color);
+                    let top_style = style.Border.get().border_top_style;
+                    let right_style = style.Border.get().border_right_style;
+                    let bottom_style = style.Border.get().border_bottom_style;
+                    let left_style = style.Border.get().border_left_style;
 
 
                     lists.with_mut(|lists| {
@@ -935,7 +945,7 @@ impl Box {
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a box".
         let style = self.style();
-        let background_color = style.resolve_color(style.Background.background_color);
+        let background_color = style.resolve_color(style.Background.get().background_color);
         if !background_color.alpha.approx_eq(&0.0) {
             lists.with_mut(|lists| {
                 let solid_color_display_item = ~SolidColorDisplayItem {
@@ -965,14 +975,14 @@ impl Box {
         }
 
         let style = self.style();
-        let top_color = style.resolve_color(style.Border.border_top_color);
-        let right_color = style.resolve_color(style.Border.border_right_color);
-        let bottom_color = style.resolve_color(style.Border.border_bottom_color);
-        let left_color = style.resolve_color(style.Border.border_left_color);
-        let top_style = style.Border.border_top_style;
-        let right_style = style.Border.border_right_style;
-        let bottom_style = style.Border.border_bottom_style;
-        let left_style = style.Border.border_left_style;
+        let top_color = style.resolve_color(style.Border.get().border_top_color);
+        let right_color = style.resolve_color(style.Border.get().border_right_color);
+        let bottom_color = style.resolve_color(style.Border.get().border_bottom_color);
+        let left_color = style.resolve_color(style.Border.get().border_left_color);
+        let top_style = style.Border.get().border_top_style;
+        let right_style = style.Border.get().border_right_style;
+        let bottom_style = style.Border.get().border_bottom_style;
+        let left_style = style.Border.get().border_left_style;
 
         let mut abs_bounds = abs_bounds.clone();
         abs_bounds.origin.x = abs_bounds.origin.x + self.noncontent_inline_left();
@@ -1029,7 +1039,7 @@ impl Box {
                box_bounds, absolute_box_bounds, self.debug_str());
         debug!("Box::build_display_list: dirty={}, offset={}", *dirty, offset);
 
-        if self.style().InheritedBox.visibility != visibility::visible {
+        if self.style().InheritedBox.get().visibility != visibility::visible {
             return;
         }
 
@@ -1047,7 +1057,7 @@ impl Box {
         match self.specific {
             UnscannedTextBox(_) => fail!("Shouldn't see unscanned boxes here."),
             ScannedTextBox(ref text_box) => {
-                let text_color = self.style().Color.color.to_gfx_color();
+                let text_color = self.style().Color.get().color.to_gfx_color();
 
                 // Set the various text display item flags.
                 let mut flow_flags = flow::base(flow).flags_info.clone();
@@ -1472,13 +1482,13 @@ impl Box {
             }
             ImageBox(ref image_box_info) => {
                 // TODO(ksh8281): compute border,margin,padding
-                let width = ImageBoxInfo::style_length(self.style().Box.width,
+                let width = ImageBoxInfo::style_length(self.style().Box.get().width,
                                                        image_box_info.dom_width,
                                                        container_width);
 
                 // FIXME(ksh8281): we shouldn't figure height this way
                 // now, we don't know about size of parent's height
-                let height = ImageBoxInfo::style_length(self.style().Box.height,
+                let height = ImageBoxInfo::style_length(self.style().Box.get().height,
                                                        image_box_info.dom_height,
                                                        Au::new(0));
 
@@ -1520,11 +1530,11 @@ impl Box {
                 let width = image_box_info.computed_width();
                 // FIXME(ksh8281): we shouldn't assign height this way
                 // we don't know about size of parent's height
-                let height = ImageBoxInfo::style_length(self.style().Box.height,
+                let height = ImageBoxInfo::style_length(self.style().Box.get().height,
                                                         image_box_info.dom_height,
                                                         Au::new(0));
 
-                let height = match (self.style().Box.width,
+                let height = match (self.style().Box.get().width,
                                     image_box_info.dom_width,
                                     height) {
                     (LPA_Auto, None, Auto) => {
@@ -1575,7 +1585,7 @@ impl Box {
 
     /// Returns true if the contents should be clipped (i.e. if `overflow` is `hidden`).
     pub fn needs_clip(&self) -> bool {
-        self.style().Box.overflow == overflow::hidden
+        self.style().Box.get().overflow == overflow::hidden
     }
 
     /// Returns a debugging string describing this box.

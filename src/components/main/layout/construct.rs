@@ -628,7 +628,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
         let (display, float, position) = match node.type_id() {
             ElementNodeTypeId(_) => {
                 let style = node.style().get();
-                (style.Box.display, style.Box.float, style.Box.position)
+                (style.Box.get().display, style.Box.get().float, style.Box.get().position)
             }
             TextNodeTypeId => (display::inline, float::none, position::static_),
             CommentNodeTypeId |
@@ -730,7 +730,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
                     //
                     // If you implement other values for this property, you will almost certainly
                     // want to update this check.
-                    match self.style().get().InheritedText.white_space {
+                    match self.style().get().InheritedText.get().white_space {
                         white_space::normal => true,
                         _ => false,
                     }

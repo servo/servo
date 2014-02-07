@@ -163,7 +163,9 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
         } else {
             node.parent_node()
         };
-        node.cascade_node(parent_opt, &applicable_declarations);
+        node.cascade_node(parent_opt,
+                          layout_context.initial_css_values.get(),
+                          &applicable_declarations);
 
         // Enqueue kids.
         let mut child_count = 0;

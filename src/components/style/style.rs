@@ -21,6 +21,7 @@ pub use stylesheets::Stylesheet;
 pub use selector_matching::{Stylist, StylesheetOrigin, UserAgentOrigin, AuthorOrigin, UserOrigin};
 pub use properties::{cascade, PropertyDeclaration, ComputedValues, computed_values};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
+pub use properties::{initial_values};
 pub use errors::with_errors_silenced;
 pub use node::{TElement, TNode};
 pub use selectors::{PseudoElement, Before, After, AttrSelector, SpecificNamespace, AnyNamespace};

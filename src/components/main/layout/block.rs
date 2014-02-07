@@ -193,9 +193,9 @@ impl BlockFlow {
         let style = box_.style();
 
         let (width, maybe_margin_left, maybe_margin_right) =
-            (MaybeAuto::from_style(style.Box.width, remaining_width),
-             MaybeAuto::from_style(style.Margin.margin_left, remaining_width),
-             MaybeAuto::from_style(style.Margin.margin_right, remaining_width));
+            (MaybeAuto::from_style(style.Box.get().width, remaining_width),
+             MaybeAuto::from_style(style.Margin.get().margin_left, remaining_width),
+             MaybeAuto::from_style(style.Margin.get().margin_right, remaining_width));
 
         let (width, margin_left, margin_right) = self.compute_horiz(width,
                                                                     maybe_margin_left,
@@ -206,7 +206,7 @@ impl BlockFlow {
         // If the tentative used width is greater than 'max-width', width should be recalculated,
         // but this time using the computed value of 'max-width' as the computed value for 'width'.
         let (width, margin_left, margin_right) = {
-            match specified_or_none(style.Box.max_width, remaining_width) {
+            match specified_or_none(style.Box.get().max_width, remaining_width) {
                 Some(value) if value < width => self.compute_horiz(Specified(value),
                                                                    maybe_margin_left,
                                                                    maybe_margin_right,
@@ -218,7 +218,7 @@ impl BlockFlow {
         // If the resulting width is smaller than 'min-width', width should be recalculated,
         // but this time using the value of 'min-width' as the computed value for 'width'.
         let (width, margin_left, margin_right) = {
-            let computed_min_width = specified(style.Box.min_width, remaining_width);
+            let computed_min_width = specified(style.Box.get().min_width, remaining_width);
             if computed_min_width > width {
                 self.compute_horiz(Specified(computed_min_width),
                                    maybe_margin_left,
@@ -235,13 +235,13 @@ impl BlockFlow {
     // CSS Section 10.3.5
     fn compute_float_margins(&self, box_: &Box, remaining_width: Au) -> (Au, Au, Au) {
         let style = box_.style();
-        let margin_left = MaybeAuto::from_style(style.Margin.margin_left,
+        let margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
                                                 remaining_width).specified_or_zero();
-        let margin_right = MaybeAuto::from_style(style.Margin.margin_right,
+        let margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
                                                  remaining_width).specified_or_zero();
         let shrink_to_fit = geometry::min(self.base.pref_width,
                                           geometry::max(self.base.min_width, remaining_width));
-        let width = MaybeAuto::from_style(style.Box.width,
+        let width = MaybeAuto::from_style(style.Box.get().width,
                                           remaining_width).specified_or_default(shrink_to_fit);
         debug!("assign_widths_float -- width: {}", width);
         return (width, margin_left, margin_right);
@@ -376,7 +376,7 @@ impl BlockFlow {
             // block per CSS 2.1 § 10.5.
             // TODO: We need to pass in the correct containing block height
             // for absolutely positioned elems
-            height = match MaybeAuto::from_style(style.Box.height, height) {
+            height = match MaybeAuto::from_style(style.Box.get().height, height) {
                 Auto => height,
                 Specified(value) => value
             };
@@ -516,7 +516,7 @@ impl BlockFlow {
             box_.border.get().top + box_.border.get().bottom;
 
         //TODO(eatkinson): compute heights properly using the 'height' property.
-        let height_prop = MaybeAuto::from_style(box_.style().Box.height,
+        let height_prop = MaybeAuto::from_style(box_.style().Box.get().height,
                                                 Au::new(0)).specified_or_zero();
 
         height = geometry::max(height, height_prop) + noncontent_height;
@@ -719,7 +719,7 @@ impl Flow for BlockFlow {
             let style = box_.style();
 
             // The text alignment of a block flow is the text alignment of its box's style.
-            self.base.flags_info.flags.set_text_align(style.InheritedText.text_align);
+            self.base.flags_info.flags.set_text_align(style.InheritedText.get().text_align);
 
             box_.assign_width(remaining_width);
             // Can compute padding here since we know containing block width.
@@ -729,9 +729,9 @@ impl Flow for BlockFlow {
             let available_width = remaining_width - box_.noncontent_width();
 
             // Top and bottom margins for blocks are 0 if auto.
-            let margin_top = MaybeAuto::from_style(style.Margin.margin_top,
+            let margin_top = MaybeAuto::from_style(style.Margin.get().margin_top,
                                                    remaining_width).specified_or_zero();
-            let margin_bottom = MaybeAuto::from_style(style.Margin.margin_bottom,
+            let margin_bottom = MaybeAuto::from_style(style.Margin.get().margin_bottom,
                                                       remaining_width).specified_or_zero();
 
             let (width, margin_left, margin_right) = if self.is_float() {
