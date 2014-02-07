@@ -12,24 +12,48 @@ use layout::wrapper::LayoutNode;
 
 use extra::arc::Arc;
 use script::layout_interface::LayoutChan;
-use servo_util::smallvec::SmallVec;
-use style::{TNode, Stylist, cascade};
-use style::{Before, After};
+use servo_util::smallvec::{SmallVec, SmallVec0, SmallVec16};
+use style::{After, Before, PropertyDeclaration, Stylist, TNode, cascade};
+
+pub struct ApplicableDeclarations {
+    normal: SmallVec16<Arc<~[PropertyDeclaration]>>,
+    before: SmallVec0<Arc<~[PropertyDeclaration]>>,
+    after: SmallVec0<Arc<~[PropertyDeclaration]>>,
+}
+
+impl ApplicableDeclarations {
+    pub fn new() -> ApplicableDeclarations {
+        ApplicableDeclarations {
+            normal: SmallVec16::new(),
+            before: SmallVec0::new(),
+            after: SmallVec0::new(),
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.normal = SmallVec16::new();
+        self.before = SmallVec0::new();
+        self.after = SmallVec0::new();
+    }
+}
 
 pub trait MatchMethods {
-    fn match_node(&self, stylist: &Stylist);
-
     /// Performs aux initialization, selector matching, and cascading sequentially.
     fn match_and_cascade_subtree(&self,
                                  stylist: &Stylist,
                                  layout_chan: &LayoutChan,
+                                 applicable_declarations: &mut ApplicableDeclarations,
                                  parent: Option<LayoutNode>);
 
-    unsafe fn cascade_node(&self, parent: Option<LayoutNode>);
+    fn match_node(&self, stylist: &Stylist, applicable_declarations: &mut ApplicableDeclarations);
+
+    unsafe fn cascade_node(&self,
+                           parent: Option<LayoutNode>,
+                           applicable_declarations: &ApplicableDeclarations);
 }
 
 impl<'ln> MatchMethods for LayoutNode<'ln> {
-    fn match_node(&self, stylist: &Stylist) {
+    fn match_node(&self, stylist: &Stylist, applicable_declarations: &mut ApplicableDeclarations) {
         let style_attribute = self.with_element(|element| {
             match *element.style_attribute() {
                 None => None,
@@ -37,55 +61,50 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             }
         });
 
-        let mut layout_data_ref = self.mutate_layout_data();
-        match *layout_data_ref.get() {
-            Some(ref mut layout_data) => {
-                //FIXME To implement a clear() on SmallVec and use it(init_applicable_declarations).
-                layout_data.data.init_applicable_declarations();
-
-                stylist.push_applicable_declarations(self,
-                                                     style_attribute,
-                                                     None,
-                                                     &mut layout_data.data.applicable_declarations);
-                stylist.push_applicable_declarations(self,
-                                                     None,
-                                                     Some(Before),
-                                                     &mut layout_data
-                                                         .data
-                                                         .before_applicable_declarations);
-                stylist.push_applicable_declarations(self,
-                                                     None,
-                                                     Some(After),
-                                                     &mut layout_data
-                                                         .data
-                                                         .after_applicable_declarations);
-            }
-            None => fail!("no layout data")
-        }
+        stylist.push_applicable_declarations(self,
+                                             style_attribute,
+                                             None,
+                                             &mut applicable_declarations.normal);
+        stylist.push_applicable_declarations(self,
+                                             None,
+                                             Some(Before),
+                                             &mut applicable_declarations.before);
+        stylist.push_applicable_declarations(self,
+                                             None,
+                                             Some(After),
+                                             &mut applicable_declarations.after);
     }
 
     fn match_and_cascade_subtree(&self,
                                  stylist: &Stylist,
                                  layout_chan: &LayoutChan,
+                                 applicable_declarations: &mut ApplicableDeclarations,
                                  parent: Option<LayoutNode>) {
         self.initialize_layout_data((*layout_chan).clone());
 
         if self.is_element() {
-            self.match_node(stylist);
+            self.match_node(stylist, applicable_declarations);
         }
 
         unsafe {
-            self.cascade_node(parent)
+            self.cascade_node(parent, applicable_declarations)
         }
 
+        applicable_declarations.clear();
+
         for kid in self.children() {
-            kid.match_and_cascade_subtree(stylist, layout_chan, Some(*self))
+            kid.match_and_cascade_subtree(stylist,
+                                          layout_chan,
+                                          applicable_declarations,
+                                          Some(*self))
         }
     }
 
-    unsafe fn cascade_node(&self, parent: Option<LayoutNode>) {
+    unsafe fn cascade_node(&self,
+                           parent: Option<LayoutNode>,
+                           applicable_declarations: &ApplicableDeclarations) {
         macro_rules! cascade_node(
-            ($applicable_declarations: ident, $style: ident) => {{
+            ($applicable_declarations: expr, $style: ident) => {{
                 // Get our parent's style. This must be unsafe so that we don't touch the parent's
                 // borrow flags.
                 //
@@ -100,18 +119,19 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                             Some(ref parent_layout_data) => {
                                 match parent_layout_data.data.style {
                                     None => fail!("parent hasn't been styled yet?!"),
-                                    Some(ref style) => Some(style.get()),
+                                    Some(ref style) => Some(style),
                                 }
                             }
                         }
                     }
                 };
 
-                let computed_values = {
-                    let layout_data_ref = self.borrow_layout_data();
-                    let layout_data = layout_data_ref.get().as_ref().unwrap();
-                    Arc::new(cascade(layout_data.data.$applicable_declarations.as_slice(),
-                                     parent_style))
+                let computed_values = match parent_style {
+                    Some(ref style) => {
+                        Arc::new(cascade($applicable_declarations.as_slice(),
+                                         Some(style.get())))
+                    }
+                    None => Arc::new(cascade($applicable_declarations.as_slice(), None)),
                 };
 
                 let mut layout_data_ref = self.mutate_layout_data();
@@ -132,24 +152,12 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             }}
         );
 
-        {
-            let before_len = {
-                let layout_data_ref = self.borrow_layout_data();
-                layout_data_ref.get().as_ref().unwrap().data.before_applicable_declarations.len()
-            };
-            if before_len > 0 {
-                cascade_node!(before_applicable_declarations, before_style);
-            }
+        cascade_node!(applicable_declarations.normal, style);
+        if applicable_declarations.before.len() > 0 {
+            cascade_node!(applicable_declarations.before, before_style);
         }
-        cascade_node!(applicable_declarations, style);
-        {
-            let after_len = {
-                let layout_data_ref = self.borrow_layout_data();
-                layout_data_ref.get().as_ref().unwrap().data.after_applicable_declarations.len()
-            };
-            if after_len > 0 {
-                cascade_node!(after_applicable_declarations, after_style);
-            }
+        if applicable_declarations.after.len() > 0 {
+            cascade_node!(applicable_declarations.after, after_style);
         }
     }
 }

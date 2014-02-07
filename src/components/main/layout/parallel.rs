@@ -6,7 +6,7 @@
 //!
 //! This code is highly unsafe. Keep this file small and easy to audit.
 
-use css::matching::MatchMethods;
+use css::matching::{ApplicableDeclarations, MatchMethods};
 use layout::context::LayoutContext;
 use layout::extra::LayoutAuxMethods;
 use layout::flow::{Flow, FlowLeafSet, PostorderFlowTraversal};
@@ -149,10 +149,12 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
         // parser.
         node.initialize_layout_data(layout_context.layout_chan.clone());
 
+        let mut applicable_declarations = ApplicableDeclarations::new();
+
         if node.is_element() {
             // Perform the CSS selector matching.
             let stylist: &Stylist = cast::transmute(layout_context.stylist);
-            node.match_node(stylist);
+            node.match_node(stylist, &mut applicable_declarations);
         }
 
         // Perform the CSS cascade.
@@ -161,7 +163,7 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
         } else {
             node.parent_node()
         };
-        node.cascade_node(parent_opt);
+        node.cascade_node(parent_opt, &applicable_declarations);
 
         // Enqueue kids.
         let mut child_count = 0;

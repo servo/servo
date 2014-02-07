@@ -5,7 +5,7 @@
 //! The layout task. Performs layout on the DOM, builds display lists and sends them to be
 /// rendered.
 
-use css::matching::MatchMethods;
+use css::matching::{ApplicableDeclarations, MatchMethods};
 use css::select::new_stylist;
 use css::node_style::StyledNode;
 use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionResult};
@@ -561,8 +561,10 @@ impl LayoutTask {
                     profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone(), || {
                         match self.parallel_traversal {
                             None => {
+                                let mut applicable_declarations = ApplicableDeclarations::new();
                                 node.match_and_cascade_subtree(self.stylist,
                                                                &layout_ctx.layout_chan,
+                                                               &mut applicable_declarations,
                                                                None)
                             }
                             Some(ref mut traversal) => {
