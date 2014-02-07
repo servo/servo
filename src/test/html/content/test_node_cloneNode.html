@@ -9,12 +9,18 @@
 
             // test2: createDocumentFragment
             {
+                var fragment = document.createDocumentFragment();
+                var copy = fragment.cloneNode();
+                isnot(fragment, copy);
+                is_a(fragment && fragment, DocumentFragment);
+                is_a(copy && copy, DocumentFragment);
             }
 
             // test3: createTextNode
             {
                 var text = document.createTextNode("hello world");
                 var copy = text.cloneNode();
+                isnot(text, copy);
                 is_a(text && text, Text);
                 is_a(copy && copy, Text);
                 is(text.data, copy.data);
@@ -25,6 +31,7 @@
             {
                 var comment = document.createComment("a comment");
                 var copy = comment.cloneNode();
+                isnot(comment, copy);
                 is_a(comment && comment, Comment);
                 is_a(copy && copy, Comment);
                 is(comment.data, copy.data);
@@ -34,6 +41,7 @@
             {
                 var pi = document.createProcessingInstruction("target", "data");
                 var copy = pi.cloneNode();
+                isnot(pi, copy);
                 is_a(pi && pi, ProcessingInstruction);
                 is_a(copy && copy, ProcessingInstruction);
                 is(pi.data, copy.data);
@@ -42,14 +50,30 @@
 
             // test6: implementation.createDocumentType
             {
+                var doctype = document.implementation.createDocumentType("html", "public", "system");
+                var copy = doctype.cloneNode();
+                isnot(doctype, copy);
+                is_a(doctype && doctype, DocumentType);
+                is_a(copy && copy, DocumentType);
+                is(doctype.name, copy.name);
+                is(doctype.publicId, copy.publicId);
+                is(doctype.systemId, copy.systemId);
             }
 
             // test7: implementation.createDocument
             {
+                // FIXME: https://github.com/mozilla/servo/issues/1509
             }
 
             // test8: implementation.createHTMLDocument
             {
+                var html = document.implementation.createHTMLDocument("title");
+                var copy = html.cloneNode();
+                isnot(html, copy);
+                is_a(html && html, HTMLDocument);
+                is_a(copy && copy, HTMLDocument);
+                // FIXME: https://github.com/mozilla/servo/issues/1640
+                //is(html.title, copy.title);
             }
 
             // test9: node with children
@@ -64,6 +88,7 @@
 
                 var deep = true;
                 var copy = parent.cloneNode(deep);
+                isnot(parent, copy);
                 is_a(copy && copy, HTMLDivElement);
                 is(parent.id, copy.id);
                 is(copy.childNodes.length, 1);
@@ -71,6 +96,7 @@
 
                 deep = false;
                 var copy2 = parent.cloneNode(deep);
+                isnot(parent, copy);
                 is_a(copy2 && copy2, HTMLDivElement);
                 is(parent.id, copy2.id);
                 is(copy2.childNodes.length, 0);
