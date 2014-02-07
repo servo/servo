@@ -27,12 +27,6 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
     let environment_encoding = UTF_8 as EncodingRef;
 
     spawn_named("cssparser", proc() {
-        // TODO: CSS parsing should take a base URL.
-        let _url = match provenance {
-            UrlProvenance(ref the_url) => (*the_url).clone(),
-            InlineProvenance(ref the_url, _) => (*the_url).clone()
-        };
-
         let sheet = match provenance {
             UrlProvenance(url) => {
                 debug!("cssparse: loading style sheet at {:s}", url.to_str());

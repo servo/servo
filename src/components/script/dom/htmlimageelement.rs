@@ -13,7 +13,7 @@ use servo_util::geometry::to_px;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
-use servo_util::url::make_url;
+use servo_util::url::parse_url;
 use servo_util::namespace::Null;
 
 pub struct HTMLImageElement {
@@ -44,7 +44,7 @@ impl HTMLImageElement {
         match src_opt {
             None => {}
             Some(src) => {
-                let img_url = make_url(src, url);
+                let img_url = parse_url(src, url);
                 self.image = Some(img_url.clone());
 
                 // inform the image cache to load this, but don't store a
