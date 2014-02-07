@@ -169,21 +169,24 @@ pub mod computed {
 
     pub struct Context {
         current_color: cssparser::RGBA,
+        parent_font_size: Au,
         font_size: Au,
         font_weight: longhands::font_weight::computed_value::T,
         position: longhands::position::SpecifiedValue,
         float: longhands::float::SpecifiedValue,
         is_root_element: bool,
-        has_border_top: bool,
-        has_border_right: bool,
-        has_border_bottom: bool,
-        has_border_left: bool,
+        border_top_style: longhands::border_top_style::computed_value::T,
+        border_right_style: longhands::border_top_style::computed_value::T,
+        border_bottom_style: longhands::border_top_style::computed_value::T,
+        border_left_style: longhands::border_top_style::computed_value::T,
         // TODO, as needed: root font size, viewport size, etc.
     }
 
-    pub fn compute_Au(value: specified::Length, context: &Context) -> Au {
+    #[inline]
+    pub fn compute_Au(value: specified::Length, context: &Context, em_is_parent: bool) -> Au {
         match value {
             specified::Au_(value) => value,
+            specified::Em(value) if em_is_parent => context.parent_font_size.scale_by(value),
             specified::Em(value) => context.font_size.scale_by(value),
             specified::Ex(value) => {
                 let x_height = 0.5;  // TODO: find that from the font
@@ -200,7 +203,7 @@ pub mod computed {
     pub fn compute_LengthOrPercentage(value: specified::LengthOrPercentage, context: &Context)
                                    -> LengthOrPercentage {
         match value {
-            specified::LP_Length(value) => LP_Length(compute_Au(value, context)),
+            specified::LP_Length(value) => LP_Length(compute_Au(value, context, false)),
             specified::LP_Percentage(value) => LP_Percentage(value),
         }
     }
@@ -214,7 +217,7 @@ pub mod computed {
     pub fn compute_LengthOrPercentageOrAuto(value: specified::LengthOrPercentageOrAuto,
                                             context: &Context) -> LengthOrPercentageOrAuto {
         match value {
-            specified::LPA_Length(value) => LPA_Length(compute_Au(value, context)),
+            specified::LPA_Length(value) => LPA_Length(compute_Au(value, context, false)),
             specified::LPA_Percentage(value) => LPA_Percentage(value),
             specified::LPA_Auto => LPA_Auto,
         }
@@ -229,7 +232,7 @@ pub mod computed {
     pub fn compute_LengthOrPercentageOrNone(value: specified::LengthOrPercentageOrNone,
                                             context: &Context) -> LengthOrPercentageOrNone {
         match value {
-            specified::LPN_Length(value) => LPN_Length(compute_Au(value, context)),
+            specified::LPN_Length(value) => LPN_Length(compute_Au(value, context, false)),
             specified::LPN_Percentage(value) => LPN_Percentage(value),
             specified::LPN_None => LPN_None,
         }

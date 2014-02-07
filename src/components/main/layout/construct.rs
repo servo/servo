@@ -730,7 +730,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
                     //
                     // If you implement other values for this property, you will almost certainly
                     // want to update this check.
-                    match self.style().get().Text.white_space {
+                    match self.style().get().InheritedText.white_space {
                         white_space::normal => true,
                         _ => false,
                     }

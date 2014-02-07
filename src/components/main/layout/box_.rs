@@ -781,11 +781,11 @@ impl Box {
     /// Returns the text alignment of the computed style of the nearest ancestor-or-self `Element`
     /// node.
     pub fn text_align(&self) -> text_align::T {
-        self.style().Text.text_align
+        self.style().InheritedText.text_align
     }
 
     pub fn line_height(&self) -> line_height::T {
-        self.style().Box.line_height
+        self.style().InheritedBox.line_height
     }
 
     pub fn vertical_align(&self) -> vertical_align::T {
@@ -793,7 +793,7 @@ impl Box {
     }
 
     pub fn white_space(&self) -> white_space::T {
-        self.style().Text.white_space
+        self.style().InheritedText.white_space
     }
 
     /// Returns the text decoration of this box, according to the style of the nearest ancestor
@@ -1029,7 +1029,7 @@ impl Box {
                box_bounds, absolute_box_bounds, self.debug_str());
         debug!("Box::build_display_list: dirty={}, offset={}", *dirty, offset);
 
-        if self.style().Box.visibility != visibility::visible {
+        if self.style().InheritedBox.visibility != visibility::visible {
             return;
         }
 

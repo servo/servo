@@ -25,43 +25,61 @@ def to_rust_ident(name):
     return name
 
 class Longhand(object):
-    def __init__(self, name, is_inherited):
+    def __init__(self, name, priority):
         self.name = name
         self.ident = to_rust_ident(name)
-        self.is_inherited = is_inherited
-
+        self.style_struct = THIS_STYLE_STRUCT
+        self.priority = priority
 
 class Shorthand(object):
-    def __init__(self, name, sub_properties):
+    def __init__(self, name, priority, sub_properties):
         self.name = name
         self.ident = to_rust_ident(name)
         self.sub_properties = [LONGHANDS_BY_NAME[s] for s in sub_properties]
+        self.priority = priority
 
-LONGHANDS_PER_STYLE_STRUCT = []
-THIS_STYLE_STRUCT_LONGHANDS = None
+class StyleStruct(object):
+    def __init__(self, name, inherited):
+        self.name = name
+        self.longhands = []
+        self.inherited = inherited
+
+STYLE_STRUCTS = []
+THIS_STYLE_STRUCT = None
 LONGHANDS = []
 LONGHANDS_BY_NAME = {}
 SHORTHANDS = []
 
-def new_style_struct(name):
-    longhands = []
-    LONGHANDS_PER_STYLE_STRUCT.append((name, longhands))
-    global THIS_STYLE_STRUCT_LONGHANDS
-    THIS_STYLE_STRUCT_LONGHANDS = longhands
+def new_style_struct(name, is_inherited):
+    global THIS_STYLE_STRUCT
+
+    style_struct = StyleStruct(name, is_inherited)
+    STYLE_STRUCTS.append(style_struct)
+    THIS_STYLE_STRUCT = style_struct
     return ""
 
+def switch_to_style_struct(name):
+    global THIS_STYLE_STRUCT
+
+    for style_struct in STYLE_STRUCTS:
+        if style_struct.name == name:
+            THIS_STYLE_STRUCT = style_struct
+            return ""
+    fail()
 %>
 
 pub mod longhands {
     pub use super::*;
     pub use std;
 
-    pub fn computed_as_specified<T>(value: T, _context: &computed::Context) -> T { value }
+    pub fn computed_as_specified<T>(value: T, _context: &mut computed::Context) -> T {
+        value
+    }
 
-    <%def name="raw_longhand(name, inherited=False, no_super=False)">
+    <%def name="raw_longhand(name, priority='Normal', no_super=False)">
     <%
-        property = Longhand(name, inherited)
-        THIS_STYLE_STRUCT_LONGHANDS.append(property)
+        property = Longhand(name, priority)
+        THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
         LONGHANDS_BY_NAME[name] = property
     %>
@@ -76,15 +94,15 @@ pub mod longhands {
                 match CSSWideKeyword::parse(input) {
                     Some(Some(keyword)) => Some(CSSWideKeyword(keyword)),
                     Some(None) => Some(CSSWideKeyword(${
-                        "Inherit" if inherited else "Initial"})),
+                        "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"})),
                     None => parse_specified(input),
                 }
             }
         }
     </%def>
 
-    <%def name="longhand(name, inherited=False, no_super=False)">
-        <%self:raw_longhand name="${name}" inherited="${inherited}">
+    <%def name="longhand(name, priority='Normal', no_super=False)">
+        <%self:raw_longhand name="${name}" priority="${priority}">
             ${caller.body()}
             pub fn parse_specified(input: &[ComponentValue])
                                -> Option<DeclaredValue<SpecifiedValue>> {
@@ -93,8 +111,8 @@ pub mod longhands {
         </%self:raw_longhand>
     </%def>
 
-    <%def name="single_component_value(name, inherited=False)">
-        <%self:longhand name="${name}" inherited="${inherited}">
+    <%def name="single_component_value(name, priority='Normal')">
+        <%self:longhand name="${name}" priority="${priority}">
             ${caller.body()}
             pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
                 one_component_value(input).and_then(from_component_value)
@@ -102,8 +120,8 @@ pub mod longhands {
         </%self:longhand>
     </%def>
 
-    <%def name="single_keyword_computed(name, values, inherited=False)">
-        <%self:single_component_value name="${name}" inherited="${inherited}">
+    <%def name="single_keyword_computed(name, values, priority='Normal')">
+        <%self:single_component_value name="${name}" priority="${priority}">
             ${caller.body()}
             pub mod computed_value {
                 #[deriving(Eq, Clone, FromPrimitive)]
@@ -130,15 +148,15 @@ pub mod longhands {
         </%self:single_component_value>
     </%def>
 
-    <%def name="single_keyword(name, values, inherited=False)">
-        <%self:single_keyword_computed name="${name}" values="${values}" inherited="${inherited}">
+    <%def name="single_keyword(name, values, priority='Normal')">
+        <%self:single_keyword_computed name="${name}" values="${values}" priority="${priority}">
             // The computed value is the same as the specified value.
             pub use to_computed_value = super::computed_as_specified;
         </%self:single_keyword_computed>
     </%def>
 
-    <%def name="predefined_type(name, type, initial_value, parse_method='parse', inherited=False)">
-        <%self:single_component_value name="${name}" inherited="${inherited}">
+    <%def name="predefined_type(name, type, initial_value, parse_method='parse')">
+        <%self:single_component_value name="${name}">
             pub use to_computed_value = super::super::common_types::computed::compute_${type};
             pub type SpecifiedValue = specified::${type};
             pub mod computed_value {
@@ -154,14 +172,14 @@ pub mod longhands {
 
     // CSS 2.1, Section 8 - Box model
 
-    ${new_style_struct("Margin")}
+    ${new_style_struct("Margin", False)}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("margin-" + side, "LengthOrPercentageOrAuto",
                           "computed::LPA_Length(Au(0))")}
     % endfor
 
-    ${new_style_struct("Padding")}
+    ${new_style_struct("Padding", False)}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("padding-" + side, "LengthOrPercentage",
@@ -169,17 +187,33 @@ pub mod longhands {
                           "parse_non_negative")}
     % endfor
 
-    ${new_style_struct("Border")}
+    ${new_style_struct("Border", False)}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("border-%s-color" % side, "CSSColor", "CurrentColor")}
     % endfor
 
     //  double groove ridge insed outset
-    ${single_keyword("border-top-style", "none solid dotted dashed hidden")}
+    <%self:single_keyword_computed name="border-top-style"
+                                   values="none solid dotted dashed hidden"
+                                   priority="High">
+        pub fn to_computed_value(value: SpecifiedValue, context: &mut computed::Context)
+                                 -> computed_value::T {
+            context.border_top_style = value;
+            value
+        }
+    </%self:single_keyword_computed>
     % for side in ["right", "bottom", "left"]:
-        <%self:longhand name="border-${side}-style", no_super="True">
-            pub use super::border_top_style::*;
+        <%self:longhand name="border-${side}-style", no_super="True", priority="High">
+            pub use super::border_top_style::get_initial_value;
+            pub use super::border_top_style::parse;
+
+            pub fn to_computed_value(value: SpecifiedValue, context: &mut computed::Context)
+                                     -> computed_value::T {
+                context.border_${side}_style = value;
+                value
+            }
+
             pub type SpecifiedValue = super::border_top_style::SpecifiedValue;
             pub mod computed_value {
                 pub type T = super::super::border_top_style::computed_value::T;
@@ -204,6 +238,7 @@ pub mod longhands {
     }
     % for side in ["top", "right", "bottom", "left"]:
         <%self:longhand name="border-${side}-width">
+            use super::super::border_is_present;
             pub type SpecifiedValue = specified::Length;
             pub mod computed_value {
                 use super::super::Au;
@@ -215,15 +250,18 @@ pub mod longhands {
             pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
                 one_component_value(input).and_then(parse_border_width)
             }
-            pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+            pub fn to_computed_value(value: SpecifiedValue, context: &mut computed::Context)
                                   -> computed_value::T {
-                if context.has_border_${side} { computed::compute_Au(value, context) }
-                else { Au(0) }
+                if !border_is_present(context.border_${side}_style) {
+                    Au(0)
+                } else {
+                    computed::compute_Au(value, context, false)
+                }
             }
         </%self:longhand>
     % endfor
 
-    ${new_style_struct("PositionOffsets")}
+    ${new_style_struct("PositionOffsets", False)}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type(side, "LengthOrPercentageOrAuto",
@@ -232,7 +270,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 9 - Visual formatting model
 
-    ${new_style_struct("Box")}
+    ${new_style_struct("Box", False)}
 
     // TODO: don't parse values we don't support
     <%self:single_keyword_computed name="display"
@@ -286,8 +324,9 @@ pub mod longhands {
                       "computed::LPN_None",
                       "parse_non_negative")}
 
+    ${new_style_struct("InheritedBox", True)}
 
-    <%self:single_component_value name="line-height" inherited="True">
+    <%self:single_component_value name="line-height">
         #[deriving(Clone)]
         pub enum SpecifiedValue {
             SpecifiedNormal,
@@ -324,11 +363,13 @@ pub mod longhands {
                               -> computed_value::T {
             match value {
                 SpecifiedNormal => Normal,
-                SpecifiedLength(value) => Length(computed::compute_Au(value, context)),
+                SpecifiedLength(value) => Length(computed::compute_Au(value, context, false)),
                 SpecifiedNumber(value) => Number(value),
             }
         }
     </%self:single_component_value>
+
+    ${switch_to_style_struct("Box")}
 
     <%self:single_component_value name="vertical-align">
         <% vertical_align_keywords = (
@@ -387,14 +428,18 @@ pub mod longhands {
 
 
     // CSS 2.1, Section 11 - Visual effects
-    ${single_keyword("overflow", "visible hidden", inherited=False)} // TODO: scroll auto
+    ${single_keyword("overflow", "visible hidden")} // TODO: scroll auto
+
+    ${switch_to_style_struct("InheritedBox")}
 
     // TODO: collapse. Well, do tables first.
-    ${single_keyword("visibility", "visible hidden", inherited=True)}
+    ${single_keyword("visibility", "visible hidden")}
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 
-    <%self:longhand name="content" inherited="False">
+    ${switch_to_style_struct("Box")}
+
+    <%self:longhand name="content">
             pub use to_computed_value = super::computed_as_specified;
             pub mod computed_value {
                 #[deriving(Eq, Clone)]
@@ -437,15 +482,15 @@ pub mod longhands {
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
-    ${new_style_struct("Background")}
+    ${new_style_struct("Background", False)}
 
     ${predefined_type("background-color", "CSSColor",
                       "RGBA(RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
 
 
-    ${new_style_struct("Color")}
+    ${new_style_struct("Color", True)}
 
-    <%self:raw_longhand name="color" inherited="True">
+    <%self:raw_longhand name="color">
         pub use to_computed_value = super::computed_as_specified;
         pub type SpecifiedValue = RGBA;
         pub mod computed_value {
@@ -465,9 +510,9 @@ pub mod longhands {
 
     // CSS 2.1, Section 15 - Fonts
 
-    ${new_style_struct("Font")}
+    ${new_style_struct("Font", True)}
 
-    <%self:longhand name="font-family" inherited="True">
+    <%self:longhand name="font-family">
         pub use to_computed_value = super::computed_as_specified;
         pub mod computed_value {
             #[deriving(Eq, Clone)]
@@ -545,10 +590,10 @@ pub mod longhands {
     </%self:longhand>
 
 
-    ${single_keyword("font-style", "normal italic oblique", inherited=True)}
-    ${single_keyword("font-variant", "normal", inherited=True)}  // Add small-caps when supported
+    ${single_keyword("font-style", "normal italic oblique")}
+    ${single_keyword("font-variant", "normal")}  // Add small-caps when supported
 
-    <%self:single_component_value name="font-weight" inherited="True">
+    <%self:single_component_value name="font-weight" priority="High">
         #[deriving(Clone)]
         pub enum SpecifiedValue {
             Bolder,
@@ -603,9 +648,9 @@ pub mod longhands {
             }
         }
         #[inline] pub fn get_initial_value() -> computed_value::T { Weight400 }  // normal
-        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+        pub fn to_computed_value(value: SpecifiedValue, context: &mut computed::Context)
                               -> computed_value::T {
-            match value {
+            let result = match value {
                 % for weight in range(100, 901, 100):
                     SpecifiedWeight${weight} => Weight${weight},
                 % endfor
@@ -631,16 +676,24 @@ pub mod longhands {
                     Weight800 => Weight700,
                     Weight900 => Weight700,
                 },
-            }
+            };
+            context.font_weight = result;
+            result
         }
     </%self:single_component_value>
 
-    <%self:single_component_value name="font-size" inherited="True">
+    <%self:single_component_value name="font-size" priority="High">
         pub use to_computed_value = super::super::common_types::computed::compute_Au;
         pub type SpecifiedValue = specified::Length;  // Percentages are the same as em.
         pub mod computed_value {
             use super::super::Au;
             pub type T = Au;
+        }
+        pub fn to_computed_value(value: SpecifiedValue, context: &mut computed::Context)
+                                 -> computed_value::T {
+            let result = computed::compute_Au(value, context, true);
+            context.font_size = result;
+            result
         }
         #[inline] pub fn get_initial_value() -> computed_value::T {
             Au::from_px(16)  // medium
@@ -659,10 +712,12 @@ pub mod longhands {
 
     // CSS 2.1, Section 16 - Text
 
-    ${new_style_struct("Text")}
+    ${new_style_struct("InheritedText", True)}
 
     // TODO: initial value should be 'start' (CSS Text Level 3, direction-dependent.)
-    ${single_keyword("text-align", "left right center justify", inherited=True)}
+    ${single_keyword("text-align", "left right center justify")}
+
+    ${new_style_struct("Text", False)}
 
     <%self:longhand name="text-decoration">
         pub use to_computed_value = super::computed_as_specified;
@@ -709,7 +764,9 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${single_keyword("white-space", "normal pre", inherited=True)}
+    ${switch_to_style_struct("InheritedText")}
+
+    ${single_keyword("white-space", "normal pre")}
 
     // CSS 2.1, Section 17 - Tables
 
@@ -721,9 +778,9 @@ pub mod shorthands {
     pub use super::*;
     pub use super::longhands::*;
 
-    <%def name="shorthand(name, sub_properties)">
+    <%def name="shorthand(name, sub_properties, priority='Normal')">
     <%
-        shorthand = Shorthand(name, sub_properties.split())
+        shorthand = Shorthand(name, priority, sub_properties.split())
         SHORTHANDS.append(shorthand)
     %>
         pub mod ${shorthand.ident} {
@@ -1029,7 +1086,7 @@ impl PropertyDeclaration {
                         % for sub_property in shorthand.sub_properties:
                             result_list.push(${sub_property.ident}_declaration(
                                 CSSWideKeyword(${
-                                    "Inherit" if sub_property.is_inherited else "Initial"})
+                                    "Inherit" if sub_property.style_struct.inherited else "Initial"})
                             ));
                         % endfor
                     },
@@ -1057,10 +1114,10 @@ impl PropertyDeclaration {
 
 pub mod style_structs {
     use super::longhands;
-    % for name, longhands in LONGHANDS_PER_STYLE_STRUCT:
+    % for style_struct in STYLE_STRUCTS:
         #[deriving(Eq, Clone)]
-        pub struct ${name} {
-            % for longhand in longhands:
+        pub struct ${style_struct.name} {
+            % for longhand in style_struct.longhands:
                 ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
             % endfor
         }
@@ -1069,8 +1126,8 @@ pub mod style_structs {
 
 #[deriving(Eq, Clone)]
 pub struct ComputedValues {
-    % for name, longhands in LONGHANDS_PER_STYLE_STRUCT:
-        ${name}: style_structs::${name},
+    % for style_struct in STYLE_STRUCTS:
+        ${style_struct.name}: style_structs::${style_struct.name},
     % endfor
 }
 
@@ -1090,111 +1147,127 @@ impl ComputedValues {
     }
 }
 
-#[inline]
-fn get_initial_values() -> ComputedValues {
-    ComputedValues {
-        % for style_struct, longhands in LONGHANDS_PER_STYLE_STRUCT:
-            ${style_struct}: style_structs::${style_struct} {
-                % for longhand in longhands:
-                    ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
-                % endfor
-            },
-        % endfor
+/// Creates a new cascade context.
+fn new_cascade_context(style_Color: &style_structs::Color,
+                       style_Font: &style_structs::Font,
+                       style_Box: &style_structs::Box,
+                       is_root_element: bool)
+                       -> computed::Context {
+    computed::Context {
+        current_color: style_Color.color,
+        parent_font_size: style_Font.font_size,
+        font_size: style_Font.font_size,
+        font_weight: style_Font.font_weight,
+        position: style_Box.position,
+        float: style_Box.float,
+        is_root_element: is_root_element,
+        border_top_style: longhands::border_top_style::get_initial_value(),
+        border_right_style: longhands::border_top_style::get_initial_value(),
+        border_bottom_style: longhands::border_top_style::get_initial_value(),
+        border_left_style: longhands::border_top_style::get_initial_value(),
     }
 }
 
+fn border_is_present(border_style: longhands::border_top_style::computed_value::T) -> bool {
+    match border_style {
+        longhands::border_top_style::hidden | longhands::border_top_style::none => false,
+        _ => true
+    }
+}
 
-// Most specific/important declarations last
+/// Performs the CSS cascade, computing new styles for an element from its parent style and
+/// optionally a cached related style. The arguments are:
+///
+///   * `applicable_declarations`: The list of CSS rules that matched.
+///
+///   * `parent_style`: The parent style, if applicable; if `None`, this is the root node.
+///
+/// Returns the computed values.
 pub fn cascade(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
-               parent_style: Option< &ComputedValues>)
-            -> ComputedValues {
-    let initial_keep_alive;
-    let (parent_style, is_root_element) = match parent_style {
-        Some(s) => (s, false),
+               parent_style: Option< &ComputedValues >)
+               -> ComputedValues {
+    let is_root_element;
+    % for style_struct in STYLE_STRUCTS:
+        let mut style_${style_struct.name};
+    % endfor
+    match parent_style {
+        Some(parent_style) => {
+            is_root_element = false;
+            % for style_struct in STYLE_STRUCTS:
+                % if style_struct.inherited:
+                    style_${style_struct.name} = parent_style.${style_struct.name}.clone();
+                % else:
+                    style_${style_struct.name} = style_structs::${style_struct.name} {
+                        % for longhand in style_struct.longhands:
+                            ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
+                        % endfor
+                    };
+                %endif
+            % endfor
+        }
         None => {
-            initial_keep_alive = ~get_initial_values();
-            (&*initial_keep_alive, true)
-        }
-    };
-    struct AllDeclaredValues {
-        % for property in LONGHANDS:
-            ${property.ident}: DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
-        % endfor
-    }
-    let mut specified = AllDeclaredValues {
-        % for property in LONGHANDS:
-            ${property.ident}: CSSWideKeyword(${
-                "Inherit" if property.is_inherited else "Initial"}),
-        % endfor
-    };
-    for sub_list in applicable_declarations.iter() {
-        for declaration in sub_list.get().iter() {
-            match declaration {
-                % for property in LONGHANDS:
-                    &${property.ident}_declaration(ref value) => {
-                        // Overwrite earlier declarations.
-                        // TODO: can we avoid a copy?
-                        specified.${property.ident} = (*value).clone()
-                    }
-                % endfor
-            }
+            is_root_element = true;
+            % for style_struct in STYLE_STRUCTS:
+                style_${style_struct.name} = style_structs::${style_struct.name} {
+                    % for longhand in style_struct.longhands:
+                        ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
+                    % endfor
+                };
+            % endfor
         }
     }
-    // This assumes that the computed and specified values have the same Rust type.
-    macro_rules! get_specified(
-        ($style_struct: ident, $property: ident) => {
-            match specified.$property {
-                SpecifiedValue(value) => value,
-                CSSWideKeyword(Initial) => longhands::$property::get_initial_value(),
-                CSSWideKeyword(Inherit) => parent_style.$style_struct.$property.clone(),
+
+    let mut context = new_cascade_context(&style_Color, &style_Font, &style_Box, is_root_element);
+
+    <%def name="apply(priority)">
+        for sub_list in applicable_declarations.iter() {
+            for declaration in sub_list.get().iter() {
+                match declaration {
+                    % for style_struct in STYLE_STRUCTS:
+                        % for property in style_struct.longhands:
+                            % if property.priority == priority:
+                                &${property.ident}_declaration(SpecifiedValue(ref value)) => {
+                                    // Overwrite earlier declarations.
+                                    // TODO: can we avoid a copy?
+                                    style_${style_struct.name}.${property.ident} =
+                                        longhands::${property.ident}::to_computed_value(
+                                            (*value).clone(),
+                                            &mut context)
+                                }
+                                &${property.ident}_declaration(CSSWideKeyword(Inherit)) => {
+                                    // This is a bit slow, but this is rare so it shouldn't matter.
+                                    match parent_style {
+                                        None => {
+                                            style_${style_struct.name}.${property.ident} =
+                                                longhands::${property.ident}::get_initial_value()
+                                        }
+                                        Some(ref parent_style) => {
+                                            style_${style_struct.name}.${property.ident} =
+                                                parent_style.${style_struct.name}
+                                                            .${property.ident}
+                                                            .clone()
+                                        }
+                                    }
+                                }
+                                &${property.ident}_declaration(CSSWideKeyword(Initial)) => {
+                                    style_${style_struct.name}.${property.ident} =
+                                        longhands::${property.ident}::get_initial_value()
+                                }
+                            % endif
+                        % endfor
+                    % endfor
+                    _ => {}
+                }
             }
-        };
-    )
-    macro_rules! has_border(
-        ($property: ident) => {
-            match get_specified!(Border, $property) {
-                longhands::border_top_style::none
-                | longhands::border_top_style::hidden => false,
-                _ => true,
-            }
-        };
-    )
-    let context = &mut computed::Context {
-        current_color: get_specified!(Color, color),
-        font_size: parent_style.Font.font_size,
-        font_weight: parent_style.Font.font_weight,
-        position: get_specified!(Box, position),
-        float: get_specified!(Box, float),
-        is_root_element: is_root_element,
-        has_border_top: has_border!(border_top_style),
-        has_border_right: has_border!(border_right_style),
-        has_border_bottom: has_border!(border_bottom_style),
-        has_border_left: has_border!(border_left_style),
-    };
-    macro_rules! get_computed(
-        ($style_struct: ident, $property: ident) => {
-            match specified.$property {
-                SpecifiedValue(ref value)
-                // TODO: avoid a copy?
-                => longhands::$property::to_computed_value(value.clone(), context),
-                CSSWideKeyword(Initial) => longhands::$property::get_initial_value(),
-                CSSWideKeyword(Inherit) => parent_style.$style_struct.$property.clone(),
-            }
-        };
-    )
-    context.font_size = get_computed!(Font, font_size);
+        }
+    </%def>
+
+    ${apply("High")}
+    ${apply("Normal")}
+
     ComputedValues {
-        % for style_struct, longhands in LONGHANDS_PER_STYLE_STRUCT:
-            ${style_struct}: style_structs::${style_struct} {
-                % for longhand in longhands:
-                    ${longhand.ident}:
-                    % if longhand.ident == 'font_size':
-                        context.font_size,
-                    % else:
-                        get_computed!(${style_struct}, ${longhand.ident}),
-                    % endif
-                % endfor
-            },
+        % for style_struct in STYLE_STRUCTS:
+            ${style_struct.name}: style_${style_struct.name},
         % endfor
     }
 }
