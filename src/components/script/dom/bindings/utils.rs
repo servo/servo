@@ -11,7 +11,7 @@ use std::cast;
 use std::hashmap::HashMap;
 use std::libc;
 use std::ptr;
-use std::ptr::{null, to_unsafe_ptr};
+use std::ptr::null;
 use std::str;
 use std::vec;
 use std::unstable::raw::Box;
@@ -629,10 +629,6 @@ impl Reflector {
         assert!(self.object.is_null());
         assert!(object.is_not_null());
         self.object = object;
-    }
-
-    pub fn get_rootable(&self) -> **JSObject {
-        return to_unsafe_ptr(&self.object);
     }
 
     pub fn new() -> Reflector {
