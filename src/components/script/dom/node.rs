@@ -4,21 +4,26 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
+use dom::attr::Attr;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{DOMString, null_str_as_empty};
 use dom::bindings::utils::{ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::bindings::utils;
 use dom::characterdata::CharacterData;
-use dom::document::{AbstractDocument, DocumentTypeId};
+use dom::comment::Comment;
+use dom::document::{AbstractDocument, Document, DocumentTypeId, HTMLDocumentTypeId, PlainDocumentTypeId};
+use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
 use dom::element::{HTMLAnchorElementTypeId, HTMLStyleElementTypeId};
 use dom::eventtarget::{AbstractEventTarget, EventTarget, NodeTypeId};
+use dom::htmldocument::HTMLDocument;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::nodelist::{NodeList};
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
+use html::hubbub_html_parser::build_element_from_tag;
 use layout_interface::{LayoutChan, ReapLayoutDataMsg, UntrustedNodeAddress};
 
 use js::jsapi::{JSContext, JSObject, JSRuntime};
@@ -459,6 +464,14 @@ impl<'a> AbstractNode {
             fail!(~"node is not an element");
         }
         self.transmute_mut(f)
+    }
+
+    pub fn with_imm_document<R>(&self, f: |&Document| -> R) -> R {
+        f(AbstractDocument::from_node(self).document())
+    }
+
+    pub fn as_mut_document<R>(&self, f: |&mut Document| -> R) -> R {
+        f(AbstractDocument::from_node(self).mut_document())
     }
 
     #[inline]
@@ -1222,7 +1235,7 @@ impl Node {
         Node::insert(node, parent, referenceChild, Unsuppressed);
 
         // Step 11.
-        return Ok(node)
+        Ok(node)
     }
 
     // http://dom.spec.whatwg.org/#concept-node-insert
@@ -1338,6 +1351,104 @@ impl Node {
             Suppressed => (),
             Unsuppressed => node.node_removed(),
         }
+    }
+
+    // http://dom.spec.whatwg.org/#concept-node-clone
+    fn clone(node: AbstractNode, maybe_doc: Option<&AbstractDocument>, clone_children: bool)
+             -> Fallible<AbstractNode> {
+        fn recursively_clone_children(node: AbstractNode, copy: AbstractNode, document: &AbstractDocument) {
+            for child in node.children() {
+                match Node::clone(child, Some(document), true) {
+                    Ok(cloned_child) => {
+                        match Node::pre_insert(cloned_child, copy, None) {
+                            Ok(appended_child) => {
+                                recursively_clone_children(child, appended_child, document);
+                            },
+                            Err(..) => {
+                                fail!("an error occurred while appending children");
+                            }
+                        }
+                    },
+                    Err(..) => {
+                        fail!("an error occurred while cloning children");
+                    }
+                }
+            }
+        }
+
+        // Step 1.
+        let mut document : &AbstractDocument = match maybe_doc {
+            Some(doc) => doc,
+            None => node.node().owner_doc.as_ref().unwrap()
+        };
+
+        // Step 2.
+        // XXXabinader: clone() for each node as trait?
+        let copy = match node.type_id() {
+            DoctypeNodeTypeId => node.with_imm_doctype(|doctype| {
+                DocumentType::new(doctype.name.clone(), Some(doctype.public_id.clone()), Some(doctype.system_id.clone()), *document)
+            }),
+            DocumentFragmentNodeTypeId => DocumentFragment::new(*document),
+            CommentNodeTypeId => node.with_imm_characterdata(|comment| {
+                Comment::new(comment.data.clone(), *document)
+            }),
+            DocumentNodeTypeId(doc_type_id) => node.with_imm_document(|doc| {
+                AbstractNode::from_document(match doc_type_id {
+                    PlainDocumentTypeId => Document::new(doc.window, Some(doc.url.clone()), doc.doctype, None),
+                    HTMLDocumentTypeId => HTMLDocument::new(doc.window, Some(doc.url.clone())),
+                })
+            }),
+            ElementNodeTypeId(..) => node.with_imm_element(|element| {
+                build_element_from_tag(element.tag_name.clone(), *document)
+            }),
+            TextNodeTypeId => node.with_imm_characterdata(|text| {
+                Text::new(text.data.clone(), *document)
+            }),
+            ProcessingInstructionNodeTypeId => node.with_imm_processing_instruction(|pi| {
+                ProcessingInstruction::new(pi.target.clone(), pi.element.data.clone(), *document)
+            }),
+        };
+
+        // Step 3.
+        if copy.is_document() {
+            document = AbstractDocument::from_node(&copy);
+        }
+        copy.mut_node().set_owner_doc(*document);
+
+        // Step 4 (some data already copied in step 2).
+        match node.type_id() {
+            DocumentNodeTypeId(..) => {
+                node.with_imm_document(|_doc| {
+                    copy.as_mut_document(|_copy_doc| {
+                        _copy_doc.set_encoding_name(_doc.encoding_name.clone());
+                        _copy_doc.set_quirks_mode(_doc.quirks_mode);
+                    });
+                });
+            },
+            ElementNodeTypeId(..) => {
+                node.with_imm_element(|_elem| {
+                    copy.as_mut_element(|_copy_elem| {
+                        // FIXME: namespace prefix
+                        _copy_elem.namespace = _elem.namespace.clone();
+                        for attr in _elem.attrs.iter() {
+                            _copy_elem.attrs.push(Attr::new_ns(document.document().window, attr.local_name.clone(), attr.value.clone(),
+                                                               attr.name.clone(), attr.namespace.clone(), attr.prefix.clone()));
+                        }
+                    });
+                });
+            },
+            _ => ()
+        }
+
+        // Step 5: cloning steps.
+
+        // Step 6.
+        if clone_children {
+            recursively_clone_children(node, copy, document);
+        }
+
+        // Step 7.
+        Ok(copy)
     }
 
     pub fn SetTextContent(&mut self, abstract_self: AbstractNode, value: Option<DOMString>)
@@ -1526,8 +1637,9 @@ impl Node {
     pub fn Normalize(&mut self) {
     }
 
-    pub fn CloneNode(&self, _deep: bool) -> Fallible<AbstractNode> {
-        fail!("stub")
+    // http://dom.spec.whatwg.org/#dom-node-clonenode
+    pub fn CloneNode(&self, abstract_self: AbstractNode, deep: bool) -> Fallible<AbstractNode> {
+        Node::clone(abstract_self, self.owner_doc.as_ref(), deep)
     }
 
     pub fn IsEqualNode(&self, _node: Option<AbstractNode>) -> bool {
