@@ -166,7 +166,7 @@ fn run(opts: Opts) {
 
         // Send the URL command to the constellation.
         for filename in opts.urls.iter() {
-            constellation_chan.send(InitLoadUrlMsg(parse_url(filename.clone(), None)))
+            constellation_chan.send(InitLoadUrlMsg(parse_url(*filename, None)))
         }
 
         // Send the constallation Chan as the result

@@ -494,7 +494,7 @@ mod tests {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
-                        let chan = start_sending(response, Metadata::default(parse_url(~"file:///fake", None)));
+                        let chan = start_sending(response, Metadata::default(parse_url("file:///fake", None)));
                         on_load(chan);
                     }
                     resource_task::Exit => break
@@ -508,7 +508,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(proc(_response) {});
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let _url = parse_url(~"file", None);
+        let _url = parse_url("file", None);
 
         image_cache_task.exit();
         mock_resource_task.send(resource_task::Exit);
@@ -520,7 +520,7 @@ mod tests {
         let mock_resource_task = mock_resource_task(proc(_response) {});
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         let (port, chan) = Chan::new();
         image_cache_task.send(GetImage(url, chan));
@@ -537,7 +537,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         image_cache_task.send(Prefetch(url));
         url_requested.recv();
@@ -555,7 +555,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Prefetch(url));
@@ -578,7 +578,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
@@ -598,7 +598,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         let join_port = image_cache_task.wait_for_store();
 
@@ -627,7 +627,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         let join_port = image_cache_task.wait_for_store();
 
@@ -660,7 +660,7 @@ mod tests {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
-                        let chan = start_sending(response, Metadata::default(parse_url(~"file:///fake", None)));
+                        let chan = start_sending(response, Metadata::default(parse_url("file:///fake", None)));
                         chan.send(resource_task::Payload(test_image_bin()));
                         chan.send(resource_task::Done(Ok(())));
                         image_bin_sent_chan.send(());
@@ -674,7 +674,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         image_cache_task.send(Prefetch(url.clone()));
 
@@ -703,7 +703,7 @@ mod tests {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
-                        let chan = start_sending(response, Metadata::default(parse_url(~"file:///fake", None)));
+                        let chan = start_sending(response, Metadata::default(parse_url("file:///fake", None)));
                         chan.send(resource_task::Payload(test_image_bin()));
                         chan.send(resource_task::Done(Err(())));
                         image_bin_sent_chan.send(());
@@ -717,7 +717,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
@@ -747,7 +747,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         let join_port = image_cache_task.wait_for_store_prefetched();
 
@@ -777,7 +777,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         let join_port = image_cache_task.wait_for_store_prefetched();
 
@@ -815,7 +815,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         let join_port = image_cache_task.wait_for_store();
 
@@ -846,7 +846,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         let join_port = image_cache_task.wait_for_store();
 
@@ -878,7 +878,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
@@ -908,7 +908,7 @@ mod tests {
         });
 
         let image_cache_task = ImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
@@ -935,7 +935,7 @@ mod tests {
         });
 
         let image_cache_task = SyncImageCacheTask(mock_resource_task.clone());
-        let url = parse_url(~"file", None);
+        let url = parse_url("file", None);
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
