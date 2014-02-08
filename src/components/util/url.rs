@@ -91,7 +91,7 @@ mod parse_url_tests {
 
     #[test]
     fn should_create_absolute_file_url_if_base_url_is_none_and_str_url_looks_filey() {
-        let file = ~"local.html";
+        let file = "local.html";
         let url = parse_url(file, None);
         debug!("url: {:?}", url);
         assert!(url.scheme == ~"file");
@@ -102,9 +102,9 @@ mod parse_url_tests {
 
     #[test]
     fn should_create_url_based_on_old_url_1() {
-        let old_str = ~"http://example.com";
+        let old_str = "http://example.com";
         let old_url = parse_url(old_str, None);
-        let new_str = ~"index.html";
+        let new_str = "index.html";
         let new_url = parse_url(new_str, Some(old_url));
         assert!(new_url.scheme == ~"http");
         assert!(new_url.host == ~"example.com");
@@ -113,9 +113,9 @@ mod parse_url_tests {
 
     #[test]
     fn should_create_url_based_on_old_url_2() {
-        let old_str = ~"http://example.com/";
+        let old_str = "http://example.com/";
         let old_url = parse_url(old_str, None);
-        let new_str = ~"index.html";
+        let new_str = "index.html";
         let new_url = parse_url(new_str, Some(old_url));
         assert!(new_url.scheme == ~"http");
         assert!(new_url.host == ~"example.com");
@@ -124,9 +124,9 @@ mod parse_url_tests {
 
     #[test]
     fn should_create_url_based_on_old_url_3() {
-        let old_str = ~"http://example.com/index.html";
+        let old_str = "http://example.com/index.html";
         let old_url = parse_url(old_str, None);
-        let new_str = ~"crumpet.html";
+        let new_str = "crumpet.html";
         let new_url = parse_url(new_str, Some(old_url));
         assert!(new_url.scheme == ~"http");
         assert!(new_url.host == ~"example.com");
@@ -135,9 +135,9 @@ mod parse_url_tests {
 
     #[test]
     fn should_create_url_based_on_old_url_4() {
-        let old_str = ~"http://example.com/snarf/index.html";
+        let old_str = "http://example.com/snarf/index.html";
         let old_url = parse_url(old_str, None);
-        let new_str = ~"crumpet.html";
+        let new_str = "crumpet.html";
         let new_url = parse_url(new_str, Some(old_url));
         assert!(new_url.scheme == ~"http");
         assert!(new_url.host == ~"example.com");
@@ -146,9 +146,9 @@ mod parse_url_tests {
 
     #[test]
     fn should_create_url_based_on_old_url_5() {
-        let old_str = ~"http://example.com/index.html";
+        let old_str = "http://example.com/index.html";
         let old_url = parse_url(old_str, None);
-        let new_str = ~"#top";
+        let new_str = "#top";
         let new_url = parse_url(new_str, Some(old_url));
 
         assert!(new_url.scheme == ~"http");
@@ -161,9 +161,9 @@ mod parse_url_tests {
     fn should_create_url_based_on_old_url_6() {
         use extra::url::UserInfo;
 
-        let old_str = ~"http://foo:bar@example.com:8080/index.html";
+        let old_str = "http://foo:bar@example.com:8080/index.html";
         let old_url = parse_url(old_str, None);
-        let new_str = ~"#top";
+        let new_str = "#top";
         let new_url = parse_url(new_str, Some(old_url));
 
         assert!(new_url.scheme == ~"http");
@@ -176,9 +176,9 @@ mod parse_url_tests {
 
     #[test]
     fn should_create_url_based_on_old_url_7() {
-        let old_str = ~"https://example.com/snarf/index.html";
+        let old_str = "https://example.com/snarf/index.html";
         let old_url = parse_url(old_str, None);
-        let new_str = ~"//example.com/crumpet.html";
+        let new_str = "//example.com/crumpet.html";
         let new_url = parse_url(new_str, Some(old_url));
         assert!(new_url.scheme == ~"https");
         assert!(new_url.host == ~"example.com");
