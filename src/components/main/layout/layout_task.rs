@@ -6,6 +6,7 @@
 /// rendered.
 
 use css::matching::{ApplicableDeclarations, ApplicableDeclarationsCache, MatchMethods};
+use css::matching::{StyleSharingCandidateCache};
 use css::select::new_stylist;
 use css::node_style::StyledNode;
 use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionResult};
@@ -570,11 +571,14 @@ impl LayoutTask {
                                 let mut applicable_declarations = ApplicableDeclarations::new();
                                 let mut applicable_declarations_cache =
                                     ApplicableDeclarationsCache::new();
+                                let mut style_sharing_candidate_cache =
+                                    StyleSharingCandidateCache::new();
                                 node.match_and_cascade_subtree(self.stylist,
                                                                &layout_ctx.layout_chan,
                                                                &mut applicable_declarations,
                                                                layout_ctx.initial_css_values.get(),
                                                                &mut applicable_declarations_cache,
+                                                               &mut style_sharing_candidate_cache,
                                                                None)
                             }
                             Some(ref mut traversal) => {

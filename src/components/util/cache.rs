@@ -128,6 +128,7 @@ impl<K: Clone + Eq, V: Clone> LRUCache<K,V> {
         }
     }
 
+    #[inline]
     pub fn touch(&mut self, pos: uint) -> V {
         let last_index = self.entries.len() - 1;
         if pos != last_index {
@@ -135,6 +136,10 @@ impl<K: Clone + Eq, V: Clone> LRUCache<K,V> {
             self.entries.push(entry);
         }
         self.entries[last_index].second_ref().clone()
+    }
+
+    pub fn iter<'a>(&'a self) -> VecIterator<'a,(K,V)> {
+        self.entries.iter()
     }
 }
 

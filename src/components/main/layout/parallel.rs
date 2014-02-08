@@ -6,7 +6,7 @@
 //!
 //! This code is highly unsafe. Keep this file small and easy to audit.
 
-use css::matching::{ApplicableDeclarations, MatchMethods};
+use css::matching::{ApplicableDeclarations, CannotShare, MatchMethods, StyleWasShared};
 use layout::context::LayoutContext;
 use layout::extra::LayoutAuxMethods;
 use layout::flow::{Flow, FlowLeafSet, PostorderFlowTraversal};
@@ -149,24 +149,42 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
         // parser.
         node.initialize_layout_data(layout_context.layout_chan.clone());
 
-        let mut applicable_declarations = ApplicableDeclarations::new();
-
-        if node.is_element() {
-            // Perform the CSS selector matching.
-            let stylist: &Stylist = cast::transmute(layout_context.stylist);
-            node.match_node(stylist, &mut applicable_declarations);
-        }
-
-        // Perform the CSS cascade.
+        // Get the parent node.
         let parent_opt = if OpaqueNode::from_layout_node(&node) == layout_context.reflow_root {
             None
         } else {
             node.parent_node()
         };
-        node.cascade_node(parent_opt,
-                          layout_context.initial_css_values.get(),
-                          &applicable_declarations,
-                          layout_context.applicable_declarations_cache());
+
+        // First, check to see whether we can share a style with someone.
+        let style_sharing_candidate_cache = layout_context.style_sharing_candidate_cache();
+        let sharing_result = node.share_style_if_possible(style_sharing_candidate_cache,
+                                                          parent_opt);
+
+        // Otherwise, match and cascade selectors.
+        match sharing_result {
+            CannotShare(mut shareable) => {
+                let mut applicable_declarations = ApplicableDeclarations::new();
+
+                if node.is_element() {
+                    // Perform the CSS selector matching.
+                    let stylist: &Stylist = cast::transmute(layout_context.stylist);
+                    node.match_node(stylist, &mut applicable_declarations, &mut shareable);
+                }
+
+                // Perform the CSS cascade.
+                node.cascade_node(parent_opt,
+                                  layout_context.initial_css_values.get(),
+                                  &applicable_declarations,
+                                  layout_context.applicable_declarations_cache());
+
+                // Add ourselves to the LRU cache.
+                if shareable {
+                    style_sharing_candidate_cache.insert_if_possible(&node);
+                }
+            }
+            StyleWasShared(index) => style_sharing_candidate_cache.touch(index),
+        }
 
         // Enqueue kids.
         let mut child_count = 0;

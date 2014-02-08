@@ -4,7 +4,7 @@
 
 //! Data needed by the layout task.
 
-use css::matching::ApplicableDeclarationsCache;
+use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use layout::flow::FlowLeafSet;
 use layout::util::OpaqueNode;
 use layout::wrapper::DomLeafSet;
@@ -30,6 +30,10 @@ static mut FONT_CONTEXT: *mut FontContext = 0 as *mut FontContext;
 #[thread_local]
 static mut APPLICABLE_DECLARATIONS_CACHE: *mut ApplicableDeclarationsCache =
     0 as *mut ApplicableDeclarationsCache;
+
+#[thread_local]
+static mut STYLE_SHARING_CANDIDATE_CACHE: *mut StyleSharingCandidateCache =
+    0 as *mut StyleSharingCandidateCache;
 
 /// Data shared by all layout workers.
 #[deriving(Clone)]
@@ -107,6 +111,28 @@ impl LayoutContext {
                 APPLICABLE_DECLARATIONS_CACHE = cast::transmute(cache)
             }
             cast::transmute(APPLICABLE_DECLARATIONS_CACHE)
+        }
+    }
+
+    pub fn style_sharing_candidate_cache<'a>(&'a self) -> &'a mut StyleSharingCandidateCache {
+        // Sanity check.
+        {
+            let mut task = Local::borrow(None::<Task>);
+            match task.get().maybe_take_runtime::<GreenTask>() {
+                Some(green) => {
+                    task.get().put_runtime(green as ~Runtime);
+                    fail!("can't call this on a green task!")
+                }
+                None => {}
+            }
+        }
+
+        unsafe {
+            if STYLE_SHARING_CANDIDATE_CACHE == ptr::mut_null() {
+                let cache = ~StyleSharingCandidateCache::new();
+                STYLE_SHARING_CANDIDATE_CACHE = cast::transmute(cache)
+            }
+            cast::transmute(STYLE_SHARING_CANDIDATE_CACHE)
         }
     }
 }

@@ -1122,6 +1122,7 @@ pub struct ComputedValues {
     % for style_struct in STYLE_STRUCTS:
         ${style_struct.name}: CowArc<style_structs::${style_struct.name}>,
     % endfor
+    shareable: bool,
 }
 
 impl ComputedValues {
@@ -1150,12 +1151,14 @@ pub fn initial_values() -> ComputedValues {
                 % endfor
             }),
         % endfor
+        shareable: true,
     }
 }
 
 /// Fast path for the function below. Only computes new inherited styles.
 #[allow(unused_mut)]
-fn cascade_with_cached_declarations(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
+fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
+                                    shareable: bool,
                                     parent_style: &ComputedValues,
                                     cached_style: &ComputedValues)
                                     -> ComputedValues {
@@ -1226,6 +1229,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[Arc<~[PropertyDec
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.name}: style_${style_struct.name},
         % endfor
+        shareable: shareable,
     }
 }
 
@@ -1233,6 +1237,9 @@ fn cascade_with_cached_declarations(applicable_declarations: &[Arc<~[PropertyDec
 /// optionally a cached related style. The arguments are:
 ///
 ///   * `applicable_declarations`: The list of CSS rules that matched.
+///
+///   * `shareable`: Whether the `ComputedValues` structure to be constructed should be considered
+///     shareable.
 ///
 ///   * `parent_style`: The parent style, if applicable; if `None`, this is the root node.
 ///
@@ -1245,6 +1252,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[Arc<~[PropertyDec
 ///
 /// Returns the computed values and a boolean indicating whether the result is cacheable.
 pub fn cascade(applicable_declarations: &[MatchedProperty],
+               shareable: bool,
                parent_style: Option< &ComputedValues >,
                initial_values: &ComputedValues,
                cached_style: Option< &ComputedValues >)
@@ -1252,6 +1260,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
     match (cached_style, parent_style) {
         (Some(cached_style), Some(parent_style)) => {
             return (cascade_with_cached_declarations(applicable_declarations,
+                                                     shareable,
                                                      parent_style,
                                                      cached_style), false)
         }
@@ -1360,6 +1369,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.name}: style_${style_struct.name},
         % endfor
+        shareable: shareable,
     }, cacheable)
 }
 
