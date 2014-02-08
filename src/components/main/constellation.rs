@@ -390,7 +390,7 @@ impl Constellation {
                                              self.profiler_chan.clone(),
                                              self.window_size,
                                              self.opts.clone());
-        let failure = ~"about:failure";
+        let failure = "about:failure";
         let url = parse_url(failure, None);
         pipeline.load(url);
 

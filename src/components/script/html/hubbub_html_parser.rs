@@ -343,7 +343,7 @@ pub fn parse_html(cx: *JSContext,
                             (Some(rel), Some(href)) => {
                                 if "stylesheet" == rel.value_ref() {
                                     debug!("found CSS stylesheet: {:s}", href.value_ref());
-                                    let url = parse_url(href.Value(), Some(url2.clone()));
+                                    let url = parse_url(href.value_ref(), Some(url2.clone()));
                                     css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
                                 }
                             }
@@ -359,7 +359,7 @@ pub fn parse_html(cx: *JSContext,
                         let elem = &mut iframe_element.htmlelement.element;
                         let src_opt = elem.get_attribute(Null, "src").map(|x| x.Value());
                         for src in src_opt.iter() {
-                            let iframe_url = parse_url(src.clone(), Some(url2.clone()));
+                            let iframe_url = parse_url(*src, Some(url2.clone()));
                             iframe_element.frame = Some(iframe_url.clone());
                             
                             // Subpage Id
@@ -458,7 +458,7 @@ pub fn parse_html(cx: *JSContext,
                     match script.get_attribute(Null, "src") {
                         Some(src) => {
                             debug!("found script: {:s}", src.Value());
-                            let new_url = parse_url(src.Value(), Some(url3.clone()));
+                            let new_url = parse_url(src.value_ref(), Some(url3.clone()));
                             js_chan2.send(JSTaskNewFile(new_url));
                         }
                         None => {

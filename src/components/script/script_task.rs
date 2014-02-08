@@ -895,7 +895,7 @@ impl ScriptTask {
                 url.clone()
             });
             debug!("ScriptTask: current url is {:?}", base_url);
-            let url = parse_url(href.Value(), base_url);
+            let url = parse_url(href.value_ref(), base_url);
 
             if click_frag {
                 match self.find_fragment_node(page, url.fragment.unwrap()) {
