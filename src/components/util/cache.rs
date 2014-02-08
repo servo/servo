@@ -3,6 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::hashmap::HashMap;
+use std::rand::Rng;
+use std::rand;
+use std::vec::VecIterator;
+use std::vec;
 
 pub trait Cache<K: Eq, V: Clone> {
     fn insert(&mut self, key: K, value: V);
@@ -162,6 +166,73 @@ impl<K: Clone + Eq, V: Clone> Cache<K,V> for LRUCache<K,V> {
 
     fn evict_all(&mut self) {
         self.entries.clear();
+    }
+}
+
+pub struct SimpleHashCache<K,V> {
+    entries: ~[Option<(K,V)>],
+    k0: u64,
+    k1: u64,
+}
+
+impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
+    pub fn new(cache_size: uint) -> SimpleHashCache<K,V> {
+        let mut r = rand::task_rng();
+        SimpleHashCache {
+            entries: vec::from_elem(cache_size, None),
+            k0: r.gen(),
+            k1: r.gen(),
+        }
+    }
+
+    #[inline]
+    fn to_bucket(&self, h: uint) -> uint {
+        h % self.entries.len()
+    }
+
+    #[inline]
+    fn bucket_for_key<Q:Hash>(&self, key: &Q) -> uint {
+        self.to_bucket(key.hash_keyed(self.k0, self.k1) as uint)
+    }
+
+    #[inline]
+    pub fn find_equiv<'a,Q:Hash+Equiv<K>>(&'a self, key: &Q) -> Option<&'a V> {
+        let bucket_index = self.bucket_for_key(key);
+        match self.entries[bucket_index] {
+            Some((ref existing_key, ref value)) if key.equiv(existing_key) => Some(value),
+            _ => None,
+        }
+    }
+}
+
+impl<K:Clone+Eq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
+    fn insert(&mut self, key: K, value: V) {
+        let bucket_index = self.bucket_for_key(&key);
+        self.entries[bucket_index] = Some((key, value))
+    }
+
+    fn find(&mut self, key: &K) -> Option<V> {
+        let bucket_index = self.bucket_for_key(key);
+        match self.entries[bucket_index] {
+            Some((ref existing_key, ref value)) if existing_key == key => Some((*value).clone()),
+            _ => None,
+        }
+    }
+
+    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
+        match self.find(key) {
+            Some(value) => return value,
+            None => {}
+        }
+        let value = blk(key);
+        self.insert((*key).clone(), value.clone());
+        value
+    }
+
+    fn evict_all(&mut self) {
+        for slot in self.entries.mut_iter() {
+            *slot = None
+        }
     }
 }
 

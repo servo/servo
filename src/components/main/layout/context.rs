@@ -4,27 +4,32 @@
 
 //! Data needed by the layout task.
 
-use extra::arc::{Arc, MutexArc};
-use green::task::GreenTask;
+use css::matching::ApplicableDeclarationsCache;
 use layout::flow::FlowLeafSet;
 use layout::util::OpaqueNode;
 use layout::wrapper::DomLeafSet;
+
+use extra::arc::{Arc, MutexArc};
+use geom::size::Size2D;
+use gfx::font_context::{FontContext, FontContextInfo};
+use green::task::GreenTask;
+use script::layout_interface::LayoutChan;
+use servo_msg::constellation_msg::ConstellationChan;
+use servo_net::local_image_cache::LocalImageCache;
+use servo_util::geometry::Au;
 use std::cast;
 use std::ptr;
 use std::rt::Runtime;
 use std::rt::local::Local;
 use std::rt::task::Task;
-
-use geom::size::Size2D;
-use gfx::font_context::{FontContext, FontContextInfo};
-use script::layout_interface::LayoutChan;
-use servo_msg::constellation_msg::ConstellationChan;
-use servo_net::local_image_cache::LocalImageCache;
-use servo_util::geometry::Au;
 use style::{ComputedValues, Stylist};
 
 #[thread_local]
 static mut FONT_CONTEXT: *mut FontContext = 0 as *mut FontContext;
+
+#[thread_local]
+static mut APPLICABLE_DECLARATIONS_CACHE: *mut ApplicableDeclarationsCache =
+    0 as *mut ApplicableDeclarationsCache;
 
 /// Data shared by all layout workers.
 #[deriving(Clone)]
@@ -80,6 +85,28 @@ impl LayoutContext {
                 FONT_CONTEXT = cast::transmute(context)
             }
             cast::transmute(FONT_CONTEXT)
+        }
+    }
+
+    pub fn applicable_declarations_cache<'a>(&'a self) -> &'a mut ApplicableDeclarationsCache {
+        // Sanity check.
+        {
+            let mut task = Local::borrow(None::<Task>);
+            match task.get().maybe_take_runtime::<GreenTask>() {
+                Some(green) => {
+                    task.get().put_runtime(green as ~Runtime);
+                    fail!("can't call this on a green task!")
+                }
+                None => {}
+            }
+        }
+
+        unsafe {
+            if APPLICABLE_DECLARATIONS_CACHE == ptr::mut_null() {
+                let cache = ~ApplicableDeclarationsCache::new();
+                APPLICABLE_DECLARATIONS_CACHE = cast::transmute(cache)
+            }
+            cast::transmute(APPLICABLE_DECLARATIONS_CACHE)
         }
     }
 }

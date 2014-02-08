@@ -130,10 +130,12 @@ impl ElementMapping {
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
     /// The results of CSS styling for this node.
-    before_style: Option<Arc<ComputedValues>>,
-
     style: Option<Arc<ComputedValues>>,
 
+    /// The results of CSS styling for this node's `before` pseudo-element, if any.
+    before_style: Option<Arc<ComputedValues>>,
+
+    /// The results of CSS styling for this node's `after` pseudo-element, if any.
     after_style: Option<Arc<ComputedValues>>,
 
     /// Description of how to account for recent style changes.

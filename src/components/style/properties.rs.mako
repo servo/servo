@@ -1152,6 +1152,82 @@ pub fn initial_values() -> ComputedValues {
     }
 }
 
+/// Fast path for the function below. Only computes new inherited styles.
+#[allow(unused_mut)]
+fn cascade_with_cached_declarations(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
+                                    parent_style: &ComputedValues,
+                                    cached_style: &ComputedValues)
+                                    -> ComputedValues {
+    % for style_struct in STYLE_STRUCTS:
+        % if style_struct.inherited:
+            let mut style_${style_struct.name} = parent_style.${style_struct.name}.clone();
+        % else:
+            let mut style_${style_struct.name} = cached_style.${style_struct.name}.clone();
+        % endif
+    % endfor
+
+    let mut context = computed::Context::new(&style_Color,
+                                             &style_Font,
+                                             &style_Box,
+                                             &style_Border,
+                                             false);
+
+    <%def name="apply_cached(priority)">
+        for sub_list in applicable_declarations.iter() {
+            for declaration in sub_list.get().iter() {
+                match declaration {
+                    % for style_struct in STYLE_STRUCTS:
+                        % if style_struct.inherited:
+                            % for property in style_struct.longhands:
+                                % if (property.needed_for_context and needed_for_context) or not \
+                                        needed_for_context:
+                                    &${property.ident}_declaration(SpecifiedValue(ref value)) => {
+                                        % if property.needed_for_context and needed_for_context:
+                                            context.set_${property.ident}(computed_value)
+                                        % elif not needed_for_context:
+                                            // Overwrite earlier declarations.
+                                            let computed_value =
+                                                longhands::${property.ident}::to_computed_value(
+                                                    (*value).clone(),
+                                                    &context);
+                                            style_${style_struct.name}.get_mut()
+                                                                      .${property.ident} =
+                                                computed_value
+                                        % endif
+                                    }
+                                    &${property.ident}_declaration(CSSWideKeyword(Initial)) => {
+                                        let computed_value =
+                                            longhands::${property.ident}::get_initial_value();
+                                        % if property.needed_for_context and needed_for_context:
+                                            context.set_${property.ident}(computed_value)
+                                        % elif not needed_for_context:
+                                            // Overwrite earlier declarations.
+                                            style_${style_struct.name}.get_mut()
+                                                                      .${property.ident} =
+                                                computed_value
+                                        % endif
+                                    }
+                                % endif
+                            % endfor
+                        % endif
+                    % endfor
+                    _ => {}
+                }
+            }
+        }
+    </%def>
+
+    ${apply_cached(True)}
+    context.use_parent_font_size = false;
+    ${apply_cached(False)}
+
+    ComputedValues {
+        % for style_struct in STYLE_STRUCTS:
+            ${style_struct.name}: style_${style_struct.name},
+        % endfor
+    }
+}
+
 /// Performs the CSS cascade, computing new styles for an element from its parent style and
 /// optionally a cached related style. The arguments are:
 ///
@@ -1161,11 +1237,26 @@ pub fn initial_values() -> ComputedValues {
 ///
 ///   * `initial_values`: The initial set of CSS values as defined by the specification.
 ///
-/// Returns the computed values.
+///   * `cached_style`: If present, cascading is short-circuited for everything but inherited
+///     values and these values are used instead. Obviously, you must be careful when supplying
+///     this that it is safe to only provide inherited declarations. If `parent_style` is `None`,
+///     this is ignored.
+///
+/// Returns the computed values and a boolean indicating whether the result is cacheable.
 pub fn cascade(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
-               parent_style: Option< &ComputedValues>,
-               initial_values: &ComputedValues)
-               -> ComputedValues {
+               parent_style: Option< &ComputedValues >,
+               initial_values: &ComputedValues,
+               cached_style: Option< &ComputedValues >)
+               -> (ComputedValues, bool) {
+    match (cached_style, parent_style) {
+        (Some(cached_style), Some(parent_style)) => {
+            return (cascade_with_cached_declarations(applicable_declarations,
+                                                     parent_style,
+                                                     cached_style), false)
+        }
+        (_, _) => {}
+    }
+
     let is_root_element;
     % for style_struct in STYLE_STRUCTS:
         let mut style_${style_struct.name};
@@ -1195,6 +1286,7 @@ pub fn cascade(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
                                              &style_Border,
                                              is_root_element);
 
+    let mut cacheable = true;
     <%def name="apply(needed_for_context)">
         for sub_list in applicable_declarations.iter() {
             for declaration in sub_list.get().iter() {
@@ -1231,6 +1323,7 @@ pub fn cascade(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
                             % if not needed_for_context:
                                 &${property.ident}_declaration(CSSWideKeyword(Inherit)) => {
                                     // This is a bit slow, but this is rare so it shouldn't matter.
+                                    cacheable = false;
                                     match parent_style {
                                         None => {
                                             style_${style_struct.name}.get_mut()
@@ -1262,11 +1355,11 @@ pub fn cascade(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
     context.use_parent_font_size = false;
     ${apply(False)}
 
-    ComputedValues {
+    (ComputedValues {
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.name}: style_${style_struct.name},
         % endfor
-    }
+    }, cacheable)
 }
 
 
