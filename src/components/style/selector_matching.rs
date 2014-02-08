@@ -358,14 +358,14 @@ impl Stylist {
 
     /// Returns the applicable CSS declarations for the given element. This corresponds to
     /// `ElementRuleCollector` in WebKit.
-    pub fn get_applicable_declarations<E:TElement,
-                                       N:TNode<E>,
-                                       V:SmallVec<Arc<~[PropertyDeclaration]>>>(
-                                       &self,
-                                       element: &N,
-                                       style_attribute: Option<&PropertyDeclarationBlock>,
-                                       pseudo_element: Option<PseudoElement>,
-                                       applicable_declarations: &mut V) {
+    pub fn push_applicable_declarations<E:TElement,
+                                        N:TNode<E>,
+                                        V:SmallVec<Arc<~[PropertyDeclaration]>>>(
+                                        &self,
+                                        element: &N,
+                                        style_attribute: Option<&PropertyDeclarationBlock>,
+                                        pseudo_element: Option<PseudoElement>,
+                                        applicable_declarations: &mut V) {
         assert!(element.is_element());
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
