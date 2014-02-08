@@ -13,6 +13,7 @@ pub use cssparser::ast::*;
 use errors::{ErrorLoggerIterator, log_css_error};
 pub use parsing_utils::*;
 pub use self::common_types::*;
+use selector_matching::MatchedProperty;
 
 pub mod common_types;
 
@@ -1174,7 +1175,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[Arc<~[PropertyDec
 
     <%def name="apply_cached(priority)">
         for sub_list in applicable_declarations.iter() {
-            for declaration in sub_list.get().iter() {
+            for declaration in sub_list.declarations.get().iter() {
                 match declaration {
                     % for style_struct in STYLE_STRUCTS:
                         % if style_struct.inherited:
@@ -1243,7 +1244,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[Arc<~[PropertyDec
 ///     this is ignored.
 ///
 /// Returns the computed values and a boolean indicating whether the result is cacheable.
-pub fn cascade(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
+pub fn cascade(applicable_declarations: &[MatchedProperty],
                parent_style: Option< &ComputedValues >,
                initial_values: &ComputedValues,
                cached_style: Option< &ComputedValues >)
@@ -1289,7 +1290,7 @@ pub fn cascade(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
     let mut cacheable = true;
     <%def name="apply(needed_for_context)">
         for sub_list in applicable_declarations.iter() {
-            for declaration in sub_list.get().iter() {
+            for declaration in sub_list.declarations.get().iter() {
                 match declaration {
                     % for style_struct in STYLE_STRUCTS:
                         % for property in style_struct.longhands:

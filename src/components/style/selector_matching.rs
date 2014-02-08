@@ -9,7 +9,7 @@ use std::str;
 use std::to_bytes;
 
 use servo_util::namespace;
-use servo_util::smallvec::{SmallVec, SmallVec16};
+use servo_util::smallvec::SmallVec;
 use servo_util::sort;
 
 use media_queries::{Device, Screen};
@@ -104,10 +104,11 @@ impl SelectorMap {
     /// Extract matching rules as per node's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
     fn get_all_matching_rules<E:TElement,
-                              N:TNode<E>>(
+                              N:TNode<E>,
+                              V:SmallVec<MatchedProperty>>(
                               &self,
                               node: &N,
-                              matching_rules_list: &mut SmallVec16<Rule>) {
+                              matching_rules_list: &mut V) {
         if self.empty {
             return
         }
@@ -153,11 +154,12 @@ impl SelectorMap {
     }
 
     fn get_matching_rules_from_hash<E:TElement,
-                                    N:TNode<E>>(
+                                    N:TNode<E>,
+                                    V:SmallVec<MatchedProperty>>(
                                     node: &N,
                                     hash: &HashMap<~str,~[Rule]>,
                                     key: &str,
-                                    matching_rules: &mut SmallVec16<Rule>) {
+                                    matching_rules: &mut V) {
         match hash.find_equiv(&key) {
             Some(rules) => {
                 SelectorMap::get_matching_rules(node, *rules, matching_rules)
@@ -167,11 +169,12 @@ impl SelectorMap {
     }
 
     fn get_matching_rules_from_hash_ignoring_case<E:TElement,
-                                                  N:TNode<E>>(
+                                                  N:TNode<E>,
+                                                  V:SmallVec<MatchedProperty>>(
                                                   node: &N,
                                                   hash: &HashMap<~str,~[Rule]>,
                                                   key: &str,
-                                                  matching_rules: &mut SmallVec16<Rule>) {
+                                                  matching_rules: &mut V) {
         match hash.find_equiv(&LowercaseAsciiString(key)) {
             Some(rules) => {
                 SelectorMap::get_matching_rules(node, *rules, matching_rules)
@@ -182,14 +185,15 @@ impl SelectorMap {
 
     /// Adds rules in `rules` that match `node` to the `matching_rules` list.
     fn get_matching_rules<E:TElement,
-                          N:TNode<E>>(
+                          N:TNode<E>,
+                          V:SmallVec<MatchedProperty>>(
                           node: &N,
                           rules: &[Rule],
-                          matching_rules: &mut SmallVec16<Rule>) {
+                          matching_rules: &mut V) {
         for rule in rules.iter() {
             if matches_compound_selector(rule.selector.get(), node) {
                 // TODO(pradeep): Is the cloning inefficient?
-                matching_rules.push(rule.clone());
+                matching_rules.push(rule.property.clone());
             }
         }
     }
@@ -339,9 +343,11 @@ impl Stylist {
                         };
                         map.$priority.insert(Rule {
                                 selector: selector.compound_selectors.clone(),
-                                specificity: selector.specificity,
-                                declarations: style_rule.declarations.$priority.clone(),
-                                source_order: self.rules_source_order,
+                                property: MatchedProperty {
+                                    specificity: selector.specificity,
+                                    declarations: style_rule.declarations.$priority.clone(),
+                                    source_order: self.rules_source_order,
+                                },
                         });
                     }
                 }
@@ -360,7 +366,7 @@ impl Stylist {
     /// `ElementRuleCollector` in WebKit.
     pub fn push_applicable_declarations<E:TElement,
                                         N:TNode<E>,
-                                        V:SmallVec<Arc<~[PropertyDeclaration]>>>(
+                                        V:SmallVec<MatchedProperty>>(
                                         &self,
                                         element: &N,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
@@ -375,63 +381,28 @@ impl Stylist {
             Some(Before) => &self.before_map,
             Some(After) => &self.after_map,
         };
-        // In cascading order:
-        let rule_map_list = [
-            &map.user_agent.normal,
-            &map.user.normal,
-            &map.author.normal,
-            &map.author.important,
-            &map.user.important,
-            &map.user_agent.important
-        ];
-
-        // We keep track of the indices of each of the rule maps in the list we're building so that
-        // we have the indices straight at the end.
-        let mut rule_map_indices = [ 0, ..6 ];
-
-        let mut matching_rules_list = SmallVec16::new();
-
-        for (i, rule_map) in rule_map_list.iter().enumerate() {
-            rule_map_indices[i] = matching_rules_list.len();
-            rule_map.get_all_matching_rules(element, &mut matching_rules_list);
-        }
-
-        let count = matching_rules_list.len();
-
-        let mut declaration_iter = matching_rules_list.move_iter().map(|rule| {
-            let Rule {
-                declarations,
-                ..
-            } = rule;
-            declarations
-        });
-
-        // Gather up all rules.
-        let mut i = 0;
 
         // Step 1: Normal rules.
-        while i < rule_map_indices[3] {
-            applicable_declarations.push(declaration_iter.next().unwrap());
-            i += 1
-        }
+        map.user_agent.normal.get_all_matching_rules(element, applicable_declarations);
+        map.user.normal.get_all_matching_rules(element, applicable_declarations);
+        map.author.normal.get_all_matching_rules(element, applicable_declarations);
 
         // Step 2: Normal style attributes.
-        style_attribute.map(|sa| applicable_declarations.push(sa.normal.clone()));
+        style_attribute.map(|sa| {
+            applicable_declarations.push(MatchedProperty::from_declarations(sa.normal.clone()))
+        });
 
         // Step 3: Author-supplied `!important` rules.
-        while i < rule_map_indices[4] {
-            applicable_declarations.push(declaration_iter.next().unwrap());
-            i += 1
-        }
+        map.author.important.get_all_matching_rules(element, applicable_declarations);
 
         // Step 4: `!important` style attributes.
-        style_attribute.map(|sa| applicable_declarations.push(sa.important.clone()));
+        style_attribute.map(|sa| {
+            applicable_declarations.push(MatchedProperty::from_declarations(sa.important.clone()))
+        });
 
         // Step 5: User and UA `!important` rules.
-        while i < count {
-            applicable_declarations.push(declaration_iter.next().unwrap());
-            i += 1
-        }
+        map.user.important.get_all_matching_rules(element, applicable_declarations);
+        map.user_agent.important.get_all_matching_rules(element, applicable_declarations);
     }
 }
 
@@ -473,27 +444,44 @@ struct Rule {
     // that it matches. Selector contains an owned vector (through
     // CompoundSelector) and we want to avoid the allocation.
     selector: Arc<CompoundSelector>,
+    property: MatchedProperty,
+}
+
+/// A property declaration together with its precedence among rules of equal specificity so that
+/// we can sort them.
+#[deriving(Clone)]
+pub struct MatchedProperty {
     declarations: Arc<~[PropertyDeclaration]>,
-    // Precedence among rules of equal specificity
     source_order: uint,
     specificity: u32,
 }
 
-impl Ord for Rule {
+impl MatchedProperty {
     #[inline]
-    fn lt(&self, other: &Rule) -> bool {
-        let this_rank = (self.specificity, self.source_order);
-        let other_rank = (other.specificity, other.source_order);
-        this_rank < other_rank
+    pub fn from_declarations(declarations: Arc<~[PropertyDeclaration]>) -> MatchedProperty {
+        MatchedProperty {
+            declarations: declarations,
+            source_order: 0,
+            specificity: 0,
+        }
     }
 }
 
-impl Eq for Rule {
+impl Eq for MatchedProperty {
     #[inline]
-    fn eq(&self, other: &Rule) -> bool {
+    fn eq(&self, other: &MatchedProperty) -> bool {
         let this_rank = (self.specificity, self.source_order);
         let other_rank = (other.specificity, other.source_order);
         this_rank == other_rank
+    }
+}
+
+impl Ord for MatchedProperty {
+    #[inline]
+    fn lt(&self, other: &MatchedProperty) -> bool {
+        let this_rank = (self.specificity, self.source_order);
+        let other_rank = (other.specificity, other.source_order);
+        this_rank < other_rank
     }
 }
 
@@ -765,7 +753,7 @@ fn matches_last_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
 #[cfg(test)]
 mod tests {
     use extra::arc::Arc;
-    use super::{Rule, SelectorMap};
+    use super::{MatchedProperty, Rule, SelectorMap};
 
     /// Helper method to get some Rules from selector strings.
     /// Each sublist of the result contains the Rules for one StyleRule.
@@ -779,10 +767,12 @@ mod tests {
             parse_selector_list(tokenize(*selectors).map(|(c, _)| c).to_owned_vec(), &namespaces)
             .unwrap().move_iter().map(|s| {
                 Rule {
-                    specificity: s.specificity,
-                    selector: s.compound_selectors,
-                    declarations: Arc::new(~[]),
-                    source_order: i,
+                    selector: s.compound_selectors.clone(),
+                    property: MatchedProperty {
+                        specificity: s.specificity,
+                        declarations: Arc::new(~[]),
+                        source_order: i,
+                    }
                 }
             }).to_owned_vec()
         }).to_owned_vec()
@@ -793,7 +783,7 @@ mod tests {
         let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
         let rule1 = rules_list[0][0].clone();
         let rule2 = rules_list[1][0].clone();
-        assert!(rule1 < rule2, "The rule that comes later should win.");
+        assert!(rule1.property < rule2.property, "The rule that comes later should win.");
     }
 
     #[test]
@@ -824,9 +814,9 @@ mod tests {
         let rules_list = get_mock_rules([".intro.foo", "#top"]);
         let mut selector_map = SelectorMap::new();
         selector_map.insert(rules_list[1][0].clone());
-        assert_eq!(1, selector_map.id_hash.find(&~"top").unwrap()[0].source_order);
+        assert_eq!(1, selector_map.id_hash.find(&~"top").unwrap()[0].property.source_order);
         selector_map.insert(rules_list[0][0].clone());
-        assert_eq!(0, selector_map.class_hash.find(&~"intro").unwrap()[0].source_order);
+        assert_eq!(0, selector_map.class_hash.find(&~"intro").unwrap()[0].property.source_order);
         assert!(selector_map.class_hash.find(&~"foo").is_none());
     }
 }

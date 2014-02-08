@@ -19,6 +19,7 @@ extern mod servo_util = "util";
 // Public API
 pub use stylesheets::Stylesheet;
 pub use selector_matching::{Stylist, StylesheetOrigin, UserAgentOrigin, AuthorOrigin, UserOrigin};
+pub use selector_matching::{MatchedProperty};
 pub use properties::{cascade, PropertyDeclaration, ComputedValues, computed_values};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 pub use properties::{initial_values};
