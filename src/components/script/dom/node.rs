@@ -1538,8 +1538,11 @@ impl Node {
         0
     }
 
-    pub fn Contains(&self, _other: Option<AbstractNode>) -> bool {
-        false
+    pub fn Contains(&self, abstract_self: AbstractNode, maybe_other: Option<AbstractNode>) -> bool {
+        match maybe_other {
+            None => false,
+            Some(other) => abstract_self.is_inclusive_ancestor_of(other)
+        }
     }
 
     pub fn LookupPrefix(&self, _prefix: Option<DOMString>) -> Option<DOMString> {
