@@ -33,7 +33,7 @@ For specific git instructions, see [GitHub & Critic PR handling 101](https://git
 
 ## Conduct
 
-We follow the [Rust Code of Conduct](https://github.com/mozilla/rust/wiki/Note-development-policy#conduct).
+We follow the [Rust Code of Conduct](https://github.com/mozilla/rust/wiki/Note-development-policy#wiki-conduct).
 
 
 ## Communication
