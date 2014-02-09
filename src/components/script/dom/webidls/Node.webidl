@@ -78,7 +78,7 @@ interface Node : EventTarget {
   const unsigned short DOCUMENT_POSITION_CONTAINED_BY = 0x10;
   const unsigned short DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC = 0x20; // historical
   unsigned short compareDocumentPosition(Node other);
-  //boolean contains(Node? other); //XXXjdm we don't deal well with Node? parameters
+  boolean contains(Node? other);
 
   DOMString? lookupPrefix(DOMString? namespace);
   DOMString? lookupNamespaceURI(DOMString? prefix);
