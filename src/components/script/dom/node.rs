@@ -1540,8 +1540,88 @@ impl Node {
         fail!("stub")
     }
 
-    pub fn IsEqualNode(&self, _node: Option<AbstractNode>) -> bool {
-        false
+    // http://dom.spec.whatwg.org/#dom-node-isequalnode
+    pub fn IsEqualNode(&self, abstract_self: AbstractNode, maybe_node: Option<AbstractNode>) -> bool {
+        fn is_equal_doctype(node: AbstractNode, other: AbstractNode) -> bool {
+            node.with_imm_doctype(|doctype| {
+                other.with_imm_doctype(|other_doctype| {
+                    (doctype.name == other_doctype.name) &&
+                    (doctype.public_id == other_doctype.public_id) &&
+                    (doctype.system_id == other_doctype.system_id)
+                })
+            })
+        }
+        fn is_equal_element(node: AbstractNode, other: AbstractNode) -> bool {
+            node.with_imm_element(|element| {
+                other.with_imm_element(|other_element| {
+                    // FIXME: namespace prefix
+                    (element.namespace == other_element.namespace) &&
+                    (element.tag_name == other_element.tag_name) &&
+                    (element.attrs.len() == other_element.attrs.len())
+                })
+            })
+        }
+        fn is_equal_processinginstruction(node: AbstractNode, other: AbstractNode) -> bool {
+            node.with_imm_processing_instruction(|pi| {
+                other.with_imm_processing_instruction(|other_pi| {
+                    (pi.target == other_pi.target) &&
+                    (pi.element.data == other_pi.element.data)
+                })
+            })
+        }
+        fn is_equal_characterdata(node: AbstractNode, other: AbstractNode) -> bool {
+            node.with_imm_characterdata(|characterdata| {
+                other.with_imm_characterdata(|other_characterdata| {
+                    characterdata.data == other_characterdata.data
+                })
+            })
+        }
+        fn is_equal_element_attrs(node: AbstractNode, other: AbstractNode) -> bool {
+            node.with_imm_element(|element| {
+                other.with_imm_element(|other_element| {
+                    assert!(element.attrs.len() == other_element.attrs.len());
+                    element.attrs.iter().all(|attr| {
+                        other_element.attrs.iter().any(|other_attr| {
+                            (attr.namespace == other_attr.namespace) &&
+                            (attr.local_name == other_attr.local_name) &&
+                            (attr.value == other_attr.value)
+                        })
+                    })
+                })
+            })
+        }
+        fn is_equal_node(this: AbstractNode, node: AbstractNode) -> bool {
+            // Step 2.
+            if this.type_id() != node.type_id() {
+                return false;
+            }
+
+            match node.type_id() {
+                // Step 3.
+                DoctypeNodeTypeId if !is_equal_doctype(this, node) => return false,
+                ElementNodeTypeId(..) if !is_equal_element(this, node) => return false,
+                ProcessingInstructionNodeTypeId if !is_equal_processinginstruction(this, node) => return false,
+                TextNodeTypeId |
+                CommentNodeTypeId if !is_equal_characterdata(this, node) => return false,
+                // Step 4.
+                ElementNodeTypeId(..) if !is_equal_element_attrs(this, node) => return false,
+                _ => ()
+            }
+
+            // Step 5.
+            if this.children().len() != node.children().len() {
+                return false;
+            }
+
+            // Step 6.
+            this.children().zip(node.children()).all(|(child, other_child)| is_equal_node(child, other_child))
+        }
+        match maybe_node {
+            // Step 1.
+            None => false,
+            // Step 2-6.
+            Some(node) => is_equal_node(abstract_self, node)
+        }
     }
 
     pub fn CompareDocumentPosition(&self, _other: AbstractNode) -> u16 {
