@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            // test1: Node.contains
+            {
+                var parent = document.createElement("div");
+                var child = document.createElement("div");
+                var child_of_child = document.createElement("div");
+                var other = document.createElement("div");
+
+                child.appendChild(child_of_child);
+                parent.appendChild(child);
+
+                is(parent.contains(parent), true, "test1-0, Node.contains");
+                is(parent.contains(child), true, "test1-1, Node.contains");
+                is(parent.contains(child_of_child), true, "test1-2, Node.contains");
+                is(parent.contains(other), false, "test1-3, Node.contains");
+            }
+
+            finish();
+        </script>
+    </head>
+</html>
