@@ -548,7 +548,7 @@ impl<'a> AbstractNode {
     pub fn is_in_doc(&self) -> bool {
         self.node().flags.is_in_doc()
     }
- 
+
     pub fn get_hover_state(&self) -> bool {
         self.node().flags.get_in_hover_state()
     }
@@ -559,14 +559,17 @@ impl<'a> AbstractNode {
 }
 
 impl AbstractNode {
+    // http://dom.spec.whatwg.org/#dom-node-appendchild
     pub fn AppendChild(self, node: AbstractNode) -> Fallible<AbstractNode> {
         self.node().AppendChild(self, node)
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-replacechild
     pub fn ReplaceChild(self, node: AbstractNode, child: AbstractNode) -> Fallible<AbstractNode> {
         self.node().ReplaceChild(self, node, child)
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-removechild
     pub fn RemoveChild(self, node: AbstractNode) -> Fallible<AbstractNode> {
         self.node().RemoveChild(self, node)
     }
@@ -951,6 +954,7 @@ impl Node {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-nodename
     pub fn NodeName(&self, abstract_self: AbstractNode) -> DOMString {
         match self.type_id {
             ElementNodeTypeId(..) => {
@@ -975,10 +979,12 @@ impl Node {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-baseuri
     pub fn GetBaseURI(&self) -> Option<DOMString> {
         None
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-ownerdocument
     pub fn GetOwnerDocument(&self) -> Option<AbstractDocument> {
         match self.type_id {
             ElementNodeTypeId(..) |
@@ -991,34 +997,42 @@ impl Node {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-parentnode
     pub fn GetParentNode(&self) -> Option<AbstractNode> {
         self.parent_node
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-parentelement
     pub fn GetParentElement(&self) -> Option<AbstractNode> {
         self.parent_node.filtered(|parent| parent.is_element())
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-haschildnodes
     pub fn HasChildNodes(&self) -> bool {
         self.first_child.is_some()
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-firstchild
     pub fn GetFirstChild(&self) -> Option<AbstractNode> {
         self.first_child
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-lastchild
     pub fn GetLastChild(&self) -> Option<AbstractNode> {
         self.last_child
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-previoussibling
     pub fn GetPreviousSibling(&self) -> Option<AbstractNode> {
         self.prev_sibling
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-nextsibling
     pub fn GetNextSibling(&self) -> Option<AbstractNode> {
         self.next_sibling
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-nodevalue
     pub fn GetNodeValue(&self, abstract_self: AbstractNode) -> Option<DOMString> {
         match self.type_id {
             CommentNodeTypeId |
@@ -1034,11 +1048,14 @@ impl Node {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-nodevalue
     pub fn SetNodeValue(&mut self, _abstract_self: AbstractNode, _val: Option<DOMString>)
                         -> ErrorResult {
+        // FIXME: Stub - https://github.com/mozilla/servo/issues/1655
         Ok(())
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-textcontent
     pub fn GetTextContent(&self, abstract_self: AbstractNode) -> Option<DOMString> {
         match self.type_id {
             DocumentFragmentNodeTypeId |
@@ -1067,6 +1084,7 @@ impl Node {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-childnodes
     pub fn ChildNodes(&mut self, abstract_self: AbstractNode) -> @mut NodeList {
         match self.child_list {
             None => {
@@ -1350,6 +1368,7 @@ impl Node {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-textcontent
     pub fn SetTextContent(&mut self, abstract_self: AbstractNode, value: Option<DOMString>)
                           -> ErrorResult {
         let value = null_str_as_empty(&value);
@@ -1385,6 +1404,7 @@ impl Node {
         Ok(())
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-insertbefore
     pub fn InsertBefore(&self, abstract_self: AbstractNode, node: AbstractNode, child: Option<AbstractNode>)
                         -> Fallible<AbstractNode> {
         Node::pre_insert(node, abstract_self, child)
@@ -1395,6 +1415,7 @@ impl Node {
         document.document().wait_until_safe_to_modify_dom();
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-appendchild
     pub fn AppendChild(&self, abstract_self: AbstractNode, node: AbstractNode)
                        -> Fallible<AbstractNode> {
         Node::pre_insert(node, abstract_self, None)
@@ -1528,15 +1549,20 @@ impl Node {
         Ok(child)
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-removechild
     pub fn RemoveChild(&self, abstract_self: AbstractNode, node: AbstractNode)
                        -> Fallible<AbstractNode> {
         Node::pre_remove(node, abstract_self)
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-normalize
     pub fn Normalize(&mut self) {
+        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-clonenode
     pub fn CloneNode(&self, _deep: bool) -> Fallible<AbstractNode> {
+        // FIXME: stub - https://github.com/mozilla/servo/issues/1240
         fail!("stub")
     }
 
@@ -1624,10 +1650,13 @@ impl Node {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
     pub fn CompareDocumentPosition(&self, _other: AbstractNode) -> u16 {
+        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
         0
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-contains
     pub fn Contains(&self, abstract_self: AbstractNode, maybe_other: Option<AbstractNode>) -> bool {
         match maybe_other {
             None => false,
@@ -1635,34 +1664,43 @@ impl Node {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-lookupprefix
     pub fn LookupPrefix(&self, _prefix: Option<DOMString>) -> Option<DOMString> {
+        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
         None
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
     pub fn LookupNamespaceURI(&self, _namespace: Option<DOMString>) -> Option<DOMString> {
+        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
         None
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
     pub fn IsDefaultNamespace(&self, _namespace: Option<DOMString>) -> bool {
+        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
         false
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-namespaceuri
     pub fn GetNamespaceURI(&self) -> Option<DOMString> {
         None
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-prefix
     pub fn GetPrefix(&self) -> Option<DOMString> {
         None
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-localname
     pub fn GetLocalName(&self) -> Option<DOMString> {
         None
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-hasattributes
     pub fn HasAttributes(&self) -> bool {
         false
     }
-
 
     //
     // Low-level pointer stitching
