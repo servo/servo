@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            // test1: simple checks
+            {
+                var elem = document.createElement("div");
+                var other = document.createElement("div");
+                is(elem.isEqualNode(elem), true);
+                is(elem.isEqualNode(other), true);
+                is(other.isEqualNode(elem), true);
+                is(elem.isEqualNode(document), false);
+            }
+
+            // test2: non-element children
+            {
+                var parent_elem = document.createElement("div");
+                var child_elem = document.createElement("div");
+                parent_elem.appendChild(child_elem);
+
+                var other_parent = document.createElement("div");
+                var other_child = document.createElement("div");
+                other_parent.appendChild(other_child);
+
+                is(parent_elem.isEqualNode(other_parent), true);
+                is(child_elem.isEqualNode(other_child), true);
+
+                var child_text = document.createTextNode("lorem ipsum");
+                child_elem.appendChild(child_text);
+
+                is(parent_elem.isEqualNode(other_parent), false);
+                is(child_elem.isEqualNode(other_child), false);
+            }
+
+            finish();
+        </script>
+    </head>
+</html>
