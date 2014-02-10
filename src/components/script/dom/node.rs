@@ -10,11 +10,12 @@ use dom::bindings::utils;
 use dom::characterdata::CharacterData;
 use dom::document::{AbstractDocument, DocumentTypeId};
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
+use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLObjectElementTypeId};
 use dom::element::{HTMLAnchorElementTypeId, HTMLStyleElementTypeId};
 use dom::eventtarget::{AbstractEventTarget, EventTarget, NodeTypeId};
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlobjectelement::HTMLObjectElement;
 use dom::nodelist::{NodeList};
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
@@ -486,6 +487,18 @@ impl<'a> AbstractNode {
 
     pub fn is_iframe_element(self) -> bool {
         self.type_id() == ElementNodeTypeId(HTMLIframeElementTypeId)
+    }
+
+    #[inline]
+    pub fn is_object_element(self) -> bool {
+        self.type_id() == ElementNodeTypeId(HTMLObjectElementTypeId)
+    }
+
+    pub fn with_mut_object_element<R>(self, f: |&mut HTMLObjectElement| -> R) -> R {
+        if !self.is_object_element() {
+            fail!(~"node is not an image element");
+        }
+        self.transmute_mut(f)
     }
 
     pub fn with_mut_iframe_element<R>(self, f: |&mut HTMLIFrameElement| -> R) -> R {

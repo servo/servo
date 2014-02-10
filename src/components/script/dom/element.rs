@@ -248,6 +248,11 @@ impl Element {
                     iframe.AfterSetAttr(local_name.clone(), value.clone());
                 });
             }
+            ElementNodeTypeId(HTMLObjectElementTypeId) => {
+                abstract_self.with_mut_object_element(|object| {
+                    object.AfterSetAttr(local_name.clone(), value.clone());
+                });
+            }
             _ => ()
         }
 
