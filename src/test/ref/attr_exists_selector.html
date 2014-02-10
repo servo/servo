@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Attribute exists selector: [foo]</title>
+    <style>
+      p[data-green] { color: green }
+    </style>
+  </head>
+  <body>
+    <p data-green="">This text should be green.</p>
+    <p>This text should be black.</p>
+  </body>
+</html>
