@@ -69,7 +69,7 @@ interface Node : EventTarget {
 
   [Throws]
   Node cloneNode(optional boolean deep = true);
-  // boolean isEqualNode(Node? node); //XXXjdm we don't deal well with Node? parameters
+  boolean isEqualNode(Node? node);
 
   const unsigned short DOCUMENT_POSITION_DISCONNECTED = 0x01;
   const unsigned short DOCUMENT_POSITION_PRECEDING = 0x02;
