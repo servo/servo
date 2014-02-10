@@ -164,6 +164,7 @@ impl Document {
 }
 
 impl Document {
+    // http://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
         Ok(Document::new(owner, None, XML, None))
     }
@@ -234,26 +235,32 @@ impl Document {
         self.content_type.clone()
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-doctype
     pub fn GetDoctype(&self) -> Option<AbstractNode> {
         self.node.children().find(|child| child.is_doctype())
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-documentelement
     pub fn GetDocumentElement(&self) -> Option<AbstractNode> {
         self.node.child_elements().next()
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     pub fn GetElementsByTagName(&self, tag: DOMString) -> @mut HTMLCollection {
         self.createHTMLCollection(|elem| eq_slice(elem.tag_name, tag))
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     pub fn GetElementsByTagNameNS(&self, _ns: Option<DOMString>, _tag: DOMString) -> @mut HTMLCollection {
         HTMLCollection::new(self.window, ~[])
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     pub fn GetElementsByClassName(&self, _class: DOMString) -> @mut HTMLCollection {
         HTMLCollection::new(self.window, ~[])
     }
 
+    // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     pub fn GetElementById(&self, id: DOMString) -> Option<AbstractNode> {
         // TODO: "in tree order, within the context object's tree"
         // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
@@ -263,6 +270,7 @@ impl Document {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-createelement
     pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: DOMString)
                          -> Fallible<AbstractNode> {
         if xml_name_type(local_name) == InvalidXMLName {
@@ -273,15 +281,18 @@ impl Document {
         Ok(build_element_from_tag(local_name, abstract_self))
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-createdocumentfragment
     pub fn CreateDocumentFragment(&self, abstract_self: AbstractDocument) -> AbstractNode {
         DocumentFragment::new(abstract_self)
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-createtextnode
     pub fn CreateTextNode(&self, abstract_self: AbstractDocument, data: DOMString)
                           -> AbstractNode {
         Text::new(data, abstract_self)
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-createcomment
     pub fn CreateComment(&self, abstract_self: AbstractDocument, data: DOMString) -> AbstractNode {
         Comment::new(data, abstract_self)
     }
@@ -303,6 +314,7 @@ impl Document {
         Ok(ProcessingInstruction::new(target, data, abstract_self))
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-createevent
     pub fn CreateEvent(&self, interface: DOMString) -> Fallible<AbstractEvent> {
         match interface.as_slice() {
             "UIEvents" => Ok(UIEvent::new(self.window)),
@@ -312,6 +324,7 @@ impl Document {
         }
     }
 
+    // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     pub fn Title(&self, _: AbstractDocument) -> DOMString {
         let mut title = ~"";
         match self.doctype {
@@ -345,6 +358,7 @@ impl Document {
         title
     }
 
+    // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     pub fn SetTitle(&self, abstract_self: AbstractDocument, title: DOMString) -> ErrorResult {
         match self.doctype {
             SVG => {
@@ -451,6 +465,7 @@ impl Document {
         Ok(())
     }
 
+    // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
     pub fn GetElementsByName(&self, name: DOMString) -> @mut HTMLCollection {
         self.createHTMLCollection(|elem|
             elem.get_attribute(Null, "name").is_some() && eq_slice(elem.get_attribute(Null, "name").unwrap().value_ref(), name))
