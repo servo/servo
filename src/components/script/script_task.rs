@@ -908,9 +908,11 @@ impl ScriptTask {
                         }
 
                         for node_address in node_address.iter() {
+                            debug!("node address is {:?}", node_address);
                             let mut node = AbstractNode::from_untrusted_node_address(self.js_runtime
                                                                                          .ptr,
                                                                                      *node_address);
+                            debug!("mouse move on {:s}", node.debug_str());
                             // Traverse node generations until a node that is an element is
                             // found.
                             while !node.is_element() {
