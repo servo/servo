@@ -269,7 +269,7 @@ enum TypeSelectorParseResult {
 fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
                        -> TypeSelectorParseResult {
     skip_whitespace(iter);
-    match parse_qualified_name(iter, /* allow_universal = */ true, namespaces) {
+    match parse_qualified_name(iter, /* in_attr_selector = */ false, namespaces) {
         InvalidQualifiedName => InvalidTypeSelector,
         NotAQualifiedName => NotATypeSelector,
         QualifiedName(namespace, local_name) => {
@@ -366,7 +366,7 @@ enum QualifiedNameParseResult {
     QualifiedName(Option<Namespace>, Option<~str>)
 }
 
-fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &NamespaceMap)
+fn parse_qualified_name(iter: &mut Iter, in_attr_selector: bool, namespaces: &NamespaceMap)
                        -> QualifiedNameParseResult {
     #[inline]
     fn default_namespace(namespaces: &NamespaceMap, local_name: Option<~str>)
@@ -375,12 +375,12 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
     }
 
     #[inline]
-    fn explicit_namespace(iter: &mut Iter, allow_universal: bool, namespace: Option<Namespace>)
+    fn explicit_namespace(iter: &mut Iter, in_attr_selector: bool, namespace: Option<Namespace>)
                          -> QualifiedNameParseResult {
         assert!(iter.next() == Some(Delim('|')),
                 "Implementation error, this should not happen.");
         match iter.peek() {
-            Some(&Delim('*')) if allow_universal => {
+            Some(&Delim('*')) if !in_attr_selector => {
                 iter.next();
                 QualifiedName(namespace, None)
             },
@@ -401,22 +401,23 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
                         None => return InvalidQualifiedName,  // Undeclared namespace prefix
                         Some(ref ns) => (*ns).clone(),
                     };
-                    explicit_namespace(iter, allow_universal, Some(namespace))
+                    explicit_namespace(iter, in_attr_selector, Some(namespace))
                 },
+                _ if in_attr_selector => QualifiedName(Some(namespace::Null), Some(value)),
                 _ => default_namespace(namespaces, Some(value)),
             }
         },
         Some(&Delim('*')) => {
             iter.next();  // Consume '*'
             match iter.peek() {
-                Some(&Delim('|')) => explicit_namespace(iter, allow_universal, None),
+                Some(&Delim('|')) => explicit_namespace(iter, in_attr_selector, None),
                 _ => {
-                    if allow_universal { default_namespace(namespaces, None) }
+                    if !in_attr_selector { default_namespace(namespaces, None) }
                     else { InvalidQualifiedName }
                 },
             }
         },
-        Some(&Delim('|')) => explicit_namespace(iter, allow_universal, Some(namespace::Null)),
+        Some(&Delim('|')) => explicit_namespace(iter, in_attr_selector, Some(namespace::Null)),
         _ => NotAQualifiedName,
     }
 }
@@ -425,7 +426,7 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
 fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMap)
                             -> Option<SimpleSelector> {
     let iter = &mut content.move_iter().peekable();
-    let attr = match parse_qualified_name(iter, /* allow_universal = */ false, namespaces) {
+    let attr = match parse_qualified_name(iter, /* in_attr_selector = */ true, namespaces) {
         InvalidQualifiedName | NotAQualifiedName => return None,
         QualifiedName(_, None) => fail!("Implementation error, this should not happen."),
         QualifiedName(namespace, Some(local_name)) => AttrSelector {
@@ -568,13 +569,18 @@ fn skip_whitespace(iter: &mut Iter) -> bool {
 mod tests {
     use extra::arc::Arc;
     use cssparser;
+    use servo_util::namespace;
     use namespaces::NamespaceMap;
     use super::*;
 
     fn parse(input: &str) -> Option<~[Selector]> {
+        parse_ns(input, &NamespaceMap::new())
+    }
+
+    fn parse_ns(input: &str, namespaces: &NamespaceMap) -> Option<~[Selector]> {
         parse_selector_list(
             cssparser::tokenize(input).map(|(v, _)| v).to_owned_vec(),
-            &NamespaceMap::new())
+            namespaces)
     }
 
     fn specificity(a: u32, b: u32, c: u32) -> u32 {
@@ -630,5 +636,46 @@ mod tests {
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
         }]))
+        // Default namespace does not apply to attribute selectors
+        let mut namespaces = NamespaceMap::new();
+        assert_eq!(parse_ns("[Foo]", &namespaces), Some(~[Selector{
+            compound_selectors: Arc::new(CompoundSelector {
+                simple_selectors: ~[AttrExists(AttrSelector {
+                    name: ~"Foo",
+                    lower_name: ~"foo",
+                    namespace: Some(namespace::Null),
+                })],
+                next: None,
+            }),
+            pseudo_element: None,
+            specificity: specificity(0, 1, 0),
+        }]))
+        // Default namespace does not apply to attribute selectors
+        namespaces.default = Some(namespace::MathML);
+        assert_eq!(parse_ns("[Foo]", &namespaces), Some(~[Selector{
+            compound_selectors: Arc::new(CompoundSelector {
+                simple_selectors: ~[AttrExists(AttrSelector {
+                    name: ~"Foo",
+                    lower_name: ~"foo",
+                    namespace: Some(namespace::Null),
+                })],
+                next: None,
+            }),
+            pseudo_element: None,
+            specificity: specificity(0, 1, 0),
+        }]))
+        // Default namespace does apply to type selectors
+        assert_eq!(parse_ns("e", &namespaces), Some(~[Selector{
+            compound_selectors: Arc::new(CompoundSelector {
+                simple_selectors: ~[
+                    NamespaceSelector(namespace::MathML),
+                    LocalNameSelector(~"e"),
+                ],
+                next: None,
+            }),
+            pseudo_element: None,
+            specificity: specificity(0, 0, 1),
+        }]))
+
     }
 }

@@ -27,3 +27,4 @@
 # inline_border_a.html inline_border_b.html
 == anon_block_inherit_a.html anon_block_inherit_b.html
 == position_relative_a.html position_relative_b.html
+== attr_exists_selector.html attr_exists_selector_ref.html
