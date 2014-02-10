@@ -35,9 +35,9 @@ use script::dom::node::{ElementNodeTypeId, LayoutDataRef};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
 use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitNowMsg, LayoutQuery};
-use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse};
+use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse, MouseOverQuery, MouseOverResponse};
 use script::layout_interface::{ContentChangedDocumentDamage, LayoutChan, Msg, PrepareToExitMsg};
-use script::layout_interface::{QueryMsg, ReapLayoutDataMsg, Reflow, ReflowDocumentDamage};
+use script::layout_interface::{QueryMsg, ReapLayoutDataMsg, Reflow, ReflowDocumentDamage, UntrustedNodeAddress};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
 use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
@@ -753,7 +753,6 @@ impl LayoutTask {
                                                             .to_untrusted_node_address()))
                         }
                     }
-
                     let ret: Option<HitTestResponse> = None;
                     ret
                 }
@@ -768,6 +767,46 @@ impl LayoutTask {
                 }
                 reply_chan.send(Err(()));
 
+            }
+            MouseOverQuery(_, point, reply_chan) => {
+                fn mouse_over_test(x: Au, y: Au, list: &[DisplayItem<OpaqueNode>], result: &mut ~[UntrustedNodeAddress]) {
+                    for item in list.rev_iter() {
+                        match *item {
+                            ClipDisplayItemClass(ref cc) => {
+                                mouse_over_test(x, y, cc.child_list, result);
+                            }
+                            _ => {}
+                        }
+                    }
+
+                    for item in list.rev_iter() {
+                        let bounds = item.bounds();
+
+                        // TODO(tikue): This check should really be performed by a method of
+                        // DisplayItem.
+                        if x < bounds.origin.x + bounds.size.width &&
+                                bounds.origin.x <= x &&
+                                y < bounds.origin.y + bounds.size.height &&
+                                bounds.origin.y <= y {
+                            result.push(item.base()
+                                            .extra
+                                            .to_untrusted_node_address());
+                        }
+                    }
+                }
+
+                let mut mouse_over_list:~[UntrustedNodeAddress] = ~[];
+                for display_list in self.display_list_collection.as_ref().unwrap().get().lists.rev_iter() {
+                    let (x, y) = (Au::from_frac_px(point.x as f64),
+                                  Au::from_frac_px(point.y as f64));
+                    mouse_over_test(x,y,display_list.list, &mut mouse_over_list);
+                }
+
+                if mouse_over_list.is_empty() {
+                    reply_chan.send(Err(()));
+                } else {
+                    reply_chan.send(Ok(MouseOverResponse(mouse_over_list)));
+                }
             }
         }
     }

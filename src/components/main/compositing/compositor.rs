@@ -11,7 +11,7 @@ use platform::{Application, Window};
 use windowing::{WindowEvent, WindowMethods,
                 WindowNavigateMsg,
                 IdleWindowEvent, RefreshWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent,
-                MouseWindowEventClass,ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent,
+                MouseWindowEventClass, MouseWindowMoveEventClass,ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent,
                 FinishedWindowEvent, QuitWindowEvent,
                 MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 
@@ -515,6 +515,10 @@ impl IOCompositor {
                 self.on_mouse_window_event_class(mouse_window_event);
             }
 
+            MouseWindowMoveEventClass(cursor) => {
+                self.on_mouse_window_move_event_class(cursor);
+            }
+
             ScrollWindowEvent(delta, cursor) => {
                 self.on_scroll_window_event(delta, cursor);
             }
@@ -576,6 +580,12 @@ impl IOCompositor {
         };
         for layer in self.compositor_layer.iter() {
             layer.send_mouse_event(mouse_window_event, point);
+        }
+    }
+
+    fn on_mouse_window_move_event_class(&self, cursor: Point2D<f32>) {
+        for layer in self.compositor_layer.iter() {
+            layer.send_mouse_move_event(cursor);
         }
     }
 

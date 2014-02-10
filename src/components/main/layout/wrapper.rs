@@ -349,6 +349,10 @@ impl<'le> TElement for LayoutElement<'le> {
             _ => None,
         }
     }
+
+    fn get_hover_state(&self) -> bool {
+        self.element.node.get_hover_state()
+    }
 }
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
