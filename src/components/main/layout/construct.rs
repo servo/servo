@@ -642,12 +642,7 @@ impl<'fc> FlowConstructor<'fc> {
         let layout_data_ref = p.borrow_layout_data();
         let pseudo_parent_ldw = layout_data_ref.get().get_ref();
 
-        match pseudo_parent_ldw.chan {
-            Some(ref chan) => {
-                ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_parent_node).initialize_layout_data(chan.clone());
-            }
-            None => {}
-        }
+        ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_parent_node).initialize_layout_data_no_chan();
 
         if pseudo_element == Before {
             insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(pseudo_parent_ldw.data.before_style.clone()));
@@ -668,12 +663,7 @@ impl<'fc> FlowConstructor<'fc> {
         let mut layout_data_ref = node.mutate_layout_data();
         let pseudo_child_ldw = layout_data_ref.get().get_mut_ref();
 
-        match pseudo_child_ldw.chan {
-            Some(ref chan) => {
-                ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_node).initialize_layout_data(chan.clone());
-            }
-            None => {}
-        }
+        ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_node).initialize_layout_data_no_chan();
 
         if pseudo_element == Before {
             insert_layout_data(&pseudo_node, ~PrivateLayoutData::new_with_style(pseudo_parent_ldw.data.before_style.clone()));
