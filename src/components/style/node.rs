@@ -13,7 +13,6 @@ pub trait TNode<E:TElement> : Clone {
     fn parent_node(&self) -> Option<Self>;
     fn prev_sibling(&self) -> Option<Self>;
     fn next_sibling(&self) -> Option<Self>;
-
     fn is_document(&self) -> bool;
     fn is_element(&self) -> bool;
 
@@ -28,5 +27,6 @@ pub trait TElement {
     fn get_link(&self) -> Option<&'static str>;
     fn get_local_name<'a>(&'a self) -> &'a str;
     fn get_namespace<'a>(&'a self) -> &'a Namespace;
+    fn get_hover_state(&self) -> bool;
 }
 

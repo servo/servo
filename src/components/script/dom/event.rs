@@ -21,6 +21,7 @@ pub enum Event_ {
     ClickEvent(uint, Point2D<f32>),
     MouseDownEvent(uint, Point2D<f32>),
     MouseUpEvent(uint, Point2D<f32>),
+    MouseMoveEvent(Point2D<f32>)
 }
 
 pub struct AbstractEvent {

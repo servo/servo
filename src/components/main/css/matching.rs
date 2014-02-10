@@ -40,6 +40,9 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         match *layout_data_ref.get() {
             Some(ref mut layout_data) => {
+                //FIXME To implement a clear() on SmallVec and use it(init_applicable_declarations).
+                layout_data.data.init_applicable_declarations();
+
                 stylist.push_applicable_declarations(self,
                                                      style_attribute,
                                                      None,

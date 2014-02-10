@@ -615,6 +615,11 @@ fn matches_simple_selector<E:TElement,N:TNode<E>>(selector: &SimpleSelector, ele
             })
         }
 
+        Hover => {
+            element.with_element(|element: &E| {
+                element.get_hover_state()
+            })
+        },
         FirstChild => matches_first_child(element),
         LastChild  => matches_last_child(element),
         OnlyChild  => matches_first_child(element) &&
