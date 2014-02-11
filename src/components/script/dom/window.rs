@@ -9,6 +9,7 @@ use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::eventtarget::{EventTarget, WindowTypeId};
 use dom::node::AbstractNode;
+use dom::console::Console;
 use dom::location::Location;
 use dom::navigator::Navigator;
 
@@ -65,6 +66,7 @@ pub struct Window {
     page: @mut Page,
     script_chan: ScriptChan,
     compositor: @ScriptListener,
+    console: Option<@mut Console>,
     timer_chan: SharedChan<TimerControlMsg>,
     location: Option<@mut Location>,
     navigator: Option<@mut Navigator>,
@@ -148,6 +150,13 @@ impl Window {
             self.location = Some(Location::new(self, self.page));
         }
         self.location.unwrap()
+    }
+
+    pub fn Console(&mut self) -> @mut Console {
+        if self.console.is_none() {
+            self.console = Some(Console::new(self));
+        }
+        self.console.unwrap()
     }
 
     pub fn Navigator(&mut self) -> @mut Navigator {
@@ -246,6 +255,7 @@ impl Window {
             page: page,
             script_chan: script_chan.clone(),
             compositor: compositor,
+            console: None,
             timer_chan: {
                 let (timer_port, timer_chan): (Port<TimerControlMsg>, SharedChan<TimerControlMsg>) = SharedChan::new();
                 let id = page.id.clone();
