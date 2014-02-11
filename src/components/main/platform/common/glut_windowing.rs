@@ -11,7 +11,7 @@ use windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMou
 use windowing::{Forward, Back};
 
 use alert::{Alert, AlertMethods};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::libc::{c_int, c_uchar};
 use std::local_data;
 use std::rc::Rc;
@@ -51,12 +51,12 @@ pub struct Window {
 
     drag_origin: Point2D<c_int>,
 
-    mouse_down_button: RefCell<c_int>,
-    mouse_down_point: RefCell<Point2D<c_int>>,
+    mouse_down_button: Cell<c_int>,
+    mouse_down_point: Cell<Point2D<c_int>>,
 
-    ready_state: RefCell<ReadyState>,
-    render_state: RefCell<RenderState>,
-    throbber_frame: RefCell<u8>,
+    ready_state: Cell<ReadyState>,
+    render_state: Cell<RenderState>,
+    throbber_frame: Cell<u8>,
 }
 
 impl WindowMethods<Application> for Window {
@@ -74,12 +74,12 @@ impl WindowMethods<Application> for Window {
 
             drag_origin: Point2D(0 as c_int, 0),
 
-            mouse_down_button: RefCell::new(0),
-            mouse_down_point: RefCell::new(Point2D(0 as c_int, 0)),
+            mouse_down_button: Cell::new(0),
+            mouse_down_point: Cell::new(Point2D(0 as c_int, 0)),
 
-            ready_state: RefCell::new(Blank),
-            render_state: RefCell::new(IdleRenderState),
-            throbber_frame: RefCell::new(0),
+            ready_state: Cell::new(Blank),
+            render_state: Cell::new(IdleRenderState),
+            throbber_frame: Cell::new(0),
         };
 
         // Register event handlers.
