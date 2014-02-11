@@ -39,11 +39,12 @@ use servo_util::{time, url};
 use std::comm::Port;
 use std::num::Orderable;
 use std::path::Path;
+use std::rc::Rc;
 
 
 pub struct IOCompositor {
     /// The application window.
-    window: @mut Window,
+    window: Rc<Window>,
 
     /// The port on which we receive messages.
     port: Port<Msg>,
@@ -115,14 +116,14 @@ impl IOCompositor {
                port: Port<Msg>,
                constellation_chan: ConstellationChan,
                profiler_chan: ProfilerChan) -> IOCompositor {
-        let window: @mut Window = WindowMethods::new(app);
+        let window: Rc<Window> = WindowMethods::new(app);
 
         // Create an initial layer tree.
         //
         // TODO: There should be no initial layer tree until the renderer creates one from the display
         // list. This is only here because we don't have that logic in the renderer yet.
         let root_layer = @mut ContainerLayer();
-        let window_size = window.size();
+        let window_size = window.borrow().size();
 
         IOCompositor {
             window: window,
@@ -181,7 +182,8 @@ impl IOCompositor {
             }
 
             // Check for messages coming from the windowing system.
-            self.handle_window_message(self.window.recv());
+            let msg = self.window.borrow().recv();
+            self.handle_window_message(msg);
 
             // If asked to recomposite and renderer has run at least once
             if self.recomposite && self.composite_ready {
@@ -231,7 +233,7 @@ impl IOCompositor {
                 }
 
                 (Some(ChangeReadyState(ready_state)), false) => {
-                    self.window.set_ready_state(ready_state);
+                    self.window.borrow().set_ready_state(ready_state);
                     self.ready_state = ready_state;
                 }
 
@@ -293,7 +295,7 @@ impl IOCompositor {
     }
 
     fn change_render_state(&mut self, render_state: RenderState) {
-        self.window.set_render_state(render_state);
+        self.window.borrow().set_render_state(render_state);
         if render_state == IdleRenderState {
             self.composite_ready = true;
         }
@@ -335,7 +337,7 @@ impl IOCompositor {
         self.compositor_layer = Some(layer);
 
         // Initialize the new constellation channel by sending it the root window size.
-        let window_size = self.window.size();
+        let window_size = self.window.borrow().size();
         let window_size = Size2D(window_size.width as uint,
                                  window_size.height as uint);
         new_constellation_chan.send(ResizedWindowMsg(window_size));
@@ -660,7 +662,7 @@ impl IOCompositor {
         profile(time::CompositingCategory, self.profiler_chan.clone(), || {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
-            self.scene.size = self.window.size();
+            self.scene.size = self.window.borrow().size();
             // Render the scene.
             match self.compositor_layer {
                 Some(ref mut layer) => {
@@ -709,7 +711,7 @@ impl IOCompositor {
             self.shutting_down = true;
         }
 
-        self.window.present();
+        self.window.borrow().present();
 
         let exit = self.opts.exit_after_load;
         if exit {
