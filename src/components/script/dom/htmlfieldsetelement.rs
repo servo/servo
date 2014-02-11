@@ -69,6 +69,7 @@ impl HTMLFieldSetElement {
     }
 
     pub fn Elements(&self) -> JS<HTMLCollection> {
+        // FIXME: stub
         let doc = self.htmlelement.element.node.owner_doc();
         let doc = doc.get();
         HTMLCollection::new(&doc.window, ~[])
