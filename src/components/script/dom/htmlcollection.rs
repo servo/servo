@@ -5,14 +5,9 @@
 use dom::bindings::codegen::HTMLCollectionBinding;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::error::Fallible;
 use dom::element::Element;
 use dom::window::Window;
 use servo_util::str::DOMString;
-
-use js::jsapi::{JSObject, JSContext};
-
-use std::ptr;
 
 #[deriving(Encodable)]
 pub struct HTMLCollection {
@@ -34,11 +29,15 @@ impl HTMLCollection {
         reflect_dom_object(~HTMLCollection::new_inherited(window.clone(), elements),
                            window, HTMLCollectionBinding::Wrap)
     }
-    
+}
+
+impl HTMLCollection {
+    // http://dom.spec.whatwg.org/#dom-htmlcollection-length
     pub fn Length(&self) -> u32 {
         self.elements.len() as u32
     }
 
+    // http://dom.spec.whatwg.org/#dom-htmlcollection-item
     pub fn Item(&self, index: u32) -> Option<JS<Element>> {
         if index < self.Length() {
             Some(self.elements[index].clone())
@@ -47,17 +46,40 @@ impl HTMLCollection {
         }
     }
 
-    pub fn NamedItem(&self, _cx: *JSContext, _name: DOMString) -> Fallible<*JSObject> {
-        Ok(ptr::null())
-    }
+    // http://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
+    pub fn NamedItem(&self, key: DOMString) -> Option<JS<Element>> {
+        // Step 1.
+        if key.is_empty() {
+            return None;
+        }
 
+        // Step 2.
+        self.elements.iter().find(|elem| {
+            let elem = elem.get();
+            elem.get_string_attribute("name") == key || elem.get_string_attribute("id") == key
+        }).map(|maybe_elem| maybe_elem.clone())
+    }
+}
+
+impl HTMLCollection {
     pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JS<Element>> {
-        *found = true;
-        self.Item(index)
+        let maybe_elem = self.Item(index);
+        *found = maybe_elem.is_some();
+        maybe_elem
     }
 
-    pub fn NamedGetter(&self, _cx: *JSContext, _name: Option<DOMString>, _found: &mut bool) -> Fallible<*JSObject> {
-        Ok(ptr::null())
+    pub fn NamedGetter(&self, maybe_name: Option<DOMString>, found: &mut bool) -> Option<JS<Element>> {
+        match maybe_name {
+            Some(name) => {
+                let maybe_elem = self.NamedItem(name);
+                *found = maybe_elem.is_some();
+                maybe_elem
+            },
+            None => {
+                *found = false;
+                None
+            }
+        }
     }
 }
 
