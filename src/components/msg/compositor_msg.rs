@@ -45,13 +45,13 @@ impl LayerBufferSet {
 }
 
 /// The status of the renderer.
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 pub enum RenderState {
     IdleRenderState,
     RenderingRenderState,
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 pub enum ReadyState {
     /// Informs the compositor that nothing has been done yet. Used for setting status
     Blank,

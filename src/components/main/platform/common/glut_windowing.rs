@@ -11,8 +11,10 @@ use windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMou
 use windowing::{Forward, Back};
 
 use alert::{Alert, AlertMethods};
+use std::cell::RefCell;
 use std::libc::{c_int, c_uchar};
 use std::local_data;
+use std::rc::Rc;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
@@ -45,42 +47,40 @@ impl Drop for Application {
 pub struct Window {
     glut_window: glut::Window,
 
-    event_queue: @mut ~[WindowEvent],
+    event_queue: RefCell<~[WindowEvent]>,
 
     drag_origin: Point2D<c_int>,
 
-    mouse_down_button: @mut c_int,
-    mouse_down_point: @mut Point2D<c_int>,
+    mouse_down_button: RefCell<c_int>,
+    mouse_down_point: RefCell<Point2D<c_int>>,
 
-    ready_state: ReadyState,
-    render_state: RenderState,
-    throbber_frame: u8,
+    ready_state: RefCell<ReadyState>,
+    render_state: RefCell<RenderState>,
+    throbber_frame: RefCell<u8>,
 }
 
 impl WindowMethods<Application> for Window {
     /// Creates a new window.
-    fn new(_: &Application) -> @mut Window {
+    fn new(_: &Application) -> Rc<Window> {
         // Create the GLUT window.
         glut::init_window_size(800, 600);
         let glut_window = glut::create_window(~"Servo");
 
         // Create our window object.
-        let window = @mut Window {
+        let window = Window {
             glut_window: glut_window,
 
-            event_queue: @mut ~[],
+            event_queue: RefCell::new(~[]),
 
             drag_origin: Point2D(0 as c_int, 0),
 
-            mouse_down_button: @mut 0,
-            mouse_down_point: @mut Point2D(0 as c_int, 0),
+            mouse_down_button: RefCell::new(0),
+            mouse_down_point: RefCell::new(Point2D(0 as c_int, 0)),
 
-            ready_state: Blank,
-            render_state: IdleRenderState,
-            throbber_frame: 0,
+            ready_state: RefCell::new(Blank),
+            render_state: RefCell::new(IdleRenderState),
+            throbber_frame: RefCell::new(0),
         };
-
-        install_local_window(window);
 
         // Register event handlers.
 
@@ -96,7 +96,7 @@ impl WindowMethods<Application> for Window {
         struct ReshapeCallbackState;
         impl glut::ReshapeCallback for ReshapeCallbackState {
             fn call(&self, width: c_int, height: c_int) {
-                local_window().event_queue.push(ResizeWindowEvent(width as uint, height as uint))
+                local_window().event_queue.with_mut(|queue| queue.push(ResizeWindowEvent(width as uint, height as uint)))
             }
         }
         glut::reshape_func(glut_window, ~ReshapeCallbackState);
@@ -115,10 +115,10 @@ impl WindowMethods<Application> for Window {
                 } else {
                     match button {
                         3 => {
-                            local_window().event_queue.push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32)));
+                            local_window().event_queue.with_mut(|queue| queue.push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32))));
                         },
                         4 => {
-                            local_window().event_queue.push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32)));
+                            local_window().event_queue.with_mut(|queue| queue.push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32))));
                         },
                         _ => {}
                     }
@@ -127,7 +127,11 @@ impl WindowMethods<Application> for Window {
         }
         glut::mouse_func(~MouseCallbackState);
 
-        window
+        let wrapped_window = Rc::new(window);
+
+        install_local_window(wrapped_window);
+
+        wrapped_window
     }
 
     /// Returns the size of the window.
@@ -136,44 +140,44 @@ impl WindowMethods<Application> for Window {
     }
 
     /// Presents the window to the screen (perhaps by page flipping).
-    fn present(&mut self) {
+    fn present(&self) {
         glut::swap_buffers();
     }
     
-    fn recv(@mut self) -> WindowEvent {
-        if !self.event_queue.is_empty() {
-            return self.event_queue.shift()
+    fn recv(@self) -> WindowEvent {
+        if !self.event_queue.with_mut(|queue| queue.is_empty()) {
+            return self.event_queue.with_mut(|queue| queue.shift())
         }
         glut::check_loop();
-        if !self.event_queue.is_empty() {
-            self.event_queue.shift()
+        if !self.event_queue.with_mut(|queue| queue.is_empty()) {
+            self.event_queue.with_mut(|queue| queue.shift())
         } else {
             IdleWindowEvent
         }
     }
 
     /// Sets the ready state.
-    fn set_ready_state(@mut self, ready_state: ReadyState) {
-        self.ready_state = ready_state;
+    fn set_ready_state(@self, ready_state: ReadyState) {
+        self.ready_state.set(ready_state);
         //FIXME: set_window_title causes crash with Android version of freeGLUT. Temporarily blocked.
         //self.update_window_title()
     }
 
     /// Sets the render state.
-    fn set_render_state(@mut self, render_state: RenderState) {
-        if self.ready_state == FinishedLoading &&
-            self.render_state == RenderingRenderState &&
+    fn set_render_state(@self, render_state: RenderState) {
+        if self.ready_state.get() == FinishedLoading &&
+            self.render_state.get() == RenderingRenderState &&
             render_state == IdleRenderState {
             // page loaded
-            self.event_queue.push(FinishedWindowEvent);
+            self.event_queue.with_mut(|queue| queue.push(FinishedWindowEvent));
         }
 
-        self.render_state = render_state;
+        self.render_state.set(render_state);
         //FIXME: set_window_title causes crash with Android version of freeGLUT. Temporarily blocked.
         //self.update_window_title()
     }
 
-    fn hidpi_factor(@mut self) -> f32 {
+    fn hidpi_factor(@self) -> f32 {
         //FIXME: Do nothing in GLUT now.
     0f32
     }
@@ -210,16 +214,16 @@ impl Window {
         let modifiers = glut::get_modifiers();
         match key {
             42 => self.load_url(),
-            43 => self.event_queue.push(ZoomWindowEvent(1.1)),
-            45 => self.event_queue.push(ZoomWindowEvent(0.909090909)),
-            56 => self.event_queue.push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32))),
-            50 => self.event_queue.push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32))),
+            43 => self.event_queue.with_mut(|queue| queue.push(ZoomWindowEvent(1.1))),
+            45 => self.event_queue.with_mut(|queue| queue.push(ZoomWindowEvent(0.909090909))),
+            56 => self.event_queue.with_mut(|queue| queue.push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32)))),
+            50 => self.event_queue.with_mut(|queue| queue.push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32)))),
             127 => {
                 if (modifiers & ACTIVE_SHIFT) != 0 {
-                    self.event_queue.push(NavigationWindowEvent(Forward));
+                    self.event_queue.with_mut(|queue| queue.push(NavigationWindowEvent(Forward)));
                 }
                 else {
-                    self.event_queue.push(NavigationWindowEvent(Back));
+                    self.event_queue.with_mut(|queue| queue.push(NavigationWindowEvent(Back)));
                 }
             }
             _ => {}
@@ -232,26 +236,26 @@ impl Window {
         let max_pixel_dist = 10f32;
         let event = match state {
             glut::MOUSE_DOWN => {
-                *self.mouse_down_point = Point2D(x, y);
-                *self.mouse_down_button = button;
+                self.mouse_down_point.set(Point2D(x, y));
+                self.mouse_down_button.set(button);
                 MouseWindowMouseDownEvent(button as uint, Point2D(x as f32, y as f32))
             }
             glut::MOUSE_UP => {
-                if *self.mouse_down_button == button {
-                    let pixel_dist = *self.mouse_down_point - Point2D(x, y);
+                if self.mouse_down_button.get() == button {
+                    let pixel_dist = self.mouse_down_point.get() - Point2D(x, y);
                     let pixel_dist = ((pixel_dist.x * pixel_dist.x +
                                        pixel_dist.y * pixel_dist.y) as f32).sqrt();
                     if pixel_dist < max_pixel_dist {
                         let click_event = MouseWindowClickEvent(button as uint,
                                                            Point2D(x as f32, y as f32));
-                        self.event_queue.push(MouseWindowEventClass(click_event));
+                        self.event_queue.with_mut(|queue| queue.push(MouseWindowEventClass(click_event)));
                     }
                 }
                 MouseWindowMouseUpEvent(button as uint, Point2D(x as f32, y as f32))
             }
             _ => fail!("I cannot recognize the type of mouse action that occured. :-(")
         };
-        self.event_queue.push(MouseWindowEventClass(event));
+        self.event_queue.with_mut(|queue| queue.push(MouseWindowEventClass(event)));
     }
 
     /// Helper function to pop up an alert box prompting the user to load a URL.
@@ -261,16 +265,16 @@ impl Window {
         alert.run();
         let value = alert.prompt_value();
         if "" == value {    // To avoid crashing on Linux.
-            self.event_queue.push(LoadUrlWindowEvent(~"http://purple.com/"))
+            self.event_queue.with_mut(|queue| queue.push(LoadUrlWindowEvent(~"http://purple.com/")))
         } else {
-            self.event_queue.push(LoadUrlWindowEvent(value))
+            self.event_queue.with_mut(|queue| queue.push(LoadUrlWindowEvent(value.clone())))
         }
     }
 }
 
-static TLS_KEY: local_data::Key<@mut Window> = &local_data::Key;
+static TLS_KEY: local_data::Key<Rc<Window>> = &local_data::Key;
 
-fn install_local_window(window: @mut Window) {
+fn install_local_window(window: Rc<Window>) {
     local_data::set(TLS_KEY, window);
 }
 
@@ -278,6 +282,6 @@ fn drop_local_window() {
     local_data::pop(TLS_KEY);
 }
 
-fn local_window() -> @mut Window {
-    local_data::get(TLS_KEY, |v| *v.unwrap())
+fn local_window() -> Rc<Window> {
+    local_data::get(TLS_KEY, |v| v.unwrap().clone())
 }

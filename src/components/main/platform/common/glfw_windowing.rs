@@ -14,8 +14,11 @@ use windowing::{Forward, Back};
 use alert::{Alert, AlertMethods};
 use extra::time::Timespec;
 use extra::time;
+use std::cell::RefCell;
 use std::libc::{exit, c_int};
 use std::local_data;
+use std::rc::Rc;
+
 use geom::point::Point2D;
 use geom::size::Size2D;
 use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
@@ -86,60 +89,61 @@ macro_rules! glfw_callback(
 pub struct Window {
     glfw_window: glfw::Window,
 
-    event_queue: @mut ~[WindowEvent],
+    event_queue: RefCell<~[WindowEvent]>,
 
     drag_origin: Point2D<c_int>,
 
-    mouse_down_button: @mut Option<glfw::MouseButton>,
-    mouse_down_point: @mut Point2D<c_int>,
+    mouse_down_button: RefCell<Option<glfw::MouseButton>>,
+    mouse_down_point: RefCell<Point2D<c_int>>,
 
-    ready_state: ReadyState,
-    render_state: RenderState,
+    ready_state: RefCell<ReadyState>,
+    render_state: RefCell<RenderState>,
 
-    last_title_set_time: Timespec,
+    last_title_set_time: RefCell<Timespec>,
 }
 
 impl WindowMethods<Application> for Window {
     /// Creates a new window.
-    fn new(_: &Application) -> @mut Window {
+    fn new(_: &Application) -> Rc<Window> {
         // Create the GLFW window.
         let glfw_window = glfw::Window::create(800, 600, "Servo", glfw::Windowed)
             .expect("Failed to create GLFW window");
         glfw_window.make_context_current();
 
         // Create our window object.
-        let window = @mut Window {
+        let window = Window {
             glfw_window: glfw_window,
 
-            event_queue: @mut ~[],
+            event_queue: RefCell::new(~[]),
 
             drag_origin: Point2D(0 as c_int, 0),
 
-            mouse_down_button: @mut None,
-            mouse_down_point: @mut Point2D(0 as c_int, 0),
+            mouse_down_button: RefCell::new(None),
+            mouse_down_point: RefCell::new(Point2D(0 as c_int, 0)),
 
-            ready_state: Blank,
-            render_state: IdleRenderState,
+            ready_state: RefCell::new(Blank),
+            render_state: RefCell::new(IdleRenderState),
 
-            last_title_set_time: Timespec::new(0, 0),
+            last_title_set_time: RefCell::new(Timespec::new(0, 0)),
         };
-
-        install_local_window(window);
 
         // Register event handlers.
         window.glfw_window.set_framebuffer_size_callback(
             glfw_callback!(glfw::FramebufferSizeCallback(_win: &glfw::Window, width: i32, height: i32) {
-                local_window().event_queue.push(ResizeWindowEvent(width as uint, height as uint));
+                let tmp = local_window();
+                tmp.borrow().event_queue.with_mut(|queue| queue.push(ResizeWindowEvent(width as uint, height as uint)));
             }));
         window.glfw_window.set_refresh_callback(
             glfw_callback!(glfw::WindowRefreshCallback(_win: &glfw::Window) {
-                local_window().event_queue.push(RefreshWindowEvent);
+                let tmp = local_window();
+                tmp.borrow().event_queue.with_mut(|queue| queue.push(RefreshWindowEvent));
             }));
         window.glfw_window.set_key_callback(
             glfw_callback!(glfw::KeyCallback(_win: &glfw::Window, key: glfw::Key, _scancode: c_int,
                                              action: glfw::Action, mods: glfw::Modifiers) {
                 if action == glfw::Press {
-                    local_window().handle_key(key, mods)
+                    let tmp = local_window();
+                    tmp.borrow().handle_key(key, mods)
                 }
             }));
         window.glfw_window.set_mouse_button_callback(
@@ -153,12 +157,14 @@ impl WindowMethods<Application> for Window {
                 let x = x as f32 * hidpi;
                 let y = y as f32 * hidpi;
                 if button == glfw::MouseButtonLeft || button == glfw::MouseButtonRight {
-                    local_window().handle_mouse(button, action, x as i32, y as i32);
+                    let tmp = local_window();
+                    tmp.borrow().handle_mouse(button, action, x as i32, y as i32);
                 }
             }));
         window.glfw_window.set_cursor_pos_callback(
             glfw_callback!(glfw::CursorPosCallback(_win: &glfw::Window, xpos: f64, ypos: f64) {
-                local_window().event_queue.push(MouseWindowMoveEventClass(Point2D(xpos as f32, ypos as f32)));
+                let tmp = local_window();
+                tmp.borrow().event_queue.with_mut(|queue| queue.push(MouseWindowMoveEventClass(Point2D(xpos as f32, ypos as f32))));
             }));
         window.glfw_window.set_scroll_callback(
             glfw_callback!(glfw::ScrollCallback(win: &glfw::Window, xpos: f64, ypos: f64) {
@@ -173,10 +179,15 @@ impl WindowMethods<Application> for Window {
                 let x = x as f32 * hidpi;
                 let y = y as f32 * hidpi;
 
-                local_window().event_queue.push(ScrollWindowEvent(Point2D(dx, dy), Point2D(x as i32, y as i32)));
+                let tmp = local_window();
+                tmp.borrow().event_queue.with_mut(|queue| queue.push(ScrollWindowEvent(Point2D(dx, dy), Point2D(x as i32, y as i32))));
             }));
 
-        window
+        let wrapped_window = Rc::from_send(window);
+
+        install_local_window(wrapped_window.clone());
+
+        wrapped_window
     }
 
     /// Returns the size of the window.
@@ -186,45 +197,45 @@ impl WindowMethods<Application> for Window {
     }
 
     /// Presents the window to the screen (perhaps by page flipping).
-    fn present(&mut self) {
+    fn present(&self) {
         self.glfw_window.swap_buffers();
     }
 
-    fn recv(@mut self) -> WindowEvent {
-        if !self.event_queue.is_empty() {
-            return self.event_queue.shift()
+    fn recv(&self) -> WindowEvent {
+        if !self.event_queue.with_mut(|queue| queue.is_empty()) {
+            return self.event_queue.with_mut(|queue| queue.shift())
         }
         glfw::poll_events();
 
         if self.glfw_window.should_close() {
             QuitWindowEvent
-        } else if !self.event_queue.is_empty() {
-            self.event_queue.shift()
+        } else if !self.event_queue.with_mut(|queue| queue.is_empty()) {
+            self.event_queue.with_mut(|queue| queue.shift())
         } else {
             IdleWindowEvent
         }
     }
 
     /// Sets the ready state.
-    fn set_ready_state(@mut self, ready_state: ReadyState) {
-        self.ready_state = ready_state;
+    fn set_ready_state(&self, ready_state: ReadyState) {
+        self.ready_state.set(ready_state);
         self.update_window_title()
     }
 
     /// Sets the render state.
-    fn set_render_state(@mut self, render_state: RenderState) {
-        if self.ready_state == FinishedLoading &&
-            self.render_state == RenderingRenderState &&
+    fn set_render_state(&self, render_state: RenderState) {
+        if self.ready_state.get() == FinishedLoading &&
+            self.render_state.get() == RenderingRenderState &&
             render_state == IdleRenderState {
             // page loaded
-            self.event_queue.push(FinishedWindowEvent);
+            self.event_queue.with_mut(|queue| queue.push(FinishedWindowEvent));
         }
 
-        self.render_state = render_state;
+        self.render_state.set(render_state);
         self.update_window_title()
     }
 
-    fn hidpi_factor(@mut self) -> f32 {
+    fn hidpi_factor(&self) -> f32 {
         let (backing_size, _) = self.glfw_window.get_framebuffer_size();
         let (window_size, _) = self.glfw_window.get_size();
         (backing_size as f32) / (window_size as f32)
@@ -233,14 +244,14 @@ impl WindowMethods<Application> for Window {
 
 impl Window {
     /// Helper function to set the window title in accordance with the ready state.
-    fn update_window_title(&mut self) {
+    fn update_window_title(&self) {
         let now = time::get_time();
-        if now.sec == self.last_title_set_time.sec {
+        if now.sec == self.last_title_set_time.get().sec {
             return
         }
-        self.last_title_set_time = now;
+        self.last_title_set_time.set(now);
 
-        match self.ready_state {
+        match self.ready_state.get() {
             Blank => {
                 self.glfw_window.set_title("blank — Servo")
             }
@@ -251,7 +262,7 @@ impl Window {
                 self.glfw_window.set_title("Performing Layout — Servo")
             }
             FinishedLoading => {
-                match self.render_state {
+                match self.render_state.get() {
                     RenderingRenderState => {
                         self.glfw_window.set_title("Rendering — Servo")
                     }
@@ -269,16 +280,16 @@ impl Window {
             glfw::KeyEscape => self.glfw_window.set_should_close(true),
             glfw::KeyL if mods.contains(glfw::Control) => self.load_url(), // Ctrl+L
             glfw::KeyEqual if mods.contains(glfw::Control) => { // Ctrl-+
-                self.event_queue.push(ZoomWindowEvent(1.1));
+                self.event_queue.with_mut(|queue| queue.push(ZoomWindowEvent(1.1)));
             }
             glfw::KeyMinus if mods.contains(glfw::Control) => { // Ctrl--
-                self.event_queue.push(ZoomWindowEvent(0.90909090909));
+                self.event_queue.with_mut(|queue| queue.push(ZoomWindowEvent(0.90909090909)));
             }
             glfw::KeyBackspace if mods.contains(glfw::Shift) => { // Shift-Backspace
-                self.event_queue.push(NavigationWindowEvent(Forward));
+                self.event_queue.with_mut(|queue| queue.push(NavigationWindowEvent(Forward)));
             }
             glfw::KeyBackspace => { // Backspace
-                self.event_queue.push(NavigationWindowEvent(Back));
+                self.event_queue.with_mut(|queue| queue.push(NavigationWindowEvent(Back)));
             }
             _ => {}
         }
@@ -290,21 +301,21 @@ impl Window {
         let max_pixel_dist = 10f64;
         let event = match action {
             glfw::Press => {
-                *self.mouse_down_point = Point2D(x, y);
-                *self.mouse_down_button = Some(button);
+                self.mouse_down_point.set(Point2D(x, y));
+                self.mouse_down_button.set(Some(button));
                 MouseWindowMouseDownEvent(button as uint, Point2D(x as f32, y as f32))
             }
             glfw::Release => {
-                match *self.mouse_down_button {
+                match self.mouse_down_button.get() {
                     None => (),
                     Some(but) if button == but => {
-                        let pixel_dist = *self.mouse_down_point - Point2D(x, y);
+                        let pixel_dist = self.mouse_down_point.get() - Point2D(x, y);
                         let pixel_dist = ((pixel_dist.x * pixel_dist.x +
                                            pixel_dist.y * pixel_dist.y) as f64).sqrt();
                         if pixel_dist < max_pixel_dist {
                             let click_event = MouseWindowClickEvent(button as uint,
                                                                     Point2D(x as f32, y as f32));
-                            self.event_queue.push(MouseWindowEventClass(click_event));
+                            self.event_queue.with_mut(|queue| queue.push(MouseWindowEventClass(click_event)));
                         }
                     }
                     Some(_) => (),
@@ -313,7 +324,7 @@ impl Window {
             }
             _ => fail!("I cannot recognize the type of mouse action that occured. :-(")
         };
-        self.event_queue.push(MouseWindowEventClass(event));
+        self.event_queue.with_mut(|queue| queue.push(MouseWindowEventClass(event)));
     }
 
     /// Helper function to pop up an alert box prompting the user to load a URL.
@@ -323,16 +334,16 @@ impl Window {
         alert.run();
         let value = alert.prompt_value();
         if "" == value {    // To avoid crashing on Linux.
-            self.event_queue.push(LoadUrlWindowEvent(~"http://purple.com/"))
+            self.event_queue.with_mut(|queue| queue.push(LoadUrlWindowEvent(~"http://purple.com/")))
         } else {
-            self.event_queue.push(LoadUrlWindowEvent(value))
+            self.event_queue.with_mut(|queue| queue.push(LoadUrlWindowEvent(value.clone())))
         }
     }
 }
 
-static TLS_KEY: local_data::Key<@mut Window> = &local_data::Key;
+static TLS_KEY: local_data::Key<Rc<Window>> = &local_data::Key;
 
-fn install_local_window(window: @mut Window) {
+fn install_local_window(window: Rc<Window>) {
     local_data::set(TLS_KEY, window);
 }
 
@@ -340,6 +351,6 @@ fn drop_local_window() {
     local_data::pop(TLS_KEY);
 }
 
-fn local_window() -> @mut Window {
-    local_data::get(TLS_KEY, |v| *v.unwrap())
+fn local_window() -> Rc<Window> {
+    local_data::get(TLS_KEY, |v| v.unwrap().clone())
 }
