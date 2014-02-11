@@ -55,6 +55,13 @@
 
 
 };
+
+// Not part of any spec
+partial interface Window {
+  // web developer niceties
+  readonly attribute Console console;
+};
+
 /*Window implements GlobalEventHandlers;
   Window implements WindowEventHandlers;*/
 
