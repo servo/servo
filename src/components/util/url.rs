@@ -81,7 +81,7 @@ pub fn parse_url(str_url: &str, base_url: Option<Url>) -> Url {
     };
 
     // FIXME: Need to handle errors
-    url::from_str(str_url).unwrap()
+    url::from_str(str_url).ok().expect("URL parsing failed")
 }
 
 #[cfg(test)]
