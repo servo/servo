@@ -6,6 +6,7 @@ use layout::box_::Box;
 use layout::construct::{ConstructionResult, NoConstructionResult};
 use layout::parallel::DomParallelInfo;
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
+use layout::wrapper::LayoutPseudoNode;
 
 use extra::arc::Arc;
 use script::dom::bindings::utils::Reflectable;
@@ -19,6 +20,7 @@ use std::iter::Enumerate;
 use std::libc::uintptr_t;
 use std::vec::VecIterator;
 use style::{ComputedValues, PropertyDeclaration};
+use style::{PseudoElement, Before, After};
 
 /// A range of nodes.
 pub struct NodeRange {
@@ -128,6 +130,11 @@ impl ElementMapping {
     }
 }
 
+pub struct PseudoNode {
+    parent: LayoutPseudoNode,
+    element: LayoutPseudoNode
+}
+
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
     /// The results of CSS matching for this node.
@@ -143,6 +150,10 @@ pub struct PrivateLayoutData {
     style: Option<Arc<ComputedValues>>,
 
     after_style: Option<Arc<ComputedValues>>,
+
+    before: Option<PseudoNode>,
+
+    after: Option<PseudoNode>,
 
     /// Description of how to account for recent style changes.
     restyle_damage: Option<int>,
@@ -165,6 +176,24 @@ impl PrivateLayoutData {
             before_style: None,
             style: None,
             after_style: None,
+            before: None,
+            after: None,
+            restyle_damage: None,
+            flow_construction_result: NoConstructionResult,
+            parallel: DomParallelInfo::new(),
+        }
+    }
+
+    pub fn new_with_style(style: Option<Arc<ComputedValues>>) -> PrivateLayoutData {
+        PrivateLayoutData {
+            applicable_declarations: SmallVec16::new(),
+            before_applicable_declarations: SmallVec0::new(),
+            after_applicable_declarations: SmallVec0::new(),
+            before_style: None,
+            style: style,
+            after_style: None,
+            before: None,
+            after: None,
             restyle_damage: None,
             flow_construction_result: NoConstructionResult,
             parallel: DomParallelInfo::new(),
@@ -177,6 +206,13 @@ impl PrivateLayoutData {
         self.applicable_declarations = SmallVec16::new();
         self.before_applicable_declarations = SmallVec0::new();
         self.after_applicable_declarations = SmallVec0::new();
+    }
+
+    pub fn get_pseudo_element<'a>(&'a self, pseudo_element: PseudoElement) -> Option<&'a PseudoNode> {
+        match pseudo_element {
+            Before => self.before.as_ref(),
+            After => self.after.as_ref()
+        }
     }
 }
 

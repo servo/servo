@@ -22,7 +22,6 @@ use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
-
 use std::ascii::StrAsciiExt;
 use std::cast;
 use std::str::eq;
@@ -131,6 +130,17 @@ impl Element {
             node: Node::new_inherited(ElementNodeTypeId(type_id), document),
             tag_name: tag_name,
             namespace: namespace,
+            attrs: ~[],
+            attr_list: None,
+            style_attribute: None,
+        }
+    }
+
+    pub fn new_layout_pseudo(tag_name: ~str) -> Element {
+        Element {
+            node: Node::new_without_doc(ElementNodeTypeId(HTMLUnknownElementTypeId)),
+            tag_name: tag_name,
+            namespace: namespace::HTML,
             attrs: ~[],
             attr_list: None,
             style_attribute: None,
