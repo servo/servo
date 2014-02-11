@@ -27,7 +27,8 @@ use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use std::cast;
 use std::cell::{Ref, RefMut};
-use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector};
+use style::{PropertyDeclarationBlock, TElement, TNode,
+            AttrSelector, SpecificNamespace, AnyNamespace};
 
 use layout::util::LayoutDataWrapper;
 
@@ -239,14 +240,14 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
                 attr.name.as_slice()
             };
             match attr.namespace {
-                Some(ref ns) => {
+                SpecificNamespace(ref ns) => {
                     match element.get_attr(ns, name) {
                         Some(value) => test(value),
                         None => false,
                     }
                 },
-                // FIXME: support `*|attr`, attribute selectors in any namespace
-                None => return false,
+                // FIXME: https://github.com/mozilla/servo/issues/1558
+                AnyNamespace => return false,
             }
         })
     }
