@@ -14,7 +14,7 @@ use windowing::{Forward, Back};
 use alert::{Alert, AlertMethods};
 use extra::time::Timespec;
 use extra::time;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::libc::{exit, c_int};
 use std::local_data;
 use std::rc::Rc;
@@ -93,13 +93,13 @@ pub struct Window {
 
     drag_origin: Point2D<c_int>,
 
-    mouse_down_button: RefCell<Option<glfw::MouseButton>>,
-    mouse_down_point: RefCell<Point2D<c_int>>,
+    mouse_down_button: Cell<Option<glfw::MouseButton>>,
+    mouse_down_point: Cell<Point2D<c_int>>,
 
-    ready_state: RefCell<ReadyState>,
-    render_state: RefCell<RenderState>,
+    ready_state: Cell<ReadyState>,
+    render_state: Cell<RenderState>,
 
-    last_title_set_time: RefCell<Timespec>,
+    last_title_set_time: Cell<Timespec>,
 }
 
 impl WindowMethods<Application> for Window {
@@ -118,13 +118,13 @@ impl WindowMethods<Application> for Window {
 
             drag_origin: Point2D(0 as c_int, 0),
 
-            mouse_down_button: RefCell::new(None),
-            mouse_down_point: RefCell::new(Point2D(0 as c_int, 0)),
+            mouse_down_button: Cell::new(None),
+            mouse_down_point: Cell::new(Point2D(0 as c_int, 0)),
 
-            ready_state: RefCell::new(Blank),
-            render_state: RefCell::new(IdleRenderState),
+            ready_state: Cell::new(Blank),
+            render_state: Cell::new(IdleRenderState),
 
-            last_title_set_time: RefCell::new(Timespec::new(0, 0)),
+            last_title_set_time: Cell::new(Timespec::new(0, 0)),
         };
 
         // Register event handlers.
