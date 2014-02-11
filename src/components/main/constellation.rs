@@ -25,6 +25,7 @@ use servo_util::time::ProfilerChan;
 use servo_util::url::parse_url;
 use servo_util::task::spawn_named;
 use std::hashmap::{HashMap, HashSet};
+use std::rc::Rc;
 use std::util::replace;
 use std::io;
 use std::libc;
@@ -36,7 +37,7 @@ pub struct Constellation {
     compositor_chan: CompositorChan,
     resource_task: ResourceTask,
     image_cache_task: ImageCacheTask,
-    pipelines: HashMap<PipelineId, @mut Pipeline>,
+    pipelines: HashMap<PipelineId, Rc<Pipeline>>,
     navigation_context: NavigationContext,
     priv next_pipeline_id: PipelineId,
     pending_frames: ~[FrameChange],
@@ -48,8 +49,8 @@ pub struct Constellation {
 
 /// Stores the Id of the outermost frame's pipeline, along with a vector of children frames
 struct FrameTree {
-    pipeline: @mut Pipeline,
-    parent: Option<@mut Pipeline>,
+    pipeline: Rc<Pipeline>,
+    parent: Option<Rc<Pipeline>>,
     children: ~[ChildFrameTree],
 }
 
@@ -60,7 +61,7 @@ impl Clone for FrameTree {
             child_frame_tree.clone()
         });
         FrameTree {
-            pipeline: self.pipeline,
+            pipeline: self.pipeline.clone(),
             parent: self.parent.clone(),
             children: children.collect(),
         }
@@ -110,14 +111,14 @@ enum ReplaceResult {
 impl FrameTree {
     fn contains(@mut self, id: PipelineId) -> bool {
         self.iter().any(|frame_tree| {
-            id == frame_tree.pipeline.id
+            id == frame_tree.pipeline.borrow().id
         })
     }
 
     /// Returns the frame tree whose key is id
     fn find(@mut self, id: PipelineId) -> Option<@mut FrameTree> {
         self.iter().find(|frame_tree| {
-            id == frame_tree.pipeline.id
+            id == frame_tree.pipeline.borrow().id
         })
     }
 
@@ -126,9 +127,9 @@ impl FrameTree {
     fn replace_child(@mut self, id: PipelineId, new_child: @mut FrameTree) -> ReplaceResult {
         for frame_tree in self.iter() {
             let mut child = frame_tree.children.mut_iter()
-                .find(|child| child.frame_tree.pipeline.id == id);
+                .find(|child| child.frame_tree.pipeline.borrow().id == id);
             for child in child.mut_iter() {
-                new_child.parent = child.frame_tree.parent;
+                new_child.parent = child.frame_tree.parent.clone();
                 return ReplacedNode(replace(&mut child.frame_tree, new_child));
             }
         }
@@ -137,7 +138,7 @@ impl FrameTree {
 
     fn to_sendable(&self) -> SendableFrameTree {
         let sendable_frame_tree = SendableFrameTree {
-            pipeline: self.pipeline.to_sendable(),
+            pipeline: self.pipeline.borrow().to_sendable(),
             children: self.children.iter().map(|frame_tree| frame_tree.to_sendable()).collect(),
         };
         sendable_frame_tree
@@ -220,7 +221,7 @@ impl NavigationContext {
 
     /// Loads a new set of page frames, returning all evicted frame trees
     pub fn load(&mut self, frame_tree: @mut FrameTree) -> ~[@mut FrameTree] {
-        debug!("navigating to {:?}", frame_tree.pipeline.id);
+        debug!("navigating to {:?}", frame_tree.pipeline.borrow().id);
         let evicted = replace(&mut self.next, ~[]);
         if self.current.is_some() {
             self.previous.push(self.current.take_unwrap());
@@ -376,7 +377,7 @@ impl Constellation {
 
     fn handle_exit(&self) {
         for (_id, ref pipeline) in self.pipelines.iter() {
-            pipeline.exit();
+            pipeline.borrow().exit();
         }
         self.image_cache_task.exit();
         self.resource_task.send(resource_task::Exit);
@@ -406,53 +407,55 @@ impl Constellation {
         self.pipelines.remove(&pipeline_id);
 
         let new_id = self.get_next_pipeline_id();
-        let pipeline = @mut Pipeline::create(new_id,
-                                             subpage_id,
-                                             self.chan.clone(),
-                                             self.compositor_chan.clone(),
-                                             self.image_cache_task.clone(),
-                                             self.resource_task.clone(),
-                                             self.profiler_chan.clone(),
-                                             self.window_size,
-                                             self.opts.clone());
-
-        self.pipelines.insert(new_id, pipeline);
+        let pipeline = Pipeline::create(new_id,
+                                        subpage_id,
+                                        self.chan.clone(),
+                                        self.compositor_chan.clone(),
+                                        self.image_cache_task.clone(),
+                                        self.resource_task.clone(),
+                                        self.profiler_chan.clone(),
+                                        self.window_size,
+                                        self.opts.clone());
         let url = parse_url("about:failure", None);
         pipeline.load(url);
 
+        let pipeline_wrapped = Rc::from_send(pipeline);
         self.pending_frames.push(FrameChange{
             before: Some(pipeline_id),
-            after: @mut FrameTree {
-                pipeline: pipeline,
+            after: Rc::from_send(FrameTree {
+                pipeline: pipeline_wrapped.clone(),
                 parent: None,
                 children: ~[],
-            },
+            }),
             navigation_type: constellation_msg::Navigate,
         });
+        
+        self.pipelines.insert(pipeline_id, pipeline_wrapped);
     }
 
     fn handle_init_load(&mut self, url: Url) {
-        let pipeline = @mut Pipeline::create(self.get_next_pipeline_id(),
-                                             None,
-                                             self.chan.clone(),
-                                             self.compositor_chan.clone(),
-                                             self.image_cache_task.clone(),
-                                             self.resource_task.clone(),
-                                             self.profiler_chan.clone(),
-                                             self.window_size,
-                                             self.opts.clone());
+        let pipeline = Pipeline::create(self.get_next_pipeline_id(),
+                                        None,
+                                        self.chan.clone(),
+                                        self.compositor_chan.clone(),
+                                        self.image_cache_task.clone(),
+                                        self.resource_task.clone(),
+                                        self.profiler_chan.clone(),
+                                        self.window_size,
+                                        self.opts.clone());
         pipeline.load(url);
+        let pipeline_wrapped = Rc::from_send(pipeline);
 
         self.pending_frames.push(FrameChange {
             before: None,
             after: @mut FrameTree {
-                pipeline: pipeline,
+                pipeline: pipeline_wrapped.clone(),
                 parent: None,
                 children: ~[],
             },
             navigation_type: constellation_msg::Load,
         });
-        self.pipelines.insert(pipeline.id, pipeline);
+        self.pipelines.insert(pipeline_wrapped.borrow().id, pipeline_wrapped);
     }
     
     fn handle_frame_rect_msg(&mut self, pipeline_id: PipelineId, subpage_id: SubpageId, rect: Rect<f32>) {
@@ -461,7 +464,7 @@ impl Constellation {
 
         // Returns true if a child frame tree's subpage id matches the given subpage id
         let subpage_eq = |child_frame_tree: & &mut ChildFrameTree| {
-            child_frame_tree.frame_tree.pipeline.subpage_id.expect("Constellation:
+            child_frame_tree.frame_tree.pipeline.borrow().subpage_id.expect("Constellation:
                 child frame does not have a subpage id. This should not be possible.")
                 == subpage_id
         };
@@ -472,18 +475,21 @@ impl Constellation {
         let update_child_rect = |child_frame_tree: &mut ChildFrameTree, is_active: bool| {
             child_frame_tree.rect = Some(rect.clone());
             let pipeline = &child_frame_tree.frame_tree.pipeline;
-            if !already_sent.contains(&pipeline.id) {
+            if !already_sent.contains(&pipeline.borrow().id) {
                 let Size2D { width, height } = rect.size;
                 if is_active {
+                    let pipeline = pipeline.borrow();
                     pipeline.script_chan.send(ResizeMsg(pipeline.id, Size2D {
                         width:  width  as uint,
                         height: height as uint
                     }));
                     self.compositor_chan.send(SetLayerClipRect(pipeline.id, rect));
                 } else {
+                    let pipeline = pipeline.borrow();
                     pipeline.script_chan.send(ResizeInactiveMsg(pipeline.id,
                                                                 Size2D(width as uint, height as uint)));
                 }
+                let pipeline = pipeline.borrow();
                 already_sent.insert(pipeline.id);
             }
         };
@@ -544,18 +550,18 @@ impl Constellation {
 
         // Compare the pipeline's url to the new url. If the origin is the same,
         // then reuse the script task in creating the new pipeline
-        let source_pipeline = *self.pipelines.find(&source_pipeline_id).expect("Constellation:
+        let source_pipeline = self.pipelines.find(&source_pipeline_id).expect("Constellation:
             source Id of LoadIframeUrlMsg does have an associated pipeline in
-            constellation. This should be impossible.");
+            constellation. This should be impossible.").clone();
 
-        let source_url = source_pipeline.url.clone().expect("Constellation: LoadUrlIframeMsg's
+        let source_url = source_pipeline.borrow().url.get().clone().expect("Constellation: LoadUrlIframeMsg's
         source's Url is None. There should never be a LoadUrlIframeMsg from a pipeline
         that was never given a url to load.");
 
         let same_script = (source_url.host == url.host &&
                            source_url.port == url.port) && sandbox == IFrameUnsandboxed;
         // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
-        let pipeline = @mut if same_script {
+        let pipeline = if same_script {
             debug!("Constellation: loading same-origin iframe at {:?}", url);
             // Reuse the script task if same-origin url's
             Pipeline::with_script(next_pipeline_id,
@@ -565,7 +571,7 @@ impl Constellation {
                                   self.image_cache_task.clone(),
                                   self.profiler_chan.clone(),
                                   self.opts.clone(),
-                                  source_pipeline)
+                                  source_pipeline.clone())
         } else {
             debug!("Constellation: loading cross-origin iframe at {:?}", url);
             // Create a new script task if not same-origin url's
@@ -582,18 +588,19 @@ impl Constellation {
 
         debug!("Constellation: sending load msg to pipeline {:?}", pipeline.id);
         pipeline.load(url);
+        let pipeline_wrapped = Rc::from_send(pipeline);
         let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
         for frame_tree in frame_trees.iter() {
             frame_tree.children.push(ChildFrameTree {
                 frame_tree: @mut FrameTree {
-                    pipeline: pipeline,
-                    parent: Some(source_pipeline),
+                    pipeline: pipeline_wrapped.clone(),
+                    parent: Some(source_pipeline.clone()),
                     children: ~[],
                 },
                 rect: rect,
             });
         }
-        self.pipelines.insert(pipeline.id, pipeline);
+        self.pipelines.insert(pipeline_wrapped.borrow().id, pipeline_wrapped);
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, url: Url) {
@@ -620,31 +627,32 @@ impl Constellation {
         // changes would be overriden by changing the subframe associated with source_id.
 
         let parent = source_frame.parent.clone();
-        let subpage_id = source_frame.pipeline.subpage_id;
+        let subpage_id = source_frame.pipeline.borrow().subpage_id;
         let next_pipeline_id = self.get_next_pipeline_id();
 
-        let pipeline = @mut Pipeline::create(next_pipeline_id,
-                                             subpage_id,
-                                             self.chan.clone(),
-                                             self.compositor_chan.clone(),
-                                             self.image_cache_task.clone(),
-                                             self.resource_task.clone(),
-                                             self.profiler_chan.clone(),
-                                             self.window_size,
-                                             self.opts.clone());
+        let pipeline = Pipeline::create(next_pipeline_id,
+                                        subpage_id,
+                                        self.chan.clone(),
+                                        self.compositor_chan.clone(),
+                                        self.image_cache_task.clone(),
+                                        self.resource_task.clone(),
+                                        self.profiler_chan.clone(),
+                                        self.window_size,
+                                        self.opts.clone());
 
         pipeline.load(url);
+        let pipeline_wrapped = Rc::from_send(pipeline);
 
         self.pending_frames.push(FrameChange{
             before: Some(source_id),
             after: @mut FrameTree {
-                pipeline: pipeline,
+                pipeline: pipeline_wrapped.clone(),
                 parent: parent,
                 children: ~[],
             },
             navigation_type: constellation_msg::Load,
         });
-        self.pipelines.insert(pipeline.id, pipeline);
+        self.pipelines.insert(pipeline_wrapped.borrow().id, pipeline_wrapped);
     }
     
     fn handle_navigate_msg(&mut self, direction: constellation_msg::NavigationDirection) {
@@ -662,7 +670,7 @@ impl Constellation {
                 } else {
                     let old = self.current_frame().get_ref();
                     for frame in old.iter() {
-                        frame.pipeline.revoke_paint_permission();
+                        frame.pipeline.borrow().revoke_paint_permission();
                     }
                 }
                 self.navigation_context.forward()
@@ -674,7 +682,7 @@ impl Constellation {
                 } else {
                     let old = self.current_frame().get_ref();
                     for frame in old.iter() {
-                        frame.pipeline.revoke_paint_permission();
+                        frame.pipeline.borrow().revoke_paint_permission();
                     }
                 }
                 self.navigation_context.back()
@@ -683,7 +691,7 @@ impl Constellation {
 
         for frame in destination_frame.iter() {
             let pipeline = &frame.pipeline;
-            pipeline.reload();
+            pipeline.borrow().reload();
         }
         self.grant_paint_permission(destination_frame, constellation_msg::Navigate);
 
@@ -701,7 +709,7 @@ impl Constellation {
             // impossible to occur.
             if current_frame.contains(pipeline_id) {
                 for frame in current_frame.iter() {
-                    frame.pipeline.grant_paint_permission();
+                    frame.pipeline.borrow().grant_paint_permission();
                 }
                 return;
             }
@@ -711,14 +719,14 @@ impl Constellation {
         // If it is not found, it simply means that this pipeline will not receive
         // permission to paint.
         let pending_index = self.pending_frames.iter().rposition(|frame_change| {
-            frame_change.after.pipeline.id == pipeline_id
+            frame_change.after.pipeline.borrow().id == pipeline_id
         });
         for &pending_index in pending_index.iter() {
             let frame_change = self.pending_frames.swap_remove(pending_index);
             let to_add = frame_change.after;
 
             // Create the next frame tree that will be given to the compositor
-            let next_frame_tree = match to_add.parent {
+            let next_frame_tree = match to_add.parent.clone() {
                 None => to_add, // to_add is the root
                 Some(_parent) => @mut (*self.current_frame().unwrap()).clone(),
             };
@@ -734,14 +742,14 @@ impl Constellation {
                         frame not contained in the current frame. This is a bug");
 
                     for frame in to_revoke.iter() {
-                        frame.pipeline.revoke_paint_permission();
+                        frame.pipeline.borrow().revoke_paint_permission();
                     }
 
                     // If to_add is not the root frame, then replace revoked_frame with it.
                     // This conveniently keeps scissor rect size intact.
                     if to_add.parent.is_some() {
                         debug!("Constellation: replacing {:?} with {:?} in {:?}",
-                            revoke_id, to_add.pipeline.id, next_frame_tree.pipeline.id);
+                            revoke_id, to_add.pipeline.borrow().id, next_frame_tree.pipeline.borrow().id);
                         next_frame_tree.replace_child(revoke_id, to_add);
                     }
                 }
@@ -750,10 +758,10 @@ impl Constellation {
                     // Add to_add to parent's children, if it is not the root
                     let parent = &to_add.parent;
                     for parent in parent.iter() {
-                        let subpage_id = to_add.pipeline.subpage_id.expect("Constellation:
+                        let subpage_id = to_add.pipeline.borrow().subpage_id.expect("Constellation:
                             Child frame's subpage id is None. This should be impossible.");
-                        let rect = self.pending_sizes.pop(&(parent.id, subpage_id));
-                        let parent = next_frame_tree.find(parent.id).expect(
+                        let rect = self.pending_sizes.pop(&(parent.borrow().id, subpage_id));
+                        let parent = next_frame_tree.find(parent.borrow().id).expect(
                             "Constellation: pending frame has a parent frame that is not
                             active. This is a bug.");
                         parent.children.push(ChildFrameTree {
@@ -771,16 +779,18 @@ impl Constellation {
     /// Called when the window is resized.
     fn handle_resized_window_msg(&mut self, new_size: Size2D<uint>) {
         let mut already_seen = HashSet::new();
-        for &@FrameTree { pipeline: pipeline, .. } in self.current_frame().iter() {
+        for frame_tree in self.current_frame().iter() {
             debug!("constellation sending resize message to active frame");
+            let pipeline = frame_tree.pipeline.borrow();
             pipeline.script_chan.try_send(ResizeMsg(pipeline.id, new_size));
             already_seen.insert(pipeline.id);
         }
         for frame_tree in self.navigation_context.previous.iter()
             .chain(self.navigation_context.next.iter()) {
             let pipeline = &frame_tree.pipeline;
-            if !already_seen.contains(&pipeline.id) {
+            if !already_seen.contains(&pipeline.borrow().id) {
                 debug!("constellation sending resize message to inactive frame");
+                let pipeline = pipeline.borrow();
                 pipeline.script_chan.try_send(ResizeInactiveMsg(pipeline.id, new_size));
                 already_seen.insert(pipeline.id);
             }
@@ -792,7 +802,8 @@ impl Constellation {
             let frame_tree = change.after;
             if frame_tree.parent.is_none() {
                 debug!("constellation sending resize message to pending outer frame");
-                frame_tree.pipeline.script_chan.send(ResizeMsg(frame_tree.pipeline.id, new_size))
+                let pipeline = frame_tree.pipeline.borrow();
+                pipeline.script_chan.send(ResizeMsg(pipeline.id, new_size))
             }
         }
 
@@ -803,7 +814,8 @@ impl Constellation {
     fn close_pipelines(&mut self, frame_tree: @mut FrameTree) {
         // TODO(tkuehn): should only exit once per unique script task,
         // and then that script task will handle sub-exits
-        for @FrameTree { pipeline, .. } in frame_tree.iter() {
+        for frame_tree in frame_tree.iter() {
+            let pipeline = frame_tree.pipeline.borrow();
             pipeline.exit();
             self.pipelines.remove(&pipeline.id);
         }
@@ -811,7 +823,7 @@ impl Constellation {
 
     fn handle_evicted_frames(&mut self, evicted: ~[@mut FrameTree]) {
         for &frame_tree in evicted.iter() {
-            if !self.navigation_context.contains(frame_tree.pipeline.id) {
+            if !self.navigation_context.contains(frame_tree.pipeline.borrow().id) {
                 self.close_pipelines(frame_tree);
             } else {
                 self.handle_evicted_frames(frame_tree.children.iter()
@@ -844,7 +856,7 @@ impl Constellation {
         match port.recv_opt() {
             Some(()) => {
                 for frame in frame_tree.iter() {
-                    frame.pipeline.grant_paint_permission();
+                    frame.pipeline.borrow().grant_paint_permission();
                 }
             }
             None => {} // message has been discarded, probably shutting down

@@ -4,19 +4,15 @@
 
 //! Platform-specific functionality for Servo.
 
-#[cfg(not(shared_gl_windowing), target_os="android")]
+#[cfg(target_os="android")]
 pub use platform::common::glut_windowing::{Application, Window};
-#[cfg(not(shared_gl_windowing), not(target_os="android"))]
+#[cfg(not(target_os="android"))]
 pub use platform::common::glfw_windowing::{Application, Window};
-#[cfg(shared_gl_windowing)]
-pub use platform::common::shared_gl_windowing::{Application, Window};
 
 pub mod common {
-    #[cfg(not(shared_gl_windowing), target_os="android")]
+    #[cfg(target_os="android")]
     pub mod glut_windowing;
-    #[cfg(not(shared_gl_windowing), not(target_os="android"))]
+    #[cfg(not(target_os="android"))]
     pub mod glfw_windowing;
-    #[cfg(shared_gl_windowing)]
-    pub mod shared_gl_windowing;
 }
 
