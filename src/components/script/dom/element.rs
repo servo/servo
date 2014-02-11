@@ -476,16 +476,19 @@ impl Element {
 
     // http://dom.spec.whatwg.org/#dom-element-getelementsbytagname
     pub fn GetElementsByTagName(&self, _localname: DOMString) -> @mut HTMLCollection {
+        // FIXME: https://github.com/mozilla/servo/issues/1662
         HTMLCollection::new(self.node.owner_doc().document().window, ~[])
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
     pub fn GetElementsByTagNameNS(&self, _namespace: Option<DOMString>, _localname: DOMString) -> Fallible<@mut HTMLCollection> {
+        // FIXME: https://github.com/mozilla/servo/issues/1662
         Ok(HTMLCollection::new(self.node.owner_doc().document().window, ~[]))
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
     pub fn GetElementsByClassName(&self, _names: DOMString) -> @mut HTMLCollection {
+        // FIXME: https://github.com/mozilla/servo/issues/1662
         HTMLCollection::new(self.node.owner_doc().document().window, ~[])
     }
 
