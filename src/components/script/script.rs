@@ -52,6 +52,7 @@ pub mod dom {
     pub mod clientrect;
     pub mod clientrectlist;
     pub mod comment;
+    pub mod console;
     pub mod document;
     pub mod documentfragment;
     pub mod documenttype;
