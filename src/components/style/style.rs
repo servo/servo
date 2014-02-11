@@ -23,7 +23,7 @@ pub use properties::{cascade, PropertyDeclaration, ComputedValues, computed_valu
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 pub use errors::with_errors_silenced;
 pub use node::{TElement, TNode};
-pub use selectors::{PseudoElement, Before, After, AttrSelector};
+pub use selectors::{PseudoElement, Before, After, AttrSelector, SpecificNamespace, AnyNamespace};
 
 mod stylesheets;
 mod errors;

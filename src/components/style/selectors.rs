@@ -93,8 +93,13 @@ pub enum SimpleSelector {
 pub struct AttrSelector {
     name: ~str,
     lower_name: ~str,
-    /// None means "any namespace", `*|attr`
-    namespace: Option<Namespace>,
+    namespace: NamespaceConstraint,
+}
+
+#[deriving(Eq, Clone)]
+pub enum NamespaceConstraint {
+    AnyNamespace,
+    SpecificNamespace(Namespace),
 }
 
 
@@ -275,8 +280,8 @@ fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
         QualifiedName(namespace, local_name) => {
             let mut simple_selectors = ~[];
             match namespace {
-                Some(ns) => simple_selectors.push(NamespaceSelector(ns)),
-                None => (),
+                SpecificNamespace(ns) => simple_selectors.push(NamespaceSelector(ns)),
+                AnyNamespace => (),
             }
             match local_name {
                 Some(name) => simple_selectors.push(LocalNameSelector(name)),
@@ -363,7 +368,7 @@ enum QualifiedNameParseResult {
     InvalidQualifiedName,
     NotAQualifiedName,
     // Namespace URL, local name. None means '*'
-    QualifiedName(Option<Namespace>, Option<~str>)
+    QualifiedName(NamespaceConstraint, Option<~str>)
 }
 
 fn parse_qualified_name(iter: &mut Iter, in_attr_selector: bool, namespaces: &NamespaceMap)
@@ -371,11 +376,14 @@ fn parse_qualified_name(iter: &mut Iter, in_attr_selector: bool, namespaces: &Na
     #[inline]
     fn default_namespace(namespaces: &NamespaceMap, local_name: Option<~str>)
                          -> QualifiedNameParseResult {
-        QualifiedName(namespaces.default.as_ref().map(|ns| ns.clone()), local_name)
+        QualifiedName(match namespaces.default {
+            Some(ref ns) => SpecificNamespace(ns.clone()),
+            None => AnyNamespace,
+        }, local_name)
     }
 
     #[inline]
-    fn explicit_namespace(iter: &mut Iter, in_attr_selector: bool, namespace: Option<Namespace>)
+    fn explicit_namespace(iter: &mut Iter, in_attr_selector: bool, namespace: NamespaceConstraint)
                          -> QualifiedNameParseResult {
         assert!(iter.next() == Some(Delim('|')),
                 "Implementation error, this should not happen.");
@@ -401,23 +409,25 @@ fn parse_qualified_name(iter: &mut Iter, in_attr_selector: bool, namespaces: &Na
                         None => return InvalidQualifiedName,  // Undeclared namespace prefix
                         Some(ref ns) => (*ns).clone(),
                     };
-                    explicit_namespace(iter, in_attr_selector, Some(namespace))
+                    explicit_namespace(iter, in_attr_selector, SpecificNamespace(namespace))
                 },
-                _ if in_attr_selector => QualifiedName(Some(namespace::Null), Some(value)),
+                _ if in_attr_selector => QualifiedName(
+                    SpecificNamespace(namespace::Null), Some(value)),
                 _ => default_namespace(namespaces, Some(value)),
             }
         },
         Some(&Delim('*')) => {
             iter.next();  // Consume '*'
             match iter.peek() {
-                Some(&Delim('|')) => explicit_namespace(iter, in_attr_selector, None),
+                Some(&Delim('|')) => explicit_namespace(iter, in_attr_selector, AnyNamespace),
                 _ => {
                     if !in_attr_selector { default_namespace(namespaces, None) }
                     else { InvalidQualifiedName }
                 },
             }
         },
-        Some(&Delim('|')) => explicit_namespace(iter, in_attr_selector, Some(namespace::Null)),
+        Some(&Delim('|')) => explicit_namespace(
+            iter, in_attr_selector, SpecificNamespace(namespace::Null)),
         _ => NotAQualifiedName,
     }
 }
@@ -643,7 +653,7 @@ mod tests {
                 simple_selectors: ~[AttrExists(AttrSelector {
                     name: ~"Foo",
                     lower_name: ~"foo",
-                    namespace: Some(namespace::Null),
+                    namespace: SpecificNamespace(namespace::Null),
                 })],
                 next: None,
             }),
@@ -657,7 +667,7 @@ mod tests {
                 simple_selectors: ~[AttrExists(AttrSelector {
                     name: ~"Foo",
                     lower_name: ~"foo",
-                    namespace: Some(namespace::Null),
+                    namespace: SpecificNamespace(namespace::Null),
                 })],
                 next: None,
             }),
