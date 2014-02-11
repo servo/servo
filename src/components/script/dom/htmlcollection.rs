@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::InheritTypes::{ElementCast};
 use dom::bindings::codegen::HTMLCollectionBinding;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
+use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -28,6 +30,21 @@ impl HTMLCollection {
     pub fn new(window: &JS<Window>, elements: ~[JS<Element>]) -> JS<HTMLCollection> {
         reflect_dom_object(~HTMLCollection::new_inherited(window.clone(), elements),
                            window, HTMLCollectionBinding::Wrap)
+    }
+}
+
+impl HTMLCollection {
+    pub fn create(window: &JS<Window>, root: &JS<Node>, predicate: |elem: &JS<Element>| -> bool) -> JS<HTMLCollection> {
+        let mut elements = ~[];
+        for child in root.traverse_preorder() {
+            if child.is_element() {
+                let elem: JS<Element> = ElementCast::to(&child);
+                if predicate(&elem) {
+                    elements.push(elem);
+                }
+            }
+        }
+        HTMLCollection::new(window, elements)
     }
 }
 
