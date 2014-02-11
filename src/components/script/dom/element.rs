@@ -369,18 +369,22 @@ impl Element {
 }
 
 impl Element {
+    // http://dom.spec.whatwg.org/#dom-element-tagname
     pub fn TagName(&self) -> DOMString {
         self.tag_name.to_ascii_upper()
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-id
     pub fn Id(&self, _abstract_self: AbstractNode) -> DOMString {
         self.get_string_attribute("id")
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-id
     pub fn SetId(&mut self, abstract_self: AbstractNode, id: DOMString) {
         self.set_string_attribute(abstract_self, "id", id);
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-attributes
     pub fn Attributes(&mut self, abstract_self: AbstractNode) -> @mut AttrList {
         match self.attr_list {
             None => {
@@ -393,6 +397,7 @@ impl Element {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-getattribute
     pub fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
         let name = if self.html_element_in_html_document() {
             name.to_ascii_lower()
@@ -402,12 +407,14 @@ impl Element {
         self.get_attribute(Null, name).map(|s| s.Value())
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-getattributens
     pub fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString> {
         let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
         self.get_attribute(namespace, local_name)
             .map(|attr| attr.value.clone())
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-setattribute
     pub fn SetAttribute(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
                         -> ErrorResult {
         // FIXME: If name does not match the Name production in XML, throw an "InvalidCharacterError" exception.
@@ -419,6 +426,7 @@ impl Element {
         self.set_attr(abstract_self, name, value)
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-setattributens
     pub fn SetAttributeNS(&mut self,
                           abstract_self: AbstractNode,
                           namespace_url: Option<DOMString>,
@@ -435,6 +443,7 @@ impl Element {
         self.set_attribute(abstract_self, namespace, name, value)
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-removeattribute
     pub fn RemoveAttribute(&mut self,
                            abstract_self: AbstractNode,
                            name: DOMString) -> ErrorResult {
@@ -446,6 +455,7 @@ impl Element {
         self.remove_attribute(abstract_self, namespace::Null, name)
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-removeattributens
     pub fn RemoveAttributeNS(&mut self,
                              abstract_self: AbstractNode,
                              namespace: Option<DOMString>,
@@ -454,27 +464,34 @@ impl Element {
         self.remove_attribute(abstract_self, namespace, localname)
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-hasattribute
     pub fn HasAttribute(&self, name: DOMString) -> bool {
         self.GetAttribute(name).is_some()
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-hasattributens
     pub fn HasAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> bool {
         self.GetAttributeNS(namespace, local_name).is_some()
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-getelementsbytagname
     pub fn GetElementsByTagName(&self, _localname: DOMString) -> @mut HTMLCollection {
         HTMLCollection::new(self.node.owner_doc().document().window, ~[])
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
     pub fn GetElementsByTagNameNS(&self, _namespace: Option<DOMString>, _localname: DOMString) -> Fallible<@mut HTMLCollection> {
         Ok(HTMLCollection::new(self.node.owner_doc().document().window, ~[]))
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
     pub fn GetElementsByClassName(&self, _names: DOMString) -> @mut HTMLCollection {
         HTMLCollection::new(self.node.owner_doc().document().window, ~[])
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-matches
     pub fn MozMatchesSelector(&self, _selector: DOMString) -> Fallible<bool> {
+        // FIXME: stub - https://github.com/mozilla/servo/issues/1660
         Ok(false)
     }
 
