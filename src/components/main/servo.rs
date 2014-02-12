@@ -62,6 +62,8 @@ pub use servo_util::url::parse_url;
 
 #[cfg(not(test))]
 use std::os;
+#[cfg(not(test))]
+use extra::url::Url;
 #[cfg(not(test), target_os="android")]
 use std::str;
 #[cfg(not(test))]
@@ -166,7 +168,16 @@ fn run(opts: Opts) {
 
         // Send the URL command to the constellation.
         for filename in opts.urls.iter() {
-            constellation_chan.send(InitLoadUrlMsg(parse_url(*filename, None)))
+            let url = if filename.starts_with("data:") {
+                // As a hack for easier command-line testing,
+                // assume that data URLs are not URL-encoded.
+                Url::new(~"data", None, ~"", None,
+                    filename.slice_from(5).to_owned(), ~[], None)
+            } else {
+                parse_url(*filename, None)
+            };
+
+            constellation_chan.send(InitLoadUrlMsg(url));
         }
 
         // Send the constallation Chan as the result
