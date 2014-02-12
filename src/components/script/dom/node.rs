@@ -16,8 +16,9 @@ use dom::eventtarget::{AbstractEventTarget, EventTarget, NodeTypeId};
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::nodelist::{NodeList};
-use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
+use dom::text::Text;
+use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, ReapLayoutDataMsg, UntrustedNodeAddress};
 use servo_util::str::{DOMString, null_str_as_empty};
 
@@ -1761,3 +1762,8 @@ impl Reflectable for Node {
     }
 }
 
+impl VirtualMethods for Node {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        Some(&mut self.eventtarget as &mut VirtualMethods)
+    }
+}

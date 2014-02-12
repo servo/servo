@@ -16,6 +16,7 @@ use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ElementNodeTypeId, Node, NodeIterator};
 use dom::document;
 use dom::htmlserializer::serialize;
+use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
@@ -235,21 +236,8 @@ impl Element {
             _ => ()
         }
 
-        //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
-        //       This hardcoding is awful.
-        match abstract_self.type_id() {
-            ElementNodeTypeId(HTMLImageElementTypeId) => {
-                abstract_self.with_mut_image_element(|image| {
-                    image.AfterSetAttr(local_name.clone(), value.clone());
-                });
-            }
-            ElementNodeTypeId(HTMLIframeElementTypeId) => {
-                abstract_self.with_mut_iframe_element(|iframe| {
-                    iframe.AfterSetAttr(local_name.clone(), value.clone());
-                });
-            }
-            _ => ()
-        }
+        let vtable = vtable_for(abstract_self);
+        vtable.after_set_attr(local_name.clone(), value.clone());
 
         self.notify_attribute_changed(abstract_self, local_name);
     }
@@ -299,21 +287,8 @@ impl Element {
             _ => ()
         }
 
-        //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
-        //       This hardcoding is awful.
-        match abstract_self.type_id() {
-            ElementNodeTypeId(HTMLImageElementTypeId) => {
-                abstract_self.with_mut_image_element(|image| {
-                    image.AfterRemoveAttr(local_name.clone());
-                });
-            }
-            ElementNodeTypeId(HTMLIframeElementTypeId) => {
-                abstract_self.with_mut_iframe_element(|iframe| {
-                    iframe.AfterRemoveAttr(local_name.clone());
-                });
-            }
-            _ => ()
-        }
+        let vtable = vtable_for(abstract_self);
+        vtable.after_remove_attr(local_name.clone());
 
         self.notify_attribute_changed(abstract_self, local_name);
     }
@@ -629,4 +604,10 @@ fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     };
 
     (prefix, local_name)
+}
+
+impl VirtualMethods for Element {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        Some(&mut self.node as &mut VirtualMethods)
+    }
 }

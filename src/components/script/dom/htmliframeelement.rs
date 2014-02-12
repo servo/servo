@@ -8,6 +8,7 @@ use dom::document::AbstractDocument;
 use dom::element::HTMLIframeElementTypeId;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Node};
+use dom::virtualmethods::VirtualMethods;
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
@@ -201,5 +202,21 @@ impl HTMLIFrameElement {
 
     pub fn GetSVGDocument(&self) -> Option<AbstractDocument> {
         None
+    }
+}
+
+impl VirtualMethods for HTMLIFrameElement {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        Some(&mut self.htmlelement as &mut VirtualMethods)
+    }
+
+    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.after_set_attr(name.clone(), value.clone()));
+        self.AfterSetAttr(name, value);
+    }
+
+    fn after_remove_attr(&mut self, name: DOMString) {
+        self.super_type().map(|s| s.after_remove_attr(name.clone()));
+        self.AfterRemoveAttr(name);
     }
 }

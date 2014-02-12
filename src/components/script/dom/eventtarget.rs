@@ -9,6 +9,7 @@ use dom::document::AbstractDocument;
 use dom::event::AbstractEvent;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::AbstractNode;
+use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -200,5 +201,11 @@ impl Reflectable for EventTarget {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
+    }
+}
+
+impl VirtualMethods for EventTarget {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        None
     }
 }
