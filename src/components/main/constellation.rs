@@ -8,8 +8,10 @@ use extra::url::Url;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::opts::Opts;
+use gfx::render_task;
 use pipeline::{Pipeline, CompositionPipeline};
-use script::script_task::{ResizeMsg, ResizeInactiveMsg};
+use script::script_task::{ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg};
+use script::layout_interface;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
 use servo_msg::constellation_msg::{LoadCompleteMsg, LoadIframeUrlMsg, LoadUrlMsg, Msg, NavigateMsg};
@@ -380,6 +382,18 @@ impl Constellation {
     }
 
     fn handle_failure_msg(&mut self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>) {
+        debug!("handling failure message from pipeline {:?}, {:?}", pipeline_id, subpage_id);
+
+        let old_pipeline = match self.pipelines.find(&pipeline_id) {
+            None => return, // already failed?
+            Some(id) => *id
+        };
+
+        old_pipeline.script_chan.try_send(ExitPipelineMsg(pipeline_id));
+        old_pipeline.render_chan.try_send(render_task::ExitMsg(None));
+        old_pipeline.layout_chan.try_send(layout_interface::ExitNowMsg);
+        self.pipelines.remove(&pipeline_id);
+
         let new_id = self.get_next_pipeline_id();
         let pipeline = @mut Pipeline::create(new_id,
                                              subpage_id,
@@ -390,16 +404,20 @@ impl Constellation {
                                              self.profiler_chan.clone(),
                                              self.window_size,
                                              self.opts.clone());
-        let failure = "about:failure";
-        let url = parse_url(failure, None);
+
+        self.pipelines.insert(new_id, pipeline);
+        let url = parse_url("about:failure", None);
         pipeline.load(url);
 
-        let frames = self.find_all(pipeline_id);
-        for frame_tree in frames.iter() {
-            frame_tree.pipeline = pipeline;
-        };
-
-        self.pipelines.insert(pipeline_id, pipeline);
+        self.pending_frames.push(FrameChange{
+            before: Some(pipeline_id),
+            after: @mut FrameTree {
+                pipeline: pipeline,
+                parent: None,
+                children: ~[],
+            },
+            navigation_type: constellation_msg::Navigate,
+        });
     }
 
     fn handle_init_load(&mut self, url: Url) {
