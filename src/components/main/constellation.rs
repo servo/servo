@@ -26,6 +26,8 @@ use servo_util::url::parse_url;
 use servo_util::task::spawn_named;
 use std::hashmap::{HashMap, HashSet};
 use std::util::replace;
+use std::io;
+use std::libc;
 
 /// Maintains the pipelines and navigation context and grants permission to composite
 pub struct Constellation {
@@ -383,6 +385,15 @@ impl Constellation {
 
     fn handle_failure_msg(&mut self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>) {
         debug!("handling failure message from pipeline {:?}, {:?}", pipeline_id, subpage_id);
+
+        if self.opts.hard_fail {
+            // It's quite difficult to make Servo exit cleanly if some tasks have failed.
+            // Hard fail exists for test runners so we crash and that's good enough.
+            let mut stderr = io::stderr();
+            stderr.write_str("Pipeline failed in hard-fail mode.  Crashing!\n");
+            stderr.flush();
+            unsafe { libc::exit(1); }
+        }
 
         let old_pipeline = match self.pipelines.find(&pipeline_id) {
             None => return, // already failed?
