@@ -9,6 +9,7 @@ use dom::bindings::codegen::EventListenerBinding::EventListener;
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::NodeTypeId;
+use dom::virtualmethods::VirtualMethods;
 use servo_util::str::DOMString;
 
 use std::hashmap::HashMap;
@@ -121,5 +122,11 @@ impl Reflectable for EventTarget {
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
         &mut self.reflector_
+    }
+}
+
+impl VirtualMethods for EventTarget {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        None
     }
 }

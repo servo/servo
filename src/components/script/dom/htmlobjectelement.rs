@@ -13,6 +13,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::HTMLFormElement;
 use dom::node::{Node, ElementNodeTypeId};
 use dom::validitystate::ValidityState;
+use dom::virtualmethods::VirtualMethods;
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
@@ -243,5 +244,16 @@ impl HTMLObjectElement {
 
     pub fn GetSVGDocument(&self) -> Option<JS<Document>> {
         None
+    }
+}
+
+impl VirtualMethods for HTMLObjectElement {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        Some(&mut self.htmlelement as &mut VirtualMethods)
+    }
+
+    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.after_set_attr(name.clone(), value.clone()));
+        self.AfterSetAttr(name, value);
     }
 }

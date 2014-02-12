@@ -6,9 +6,7 @@
 
 use dom::attr::Attr;
 use dom::attrlist::AttrList;
-use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLImageElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
+use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
@@ -18,11 +16,9 @@ use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::htmlimageelement::HTMLImageElement;
-use dom::htmliframeelement::HTMLIFrameElement;
-use dom::htmlobjectelement::HTMLObjectElement;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator};
 use dom::htmlserializer::serialize;
+use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
@@ -257,23 +253,9 @@ impl Element {
             _ => ()
         }
 
-        //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
-        //       This hardcoding is awful.
-        match abstract_self.get().node.type_id {
-            ElementNodeTypeId(HTMLImageElementTypeId) => {
-                let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self);
-                elem.get_mut().AfterSetAttr(local_name.clone(), value.clone());
-            }
-            ElementNodeTypeId(HTMLIframeElementTypeId) => {
-                let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self);
-                elem.get_mut().AfterSetAttr(local_name.clone(), value.clone());
-            }
-            ElementNodeTypeId(HTMLObjectElementTypeId) => {
-                let mut elem: JS<HTMLObjectElement> = HTMLObjectElementCast::to(abstract_self);
-                elem.get_mut().AfterSetAttr(local_name.clone(), value.clone());
-            }
-            _ => ()
-        }
+        let mut node: JS<Node> = NodeCast::from(abstract_self);
+        let vtable = vtable_for(&mut node);
+        vtable.after_set_attr(local_name.clone(), value.clone());
 
         self.notify_attribute_changed(abstract_self, local_name);
     }
@@ -326,19 +308,9 @@ impl Element {
             _ => ()
         }
 
-        //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
-        //       This hardcoding is awful.
-        match abstract_self.get().node.type_id {
-            ElementNodeTypeId(HTMLImageElementTypeId) => {
-                let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self);
-                elem.get_mut().BeforeRemoveAttr(local_name.clone());
-            }
-            ElementNodeTypeId(HTMLIframeElementTypeId) => {
-                let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self);
-                elem.get_mut().BeforeRemoveAttr(local_name.clone());
-            }
-            _ => ()
-        }
+        let mut node: JS<Node> = NodeCast::from(abstract_self);
+        let vtable = vtable_for(&mut node);
+        vtable.before_remove_attr(local_name.clone());
 
         self.notify_attribute_changed(abstract_self, local_name);
     }
@@ -688,4 +660,10 @@ fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     };
 
     (prefix, local_name)
+}
+
+impl VirtualMethods for Element {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        Some(&mut self.node as &mut VirtualMethods)
+    }
 }

@@ -17,8 +17,9 @@ use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementTypeId, HTMLAnchorElementTypeId, IElement};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
-use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
+use dom::text::Text;
+use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, ReapLayoutDataMsg, UntrustedNodeAddress};
 use layout_interface::TrustedNodeAddress;
 use servo_util::str::{DOMString, null_str_as_empty};
@@ -1602,3 +1603,8 @@ impl Reflectable for Node {
     }
 }
 
+impl VirtualMethods for Node {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        Some(&mut self.eventtarget as &mut VirtualMethods)
+    }
+}

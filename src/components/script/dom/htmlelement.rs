@@ -10,6 +10,7 @@ use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, ElementNodeTypeId};
+use dom::virtualmethods::VirtualMethods;
 use js::jsapi::{JSContext, JSVal};
 use js::JSVAL_NULL;
 use servo_util::namespace;
@@ -165,5 +166,11 @@ impl HTMLElement {
 
     pub fn OffsetHeight(&self) -> i32 {
         0
+    }
+}
+
+impl VirtualMethods for HTMLElement {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        Some(&mut self.element as &mut VirtualMethods)
     }
 }

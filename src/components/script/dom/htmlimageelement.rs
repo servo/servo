@@ -12,6 +12,7 @@ use dom::element::{Element, HTMLImageElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers};
+use dom::virtualmethods::VirtualMethods;
 use extra::url::Url;
 use servo_util::geometry::to_px;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
@@ -242,5 +243,21 @@ impl HTMLImageElement {
 
     pub fn SetBorder(&mut self, _border: DOMString) -> ErrorResult {
         Ok(())
+    }
+}
+
+impl VirtualMethods for HTMLImageElement {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        Some(&mut self.htmlelement as &mut VirtualMethods)
+    }
+
+    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.after_set_attr(name.clone(), value.clone()));
+        self.AfterSetAttr(name, value);
+    }
+
+    fn before_remove_attr(&mut self, name: DOMString) {
+        self.super_type().map(|s| s.before_remove_attr(name.clone()));
+        self.BeforeRemoveAttr(name);
     }
 }
