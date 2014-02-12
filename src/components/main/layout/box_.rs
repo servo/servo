@@ -528,19 +528,19 @@ impl Box {
     }
 
     pub fn noncontent_left(&self) -> Au {
-        self.margin.get().left + self.border.get().left + self.padding.get().left
+        self.border.get().left + self.padding.get().left
     }
 
     pub fn noncontent_right(&self) -> Au {
-        self.margin.get().right + self.border.get().right + self.padding.get().right
+        self.border.get().right + self.padding.get().right
     }
 
     pub fn noncontent_top(&self) -> Au {
-        self.margin.get().top + self.border.get().top + self.padding.get().top
+        self.border.get().top + self.padding.get().top
     }
 
     pub fn noncontent_bottom(&self) -> Au {
-        self.margin.get().bottom + self.border.get().bottom + self.padding.get().bottom
+        self.border.get().bottom + self.padding.get().bottom
     }
 
     pub fn noncontent_inline_left(&self) -> Au {
