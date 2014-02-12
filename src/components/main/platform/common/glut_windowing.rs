@@ -96,14 +96,16 @@ impl WindowMethods<Application> for Window {
         struct ReshapeCallbackState;
         impl glut::ReshapeCallback for ReshapeCallbackState {
             fn call(&self, width: c_int, height: c_int) {
-                local_window().event_queue.with_mut(|queue| queue.push(ResizeWindowEvent(width as uint, height as uint)))
+                let tmp = local_window();
+                tmp.borrow().event_queue.with_mut(|queue| queue.push(ResizeWindowEvent(width as uint, height as uint)))
             }
         }
         glut::reshape_func(glut_window, ~ReshapeCallbackState);
         struct KeyboardCallbackState;
         impl glut::KeyboardCallback for KeyboardCallbackState {
             fn call(&self, key: c_uchar, _x: c_int, _y: c_int) {
-                local_window().handle_key(key)
+                let tmp = local_window();
+                tmp.borrow().handle_key(key)
             }
         }
         glut::keyboard_func(~KeyboardCallbackState);
@@ -111,14 +113,17 @@ impl WindowMethods<Application> for Window {
         impl glut::MouseCallback for MouseCallbackState {
             fn call(&self, button: c_int, state: c_int, x: c_int, y: c_int) {
                 if button < 3 {
-                    local_window().handle_mouse(button, state, x, y);
+                    let tmp = local_window();
+                    tmp.borrow().handle_mouse(button, state, x, y);
                 } else {
                     match button {
                         3 => {
-                            local_window().event_queue.with_mut(|queue| queue.push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32))));
+                            let tmp = local_window();
+                            tmp.borrow().event_queue.with_mut(|queue| queue.push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32))));
                         },
                         4 => {
-                            local_window().event_queue.with_mut(|queue| queue.push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32))));
+                            let tmp = local_window();
+                            tmp.borrow().event_queue.with_mut(|queue| queue.push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32))));
                         },
                         _ => {}
                     }
@@ -127,9 +132,9 @@ impl WindowMethods<Application> for Window {
         }
         glut::mouse_func(~MouseCallbackState);
 
-        let wrapped_window = Rc::new(window);
+        let wrapped_window = Rc::from_send(window);
 
-        install_local_window(wrapped_window);
+        install_local_window(wrapped_window.clone());
 
         wrapped_window
     }
@@ -144,7 +149,7 @@ impl WindowMethods<Application> for Window {
         glut::swap_buffers();
     }
     
-    fn recv(@self) -> WindowEvent {
+    fn recv(&self) -> WindowEvent {
         if !self.event_queue.with_mut(|queue| queue.is_empty()) {
             return self.event_queue.with_mut(|queue| queue.shift())
         }
@@ -157,14 +162,14 @@ impl WindowMethods<Application> for Window {
     }
 
     /// Sets the ready state.
-    fn set_ready_state(@self, ready_state: ReadyState) {
+    fn set_ready_state(&self, ready_state: ReadyState) {
         self.ready_state.set(ready_state);
         //FIXME: set_window_title causes crash with Android version of freeGLUT. Temporarily blocked.
         //self.update_window_title()
     }
 
     /// Sets the render state.
-    fn set_render_state(@self, render_state: RenderState) {
+    fn set_render_state(&self, render_state: RenderState) {
         if self.ready_state.get() == FinishedLoading &&
             self.render_state.get() == RenderingRenderState &&
             render_state == IdleRenderState {
@@ -177,7 +182,7 @@ impl WindowMethods<Application> for Window {
         //self.update_window_title()
     }
 
-    fn hidpi_factor(@self) -> f32 {
+    fn hidpi_factor(&self) -> f32 {
         //FIXME: Do nothing in GLUT now.
     0f32
     }
