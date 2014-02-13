@@ -14,13 +14,13 @@ pub struct HTMLOListElement {
 }
 
 impl HTMLOListElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLOListElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLOListElement {
         HTMLOListElement {
             htmlelement: HTMLElement::new_inherited(HTMLOListElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLOListElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLOListElementBinding::Wrap)
     }

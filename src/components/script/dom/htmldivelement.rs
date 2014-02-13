@@ -14,13 +14,13 @@ pub struct HTMLDivElement {
 }
 
 impl HTMLDivElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLDivElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLDivElement {
         HTMLDivElement {
             htmlelement: HTMLElement::new_inherited(HTMLDivElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLDivElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLDivElementBinding::Wrap)
     }

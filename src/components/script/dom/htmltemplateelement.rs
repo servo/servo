@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLTemplateElementBinding;
+use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::element::HTMLTemplateElementTypeId;
 use dom::htmlelement::HTMLElement;
@@ -13,13 +14,13 @@ pub struct HTMLTemplateElement {
 }
 
 impl HTMLTemplateElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTemplateElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement: HTMLElement::new_inherited(HTMLTemplateElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLTemplateElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLTemplateElementBinding::Wrap)
     }

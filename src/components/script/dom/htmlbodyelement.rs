@@ -14,13 +14,13 @@ pub struct HTMLBodyElement {
 }
 
 impl HTMLBodyElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLBodyElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(HTMLBodyElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLBodyElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLBodyElementBinding::Wrap)
     }

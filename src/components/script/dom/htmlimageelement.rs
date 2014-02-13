@@ -22,14 +22,14 @@ pub struct HTMLImageElement {
 }
 
 impl HTMLImageElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLImageElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, document),
             image: None,
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLImageElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLImageElementBinding::Wrap)
     }

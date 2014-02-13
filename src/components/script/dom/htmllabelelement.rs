@@ -14,13 +14,13 @@ pub struct HTMLLabelElement {
 }
 
 impl HTMLLabelElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLLabelElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLLabelElement {
         HTMLLabelElement {
             htmlelement: HTMLElement::new_inherited(HTMLLabelElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLLabelElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLLabelElementBinding::Wrap)
     }

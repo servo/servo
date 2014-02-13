@@ -14,13 +14,13 @@ pub struct HTMLModElement {
 }
 
 impl HTMLModElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLModElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLModElement {
         HTMLModElement {
             htmlelement: HTMLElement::new_inherited(HTMLModElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLModElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLModElementBinding::Wrap)
     }

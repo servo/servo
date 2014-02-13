@@ -15,13 +15,13 @@ pub struct HTMLButtonElement {
 }
 
 impl HTMLButtonElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLButtonElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement: HTMLElement::new_inherited(HTMLButtonElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLButtonElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLButtonElementBinding::Wrap)
     }

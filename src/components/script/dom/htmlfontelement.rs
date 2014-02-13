@@ -14,13 +14,13 @@ pub struct HTMLFontElement {
 }
 
 impl HTMLFontElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLFontElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(HTMLFontElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLFontElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLFontElementBinding::Wrap)
     }

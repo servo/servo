@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLPreElementBinding;
+use dom::bindings::utils::DOMString;
 use dom::bindings::utils::{ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLPreElementTypeId;
@@ -14,13 +15,13 @@ pub struct HTMLPreElement {
 }
 
 impl HTMLPreElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLPreElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLPreElement {
         HTMLPreElement {
             htmlelement: HTMLElement::new_inherited(HTMLPreElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLPreElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLPreElementBinding::Wrap)
     }

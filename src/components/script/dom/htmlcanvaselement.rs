@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLCanvasElementBinding;
+use dom::bindings::utils::DOMString;
 use dom::bindings::utils::{ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLCanvasElementTypeId;
@@ -14,13 +15,13 @@ pub struct HTMLCanvasElement {
 }
 
 impl HTMLCanvasElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLCanvasElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLCanvasElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLCanvasElementBinding::Wrap)
     }

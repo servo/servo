@@ -15,13 +15,13 @@ pub struct HTMLSelectElement {
 }
 
 impl HTMLSelectElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLSelectElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement: HTMLElement::new_inherited(HTMLSelectElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLSelectElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLSelectElementBinding::Wrap)
     }

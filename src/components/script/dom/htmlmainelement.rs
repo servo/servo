@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLMainElementBinding;
+use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::element::HTMLMainElementTypeId;
 use dom::htmlelement::HTMLElement;
@@ -13,13 +14,13 @@ pub struct HTMLMainElement {
 }
 
 impl HTMLMainElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLMainElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLMainElement {
         HTMLMainElement {
             htmlelement: HTMLElement::new_inherited(HTMLMainElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLMainElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLMainElementBinding::Wrap)
     }

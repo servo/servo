@@ -14,13 +14,13 @@ pub struct HTMLOptionElement {
 }
 
 impl HTMLOptionElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLOptionElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement: HTMLElement::new_inherited(HTMLOptionElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLOptionElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLOptionElementBinding::Wrap)
     }

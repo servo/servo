@@ -14,13 +14,13 @@ pub struct HTMLQuoteElement {
 }
 
 impl HTMLQuoteElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLQuoteElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLQuoteElement {
         HTMLQuoteElement {
             htmlelement: HTMLElement::new_inherited(HTMLQuoteElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLQuoteElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLQuoteElementBinding::Wrap)
     }
