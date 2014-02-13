@@ -26,10 +26,17 @@ pub enum IFrameSandboxState {
     IFrameUnsandboxed
 }
 
+// We pass this info to various tasks, so it lives in a separate, cloneable struct.
+#[deriving(Clone)]
+pub struct Failure {
+    pipeline_id: PipelineId,
+    subpage_id: Option<SubpageId>,
+}
+
 /// Messages from the compositor and script to the constellation.
 pub enum Msg {
     ExitMsg,
-    FailureMsg(PipelineId, Option<SubpageId>),
+    FailureMsg(Failure),
     InitLoadUrlMsg(Url),
     LoadCompleteMsg(PipelineId, Url),
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),

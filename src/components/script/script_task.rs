@@ -39,17 +39,18 @@ use js;
 use servo_msg::compositor_msg::{FinishedLoading, Loading, PerformingLayout, ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{LoadIframeUrlMsg, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{PipelineId, SubpageId};
+use servo_msg::constellation_msg::{PipelineId, SubpageId, Failure, FailureMsg};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::url::parse_url;
-use servo_util::task::spawn_named;
+use servo_util::task::send_on_failure;
 use servo_util::namespace::Null;
 use std::comm::{Port, SharedChan};
 use std::ptr;
 use std::str::eq_slice;
+use std::task;
 use std::util::replace;
 
 /// Messages used to control the script task.
@@ -463,10 +464,14 @@ impl ScriptTask {
                   port: Port<ScriptMsg>,
                   chan: ScriptChan,
                   constellation_chan: ConstellationChan,
+                  failure_msg: Failure,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
                   window_size: Size2D<uint>) {
-        spawn_named("ScriptTask", proc() {
+        let mut builder = task::task();
+        send_on_failure(&mut builder, FailureMsg(failure_msg), (*constellation_chan).clone());
+        builder.name("ScriptTask");
+        builder.spawn(proc() {
             let script_task = ScriptTask::new(id,
                                               @compositor as @ScriptListener,
                                               layout_chan,

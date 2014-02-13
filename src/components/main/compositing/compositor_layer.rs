@@ -248,12 +248,12 @@ impl CompositorLayer {
             MouseWindowMouseDownEvent(button, _) => MouseDownEvent(button, cursor),
             MouseWindowMouseUpEvent(button, _) => MouseUpEvent(button, cursor),
         }; 
-        self.pipeline.script_chan.send(SendEventMsg(self.pipeline.id.clone(), message));
+        self.pipeline.script_chan.try_send(SendEventMsg(self.pipeline.id.clone(), message));
     }
 
     pub fn send_mouse_move_event(&self, cursor: Point2D<f32>) {
         let message = MouseMoveEvent(cursor);
-        self.pipeline.script_chan.send(SendEventMsg(self.pipeline.id.clone(), message));
+        self.pipeline.script_chan.try_send(SendEventMsg(self.pipeline.id.clone(), message));
     }
 
     // Given the current window size, determine which tiles need to be (re)rendered
@@ -277,7 +277,7 @@ impl CompositorLayer {
             let (request, unused) = quadtree.get_tile_rects_page(rect, scale);
             redisplay = !unused.is_empty(); // workaround to make redisplay visible outside block
             if redisplay { // send back unused tiles
-                self.pipeline.render_chan.send(UnusedBufferMsg(unused));
+                self.pipeline.render_chan.try_send(UnusedBufferMsg(unused));
             }
             if !request.is_empty() { // ask for tiles
                 self.pipeline.render_chan.try_send(ReRenderMsg(request, scale, self.epoch));
@@ -365,8 +365,8 @@ impl CompositorLayer {
             self.page_size = Some(new_size);
             match self.quadtree {
                 Tree(ref mut quadtree) => {
-                    self.pipeline.render_chan.send(UnusedBufferMsg(quadtree.resize(new_size.width as uint,
-                                                                                   new_size.height as uint)));
+                    self.pipeline.render_chan.try_send(UnusedBufferMsg(quadtree.resize(new_size.width as uint,
+                                                                                       new_size.height as uint)));
                 }
                 NoTree(tile_size, max_mem) => {
                     self.quadtree = Tree(Quadtree::new(Size2D(new_size.width as uint,
@@ -455,8 +455,8 @@ impl CompositorLayer {
                 child.page_size = Some(new_size);
                 match child.quadtree {
                     Tree(ref mut quadtree) => {
-                        child.pipeline.render_chan.send(UnusedBufferMsg(quadtree.resize(new_size.width as uint,
-                                                                                        new_size.height as uint)));
+                        child.pipeline.render_chan.try_send(UnusedBufferMsg(quadtree.resize(new_size.width as uint,
+                                                                                            new_size.height as uint)));
                     }
                     NoTree(tile_size, max_mem) => {
                         child.quadtree = Tree(Quadtree::new(Size2D(new_size.width as uint,
@@ -596,7 +596,7 @@ impl CompositorLayer {
                        self.epoch,
                        epoch,
                        self.pipeline.id);
-                self.pipeline.render_chan.send(UnusedBufferMsg(new_buffers.buffers));
+                self.pipeline.render_chan.try_send(UnusedBufferMsg(new_buffers.buffers));
                 return None;
             }
 
@@ -615,7 +615,7 @@ impl CompositorLayer {
                                                                        buffer.resolution, buffer));
                 }
                 if !unused_tiles.is_empty() { // send back unused buffers
-                    self.pipeline.render_chan.send(UnusedBufferMsg(unused_tiles));
+                    self.pipeline.render_chan.try_send(UnusedBufferMsg(unused_tiles));
                 }
             }
             self.build_layer_tree(graphics_context);
@@ -719,7 +719,7 @@ impl CompositorLayer {
                     tile.mark_wont_leak()
                 }
 
-                self.pipeline.render_chan.send(UnusedBufferMsg(tiles))
+                self.pipeline.render_chan.try_send(UnusedBufferMsg(tiles));
             }
         }
     }
