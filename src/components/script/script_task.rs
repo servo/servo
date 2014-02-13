@@ -405,6 +405,23 @@ impl Page {
         }
     }
 
+    fn find_fragment_node(&self, fragid: ~str) -> Option<JS<Element>> {
+        let document = self.frame().get_ref().document.clone();
+        match document.get().GetElementById(fragid.to_owned()) {
+            Some(node) => Some(node),
+            None => {
+                let doc_node: JS<Node> = NodeCast::from(&document);
+                let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
+                anchors.find(|node| {
+                    let elem: JS<Element> = ElementCast::to(node).unwrap();
+                    elem.get_attribute(Null, "name").map_or(false, |attr| {
+                        attr.get().value_ref() == fragid
+                    })
+                }).map(|node| ElementCast::to(&node).unwrap())
+            }
+        }
+    }
+
     pub fn initialize_js_info(&self, js_context: Rc<Cx>, global: *JSObject) {
         assert!(global.is_not_null());
 
@@ -896,28 +913,10 @@ impl ScriptTask {
         let _ = wintarget.get_mut().dispatch_event_with_target(&winclone, Some(doctarget), &mut event);
 
         let mut fragment_node = page.fragment_node.borrow_mut();
-        *fragment_node = fragment.map_or(None, |fragid| self.find_fragment_node(page, fragid));
+        *fragment_node = fragment.map_or(None, |fragid| page.find_fragment_node(fragid));
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(LoadCompleteMsg(page.id, url));
-    }
-
-    fn find_fragment_node(&self, page: &Page, fragid: ~str) -> Option<JS<Element>> {
-        let frame = page.frame();
-        let document = frame.get_ref().document.clone();
-        match document.get().GetElementById(fragid.to_owned()) {
-            Some(node) => Some(node),
-            None => {
-                let doc_node: JS<Node> = NodeCast::from(&document);
-                let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
-                anchors.find(|node| {
-                    let elem: JS<Element> = ElementCast::to(node).unwrap();
-                    elem.get_attribute(Null, "name").map_or(false, |attr| {
-                        attr.get().value_ref() == fragid
-                    })
-                }).map(|node| ElementCast::to(&node).unwrap())
-            }
-        }
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &Page, node: JS<Element>) {
@@ -1122,7 +1121,7 @@ impl ScriptTask {
             let url = parse_url(href.get().value_ref(), base_url);
 
             if click_frag {
-                match self.find_fragment_node(page, url.fragment.unwrap()) {
+                match page.find_fragment_node(url.fragment.unwrap()) {
                     Some(node) => self.scroll_fragment_point(page.id, page, node),
                     None => {}
                 }
