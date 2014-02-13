@@ -14,13 +14,13 @@ pub struct HTMLHRElement {
 }
 
 impl HTMLHRElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLHRElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLHRElement {
         HTMLHRElement {
             htmlelement: HTMLElement::new_inherited(HTMLHRElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLHRElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLHRElementBinding::Wrap)
     }

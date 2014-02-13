@@ -14,13 +14,13 @@ pub struct HTMLLegendElement {
 }
 
 impl HTMLLegendElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLLegendElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLLegendElement {
         HTMLLegendElement {
             htmlelement: HTMLElement::new_inherited(HTMLLegendElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLLegendElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLLegendElementBinding::Wrap)
     }

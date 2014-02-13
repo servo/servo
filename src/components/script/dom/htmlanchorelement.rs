@@ -14,13 +14,13 @@ pub struct HTMLAnchorElement {
 }
 
 impl HTMLAnchorElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLAnchorElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLAnchorElement {
         HTMLAnchorElement {
             htmlelement: HTMLElement::new_inherited(HTMLAnchorElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLAnchorElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLAnchorElementBinding::Wrap)
     }

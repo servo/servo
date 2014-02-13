@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLDirectoryElementBinding;
+use dom::bindings::utils::DOMString;
 use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLDirectoryElementTypeId;
@@ -14,13 +15,13 @@ pub struct HTMLDirectoryElement {
 }
 
 impl HTMLDirectoryElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLDirectoryElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLDirectoryElement {
         HTMLDirectoryElement {
             htmlelement: HTMLElement::new_inherited(HTMLDirectoryElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLDirectoryElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLDirectoryElementBinding::Wrap)
     }

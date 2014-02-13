@@ -14,13 +14,13 @@ pub struct HTMLTextAreaElement {
 }
 
 impl HTMLTextAreaElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTextAreaElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLTextAreaElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLTextAreaElementBinding::Wrap)
     }

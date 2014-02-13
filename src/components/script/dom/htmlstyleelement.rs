@@ -14,13 +14,13 @@ pub struct HTMLStyleElement {
 }
 
 impl HTMLStyleElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLStyleElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLStyleElement {
         HTMLStyleElement {
             htmlelement: HTMLElement::new_inherited(HTMLStyleElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLStyleElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLStyleElementBinding::Wrap)
     }

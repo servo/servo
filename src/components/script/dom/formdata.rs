@@ -17,7 +17,7 @@ enum FormDatum {
 }
 
 pub struct FormData {
-    data: HashMap<~str, FormDatum>,
+    data: HashMap<DOMString, FormDatum>,
     reflector_: Reflector,
     window: @mut Window,
     form: Option<AbstractNode>

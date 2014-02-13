@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLProgressElementBinding;
+use dom::bindings::utils::DOMString;
 use dom::bindings::utils::{ErrorResult, Fallible};
 use dom::document::AbstractDocument;
 use dom::element::HTMLProgressElementTypeId;
@@ -14,13 +15,13 @@ pub struct HTMLProgressElement {
 }
 
 impl HTMLProgressElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLProgressElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLProgressElement {
         HTMLProgressElement {
             htmlelement: HTMLElement::new_inherited(HTMLProgressElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLProgressElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLProgressElementBinding::Wrap)
     }

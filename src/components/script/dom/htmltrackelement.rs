@@ -14,13 +14,13 @@ pub struct HTMLTrackElement {
 }
 
 impl HTMLTrackElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTrackElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLTrackElement {
         HTMLTrackElement {
             htmlelement: HTMLElement::new_inherited(HTMLTrackElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLTrackElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLTrackElementBinding::Wrap)
     }

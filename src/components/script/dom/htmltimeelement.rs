@@ -14,13 +14,13 @@ pub struct HTMLTimeElement {
 }
 
 impl HTMLTimeElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTimeElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLTimeElement {
         HTMLTimeElement {
             htmlelement: HTMLElement::new_inherited(HTMLTimeElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLTimeElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLTimeElementBinding::Wrap)
     }

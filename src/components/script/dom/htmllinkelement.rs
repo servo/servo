@@ -14,13 +14,13 @@ pub struct HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLLinkElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(HTMLLinkElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLLinkElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLLinkElementBinding::Wrap)
     }
