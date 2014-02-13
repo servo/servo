@@ -31,3 +31,4 @@
 == data_img_a.html data_img_b.html
 == background_style_attr.html background_ref.html
 == background_external_stylesheet.html background_ref.html
+== block_image.html 500x300_green.html
