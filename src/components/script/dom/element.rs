@@ -630,6 +630,28 @@ impl Element {
     }
 }
 
+impl Element {
+    fn bind_to_tree_impl(&mut self, abstract_self: AbstractNode) {
+        match self.get_attribute(Null, "id") {
+            Some(attr) => {
+                let doc = self.node.owner_doc();
+                doc.mut_document().register_named_element(abstract_self, attr.Value());
+            }
+            _ => ()
+        }
+    }
+
+    fn unbind_from_tree_impl(&mut self, _abstract_self: AbstractNode) {
+        match self.get_attribute(Null, "id") {
+            Some(attr) => {
+                let doc = self.node.owner_doc();
+                doc.mut_document().unregister_named_element(&attr.Value());
+            }
+            _ => ()
+        }
+    }
+}
+
 fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
@@ -666,5 +688,15 @@ impl VirtualMethods for Element {
     fn after_remove_attr(&mut self, abstract_self: AbstractNode, name: DOMString) {
         self.super_type().map(|s| s.after_remove_attr(abstract_self, name.clone()));
         self.after_remove_attribute(abstract_self, name);
+    }
+
+    fn bind_to_tree(&mut self, abstract_self: AbstractNode) {
+        self.super_type().map(|s| s.bind_to_tree(abstract_self));
+        self.bind_to_tree_impl(abstract_self);
+    }
+
+    fn unbind_from_tree(&mut self, abstract_self: AbstractNode) {
+        self.super_type().map(|s| s.unbind_from_tree(abstract_self));
+        self.unbind_from_tree_impl(abstract_self);
     }
 }

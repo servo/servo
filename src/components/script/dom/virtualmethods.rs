@@ -41,6 +41,20 @@ pub trait VirtualMethods {
             s.unwrap().after_remove_attr(abstract_self, name);
         }
     }
+
+    fn bind_to_tree(&mut self, abstract_self: AbstractNode) {
+        let s = self.super_type();
+        if s.is_some() {
+            s.unwrap().bind_to_tree(abstract_self);
+        }
+    }
+
+    fn unbind_from_tree(&mut self, abstract_self: AbstractNode) {
+        let s = self.super_type();
+        if s.is_some() {
+            s.unwrap().unbind_from_tree(abstract_self);
+        }
+   }
 }
 
 pub fn vtable_for(node: AbstractNode) -> &mut VirtualMethods {

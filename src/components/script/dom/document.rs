@@ -504,22 +504,6 @@ impl Document {
         self.window.wait_until_safe_to_modify_dom();
     }
 
-    pub fn register_nodes_with_id(&mut self, root: &AbstractNode) {
-        foreach_ided_elements(root, |id: &DOMString, abstract_node: &AbstractNode| {
-            // TODO: "in tree order, within the context object's tree"
-            // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
-            self.idmap.find_or_insert(id.clone(), *abstract_node);
-        });
-    }
-
-    pub fn unregister_nodes_with_id(&mut self, root: &AbstractNode) {
-        foreach_ided_elements(root, |id: &DOMString, _| {
-            // TODO: "in tree order, within the context object's tree"
-            // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
-            self.idmap.pop(id);
-        });
-    }
-
     pub fn unregister_named_element(&mut self,
                                     id: &DOMString) {
         self.idmap.remove(id);
@@ -528,6 +512,8 @@ impl Document {
     pub fn register_named_element(&mut self,
                                   element: AbstractNode,
                                   id: DOMString) {
+        assert!(element.is_in_doc());
+
         // TODO: support the case if multiple elements
         // which haves same id are in the same document.
         self.idmap.mangle(id, element,
@@ -537,24 +523,6 @@ impl Document {
                           |_, old_element: &mut AbstractNode, new_element: AbstractNode| {
                               *old_element = new_element;
                           });
-    }
-}
-
-#[inline(always)]
-fn foreach_ided_elements(root: &AbstractNode, callback: |&DOMString, &AbstractNode|) {
-    for node in root.traverse_preorder() {
-        if !node.is_element() {
-            continue;
-        }
-
-        node.with_imm_element(|element| {
-            match element.get_attribute(Null, "id") {
-                Some(id) => {
-                    callback(&id.Value(), &node);
-                }
-                None => ()
-            }
-        });
     }
 }
 
