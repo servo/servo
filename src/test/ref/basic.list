@@ -29,3 +29,5 @@
 == position_relative_a.html position_relative_b.html
 == attr_exists_selector.html attr_exists_selector_ref.html
 == data_img_a.html data_img_b.html
+== block_image.html 500x300_green.html
+# == simple_iframe.html simple_iframe_ref.html -- disabled due to iframe crashiness
