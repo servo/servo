@@ -14,12 +14,12 @@ use dom::bindings::utils;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementTypeId, HTMLAnchorElementTypeId, IElement};
+use dom::element::{Element, ElementTypeId, HTMLAnchorElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
-use dom::virtualmethods::VirtualMethods;
+use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::{LayoutChan, ReapLayoutDataMsg, UntrustedNodeAddress};
 use layout_interface::TrustedNodeAddress;
 use servo_util::str::{DOMString, null_str_as_empty};
@@ -400,10 +400,9 @@ impl NodeHelpers for JS<Node> {
         let document = self.get().owner_doc();
 
         for node in self.traverse_preorder() {
-            if node.is_element() {
-                let element: JS<Element> = ElementCast::to(&node);
-                element.bind_to_tree_impl();
-            }
+            let mut mut_node = node.clone();
+            let vtable = vtable_for(&mut mut_node);
+            vtable.bind_to_tree(&node.clone());
         }
 
         document.get().content_changed();
@@ -415,10 +414,9 @@ impl NodeHelpers for JS<Node> {
         let document = self.get().owner_doc();
 
         for node in self.traverse_preorder() {
-            if node.is_element() {
-                let element: JS<Element> = ElementCast::to(&node);
-                element.unbind_from_tree_impl();
-            }
+            let mut mut_node = node.clone();
+            let vtable = vtable_for(&mut mut_node);
+            vtable.unbind_from_tree(&node);
         }
 
         document.get().content_changed();

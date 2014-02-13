@@ -6,7 +6,7 @@
 
 use dom::attr::Attr;
 use dom::attrlist::AttrList;
-use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast, ElementCast};
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
@@ -672,5 +672,17 @@ impl VirtualMethods for Element {
     fn before_remove_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
         self.super_type().map(|s| s.before_remove_attr(abstract_self, name.clone(), value.clone()));
         self.before_remove_attribute(abstract_self, name, value);
+    }
+
+    fn bind_to_tree(&mut self, abstract_self: &JS<Node>) {
+        self.super_type().map(|s| s.bind_to_tree(abstract_self));
+        let element: JS<Element> = ElementCast::to(abstract_self);
+        element.bind_to_tree_impl();
+    }
+
+    fn unbind_from_tree(&mut self, abstract_self: &JS<Node>) {
+        self.super_type().map(|s| s.unbind_from_tree(abstract_self));
+        let element: JS<Element> = ElementCast::to(abstract_self);
+        element.unbind_from_tree_impl();
     }
 }
