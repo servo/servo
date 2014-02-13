@@ -7,7 +7,7 @@ use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
 use dom::document::Document;
-use dom::element::HTMLObjectElementTypeId;
+use dom::element::{Element, HTMLObjectElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::HTMLFormElement;
@@ -252,8 +252,8 @@ impl VirtualMethods for HTMLObjectElement {
         Some(&mut self.htmlelement as &mut VirtualMethods)
     }
 
-    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
-        self.super_type().map(|s| s.after_set_attr(name.clone(), value.clone()));
+    fn after_set_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.after_set_attr(abstract_self, name.clone(), value.clone()));
         self.AfterSetAttr(name, value);
     }
 }

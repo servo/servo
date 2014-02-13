@@ -251,13 +251,13 @@ impl VirtualMethods for HTMLImageElement {
         Some(&mut self.htmlelement as &mut VirtualMethods)
     }
 
-    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
-        self.super_type().map(|s| s.after_set_attr(name.clone(), value.clone()));
+    fn after_set_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.after_set_attr(abstract_self, name.clone(), value.clone()));
         self.AfterSetAttr(name, value);
     }
 
-    fn before_remove_attr(&mut self, name: DOMString) {
-        self.super_type().map(|s| s.before_remove_attr(name.clone()));
+    fn before_remove_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.before_remove_attr(abstract_self, name.clone(), value.clone()));
         self.BeforeRemoveAttr(name);
     }
 }

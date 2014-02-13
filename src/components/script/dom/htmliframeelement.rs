@@ -7,7 +7,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived
 use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
 use dom::document::Document;
-use dom::element::HTMLIframeElementTypeId;
+use dom::element::{Element, HTMLIframeElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId};
@@ -237,13 +237,13 @@ impl VirtualMethods for HTMLIFrameElement {
         Some(&mut self.htmlelement as &mut VirtualMethods)
     }
 
-    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
-        self.super_type().map(|s| s.after_set_attr(name.clone(), value.clone()));
+    fn after_set_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.after_set_attr(abstract_self, name.clone(), value.clone()));
         self.AfterSetAttr(name, value);
     }
 
-    fn before_remove_attr(&mut self, name: DOMString) {
-        self.super_type().map(|s| s.before_remove_attr(name.clone()));
+    fn before_remove_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.before_remove_attr(abstract_self, name.clone(), value.clone()));
         self.BeforeRemoveAttr(name);
     }
 }

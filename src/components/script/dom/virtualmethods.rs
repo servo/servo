@@ -7,6 +7,7 @@ use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
 use dom::bindings::js::JS;
+use dom::element::Element;
 use dom::element::{HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLObjectElementTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
@@ -20,12 +21,18 @@ use std::cast;
 pub trait VirtualMethods {
     fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods>;
 
-    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
-        self.super_type().map(|s| s.after_set_attr(name.clone(), value.clone()));
+    fn after_set_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
+        let s = self.super_type();
+        if s.is_some() {
+            s.unwrap().after_set_attr(abstract_self, name, value);
+        }
     }
 
-    fn before_remove_attr(&mut self, name: DOMString) {
-        self.super_type().map(|s| s.before_remove_attr(name.clone()));
+    fn before_remove_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
+        let s = self.super_type();
+        if s.is_some() {
+            s.unwrap().before_remove_attr(abstract_self, name, value);
+        }
     }
 }
 

@@ -208,8 +208,10 @@ impl Element {
             Some(idx) => {
                 if namespace == namespace::Null {
                     let old_value = self.attrs[idx].get().Value();
-                    self.before_remove_attr(abstract_self, local_name.clone(),
-                                            old_value);
+                    let mut node: JS<Node> = NodeCast::from(abstract_self);
+                    let vtable = vtable_for(&mut node);
+                    vtable.before_remove_attr(abstract_self, local_name.clone(),
+                                              old_value);
                 }
                 self.attrs[idx].get_mut().set_value(value.clone());
             }
@@ -224,16 +226,17 @@ impl Element {
         }
 
         if namespace == namespace::Null {
-            self.after_set_attr(abstract_self, local_name, value);
+            let mut node: JS<Node> = NodeCast::from(abstract_self);
+            let vtable = vtable_for(&mut node);
+            vtable.after_set_attr(abstract_self, local_name, value);
         }
         Ok(())
     }
 
-    fn after_set_attr(&mut self,
-                      abstract_self: &JS<Element>,
-                      local_name: DOMString,
-                      value: DOMString) {
-
+    fn after_set_attribute(&mut self,
+                           abstract_self: &JS<Element>,
+                           local_name: DOMString,
+                           value: DOMString) {
         match local_name.as_slice() {
             "style" => {
                 let doc = self.node.owner_doc();
@@ -247,15 +250,11 @@ impl Element {
                     // "borrowed value does not live long enough"
                     let mut doc = self.node.owner_doc();
                     let doc = doc.get_mut();
-                    doc.register_named_element(abstract_self, value.clone());
+                    doc.register_named_element(abstract_self, value);
                 }
             }
             _ => ()
         }
-
-        let mut node: JS<Node> = NodeCast::from(abstract_self);
-        let vtable = vtable_for(&mut node);
-        vtable.after_set_attr(local_name.clone(), value.clone());
 
         self.notify_attribute_changed(abstract_self, local_name);
     }
@@ -277,7 +276,9 @@ impl Element {
             Some(idx) => {
                 if namespace == namespace::Null {
                     let removed_raw_value = self.attrs[idx].get().Value();
-                    self.before_remove_attr(abstract_self, local_name, removed_raw_value);
+                    let mut node: JS<Node> = NodeCast::from(abstract_self);
+                    let vtable = vtable_for(&mut node);
+                    vtable.before_remove_attr(abstract_self, local_name.clone(), removed_raw_value);
                 }
 
                 self.attrs.remove(idx);
@@ -287,10 +288,10 @@ impl Element {
         Ok(())
     }
 
-    fn before_remove_attr(&mut self,
-                          abstract_self: &JS<Element>,
-                          local_name: DOMString,
-                          old_value: DOMString) {
+    fn before_remove_attribute(&mut self,
+                               abstract_self: &JS<Element>,
+                               local_name: DOMString,
+                               old_value: DOMString) {
         match local_name.as_slice() {
             "style" => {
                 self.style_attribute = None
@@ -307,10 +308,6 @@ impl Element {
             }
             _ => ()
         }
-
-        let mut node: JS<Node> = NodeCast::from(abstract_self);
-        let vtable = vtable_for(&mut node);
-        vtable.before_remove_attr(local_name.clone());
 
         self.notify_attribute_changed(abstract_self, local_name);
     }
@@ -665,5 +662,15 @@ fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
 impl VirtualMethods for Element {
     fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
         Some(&mut self.node as &mut VirtualMethods)
+    }
+
+    fn after_set_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.after_set_attr(abstract_self, name.clone(), value.clone()));
+        self.after_set_attribute(abstract_self, name, value);
+    }
+
+    fn before_remove_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.before_remove_attr(abstract_self, name.clone(), value.clone()));
+        self.before_remove_attribute(abstract_self, name, value);
     }
 }
