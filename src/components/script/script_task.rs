@@ -332,6 +332,21 @@ impl Page {
         }
     }
 
+    pub fn find_fragment_node(&mut self, fragid: ~str) -> Option<AbstractNode> {
+        let document = self.frame.expect("root frame is None").document;
+        document.document().GetElementById(fragid.to_owned()).or_else(|| {
+            let doc_node = AbstractNode::from_document(document);
+            let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
+            anchors.find(|node| {
+                node.with_imm_element(|elem| {
+                    elem.get_attribute(Null, "name").map_default(false, |attr| {
+                        attr.value_ref() == fragid
+                    })
+                })
+            })
+        })
+    }
+
     pub fn initialize_js_info(&mut self, js_context: @Cx, global: *JSObject) {
         // Note that the order that these variables are initialized is _not_ arbitrary. Switching
         // them around can -- and likely will -- lead to things breaking.
@@ -781,27 +796,9 @@ impl ScriptTask {
         let wintarget = AbstractEventTarget::from_window(window);
         window.eventtarget.dispatch_event_with_target(wintarget, Some(doctarget), event);
 
-        page.fragment_node = fragment.map_default(None, |fragid| self.find_fragment_node(page, fragid));
+        page.fragment_node = fragment.map_default(None, |fragid| page.find_fragment_node(fragid));
 
         self.constellation_chan.send(LoadCompleteMsg(page.id, url));
-    }
-
-    fn find_fragment_node(&self, page: &mut Page, fragid: ~str) -> Option<AbstractNode> {
-        let document = page.frame.expect("root frame is None").document; 
-        match document.document().GetElementById(fragid.to_owned()) {
-            Some(node) => Some(node),
-            None => {
-                let doc_node = AbstractNode::from_document(document);
-                let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
-                anchors.find(|node| {
-                    node.with_imm_element(|elem| {
-                        elem.get_attribute(Null, "name").map_default(false, |attr| {
-                            attr.value_ref() == fragid
-                        })
-                    })
-                })
-            }
-        }
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &mut Page, node: AbstractNode) {
@@ -973,7 +970,7 @@ impl ScriptTask {
             let url = parse_url(href.value_ref(), base_url);
 
             if click_frag {
-                match self.find_fragment_node(page, url.fragment.unwrap()) {
+                match page.find_fragment_node(url.fragment.unwrap()) {
                     Some(node) => self.scroll_fragment_point(page.id, page, node),
                     None => {}
                 }
