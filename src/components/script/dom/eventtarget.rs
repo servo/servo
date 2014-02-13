@@ -36,7 +36,7 @@ struct EventListenerEntry {
 pub struct EventTarget {
     type_id: EventTargetTypeId,
     reflector_: Reflector,
-    handlers: HashMap<~str, ~[EventListenerEntry]>,
+    handlers: HashMap<DOMString, ~[EventListenerEntry]>,
 }
 
 pub struct AbstractEventTarget {

@@ -14,13 +14,13 @@ pub struct HTMLTitleElement {
 }
 
 impl HTMLTitleElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTitleElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLTitleElement {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(HTMLTitleElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLTitleElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLTitleElementBinding::Wrap)
     }

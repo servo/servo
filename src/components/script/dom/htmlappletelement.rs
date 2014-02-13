@@ -14,13 +14,13 @@ pub struct HTMLAppletElement {
 }
 
 impl HTMLAppletElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLAppletElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLAppletElement {
         HTMLAppletElement {
             htmlelement: HTMLElement::new_inherited(HTMLAppletElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLAppletElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLAppletElementBinding::Wrap)
     }

@@ -15,13 +15,13 @@ pub struct HTMLMapElement {
 }
 
 impl HTMLMapElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLMapElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLMapElement {
         HTMLMapElement {
             htmlelement: HTMLElement::new_inherited(HTMLMapElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLMapElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLMapElementBinding::Wrap)
     }

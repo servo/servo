@@ -14,13 +14,13 @@ pub struct HTMLInputElement {
 }
 
 impl HTMLInputElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLInputElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLInputElement {
         HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLInputElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLInputElementBinding::Wrap)
     }

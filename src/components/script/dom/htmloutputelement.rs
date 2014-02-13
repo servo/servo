@@ -15,13 +15,13 @@ pub struct HTMLOutputElement {
 }
 
 impl HTMLOutputElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLOutputElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLOutputElement {
         HTMLOutputElement {
             htmlelement: HTMLElement::new_inherited(HTMLOutputElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLOutputElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLOutputElementBinding::Wrap)
     }

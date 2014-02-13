@@ -24,14 +24,14 @@ pub struct HTMLHeadingElement {
 }
 
 impl HTMLHeadingElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument, level: HeadingLevel) -> HTMLHeadingElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument, level: HeadingLevel) -> HTMLHeadingElement {
         HTMLHeadingElement {
             htmlelement: HTMLElement::new_inherited(HTMLHeadingElementTypeId, localName, document),
             level: level,
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument, level: HeadingLevel) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument, level: HeadingLevel) -> AbstractNode {
         let element = HTMLHeadingElement::new_inherited(localName, document, level);
         Node::reflect_node(@mut element, document, HTMLHeadingElementBinding::Wrap)
     }

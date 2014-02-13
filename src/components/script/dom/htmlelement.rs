@@ -16,13 +16,13 @@ pub struct HTMLElement {
 }
 
 impl HTMLElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> HTMLElement {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: AbstractDocument) -> HTMLElement {
         HTMLElement {
             element: Element::new_inherited(type_id, tag_name, namespace::HTML, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document);
         Node::reflect_node(@mut element, document, HTMLElementBinding::Wrap)
     }

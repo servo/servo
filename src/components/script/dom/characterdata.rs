@@ -11,11 +11,11 @@ use dom::node::{Node, NodeTypeId};
 
 pub struct CharacterData {
     node: Node,
-    data: ~str
+    data: DOMString,
 }
 
 impl CharacterData {
-    pub fn new_inherited(id: NodeTypeId, data: ~str, document: AbstractDocument) -> CharacterData {
+    pub fn new_inherited(id: NodeTypeId, data: DOMString, document: AbstractDocument) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(id, document),
             data: data

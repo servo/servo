@@ -14,13 +14,13 @@ pub struct HTMLTableSectionElement {
 }
 
 impl HTMLTableSectionElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTableSectionElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLTableSectionElement {
         HTMLTableSectionElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableSectionElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLTableSectionElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLTableSectionElementBinding::Wrap)
     }

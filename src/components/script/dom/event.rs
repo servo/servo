@@ -132,7 +132,7 @@ pub struct Event {
     reflector_: Reflector,
     current_target: Option<AbstractEventTarget>,
     target: Option<AbstractEventTarget>,
-    type_: ~str,
+    type_: DOMString,
     phase: EventPhase,
     default_prevented: bool,
     stop_propagation: bool,

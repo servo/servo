@@ -14,13 +14,13 @@ pub struct HTMLTableRowElement {
 }
 
 impl HTMLTableRowElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTableRowElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLTableRowElement {
         HTMLTableRowElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableRowElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLTableRowElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLTableRowElementBinding::Wrap)
     }

@@ -15,13 +15,13 @@ pub struct Text {
 }
 
 impl Text {
-    pub fn new_inherited(text: ~str, document: AbstractDocument) -> Text {
+    pub fn new_inherited(text: DOMString, document: AbstractDocument) -> Text {
         Text {
             element: CharacterData::new_inherited(TextNodeTypeId, text, document)
         }
     }
 
-    pub fn new(text: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(text: DOMString, document: AbstractDocument) -> AbstractNode {
         let node = Text::new_inherited(text, document);
         Node::reflect_node(@mut node, document, TextBinding::Wrap)
     }

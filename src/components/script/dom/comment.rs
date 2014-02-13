@@ -15,13 +15,13 @@ pub struct Comment {
 }
 
 impl Comment {
-    pub fn new_inherited(text: ~str, document: AbstractDocument) -> Comment {
+    pub fn new_inherited(text: DOMString, document: AbstractDocument) -> Comment {
         Comment {
             element: CharacterData::new_inherited(CommentNodeTypeId, text, document)
         }
     }
 
-    pub fn new(text: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(text: DOMString, document: AbstractDocument) -> AbstractNode {
         let node = Comment::new_inherited(text, document);
         Node::reflect_node(@mut node, document, CommentBinding::Wrap)
     }

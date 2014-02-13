@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::element::{HTMLLinkElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId};
 use dom::htmlelement::HTMLElement;
@@ -159,7 +160,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-pub fn build_element_from_tag(tag: ~str, document: AbstractDocument) -> AbstractNode {
+pub fn build_element_from_tag(tag: DOMString, document: AbstractDocument) -> AbstractNode {
     // TODO (Issue #85): use atoms
     handle_element!(document, tag, "a",         HTMLAnchorElement);
     handle_element!(document, tag, "applet",    HTMLAppletElement);

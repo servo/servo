@@ -14,13 +14,13 @@ pub struct HTMLSourceElement {
 }
 
 impl HTMLSourceElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLSourceElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLSourceElement {
         HTMLSourceElement {
             htmlelement: HTMLElement::new_inherited(HTMLSourceElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLSourceElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLSourceElementBinding::Wrap)
     }
