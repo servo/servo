@@ -63,7 +63,7 @@ pub fn parse_url(str_url: &str, base_url: Option<Url>) -> Url {
                             fail!("about:crash");
                         }
                         "failure" => {
-                            let mut path = os::getcwd();
+                            let mut path = os::self_exe_path().expect("can't get exe path");
                             path.push("../src/test/html/failure.html");
                             // FIXME (#1094): not the right way to transform a path
                             ~"file://" + path.display().to_str()
