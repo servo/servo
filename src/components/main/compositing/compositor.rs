@@ -382,7 +382,7 @@ impl IOCompositor {
                 let world_zoom = self.world_zoom;
                 let page_window = Size2D(window_size.width as f32 / world_zoom,
                                          window_size.height as f32 / world_zoom);
-                assert!(layer.resize(id, new_size, page_window, epoch));
+                layer.resize(id, new_size, page_window, epoch);
                 let move = self.fragment_point.take().map_default(false, |point| layer.move(point, page_window));
 
                 (true, move)

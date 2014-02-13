@@ -15,12 +15,14 @@ use layers;
 use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerBuffer, LayerBufferSet};
 use servo_msg::compositor_msg::{RenderListener, RenderingRenderState};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, RendererReadyMsg};
+use servo_msg::constellation_msg::{Failure, FailureMsg};
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
-use servo_util::task::spawn_named;
+use servo_util::task::send_on_failure;
 
 use std::comm::{Chan, Port, SharedChan};
+use std::task;
 use extra::arc::Arc;
 
 use buffer_map::BufferMap;
@@ -41,7 +43,7 @@ pub enum Msg<T> {
     UnusedBufferMsg(~[~LayerBuffer]),
     PaintPermissionGranted,
     PaintPermissionRevoked,
-    ExitMsg(Chan<()>),
+    ExitMsg(Option<Chan<()>>),
 }
 
 /// A request from the compositor to the renderer for tiles that need to be (re)displayed.
@@ -143,10 +145,14 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                   port: Port<Msg<T>>,
                   compositor: C,
                   constellation_chan: ConstellationChan,
+                  failure_msg: Failure,
                   opts: Opts,
                   profiler_chan: ProfilerChan,
                   shutdown_chan: Chan<()>) {
-        spawn_named("RenderTask", proc() {
+        let mut builder = task::task();
+        send_on_failure(&mut builder, FailureMsg(failure_msg), (*constellation_chan).clone());
+        builder.name("RenderTask");
+        builder.spawn(proc() {
 
             { // Ensures RenderTask and graphics context are destroyed before shutdown msg
                 let native_graphics_context = compositor.get_graphics_metadata().map(
@@ -237,7 +243,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                 }
                 ExitMsg(response_ch) => {
                     debug!("render_task: exitmsg response send");
-                    response_ch.send(());
+                    response_ch.map(|ch| ch.send(()));
                     break;
                 }
             }

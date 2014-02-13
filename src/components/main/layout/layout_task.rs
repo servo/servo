@@ -40,19 +40,20 @@ use script::layout_interface::{ContentChangedDocumentDamage, LayoutChan, Msg, Pr
 use script::layout_interface::{QueryMsg, ReapLayoutDataMsg, Reflow, ReflowDocumentDamage, UntrustedNodeAddress};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
 use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
-use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
+use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
-use servo_util::task::spawn_named;
+use servo_util::task::send_on_failure;
 use servo_util::workqueue::WorkQueue;
 use std::cast::transmute;
 use std::cast;
 use std::cell::RefCell;
 use std::comm::Port;
 use std::ptr;
+use std::task;
 use std::util;
 use style::{AuthorOrigin, Stylesheet, Stylist};
 
@@ -240,13 +241,17 @@ impl LayoutTask {
                   port: Port<Msg>,
                   chan: LayoutChan,
                   constellation_chan: ConstellationChan,
+                  failure_msg: Failure,
                   script_chan: ScriptChan,
                   render_chan: RenderChan<OpaqueNode>,
                   img_cache_task: ImageCacheTask,
                   opts: Opts,
                   profiler_chan: ProfilerChan,
                   shutdown_chan: Chan<()>) {
-        spawn_named("LayoutTask", proc() {
+        let mut builder = task::task();
+        send_on_failure(&mut builder, FailureMsg(failure_msg), (*constellation_chan).clone());
+        builder.name("LayoutTask");
+        builder.spawn(proc() {
             { // Ensures layout task is destroyed before we send shutdown message
                 let mut layout = LayoutTask::new(id,
                                                  port,
@@ -400,7 +405,7 @@ impl LayoutTask {
             Some(ref mut traversal) => traversal.shutdown(),
         }
 
-        self.render_chan.send(render_task::ExitMsg(response_chan));
+        self.render_chan.send(render_task::ExitMsg(Some(response_chan)));
         response_port.recv()
     }
 

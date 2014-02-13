@@ -123,12 +123,12 @@ fn check_reftest(reftest: Reftest) {
     let left_filename = format!("/tmp/servo-reftest-{:06u}-left.png", reftest.id);
     let right_filename = format!("/tmp/servo-reftest-{:06u}-right.png", reftest.id);
 
-    let args = ~[~"-o", left_filename.clone(), reftest.left.clone()];
+    let args = ~[~"-f", ~"-o", left_filename.clone(), reftest.left.clone()];
     let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
     let retval = process.finish();
     assert!(retval == ExitStatus(0));
 
-    let args = ~[~"-o", right_filename.clone(), reftest.right.clone()];
+    let args = ~[~"-f", ~"-o", right_filename.clone(), reftest.right.clone()];
     let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
     let retval = process.finish();
     assert!(retval == ExitStatus(0));

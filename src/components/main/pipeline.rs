@@ -15,7 +15,7 @@ use script::layout_interface::LayoutChan;
 use script::script_task::LoadMsg;
 use script::script_task::{AttachLayoutMsg, NewLayoutInfo, ScriptTask, ScriptChan};
 use script::script_task;
-use servo_msg::constellation_msg::{ConstellationChan, PipelineId, SubpageId};
+use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::ProfilerChan;
@@ -58,10 +58,16 @@ impl Pipeline {
         let (render_shutdown_port, render_shutdown_chan) = Chan::new();
         let (layout_shutdown_port, layout_shutdown_chan) = Chan::new();
 
+        let failure = Failure {
+            pipeline_id: id,
+            subpage_id: subpage_id,
+        };
+
         RenderTask::create(id,
                            render_port,
                            compositor_chan.clone(),
                            constellation_chan.clone(),
+                           failure.clone(),
                            opts.clone(),
                            profiler_chan.clone(),
                            render_shutdown_chan);
@@ -70,6 +76,7 @@ impl Pipeline {
                            layout_port,
                            layout_chan.clone(),
                            constellation_chan,
+                           failure,
                            script_pipeline.script_chan.clone(),
                            render_chan.clone(),
                            image_cache_task.clone(),
@@ -117,7 +124,10 @@ impl Pipeline {
                                      layout_shutdown_port,
                                      render_shutdown_port);
 
-        // FIXME(#1434): add back failure supervision
+        let failure = Failure {
+            pipeline_id: id,
+            subpage_id: subpage_id,
+        };
 
         ScriptTask::create(id,
                            compositor_chan.clone(),
@@ -125,6 +135,7 @@ impl Pipeline {
                            script_port,
                            script_chan.clone(),
                            constellation_chan.clone(),
+                           failure.clone(),
                            resource_task,
                            image_cache_task.clone(),
                            window_size);
@@ -133,6 +144,7 @@ impl Pipeline {
                            render_port,
                            compositor_chan.clone(),
                            constellation_chan.clone(),
+                           failure.clone(),
                            opts.clone(),
                            profiler_chan.clone(),
                            render_shutdown_chan);
@@ -141,6 +153,7 @@ impl Pipeline {
                            layout_port,
                            layout_chan.clone(),
                            constellation_chan,
+                           failure,
                            script_chan.clone(),
                            render_chan.clone(),
                            image_cache_task,
@@ -182,7 +195,7 @@ impl Pipeline {
 
     pub fn revoke_paint_permission(&self) {
         debug!("pipeline revoking render channel paint permission");
-        self.render_chan.send(PaintPermissionRevoked);
+        self.render_chan.try_send(PaintPermissionRevoked);
     }
 
     pub fn reload(&mut self) {
@@ -193,12 +206,13 @@ impl Pipeline {
 
     pub fn exit(&self) {
         // Script task handles shutting down layout, and layout handles shutting down the renderer.
-        self.script_chan.try_send(script_task::ExitPipelineMsg(self.id));
-
-        // Wait until all slave tasks have terminated and run destructors
-        // NOTE: We don't wait for script task as we don't always own it
-        self.render_shutdown_port.recv_opt();
-        self.layout_shutdown_port.recv_opt();
+        // For now, if the script task has failed, we give up on clean shutdown.
+        if self.script_chan.try_send(script_task::ExitPipelineMsg(self.id)) {
+            // Wait until all slave tasks have terminated and run destructors
+            // NOTE: We don't wait for script task as we don't always own it
+            self.render_shutdown_port.recv_opt();
+            self.layout_shutdown_port.recv_opt();
+        }
     }
 
     pub fn to_sendable(&self) -> CompositionPipeline {
