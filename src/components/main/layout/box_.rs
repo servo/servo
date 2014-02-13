@@ -304,6 +304,80 @@ pub struct InlineParentInfo {
     node: OpaqueNode,
 }
 
+// FIXME: Take just one parameter and use concat_ident! (mozilla/rust#12249)
+macro_rules! def_noncontent( ($side:ident, $get:ident, $inline_get:ident) => (
+    impl Box {
+        pub fn $get(&self) -> Au {
+            self.margin.get().$side + self.border.get().$side + self.padding.get().$side
+        }
+
+        pub fn $inline_get(&self) -> Au {
+            let mut val = Au::new(0);
+            let info = self.inline_info.borrow();
+            match info.get() {
+                &Some(ref info) => {
+                    for info in info.parent_info.iter() {
+                        val = val + info.margin.$side + info.border.$side + info.padding.$side;
+                    }
+                },
+                &None => {}
+            }
+            val
+        }
+    }
+))
+
+macro_rules! def_noncontent_horiz( ($side:ident, $merge:ident, $clear:ident) => (
+    impl Box {
+        pub fn $merge(&self, other_box: &Box) {
+            let mut info = self.inline_info.borrow_mut();
+            let other_info = other_box.inline_info.borrow();
+
+            match other_info.get() {
+                &Some(ref other_info) => {
+                    match info.get() {
+                        &Some(ref mut info) => {
+                            for other_item in other_info.parent_info.iter() {
+                                for item in info.parent_info.mut_iter() {
+                                    if item.node == other_item.node {
+                                        item.border.$side = other_item.border.$side;
+                                        item.padding.$side = other_item.padding.$side;
+                                        item.margin.$side = other_item.margin.$side;
+                                        break;
+                                    }
+                                }
+                            }
+                        },
+                        &None => {}
+                    }
+                },
+                &None => {}
+            }
+        }
+
+        pub fn $clear(&self) {
+            let mut info = self.inline_info.borrow_mut();
+            match info.get() {
+                &Some(ref mut info) => {
+                    for item in info.parent_info.mut_iter() {
+                        item.border.$side = Au::new(0);
+                        item.padding.$side = Au::new(0);
+                        item.margin.$side = Au::new(0);
+                    }
+                },
+                &None => {}
+            }
+        }
+    }
+))
+
+def_noncontent!(left,   noncontent_left,   noncontent_inline_left)
+def_noncontent!(right,  noncontent_right,  noncontent_inline_right)
+def_noncontent!(top,    noncontent_top,    noncontent_inline_top)
+def_noncontent!(bottom, noncontent_bottom, noncontent_inline_bottom)
+
+def_noncontent_horiz!(left,  merge_noncontent_inline_left,  clear_noncontent_inline_left)
+def_noncontent_horiz!(right, merge_noncontent_inline_right, clear_noncontent_inline_right)
 
 impl Box {
     /// Constructs a new `Box` instance.
@@ -536,157 +610,6 @@ impl Box {
         self.noncontent_top() + self.noncontent_bottom()
     }
 
-    pub fn noncontent_left(&self) -> Au {
-        self.margin.get().left + self.border.get().left + self.padding.get().left
-    }
-
-    pub fn noncontent_right(&self) -> Au {
-        self.margin.get().right + self.border.get().right + self.padding.get().right
-    }
-
-    pub fn noncontent_top(&self) -> Au {
-        self.margin.get().top + self.border.get().top + self.padding.get().top
-    }
-
-    pub fn noncontent_bottom(&self) -> Au {
-        self.margin.get().bottom + self.border.get().bottom + self.padding.get().bottom
-    }
-
-    pub fn noncontent_inline_left(&self) -> Au {
-        let mut left = Au::new(0);
-        let info = self.inline_info.borrow();
-        match info.get() {
-            &Some(ref info) => {
-                for info in info.parent_info.iter() {
-                    left = left + info.margin.left + info.border.left + info.padding.left;
-                }
-            },
-            &None => {}
-        }
-        left
-    }
-
-    pub fn noncontent_inline_right(&self) -> Au {
-        let mut right = Au::new(0);
-        let info = self.inline_info.borrow();
-        match info.get() {
-            &Some(ref info) => {
-                for info in info.parent_info.iter() {
-                    right = right + info.margin.right + info.border.right + info.padding.right;
-                }
-            },
-            &None => {}
-        }
-        right
-    }
-
-    pub fn noncontent_inline_top(&self) -> Au {
-        let mut top = Au::new(0);
-        let info = self.inline_info.borrow();
-        match info.get() {
-            &Some(ref info) => {
-                for info in info.parent_info.iter() {
-                    top = top + info.margin.top + info.border.top + info.padding.top;
-                }
-            },
-            &None => {}
-        }
-        top
-    }
-
-    pub fn noncontent_inline_bottom(&self) -> Au {
-        let mut bottom = Au::new(0);
-        let info = self.inline_info.borrow();
-        match info.get() {
-            &Some(ref info) => {
-                for info in info.parent_info.iter() {
-                    bottom = bottom + info.margin.bottom + info.border.bottom + info.padding.bottom;
-                }
-            },
-            &None => {}
-        }
-        bottom
-    }
-
-    pub fn merge_noncontent_inline_right(&self, other_box: &Box) {
-        let mut info = self.inline_info.borrow_mut();
-        let other_info = other_box.inline_info.borrow();
-
-        match other_info.get() {
-            &Some(ref other_info) => {
-                match info.get() {
-                    &Some(ref mut info) => {
-                        for other_item in other_info.parent_info.iter() {
-                            for item in info.parent_info.mut_iter() {
-                                if item.node == other_item.node {
-                                    item.border.right = other_item.border.right;
-                                    item.padding.right = other_item.padding.right;
-                                    item.margin.right = other_item.margin.right;
-                                    break;
-                                }
-                            }
-                        }
-                    },
-                    &None => {}
-                }
-            },
-            &None => {}
-        }
-    }
-
-    pub fn merge_noncontent_inline_left(&self, other_box: &Box) {
-        let mut info = self.inline_info.borrow_mut();
-        let other_info = other_box.inline_info.borrow();
-
-        match other_info.get() {
-            &Some(ref other_info) => {
-                match info.get() {
-                    &Some(ref mut info) => {
-                        for other_item in other_info.parent_info.iter() {
-                            for item in info.parent_info.mut_iter() {
-                                if item.node == other_item.node {
-                                    item.border.left = other_item.border.left;
-                                    item.padding.left = other_item.padding.left;
-                                    item.margin.left = other_item.margin.left;
-                                    break;
-                                }
-                            }
-                        }
-                    },
-                    &None => {}
-                }
-            },
-            &None => {}
-        }
-    }
-
-    pub fn clear_noncontent_inline_right(&self) {
-        let mut info = self.inline_info.borrow_mut();
-        match info.get() {
-            &Some(ref mut info) => {
-                for item in info.parent_info.mut_iter() {
-                    item.border.right = Au::new(0);
-                    item.padding.right = Au::new(0);
-                    item.margin.right = Au::new(0);
-                }
-            },
-            &None => {}
-        }
-    }
-
-    pub fn clear_noncontent_inline_left(&self) {
-        let mut info = self.inline_info.borrow_mut();
-        match info.get() {
-            &Some(ref mut info) => {
-                for item in info.parent_info.mut_iter() {
-                    item.border.left = Au::new(0);
-                    item.padding.left = Au::new(0);
-                    item.margin.left = Au::new(0);
-                }
-            },
-            &None => {}
-        }
-    }
     pub fn relative_position(&self, container_block_size: &Size2D<Au>) -> Point2D<Au> {
         fn left_right(style: &ComputedValues, block_width: Au) -> Au {
             // TODO(ksh8281) : consider RTL(right-to-left) culture
