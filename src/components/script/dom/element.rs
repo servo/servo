@@ -727,4 +727,22 @@ impl VirtualMethods for JS<Element> {
 
         self.notify_attribute_changed(name);
     }
+
+    fn bind_to_tree(&mut self) {
+        match self.super_type() {
+            Some(ref mut s) => s.bind_to_tree(),
+            _ => (),
+        }
+
+        self.bind_to_tree_impl();
+    }
+
+    fn unbind_from_tree(&mut self) {
+        match self.super_type() {
+            Some(ref mut s) => s.unbind_from_tree(),
+            _ => (),
+        }
+
+        self.unbind_from_tree_impl();
+    }
 }

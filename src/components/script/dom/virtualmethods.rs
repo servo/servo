@@ -42,6 +42,22 @@ pub trait VirtualMethods {
             _ => (),
         }
     }
+
+    /// Called when a Node is appended to a tree that is part of a Document.
+    fn bind_to_tree(&mut self) {
+        match self.super_type() {
+            Some(ref mut s) => s.bind_to_tree(),
+            _ => (),
+        }
+    }
+
+    /// Called when a Node is removed from a tree that is part of a Document.
+    fn unbind_from_tree(&mut self) {
+        match self.super_type() {
+            Some(ref mut s) => s.unbind_from_tree(),
+            _ => (),
+        }
+    }
 }
 
 /// Obtain a VirtualMethods instance for a given Node-derived object. Any
