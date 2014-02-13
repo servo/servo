@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::HTMLSelectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementDerived;
+use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement};
 use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
 use dom::document::Document;
@@ -174,5 +175,9 @@ impl HTMLSelectElement {
     }
 
     pub fn SetCustomValidity(&mut self, _error: DOMString) {
+    }
+
+    pub fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) -> ErrorResult {
+        Ok(())
     }
 }

@@ -92,9 +92,13 @@ class CastableObjectUnwrapper():
 
     codeOnFailure is the code to run if unwrapping fails.
     """
-    def __init__(self, descriptor, source, target, codeOnFailure, isOptional=False):
+    def __init__(self, descriptor, source, target, codeOnFailure, isOptional=False,
+                 preUnwrapped=None, postUnwrapped=None):
         assert descriptor.castable
 
+        unwrappedVal = "val"
+        if preUnwrapped or postUnwrapped:
+            unwrappedVal = preUnwrapped + unwrappedVal + postUnwrapped
         self.substitution = { "type" : descriptor.nativeType,
                               "depth": descriptor.interface.inheritanceDepth(),
                               "prototype": "PrototypeList::id::" + descriptor.name,
@@ -102,7 +106,7 @@ class CastableObjectUnwrapper():
                               "source" : source,
                               "target" : target,
                               "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define(),
-                              "unwrapped_val" : "Some(val)" if isOptional else "val",
+                              "unwrapped_val" : ("Some(%s)" % unwrappedVal) if isOptional else unwrappedVal,
                               "unwrapFn": "unwrap_jsmanaged" if 'JS' in descriptor.nativeType else "unwrap_object"}
         if descriptor.hasXPConnectImpls:
             # We don't use xpc_qsUnwrapThis because it will always throw on
@@ -447,7 +451,9 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isClamp=False,
                                     exceptionCode=None,
                                     isCallbackReturnValue=False,
-                                    sourceDescription="value"):
+                                    sourceDescription="value",
+                                    preSuccess=None,
+                                    postSuccess=None):
     """
     Get a template for converting a JS value to a native object based on the
     given type and descriptor.  If failureCode is given, then we're actually
@@ -706,8 +712,8 @@ for (uint32_t i = 0; i < length; ++i) {
                (isinstance(defaultValue, IDLNullValue) and nullable))
 
         unionArgumentObj = "${holderName}"
-        if isOptional or nullable:
-            unionArgumentObj += ".ref()"
+        #if isOptional or nullable:
+        #    unionArgumentObj += ".get_mut_ref()"
 
         memberTypes = type.flatMemberTypes
         names = []
@@ -720,7 +726,7 @@ for (uint32_t i = 0; i < length; ++i) {
                     name = memberType.inner.identifier.name
                 else:
                     name = memberType.name
-                interfaceObject.append(CGGeneric("(failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext" % (unionArgumentObj, name)))
+                interfaceObject.append(CGGeneric("({failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, &mut tryNext); failed}) || !tryNext" % (unionArgumentObj, name)))
                 names.append(name)
             interfaceObject = CGWrapper(CGList(interfaceObject, " ||\n"), pre="done = ", post=";\n", reindent=True)
         else:
@@ -731,7 +737,7 @@ for (uint32_t i = 0; i < length; ++i) {
             assert len(arrayObjectMemberTypes) == 1
             memberType = arrayObjectMemberTypes[0]
             name = memberType.name
-            arrayObject = CGGeneric("done = (failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext;" % (unionArgumentObj, name))
+            arrayObject = CGGeneric("done = ({failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, &mut tryNext); failed}) || !tryNext;" % (unionArgumentObj, name))
             # XXX Now we're supposed to check for an array or a platform object
             # that supports indexed properties... skip that last for now. It's a
             # bit of a pain.
@@ -761,7 +767,7 @@ for (uint32_t i = 0; i < length; ++i) {
             assert len(callbackMemberTypes) == 1
             memberType = callbackMemberTypes[0]
             name = memberType.name
-            callbackObject = CGGeneric("done = (failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext;" % (unionArgumentObj, name))
+            callbackObject = CGGeneric("done = ({failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, &mut tryNext); failed}) || !tryNext;" % (unionArgumentObj, name))
             names.append(name)
         else:
             callbackObject = None
@@ -816,7 +822,7 @@ for (uint32_t i = 0; i < length; ++i) {
             if any([arrayObject, dateObject, nonPlatformObject, object]):
                 templateBody.prepend(CGGeneric("JSObject& argObj = ${val}.toObject();"))
             templateBody = CGWrapper(CGIndenter(templateBody),
-                                     pre="if (${val}.isObject()) {\n",
+                                     pre="if JSVAL_IS_OBJECT(${val}) {\n",
                                      post="\n}")
         else:
             templateBody = CGGeneric()
@@ -831,7 +837,7 @@ for (uint32_t i = 0; i < length; ++i) {
                 name = memberType.inner.identifier.name
             else:
                 name = memberType.name
-            other = CGGeneric("done = (failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext;" % (unionArgumentObj, name))
+            other = CGGeneric("done = ({failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, &mut tryNext); failed}) || !tryNext;" % (unionArgumentObj, name))
             names.append(name)
             if hasObjectTypes:
                 other = CGWrapper(CGIndenter(other), "{\n", post="\n}")
@@ -844,29 +850,33 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             other = None
 
-        templateBody = CGWrapper(templateBody, pre="bool done = false, failed = false, tryNext;\n")
-        throw = CGGeneric("if (failed) {\n"
-                          "  return false;\n"
+        templateBody = CGWrapper(templateBody, pre="let mut done = false;\n"
+                                 "let mut failed = false;\n"
+                                 "let mut tryNext = false;\n")
+        throw = CGGeneric("if failed {\n"
+                          "  return 0;\n"
                           "}\n"
-                          "if (!done) {\n"
-                          "  return ThrowErrorMessage(cx, MSG_NOT_IN_UNION, \"%s\");\n"
+                          "if !done {\n"
+                          "  //XXXjdm throw exception\n"
+                          "  //return ThrowErrorMessage(cx, MSG_NOT_IN_UNION, \"%s\");\n"
+                          "  return 0;"
                           "}" % ", ".join(names))
         templateBody = CGWrapper(CGIndenter(CGList([templateBody, throw], "\n")), pre="{\n", post="\n}")
 
         typeName = type.name
         argumentTypeName = typeName + "Argument"
         if nullable:
-            typeName = "Nullable<" + typeName + " >"
-        if isOptional:
-            nonConstDecl = "const_cast<Optional<" + typeName + " >& >(${declName})"
-        else:
-            nonConstDecl = "const_cast<" + typeName + "& >(${declName})"
-            typeName = "const " + typeName
+            typeName = "Option<" + typeName + " >"
+        #if isOptional:
+        #    nonConstDecl = "const_cast<Optional<" + typeName + " >& >(${declName})"
+        #else:
+        #    nonConstDecl = "const_cast<" + typeName + "& >(${declName})"
+        nonConstDecl = "${declName}"
 
         def handleNull(templateBody, setToNullVar, extraConditionForNull=""):
-            null = CGGeneric("if (%s${val}.isNullOrUndefined()) {\n"
-                             "  %s.SetNull();\n"
-                             "}" % (extraConditionForNull, setToNullVar))
+            null = CGGeneric("if %sRUST_JSVAL_IS_NULL(${val}) != 0 || %sRUST_JSVAL_IS_VOID(${val}) != 0 {\n"
+                             "  %s = None;\n"
+                             "}" % (extraConditionForNull, extraConditionForNull, setToNullVar))
             templateBody = CGWrapper(CGIndenter(templateBody), pre="{\n", post="\n}")
             return CGList([null, templateBody], " else ")
 
@@ -878,21 +888,28 @@ for (uint32_t i = 0; i < length; ++i) {
         if isOptional:
             mutableDecl = nonConstDecl + ".Value()"
             declType = CGWrapper(declType, pre="const Optional<", post=" >")
-            holderType = CGWrapper(holderType, pre="Maybe<", post=" >")
+            holderType = CGWrapper(holderType, pre="Option<", post=" >")
             constructDecl = CGGeneric(nonConstDecl + ".Construct();")
             if nullable:
-                constructHolder = CGGeneric("${holderName}.construct(%s.SetValue());" % mutableDecl)
+                constructHolder = CGGeneric("${holderName} = Some(%s.SetValue());" % mutableDecl)
             else:
-                constructHolder = CGGeneric("${holderName}.construct(${declName}.Value());")
+                constructHolder = CGGeneric("${holderName} = Some(${declName}.Value());")
         else:
             mutableDecl = nonConstDecl
             constructDecl = None
+            #if nullable:
+            #holderType = CGWrapper(holderType, pre="Option<", post=" >")
+            #    constructHolder = CGGeneric("${holderName} = Some(None);")
+            #else:
+            holderInit = "${declName}"
             if nullable:
-                holderType = CGWrapper(holderType, pre="Maybe<", post=" >")
-                constructHolder = CGGeneric("${holderName}.construct(%s.SetValue());" % mutableDecl)
+                holderInit += ".get_mut_ref()"
             else:
-                constructHolder = CGWrapper(holderType, post=" ${holderName}(${declName});")
-                holderType = None
+                holderInit = "&mut " + holderInit
+            constructHolder = CGWrapper(holderType, pre="let mut ${holderName} = ", post="::new(" + holderInit + ");")
+            if nullable:
+                constructHolder = CGWrapper(constructHolder, pre="${declName} = Some(uninit());\n")
+            holderType = None
 
         templateBody = CGList([constructHolder, templateBody], "\n")
         if nullable:
@@ -903,9 +920,10 @@ for (uint32_t i = 0; i < length; ++i) {
                 valueMissing = ""
             templateBody = handleNull(templateBody, mutableDecl,
                                       extraConditionForNull=valueMissing)
-        templateBody = CGList([constructDecl, templateBody], "\n")
+        templateBody = CGWrapper(CGIndenter(CGList([constructDecl, templateBody], "\n")),
+                                 pre="{\n", post="\n}")
 
-        return templateBody.define(), declType, holderType, False, None
+        return templateBody.define(), declType, holderType, False, "uninit()" if not nullable else None
 
     if type.isGeckoInterface():
         assert not isEnforceRange and not isClamp
@@ -968,7 +986,8 @@ for (uint32_t i = 0; i < length; ++i) {
                         "JSVAL_TO_OBJECT(${val})",
                         "${declName}",
                         failureCode,
-                        isOptional or argIsPointer or type.nullable()))
+                        isOptional or argIsPointer or type.nullable(),
+                        preUnwrapped=preSuccess, postUnwrapped=postSuccess))
             else:
                 templateBody += str(FailureFatalCastableObjectUnwrapper(
                         descriptor,
@@ -1254,32 +1273,41 @@ for (uint32_t i = 0; i < length; ++i) {
     elif isClamp:
         conversionBehavior = "eClamp"
 
-    if type.nullable():
+    if failureCode is None:
+        failureCode = 'return 0'
+
+    if type.nullable(): #or isOptional:
         dataLoc = "${declName}.SetValue()"
         nullCondition = "(RUST_JSVAL_IS_NULL(${val}) != 0 || RUST_JSVAL_IS_VOID(${val}) != 0)"
         if defaultValue is not None and isinstance(defaultValue, IDLNullValue):
             nullCondition = "!(${haveValue}) || " + nullCondition
+        successVal = "val_"
+        if preSuccess or postSuccess:
+            successVal = preSuccess + successVal + postSuccess
         #XXXjdm support conversionBehavior here
         template = (
             "if (%s) {\n"
             "  ${declName} = None;\n"
             "} else {\n"
             "  match JSValConvertible::from_jsval(${val}) {\n"
-            "    Some(val_) => ${declName} = Some(val_),\n"
-            "    None => return 0\n"
+            "    Some(val_) => ${declName} = Some(%s),\n"
+            "    None => %s\n"
             "  }\n"
-           "}" % nullCondition)
+           "}" % (nullCondition, successVal, failureCode))
         declType = CGGeneric("Option<" + typeName + ">")
     else:
         assert(defaultValue is None or
                not isinstance(defaultValue, IDLNullValue))
         dataLoc = "${declName}"
         #XXXjdm conversionBehavior should be used
+        successVal = "v"
+        if preSuccess or postSuccess:
+            successVal = preSuccess + successVal + postSuccess
         template = (
             "match JSValConvertible::from_jsval(${val}) {\n"
-            "  None => return 0,\n"
-            "  Some(v) => %s = v\n"
-            "}" % (dataLoc,))
+            "  None => %s,\n"
+            "  Some(v) => %s = %s\n"
+            "}" % (failureCode, dataLoc, successVal))
         declType = CGGeneric(typeName)
     if (defaultValue is not None and
         # We already handled IDLNullValue, so just deal with the other ones
@@ -3686,17 +3714,17 @@ def getUnionAccessorSignatureType(type, descriptorProvider):
         typeName = CGGeneric(descriptor.nativeType)
         # Allow null pointers for nullable types and old-binding classes
         if type.nullable() or type.unroll().inner.isExternal():
-            typeName = CGWrapper(typeName, post="*")
+            typeName = CGWrapper(typeName, pre="Option<", post=">")
         else:
-            typeName = CGWrapper(typeName, post="&")
+            typeName = CGWrapper(typeName, pre="&'a ")
         return typeName
 
     if type.isSpiderMonkeyInterface():
         typeName = CGGeneric(type.name)
         if type.nullable():
-            typeName = CGWrapper(typeName, post="*")
+            typeName = CGWrapper(typeName, pre="Option<", post=">")
         else:
-            typeName = CGWrapper(typeName, post="&")
+            typeName = CGWrapper(typeName, pre="&")
         return typeName
 
     if type.isString():
@@ -3740,23 +3768,33 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
 
     if type.isGeckoInterface():
         name = type.inner.identifier.name
+        typeName = descriptorProvider.getDescriptor(name).nativeType
     elif type.isEnum():
         name = type.inner.identifier.name
+        typeName = name
     elif type.isArray() or type.isSequence():
         name = str(type)
+        #XXXjdm dunno about typeName here
+        typeName = "/*" + type.name + "*/"
+    elif type.isPrimitive():
+        name = type.name
+        typeName = builtinNames[type.tag()]
     else:
         name = type.name
+        typeName = "/*" + type.name + "*/"
 
-    tryNextCode = """tryNext = true;
-return true;"""
+    tryNextCode = """{
+  *tryNext = true;
+  return true;
+}"""
     if type.isGeckoInterface():
-         tryNextCode = ("""if (mUnion.mType != mUnion.eUninitialized) {
+         tryNextCode = ("""/*if (mUnion.mType != mUnion.eUninitialized) {
   mUnion.Destroy%s();
-}""" % name) + tryNextCode
+}*/""" % name) + tryNextCode
     (template, declType, holderType,
      dealWithOptional, initialValue) = getJSToNativeConversionTemplate(
         type, descriptorProvider, failureCode=tryNextCode,
-        isDefinitelyObject=True)
+        isDefinitelyObject=True, isOptional=type.nullable(), preSuccess="e" + name + "(", postSuccess=")")
 
     # This is ugly, but UnionMember needs to call a constructor with no
     # arguments so the type can't be const.
@@ -3766,17 +3804,15 @@ return true;"""
     externalType = getUnionAccessorSignatureType(type, descriptorProvider).define()
 
     if type.isObject():
-        setter = CGGeneric("void SetToObject(JSObject* obj)\n"
-                           "{\n"
-                           "  mUnion.mValue.mObject.SetValue() = obj;\n"
-                           "  mUnion.mType = mUnion.eObject;\n"
+        setter = CGGeneric("pub fn SetToObject(obj: *JSObject) {\n"
+                           "  mUnion = Some(eObject(obj));\n"
                            "}")
     else:
         jsConversion = string.Template(template).substitute(
             {
                 "val": "value",
                 "valPtr": "pvalue",
-                "declName": "SetAs" + name + "()",
+                "declName": "*self.mUnion",
                 "holderName": "m" + name + "Holder"
                 }
             )
@@ -3784,16 +3820,17 @@ return true;"""
                                  post="\n"
                                       "return true;")
         setter = CGWrapper(CGIndenter(jsConversion),
-                           pre="bool TrySetTo" + name + "(JSContext* cx, const JS::Value& value, JS::Value* pvalue, bool& tryNext)\n"
-                               "{\n"
-                               "  tryNext = false;\n",
+                           pre="pub fn TrySetTo" + name + "(&mut self, cx: *JSContext, value: JSVal, pvalue: *JSVal, tryNext: &mut bool) -> bool {\n"
+                               "  *tryNext = false;\n",
                            post="\n"
                                 "}")
 
     return {
                 "name": name,
+                "typeName": typeName,
                 "structType": structType,
                 "externalType": externalType,
+                "optRef": 'ref ' if externalType[0] == '&' else '',
                 "setter": CGIndenter(setter).define(),
                 "holderType": holderType.define() if holderType else None
                 }
@@ -3819,75 +3856,47 @@ class CGUnionStruct(CGThing):
             callDestructors.append("      case eNull:\n"
                                    "        break;")
             enumValues.append("eNull")
-            methods.append("""  bool IsNull() const
-  {
-    return mType == eNull;
+            methods.append("""  pub fn IsNull(&self) -> bool {
+    match *self {
+      eNull => true,
+      _ => false
+    }
   }""")
 
-        destructorTemplate = """  void Destroy${name}()
-  {
-    MOZ_ASSERT(Is${name}(), "Wrong type!");
-    mValue.m${name}.Destroy();
-    mType = eUninitialized;
+        destructorTemplate = """  fn Destroy${name}(&mut self) {
+    assert!(Is${name}(), "Wrong type!");
+    //mValue.m${name}.Destroy();
+    //mType = eUninitialized;
+    *self.mUnion = None;
   }"""
         destructors = mapTemplate(destructorTemplate, templateVars)
         callDestructors.extend(mapTemplate("      case e${name}:\n"
                                            "         Destroy${name}();\n"
                                            "         break;", templateVars))
-        enumValues.extend(mapTemplate("e${name}", templateVars))
-        methodTemplate = """  bool Is${name}() const
-  {
-    return mType == e${name};
+        enumValues.extend(mapTemplate("e${name}(${typeName})", templateVars))
+        methodTemplate = """  pub fn Is${name}(&self) -> bool {
+    match *self {
+      e${name}(_) => true,
+      _ => false
+    }
   }
-  ${externalType} GetAs${name}() const
-  {
-    MOZ_ASSERT(Is${name}(), "Wrong type!");
-    // The cast to ${externalType} is needed to work around a bug in Apple's
-    // clang compiler, for some reason it doesn't call |S::operator T&| when
-    // casting S<T> to T& and T is forward declared.
-    return (${externalType})mValue.m${name}.Value();
-  }
-  ${structType}& SetAs${name}()
-  {
-    mType = e${name};
-    return mValue.m${name}.SetValue();
+  pub fn GetAs${name}<'a>(&'a self) -> ${externalType} {
+    assert!(self.Is${name}());
+    match *self {
+      e${name}(${optRef}inner) => inner,
+      _ => unreachable!()
+    }
   }"""
         methods.extend(mapTemplate(methodTemplate, templateVars))
         values = mapTemplate("UnionMember<${structType} > m${name};", templateVars)
         return string.Template("""
-class ${structName} {
-public:
-  ${structName}() : mType(eUninitialized)
-  {
-  }
-  ~${structName}()
-  {
-    switch (mType) {
-${callDestructors}
-      case eUninitialized:
-        break;
-    }
-  }
+pub enum ${structName} {
+  ${enumValues}
+}
 
+impl ${structName} {
 ${methods}
-
-private:
-  friend class ${structName}Argument;
-
-${destructors}
-
-  enum Type {
-    eUninitialized,
-    ${enumValues}
-  };
-  union Value {
-    ${values}
-  };
-
-  Type mType;
-  Value mValue;
-};
-
+}
 """).substitute(
     {
        "structName": self.type.__str__(),
@@ -3912,9 +3921,9 @@ class CGUnionConversionStruct(CGThing):
         setters = []
 
         if self.type.hasNullableType:
-            setters.append("""  bool SetNull()
+            setters.append("""  pub fn SetNull(&mut self) -> bool
   {
-    mUnion.mType = mUnion.eNull;
+    mUnion = Some(eNull);
     return true;
   }""")
 
@@ -3923,7 +3932,7 @@ class CGUnionConversionStruct(CGThing):
         structName = self.type.__str__()
 
         setters.extend(mapTemplate("${setter}", templateVars))
-        private = "\n".join(mapTemplate("""  ${structType}& SetAs${name}()
+        private = "\n".join(mapTemplate("""  fn SetAs${name}() -> &${structType}
   {
     mUnion.mType = mUnion.e${name};
     return mUnion.mValue.m${name}.SetValue();
@@ -3935,20 +3944,22 @@ class CGUnionConversionStruct(CGThing):
             private += "\n\n"
         private += "  " + structName + "& mUnion;"
         return string.Template("""
-class ${structName}Argument {
-public:
-  ${structName}Argument(const ${structName}& aUnion) : mUnion(const_cast<${structName}&>(aUnion))
-  {
+pub struct ${structName}Argument<'a> {
+  mUnion: &'a mut ${innerType}
+}
+
+impl<'a> ${structName}Argument<'a> {
+  pub fn new(union: &'a mut ${innerType}) -> ${structName}Argument<'a> {
+    ${structName}Argument {
+      mUnion: union
+    }
   }
 
 ${setters}
-
-private:
-${private}
-};
+}
 """).substitute({"structName": structName,
+       "innerType": ("Option<%s>" % structName) if self.type.nullable() else structName,
        "setters": "\n\n".join(setters),
-       "private": private
        })
 
     def define(self):
@@ -5580,6 +5591,8 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::callback::*',
                           'dom::bindings::conversions::*',
                           'dom::bindings::codegen::*', #XXXjdm
+                          'dom::bindings::codegen::UnionTypes::*', #XXXjdm
+                          'dom::bindings::codegen::UnionConversions::*', #XXXjdm
                           'script_task::{JSPageInfo, page_from_context}',
                           'dom::bindings::proxyhandler',
                           'dom::bindings::proxyhandler::*',
@@ -5591,6 +5604,7 @@ class CGBindingRoot(CGThing):
                           'std::vec',
                           'std::str',
                           'std::num',
+                          'std::unstable::intrinsics::uninit',
                           'std::unstable::raw::Box',
                          ], 
                          [],
@@ -6713,6 +6727,9 @@ class GlobalGenRoots():
         # Add include guards.
         #curr = CGIncludeGuard('UnionTypes', curr)
 
+        curr = CGImports([], [], ['dom::bindings::js::JS',
+                                  'dom::types::*'], [], curr)
+
         # Add the auto-generated comment.
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
 
@@ -6734,6 +6751,14 @@ class GlobalGenRoots():
 
         # Add include guards.
         #curr = CGIncludeGuard('UnionConversions', curr)
+
+        curr = CGImports([], [], ['dom::bindings::utils::unwrap_jsmanaged',
+                                  'dom::bindings::codegen::UnionTypes::*',
+                                  'dom::bindings::codegen::PrototypeList',
+                                  'dom::bindings::conversions::JSValConvertible',
+                                  'js::*',
+                                  'js::jsapi::*',
+                                  'js::glue::*'], [], curr)
 
         # Add the auto-generated comment.
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)

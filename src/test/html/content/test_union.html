@@ -1,0 +1,35 @@
+<html>
+<head>
+<script src="harness.js"></script>
+<select id="sel"></select>
+<script>
+  var sel = document.getElementById('sel');
+  var opt = document.createElement('option');
+  sel.add(opt);
+  var optgroup = document.createElement('optgroup');
+  sel.add(optgroup);
+  var div = document.createElement('div');
+  sel.add(opt, div);
+  sel.add(optgroup, div);
+  sel.add(opt, 5);
+  sel.add(optgroup, 5);
+  is(true, true, "should not have thrown any exceptions");
+
+  try {
+    self.add(div);
+    is(true, false, "should have thrown");
+  } catch (x) {
+    is(true, true, "should have thrown");
+  }
+
+  try {
+    self.add(optgroup, "");
+    is(true, false, "should have thrown");
+  } catch (x) {
+    is(true, true, "should have thrown");
+  }
+
+  finish();
+</script>
+</head>
+</html>
