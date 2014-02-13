@@ -520,35 +520,23 @@ impl Document {
         });
     }
 
-    pub fn update_idmap(&mut self,
-                        abstract_self: AbstractNode,
-                        new_id: Option<DOMString>,
-                        old_id: Option<DOMString>) {
-        // remove old ids:
-        // * if the old ones are not same as the new one,
-        // * OR if the new one is none.
-        match old_id {
-            Some(ref old_id) if new_id.is_none() ||
-                                (*new_id.get_ref() != *old_id) => {
-                self.idmap.remove(old_id);
-            }
-            _ => ()
-        }
+    pub fn unregister_named_element(&mut self,
+                                    id: &DOMString) {
+        self.idmap.remove(id);
+    }
 
-        match new_id {
-            Some(new_id) => {
-                // TODO: support the case if multiple elements
-                // which haves same id are in the same document.
-                self.idmap.mangle(new_id, abstract_self,
-                                  |_, new_node: AbstractNode| -> AbstractNode {
-                                      new_node
-                                  },
-                                  |_, old_node: &mut AbstractNode, new_node: AbstractNode| {
-                                      *old_node = new_node;
-                                  });
-            }
-            None => ()
-        }
+    pub fn register_named_element(&mut self,
+                                  element: AbstractNode,
+                                  id: DOMString) {
+        // TODO: support the case if multiple elements
+        // which haves same id are in the same document.
+        self.idmap.mangle(id, element,
+                          |_, new_element: AbstractNode| -> AbstractNode {
+                              new_element
+                          },
+                          |_, old_element: &mut AbstractNode, new_element: AbstractNode| {
+                              *old_element = new_element;
+                          });
     }
 }
 
