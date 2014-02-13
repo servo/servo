@@ -13,7 +13,8 @@ use dom::location::Location;
 use dom::navigator::Navigator;
 
 use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
-use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan};
+use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan, TriggerLoadMsg};
+use script_task::TriggerFragmentMsg;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::DOMString;
@@ -33,6 +34,7 @@ use std::ptr;
 use std::to_bytes::Cb;
 
 use extra::serialize::{Encoder, Encodable};
+use extra::url::Url;
 
 pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
@@ -259,6 +261,14 @@ impl Window {
         // FIXME: This disables concurrent layout while we are modifying the DOM, since
         //        our current architecture is entirely unsafe in the presence of races.
         self.page.join_layout();
+    }
+
+    pub fn load_url(&self, url: Url, fragment: bool) {
+        if fragment {
+            self.script_chan.send(TriggerFragmentMsg(self.page.id, url));
+        } else {
+            self.script_chan.send(TriggerLoadMsg(self.page.id, url));
+        }
     }
 
     pub fn new(cx: *JSContext,

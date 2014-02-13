@@ -36,6 +36,7 @@ use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
+use servo_util::url::parse_url;
 
 use extra::url::{Url, from_str};
 use js::jsapi::{JSObject, JSContext};
@@ -505,5 +506,14 @@ impl Document {
                           |_, old_element: &mut JS<Element>, new_element: &JS<Element>| {
                               *old_element = new_element.clone();
                           });
+    }
+
+    pub fn load_anchor_href(&self, href: DOMString) {
+        let page = self.window.get().page;
+        let base_url = page.url.as_ref().map(|&(ref url, _)| url.clone());
+        debug!("current page url is {:?}", base_url);
+        let url = parse_url(href, base_url);
+        let click_frag = href.starts_with("#");
+        self.window.get().load_url(url, click_frag);
     }
 }

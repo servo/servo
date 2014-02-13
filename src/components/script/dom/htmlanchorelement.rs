@@ -8,9 +8,12 @@ use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLAnchorElementTypeId;
+use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId};
+use dom::virtualmethods::VirtualMethods;
+use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -143,5 +146,31 @@ impl HTMLAnchorElement {
 
     pub fn SetShape(&mut self, _shape: DOMString) -> ErrorResult {
         Ok(())
+    }
+}
+
+impl HTMLAnchorElement {
+    fn handle_event_impl(&mut self, abstract_self: &JS<Node>, event: &JS<Event>) {
+        let event = event.get();
+        if "click" == event.Type() && !event.DefaultPrevented() {
+            let attr = self.htmlelement.element.get_attribute(Null, "href");
+            for href in attr.iter() {
+                let value = href.get().Value();
+                debug!("clicked on link to {:s}", value);
+                let doc = abstract_self.get().owner_doc();
+                doc.get().load_anchor_href(value);
+            }
+        }
+    }
+}
+
+impl VirtualMethods for HTMLAnchorElement {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        Some(&mut self.htmlelement as &mut VirtualMethods)
+    }
+
+    fn handle_event(&mut self, abstract_self: &JS<Node>, event: &JS<Event>) {
+        self.super_type().map(|s| s.handle_event(abstract_self, event));
+        self.handle_event_impl(abstract_self, event);
     }
 }

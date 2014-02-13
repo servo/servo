@@ -2,13 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
 use dom::bindings::js::JS;
 use dom::element::Element;
-use dom::element::{HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLObjectElementTypeId};
+use dom::element::{HTMLAnchorElementTypeId, HTMLImageElementTypeId};
+use dom::element::{HTMLIframeElementTypeId, HTMLObjectElementTypeId};
+use dom::event::Event;
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -47,12 +51,23 @@ pub trait VirtualMethods {
         if s.is_some() {
             s.unwrap().unbind_from_tree(abstract_self);
         }
+   }
+
+    fn handle_event(&mut self, abstract_self: &JS<Node>, event: &JS<Event>) {
+        let s = self.super_type();
+        if s.is_some() {
+            s.unwrap().handle_event(abstract_self, event);
+        }
     }
 }
 
 pub fn vtable_for<'a>(node: &'a mut JS<Node>) -> &'a mut VirtualMethods {
     unsafe {
         match node.get().type_id {
+            ElementNodeTypeId(HTMLAnchorElementTypeId) => {
+                let mut elem: JS<HTMLAnchorElement> = HTMLAnchorElementCast::to(node);
+                cast::transmute_mut_region(elem.get_mut()) as &mut VirtualMethods
+            }
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(node);
                 cast::transmute_mut_region(elem.get_mut()) as &mut VirtualMethods
