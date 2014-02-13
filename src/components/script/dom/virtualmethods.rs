@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::element::{HTMLImageElementTypeId, HTMLIframeElementTypeId};
+use dom::element::{HTMLAnchorElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
+use dom::event::AbstractEvent;
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -55,17 +57,28 @@ pub trait VirtualMethods {
             s.unwrap().unbind_from_tree(abstract_self);
         }
    }
+
+    fn handle_event(&mut self, abstract_self: AbstractNode, event: AbstractEvent) {
+        let s = self.super_type();
+        if s.is_some() {
+            s.unwrap().handle_event(abstract_self, event);
+        }
+    }
 }
 
 pub fn vtable_for(node: AbstractNode) -> &mut VirtualMethods {
     unsafe {
         match node.type_id() {
-            ElementNodeTypeId(HTMLImageElementTypeId) => {
-                let elem = node.raw_object() as *mut Box<HTMLImageElement>;
+            ElementNodeTypeId(HTMLAnchorElementTypeId) => {
+                let elem = node.raw_object() as *mut Box<HTMLAnchorElement>;
                 &mut (*elem).data as &mut VirtualMethods
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => {
                 let elem = node.raw_object() as *mut Box<HTMLIFrameElement>;
+                &mut (*elem).data as &mut VirtualMethods
+            }
+            ElementNodeTypeId(HTMLImageElementTypeId) => {
+                let elem = node.raw_object() as *mut Box<HTMLImageElement>;
                 &mut (*elem).data as &mut VirtualMethods
             }
             ElementNodeTypeId(_) => {

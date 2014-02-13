@@ -8,7 +8,6 @@
 use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::utils::{Reflectable, GlobalStaticData};
 use dom::document::AbstractDocument;
-use dom::element::Element;
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use dom::event::Event;
 use dom::eventtarget::AbstractEventTarget;
@@ -44,7 +43,6 @@ use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
-use servo_util::url::parse_url;
 use servo_util::task::send_on_failure;
 use servo_util::namespace::Null;
 use std::comm::{Port, SharedChan};
@@ -56,6 +54,10 @@ use std::util::replace;
 pub enum ScriptMsg {
     /// Loads a new URL on the specified pipeline.
     LoadMsg(PipelineId, Url),
+    /// Acts on a fragment URL load on the specified pipeline.
+    TriggerFragmentMsg(PipelineId, Url),
+    /// Begins a content-initiated load on the specified pipeline.
+    TriggerLoadMsg(PipelineId, Url),
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
     AttachLayoutMsg(NewLayoutInfo),
     /// Instructs the script task to send a navigate message to the constellation.
@@ -547,6 +549,8 @@ impl ScriptTask {
                 // TODO(tkuehn) need to handle auxiliary layouts for iframes
                 AttachLayoutMsg(new_layout_info) => self.handle_new_layout(new_layout_info),
                 LoadMsg(id, url) => self.load(id, url),
+                TriggerLoadMsg(id, url) => self.trigger_load(id, url),
+                TriggerFragmentMsg(id, url) => self.trigger_fragment(id, url),
                 SendEventMsg(id, event) => self.handle_event(id, event),
                 FireTimerMsg(id, timer_data) => self.handle_fire_timer_msg(id, timer_data),
                 NavigateMsg(direction) => self.handle_navigate_msg(direction),
@@ -849,7 +853,8 @@ impl ScriptTask {
             ClickEvent(_button, point) => {
                 debug!("ClickEvent: clicked at {:?}", point);
 
-                let document = page.frame.expect("root frame is None").document;
+                let frame = page.frame.expect("root frame is None");
+                let document = frame.document;
                 let root = document.document().GetDocumentElement();
                 if root.is_none() {
                     return;
@@ -873,11 +878,10 @@ impl ScriptTask {
                         }
 
                         if node.is_element() {
-                            node.with_imm_element(|element| {
-                                if "a" == element.tag_name {
-                                    self.load_url_from_element(page, element)
-                                }
-                            })
+                            let event = Event::new(frame.window);
+                            event.mut_event().InitEvent(~"click", true, true);
+                            let elemtarget = AbstractEventTarget::from_node(node);
+                            node.node().eventtarget.dispatch_event_with_target(elemtarget, None, event);
                         }
                     },
                     Err(()) => debug!("layout query error"),
@@ -957,26 +961,21 @@ impl ScriptTask {
         }
     }
 
-    fn load_url_from_element(&self, page: @mut Page, element: &Element) {
-        // if the node's element is "a," load url from href attr
-        let attr = element.get_attribute(Null, "href");
-        for href in attr.iter() {
-            debug!("ScriptTask: clicked on link to {:s}", href.Value());
-            let click_frag = href.value_ref().starts_with("#");
-            let base_url = page.url.as_ref().map(|&(ref url, _)| {
-                url.clone()
-            });
-            debug!("ScriptTask: current url is {:?}", base_url);
-            let url = parse_url(href.value_ref(), base_url);
+    /// The entry point for content to notify that a new load has been requested
+    /// for the given pipeline.
+    fn trigger_load(&mut self, pipeline_id: PipelineId, url: Url) {
+        self.constellation_chan.send(LoadUrlMsg(pipeline_id, url));
+    }
 
-            if click_frag {
-                match page.find_fragment_node(url.fragment.unwrap()) {
-                    Some(node) => self.scroll_fragment_point(page.id, page, node),
-                    None => {}
-                }
-            } else {
-                self.constellation_chan.send(LoadUrlMsg(page.id, url));
-            } 
+    /// The entry point for content to notify that a fragment url has been requested
+    /// for the given pipeline.
+    fn trigger_fragment(&mut self, pipeline_id: PipelineId, url: Url) {
+        let page = self.page_tree.find(pipeline_id).expect("ScriptTask: received an event
+            message for a layout channel that is not associated with this script task. This
+            is a bug.").page;
+        match page.find_fragment_node(url.fragment.unwrap()) {
+            Some(node) => self.scroll_fragment_point(pipeline_id, page, node),
+            None => {}
         }
     }
 }
