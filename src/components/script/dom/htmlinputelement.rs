@@ -3,11 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLInputElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
+use dom::bindings::utils::{Fallible, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::HTMLInputElementTypeId;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,

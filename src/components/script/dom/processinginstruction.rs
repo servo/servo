@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::ProcessingInstructionBinding;
-use dom::bindings::utils::DOMString;
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, Node, ProcessingInstructionNodeTypeId};
+use servo_util::str::DOMString;
 
 /// An HTML processing instruction node.
 pub struct ProcessingInstruction {

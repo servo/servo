@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::MouseEventBinding;
-use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
+use dom::bindings::utils::{ErrorResult, Fallible};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{AbstractEvent, Event, MouseEventTypeId};
 use dom::eventtarget::AbstractEventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
+use servo_util::str::DOMString;
 
 pub struct MouseEvent {
     parent: UIEvent,

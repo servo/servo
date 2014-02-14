@@ -5162,6 +5162,7 @@ class CGBindingRoot(CGThing):
                           'dom::node::AbstractNode',
                           'dom::eventtarget::AbstractEventTarget',
                           'dom::event::AbstractEvent',
+                          'servo_util::str::DOMString',
                           'servo_util::vec::zip_copies',
                           'std::cast',
                           'std::libc',

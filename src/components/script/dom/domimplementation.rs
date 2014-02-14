@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DOMImplementationBinding;
-use dom::bindings::utils::{DOMString, Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::utils::{Fallible, InvalidCharacter, NamespaceError};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::document::{AbstractDocument, HTML, HTMLDocumentTypeId};
@@ -16,6 +16,7 @@ use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{AbstractNode, DocumentNodeTypeId};
 use dom::text::Text;
 use dom::window::Window;
+use servo_util::str::DOMString;
 
 pub struct DOMImplementation {
     owner: @mut Window,

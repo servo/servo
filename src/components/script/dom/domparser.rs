@@ -4,11 +4,13 @@
 
 use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::utils::{DOMString, Fallible, Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::Fallible;
 use dom::bindings::utils::FailureUnknown;
 use dom::document::{AbstractDocument, Document};
 use dom::htmldocument::HTMLDocument;
 use dom::window::Window;
+use servo_util::str::DOMString;
 
 pub struct DOMParser {
     owner: @mut Window, //XXXjdm Document instead?

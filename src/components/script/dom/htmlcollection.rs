@@ -4,9 +4,10 @@
 
 use dom::bindings::codegen::HTMLCollectionBinding;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::{DOMString, Fallible};
+use dom::bindings::utils::Fallible;
 use dom::node::AbstractNode;
 use dom::window::Window;
+use servo_util::str::DOMString;
 
 use js::jsapi::{JSObject, JSContext};
 

@@ -3,11 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::TextBinding;
-use dom::bindings::utils::{DOMString, Fallible};
+use dom::bindings::utils::Fallible;
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, Node, TextNodeTypeId};
 use dom::window::Window;
+use servo_util::str::DOMString;
 
 /// An HTML text node.
 pub struct Text {

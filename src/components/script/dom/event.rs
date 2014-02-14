@@ -6,9 +6,10 @@ use dom::eventtarget::AbstractEventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
+use dom::bindings::utils::{Fallible, ErrorResult};
 use dom::mouseevent::MouseEvent;
 use dom::uievent::UIEvent;
+use servo_util::str::DOMString;
 
 use geom::point::Point2D;
 

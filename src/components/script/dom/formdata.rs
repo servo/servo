@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Fallible, Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::DOMString;
 use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
 use dom::node::AbstractNode;
 use dom::window::Window;
+use servo_util::str::DOMString;
 
 use std::hashmap::HashMap;
 

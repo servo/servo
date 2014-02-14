@@ -4,10 +4,11 @@
 
 //! DOM bindings for `CharacterData`.
 
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
+use dom::bindings::utils::{Fallible, ErrorResult};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::AbstractDocument;
 use dom::node::{Node, NodeTypeId};
+use servo_util::str::DOMString;
 
 pub struct CharacterData {
     node: Node,

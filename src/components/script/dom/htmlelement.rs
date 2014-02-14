@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
+use dom::bindings::utils::{Fallible, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
 use dom::node::{AbstractNode, Node};
 use js::jsapi::{JSContext, JSVal};
 use js::JSVAL_NULL;
 use servo_util::namespace;
+use servo_util::str::DOMString;
 
 pub struct HTMLElement {
     element: Element
