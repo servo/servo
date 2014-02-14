@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::{DOMString, Fallible};
+use dom::bindings::utils::Fallible;
 use dom::bindings::codegen::NavigatorBinding;
 use dom::window::Window;
+use servo_util::str::DOMString;
 
 pub struct Navigator {
     reflector_: Reflector //XXXjdm cycle: window->navigator->window

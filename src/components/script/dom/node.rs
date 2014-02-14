@@ -5,7 +5,6 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::{DOMString, null_str_as_empty};
 use dom::bindings::utils::{ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::bindings::utils;
 use dom::characterdata::CharacterData;
@@ -20,6 +19,7 @@ use dom::nodelist::{NodeList};
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use layout_interface::{LayoutChan, ReapLayoutDataMsg, UntrustedNodeAddress};
+use servo_util::str::{DOMString, null_str_as_empty};
 
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsfriendapi;

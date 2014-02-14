@@ -5,6 +5,7 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::window;
+use servo_util::str::DOMString;
 
 use std::libc::c_uint;
 use std::cast;
@@ -112,31 +113,6 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
     *vp = domstring_to_jsval(cx, retval);
     return 1;
   }
-}
-
-pub type DOMString = ~str;
-
-pub fn null_str_as_empty(s: &Option<DOMString>) -> ~str {
-    // We don't use map_default because it would allocate ~"" even for Some.
-    match *s {
-        Some(ref s) => s.clone(),
-        None => ~""
-    }
-}
-
-pub fn null_str_as_empty_ref<'a>(s: &'a Option<DOMString>) -> &'a str {
-    match *s {
-        Some(ref s) => s.as_slice(),
-        None => &'a ""
-    }
-}
-
-pub fn null_str_as_word_null(s: &Option<DOMString>) -> ~str {
-    // We don't use map_default because it would allocate ~"null" even for Some.
-    match *s {
-        Some(ref s) => s.clone(),
-        None => ~"null"
-    }
 }
 
 fn is_dom_class(clasp: *JSClass) -> bool {

@@ -3,11 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::CommentBinding;
-use dom::bindings::utils::{DOMString, Fallible};
+use dom::bindings::utils::Fallible;
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, CommentNodeTypeId, Node};
 use dom::window::Window;
+use servo_util::str::DOMString;
 
 /// An HTML comment.
 pub struct Comment {

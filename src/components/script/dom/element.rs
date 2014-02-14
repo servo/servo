@@ -6,9 +6,9 @@
 
 use dom::attr::Attr;
 use dom::attrlist::AttrList;
-use dom::bindings::utils::{Reflectable, DOMString, ErrorResult, Fallible, Reflector};
-use dom::bindings::utils::{null_str_as_empty_ref, NamespaceError};
-use dom::bindings::utils::{InvalidCharacter, QName, Name, InvalidXMLName, xml_name_type};
+use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
+use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
@@ -22,6 +22,7 @@ use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
+use servo_util::str::{DOMString, null_str_as_empty_ref};
 
 use std::ascii::StrAsciiExt;
 use std::cast;

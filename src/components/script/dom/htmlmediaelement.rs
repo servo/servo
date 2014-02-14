@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::ElementTypeId;
 use dom::htmlelement::HTMLElement;
+use servo_util::str::DOMString;
 
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,

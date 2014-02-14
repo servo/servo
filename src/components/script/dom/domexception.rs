@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DOMExceptionBinding;
-use dom::bindings::utils::DOMString;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
+use servo_util::str::DOMString;
 
 #[repr(uint)]
 #[deriving(ToStr)]

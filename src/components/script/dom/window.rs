@@ -5,7 +5,6 @@
 use dom::bindings::codegen::WindowBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::bindings::utils::{trace_option, trace_reflector};
-use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::eventtarget::{EventTarget, WindowTypeId};
 use dom::node::AbstractNode;
@@ -17,6 +16,7 @@ use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
 use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan};
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
+use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
 
 use js::glue::*;

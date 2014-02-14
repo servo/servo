@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLProgressElementBinding;
-use dom::bindings::utils::DOMString;
 use dom::bindings::utils::{ErrorResult, Fallible};
 use dom::document::AbstractDocument;
 use dom::element::HTMLProgressElementTypeId;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLProgressElement {
     htmlelement: HTMLElement,
