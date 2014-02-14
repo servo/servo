@@ -578,7 +578,7 @@ impl Flow for BlockFlow {
 
         /* find max width from child block contexts */
         for child_ctx in self.base.child_iter() {
-            assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow() || child_ctx.starts_table_flow());
+            assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow() || child_ctx.is_table_kind());
 
             let child_base = flow::mut_base(*child_ctx);
             min_width = geometry::max(min_width, child_base.min_width);
@@ -709,7 +709,7 @@ impl Flow for BlockFlow {
         // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
-            assert!(kid.starts_block_flow() || kid.starts_inline_flow() || kid.starts_table_flow());
+            assert!(kid.starts_block_flow() || kid.starts_inline_flow() || kid.is_table_kind());
 
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;

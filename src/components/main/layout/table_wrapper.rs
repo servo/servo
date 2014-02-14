@@ -363,7 +363,7 @@ impl TableWrapperFlow {
             position.origin.y = y;
             height = h;
 
-            if self.is_fixed { 
+            if self.is_fixed {
                 for kid in self.base.child_iter() {
                     let child_node = flow::mut_base(*kid);
                     child_node.position.origin.y = position.origin.y + top_offset;
@@ -654,10 +654,10 @@ impl Flow for TableWrapperFlow {
                                               margin_left));
 
             let screen_size = ctx.screen_size;
-            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width, 
-                                                                 screen_size.height, 
-                                                                 width, 
-                                                                 box_.offset(), 
+            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width,
+                                                                 screen_size.height,
+                                                                 width,
+                                                                 box_.offset(),
                                                                  self.is_fixed);
             x_offset = x;
 
@@ -691,7 +691,7 @@ impl Flow for TableWrapperFlow {
         let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
             assert!(kid.is_table_caption() || kid.is_table());
-            
+
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;
             child_base.position.size.width = remaining_width;

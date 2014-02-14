@@ -316,7 +316,7 @@ impl<'fc> FlowConstructor<'fc> {
         }
     }
 
-    /// Creates an inline flow from a set of inline boxes and adds it as a child of the given flow.
+    /// Creates an inline flow from a set of inline boxes and pushes it onto the given flow list.
     ///
     /// `#[inline(always)]` because this is performance critical and LLVM will not inline it
     /// otherwise.
@@ -334,8 +334,8 @@ impl<'fc> FlowConstructor<'fc> {
         flow_list.push(inline_flow);
     }
 
-    /// Creates an inline flow from a set of inline boxes, if present, and adds it as a child of
-    /// the given flow.
+    /// Creates an inline flow from a set of inline boxes, if present, and pushes it onto the
+    /// the given flow list.
     fn flush_inline_boxes_to_flow_list_if_necessary(&mut self,
                                                opt_boxes: &mut Option<~[Box]>,
                                                flow_list: &mut ~[~Flow],
@@ -720,11 +720,9 @@ impl<'fc> FlowConstructor<'fc> {
                 NoConstructionResult => {}
                 FlowConstructionResult(kid_flow) => {
                     // If kid_flow is TableCaptionFlow, kid_flow should be added under TableWrapperFlow.
-                    if flow.is_table() && kid_flow.is_table_caption() { 
+                    if flow.is_table() && kid_flow.is_table_caption() {
                         kid.set_flow_construction_result(FlowConstructionResult(kid_flow));
-                        continue; 
-                    }
-                    if flow.need_anonymous_flow(kid_flow) {
+                    } else if flow.need_anonymous_flow(kid_flow) {
                         consecutive_siblings.push(kid_flow);
                     } else {
                         strip_ignorable_whitespace_from_end(&mut opt_boxes_for_inline_flow);
@@ -805,11 +803,8 @@ impl<'fc> FlowConstructor<'fc> {
     }
 
     /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with possibly
-    /// other `BlockFlow`s or `TableFlow`s underneath it.
+    /// other `TableCaptionFlow`s or `TableFlow`s underneath it.
     fn build_flow_for_table_wrapper(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
-        // We first populate the TableFlow with TableRowGroupFlow and TableColGroupFlow.
-        // We then populate the TableWrapperFlow with caption blocks, and attach
-        // the TableFlow to the Table WrapperFlow
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = Box::new(node, TableWrapperBox);
         let mut wrapper_flow = ~TableWrapperFlow::from_box(base, box_, is_fixed) as ~Flow;
@@ -820,6 +815,9 @@ impl<'fc> FlowConstructor<'fc> {
         let mut table_flow = ~TableFlow::from_box(table_base, table_box_, is_fixed) as ~Flow;
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&table_flow));
 
+        // We first populate the TableFlow with other flows than TableCaptionFlow.
+        // We then populate the TableWrapperFlow with TableCaptionFlow, and attach
+        // the TableFlow to the TableWrapperFlow
         self.build_children_of_table_flow(&mut table_flow, node);
         self.build_children_of_table_wrapper_flow(&mut wrapper_flow, node);
 
@@ -834,7 +832,7 @@ impl<'fc> FlowConstructor<'fc> {
     }
 
     /// Builds a flow for a node with `display: table-caption`. This yields a `TableCaptionFlow`
-    /// with possibly other `TableCaptionFlow`s underneath it.
+    /// with possibly other `BlockFlow`s or `InlineFlow`s underneath it.
     fn build_flow_for_table_caption(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = self.build_box_for_node(node);

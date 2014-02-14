@@ -346,7 +346,7 @@ impl TableCaptionFlow {
             position.origin.y = y;
             height = h;
 
-            if self.is_fixed { 
+            if self.is_fixed {
                 for kid in self.base.child_iter() {
                     let child_node = flow::mut_base(*kid);
                     child_node.position.origin.y = position.origin.y + top_offset;
@@ -549,7 +549,7 @@ impl Flow for TableCaptionFlow {
 
         /* find max width from child block contexts */
         for kid in self.base.child_iter() {
-            assert!(kid.starts_block_flow() || kid.starts_inline_flow() || kid.starts_table_flow());
+            assert!(kid.starts_block_flow() || kid.starts_inline_flow() || kid.is_table_kind());
 
             let child_base = flow::mut_base(*kid);
             min_width = geometry::max(min_width, child_base.min_width);
@@ -637,10 +637,10 @@ impl Flow for TableCaptionFlow {
                                               margin_left));
 
             let screen_size = ctx.screen_size;
-            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width, 
-                                                                 screen_size.height, 
-                                                                 width, 
-                                                                 box_.offset(), 
+            let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width,
+                                                                 screen_size.height,
+                                                                 width,
+                                                                 box_.offset(),
                                                                  self.is_fixed);
             x_offset = x;
             remaining_width = w;
@@ -671,8 +671,8 @@ impl Flow for TableCaptionFlow {
         // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
         for kid in self.base.child_iter() {
-            assert!(kid.starts_block_flow() || kid.starts_inline_flow() || kid.starts_table_flow());
-            
+            assert!(kid.starts_block_flow() || kid.starts_inline_flow() || kid.is_table_kind());
+
             let child_base = flow::mut_base(*kid);
             child_base.position.origin.x = x_offset;
             child_base.position.size.width = remaining_width;

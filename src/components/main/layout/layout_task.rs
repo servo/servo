@@ -564,7 +564,6 @@ impl LayoutTask {
                 }
             }
         });
-        debug!("{:?}", layout_root.dump());
 
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {

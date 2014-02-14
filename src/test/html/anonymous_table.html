@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Fixed Table</title>
+    <title>Anonymous Table objects</title>
     <style>
       .table {
         display: table;
@@ -19,8 +19,8 @@
         display: table-row;
       }
       .cell {
-        display: table-cell; 
-        border: solid red 1px; 
+        display: table-cell;
+        border: solid red 1px;
       }
     </style>
   </head>
@@ -30,12 +30,12 @@
     <p> 2. Generate missing child wrappers: `table-row`, `table-cell` </p>
     <div class="table">
         <span class="column"> inline child box of table-column. NOT Shown </span>
-        <span class="colgroup"> 
-            <span>inline child box of table-column-group</span> NOT Shown 
+        <span class="colgroup">
+            <span>inline child box of table-column-group</span> NOT Shown
         </span>
-        <span class="cell">Cell1</span>      
+        <span class="cell">Cell1</span>
         <span class="cell">Cell2</span>
-        <span class="row">              
+        <span class="row">
             2nd Row
             <span>Cell4</span>
             <span class="cell">Cell3</span>

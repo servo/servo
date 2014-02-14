@@ -243,7 +243,7 @@ pub trait ImmutableFlowUtils {
     fn starts_inline_flow(self) -> bool;
 
     /// Returns true if this flow is one of table-related flows.
-    fn starts_table_flow(self) -> bool;
+    fn is_table_kind(self) -> bool;
 
     /// Dumps the flow tree for debugging.
     fn dump(self);
@@ -660,29 +660,24 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn is_block_like(self) -> bool {
         match self.class() {
             BlockFlowClass => true,
-            InlineFlowClass | TableWrapperFlowClass | TableFlowClass |
-                TableColGroupFlowClass | TableRowGroupFlowClass |
-                TableRowFlowClass | TableCaptionFlowClass | TableCellFlowClass => false,
+            _ => false,
         }
     }
 
-    // Spec: http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes
+    /// Returns true if anonymous flow is needed between this flow and child flow.
+    /// Spec: http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes
     fn need_anonymous_flow(self, child: &Flow) -> bool {
         match self.class() {
-            BlockFlowClass | InlineFlowClass | TableWrapperFlowClass |
-                TableColGroupFlowClass | TableCaptionFlowClass | TableCellFlowClass => false,
             TableFlowClass => !child.is_proper_table_child(),
             TableRowGroupFlowClass => !child.is_table_row(),
             TableRowFlowClass => !child.is_table_cell(),
+            _ => false,
         }
     }
 
+    /// Generates missing child flow of this flow.
     fn generate_missing_child_flow(self, base: BaseFlow, node: LayoutNode) -> ~Flow {
         match self.class() {
-            BlockFlowClass | InlineFlowClass | TableWrapperFlowClass |
-                TableColGroupFlowClass | TableCaptionFlowClass | TableCellFlowClass => {
-                    fail!("no need to generate a missing child")
-            },
             TableFlowClass | TableRowGroupFlowClass => {
                 let box_ = Box::new_anonymous_table_box(node, TableRowBox);
                 ~TableRowFlow::from_box(base, box_, false) as ~Flow
@@ -691,70 +686,68 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                 let box_ = Box::new_anonymous_table_box(node, TableCellBox);
                 ~TableCellFlow::from_box(base, box_, false) as ~Flow
             },
+            _ => {
+                fail!("no need to generate a missing child")
+            },
         }
     }
 
-    // A 'table-row' box, row group box, 'table-column' box, 'table-column-group' box, or 'table-caption' box.
+    /// Returns true if this flow is a proper table child.
+    /// 'Proper table child' is defined as table-row flow, table-rowgroup flow,
+    /// table-column-group flow, or table-caption flow.
     fn is_proper_table_child(self) -> bool {
         match self.class() {
-            TableRowFlowClass | TableRowGroupFlowClass | 
+            TableRowFlowClass | TableRowGroupFlowClass |
                 TableColGroupFlowClass | TableCaptionFlowClass => true,
-            BlockFlowClass | InlineFlowClass | TableWrapperFlowClass |
-                TableFlowClass | TableCellFlowClass => false,
+            _ => false,
         }
     }
 
+    /// Returns true if this flow is a table row flow.
     fn is_table_row(self) -> bool {
         match self.class() {
             TableRowFlowClass => true,
-            BlockFlowClass | InlineFlowClass | TableColGroupFlowClass | 
-                TableWrapperFlowClass | TableFlowClass | TableRowGroupFlowClass | 
-                TableCaptionFlowClass | TableCellFlowClass => false,
+            _ => false,
         }
     }
 
+    /// Returns true if this flow is a table cell flow.
     fn is_table_cell(self) -> bool {
         match self.class() {
             TableCellFlowClass => true,
-            BlockFlowClass | InlineFlowClass | TableColGroupFlowClass | 
-                TableWrapperFlowClass | TableFlowClass | TableRowFlowClass | 
-                TableCaptionFlowClass | TableRowGroupFlowClass => false,
+            _ => false,
         }
     }
 
+    /// Returns true if this flow is a table colgroup flow.
     fn is_table_colgroup(self) -> bool {
         match self.class() {
             TableColGroupFlowClass => true,
-            BlockFlowClass | InlineFlowClass | TableWrapperFlowClass |
-                TableFlowClass | TableRowFlowClass | TableRowGroupFlowClass | 
-                TableCaptionFlowClass | TableCellFlowClass => false,
+            _ => false,
         }
     }
 
+    /// Returns true if this flow is a table flow.
     fn is_table(self) -> bool {
         match self.class() {
             TableFlowClass => true,
-            BlockFlowClass | InlineFlowClass | TableWrapperFlowClass |
-                TableCaptionFlowClass | TableRowFlowClass | TableRowGroupFlowClass | 
-                TableColGroupFlowClass | TableCellFlowClass => false,
+            _ => false,
         }
     }
 
+    /// Returns true if this flow is a table caption flow.
     fn is_table_caption(self) -> bool {
         match self.class() {
             TableCaptionFlowClass => true,
-            BlockFlowClass | InlineFlowClass | TableWrapperFlowClass |
-                TableFlowClass | TableRowFlowClass | TableRowGroupFlowClass | 
-                TableColGroupFlowClass | TableCellFlowClass => false,
+            _ => false,
         }
     }
 
+    /// Returns true if this flow is a table rowgroup flow.
     fn is_table_rowgroup(self) -> bool {
         match self.class() {
             TableRowGroupFlowClass => true,
-            BlockFlowClass | InlineFlowClass | TableColGroupFlowClass | 
-                TableWrapperFlowClass | TableFlowClass | TableRowFlowClass | 
-                TableCaptionFlowClass | TableCellFlowClass => false,
+            _ => false,
         }
     }
 
@@ -772,9 +765,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn starts_block_flow(self) -> bool {
         match self.class() {
             BlockFlowClass => true,
-            InlineFlowClass | TableWrapperFlowClass | TableFlowClass |
-                TableColGroupFlowClass | TableRowGroupFlowClass |
-                TableRowFlowClass | TableCaptionFlowClass | TableCellFlowClass => false,
+            _ => false,
         }
     }
 
@@ -782,19 +773,17 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn starts_inline_flow(self) -> bool {
         match self.class() {
             InlineFlowClass => true,
-            BlockFlowClass | TableWrapperFlowClass | TableFlowClass |
-                TableColGroupFlowClass | TableRowGroupFlowClass |
-                TableRowFlowClass | TableCaptionFlowClass | TableCellFlowClass => false,
+            _ => false,
         }
     }
 
     /// Returns true if this flow is one of table-related flows.
-    fn starts_table_flow(self) -> bool {
+    fn is_table_kind(self) -> bool {
         match self.class() {
             TableWrapperFlowClass | TableFlowClass |
                 TableColGroupFlowClass | TableRowGroupFlowClass |
                 TableRowFlowClass | TableCaptionFlowClass | TableCellFlowClass => true,
-            InlineFlowClass | BlockFlowClass => false,
+            _ => false,
         }
     }
 

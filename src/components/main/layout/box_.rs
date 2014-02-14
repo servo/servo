@@ -546,8 +546,7 @@ impl Box {
         }
 
         match self.specific {
-            TableColumnBox(_) => {}
-            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
+            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableColumnBox(_) | TableCellBox |
             TableRowBox | TableWrapperBox | ScannedTextBox(_) | UnscannedTextBox(_) => {
                 self.border.set(SideOffsets2D::new(width(style.Border.border_top_width,
                                                          style.Border.border_top_style),
@@ -1522,10 +1521,7 @@ impl Box {
     pub fn assign_width(&self,container_width: Au) {
         match self.specific {
             GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
-            TableWrapperBox => {
-                // FIXME(pcwalton): This seems clownshoes; can we remove?
-                self.position.borrow_mut().get().size.width = Au::from_px(45)
-            }
+            TableWrapperBox => {}
             ImageBox(ref image_box_info) => {
                 // TODO(ksh8281): compute border,margin,padding
                 let width = ImageBoxInfo::style_length(self.style().Box.width,
@@ -1563,7 +1559,7 @@ impl Box {
                 position.get().size.width = position.get().size.width + self.noncontent_width() +
                     self.noncontent_inline_left() + self.noncontent_inline_right();
             }
-            TableColumnBox(_) => fail!("Table column boxes do not have wdith"),
+            TableColumnBox(_) => fail!("Table column boxes do not have width"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
         }
     }
