@@ -727,6 +727,7 @@ impl<'fc> FlowConstructor<'fc> {
                     if flow.need_anonymous_flow(kid_flow) {
                         consecutive_siblings.push(kid_flow);
                     } else {
+                        strip_ignorable_whitespace_from_end(&mut opt_boxes_for_inline_flow);
                         self.flush_inline_boxes_to_flow_list_if_necessary(&mut opt_boxes_for_inline_flow,
                                                                           &mut consecutive_siblings,
                                                                           node);
