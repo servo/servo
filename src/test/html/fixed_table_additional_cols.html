@@ -1,3 +1,10 @@
+<!-- This test creates one table, one caption, three rows, three header cells, and five data cells.
+     The table uses the fixed table layout algorithm and the table's width specified to 600px.
+     Each column's width will be assigned as follows:
+       - 1st & 2nd column: 200px (because it is defined in col element)
+       - 3rd & 4th column: remaining width / 2
+                           (becuase it is not defined so the remaining width is equally divided)
+     And table, caption, td, th elements have border. -->
 <!DOCTYPE html>
 <html>
   <head>
@@ -9,8 +16,8 @@
         border: solid black 2px;
       }
       caption { border: solid blue 1px; }
-      td { border: solid red 1px; }      
-      th { border: solid red 1px; }      
+      td { border: solid red 1px; }
+      th { border: solid red 1px; }
     </style>
   </head>
   <body>
