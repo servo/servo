@@ -446,14 +446,9 @@ impl Flow for TableFlow {
         self
     }
 
-    /* Recursively (bottom-up) determine the context's preferred and
-    minimum widths.  When called on this context, all child contexts
-    have had their min/pref widths set. This function must decide
-    min/pref widths based on child context widths and dimensions of
-    any boxes it is responsible for flowing.  */
-
-    /* TODO: absolute contexts */
-    /* TODO: inline-blocks */
+    /// This function finds the specified column widths from column group and the first row.
+    /// Those are used in fixed table layout calculation.
+    /* FIXME: automatic table layout calculation */
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
         let mut min_width = Au::new(0);
         let mut pref_width = Au::new(0);
@@ -467,7 +462,7 @@ impl Flow for TableFlow {
             if kid.is_table_colgroup() {
                 self.col_widths.push_all(kid.as_table_colgroup().widths);
             } else if kid.is_table_rowgroup() || kid.is_table_row() {
-                // read column widths from table-row-group, and assign
+                // read column widths from table-row-group/table-row, and assign
                 // width=0 for the columns not defined in column-group
                 // FIXME: need to read widths from either table-header-group OR
                 // first table-row
@@ -511,8 +506,6 @@ impl Flow for TableFlow {
             self.base.num_floats = num_floats;
         }
 
-        /* if not an anonymous block context, add in block box's widths.
-           these widths will not include child elements, just padding etc. */
         for box_ in self.box_.iter() {
             {
                 // Can compute border width here since it doesn't depend on anything.
@@ -530,9 +523,6 @@ impl Flow for TableFlow {
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
     /// on this context, the context has had its width set by the parent context.
-    ///
-    /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
-    /// contexts.
     fn assign_widths(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_widths({}): assigning width for flow {}",
                if self.is_float() {
@@ -584,7 +574,6 @@ impl Flow for TableFlow {
             padding_and_borders = box_.padding.get().left + box_.padding.get().right +
                                   box_.border.get().left + box_.border.get().right;
 
-            // The associated box is the border box of this flow.
             let mut position_ref = box_.position.borrow_mut();
             if self.is_fixed {
                 position_ref.get().origin.x = x_offset;
@@ -600,6 +589,7 @@ impl Flow for TableFlow {
 
         remaining_width = remaining_width - padding_and_borders;
 
+        // In fixed table layout, calculate the equally divided cell widths for undecided columns.
         let final_cell_width = if (total_cell_widths < remaining_width) &&
                                     (num_unspecified_widths == 0) {
             for col_width in self.col_widths.mut_iter() {

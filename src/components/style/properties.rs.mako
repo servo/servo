@@ -254,9 +254,9 @@ pub mod longhands {
                 match value {
 //                    inline_table => table,
                     inline | inline_block
-//                    | table_row_group | table_column | table_column_group
-//                    | table_header_group | table_footer_group | table_row
-//                    | table_cell | table_caption
+                    | table_row_group | table_column | table_column_group
+                    | table_header_group | table_footer_group | table_row
+                    | table_cell | table_caption
                     => block,
                     _ => value,
                 }

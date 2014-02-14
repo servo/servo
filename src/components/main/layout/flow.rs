@@ -680,11 +680,11 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         match self.class() {
             TableFlowClass | TableRowGroupFlowClass => {
                 let box_ = Box::new_anonymous_table_box(node, TableRowBox);
-                ~TableRowFlow::from_box(base, box_, false) as ~Flow
+                ~TableRowFlow::from_box(base, box_) as ~Flow
             },
             TableRowFlowClass => {
                 let box_ = Box::new_anonymous_table_box(node, TableCellBox);
-                ~TableCellFlow::from_box(base, box_, false) as ~Flow
+                ~TableCellFlow::from_box(base, box_) as ~Flow
             },
             _ => {
                 fail!("no need to generate a missing child")

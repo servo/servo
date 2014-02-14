@@ -480,7 +480,7 @@ impl<'fc> FlowConstructor<'fc> {
                                                   -> ConstructionResult {
         let mut opt_inline_block_splits = None;
         let mut opt_box_accumulator = None;
- 
+
         // Concatenate all the boxes of our kids, creating {ib} splits as necessary.
         for kid in node.children() {
             match kid.swap_out_construction_result() {
@@ -833,10 +833,10 @@ impl<'fc> FlowConstructor<'fc> {
 
     /// Builds a flow for a node with `display: table-caption`. This yields a `TableCaptionFlow`
     /// with possibly other `BlockFlow`s or `InlineFlow`s underneath it.
-    fn build_flow_for_table_caption(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+    fn build_flow_for_table_caption(&mut self, node: LayoutNode) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = self.build_box_for_node(node);
-        let mut flow = ~TableCaptionFlow::from_box(base, box_, is_fixed) as ~Flow;
+        let mut flow = ~TableCaptionFlow::from_box(base, box_) as ~Flow;
 
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
 
@@ -846,10 +846,10 @@ impl<'fc> FlowConstructor<'fc> {
 
     /// Builds a flow for a node with `display: table-row-group`. This yields a `TableRowGroupFlow`
     /// with possibly other `TableRowFlow`s underneath it.
-    fn build_flow_for_table_rowgroup(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+    fn build_flow_for_table_rowgroup(&mut self, node: LayoutNode) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = Box::new(node, TableRowBox);
-        let mut flow = ~TableRowGroupFlow::from_box(base, box_, is_fixed) as ~Flow;
+        let mut flow = ~TableRowGroupFlow::from_box(base, box_) as ~Flow;
 
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
 
@@ -859,10 +859,10 @@ impl<'fc> FlowConstructor<'fc> {
 
     /// Builds a flow for a node with `display: table-row`. This yields a `TableRowFlow` with
     /// possibly other `TableCellFlow`s underneath it.
-    fn build_flow_for_table_row(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+    fn build_flow_for_table_row(&mut self, node: LayoutNode) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = Box::new(node, TableRowBox);
-        let mut flow = ~TableRowFlow::from_box(base, box_, is_fixed) as ~Flow;
+        let mut flow = ~TableRowFlow::from_box(base, box_) as ~Flow;
 
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
 
@@ -872,10 +872,10 @@ impl<'fc> FlowConstructor<'fc> {
 
     /// Builds a flow for a node with `display: table-cell`. This yields a `TableCellFlow` with
     /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
-    fn build_flow_for_table_cell(&mut self, node: LayoutNode, is_fixed: bool) -> ~Flow {
+    fn build_flow_for_table_cell(&mut self, node: LayoutNode) -> ~Flow {
         let base = BaseFlow::new(self.next_flow_id(), node);
         let box_ = Box::new(node, TableCellBox);
-        let mut flow = ~TableCellFlow::from_box(base, box_, is_fixed) as ~Flow;
+        let mut flow = ~TableCellFlow::from_box(base, box_) as ~Flow;
 
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&flow));
 
@@ -974,7 +974,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
 
             // Table items contribute table flow construction results.
             (display::table_caption, _, _) => {
-                let flow = self.build_flow_for_table_caption(node, false);
+                let flow = self.build_flow_for_table_caption(node);
                 node.set_flow_construction_result(FlowConstructionResult(flow))
             }
 
@@ -993,19 +993,19 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // Table items contribute table flow construction results.
             (display::table_row_group, _, _) | (display::table_header_group, _, _) |
             (display::table_footer_group, _, _) => {
-                let flow = self.build_flow_for_table_rowgroup(node, false);
+                let flow = self.build_flow_for_table_rowgroup(node);
                 node.set_flow_construction_result(FlowConstructionResult(flow))
             }
 
             // Table items contribute table flow construction results.
             (display::table_row, _, _) => {
-                let flow = self.build_flow_for_table_row(node, false);
+                let flow = self.build_flow_for_table_row(node);
                 node.set_flow_construction_result(FlowConstructionResult(flow))
             }
 
             // Table items contribute table flow construction results.
             (display::table_cell, _, _) => {
-                let flow = self.build_flow_for_table_cell(node, false);
+                let flow = self.build_flow_for_table_cell(node);
                 node.set_flow_construction_result(FlowConstructionResult(flow))
             }
 
