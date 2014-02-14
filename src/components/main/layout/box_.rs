@@ -72,6 +72,7 @@ pub struct Box {
     style: Arc<ComputedValues>,
 
     /// The position of this box relative to its owning flow.
+    /// The size includes padding and border, but not margin.
     position: RefCell<Rect<Au>>,
 
     /// The border of the content box.
@@ -308,7 +309,7 @@ pub struct InlineParentInfo {
 macro_rules! def_noncontent( ($side:ident, $get:ident, $inline_get:ident) => (
     impl Box {
         pub fn $get(&self) -> Au {
-            self.margin.get().$side + self.border.get().$side + self.padding.get().$side
+            self.border.get().$side + self.padding.get().$side
         }
 
         pub fn $inline_get(&self) -> Au {
@@ -317,7 +318,7 @@ macro_rules! def_noncontent( ($side:ident, $get:ident, $inline_get:ident) => (
             match info.get() {
                 &Some(ref info) => {
                     for info in info.parent_info.iter() {
-                        val = val + info.margin.$side + info.border.$side + info.padding.$side;
+                        val = val + info.border.$side + info.padding.$side;
                     }
                 },
                 &None => {}
