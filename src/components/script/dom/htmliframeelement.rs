@@ -3,12 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLIFrameElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLIframeElementTypeId;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Node};
 use dom::windowproxy::WindowProxy;
+use servo_util::str::DOMString;
 
 use extra::url::Url;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};

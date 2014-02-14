@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::element::{HTMLLinkElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId};
 use dom::htmlelement::HTMLElement;
@@ -20,9 +19,10 @@ use js::jsapi::JSContext;
 use servo_msg::constellation_msg::SubpageId;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
-use servo_util::url::parse_url;
-use servo_util::task::spawn_named;
 use servo_util::namespace::Null;
+use servo_util::str::DOMString;
+use servo_util::task::spawn_named;
+use servo_util::url::parse_url;
 use std::cast;
 use std::cell::RefCell;
 use std::comm::{Port, SharedChan};

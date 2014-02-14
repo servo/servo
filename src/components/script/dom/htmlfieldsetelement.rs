@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLFieldSetElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLFieldSetElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Node};
 use dom::validitystate::ValidityState;
+use servo_util::str::DOMString;
 
 pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement

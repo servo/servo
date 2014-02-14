@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLHeadingElementBinding;
-use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::element::HTMLHeadingElementTypeId;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub enum HeadingLevel {
     Heading1,

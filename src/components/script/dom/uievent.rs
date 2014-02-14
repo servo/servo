@@ -3,12 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::UIEventBinding;
-use dom::bindings::utils::{DOMString, Fallible};
+use dom::bindings::utils::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::AbstractNode;
 use dom::event::{AbstractEvent, Event, EventTypeId, UIEventTypeId};
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
+use servo_util::str::DOMString;
 
 pub struct UIEvent {
     parent: Event,

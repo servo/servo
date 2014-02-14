@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DocumentTypeBinding;
-use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, Node, DoctypeNodeTypeId};
+use servo_util::str::DOMString;
 
 /// The `DOCTYPE` tag.
 pub struct DocumentType {

@@ -6,7 +6,6 @@ use dom::comment::Comment;
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable, reflect_dom_object};
 use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest};
-use dom::bindings::utils::DOMString;
 use dom::bindings::utils::{xml_name_type, InvalidXMLName};
 use dom::documentfragment::DocumentFragment;
 use dom::domimplementation::DOMImplementation;
@@ -26,6 +25,7 @@ use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 use servo_util::namespace::Null;
+use servo_util::str::DOMString;
 
 use extra::url::{Url, from_str};
 use js::jsapi::{JSObject, JSContext, JSTracer};

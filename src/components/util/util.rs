@@ -12,17 +12,18 @@ extern mod geom;
 extern mod native;
 
 pub mod cache;
+pub mod concurrentmap;
+pub mod debug;
 pub mod geometry;
+pub mod io;
+pub mod namespace;
 pub mod range;
+pub mod smallvec;
+pub mod sort;
+pub mod str;
+pub mod task;
 pub mod time;
 pub mod url;
 pub mod vec;
-pub mod debug;
-pub mod io;
-pub mod task;
 pub mod workqueue;
-pub mod namespace;
-pub mod sort;
-pub mod smallvec;
-pub mod concurrentmap;
 

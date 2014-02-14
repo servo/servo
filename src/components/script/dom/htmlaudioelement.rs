@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLAudioElementBinding;
-use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::element::HTMLAudioElementTypeId;
 use dom::htmlmediaelement::HTMLMediaElement;
 use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLAudioElement {
     htmlmediaelement: HTMLMediaElement
