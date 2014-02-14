@@ -609,7 +609,7 @@ pub mod longhands {
                 % for weight in range(100, 901, 100):
                     SpecifiedWeight${weight} => Weight${weight},
                 % endfor
-                Bolder => match context.font_weight {
+                Bolder => match context.parent_font_weight {
                     Weight100 => Weight400,
                     Weight200 => Weight400,
                     Weight300 => Weight400,
@@ -620,7 +620,7 @@ pub mod longhands {
                     Weight800 => Weight900,
                     Weight900 => Weight900,
                 },
-                Lighther => match context.font_weight {
+                Lighther => match context.parent_font_weight {
                     Weight100 => Weight100,
                     Weight200 => Weight100,
                     Weight300 => Weight100,
@@ -641,6 +641,11 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::Au;
             pub type T = Au;
+        }
+        #[inline]
+        pub fn to_computed_value(_value: specified::Length, context: &Context) -> Au {
+            // This has been computed already
+            context.computed_font_size
         }
         #[inline] pub fn get_initial_value() -> computed_value::T {
             Au::from_px(16)  // medium
@@ -1159,10 +1164,16 @@ pub fn cascade(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
             }
         };
     )
-    let context = &mut computed::Context {
+    let computed_font_size = match specified.font_size {
+        SpecifiedValue(value) => compute_Au_with_font_size(value, parent_style.Font.font_size),
+        CSSWideKeyword(Initial) => longhands::font_size::get_initial_value(),
+        CSSWideKeyword(Inherit) => parent_style.Font.font_size,
+    };
+    let context = computed::Context {
         current_color: get_specified!(Color, color),
-        font_size: parent_style.Font.font_size,
-        font_weight: parent_style.Font.font_weight,
+        parent_font_size: parent_style.Font.font_size,
+        computed_font_size: computed_font_size,
+        parent_font_weight: parent_style.Font.font_weight,
         position: get_specified!(Box, position),
         float: get_specified!(Box, float),
         is_root_element: is_root_element,
@@ -1171,28 +1182,19 @@ pub fn cascade(applicable_declarations: &[Arc<~[PropertyDeclaration]>],
         has_border_bottom: has_border!(border_bottom_style),
         has_border_left: has_border!(border_left_style),
     };
-    macro_rules! get_computed(
-        ($style_struct: ident, $property: ident) => {
-            match specified.$property {
-                SpecifiedValue(ref value)
-                // TODO: avoid a copy?
-                => longhands::$property::to_computed_value(value.clone(), context),
-                CSSWideKeyword(Initial) => longhands::$property::get_initial_value(),
-                CSSWideKeyword(Inherit) => parent_style.$style_struct.$property.clone(),
-            }
-        };
-    )
-    context.font_size = get_computed!(Font, font_size);
     ComputedValues {
         % for style_struct, longhands in LONGHANDS_PER_STYLE_STRUCT:
             ${style_struct}: style_structs::${style_struct} {
                 % for longhand in longhands:
-                    ${longhand.ident}:
-                    % if longhand.ident == 'font_size':
-                        context.font_size,
-                    % else:
-                        get_computed!(${style_struct}, ${longhand.ident}),
-                    % endif
+                    ${longhand.ident}: match specified.${longhand.ident} {
+                        SpecifiedValue(ref value)
+                        // TODO: avoid a copy?
+                        => longhands::${longhand.ident}::to_computed_value(value.clone(), &context),
+                        CSSWideKeyword(Initial)
+                        => longhands::${longhand.ident}::get_initial_value(),
+                        CSSWideKeyword(Inherit)
+                        => parent_style.${style_struct}.${longhand.ident}.clone(),
+                    }
                 % endfor
             },
         % endfor

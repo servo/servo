@@ -52,7 +52,7 @@ pub mod specified {
         }
         pub fn parse_dimension(value: CSSFloat, unit: &str) -> Option<Length> {
             // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-            let unit_lower = unit.to_ascii_lower(); 
+            let unit_lower = unit.to_ascii_lower();
             match unit_lower.as_slice() {
                 "px" => Some(Length::from_px(value)),
                 "in" => Some(Au_(Au((value * AU_PER_IN) as i32))),
@@ -169,8 +169,9 @@ pub mod computed {
 
     pub struct Context {
         current_color: cssparser::RGBA,
-        font_size: Au,
-        font_weight: longhands::font_weight::computed_value::T,
+        parent_font_size: Au,
+        computed_font_size: Au,
+        parent_font_weight: longhands::font_weight::computed_value::T,
         position: longhands::position::SpecifiedValue,
         float: longhands::float::SpecifiedValue,
         is_root_element: bool,
@@ -181,7 +182,12 @@ pub mod computed {
         // TODO, as needed: root font size, viewport size, etc.
     }
 
+    #[inline]
     pub fn compute_Au(value: specified::Length, context: &Context) -> Au {
+        compute_Au_with_font_size(value, context.font_size)
+    }
+
+    pub fn compute_Au_with_font_size(value: specified::Length, font_size: Au) -> Au {
         match value {
             specified::Au_(value) => value,
             specified::Em(value) => context.font_size.scale_by(value),
