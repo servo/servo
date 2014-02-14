@@ -20,7 +20,9 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::ProfilerChan;
 use std::cell::RefCell;
-use std::rc::Rc;
+//FIXME: switch to std::rc when we upgrade Rust
+use layers::temp_rc::Rc;
+//use std::rc::Rc;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and render task. 
 pub struct Pipeline {

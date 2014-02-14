@@ -39,12 +39,16 @@ use servo_util::{time, url};
 use std::comm::Port;
 use std::num::Orderable;
 use std::path::Path;
-use std::rc::Rc;
 
+//FIXME: switch to std::rc when we upgrade Rust
+use layers::temp_rc::Rc;
+//use std::rc::Rc;
+
+use std::rc;
 
 pub struct IOCompositor {
     /// The application window.
-    window: Rc<Window>,
+    window: rc::Rc<Window>,
 
     /// The port on which we receive messages.
     port: Port<Msg>,
@@ -53,7 +57,7 @@ pub struct IOCompositor {
     context: RenderContext,
 
     /// The root ContainerLayer.
-    root_layer: @mut ContainerLayer,
+    root_layer: Rc<ContainerLayer>,
 
     /// The canvas to paint a page.
     scene: Scene,
@@ -116,13 +120,13 @@ impl IOCompositor {
                port: Port<Msg>,
                constellation_chan: ConstellationChan,
                profiler_chan: ProfilerChan) -> IOCompositor {
-        let window: Rc<Window> = WindowMethods::new(app);
+        let window: rc::Rc<Window> = WindowMethods::new(app);
 
         // Create an initial layer tree.
         //
         // TODO: There should be no initial layer tree until the renderer creates one from the display
         // list. This is only here because we don't have that logic in the renderer yet.
-        let root_layer = @mut ContainerLayer();
+        let root_layer = Rc::new(ContainerLayer());
         let window_size = window.borrow().size();
 
         IOCompositor {
@@ -130,7 +134,7 @@ impl IOCompositor {
             port: port,
             opts: opts,
             context: rendergl::init_render_context(),
-            root_layer: root_layer,
+            root_layer: root_layer.clone(),
             scene: Scene(ContainerLayerKind(root_layer), window_size, identity()),
             window_size: Size2D(window_size.width as uint, window_size.height as uint),
             graphics_context: CompositorTask::create_graphics_context(),
@@ -317,16 +321,22 @@ impl IOCompositor {
         response_chan.send(());
 
         // This assumes there is at most one child, which should be the case.
-        match self.root_layer.first_child {
-            Some(old_layer) => self.root_layer.remove_child(old_layer),
-            None => {}
+        // NOTE: work around borrowchk
+        {
+            let tmp = self.root_layer.borrow().first_child.borrow();
+            match *tmp.get() {
+                Some(ref old_layer) => ContainerLayer::remove_child(self.root_layer.clone(),
+                                                                     old_layer.clone()),
+                None => {}
+            }
         }
 
         let layer = CompositorLayer::from_frame_tree(frame_tree,
                                                      self.opts.tile_size,
                                                      Some(10000000u),
                                                      self.opts.cpu_painting);
-        self.root_layer.add_child_start(ContainerLayerKind(layer.root_layer));
+        ContainerLayer::add_child_start(self.root_layer.clone(),
+                                        ContainerLayerKind(layer.root_layer.clone()));
 
         // If there's already a root layer, destroy it cleanly.
         match self.compositor_layer {
@@ -360,13 +370,17 @@ impl IOCompositor {
                                              Some(10000000u),
                                              self.opts.cpu_painting);
 
-        let current_child = self.root_layer.first_child;
-        // This assumes there is at most one child, which should be the case.
-        match current_child {
-            Some(old_layer) => self.root_layer.remove_child(old_layer),
-            None => {}
+        {
+            let current_child = self.root_layer.borrow().first_child.borrow();
+            // This assumes there is at most one child, which should be the case.
+            match *current_child.get() {
+                Some(ref old_layer) => ContainerLayer::remove_child(self.root_layer.clone(),
+                                                                     old_layer.clone()),
+                None => {}
+            }
         }
-        self.root_layer.add_child_start(ContainerLayerKind(new_layer.root_layer));
+        ContainerLayer::add_child_start(self.root_layer.clone(),
+                                        ContainerLayerKind(new_layer.root_layer.clone()));
         self.compositor_layer = Some(new_layer);
 
         self.ask_for_tiles();
@@ -617,7 +631,7 @@ impl IOCompositor {
         self.world_zoom = (self.world_zoom * magnification).max(&1.0);
         let world_zoom = self.world_zoom;
 
-        self.root_layer.common.set_transform(identity().scale(world_zoom, world_zoom, 1f32));
+        self.root_layer.borrow().common.with_mut(|common| common.set_transform(identity().scale(world_zoom, world_zoom, 1f32)));
 
         // Scroll as needed
         let page_delta = Point2D(window_size.width as f32 * (1.0 / world_zoom - 1.0 / old_world_zoom) * 0.5,
