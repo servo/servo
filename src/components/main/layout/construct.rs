@@ -27,7 +27,7 @@ use layout::box_::{InlineInfo, InlineParentInfo, SpecificBoxInfo, UnscannedTextB
 use layout::box_::{UnscannedTextBoxInfo};
 use layout::context::LayoutContext;
 use layout::float_context::FloatType;
-use layout::flow::{Flow, FlowLeafSet, ImmutableFlowUtils, MutableOwnedFlowUtils};
+use layout::flow::{Flow, MutableOwnedFlowUtils};
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
@@ -50,8 +50,6 @@ use servo_util::str::is_whitespace;
 
 use extra::url::Url;
 use extra::arc::Arc;
-
-use std::cell::RefCell;
 use std::util;
 use std::num::Zero;
 
@@ -71,11 +69,11 @@ pub enum ConstructionResult {
 }
 
 impl ConstructionResult {
-    fn destroy(&mut self, leaf_set: &FlowLeafSet) {
+    fn destroy(&mut self) {
         match *self {
             NoConstructionResult => {}
-            FlowConstructionResult(ref mut flow) => flow.destroy(leaf_set),
-            ConstructionItemConstructionResult(ref mut item) => item.destroy(leaf_set),
+            FlowConstructionResult(ref mut flow) => flow.destroy(),
+            ConstructionItemConstructionResult(ref mut item) => item.destroy(),
         }
     }
 }
@@ -91,12 +89,12 @@ enum ConstructionItem {
 }
 
 impl ConstructionItem {
-    fn destroy(&mut self, leaf_set: &FlowLeafSet) {
+    fn destroy(&mut self) {
         match *self {
             InlineBoxesConstructionItem(ref mut result) => {
                 for splits in result.splits.mut_iter() {
                     for split in splits.mut_iter() {
-                        split.destroy(leaf_set)
+                        split.destroy()
                     }
                 }
             }
@@ -149,8 +147,8 @@ struct InlineBlockSplit {
 }
 
 impl InlineBlockSplit {
-    fn destroy(&mut self, leaf_set: &FlowLeafSet) {
-        self.flow.destroy(leaf_set)
+    fn destroy(&mut self) {
+        self.flow.destroy()
     }
 }
 
@@ -222,35 +220,41 @@ pub struct FlowConstructor<'a> {
     /// The layout context.
     layout_context: &'a mut LayoutContext,
 
-    /// The next flow ID to assign.
+    /// An optional font context. If this is `None`, then we fetch the font context from the
+    /// layout context.
     ///
-    /// FIXME(pcwalton): This is going to have to be atomic; can't we do something better?
-    next_flow_id: RefCell<int>,
-
-    /// The font context.
-    font_context: ~FontContext,
-
-    /// The URL of the page.
-    url: &'a Url, 
+    /// FIXME(pcwalton): This is pretty bogus and is basically just a workaround for libgreen
+    /// having slow TLS.
+    font_context: Option<~FontContext>,
 }
 
-impl<'fc> FlowConstructor<'fc> {
+impl<'a> FlowConstructor<'a> {
     /// Creates a new flow constructor.
-    pub fn init<'a>(layout_context: &'a mut LayoutContext, url: &'a Url) -> FlowConstructor<'a> {
-        let font_context = ~FontContext::new(layout_context.font_context_info.clone());
+    pub fn new(layout_context: &'a mut LayoutContext, font_context: Option<~FontContext>)
+               -> FlowConstructor<'a> {
         FlowConstructor {
             layout_context: layout_context,
-            next_flow_id: RefCell::new(0),
             font_context: font_context,
-            url: url,
         }
     }
 
-    /// Returns the next flow ID and bumps the internal counter.
-    pub fn next_flow_id(&self) -> int {
-        let id = self.next_flow_id.get();
-        self.next_flow_id.set(id + 1);
-        id
+    fn font_context<'a>(&'a mut self) -> &'a mut FontContext {
+        match self.font_context {
+            Some(ref mut font_context) => {
+                let font_context: &mut FontContext = *font_context;
+                font_context
+            }
+            None => self.layout_context.font_context(),
+        }
+    }
+
+    /// Destroys this flow constructor and retrieves the font context.
+    pub fn unwrap_font_context(self) -> Option<~FontContext> {
+        let FlowConstructor {
+            font_context,
+            ..
+        } = self;
+        font_context
     }
 
     /// Builds the `ImageBoxInfo` for the given image. This is out of line to guide inlining.
@@ -272,7 +276,8 @@ impl<'fc> FlowConstructor<'fc> {
             ElementNodeTypeId(HTMLImageElementTypeId) => self.build_box_info_for_image(node, node.image_url()),
             ElementNodeTypeId(HTMLIframeElementTypeId) => IframeBox(IframeBoxInfo::new(node)),
             ElementNodeTypeId(HTMLObjectElementTypeId) => {
-                self.build_box_info_for_image(node, node.get_object_data(self.url))
+                let data = node.get_object_data(&self.layout_context.url);
+                self.build_box_info_for_image(node, data)
             }
             TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(node)),
             _ => GenericBox,
@@ -292,9 +297,9 @@ impl<'fc> FlowConstructor<'fc> {
             return
         }
 
-        let mut inline_flow = ~InlineFlow::from_boxes(self.next_flow_id(), node, boxes) as ~Flow;
-        inline_flow.mark_as_leaf(self.layout_context.flow_leaf_set.get());
-        TextRunScanner::new().scan_for_runs(self.font_context, inline_flow);
+        let mut inline_flow = ~InlineFlow::from_boxes((*node).clone(), boxes) as ~Flow;
+        TextRunScanner::new().scan_for_runs(self.font_context(), inline_flow);
+        inline_flow.finish(self.layout_context);
 
         flow.add_new_child(inline_flow)
     }
@@ -399,11 +404,7 @@ impl<'fc> FlowConstructor<'fc> {
                                                      node);
 
         // The flow is done. If it ended up with no kids, add the flow to the leaf set.
-        if flow.child_count() == 0 {
-            flow.mark_as_leaf(self.layout_context.flow_leaf_set.get())
-        } else {
-            flow.mark_as_nonleaf()
-        }
+        flow.finish(self.layout_context)
     }
 
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
@@ -548,7 +549,7 @@ impl<'fc> FlowConstructor<'fc> {
                                         parent_node: &ThreadSafeLayoutNode) {
         let parent_box = Box::new(self, parent_node);
         let font_style = parent_box.font_style();
-        let font_group = self.font_context.get_resolved_font_for_style(&font_style);
+        let font_group = self.font_context().get_resolved_font_for_style(&font_style);
         let (font_ascent,font_descent) = font_group.borrow().with_mut( |fg| {
             fg.fonts[0].borrow().with_mut( |font| {
                 (font.metrics.ascent,font.metrics.descent)
@@ -657,7 +658,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             (display::none, _, _) => {
                 for child in node.children() {
                     let mut old_result = child.swap_out_construction_result();
-                    old_result.destroy(self.layout_context.flow_leaf_set.get())
+                    old_result.destroy()
                 }
             }
 

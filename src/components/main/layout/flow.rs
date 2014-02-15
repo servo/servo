@@ -33,7 +33,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::float_context::{FloatContext, Invalid};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
-use layout::parallel::{FlowParallelInfo, UnsafeFlow};
+use layout::parallel::FlowParallelInfo;
 use layout::parallel;
 use layout::wrapper::ThreadSafeLayoutNode;
 use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
@@ -45,7 +45,6 @@ use geom::rect::Rect;
 use gfx::display_list::{ClipDisplayItemClass, DisplayListCollection, DisplayList};
 use layout::display_list_builder::ToGfxColor;
 use gfx::color::Color;
-use servo_util::concurrentmap::{ConcurrentHashMap, ConcurrentHashMapIterator};
 use servo_util::geometry::Au;
 use std::cast;
 use std::cell::RefCell;
@@ -215,7 +214,7 @@ pub trait MutableFlowUtils {
                           -> bool;
 
     /// Destroys the flow.
-    fn destroy(self, leaf_set: &FlowLeafSet);
+    fn destroy(self);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -223,15 +222,16 @@ pub trait MutableOwnedFlowUtils {
     /// it's present.
     fn add_new_child(&mut self, new_child: ~Flow);
 
-    /// Marks the flow as a leaf. The flow must not have children and must not be marked as a
-    /// nonleaf.
-    fn mark_as_leaf(&mut self, leaf_set: &FlowLeafSet);
-
-    /// Marks the flow as a nonleaf. The flow must not be marked as a leaf.
-    fn mark_as_nonleaf(&mut self);
+    /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
+    /// This will normally run the bubble-widths (minimum and preferred -- i.e. intrinsic -- width)
+    /// calculation, unless the global `bubble_widths_separately` flag is on.
+    ///
+    /// All flows must be finished at some point, or they will not have their intrinsic widths
+    /// properly computed. (This is not, however, a memory safety problem.)
+    fn finish(&mut self, context: &mut LayoutContext);
 
     /// Destroys the flow.
-    fn destroy(&mut self, leaf_set: &FlowLeafSet);
+    fn destroy(&mut self);
 }
 
 pub enum FlowClass {
@@ -455,13 +455,6 @@ bitfield!(FlowFlags, override_overline, set_override_overline, 0b0000_0100)
 // NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
 bitfield!(FlowFlags, override_line_through, set_override_line_through, 0b0000_1000)
 
-// Whether this flow is marked as a leaf. Flows marked as leaves must not have any more kids added
-// to them.
-bitfield!(FlowFlags, is_leaf, set_is_leaf, 0b0100_0000)
-
-// Whether this flow is marked as a nonleaf. Flows marked as nonleaves must have children.
-bitfield!(FlowFlags, is_nonleaf, set_is_nonleaf, 0b1000_0000)
-
 // The text alignment for this flow.
 impl FlowFlags {
     #[inline]
@@ -498,9 +491,6 @@ pub struct BaseFlow {
     children: FlowList,
     next_sibling: Link,
     prev_sibling: Rawlink,
-
-    /* TODO (Issue #87): debug only */
-    id: int,
 
     /* layout computations */
     // TODO: min/pref and position are used during disjoint phases of
@@ -563,7 +553,7 @@ impl Iterator<@Box> for BoxIterator {
 
 impl BaseFlow {
     #[inline]
-    pub fn new(id: int, node: &ThreadSafeLayoutNode) -> BaseFlow {
+    pub fn new(node: ThreadSafeLayoutNode) -> BaseFlow {
         let style = node.style();
         BaseFlow {
             restyle_damage: node.restyle_damage(),
@@ -571,8 +561,6 @@ impl BaseFlow {
             children: FlowList::new(),
             next_sibling: None,
             prev_sibling: Rawlink::none(),
-
-            id: id,
 
             min_width: Au::new(0),
             pref_width: Au::new(0),
@@ -740,7 +728,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
                           mut index: uint,
                           lists: &RefCell<DisplayListCollection<E>>)
                           -> bool {
-        debug!("Flow: building display list for f{}", base(self).id);
+        debug!("Flow: building display list");
         index = match self.class() {
             BlockFlowClass => self.as_block().build_display_list_block(builder, container_block_size, dirty, index, lists),
             InlineFlowClass => self.as_inline().build_display_list_inline(builder, container_block_size, dirty, index, lists),
@@ -797,18 +785,9 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
     }
 
     /// Destroys the flow.
-    fn destroy(self, leaf_set: &FlowLeafSet) {
-        let is_leaf = {
-            let base = mut_base(self);
-            base.children.len() == 0
-        };
-
-        if is_leaf {
-            leaf_set.remove(self);
-        } else {
-            for kid in child_iter(self) {
-                kid.destroy(leaf_set)
-            }
+    fn destroy(self) {
+        for kid in child_iter(self) {
+            kid.destroy()
         }
 
         mut_base(self).destroyed = true
@@ -824,84 +803,26 @@ impl MutableOwnedFlowUtils for ~Flow {
         }
 
         let base = mut_base(*self);
-        assert!(!base.flags_info.flags.is_leaf());
         base.children.push_back(new_child);
         let _ = base.parallel.children_count.fetch_add(1, Relaxed);
     }
 
-    /// Marks the flow as a leaf. The flow must not have children and must not be marked as a
-    /// nonleaf.
-    fn mark_as_leaf(&mut self, leaf_set: &FlowLeafSet) {
-        {
-            let base = mut_base(*self);
-            if base.flags_info.flags.is_nonleaf() {
-                fail!("attempted to mark a nonleaf flow as a leaf!")
-            }
-            if base.children.len() != 0 {
-                fail!("attempted to mark a flow with children as a leaf!")
-            }
-            base.flags_info.flags.set_is_leaf(true)
+    /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
+    /// This will normally run the bubble-widths (minimum and preferred -- i.e. intrinsic -- width)
+    /// calculation, unless the global `bubble_widths_separately` flag is on.
+    ///
+    /// All flows must be finished at some point, or they will not have their intrinsic widths
+    /// properly computed. (This is not, however, a memory safety problem.)
+    fn finish(&mut self, context: &mut LayoutContext) {
+        if !context.opts.bubble_widths_separately {
+            self.bubble_widths(context)
         }
-        let self_borrowed: &Flow = *self;
-        leaf_set.insert(self_borrowed);
-    }
-
-    /// Marks the flow as a nonleaf. The flow must not be marked as a leaf.
-    fn mark_as_nonleaf(&mut self) {
-        let base = mut_base(*self);
-        if base.flags_info.flags.is_leaf() {
-            fail!("attempted to mark a leaf flow as a nonleaf!")
-        }
-        base.flags_info.flags.set_is_nonleaf(true)
-        // We don't check to make sure there are no children as they might be added later.
     }
 
     /// Destroys the flow.
-    fn destroy(&mut self, leaf_set: &FlowLeafSet) {
+    fn destroy(&mut self) {
         let self_borrowed: &mut Flow = *self;
-        self_borrowed.destroy(leaf_set);
+        self_borrowed.destroy();
     }
 }
 
-/// Keeps track of the leaves of the flow tree. This is used to efficiently start bottom-up
-/// parallel traversals.
-pub struct FlowLeafSet {
-    priv set: ConcurrentHashMap<UnsafeFlow,()>,
-}
-
-impl FlowLeafSet {
-    /// Creates a new flow leaf set.
-    pub fn new() -> FlowLeafSet {
-        FlowLeafSet {
-            set: ConcurrentHashMap::with_locks_and_buckets(64, 256),
-        }
-    }
-
-    /// Inserts a newly-created flow into the leaf set.
-    fn insert(&self, flow: &Flow) {
-        self.set.insert(parallel::borrowed_flow_to_unsafe_flow(flow), ());
-    }
-
-    /// Removes a flow from the leaf set. Asserts that the flow was indeed in the leaf set. (This
-    /// invariant is needed for memory safety, as there must always be exactly one leaf set.)
-    fn remove(&self, flow: &Flow) {
-        if !self.contains(flow) {
-            fail!("attempted to remove a flow from the leaf set that wasn't in the set!")
-        }
-        let flow = parallel::borrowed_flow_to_unsafe_flow(flow);
-        self.set.remove(&flow);
-    }
-
-    pub fn contains(&self, flow: &Flow) -> bool {
-        let flow = parallel::borrowed_flow_to_unsafe_flow(flow);
-        self.set.contains_key(&flow)
-    }
-
-    pub fn clear(&self) {
-        self.set.clear()
-    }
-
-    pub fn iter<'a>(&'a self) -> ConcurrentHashMapIterator<'a,UnsafeFlow,()> {
-        self.set.iter()
-    }
-}

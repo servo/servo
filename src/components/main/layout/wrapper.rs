@@ -25,7 +25,6 @@ use script::dom::htmlimageelement::HTMLImageElement;
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId, NodeHelpers};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
-use servo_util::concurrentmap::{ConcurrentHashMap, ConcurrentHashMapIterator};
 use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use std::cast;
@@ -492,35 +491,6 @@ pub type UnsafeLayoutNode = (uint, uint, uint);
 pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode {
     unsafe {
         cast::transmute_copy(node)
-    }
-}
-
-/// Keeps track of the leaves of the DOM. This is used to efficiently start bottom-up traversals.
-pub struct DomLeafSet {
-    priv set: ConcurrentHashMap<UnsafeLayoutNode,()>,
-}
-
-impl DomLeafSet {
-    /// Creates a new DOM leaf set.
-    pub fn new() -> DomLeafSet {
-        DomLeafSet {
-            set: ConcurrentHashMap::with_locks_and_buckets(64, 256),
-        }
-    }
-
-    /// Inserts a DOM node into the leaf set.
-    pub fn insert(&self, node: &LayoutNode) {
-        self.set.insert(layout_node_to_unsafe_layout_node(node), ());
-    }
-
-    /// Removes all DOM nodes from the set.
-    pub fn clear(&self) {
-        self.set.clear()
-    }
-
-    /// Iterates over the DOM nodes in the leaf set.
-    pub fn iter<'a>(&'a self) -> ConcurrentHashMapIterator<'a,UnsafeLayoutNode,()> {
-        self.set.iter()
     }
 }
 

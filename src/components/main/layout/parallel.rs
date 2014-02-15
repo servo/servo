@@ -7,16 +7,17 @@
 //! This code is highly unsafe. Keep this file small and easy to audit.
 
 use css::matching::{ApplicableDeclarations, CannotShare, MatchMethods, StyleWasShared};
+use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::extra::LayoutAuxMethods;
-use layout::flow::{Flow, FlowLeafSet, PreorderFlowTraversal, PostorderFlowTraversal};
+use layout::flow::{Flow, PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, AssignWidthsTraversal};
 use layout::layout_task::{BubbleWidthsTraversal};
 use layout::util::{LayoutDataAccess, OpaqueNode};
-use layout::wrapper::{layout_node_to_unsafe_layout_node, LayoutNode, UnsafeLayoutNode};
+use layout::wrapper::{layout_node_to_unsafe_layout_node, LayoutNode, PostorderNodeMutTraversal};
+use layout::wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
 
-use extra::arc::Arc;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
@@ -215,8 +216,8 @@ impl<'a> ParallelPreorderFlowTraversal for AssignWidthsTraversal<'a> {
 
 impl<'a> ParallelPostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {}
 
-fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
-                          proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeLayoutNode>) {
+fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
+                         proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeLayoutNode>) {
     unsafe {
         let layout_context: &mut LayoutContext = cast::transmute(*proxy.user_data());
 
@@ -266,24 +267,61 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
             StyleWasShared(index) => style_sharing_candidate_cache.touch(index),
         }
 
-        // Enqueue kids.
+        // Prepare for flow construction by counting the node's children and storing that count.
         let mut child_count = 0;
-        for kid in node.children() {
+        for _ in node.children() {
             child_count += 1;
+        }
+        if child_count != 0 {
+            let mut layout_data_ref = node.mutate_layout_data();
+            match *layout_data_ref.get() {
+                Some(ref mut layout_data) => {
+                    layout_data.data.parallel.children_count.store(child_count as int, Relaxed)
+                }
+                None => fail!("no layout data"),
+            }
 
-            proxy.push(WorkUnit {
-                fun: match_and_cascade_node,
-                data: layout_node_to_unsafe_layout_node(&kid),
-            });
+            // Enqueue kids.
+            for kid in node.children() {
+                proxy.push(WorkUnit {
+                    fun: recalc_style_for_node,
+                    data: layout_node_to_unsafe_layout_node(&kid),
+                });
+            }
+            return
         }
 
-        // Prepare for flow construction by adding this node to the leaf set or counting its
-        // children.
-        if child_count == 0 {
-            // We don't need set the `child_count` field here since that's only used by kids during
-            // bottom-up traversals, and since this node is a leaf it has no kids.
-            layout_context.dom_leaf_set.get().insert(&node);
-        } else {
+        // If we got here, we're a leaf. Start construction of flows for this node.
+        construct_flows(unsafe_layout_node, proxy)
+    }
+}
+
+fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
+                   proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeLayoutNode>) {
+    loop {
+        let layout_context: &mut LayoutContext = unsafe {
+            cast::transmute(*proxy.user_data())
+        };
+
+        // Get a real layout node.
+        let node: LayoutNode = unsafe {
+            cast::transmute(unsafe_layout_node)
+        };
+
+        // Construct flows for this node.
+        {
+            let mut flow_constructor = FlowConstructor::new(layout_context, None);
+            flow_constructor.process(&ThreadSafeLayoutNode::new(&node));
+        }
+
+        // Reset the count of children for the next traversal.
+        //
+        // FIXME(pcwalton): Use children().len() when the implementation of that is efficient.
+        let mut child_count = 0;
+        for _ in node.children() {
+            child_count += 1
+        }
+        {
             let mut layout_data_ref = node.mutate_layout_data();
             match *layout_data_ref.get() {
                 Some(ref mut layout_data) => {
@@ -292,18 +330,41 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
                 None => fail!("no layout data"),
             }
         }
-    }
-}
 
-fn bubble_widths(unsafe_flow: PaddedUnsafeFlow,
-                 proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
-    let layout_context: &mut LayoutContext = unsafe {
-        cast::transmute(*proxy.user_data())
-    };
-    let mut bubble_widths_traversal = BubbleWidthsTraversal {
-        layout_context: layout_context,
-    };
-    bubble_widths_traversal.run_parallel(unsafe_flow.to_flow(), proxy)
+        // If this is the reflow root, we're done.
+        if layout_context.reflow_root == OpaqueNode::from_layout_node(&node) {
+            break
+        }
+
+        // Otherwise, enqueue the parent.
+        match node.parent_node() {
+            Some(parent) => {
+
+                // No, we're not at the root yet. Then are we the last sibling of our parent?
+                // If so, we can continue on with our parent; otherwise, we've gotta wait.
+                unsafe {
+                    match *parent.borrow_layout_data_unchecked() {
+                        Some(ref parent_layout_data) => {
+                            let parent_layout_data = cast::transmute_mut(parent_layout_data);
+                            if parent_layout_data.data
+                                                 .parallel
+                                                 .children_count
+                                                 .fetch_sub(1, SeqCst) == 1 {
+                                // We were the last child of our parent. Construct flows for our
+                                // parent.
+                                unsafe_layout_node = layout_node_to_unsafe_layout_node(&parent)
+                            } else {
+                                // Get out of here and find another node to work on.
+                                break
+                            }
+                        }
+                        None => fail!("no layout data for parent?!"),
+                    }
+                }
+            }
+            None => fail!("no parent and weren't at reflow root?!"),
+        }
+    }
 }
 
 fn assign_widths(unsafe_flow: PaddedUnsafeFlow,
@@ -328,16 +389,16 @@ fn assign_heights_and_store_overflow(unsafe_flow: PaddedUnsafeFlow,
     assign_heights_traversal.run_parallel(unsafe_flow.to_flow(), proxy)
 }
 
-pub fn match_and_cascade_subtree(root_node: &LayoutNode,
-                                 layout_context: &mut LayoutContext,
-                                 queue: &mut WorkQueue<*mut LayoutContext,UnsafeLayoutNode>) {
+pub fn recalc_style_for_subtree(root_node: &LayoutNode,
+                                layout_context: &mut LayoutContext,
+                                queue: &mut WorkQueue<*mut LayoutContext,UnsafeLayoutNode>) {
     unsafe {
         queue.data = cast::transmute(layout_context)
     }
 
     // Enqueue the root node.
     queue.push(WorkUnit {
-        fun: match_and_cascade_node,
+        fun: recalc_style_for_node,
         data: layout_node_to_unsafe_layout_node(root_node),
     });
 
@@ -359,28 +420,6 @@ pub fn traverse_flow_tree_preorder(root: &mut ~Flow,
             fun: assign_widths,
             data: UnsafeFlowConversions::from_flow(&mut_owned_flow_to_unsafe_flow(root)),
         })
-    });
-
-    queue.run();
-
-    queue.data = ptr::mut_null()
-}
-
-pub fn traverse_flow_tree_postorder(leaf_set: &Arc<FlowLeafSet>,
-                                    profiler_chan: ProfilerChan,
-                                    layout_context: &mut LayoutContext,
-                                    queue: &mut WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>) {
-    unsafe {
-        queue.data = cast::transmute(layout_context)
-    }
-
-    profile(time::LayoutParallelWarmupCategory, profiler_chan, || {
-        for (flow, _) in leaf_set.get().iter() {
-            queue.push(WorkUnit {
-                fun: bubble_widths,
-                data: UnsafeFlowConversions::from_flow(flow),
-            })
-        }
     });
 
     queue.run();
