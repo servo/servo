@@ -10,15 +10,14 @@ use servo_util::str::DOMString;
 
 /// An HTML processing instruction node.
 pub struct ProcessingInstruction {
-    // FIXME: s/element/characterdata/ https://github.com/mozilla/servo/issues/1594
-    element: CharacterData,
+    characterdata: CharacterData,
     target: DOMString,
 }
 
 impl ProcessingInstruction {
     pub fn new_inherited(target: DOMString, data: DOMString, document: AbstractDocument) -> ProcessingInstruction {
         ProcessingInstruction {
-            element: CharacterData::new_inherited(ProcessingInstructionNodeTypeId, data, document),
+            characterdata: CharacterData::new_inherited(ProcessingInstructionNodeTypeId, data, document),
             target: target
         }
     }

@@ -112,7 +112,7 @@ pub trait TLayoutNode {
     /// FIXME(pcwalton): Don't copy text. Atomically reference count instead.
     fn text(&self) -> ~str {
         unsafe {
-            self.with_text(|text| text.element.data.to_str())
+            self.with_text(|text| text.characterdata.data.to_str())
         }
     }
 

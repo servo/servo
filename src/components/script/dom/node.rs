@@ -1064,7 +1064,7 @@ impl Node {
                 for node in abstract_self.traverse_preorder() {
                     if node.is_text() {
                         node.with_imm_text(|text| {
-                            content = content + text.element.Data();
+                            content = content + text.characterdata.Data();
                         })
                     }
                 }
@@ -1591,7 +1591,7 @@ impl Node {
             node.with_imm_processing_instruction(|pi| {
                 other.with_imm_processing_instruction(|other_pi| {
                     (pi.target == other_pi.target) &&
-                    (pi.element.data == other_pi.element.data)
+                    (pi.characterdata.data == other_pi.characterdata.data)
                 })
             })
         }

@@ -717,7 +717,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         match self.type_id() {
             TextNodeTypeId => {
                 unsafe {
-                    if !self.with_text(|text| text.element
+                    if !self.with_text(|text| text.characterdata
                                                   .data
                                                   .chars()
                                                   .all(|c| c.is_whitespace())) {
