@@ -77,7 +77,7 @@ fn serialize_text(node: AbstractNode) -> ~str {
 
 fn serialize_processing_instruction(node: AbstractNode) -> ~str {
     node.with_imm_processing_instruction(|processing_instruction| {
-        ~"<?" + processing_instruction.target + " " + processing_instruction.element.data + "?>"
+        ~"<?" + processing_instruction.target + " " + processing_instruction.characterdata.data + "?>"
     })
 }
 

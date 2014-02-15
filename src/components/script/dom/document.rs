@@ -342,7 +342,7 @@ impl Document {
                             for child in node.children() {
                                 if child.is_text() {
                                     child.with_imm_text(|text| {
-                                        title = title + text.element.Data();
+                                        title = title + text.characterdata.Data();
                                     });
                                 }
                             }
