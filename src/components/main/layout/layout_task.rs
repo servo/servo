@@ -16,8 +16,7 @@ use layout::flow::{Flow, FlowLeafSet, ImmutableFlowUtils, MutableFlowUtils, Muta
 use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::RestyleDamage;
-use layout::parallel::{AssignHeightsAndStoreOverflowTraversalKind, BubbleWidthsTraversalKind};
-use layout::parallel::{PaddedUnsafeFlow};
+use layout::parallel::PaddedUnsafeFlow;
 use layout::parallel;
 use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
 use layout::wrapper::{DomLeafSet, LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
@@ -498,8 +497,7 @@ impl LayoutTask {
         match self.parallel_traversal {
             None => fail!("solve_contraints_parallel() called with no parallel traversal ready"),
             Some(ref mut traversal) => {
-                parallel::traverse_flow_tree_postorder(BubbleWidthsTraversalKind,
-                                                       &self.flow_leaf_set,
+                parallel::traverse_flow_tree_postorder(&self.flow_leaf_set,
                                                        self.profiler_chan.clone(),
                                                        layout_context,
                                                        traversal);
@@ -510,12 +508,6 @@ impl LayoutTask {
                                                       self.profiler_chan.clone(),
                                                       layout_context,
                                                       traversal);
-
-                parallel::traverse_flow_tree_postorder(AssignHeightsAndStoreOverflowTraversalKind,
-                                                       &self.flow_leaf_set,
-                                                       self.profiler_chan.clone(),
-                                                       layout_context,
-                                                       traversal);
             }
         }
     }

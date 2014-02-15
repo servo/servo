@@ -25,11 +25,6 @@ use std::ptr;
 use std::sync::atomics::{AtomicInt, Relaxed, SeqCst};
 use style::{Stylist, TNode};
 
-pub enum TraversalKind {
-    BubbleWidthsTraversalKind,
-    AssignHeightsAndStoreOverflowTraversalKind,
-}
-
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeLayoutNode) {
     unsafe {
@@ -169,6 +164,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     fn run_parallel(&mut self,
                     unsafe_flow: UnsafeFlow,
                     proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+        let mut had_children = false;
         unsafe {
             // Get a real flow.
             let flow: &mut ~Flow = cast::transmute(&unsafe_flow);
@@ -178,11 +174,19 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
             // Possibly enqueue the children.
             for kid in flow::child_iter(*flow) {
+                had_children = true;
                 proxy.push(WorkUnit {
                     fun: assign_widths,
                     data: UnsafeFlowConversions::from_flow(&borrowed_flow_to_unsafe_flow(kid)),
                 });
             }
+
+        }
+
+        // If there were no more children, start assigning heights.
+        if !had_children {
+            assign_heights_and_store_overflow(UnsafeFlowConversions::from_flow(&unsafe_flow),
+                                              proxy)
         }
     }
 }
@@ -344,8 +348,7 @@ pub fn traverse_flow_tree_preorder(root: &mut ~Flow,
     queue.data = ptr::mut_null()
 }
 
-pub fn traverse_flow_tree_postorder(kind: TraversalKind,
-                                    leaf_set: &Arc<FlowLeafSet>,
+pub fn traverse_flow_tree_postorder(leaf_set: &Arc<FlowLeafSet>,
                                     profiler_chan: ProfilerChan,
                                     layout_context: &mut LayoutContext,
                                     queue: &mut WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>) {
@@ -353,15 +356,10 @@ pub fn traverse_flow_tree_postorder(kind: TraversalKind,
         queue.data = cast::transmute(layout_context)
     }
 
-    let fun = match kind {
-        BubbleWidthsTraversalKind => bubble_widths,
-        AssignHeightsAndStoreOverflowTraversalKind => assign_heights_and_store_overflow,
-    };
-
     profile(time::LayoutParallelWarmupCategory, profiler_chan, || {
         for (flow, _) in leaf_set.get().iter() {
             queue.push(WorkUnit {
-                fun: fun,
+                fun: bubble_widths,
                 data: UnsafeFlowConversions::from_flow(flow),
             })
         }
