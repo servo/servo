@@ -324,6 +324,20 @@ macro_rules! def_small_vector_drop_impl(
     )
 )
 
+macro_rules! def_small_vector_clone_impl(
+    ($name:ident) => (
+        impl<T:Clone> Clone for $name<T> {
+            fn clone(&self) -> $name<T> {
+                let mut new_vector = $name::new();
+                for element in self.iter() {
+                    new_vector.push((*element).clone())
+                }
+                new_vector
+            }
+        }
+    )
+)
+
 macro_rules! def_small_vector_impl(
     ($name:ident, $size:expr) => (
         impl<T> $name<T> {
@@ -396,47 +410,55 @@ impl<T> SmallVec0<T> {
 }
 
 def_small_vector_drop_impl!(SmallVec0, 0)
+def_small_vector_clone_impl!(SmallVec0)
 
 def_small_vector!(SmallVec1, 1)
 def_small_vector_private_trait_impl!(SmallVec1, 1)
 def_small_vector_trait_impl!(SmallVec1, 1)
 def_small_vector_drop_impl!(SmallVec1, 1)
+def_small_vector_clone_impl!(SmallVec1)
 def_small_vector_impl!(SmallVec1, 1)
 
 def_small_vector!(SmallVec2, 2)
 def_small_vector_private_trait_impl!(SmallVec2, 2)
 def_small_vector_trait_impl!(SmallVec2, 2)
 def_small_vector_drop_impl!(SmallVec2, 2)
+def_small_vector_clone_impl!(SmallVec2)
 def_small_vector_impl!(SmallVec2, 2)
 
 def_small_vector!(SmallVec4, 4)
 def_small_vector_private_trait_impl!(SmallVec4, 4)
 def_small_vector_trait_impl!(SmallVec4, 4)
 def_small_vector_drop_impl!(SmallVec4, 4)
+def_small_vector_clone_impl!(SmallVec4)
 def_small_vector_impl!(SmallVec4, 4)
 
 def_small_vector!(SmallVec8, 8)
 def_small_vector_private_trait_impl!(SmallVec8, 8)
 def_small_vector_trait_impl!(SmallVec8, 8)
 def_small_vector_drop_impl!(SmallVec8, 8)
+def_small_vector_clone_impl!(SmallVec8)
 def_small_vector_impl!(SmallVec8, 8)
 
 def_small_vector!(SmallVec16, 16)
 def_small_vector_private_trait_impl!(SmallVec16, 16)
 def_small_vector_trait_impl!(SmallVec16, 16)
 def_small_vector_drop_impl!(SmallVec16, 16)
+def_small_vector_clone_impl!(SmallVec16)
 def_small_vector_impl!(SmallVec16, 16)
 
 def_small_vector!(SmallVec24, 24)
 def_small_vector_private_trait_impl!(SmallVec24, 24)
 def_small_vector_trait_impl!(SmallVec24, 24)
 def_small_vector_drop_impl!(SmallVec24, 24)
+def_small_vector_clone_impl!(SmallVec24)
 def_small_vector_impl!(SmallVec24, 24)
 
 def_small_vector!(SmallVec32, 32)
 def_small_vector_private_trait_impl!(SmallVec32, 32)
 def_small_vector_trait_impl!(SmallVec32, 32)
 def_small_vector_drop_impl!(SmallVec32, 32)
+def_small_vector_clone_impl!(SmallVec32)
 def_small_vector_impl!(SmallVec32, 32)
 
 #[cfg(test)]

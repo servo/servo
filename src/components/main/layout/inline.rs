@@ -794,7 +794,7 @@ impl Flow for InlineFlow {
                 //
                 // The spec does not state which font to use. Previous versions of the code used
                 // the parent's font; this code uses the current font.
-                let parent_text_top = cur_box.style().Font.font_size;
+                let parent_text_top = cur_box.style().Font.get().font_size;
 
                 // We should calculate the distance from baseline to the bottom of the parent's
                 // content area. But for now we assume it's zero.

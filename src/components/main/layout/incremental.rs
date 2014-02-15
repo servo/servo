@@ -107,7 +107,7 @@ impl RestyleDamage {
 macro_rules! add_if_not_equal(
     ($old:ident, $new:ident, $damage:ident,
      [ $($effect:ident),* ], [ $($style_struct:ident.$name:ident),* ]) => ({
-        if $( ($old.$style_struct.$name != $new.$style_struct.$name) )||* {
+        if $( ($old.$style_struct.get().$name != $new.$style_struct.get().$name) )||* {
             $damage.union_in_place( restyle_damage!( $($effect),* ) );
         }
     })
@@ -134,7 +134,7 @@ pub fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> RestyleDama
           Padding.padding_top, Padding.padding_right, Padding.padding_bottom, Padding.padding_left,
           Box.position, Box.width, Box.height, Box.float, Box.display,
           Font.font_family, Font.font_size, Font.font_style, Font.font_weight,
-          Text.text_align, Text.text_decoration, Box.line_height ]);
+          InheritedText.text_align, Text.text_decoration, InheritedBox.line_height ]);
 
     // FIXME: test somehow that we checked every CSS property
 
