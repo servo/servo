@@ -309,7 +309,7 @@ static TEXT_ALIGN_SHIFT: u8 = 4;
 impl FlowFlagsInfo {
     /// Creates a new set of flow flags from the given style.
     pub fn new(style: &ComputedValues) -> FlowFlagsInfo {
-        let text_decoration = style.Text.text_decoration;
+        let text_decoration = style.Text.get().text_decoration;
         let mut flags = FlowFlags(0);
         flags.set_override_underline(text_decoration.underline);
         flags.set_override_overline(text_decoration.overline);
@@ -318,9 +318,9 @@ impl FlowFlagsInfo {
         // TODO(ksh8281) compute text-decoration-color,style,line
         let rare_flow_flags = if flags.is_text_decoration_enabled() {
             Some(~RareFlowFlags {
-                underline_color: style.Color.color.to_gfx_color(),
-                overline_color: style.Color.color.to_gfx_color(),
-                line_through_color: style.Color.color.to_gfx_color(),
+                underline_color: style.Color.get().color.to_gfx_color(),
+                overline_color: style.Color.get().color.to_gfx_color(),
+                line_through_color: style.Color.get().color.to_gfx_color(),
             })
         } else {
             None

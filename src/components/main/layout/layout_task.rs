@@ -5,7 +5,8 @@
 //! The layout task. Performs layout on the DOM, builds display lists and sends them to be
 /// rendered.
 
-use css::matching::MatchMethods;
+use css::matching::{ApplicableDeclarations, ApplicableDeclarationsCache, MatchMethods};
+use css::matching::{StyleSharingCandidateCache};
 use css::select::new_stylist;
 use css::node_style::StyledNode;
 use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionResult};
@@ -55,7 +56,8 @@ use std::comm::Port;
 use std::ptr;
 use std::task;
 use std::util;
-use style::{AuthorOrigin, Stylesheet, Stylist};
+use style::{AuthorOrigin, ComputedValues, Stylesheet, Stylist};
+use style;
 
 /// Information needed by the layout task.
 pub struct LayoutTask {
@@ -96,6 +98,9 @@ pub struct LayoutTask {
     display_list_collection: Option<Arc<DisplayListCollection<OpaqueNode>>>,
 
     stylist: ~Stylist,
+
+    /// The initial set of CSS values.
+    initial_css_values: Arc<ComputedValues>,
 
     /// The workers that we use for parallel operation.
     parallel_traversal: Option<WorkQueue<*mut LayoutContext,UnsafeFlow>>,
@@ -302,6 +307,7 @@ impl LayoutTask {
 
             display_list_collection: None,
             stylist: ~new_stylist(),
+            initial_css_values: Arc::new(style::initial_values()),
             parallel_traversal: parallel_traversal,
             profiler_chan: profiler_chan,
             opts: opts.clone()
@@ -332,6 +338,7 @@ impl LayoutTask {
             layout_chan: self.chan.clone(),
             font_context_info: font_context_info,
             stylist: &*self.stylist,
+            initial_css_values: self.initial_css_values.clone(),
             reflow_root: OpaqueNode::from_layout_node(reflow_root),
         }
     }
@@ -561,8 +568,17 @@ impl LayoutTask {
                     profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone(), || {
                         match self.parallel_traversal {
                             None => {
+                                let mut applicable_declarations = ApplicableDeclarations::new();
+                                let mut applicable_declarations_cache =
+                                    ApplicableDeclarationsCache::new();
+                                let mut style_sharing_candidate_cache =
+                                    StyleSharingCandidateCache::new();
                                 node.match_and_cascade_subtree(self.stylist,
                                                                &layout_ctx.layout_chan,
+                                                               &mut applicable_declarations,
+                                                               layout_ctx.initial_css_values.get(),
+                                                               &mut applicable_declarations_cache,
+                                                               &mut style_sharing_candidate_cache,
                                                                None)
                             }
                             Some(ref mut traversal) => {
@@ -636,6 +652,7 @@ impl LayoutTask {
                                              .resolve_color(thread_safe_child.style()
                                                                              .get()
                                                                              .Background
+                                                                             .get()
                                                                              .background_color)
                                              .to_gfx_color()
                         };

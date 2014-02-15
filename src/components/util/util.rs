@@ -13,6 +13,7 @@ extern mod native;
 
 pub mod cache;
 pub mod concurrentmap;
+pub mod cowarc;
 pub mod debug;
 pub mod geometry;
 pub mod io;
