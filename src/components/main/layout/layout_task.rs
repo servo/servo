@@ -195,12 +195,14 @@ impl<'a> PostorderFlowTraversal for BubbleWidthsTraversal<'a> {
 }
 
 /// The assign-widths traversal. In Gecko this corresponds to `Reflow`.
-struct AssignWidthsTraversal<'a>(&'a mut LayoutContext);
+pub struct AssignWidthsTraversal<'a> {
+    layout_context: &'a mut LayoutContext,
+}
 
 impl<'a> PreorderFlowTraversal for AssignWidthsTraversal<'a> {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.assign_widths(**self);
+        flow.assign_widths(self.layout_context);
         true
     }
 }
@@ -469,7 +471,12 @@ impl LayoutTask {
         // recompute them every time.
         // NOTE: this currently computes borders, so any pruning should separate that operation
         // out.
-        layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
+        {
+            let mut traversal = AssignWidthsTraversal {
+                layout_context: layout_context,
+            };
+            layout_root.traverse_preorder(&mut traversal);
+        }
 
         // FIXME(pcwalton): Prune this pass as well.
         {
@@ -486,28 +493,29 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints_parallel(&mut self,
-                                  layout_root: &mut Flow,
+                                  layout_root: &mut ~Flow,
                                   layout_context: &mut LayoutContext) {
         match self.parallel_traversal {
             None => fail!("solve_contraints_parallel() called with no parallel traversal ready"),
             Some(ref mut traversal) => {
-                parallel::traverse_flow_tree(BubbleWidthsTraversalKind,
-                                             &self.flow_leaf_set,
-                                             self.profiler_chan.clone(),
-                                             layout_context,
-                                             traversal);
+                parallel::traverse_flow_tree_postorder(BubbleWidthsTraversalKind,
+                                                       &self.flow_leaf_set,
+                                                       self.profiler_chan.clone(),
+                                                       layout_context,
+                                                       traversal);
 
                 // NOTE: this currently computes borders, so any pruning should separate that
                 // operation out.
-                // TODO(pcwalton): Run this in parallel as well. This will require a bit more work
-                // because this is a top-down traversal, unlike the others.
-                layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
+                parallel::traverse_flow_tree_preorder(layout_root,
+                                                      self.profiler_chan.clone(),
+                                                      layout_context,
+                                                      traversal);
 
-                parallel::traverse_flow_tree(AssignHeightsAndStoreOverflowTraversalKind,
-                                             &self.flow_leaf_set,
-                                             self.profiler_chan.clone(),
-                                             layout_context,
-                                             traversal);
+                parallel::traverse_flow_tree_postorder(AssignHeightsAndStoreOverflowTraversalKind,
+                                                       &self.flow_leaf_set,
+                                                       self.profiler_chan.clone(),
+                                                       layout_context,
+                                                       traversal);
             }
         }
     }
@@ -624,7 +632,7 @@ impl LayoutTask {
                 }
                 Some(_) => {
                     // Parallel mode.
-                    self.solve_constraints_parallel(layout_root, &mut layout_ctx)
+                    self.solve_constraints_parallel(&mut layout_root, &mut layout_ctx)
                 }
             }
         });

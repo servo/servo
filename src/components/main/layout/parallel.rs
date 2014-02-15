@@ -9,9 +9,10 @@
 use css::matching::{ApplicableDeclarations, CannotShare, MatchMethods, StyleWasShared};
 use layout::context::LayoutContext;
 use layout::extra::LayoutAuxMethods;
-use layout::flow::{Flow, FlowLeafSet, PostorderFlowTraversal};
+use layout::flow::{Flow, FlowLeafSet, PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
-use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, BubbleWidthsTraversal};
+use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, AssignWidthsTraversal};
+use layout::layout_task::{BubbleWidthsTraversal};
 use layout::util::{LayoutDataAccess, OpaqueNode};
 use layout::wrapper::{layout_node_to_unsafe_layout_node, LayoutNode, UnsafeLayoutNode};
 
@@ -122,7 +123,9 @@ impl FlowParallelInfo {
 
 /// A parallel bottom-up flow traversal.
 trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
-    fn run_parallel(&mut self, mut unsafe_flow: UnsafeFlow) {
+    fn run_parallel(&mut self,
+                    mut unsafe_flow: UnsafeFlow,
+                    _: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
         loop {
             unsafe {
                 // Get a real flow.
@@ -161,7 +164,32 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
     }
 }
 
+/// A parallel top-down flow traversal.
+trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
+    fn run_parallel(&mut self,
+                    unsafe_flow: UnsafeFlow,
+                    proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+        unsafe {
+            // Get a real flow.
+            let flow: &mut ~Flow = cast::transmute(&unsafe_flow);
+
+            // Perform the appropriate traversal.
+            self.process(*flow);
+
+            // Possibly enqueue the children.
+            for kid in flow::child_iter(*flow) {
+                proxy.push(WorkUnit {
+                    fun: assign_widths,
+                    data: UnsafeFlowConversions::from_flow(&borrowed_flow_to_unsafe_flow(kid)),
+                });
+            }
+        }
+    }
+}
+
 impl<'a> ParallelPostorderFlowTraversal for BubbleWidthsTraversal<'a> {}
+
+impl<'a> ParallelPreorderFlowTraversal for AssignWidthsTraversal<'a> {}
 
 impl<'a> ParallelPostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {}
 
@@ -245,14 +273,26 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
     }
 }
 
-fn bubble_widths(unsafe_flow: PaddedUnsafeFlow, proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+fn bubble_widths(unsafe_flow: PaddedUnsafeFlow,
+                 proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
     let layout_context: &mut LayoutContext = unsafe {
         cast::transmute(*proxy.user_data())
     };
     let mut bubble_widths_traversal = BubbleWidthsTraversal {
         layout_context: layout_context,
     };
-    bubble_widths_traversal.run_parallel(unsafe_flow.to_flow())
+    bubble_widths_traversal.run_parallel(unsafe_flow.to_flow(), proxy)
+}
+
+fn assign_widths(unsafe_flow: PaddedUnsafeFlow,
+                 proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+    let layout_context: &mut LayoutContext = unsafe {
+        cast::transmute(*proxy.user_data())
+    };
+    let mut assign_widths_traversal = AssignWidthsTraversal {
+        layout_context: layout_context,
+    };
+    assign_widths_traversal.run_parallel(unsafe_flow.to_flow(), proxy)
 }
 
 fn assign_heights_and_store_overflow(unsafe_flow: PaddedUnsafeFlow,
@@ -263,7 +303,7 @@ fn assign_heights_and_store_overflow(unsafe_flow: PaddedUnsafeFlow,
     let mut assign_heights_traversal = AssignHeightsAndStoreOverflowTraversal {
         layout_context: layout_context,
     };
-    assign_heights_traversal.run_parallel(unsafe_flow.to_flow())
+    assign_heights_traversal.run_parallel(unsafe_flow.to_flow(), proxy)
 }
 
 pub fn match_and_cascade_subtree(root_node: &LayoutNode,
@@ -284,11 +324,31 @@ pub fn match_and_cascade_subtree(root_node: &LayoutNode,
     queue.data = ptr::mut_null()
 }
 
-pub fn traverse_flow_tree(kind: TraversalKind,
-                          leaf_set: &Arc<FlowLeafSet>,
-                          profiler_chan: ProfilerChan,
-                          layout_context: &mut LayoutContext,
-                          queue: &mut WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>) {
+pub fn traverse_flow_tree_preorder(root: &mut ~Flow,
+                                   profiler_chan: ProfilerChan,
+                                   layout_context: &mut LayoutContext,
+                                   queue: &mut WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>) {
+    unsafe {
+        queue.data = cast::transmute(layout_context)
+    }
+
+    profile(time::LayoutParallelWarmupCategory, profiler_chan, || {
+        queue.push(WorkUnit {
+            fun: assign_widths,
+            data: UnsafeFlowConversions::from_flow(&mut_owned_flow_to_unsafe_flow(root)),
+        })
+    });
+
+    queue.run();
+
+    queue.data = ptr::mut_null()
+}
+
+pub fn traverse_flow_tree_postorder(kind: TraversalKind,
+                                    leaf_set: &Arc<FlowLeafSet>,
+                                    profiler_chan: ProfilerChan,
+                                    layout_context: &mut LayoutContext,
+                                    queue: &mut WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>) {
     unsafe {
         queue.data = cast::transmute(layout_context)
     }
