@@ -5,12 +5,12 @@
 use extra::arc::Arc;
 use std::ascii::StrAsciiExt;
 use std::hashmap::HashMap;
-use std::str;
 use std::to_bytes;
 
 use servo_util::namespace;
 use servo_util::smallvec::SmallVec;
 use servo_util::sort;
+use servo_util::str::DOMString;
 
 use media_queries::{Device, Screen};
 use node::{TElement, TNode};
@@ -31,8 +31,8 @@ static SELECTOR_WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '
 /// string.
 struct LowercaseAsciiString<'a>(&'a str);
 
-impl<'a> Equiv<~str> for LowercaseAsciiString<'a> {
-    fn equiv(&self, other: &~str) -> bool {
+impl<'a> Equiv<DOMString> for LowercaseAsciiString<'a> {
+    fn equiv(&self, other: &DOMString) -> bool {
         let LowercaseAsciiString(this) = *self;
         this.eq_ignore_ascii_case(*other)
     }
@@ -79,9 +79,9 @@ impl<'a> IterBytes for LowercaseAsciiString<'a> {
 struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
     // FIXME: Use interned strings
-    id_hash: HashMap<~str, ~[Rule]>,
-    class_hash: HashMap<~str, ~[Rule]>,
-    element_hash: HashMap<~str, ~[Rule]>,
+    id_hash: HashMap<DOMString, ~[Rule]>,
+    class_hash: HashMap<DOMString, ~[Rule]>,
+    element_hash: HashMap<DOMString, ~[Rule]>,
     // For Rules that don't have ID, class, or element selectors.
     universal_rules: ~[Rule],
     /// Whether this hash is empty.
@@ -163,7 +163,7 @@ impl SelectorMap {
                                     N:TNode<E>,
                                     V:SmallVec<MatchedProperty>>(
                                     node: &N,
-                                    hash: &HashMap<~str,~[Rule]>,
+                                    hash: &HashMap<DOMString,~[Rule]>,
                                     key: &str,
                                     matching_rules: &mut V,
                                     shareable: &mut bool) {
@@ -179,7 +179,7 @@ impl SelectorMap {
                                                   N:TNode<E>,
                                                   V:SmallVec<MatchedProperty>>(
                                                   node: &N,
-                                                  hash: &HashMap<~str,~[Rule]>,
+                                                  hash: &HashMap<DOMString,~[Rule]>,
                                                   key: &str,
                                                   matching_rules: &mut V,
                                                   shareable: &mut bool) {
@@ -595,21 +595,20 @@ fn matches_simple_selector<E:TElement,
         IDSelector(ref id) => {
             *shareable = false;
             element.with_element(|element: &E| {
-                match element.get_attr(&namespace::Null, "id") {
-                    Some(attr) => str::eq_slice(attr, *id),
-                    None => false
-                }
+                element.get_attr(&namespace::Null, "id")
+                       .map_default(false, |attr| {
+                    attr == *id
+                })
             })
         }
         // TODO: cache and intern class names on elements.
         ClassSelector(ref class) => {
             element.with_element(|element: &E| {
-                match element.get_attr(&namespace::Null, "class") {
-                    None => false,
+                element.get_attr(&namespace::Null, "class")
+                       .map_default(false, |attr| {
                     // TODO: case-sensitivity depends on the document type and quirks mode
-                    Some(ref class_attr)
-                    => class_attr.split(SELECTOR_WHITESPACE).any(|c| c == class.as_slice()),
-                }
+                    attr.split(SELECTOR_WHITESPACE).any(|c| c == class.as_slice())
+                })
             })
         }
 
@@ -623,7 +622,9 @@ fn matches_simple_selector<E:TElement,
                 // here because the UA style otherwise disables all style sharing completely.
                 *shareable = false
             }
-            element.match_attr(attr, |v| v == value.as_slice())
+            element.match_attr(attr, |attr_value| {
+                attr_value == value.as_slice()
+            })
         }
         AttrIncludes(ref attr, ref value) => {
             *shareable = false;
@@ -634,7 +635,8 @@ fn matches_simple_selector<E:TElement,
         AttrDashMatch(ref attr, ref value, ref dashing_value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
-                attr_value == value.as_slice() || attr_value.starts_with(dashing_value.as_slice())
+                attr_value == value.as_slice() ||
+                attr_value.starts_with(dashing_value.as_slice())
             })
         }
         AttrPrefixMatch(ref attr, ref value) => {

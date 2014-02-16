@@ -16,9 +16,9 @@ pub struct DocumentType {
 }
 
 impl DocumentType {
-    pub fn new_inherited(name: ~str,
-                         public_id: Option<~str>,
-                         system_id: Option<~str>,
+    pub fn new_inherited(name: DOMString,
+                         public_id: Option<DOMString>,
+                         system_id: Option<DOMString>,
                          document: AbstractDocument)
             -> DocumentType {
         DocumentType {
@@ -29,9 +29,9 @@ impl DocumentType {
         }
     }
 
-    pub fn new(name: ~str,
-               public_id: Option<~str>,
-               system_id: Option<~str>,
+    pub fn new(name: DOMString,
+               public_id: Option<DOMString>,
+               system_id: Option<DOMString>,
                document: AbstractDocument)
                -> AbstractNode {
         let documenttype = DocumentType::new_inherited(name,
