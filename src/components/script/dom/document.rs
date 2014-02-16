@@ -341,7 +341,7 @@ impl Document {
                             for child in node.children() {
                                 if child.is_text() {
                                     child.with_imm_text(|text| {
-                                        title = title + text.characterdata.Data();
+                                        title.push_str(text.characterdata.data.as_slice());
                                     });
                                 }
                             }
