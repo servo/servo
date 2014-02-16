@@ -12,13 +12,13 @@ use servo_util::str::DOMString;
 
 /// An HTML comment.
 pub struct Comment {
-    element: CharacterData,
+    characterdata: CharacterData,
 }
 
 impl Comment {
     pub fn new_inherited(text: DOMString, document: AbstractDocument) -> Comment {
         Comment {
-            element: CharacterData::new_inherited(CommentNodeTypeId, text, document)
+            characterdata: CharacterData::new_inherited(CommentNodeTypeId, text, document)
         }
     }
 

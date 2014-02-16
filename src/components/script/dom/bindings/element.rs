@@ -14,6 +14,12 @@ macro_rules! generate_cacheable_wrapper(
     )
 )
 
+macro_rules! generate_cacheable_wrapper_characterdata(
+    ($name: path, $wrap: path) => (
+        generate_cacheable_wrapper_base!($name, $wrap, characterdata)
+    )
+)
+
 macro_rules! generate_cacheable_wrapper_htmlelement(
     ($name: path, $wrap: path) => (
         generate_cacheable_wrapper_base!($name, $wrap, htmlelement)
@@ -60,6 +66,12 @@ macro_rules! generate_traceable(
     )
 )
 
+macro_rules! generate_traceable_characterdata(
+    ($name: path) => (
+        generate_traceable_base!($name, characterdata)
+    )
+)
+
 macro_rules! generate_traceable_htmlelement(
     ($name: path) => (
         generate_traceable_base!($name, htmlelement)
@@ -95,8 +107,8 @@ macro_rules! generate_traceable_base(
 )
 
 
-generate_cacheable_wrapper!(Comment, CommentBinding::Wrap)
-generate_traceable!(Comment)
+generate_cacheable_wrapper_characterdata!(Comment, CommentBinding::Wrap)
+generate_traceable_characterdata!(Comment)
 
 generate_cacheable_wrapper_node!(DocumentFragment, DocumentFragmentBinding::Wrap)
 generate_traceable_node!(DocumentFragment)
@@ -104,11 +116,11 @@ generate_traceable_node!(DocumentFragment)
 generate_cacheable_wrapper_node!(DocumentType, DocumentTypeBinding::Wrap)
 generate_traceable_node!(DocumentType)
 
-generate_cacheable_wrapper!(Text, TextBinding::Wrap)
-generate_traceable!(Text)
+generate_cacheable_wrapper_characterdata!(Text, TextBinding::Wrap)
+generate_traceable_characterdata!(Text)
 
-generate_cacheable_wrapper!(ProcessingInstruction, ProcessingInstruction::Wrap)
-generate_traceable!(ProcessingInstruction)
+generate_cacheable_wrapper_characterdata!(ProcessingInstruction, ProcessingInstruction::Wrap)
+generate_traceable_characterdata!(ProcessingInstruction)
 
 generate_cacheable_wrapper_htmlelement!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
 generate_traceable_htmlelement!(HTMLHeadElement)

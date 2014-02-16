@@ -468,7 +468,7 @@ pub fn parse_html(cx: *JSContext,
                             for child in scriptnode.children() {
                                 debug!("child = {:?}", child);
                                 child.with_imm_text(|text| {
-                                    data.push(text.element.data.to_str());  // FIXME: Bad copy.
+                                    data.push(text.characterdata.data.to_str());  // FIXME: Bad copy.
                                 });
                             }
 
@@ -490,7 +490,7 @@ pub fn parse_html(cx: *JSContext,
                 for child in style.children() {
                     debug!("child = {:?}", child);
                     child.with_imm_text(|text| {
-                        data.push(text.element.data.to_str());  // FIXME: Bad copy.
+                        data.push(text.characterdata.data.to_str());  // FIXME: Bad copy.
                     });
                 }
 

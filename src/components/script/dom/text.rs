@@ -12,13 +12,13 @@ use servo_util::str::DOMString;
 
 /// An HTML text node.
 pub struct Text {
-    element: CharacterData,
+    characterdata: CharacterData,
 }
 
 impl Text {
     pub fn new_inherited(text: DOMString, document: AbstractDocument) -> Text {
         Text {
-            element: CharacterData::new_inherited(TextNodeTypeId, text, document)
+            characterdata: CharacterData::new_inherited(TextNodeTypeId, text, document)
         }
     }
 
