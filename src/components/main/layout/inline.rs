@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+ 
 use css::node_style::StyledNode;
 use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox, SplitDidFit};
 use layout::box_::{SplitDidNotFit, UnscannedTextBox, InlineInfo};
@@ -52,7 +52,16 @@ use style::computed_values::{text_align, vertical_align, white_space};
 struct LineBox {
     range: Range,
     bounds: Rect<Au>,
-    green_zone: Size2D<Au>
+    green_zone: Size2D<Au>,
+
+    // whether there still was content to layout out
+    // once the line has been full   
+    was_overflown: bool,
+    
+    // whether some unbreakable content did
+    // overflow the line width (not always the element)
+    was_width_overflown: bool
+        
 }
 
 struct LineboxScanner {
@@ -73,7 +82,9 @@ impl LineboxScanner {
             pending_line: LineBox {
                 range: Range::empty(),
                 bounds: Rect(Point2D(Au::new(0), Au::new(0)), Size2D(Au::new(0), Au::new(0))),
-                green_zone: Size2D(Au::new(0), Au::new(0))
+                green_zone: Size2D(Au::new(0), Au::new(0)),
+                was_overflown: true,
+                was_width_overflown:false
             },
             lines: ~[],
             cur_y: Au::new(0)
@@ -93,6 +104,8 @@ impl LineboxScanner {
     }
 
     fn reset_linebox(&mut self) {
+        self.pending_line.was_overflown = true;
+        self.pending_line.was_width_overflown = false;
         self.pending_line.range.reset(0,0);
         self.pending_line.bounds = Rect(Point2D(Au::new(0), self.cur_y), Size2D(Au::new(0), Au::new(0)));
         self.pending_line.green_zone = Size2D(Au::new(0), Au::new(0))
@@ -100,10 +113,17 @@ impl LineboxScanner {
 
     pub fn scan_for_lines(&mut self, flow: &mut InlineFlow) {
         self.reset_scanner(flow);
+        
+        //QUESTION: Am I correct in assuming no <br> will be handled here?
+        //If not, how are they handled in the "white-space:normal" case?
+        
+        // We need to check whether boxes need to be sliced as much as possile
+        let splice_as_much_as_possible = (flow.base.flags_info.flags.text_align() == text_align::justify);
+        error!("splice_as_much_as_possible: {}", splice_as_much_as_possible);
 
         loop {
             // acquire the next box to lay out from work list or box list
-            let cur_box = if self.work_list.is_empty() {
+            let cur_box_original = if self.work_list.is_empty() {
                 if flow.boxes.is_empty() {
                     break;
                 }
@@ -115,6 +135,28 @@ impl LineboxScanner {
                 debug!("LineboxScanner: Working with box from work list: b{}", box_.debug_id());
                 box_
             };
+            
+            // splice the box if needed
+            let cur_box = 
+                if splice_as_much_as_possible {
+                    match cur_box_original.split_asap(false, false) {
+                        SplitDidFit(Some(cur_box_final), Some(cur_box_remainder)) | SplitDidNotFit(Some(cur_box_final), Some(cur_box_remainder)) => {
+                            error!("did split");
+                            self.work_list.push_front(cur_box_remainder);
+                            cur_box_final
+                        }
+                        SplitDidFit(Some(cur_box_final), None) | SplitDidNotFit(Some(cur_box_final), None) => {
+                            error!("didn't split");
+                            cur_box_final
+                        }
+                        other_result => {
+                            error!("can't split ({:?})", other_result);
+                            cur_box_original
+                        }
+                    }
+                } else {
+                    cur_box_original
+                };
 
             let box_was_appended = match cur_box.white_space() {
                 white_space::normal => self.try_append_to_line(cur_box, flow),
@@ -124,7 +166,7 @@ impl LineboxScanner {
             if !box_was_appended {
                 debug!("LineboxScanner: Box wasn't appended, because line {:u} was full.",
                         self.lines.len());
-                self.flush_current_line();
+                self.flush_current_line(flow);
             } else {
                 debug!("LineboxScanner: appended a box to line {:u}", self.lines.len());
             }
@@ -133,7 +175,7 @@ impl LineboxScanner {
         if self.pending_line.range.length() > 0 {
             debug!("LineboxScanner: Partially full linebox {:u} left at end of scanning.",
                     self.lines.len());
-            self.flush_current_line();
+            self.flush_current_line(flow);
         }
 
         flow.elems.repair_for_box_changes(flow.boxes, self.new_boxes);
@@ -150,11 +192,23 @@ impl LineboxScanner {
         util::swap(&mut flow.lines, &mut self.lines);
     }
 
-    fn flush_current_line(&mut self) {
+    fn flush_current_line(&mut self, flow: &InlineFlow) {
         debug!("LineboxScanner: Flushing line {:u}: {:?}",
                self.lines.len(), self.pending_line);
-
+        
+        // compute whether the line is full or not
+        error!("LineboxScanner: Flushing line {:u}: {:?}", self.lines.len(), self.pending_line);
+        error!("was_overflown={}", self.pending_line.was_overflown);
+        error!("work_list.len()={}", self.work_list.len());
+        error!("boxes.len()={}", flow.boxes.len());
+        self.pending_line.was_overflown = 
+            (self.pending_line.was_overflown) && (self.work_list.len() > 0 || flow.boxes.len() > 0); 
+            
+        self.pending_line.was_width_overflown = 
+            (self.pending_line.bounds.size.width > self.pending_line.green_zone.width);
+        
         // clear line and add line mapping
+        error!("LineboxScanner: Flushed line {:u}: {:?}", self.lines.len(), self.pending_line);
         debug!("LineboxScanner: Saving information for flushed line {:u}.", self.lines.len());
         self.lines.push(self.pending_line);
         self.cur_y = self.pending_line.bounds.origin.y + self.pending_line.bounds.size.height;
@@ -312,8 +366,10 @@ impl LineboxScanner {
 
     fn try_append_to_line_by_new_line(&mut self, in_box: Box) -> bool {
         if in_box.new_line_pos.len() == 0 {
+            
             // In case of box does not include new-line character
             self.push_box_to_line(in_box);
+            
             true
         } else {
             // In case of box includes new-line character
@@ -370,7 +426,7 @@ impl LineboxScanner {
         // doesn't fit.
 
         let new_width = self.pending_line.bounds.size.width + in_box.position.get().size.width;
-        if new_width <= green_zone.width {
+        if new_width <= green_zone.width || in_box.is_pure_whitespace() {
             debug!("LineboxScanner: case=box fits without splitting");
             self.push_box_to_line(in_box);
             return true
@@ -383,6 +439,7 @@ impl LineboxScanner {
                         overflowing.",
                         self.lines.len());
                 self.push_box_to_line(in_box);
+                self.pending_line.was_width_overflown = true;
                 return true
             }
         }
@@ -412,6 +469,7 @@ impl LineboxScanner {
                 debug!("LineboxScanner: case=split box didn't fit and line {:u} is empty, so \
                         overflowing and deferring remainder box.",
                         self.lines.len());
+                self.pending_line.was_width_overflown = true;
                 (left, right)
                 // Fall though to push boxes to the line.
             }
@@ -583,31 +641,154 @@ impl InlineFlow {
             }
         }
     }
-
+    
+    fn get_final_align_for_line(line: &LineBox, linebox_align: text_align::T) -> text_align::T {
+        
+        if line.was_width_overflown {
+            
+            // A line that has too much content 
+            // is always left-aligned:
+            return text_align::left; // TODO: should be "right" if in a rtl flow
+                
+        } else {
+            
+            if line.was_overflown {
+                
+                // Nothing special happens for a line that is overflown
+                return linebox_align;
+                
+            } else {
+                
+                // Forced breaks and unfinished lines use "text-align-last" though
+                // TODO: should use "text-align-last"
+                return match linebox_align { 
+                    text_align::justify => text_align::left, 
+                    _ => linebox_align
+                };
+                
+            }
+            
+        }
+    }
+    
     /// Sets box X positions based on alignment for one line.
-    fn set_horizontal_box_positions(boxes: &[Box], line: &LineBox, linebox_align: text_align::T) {
+    fn set_horizontal_box_positions(boxes: &mut [Box], line: &mut LineBox, linebox_align: text_align::T) {
+        
+        // Obtain the algorithm we should apply based on the context
+        let final_align = InlineFlow::get_final_align_for_line(line, linebox_align); 
+        
+        // Trim any trailling whitespace at the end, and compute whitespace size
+        let mut whitespace_width = Au(0);
+        let mut is_whitespace_trailling = true;
+        for i in line.range.eachi().invert() {
+            let box_ = &boxes[i];
+            if(box_.is_pure_whitespace()) {
+                let size = box_.position.get().size;
+                if is_whitespace_trailling {
+                    // Trim trailling whitespace
+                    line.bounds.size.width = line.bounds.size.width - size.width;
+                    box_.position.set(Rect(Point2D(Au(0), box_.position.get().origin.y), Size2D(Au(0), size.height)));
+                } else {
+                    // Compute whitespace size
+                    whitespace_width = whitespace_width + size.width;
+                }
+            } else if is_whitespace_trailling {
+                
+                // Some token was found, whitespace cannot be trailling anymore
+                is_whitespace_trailling = false;
+                
+                // There may be some whitespace trailling inside this
+                let size = box_.position.get().size;
+                let size_width = size.width;
+                error!("size_width: {}", size_width);
+                match box_.trim_whitespace_traillers() {
+                    None => {},
+                    Some(new_box) => {
+                        let new_size = new_box.position.get().size;
+                        let new_size_width = new_size.width;
+                        error!("new_size_width: {}", new_size_width);
+                        if new_size.width != size.width {
+                            line.bounds.size.width = line.bounds.size.width - size_width + new_size.width;
+                        }
+                    }
+                }
+                
+                // OPTIMIZATION: we only need whitespace_width for justify
+                if final_align != text_align::justify { break; }
+                
+            }
+        }
+        
         // Figure out how much width we have.
         let slack_width = Au::max(Au(0), line.green_zone.width - line.bounds.size.width);
-
+        
+        error!("");
+        error!("line: {:?}", line);
+        error!("final_align left:{} justify:{}", final_align==text_align::left, final_align==text_align::justify);
+        
+        // Compute the algorithm parameters
+        let mut initial_offset = 
+            line.bounds.origin.x + match final_align {
+                text_align::left | text_align::justify => Au(0), // FIXME: what about justify+rtl?
+                text_align::center => slack_width.scale_by(0.5),
+                text_align::right => slack_width,
+            };
+        
+        let whitespace_ratio =
+            
+            if final_align == text_align::justify {
+                
+                // ASSERT: boxes were broken in as-small-as-possible segments before this step
+                if whitespace_width != Au(0) {
+                    
+                    // We don't want any initial offset
+                    initial_offset = line.bounds.origin.x + Au(0);
+                    
+                    // The line now cover the whole surface
+                    line.bounds.size.width = line.bounds.size.width + slack_width;
+                    
+                    // Set a special spacing between boxes
+                    let whitespace_width_as_f64 = whitespace_width.to_f64().unwrap_or(1.0);
+                    let slack_width_as_f64 = slack_width.to_f64().unwrap_or(0.0);
+                    ((whitespace_width_as_f64 + slack_width_as_f64) / whitespace_width_as_f64)
+                    
+                } else {
+                    
+                    // Set no special spacing when not at least one whitespace to extend
+                    1.0
+                    
+                }
+                
+            } else {
+                
+                // Set no special spacing when not justified
+                1.0
+                
+            };
+            
+        error!("initial_offset {}", initial_offset);
+        error!("whitespace_ratio {}", whitespace_ratio);
+        
         // Set the box x positions based on that alignment.
-        let mut offset_x = line.bounds.origin.x;
-        offset_x = offset_x + match linebox_align {
-            // So sorry, but justified text is more complicated than shuffling linebox
-            // coordinates.
-            //
-            // TODO(burg, issue #213): Implement `text-align: justify`.
-            text_align::left | text_align::justify => Au(0),
-            text_align::center => slack_width.scale_by(0.5),
-            text_align::right => slack_width,
-        };
-
+        let mut offset_x = initial_offset;
         for i in line.range.eachi() {
             let box_ = &boxes[i];
             let size = box_.position.get().size;
-            box_.position.set(Rect(Point2D(offset_x, box_.position.get().origin.y), size));
-            offset_x = offset_x + size.width;
+            let new_size = 
+                if whitespace_ratio != 1.0 && box_.is_pure_whitespace() {
+                    Size2D(size.width.scale_by(whitespace_ratio), size.height)
+                } else {
+                    size
+                };
+            let Au(box_width) = size.width;
+            let Au(box_height) = size.height;
+            error!("box-size: {}x{} --- is_pure_whitespace: {}", box_width, box_height, box_.is_pure_whitespace());
+            box_.position.set(Rect(Point2D(offset_x, box_.position.get().origin.y), new_size));
+            offset_x = offset_x + new_size.width;
         }
+
     }
+
 }
 
 impl Flow for InlineFlow {

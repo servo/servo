@@ -1358,14 +1358,40 @@ impl Box {
             }
         }
     }
+    
+    /// Returns true if the box only contains text whitespace
+    pub fn is_pure_whitespace(&self) -> bool {
+        return match self.specific {
+            ScannedTextBox(ref text_box_info) => {
+                text_box_info.run.get().is_pure_whitespace(&text_box_info.range)
+            }
+            _ => false
+        }
+    }
+
+
+    /// Attempts to split this box so that its width is no more than `max_width` (and collapse the leading whitespace between the segments). Useful when you split content between two fragmentainers (line or regions).
+    pub fn split_to_width(&self, max_width: Au, trim_whitespace_leaders: bool) -> SplitBoxResult {
+        return self.split_to_width_with_params(max_width, false, trim_whitespace_leaders, true);
+    }
+    
+    /// Attempts to split this box so that its width is no more than `max_width` (and preserve the leading whitespace between the segments). Useful when you have special whitespace processing.
+    pub fn split_to_width_and_preserve_whitespace(&self, max_width: Au) -> SplitBoxResult {
+        return self.split_to_width_with_params(max_width, false, false, false);
+    }
+    
+    /// Attempts to split this box using the first non-zero split possible. Useful for spacing purposes.
+    pub fn split_asap(&self, trim_whitespace_leaders: bool, trim_whitespace_separators: bool) -> SplitBoxResult {
+        return self.split_to_width_with_params(Au(0), true, trim_whitespace_leaders, trim_whitespace_separators);
+    }
 
     /// Attempts to split this box so that its width is no more than `max_width`.
-    pub fn split_to_width(&self, max_width: Au, starts_line: bool) -> SplitBoxResult {
+    pub fn split_to_width_with_params(&self, max_width: Au, force_nonzero_split: bool, trim_whitespace_leaders: bool, trim_whitespace_separators: bool) -> SplitBoxResult {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) => CannotSplit,
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
-                let mut pieces_processed_count: uint = 0;
+                let mut first_piece_processed: bool = false;
                 let mut remaining_width: Au = max_width;
                 let mut left_range = Range::new(text_box_info.range.begin(), 0);
                 let mut right_range: Option<Range> = None;
@@ -1376,6 +1402,7 @@ impl Box {
                        text_box_info.range,
                        max_width);
 
+                let mut should_continue = true;
                 for (glyphs, offset, slice_range) in text_box_info.run.get().iter_slices_for_range(
                         &text_box_info.range) {
                     debug!("split_to_width: considering slice (offset={}, range={}, \
@@ -1384,56 +1411,65 @@ impl Box {
                            slice_range,
                            remaining_width);
 
-                    let metrics = text_box_info.run.get().metrics_for_slice(glyphs, &slice_range);
-                    let advance = metrics.advance_width;
+                    if should_continue {
 
-                    let should_continue;
-                    if advance <= remaining_width {
-                        should_continue = true;
-
-                        if starts_line && pieces_processed_count == 0 && glyphs.is_whitespace() {
+                        let metrics = text_box_info.run.get().metrics_for_slice(glyphs, &slice_range);
+                        let advance = metrics.advance_width;
+                        
+                        if !first_piece_processed && trim_whitespace_leaders && glyphs.is_whitespace() {
+                            
                             debug!("split_to_width: case=skipping leading trimmable whitespace");
                             left_range.shift_by(slice_range.length() as int);
-                        } else {
+                            
+                        } else if advance <= remaining_width || (force_nonzero_split && !first_piece_processed) {
+
                             debug!("split_to_width: case=enlarging span");
                             remaining_width = remaining_width - advance;
                             left_range.extend_by(slice_range.length() as int);
+                            first_piece_processed = true;
+                            
+                        } else {
+                        
+                            // The advance is more than the remaining width.
+                            debug!("split_to_width: case=end of left range, looking for the right range start");
+                            should_continue = false;
+                            
                         }
-                    } else {
-                        // The advance is more than the remaining width.
-                        should_continue = false;
-                        let slice_begin = offset + slice_range.begin();
-                        let slice_end = offset + slice_range.end();
 
-                        if glyphs.is_whitespace() {
+                    } 
+                    
+                    if !should_continue {
+                        
+                        if !trim_whitespace_separators || !glyphs.is_whitespace() {
+                            
+                            // We found the first token of the right range
+                            let right_range_start = offset + slice_range.begin();
+                            
                             // If there are still things after the trimmable whitespace, create the
                             // right chunk.
-                            if slice_end < text_box_info.range.end() {
-                                debug!("split_to_width: case=skipping trimmable trailing \
-                                        whitespace, then split remainder");
-                                let right_range_end = text_box_info.range.end() - slice_end;
-                                right_range = Some(Range::new(slice_end, right_range_end));
+                            if right_range_start < text_box_info.range.end() {
+                                debug!("split_to_width: case=found remainder after skipping \
+                                        trimmable trailing whitespace");
+                                let right_range_length = text_box_info.range.end() - right_range_start;
+                                right_range = Some(Range::new(right_range_start, right_range_length));
                             } else {
-                                debug!("split_to_width: case=skipping trimmable trailing \
-                                        whitespace");
+                                debug!("split_to_width: case=no remainder after skipping \
+                                        trimmable trailing whitespace");
                             }
-                        } else if slice_begin < text_box_info.range.end() {
-                            // There are still some things left over at the end of the line. Create
-                            // the right chunk.
-                            let right_range_end = text_box_info.range.end() - slice_begin;
-                            right_range = Some(Range::new(slice_begin, right_range_end));
-                            debug!("split_to_width: case=splitting remainder with right range={:?}",
-                                   right_range);
+                            
+                            // Stop iterating
+                            break;
+                            
+                        } else {
+                            
+                            // We can trim this whitespace between the left and right ranges
+                            debug!("split_to_width: case=skipping trimmable trailing whitespace");
+                            
                         }
-                    }
-
-                    pieces_processed_count += 1;
-
-                    if !should_continue {
-                        break
                     }
                 }
 
+                // Check the ranges and create the corresponding boxes
                 let left_box = if left_range.length() > 0 {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
                     let mut new_metrics = new_text_box_info.run.get().metrics_for_range(&left_range);
@@ -1452,7 +1488,8 @@ impl Box {
                                         ScannedTextBox(new_text_box_info)))
                 });
 
-                if pieces_processed_count == 1 || left_box.is_none() {
+                // Return the final result of the split
+                if remaining_width < Au(0) || left_box.is_none() {
                     SplitDidNotFit(left_box, right_box)
                 } else {
                     if left_box.is_some() {
@@ -1463,6 +1500,44 @@ impl Box {
                     }
                     SplitDidFit(left_box, right_box)
                 }
+            }
+        }
+    }
+    
+    /// Removes any whitespace that remains at the end of this box
+    pub fn trim_whitespace_traillers(&self) -> Option<Box> {
+        match self.specific {
+            GenericBox | IframeBox(_) | ImageBox(_) => None,
+            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
+            ScannedTextBox(ref text_box_info) => {
+                
+                let begin = text_box_info.range.begin();                                
+                let mut current_length = 0;
+                
+                for (glyphs, _, slice_range) in text_box_info.run.get().iter_slices_for_range(&text_box_info.range) {
+
+                    if current_length + slice_range.length()  == text_box_info.range.length() {
+                        if glyphs.is_whitespace() {
+                            break;
+                        } else {
+                            current_length += slice_range.length();
+                            break;
+                        }
+                    } else {
+                        current_length += slice_range.length();
+                    }
+                }
+                
+                let new_range = Range::new(begin, current_length as uint);
+                if new_range.length() == text_box_info.range.length() {
+                    None
+                } else {
+                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), new_range);
+                    let mut new_metrics = new_text_box_info.run.get().metrics_for_range(&new_range);
+                    new_metrics.bounding_box.size.height = self.position.get().size.height;
+                    Some(self.transform(new_metrics.bounding_box.size,
+                                        ScannedTextBox(new_text_box_info)))
+                }            
             }
         }
     }
