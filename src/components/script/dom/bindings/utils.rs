@@ -186,7 +186,7 @@ pub unsafe fn squirrel_away<T>(x: @mut T) -> *Box<T> {
     y
 }
 
-pub fn jsstring_to_str(cx: *JSContext, s: *JSString) -> ~str {
+pub fn jsstring_to_str(cx: *JSContext, s: *JSString) -> DOMString {
     unsafe {
         let length = 0;
         let chars = JS_GetStringCharsAndLength(cx, s, &length);
@@ -196,7 +196,7 @@ pub fn jsstring_to_str(cx: *JSContext, s: *JSString) -> ~str {
     }
 }
 
-pub fn jsid_to_str(cx: *JSContext, id: jsid) -> ~str {
+pub fn jsid_to_str(cx: *JSContext, id: jsid) -> DOMString {
     unsafe {
         assert!(RUST_JSID_IS_STRING(id) != 0);
         jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
@@ -210,7 +210,7 @@ pub enum StringificationBehavior {
 }
 
 pub fn jsval_to_str(cx: *JSContext, v: JSVal,
-                    nullBehavior: StringificationBehavior) -> Result<~str, ()> {
+                    nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
     if jsval::is_null(v) && nullBehavior == Empty {
         Ok(~"")
     } else {
