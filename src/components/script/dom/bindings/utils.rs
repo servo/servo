@@ -109,8 +109,8 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
     let v = *GetFunctionNativeReserved(callee, TOSTRING_NAME_RESERVED_SLOT);
     assert!(jsval::is_string(v));
     let name = jsstring_to_str(cx, jsval::to_string(v));
-    let retval = Some(~"function " + name + "() {\n    [native code]\n}");
-    *vp = domstring_to_jsval(cx, retval);
+    let retval = ~"function " + name + "() {\n    [native code]\n}";
+    *vp = str_to_jsval(cx, retval);
     return 1;
   }
 }
