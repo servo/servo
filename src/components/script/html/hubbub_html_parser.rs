@@ -181,6 +181,7 @@ pub fn build_element_from_tag(tag: DOMString, document: AbstractDocument) -> Abs
     handle_element!(document, tag, "dir",       HTMLDirectoryElement);
     handle_element!(document, tag, "div",       HTMLDivElement);
     handle_element!(document, tag, "dl",        HTMLDListElement);
+    handle_element!(document, tag, "em",        HTMLElement);
     handle_element!(document, tag, "embed",     HTMLEmbedElement);
     handle_element!(document, tag, "fieldset",  HTMLFieldSetElement);
     handle_element!(document, tag, "font",      HTMLFontElement);
@@ -225,6 +226,7 @@ pub fn build_element_from_tag(tag: DOMString, document: AbstractDocument) -> Abs
     handle_element!(document, tag, "small",     HTMLElement);
     handle_element!(document, tag, "source",    HTMLSourceElement);
     handle_element!(document, tag, "span",      HTMLSpanElement);
+    handle_element!(document, tag, "strong",    HTMLElement);
     handle_element!(document, tag, "style",     HTMLStyleElement);
     handle_element!(document, tag, "table",     HTMLTableElement);
     handle_element!(document, tag, "tbody",     HTMLTableSectionElement);
