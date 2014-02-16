@@ -11,6 +11,7 @@ use std::to_bytes;
 use servo_util::namespace;
 use servo_util::smallvec::SmallVec;
 use servo_util::sort;
+use servo_util::str::DOMString;
 
 use media_queries::{Device, Screen};
 use node::{TElement, TNode};
@@ -31,8 +32,8 @@ static SELECTOR_WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '
 /// string.
 struct LowercaseAsciiString<'a>(&'a str);
 
-impl<'a> Equiv<~str> for LowercaseAsciiString<'a> {
-    fn equiv(&self, other: &~str) -> bool {
+impl<'a> Equiv<DOMString> for LowercaseAsciiString<'a> {
+    fn equiv(&self, other: &DOMString) -> bool {
         let LowercaseAsciiString(this) = *self;
         this.eq_ignore_ascii_case(*other)
     }
@@ -79,9 +80,9 @@ impl<'a> IterBytes for LowercaseAsciiString<'a> {
 struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
     // FIXME: Use interned strings
-    id_hash: HashMap<~str, ~[Rule]>,
-    class_hash: HashMap<~str, ~[Rule]>,
-    element_hash: HashMap<~str, ~[Rule]>,
+    id_hash: HashMap<DOMString, ~[Rule]>,
+    class_hash: HashMap<DOMString, ~[Rule]>,
+    element_hash: HashMap<DOMString, ~[Rule]>,
     // For Rules that don't have ID, class, or element selectors.
     universal_rules: ~[Rule],
     /// Whether this hash is empty.
@@ -163,7 +164,7 @@ impl SelectorMap {
                                     N:TNode<E>,
                                     V:SmallVec<MatchedProperty>>(
                                     node: &N,
-                                    hash: &HashMap<~str,~[Rule]>,
+                                    hash: &HashMap<DOMString,~[Rule]>,
                                     key: &str,
                                     matching_rules: &mut V,
                                     shareable: &mut bool) {
@@ -179,7 +180,7 @@ impl SelectorMap {
                                                   N:TNode<E>,
                                                   V:SmallVec<MatchedProperty>>(
                                                   node: &N,
-                                                  hash: &HashMap<~str,~[Rule]>,
+                                                  hash: &HashMap<DOMString,~[Rule]>,
                                                   key: &str,
                                                   matching_rules: &mut V,
                                                   shareable: &mut bool) {

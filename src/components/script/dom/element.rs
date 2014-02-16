@@ -31,7 +31,7 @@ use std::unstable::raw::Box;
 
 pub struct Element {
     node: Node,
-    tag_name: ~str,     // TODO: This should be an atom, not a ~str.
+    tag_name: DOMString,     // TODO: This should be an atom, not a DOMString.
     namespace: Namespace,
     attrs: ~[@mut Attr],
     style_attribute: Option<style::PropertyDeclarationBlock>,

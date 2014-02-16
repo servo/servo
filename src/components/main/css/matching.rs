@@ -14,6 +14,7 @@ use script::layout_interface::LayoutChan;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::namespace::Null;
 use servo_util::smallvec::{SmallVec, SmallVec0, SmallVec16};
+use servo_util::str::DOMString;
 use std::cast;
 use std::to_bytes;
 use std::vec::VecIterator;
@@ -161,9 +162,9 @@ struct StyleSharingCandidate {
     priv parent_style: Arc<ComputedValues>,
 
     // TODO(pcwalton): Intern.
-    priv local_name: ~str,
+    priv local_name: DOMString,
 
-    priv class: Option<~str>,
+    priv class: Option<DOMString>,
 }
 
 impl Eq for StyleSharingCandidate {
