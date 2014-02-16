@@ -1064,7 +1064,7 @@ impl Node {
                 for node in abstract_self.traverse_preorder() {
                     if node.is_text() {
                         node.with_imm_text(|text| {
-                            content = content + text.characterdata.Data();
+                            content.push_str(text.characterdata.data.as_slice());
                         })
                     }
                 }

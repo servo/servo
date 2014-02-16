@@ -27,7 +27,6 @@ use std::cast;
 use std::cell::RefCell;
 use std::comm::{Port, SharedChan};
 use std::from_str::FromStr;
-use std::str::eq_slice;
 use std::str;
 use style::Stylesheet;
 
@@ -37,7 +36,7 @@ macro_rules! handle_element(
      $string: expr,
      $ctor: ident
      $(, $arg:expr )*) => (
-        if eq_slice($localName, $string) {
+        if $string == $localName {
             return $ctor::new($localName, $document $(, $arg)*);
         }
     )

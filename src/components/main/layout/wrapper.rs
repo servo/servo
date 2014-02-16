@@ -241,13 +241,11 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
             };
             match attr.namespace {
                 SpecificNamespace(ref ns) => {
-                    match element.get_attr(ns, name) {
-                        Some(value) => test(value),
-                        None => false,
-                    }
+                    element.get_attr(ns, name)
+                           .map_default(false, |attr| test(attr))
                 },
                 // FIXME: https://github.com/mozilla/servo/issues/1558
-                AnyNamespace => return false,
+                AnyNamespace => false,
             }
         })
     }

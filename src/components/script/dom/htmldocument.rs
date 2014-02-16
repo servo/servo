@@ -11,7 +11,6 @@ use servo_util::namespace::Null;
 
 use extra::url::Url;
 use js::jsapi::JSTracer;
-use std::str::eq_slice;
 
 pub struct HTMLDocument {
     parent: Document
@@ -32,11 +31,11 @@ impl HTMLDocument {
 
 impl HTMLDocument {
     pub fn Images(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "img"))
+        self.parent.createHTMLCollection(|elem| "img" == elem.tag_name)
     }
 
     pub fn Embeds(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "embed"))
+        self.parent.createHTMLCollection(|elem| "embed" == elem.tag_name)
     }
 
     pub fn Plugins(&self) -> @mut HTMLCollection {
@@ -44,27 +43,29 @@ impl HTMLDocument {
     }
 
     pub fn Links(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem|
-            (eq_slice(elem.tag_name, "a") || eq_slice(elem.tag_name, "area"))
-            && elem.get_attribute(Null, "href").is_some())
+        self.parent.createHTMLCollection(|elem| {
+            ("a" == elem.tag_name || "area" == elem.tag_name) &&
+            elem.get_attribute(Null, "href").is_some()
+        })
     }
 
     pub fn Forms(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "form"))
+        self.parent.createHTMLCollection(|elem| "form" == elem.tag_name)
     }
 
     pub fn Scripts(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "script"))
+        self.parent.createHTMLCollection(|elem| "script" == elem.tag_name)
     }
 
     pub fn Anchors(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem|
-            eq_slice(elem.tag_name, "a") && elem.get_attribute(Null, "name").is_some())
+        self.parent.createHTMLCollection(|elem| {
+            "a" == elem.tag_name && elem.get_attribute(Null, "name").is_some()
+        })
     }
 
     pub fn Applets(&self) -> @mut HTMLCollection {
         // FIXME: This should be return OBJECT elements containing applets.
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "applet"))
+        self.parent.createHTMLCollection(|elem| "applet" == elem.tag_name)
     }
 }
 
