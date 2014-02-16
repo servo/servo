@@ -1432,7 +1432,7 @@ impl Box {
     }
 
     /// Removes any whitespace that remains at the end of this box
-    pub fn trim_whitespace_traillers(&self) -> Option<Box> {
+    pub fn trim_whitespace_trailers(&self) -> Option<Box> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) => None,
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),

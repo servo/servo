@@ -677,15 +677,15 @@ impl InlineFlow {
         debug!("LineboxScanner: setting horizontal positions for line {:?}", line.bounds);
         debug!("LineboxScanner: requested_align={:?} and final_align={:?}", linebox_align, final_align);
 
-        // Trim any trailling whitespace at the end, and compute whitespace size
+        // Trim any trailing whitespace at the end, and compute whitespace size
         let mut whitespace_width = Au(0);
-        let mut is_whitespace_trailling = true;
+        let mut is_whitespace_trailing = true;
         for i in line.range.eachi().invert() {
             let box_ = &boxes[i];
             if(box_.is_pure_whitespace()) {
                 let size = box_.position.get().size;
-                if is_whitespace_trailling {
-                    // Trim trailling whitespace
+                if is_whitespace_trailing {
+                    // Trim trailing whitespace
                     debug!("LineboxScanner: trim a whitespace box");
                     line.bounds.size.width = line.bounds.size.width - size.width;
                     box_.position.set(Rect(Point2D(Au(0), box_.position.get().origin.y), Size2D(Au(0), size.height)));
@@ -693,15 +693,15 @@ impl InlineFlow {
                     // Compute whitespace size
                     whitespace_width = whitespace_width + size.width;
                 }
-            } else if is_whitespace_trailling {
+            } else if is_whitespace_trailing {
 
-                // Some token was found, whitespace cannot be trailling anymore
-                is_whitespace_trailling = false;
+                // Some token was found, whitespace cannot be trailing anymore
+                is_whitespace_trailing = false;
 
-                // There may be some whitespace trailling inside this
+                // There may be some whitespace trailing inside this
                 let size = box_.position.get().size;
                 let size_width = size.width;
-                match box_.trim_whitespace_traillers() {
+                match box_.trim_whitespace_trailers() {
                     None => {},
                     Some(new_box) => {
                         let new_size = new_box.position.get().size;
