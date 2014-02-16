@@ -322,13 +322,13 @@ impl Box {
     }
 
     //TODO(ibnc) take into account padding.
-    pub fn get_y_coord_and_new_height_if_fixed(&self, 
+    pub fn get_y_coord_and_new_height_if_fixed(&self,
                                                screen_height: Au,
                                                mut height: Au,
                                                mut y: Au,
                                                is_fixed: bool)
                                                -> (Au, Au) {
-        if is_fixed { 
+        if is_fixed {
             let position_offsets = self.position_offsets.get();
             match (position_offsets.top, position_offsets.bottom) {
                 (Au(0), Au(0)) => {}
@@ -991,7 +991,7 @@ impl Box {
                 text_flags.set_override_underline(flow_flags.flags.override_underline());
                 text_flags.set_override_overline(flow_flags.flags.override_overline());
                 text_flags.set_override_line_through(flow_flags.flags.override_line_through());
-                
+
                 let mut bounds = absolute_box_bounds.clone();
                 bounds.origin.x = bounds.origin.x + self.noncontent_left()
                                   + self.noncontent_inline_left();
@@ -1285,7 +1285,7 @@ impl Box {
             }
         }
     }
-    
+
     /// Returns true if the box only contains text whitespace
     pub fn is_pure_whitespace(&self) -> bool {
         return match self.specific {
@@ -1301,12 +1301,12 @@ impl Box {
     pub fn split_to_width(&self, max_width: Au, trim_whitespace_leaders: bool) -> SplitBoxResult {
         return self.split_to_width_with_params(max_width, false, trim_whitespace_leaders, true);
     }
-    
+
     /// Attempts to split this box so that its width is no more than `max_width` (and preserve the leading whitespace between the segments). Useful when you have special whitespace processing.
     pub fn split_to_width_and_preserve_whitespace(&self, max_width: Au) -> SplitBoxResult {
         return self.split_to_width_with_params(max_width, false, false, false);
     }
-    
+
     /// Attempts to split this box using the first non-zero split possible. Useful for spacing purposes.
     pub fn split_asap(&self, trim_whitespace_leaders: bool, trim_whitespace_separators: bool) -> SplitBoxResult {
         return self.split_to_width_with_params(Au(0), true, trim_whitespace_leaders, trim_whitespace_separators);
@@ -1342,36 +1342,36 @@ impl Box {
 
                         let metrics = text_box_info.run.get().metrics_for_slice(glyphs, &slice_range);
                         let advance = metrics.advance_width;
-                        
+
                         if !first_piece_processed && trim_whitespace_leaders && glyphs.is_whitespace() {
-                            
+
                             debug!("split_to_width: case=skipping leading trimmable whitespace");
                             left_range.shift_by(slice_range.length() as int);
-                            
+
                         } else if advance <= remaining_width || (force_nonzero_split && !first_piece_processed) {
 
                             debug!("split_to_width: case=enlarging span");
                             remaining_width = remaining_width - advance;
                             left_range.extend_by(slice_range.length() as int);
                             first_piece_processed = true;
-                            
+
                         } else {
-                        
+
                             // The advance is more than the remaining width.
                             debug!("split_to_width: case=end of left range, looking for the right range start");
                             should_continue = false;
-                            
+
                         }
 
-                    } 
-                    
+                    }
+
                     if !should_continue {
-                        
+
                         if !trim_whitespace_separators || !glyphs.is_whitespace() {
-                            
+
                             // We found the first token of the right range
                             let right_range_start = offset + slice_range.begin();
-                            
+
                             // If there are still things after the trimmable whitespace, create the
                             // right chunk.
                             if right_range_start < text_box_info.range.end() {
@@ -1383,15 +1383,15 @@ impl Box {
                                 debug!("split_to_width: case=no remainder after skipping \
                                         trimmable trailing whitespace");
                             }
-                            
+
                             // Stop iterating
                             break;
-                            
+
                         } else {
-                            
+
                             // We can trim this whitespace between the left and right ranges
                             debug!("split_to_width: case=skipping trimmable trailing whitespace");
-                            
+
                         }
                     }
                 }
@@ -1430,17 +1430,17 @@ impl Box {
             }
         }
     }
-    
+
     /// Removes any whitespace that remains at the end of this box
     pub fn trim_whitespace_traillers(&self) -> Option<Box> {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) => None,
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
-                
-                let begin = text_box_info.range.begin();                                
+
+                let begin = text_box_info.range.begin();
                 let mut current_length = 0;
-                
+
                 for (glyphs, _, slice_range) in text_box_info.run.get().iter_slices_for_range(&text_box_info.range) {
 
                     if current_length + slice_range.length()  == text_box_info.range.length() {
@@ -1454,7 +1454,7 @@ impl Box {
                         current_length += slice_range.length();
                     }
                 }
-                
+
                 let new_range = Range::new(begin, current_length as uint);
                 if new_range.length() == text_box_info.range.length() {
                     None
@@ -1464,7 +1464,7 @@ impl Box {
                     new_metrics.bounding_box.size.height = self.position.get().size.height;
                     Some(self.transform(new_metrics.bounding_box.size,
                                         ScannedTextBox(new_text_box_info)))
-                }            
+                }
             }
         }
     }
@@ -1536,7 +1536,7 @@ impl Box {
                                                         image_box_info.dom_height,
                                                         Au::new(0));
 
-                let height = match (self.style().Box.width, 
+                let height = match (self.style().Box.width,
                                     image_box_info.dom_width,
                                     height) {
                     (LPA_Auto, None, Auto) => {
@@ -1620,7 +1620,7 @@ impl Box {
                 *value.right,
                 *value.bottom,
                 *value.left)
-    } 
+    }
 
     /// Sends the size and position of this iframe box to the constellation. This is out of line to
     /// guide inlining.
