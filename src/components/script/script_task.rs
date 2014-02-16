@@ -49,7 +49,6 @@ use servo_util::task::send_on_failure;
 use servo_util::namespace::Null;
 use std::comm::{Port, SharedChan};
 use std::ptr;
-use std::str::eq_slice;
 use std::task;
 use std::util::replace;
 
@@ -796,10 +795,9 @@ impl ScriptTask {
                 let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
                 anchors.find(|node| {
                     node.with_imm_element(|elem| {
-                        match elem.get_attribute(Null, "name") {
-                            Some(name) => eq_slice(name.value_ref(), fragid),
-                            None => false
-                        }
+                        elem.get_attribute(Null, "name").map_default(false, |attr| {
+                            attr.value_ref() == fragid
+                        })
                     })
                 })
             }

@@ -5,7 +5,6 @@
 use extra::arc::Arc;
 use std::ascii::StrAsciiExt;
 use std::hashmap::HashMap;
-use std::str;
 use std::to_bytes;
 
 use servo_util::namespace;
@@ -596,21 +595,20 @@ fn matches_simple_selector<E:TElement,
         IDSelector(ref id) => {
             *shareable = false;
             element.with_element(|element: &E| {
-                match element.get_attr(&namespace::Null, "id") {
-                    Some(attr) => str::eq_slice(attr, *id),
-                    None => false
-                }
+                element.get_attr(&namespace::Null, "id")
+                       .map_default(false, |attr| {
+                    attr == *id
+                })
             })
         }
         // TODO: cache and intern class names on elements.
         ClassSelector(ref class) => {
             element.with_element(|element: &E| {
-                match element.get_attr(&namespace::Null, "class") {
-                    None => false,
+                element.get_attr(&namespace::Null, "class")
+                       .map_default(false, |attr| {
                     // TODO: case-sensitivity depends on the document type and quirks mode
-                    Some(ref class_attr)
-                    => class_attr.split(SELECTOR_WHITESPACE).any(|c| c == class.as_slice()),
-                }
+                    attr.split(SELECTOR_WHITESPACE).any(|c| c == class.as_slice())
+                })
             })
         }
 

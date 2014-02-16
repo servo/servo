@@ -26,7 +26,6 @@ use servo_util::str::{DOMString, null_str_as_empty_ref};
 
 use std::ascii::StrAsciiExt;
 use std::cast;
-use std::str::eq;
 use std::unstable::raw::Box;
 
 pub struct Element {
@@ -181,8 +180,8 @@ impl Element {
         match prefix {
             Some(ref prefix_str) => {
                 if (namespace == namespace::Null ||
-                    (eq(prefix_str, &~"xml") && namespace != namespace::XML) ||
-                    (eq(prefix_str, &~"xmlns") && namespace != namespace::XMLNS)) {
+                    ("xml" == prefix_str.as_slice() && namespace != namespace::XML) ||
+                    ("xmlns" == prefix_str.as_slice() && namespace != namespace::XMLNS)) {
                     return Err(NamespaceError);
                 }
             },

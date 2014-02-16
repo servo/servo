@@ -32,7 +32,6 @@ use js::jsapi::{JSObject, JSContext, JSTracer};
 use std::ascii::StrAsciiExt;
 use std::cast;
 use std::hashmap::HashMap;
-use std::str::eq_slice;
 use std::unstable::raw::Box;
 
 #[deriving(Eq)]
@@ -247,7 +246,7 @@ impl Document {
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     pub fn GetElementsByTagName(&self, tag: DOMString) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, tag))
+        self.createHTMLCollection(|elem| elem.tag_name == tag)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
@@ -467,8 +466,11 @@ impl Document {
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
     pub fn GetElementsByName(&self, name: DOMString) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem|
-            elem.get_attribute(Null, "name").is_some() && eq_slice(elem.get_attribute(Null, "name").unwrap().value_ref(), name))
+        self.createHTMLCollection(|elem| {
+            elem.get_attribute(Null, "name").map_default(false, |attr| {
+                attr.value_ref() == name
+            })
+        })
     }
 
     pub fn createHTMLCollection(&self, callback: |elem: &Element| -> bool) -> @mut HTMLCollection {
