@@ -86,6 +86,9 @@ ol[type="I"]        { list-style-type: upper-roman; }
 
 u, ins              { text-decoration: underline }
 br:before           { content: "\A"; white-space: pre-line }
+/*DELETE THIS ONCE :before IS SUPPORTED*/
+br                  { display: block; height: 0px; }
+br + br             { height: 1.25em; }
 
 center              { text-align: center }
 :link, :visited     { text-decoration: underline }

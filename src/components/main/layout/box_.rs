@@ -1430,6 +1430,44 @@ impl Box {
             }
         }
     }
+    
+    /// Removes any whitespace that remains at the end of this box
+    pub fn trim_whitespace_traillers(&self) -> Option<Box> {
+        match self.specific {
+            GenericBox | IframeBox(_) | ImageBox(_) => None,
+            UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
+            ScannedTextBox(ref text_box_info) => {
+                
+                let begin = text_box_info.range.begin();                                
+                let mut current_length = 0;
+                
+                for (glyphs, _, slice_range) in text_box_info.run.get().iter_slices_for_range(&text_box_info.range) {
+
+                    if current_length + slice_range.length()  == text_box_info.range.length() {
+                        if glyphs.is_whitespace() {
+                            break;
+                        } else {
+                            current_length += slice_range.length();
+                            break;
+                        }
+                    } else {
+                        current_length += slice_range.length();
+                    }
+                }
+                
+                let new_range = Range::new(begin, current_length as uint);
+                if new_range.length() == text_box_info.range.length() {
+                    None
+                } else {
+                    let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), new_range);
+                    let mut new_metrics = new_text_box_info.run.get().metrics_for_range(&new_range);
+                    new_metrics.bounding_box.size.height = self.position.get().size.height;
+                    Some(self.transform(new_metrics.bounding_box.size,
+                                        ScannedTextBox(new_text_box_info)))
+                }            
+            }
+        }
+    }
 
     /// Returns true if this box is an unscanned text box that consists entirely of whitespace.
     pub fn is_whitespace_only(&self) -> bool {

@@ -679,7 +679,7 @@ impl InlineFlow {
     }
     
     /// Sets box X positions based on alignment for one line.
-    fn set_horizontal_box_positions(boxes: &[Box], line: &mut LineBox, linebox_align: text_align::T) {
+    fn set_horizontal_box_positions(boxes: &mut [Box], line: &mut LineBox, linebox_align: text_align::T) {
         
         // Obtain the algorithm we should apply based on the context
         let final_align = InlineFlow::get_final_align_for_line(line, linebox_align); 
@@ -704,8 +704,24 @@ impl InlineFlow {
                 // Some token was found, whitespace cannot be trailling anymore
                 is_whitespace_trailling = false;
                 
+                // There may be some whitespace trailling inside this
+                let size = box_.position.get().size;
+                let size_width = size.width;
+                error!("size_width: {}", size_width);
+                match box_.trim_whitespace_traillers() {
+                    None => {},
+                    Some(new_box) => {
+                        let new_size = new_box.position.get().size;
+                        let new_size_width = new_size.width;
+                        error!("new_size_width: {}", new_size_width);
+                        if new_size.width != size.width {
+                            line.bounds.size.width = line.bounds.size.width - size_width + new_size.width;
+                        }
+                    }
+                }
+                
                 // OPTIMIZATION: we only need whitespace_width for justify
-                if(final_align != text_align::justify) { break; }
+                if final_align != text_align::justify { break; }
                 
             }
         }
