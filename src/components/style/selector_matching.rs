@@ -622,7 +622,9 @@ fn matches_simple_selector<E:TElement,
                 // here because the UA style otherwise disables all style sharing completely.
                 *shareable = false
             }
-            element.match_attr(attr, |v| v == value.as_slice())
+            element.match_attr(attr, |attr_value| {
+                attr_value == value.as_slice()
+            })
         }
         AttrIncludes(ref attr, ref value) => {
             *shareable = false;
@@ -633,7 +635,8 @@ fn matches_simple_selector<E:TElement,
         AttrDashMatch(ref attr, ref value, ref dashing_value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
-                attr_value == value.as_slice() || attr_value.starts_with(dashing_value.as_slice())
+                attr_value == value.as_slice() ||
+                attr_value.starts_with(dashing_value.as_slice())
             })
         }
         AttrPrefixMatch(ref attr, ref value) => {
