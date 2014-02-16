@@ -54,12 +54,12 @@ struct LineBox {
     bounds: Rect<Au>,
     green_zone: Size2D<Au>,
 
-    // whether there still was content to layout out
-    // once the line has been full
+    // whether there remained content to layout
+    // once the line has been deemed full
     was_overflown: bool,
 
     // whether some unbreakable content did
-    // overflow the line width (not always the element)
+    // overflow the line bounds (not always the element)
     was_width_overflown: bool
 
 }
@@ -146,7 +146,7 @@ impl LineboxScanner {
                         SplitDidFit(Some(cur_box_final), None) | SplitDidNotFit(Some(cur_box_final), None) => {
                             cur_box_final
                         }
-                        other_result => {
+                        _ => {
                             cur_box_original
                         }
                     }
@@ -740,7 +740,7 @@ impl InlineFlow {
                     // We don't want any initial offset
                     initial_offset = line.bounds.origin.x + Au(0);
 
-                    // The line now cover the whole surface
+                    // The line now covers the whole surface
                     line.bounds.size.width = line.bounds.size.width + slack_width;
 
                     // Set a special spacing between boxes
@@ -750,21 +750,21 @@ impl InlineFlow {
 
                 } else {
 
-                    // Set no special spacing when not at least one whitespace to extend
+                    // Set no special spacing when there is no whitespace to extend
                     1.0
 
                 }
 
             } else {
 
-                // Set no special spacing when not justified
+                // Set no special spacing when the text is not justified
                 1.0
 
             };
 
         debug!("LineboxScanner: initial_offset={} and whitespace_ratio={}", initial_offset, whitespace_ratio);
 
-        // Set the box x positions based on that alignment.
+        // Set the box x-positions based on that alignment
         let mut offset_x = initial_offset;
         for i in line.range.eachi() {
             let box_ = &boxes[i];
@@ -777,7 +777,7 @@ impl InlineFlow {
                 };
             let Au(box_width) = size.width;
             let Au(box_height) = size.height;
-            debug!("LineboxScanner: giving a position to a {}x{} box -- kind={} -- is_whitespace={}", box_width, box_height, box_.kind, box_.is_pure_whitespace());
+            debug!("LineboxScanner: giving a position to a {}x{} box -- kind={:?} -- is_whitespace={}", box_width, box_height, box_.specific, box_.is_pure_whitespace());
             box_.position.set(Rect(Point2D(offset_x, box_.position.get().origin.y), new_size));
             offset_x = offset_x + new_size.width;
         }
