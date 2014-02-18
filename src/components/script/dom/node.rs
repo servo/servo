@@ -212,6 +212,7 @@ impl Clone for AbstractNode {
 }
 
 impl AbstractNode {
+    #[inline]
     pub fn node<'a>(&'a self) -> &'a Node {
         unsafe {
             let box_: *mut Box<Node> = cast::transmute(self.obj);
@@ -219,6 +220,7 @@ impl AbstractNode {
         }
     }
 
+    #[inline]
     pub fn mut_node<'a>(&'a self) -> &'a mut Node {
         unsafe {
             let box_: *mut Box<Node> = cast::transmute(self.obj);
@@ -226,14 +228,17 @@ impl AbstractNode {
         }
     }
 
+    #[inline]
     pub fn parent_node(&self) -> Option<AbstractNode> {
         self.node().parent_node
     }
 
+    #[inline]
     pub fn first_child(&self) -> Option<AbstractNode> {
         self.node().first_child
     }
 
+    #[inline]
     pub fn last_child(&self) -> Option<AbstractNode> {
         self.node().last_child
     }
@@ -320,6 +325,7 @@ impl<'a> AbstractNode {
     // Convenience accessors
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
+    #[inline]
     pub fn type_id(self) -> NodeTypeId {
         self.node().type_id
     }
