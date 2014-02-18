@@ -101,24 +101,29 @@ pub fn min(x: Au, y: Au) -> Au { if x < y { x } else { y } }
 pub fn max(x: Au, y: Au) -> Au { if x > y { x } else { y } }
 
 impl NumCast for Au {
+    #[inline]
     fn from<T:ToPrimitive>(n: T) -> Option<Au> {
         Some(Au(n.to_i32().unwrap()))
     }
 }
 
 impl ToPrimitive for Au {
+    #[inline]
     fn to_i64(&self) -> Option<i64> {
         Some(**self as i64)
     }
 
+    #[inline]
     fn to_u64(&self) -> Option<u64> {
         Some(**self as u64)
     }
 
+    #[inline]
     fn to_f32(&self) -> Option<f32> {
         (**self).to_f32()
     }
 
+    #[inline]
     fn to_f64(&self) -> Option<f64> {
         (**self).to_f64()
     }

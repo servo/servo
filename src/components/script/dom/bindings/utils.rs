@@ -597,6 +597,7 @@ pub struct Reflector {
 }
 
 impl Reflector {
+    #[inline]
     pub fn get_jsobject(&self) -> *JSObject {
         self.object
     }
