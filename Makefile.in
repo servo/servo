@@ -346,6 +346,10 @@ servo:	$(DEPS_servo)
 	$(Q)$(RUSTC) $(RFLAGS_servo) $< --crate-type dylib,rlib
 
 RFLAGS_embedding = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg -L $(B).. -L $(B)src/components/main -L $(B)src/components/macros -A non_camel_case_types -A unused_variable
+
+ifeq ($(CFG_OSTYPE),apple-darwin)
+RFLAGS_embedding += -C link-args="-Wl,-U,_tc_new -Wl,-U,_tc_newarray -Wl,-U,_tc_delete -Wl,-U,_tc_deletearray"
+endif
 SRC_embedding = $(call rwildcard,$(S)src/components/embedding/,*.rs)
 CRATE_embedding = $(S)src/components/embedding/embedding.rs
 
