@@ -698,7 +698,7 @@ impl Flow for InlineFlow {
         debug!("assign_height_inline: floats in: {:?}", self.base.floats);
         // assign height for inline boxes
         for box_ in self.boxes.iter() {
-            box_.assign_height();
+            box_.assign_replaced_height_if_necessary();
         }
         let scanner_floats = self.base.floats.clone();
         let mut scanner = LineboxScanner::new(scanner_floats);

@@ -10,8 +10,8 @@
 //! The term 'positioned element' refers to elements with position =
 //! 'relative', 'absolute', or 'fixed'.
 
-use layout::box_::Box;
-use layout::construct::{FlowConstructor, OptVector};
+use layout::box_::{Box, ImageBox, ScannedTextBox};
+use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::floats::{FloatKind, Floats, PlacementInfo};
@@ -78,6 +78,94 @@ impl WidthConstraintSolution {
             margin_right: margin_right,
         }
     }
+
+    /// Solve the horizontal constraint equation for absolute replaced elements.
+    ///
+    /// `static_x_offset`: total offset of current flow's hypothetical
+    /// position (static position) from its actual Containing Block.
+    ///
+    /// Assumption: The used value for width has already been calculated.
+    ///
+    /// CSS Section 10.3.8
+    /// Constraint equation:
+    /// left + right + width + margin-left + margin-right
+    /// = absolute containing block width - (horizontal padding and border)
+    /// [aka available_width]
+    ///
+    /// Return the solution for the equation.
+    fn solve_horiz_constraints_abs_replaced(width: Au,
+                                            left_margin: MaybeAuto,
+                                            right_margin: MaybeAuto,
+                                            left: MaybeAuto,
+                                            right: MaybeAuto,
+                                            available_width: Au,
+                                            static_x_offset: Au)
+                                            -> WidthConstraintSolution {
+        // TODO: Check for direction of static-position Containing Block (aka
+        // parent flow, _not_ the actual Containing Block) when right-to-left
+        // is implemented
+        // Assume direction is 'ltr' for now
+        // TODO: Handle all the cases for 'rtl' direction.
+
+        // Distance from the left edge of the Absolute Containing Block to the
+        // left margin edge of a hypothetical box that would have been the
+        // first box of the element.
+        let static_position_left = static_x_offset;
+
+        let (left, right, width, margin_left, margin_right) = match (left, right) {
+            (Auto, Auto) => {
+                let left = static_position_left;
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                let sum = left + width + margin_l + margin_r;
+                (left, available_width - sum, width, margin_l, margin_r)
+            }
+            // If only one is Auto, solve for it
+            (Auto, Specified(right)) => {
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                let sum = right + width + margin_l + margin_r;
+                (available_width - sum, right, width, margin_l, margin_r)
+            }
+            (Specified(left), Auto) => {
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                let sum = left + width + margin_l + margin_r;
+                (left, available_width - sum, width, margin_l, margin_r)
+            }
+            (Specified(left), Specified(right)) => {
+                match (left_margin, right_margin) {
+                    (Auto, Auto) => {
+                        let total_margin_val = (available_width - left - right - width);
+                        if total_margin_val < Au(0) {
+                            // margin-left becomes 0 because direction is 'ltr'.
+                            (left, right, width, Au(0), total_margin_val)
+                        } else {
+                            // Equal margins
+                            (left, right, width,
+                             total_margin_val.scale_by(0.5),
+                             total_margin_val.scale_by(0.5))
+                        }
+                    }
+                    (Specified(margin_l), Auto) => {
+                        let sum = left + right + width + margin_l;
+                        (left, right, width, margin_l, available_width - sum)
+                    }
+                    (Auto, Specified(margin_r)) => {
+                        let sum = left + right + width + margin_r;
+                        (left, right, width, available_width - sum, margin_r)
+                    }
+                    (Specified(margin_l), Specified(margin_r)) => {
+                        // Values are over-constrained.
+                        // Ignore value for 'right' cos direction is 'ltr'.
+                        let sum = left + width + margin_l + margin_r;
+                        (left, available_width - sum, width, margin_l, margin_r)
+                    }
+                }
+            }
+        };
+        WidthConstraintSolution::new(left, right, width, margin_left, margin_right)
+    }
 }
 
 /// The solutions for the heights-and-margins constraint equation.
@@ -110,20 +198,20 @@ impl HeightConstraintSolution {
     /// [aka available_height]
     ///
     /// Return the solution for the equation.
-    fn solve_vertical_constraints_abs_position(height: MaybeAuto,
-                                               top_margin: MaybeAuto,
-                                               bottom_margin: MaybeAuto,
-                                               top: MaybeAuto,
-                                               bottom: MaybeAuto,
-                                               content_height: Au,
-                                               available_height: Au,
-                                               static_y_offset: Au)
+    fn solve_vertical_constraints_abs_nonreplaced(height: MaybeAuto,
+                                                  top_margin: MaybeAuto,
+                                                  bottom_margin: MaybeAuto,
+                                                  top: MaybeAuto,
+                                                  bottom: MaybeAuto,
+                                                  content_height: Au,
+                                                  available_height: Au,
+                                                  static_y_offset: Au)
                                                -> HeightConstraintSolution {
         // Distance from the top edge of the Absolute Containing Block to the
         // top margin edge of a hypothetical box that would have been the
         // first box of the element.
         let static_position_top = static_y_offset;
-;
+
         let (top, bottom, height, margin_top, margin_bottom) = match (top, bottom, height) {
             (Auto, Auto, Auto) => {
                 let margin_top = top_margin.specified_or_zero();
@@ -203,6 +291,80 @@ impl HeightConstraintSolution {
                 let margin_top = top_margin.specified_or_zero();
                 let margin_bottom = bottom_margin.specified_or_zero();
                 let top = static_position_top;
+                let sum = top + height + margin_top + margin_bottom;
+                (top, available_height - sum, height, margin_top, margin_bottom)
+            }
+        };
+        HeightConstraintSolution::new(top, bottom, height, margin_top, margin_bottom)
+    }
+
+    /// Solve the vertical constraint equation for absolute replaced elements.
+    ///
+    /// Assumption: The used value for height has already been calculated.
+    ///
+    /// CSS Section 10.6.5
+    /// Constraint equation:
+    /// top + bottom + height + margin-top + margin-bottom
+    /// = absolute containing block height - (vertical padding and border)
+    /// [aka available_height]
+    ///
+    /// Return the solution for the equation.
+    fn solve_vertical_constraints_abs_replaced(height: Au,
+                                               top_margin: MaybeAuto,
+                                               bottom_margin: MaybeAuto,
+                                               top: MaybeAuto,
+                                               bottom: MaybeAuto,
+                                               _: Au,
+                                               available_height: Au,
+                                               static_y_offset: Au)
+                                               -> HeightConstraintSolution {
+        // Distance from the top edge of the Absolute Containing Block to the
+        // top margin edge of a hypothetical box that would have been the
+        // first box of the element.
+        let static_position_top = static_y_offset;
+
+        let (top, bottom, height, margin_top, margin_bottom) = match (top, bottom) {
+            (Auto, Auto) => {
+                let margin_top = top_margin.specified_or_zero();
+                let margin_bottom = bottom_margin.specified_or_zero();
+                let top = static_position_top;
+                let sum = top + height + margin_top + margin_bottom;
+                (top, available_height - sum, height, margin_top, margin_bottom)
+            }
+            (Specified(top), Specified(bottom)) => {
+                match (top_margin, bottom_margin) {
+                    (Auto, Auto) => {
+                        let total_margin_val = (available_height - top - bottom - height);
+                        (top, bottom, height,
+                         total_margin_val.scale_by(0.5),
+                         total_margin_val.scale_by(0.5))
+                    }
+                    (Specified(margin_top), Auto) => {
+                        let sum = top + bottom + height + margin_top;
+                        (top, bottom, height, margin_top, available_height - sum)
+                    }
+                    (Auto, Specified(margin_bottom)) => {
+                        let sum = top + bottom + height + margin_bottom;
+                        (top, bottom, height, available_height - sum, margin_bottom)
+                    }
+                    (Specified(margin_top), Specified(margin_bottom)) => {
+                        // Values are over-constrained. Ignore value for 'bottom'.
+                        let sum = top + height + margin_top + margin_bottom;
+                        (top, available_height - sum, height, margin_top, margin_bottom)
+                    }
+                }
+            }
+
+            // If only one is Auto, solve for it
+            (Auto, Specified(bottom)) => {
+                let margin_top = top_margin.specified_or_zero();
+                let margin_bottom = bottom_margin.specified_or_zero();
+                let sum = bottom + height + margin_top + margin_bottom;
+                (available_height - sum, bottom, height, margin_top, margin_bottom)
+            }
+            (Specified(top), Auto) => {
+                let margin_top = top_margin.specified_or_zero();
+                let margin_bottom = bottom_margin.specified_or_zero();
                 let sum = top + height + margin_top + margin_bottom;
                 (top, available_height - sum, height, margin_top, margin_bottom)
             }
@@ -424,6 +586,22 @@ impl BlockFlow {
         traversal.process(flow)
     }
 
+    /// Return true if this has a replaced box.
+    ///
+    /// The only two types of replaced boxes currently are text boxes and
+    /// image boxes.
+    fn is_replaced_content(&self) -> bool {
+        match self.box_ {
+            Some(ref box_) => {
+                match box_.specific {
+                    ScannedTextBox(_) | ImageBox(_) => true,
+                    _ => false,
+                }
+            }
+            None => false,
+        }
+    }
+
     pub fn teardown(&mut self) {
         for box_ in self.box_.iter() {
             box_.teardown();
@@ -521,14 +699,28 @@ impl BlockFlow {
                 (MaybeAuto::from_style(style.PositionOffsets.get().left, containing_block_width),
                  MaybeAuto::from_style(style.PositionOffsets.get().right, containing_block_width));
             let available_width = containing_block_width - box_.border_and_padding_horiz();
-            // TODO: Extract this later into a SolveConstraints trait or something
-            let solution = self.solve_horiz_constraints_abs_position(width,
-                                                                     margin_left,
-                                                                     margin_right,
-                                                                     left,
-                                                                     right,
-                                                                     available_width,
-                                                                     static_x_offset);
+
+            let solution = if self.is_replaced_content() {
+                // Calculate used value of width just like we do for inline replaced elements.
+                box_.assign_replaced_width_if_necessary(containing_block_width);
+                let width = box_.border_box.get().size.width;
+                WidthConstraintSolution::solve_horiz_constraints_abs_replaced(width,
+                                                                              margin_left,
+                                                                              margin_right,
+                                                                              left,
+                                                                              right,
+                                                                              available_width,
+                                                                              static_x_offset)
+            } else {
+                // TODO: Extract this later into a SolveConstraints trait or something
+                self.solve_horiz_constraints_abs_nonreplaced(width,
+                                                             margin_left,
+                                                             margin_right,
+                                                             left,
+                                                             right,
+                                                             available_width,
+                                                             static_x_offset)
+            };
 
             let mut margin = box_.margin.get();
             margin.left = solution.margin_left;
@@ -614,17 +806,18 @@ impl BlockFlow {
     /// [aka available_width]
     ///
     /// Return the solution for the equation.
-    fn solve_horiz_constraints_abs_position(&self,
-                                            width: MaybeAuto,
-                                            left_margin: MaybeAuto,
-                                            right_margin: MaybeAuto,
-                                            left: MaybeAuto,
-                                            right: MaybeAuto,
-                                            available_width: Au,
-                                            static_x_offset: Au)
-                                            -> WidthConstraintSolution {
-        // TODO: Check for direction of parent flow (NOT Containing Block)
-        // when right-to-left is implemented.
+    fn solve_horiz_constraints_abs_nonreplaced(&self,
+                                               width: MaybeAuto,
+                                               left_margin: MaybeAuto,
+                                               right_margin: MaybeAuto,
+                                               left: MaybeAuto,
+                                               right: MaybeAuto,
+                                               available_width: Au,
+                                               static_x_offset: Au)
+                                               -> WidthConstraintSolution {
+        // TODO: Check for direction of static-position Containing Block (aka
+        // parent flow, _not_ the actual Containing Block) when right-to-left
+        // is implemented
         // Assume direction is 'ltr' for now
 
         // Distance from the left edge of the Absolute Containing Block to the
@@ -1358,15 +1551,34 @@ impl BlockFlow {
                  MaybeAuto::from_style(style.PositionOffsets.get().bottom, containing_block_height));
             let available_height = containing_block_height - box_.border_and_padding_vert();
 
-            let solution = HeightConstraintSolution::solve_vertical_constraints_abs_position(
-                height_used_val,
-                margin_top,
-                margin_bottom,
-                top,
-                bottom,
-                content_height,
-                available_height,
-                static_y_offset);
+            let solution = if self.is_replaced_content() {
+                // Calculate used value of height just like we do for inline replaced elements.
+                // TODO: Pass in the containing block height when Box's
+                // assign-height can handle it correctly.
+                box_.assign_replaced_height_if_necessary();
+                // TODO: Right now, this content height value includes the
+                // margin because of erroneous height calculation in Box_.
+                // Check this when that has been fixed.
+                let height_used_val = box_.border_box.get().size.height;
+                HeightConstraintSolution::solve_vertical_constraints_abs_replaced(height_used_val,
+                                                                                  margin_top,
+                                                                                  margin_bottom,
+                                                                                  top,
+                                                                                  bottom,
+                                                                                  content_height,
+                                                                                  available_height,
+                                                                                  static_y_offset)
+            } else {
+                HeightConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
+                    height_used_val,
+                    margin_top,
+                    margin_bottom,
+                    top,
+                    bottom,
+                    content_height,
+                    available_height,
+                    static_y_offset)
+            };
 
             let mut margin = box_.margin.get();
             margin.top = solution.margin_top;
@@ -1626,7 +1838,7 @@ impl Flow for BlockFlow {
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         // Assign height for box if it is an image box.
         for box_ in self.box_.iter() {
-            box_.assign_height();
+            box_.assign_replaced_height_if_necessary();
         }
 
         if self.is_float() {
