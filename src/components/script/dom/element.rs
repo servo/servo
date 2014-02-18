@@ -223,7 +223,7 @@ impl Element {
             "style" => {
                 self.style_attribute = Some(style::parse_style_attribute(value))
             }
-            "id" => {
+            "id" if abstract_self.is_in_doc() => {
                 // XXX: this dual declaration are workaround to avoid the compile error:
                 // "borrowed value does not live long enough"
                 let doc = self.node.owner_doc();
@@ -287,7 +287,7 @@ impl Element {
             "style" => {
                 self.style_attribute = None
             }
-            "id" => {
+            "id" if abstract_self.is_in_doc() => {
                 // XXX: this dual declaration are workaround to avoid the compile error:
                 // "borrowed value does not live long enough"
                 let doc = self.node.owner_doc();
