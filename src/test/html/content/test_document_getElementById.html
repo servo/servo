@@ -66,6 +66,15 @@
       is(e2, null, "test3-2, the method should return null when the passed id is none in document.");
     }
 
+    {
+      // Ensure that the id attribute only affects elements present in a document
+      let e = document.createElement('div');
+      e.id = "should-not-exist";
+      is(document.getElementById("should-not-exist"), null);
+      document.body.appendChild(e);
+      is(document.getElementById("should-not-exist"), e);
+    }
+
     // TODO:
     // test4: "in tree order, within the context object's tree"
     // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
