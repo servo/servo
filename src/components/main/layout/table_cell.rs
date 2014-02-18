@@ -59,10 +59,10 @@ impl TableCellFlow {
         let mut float_ctx = Invalid;
 
         for box_ in self.box_.iter() {
-            top_offset = box_.border.get().top + box_.padding.get().top;
+            top_offset = box_.noncontent_top();
             cur_y = cur_y + top_offset;
-            bottom_offset = box_.border.get().bottom + box_.padding.get().bottom;
-            left_offset = box_.border.get().left + box_.padding.get().left;
+            bottom_offset = box_.noncontent_bottom();
+            left_offset = box_.noncontent_left();
         }
 
         if inorder {
@@ -81,8 +81,22 @@ impl TableCellFlow {
             }
         }
 
+        let mut collapsible = Au::new(0);
+        let mut collapsing = Au::new(0);
+        let mut first_in_flow = true;
+
         for kid in self.base.child_iter() {
+            // Since table cell does not have `margin`, the first child's top margin and
+            // the last child's bottom margin do not collapse.
+            kid.collapse_margins(false,
+                                 &mut first_in_flow,
+                                 &mut Au(0),
+                                 &mut top_offset,
+                                 &mut collapsing,
+                                 &mut collapsible);
+
             let child_node = flow::mut_base(*kid);
+            cur_y = cur_y - collapsing;
             child_node.position.origin.y = cur_y;
             cur_y = cur_y + child_node.position.size.height;
         }
@@ -95,8 +109,7 @@ impl TableCellFlow {
         for box_ in self.box_.iter() {
             let mut position = box_.position.get();
 
-            noncontent_height = box_.padding.get().top + box_.padding.get().bottom +
-                                box_.border.get().top + box_.border.get().bottom;
+            noncontent_height = box_.noncontent_height();
 
             position.origin.y = Au(0);
             position.size.height = height + noncontent_height;

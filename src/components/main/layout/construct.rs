@@ -812,7 +812,7 @@ impl<'fc> FlowConstructor<'fc> {
 
         let table_base = BaseFlow::new(self.next_flow_id(), node);
         let table_box_ = Box::new(node, TableBox);
-        let mut table_flow = ~TableFlow::from_box(table_base, table_box_, is_fixed) as ~Flow;
+        let mut table_flow = ~TableFlow::from_box(table_base, table_box_) as ~Flow;
         self.layout_context.leaf_set.access(|leaf_set| leaf_set.insert(&table_flow));
 
         // We first populate the TableFlow with other flows than TableCaptionFlow.

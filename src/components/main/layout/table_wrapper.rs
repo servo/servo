@@ -48,7 +48,7 @@ impl FloatedTableInfo {
     }
 }
 
-/// A table formatting context.
+/// A table wrapper flow based on a block formatting context.
 pub struct TableWrapperFlow {
     /// Data common to all flows.
     base: BaseFlow,
@@ -248,6 +248,8 @@ impl TableWrapperFlow {
         let mut bottom_offset = Au::new(0);
         let mut left_offset = Au::new(0);
         let mut float_ctx = Invalid;
+        let mut margin_top = Au::new(0);
+        let mut margin_bottom = Au::new(0);
 
         for box_ in self.box_.iter() {
             clearance = match box_.clear() {
@@ -257,12 +259,12 @@ impl TableWrapperFlow {
                 }
             };
 
-            top_offset = clearance + box_.margin.get().top + box_.border.get().top +
-                box_.padding.get().top;
+            top_offset = clearance + box_.noncontent_top();
             cur_y = cur_y + top_offset;
-            bottom_offset = box_.margin.get().bottom + box_.border.get().bottom +
-                box_.padding.get().bottom;
-            left_offset = box_.offset();
+            bottom_offset = box_.noncontent_bottom();
+            left_offset = box_.noncontent_left();
+            margin_top = box_.margin.get().top;
+            margin_bottom = box_.margin.get().bottom;
         }
 
         if inorder {
@@ -281,57 +283,13 @@ impl TableWrapperFlow {
             }
         }
 
-        let mut collapsible = Au::new(0);
-        let mut collapsing = Au::new(0);
-        let mut margin_top = Au::new(0);
-        let mut margin_bottom = Au::new(0);
-        let mut top_margin_collapsible = false;
-        let mut bottom_margin_collapsible = false;
-        let mut first_in_flow = true;
-        for box_ in self.box_.iter() {
-            if box_.border.get().top == Au(0) && box_.padding.get().top == Au(0) {
-                collapsible = box_.margin.get().top;
-                top_margin_collapsible = true;
-            }
-            if box_.border.get().bottom == Au(0) &&
-                    box_.padding.get().bottom == Au(0) {
-                bottom_margin_collapsible = true;
-            }
-            margin_top = box_.margin.get().top;
-            margin_bottom = box_.margin.get().bottom;
-        }
-
         for kid in self.base.child_iter() {
-            kid.collapse_margins(top_margin_collapsible,
-                                 &mut first_in_flow,
-                                 &mut margin_top,
-                                 &mut top_offset,
-                                 &mut collapsing,
-                                 &mut collapsible);
-
             let child_node = flow::mut_base(*kid);
-            cur_y = cur_y - collapsing;
             child_node.position.origin.y = cur_y;
             cur_y = cur_y + child_node.position.size.height;
         }
 
-        // The bottom margin collapses with its last in-flow block-level child's bottom margin
-        // if the parent has no bottom boder, no bottom padding.
-        collapsing = if bottom_margin_collapsible {
-            if margin_bottom < collapsible {
-                margin_bottom = collapsible;
-            }
-            collapsible
-        } else {
-            Au::new(0)
-        };
-
-        // TODO: A box's own margins collapse if the 'min-height' property is zero, and it has neither
-        // top or bottom borders nor top or bottom padding, and it has a 'height' of either 0 or 'auto',
-        // and it does not contain a line box, and all of its in-flow children's margins (if any) collapse.
-
-
-        let mut height = cur_y - top_offset - collapsing;
+        let mut height = cur_y - top_offset;
 
         for box_ in self.box_.iter() {
             let style = box_.style();
@@ -341,7 +299,7 @@ impl TableWrapperFlow {
             // block per CSS 2.1 § 10.5.
             height = match MaybeAuto::from_style(style.Box.height, height) {
                 Auto => height,
-                Specified(value) => value
+                Specified(value) => geometry::max(value, height)
             };
         }
 

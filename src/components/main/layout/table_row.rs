@@ -83,8 +83,15 @@ impl TableRowFlow {
             }
         }
 
+        // Per CSS 2.1 § 17.5.3, find max_y = max( computed `height`, minimum height of all cells )
         let mut max_y = Au::new(0);
         for kid in self.base.child_iter() {
+            for child_box in kid.as_table_cell().box_.iter() {
+                // TODO: Percentage height
+                let child_specified_height = MaybeAuto::from_style(child_box.style().Box.height,
+                                                                   Au::new(0)).specified_or_zero();
+                max_y = geometry::max(max_y, child_specified_height + child_box.noncontent_height());
+            }
             let child_node = flow::mut_base(*kid);
             child_node.position.origin.y = cur_y;
             max_y = geometry::max(max_y, child_node.position.size.height);
@@ -93,17 +100,12 @@ impl TableRowFlow {
 
         let mut height = max_y;
         for box_ in self.box_.iter() {
-            let style = box_.style();
-
             // TODO: Percentage height
-            height = match MaybeAuto::from_style(style.Box.height, Au(0)) {
+            height = match MaybeAuto::from_style(box_.style().Box.height, Au(0)) {
                 Auto => height,
                 Specified(value) => geometry::max(value, height)
             };
         }
-
-        // TODO: Table height should be correctly calculated. Child cells' 'height' property
-        // should be considered.
 
         // Assign the height of own box
         for box_ in self.box_.iter() {

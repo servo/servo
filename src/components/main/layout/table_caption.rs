@@ -163,12 +163,10 @@ impl TableCaptionFlow {
                 }
             };
 
-            top_offset = clearance + box_.margin.get().top + box_.border.get().top +
-                box_.padding.get().top;
+            top_offset = clearance + box_.noncontent_top();
             cur_y = cur_y + top_offset;
-            bottom_offset = box_.margin.get().bottom + box_.border.get().bottom +
-                box_.padding.get().bottom;
-            left_offset = box_.offset();
+            bottom_offset = box_.noncontent_bottom();
+            left_offset = box_.noncontent_left();
         }
 
         if inorder {
