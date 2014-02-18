@@ -171,11 +171,11 @@ pub trait ImmutableFlowUtils {
     /// Return true if this flow is a Block Container.
     fn is_block_container(self) -> bool;
 
-    /// Returns true if this flow is a block flow, an inline flow, or a float flow.
-    fn starts_block_flow(self) -> bool;
+    /// Returns true if this flow is a block flow.
+    fn is_block_flow(self) -> bool;
 
     /// Returns true if this flow is an inline flow.
-    fn starts_inline_flow(self) -> bool;
+    fn is_inline_flow(self) -> bool;
 
     /// Dumps the flow tree for debugging.
     fn dump(self);
@@ -633,16 +633,16 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         }
     }
 
-    /// Returns true if this flow is a block flow, an inline-block flow, or a float flow.
-    fn starts_block_flow(self) -> bool {
+    /// Returns true if this flow is a block flow.
+    fn is_block_flow(self) -> bool {
         match self.class() {
             BlockFlowClass => true,
             InlineFlowClass => false,
         }
     }
 
-    /// Returns true if this flow is a block flow, an inline flow, or a float flow.
-    fn starts_inline_flow(self) -> bool {
+    /// Returns true if this flow is an inline flow.
+    fn is_inline_flow(self) -> bool {
         match self.class() {
             InlineFlowClass => true,
             BlockFlowClass => false,
