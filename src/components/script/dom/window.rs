@@ -19,6 +19,7 @@ use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
+use servo_util::url::parse_url;
 
 use js::glue::*;
 use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JSVal};
@@ -34,7 +35,6 @@ use std::ptr;
 use std::to_bytes::Cb;
 
 use extra::serialize::{Encoder, Encodable};
-use extra::url::Url;
 
 pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
@@ -263,8 +263,13 @@ impl Window {
         self.page.join_layout();
     }
 
-    pub fn load_url(&self, url: Url, fragment: bool) {
-        if fragment {
+    /// Commence a new URL load which will either replace this window or scroll to a fragment.
+    pub fn load_url(&self, href: DOMString) {
+        let base_url = self.page.url.as_ref().map(|&(ref url, _)| url.clone());
+        debug!("current page url is {:?}", base_url);
+        let url = parse_url(href, base_url);
+
+        if href.starts_with("#") {
             self.script_chan.send(TriggerFragmentMsg(self.page.id, url));
         } else {
             self.script_chan.send(TriggerLoadMsg(self.page.id, url));

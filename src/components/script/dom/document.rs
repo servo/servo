@@ -36,7 +36,6 @@ use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
-use servo_util::url::parse_url;
 
 use extra::url::{Url, from_str};
 use js::jsapi::{JSObject, JSContext};
@@ -481,7 +480,6 @@ impl Document {
         self.window.get().wait_until_safe_to_modify_dom();
     }
 
-
     /// Remove any existing association between the provided id and any elements in this document.
     pub fn unregister_named_element(&mut self,
                                     id: DOMString) {
@@ -508,12 +506,8 @@ impl Document {
                           });
     }
 
+    /// Commence a new URL load which could replace this document.
     pub fn load_anchor_href(&self, href: DOMString) {
-        let page = self.window.get().page;
-        let base_url = page.url.as_ref().map(|&(ref url, _)| url.clone());
-        debug!("current page url is {:?}", base_url);
-        let url = parse_url(href, base_url);
-        let click_frag = href.starts_with("#");
-        self.window.get().load_url(url, click_frag);
+        self.window.get().load_url(href);
     }
 }

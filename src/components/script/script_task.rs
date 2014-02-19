@@ -351,6 +351,7 @@ impl Page {
         }
     }
 
+    /// Attempt to find a named element in this page's document.
     fn find_fragment_node(&self, fragid: ~str) -> Option<JS<Element>> {
         let document = self.frame.get_ref().document.clone();
         match document.get().GetElementById(fragid.to_owned()) {

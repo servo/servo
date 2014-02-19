@@ -22,9 +22,12 @@ use servo_util::str::DOMString;
 
 use std::cast;
 
+/// Trait to allow DOM nodes to opt-in to overriding (or adding to) common behaviours.
+/// Replicates the effect of C++ virtual methods.
 pub trait VirtualMethods {
     fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods>;
 
+    /// Called when changing or adding attributes, after the attribute's value has been updated.
     fn after_set_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
         let s = self.super_type();
         if s.is_some() {
@@ -32,6 +35,7 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Called when changing or removing attributes, before any modification has taken place.
     fn before_remove_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString) {
         let s = self.super_type();
         if s.is_some() {
@@ -39,6 +43,7 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Called when a Node is appended to a tree that is part of a Document.
     fn bind_to_tree(&mut self, abstract_self: &JS<Node>) {
         let s = self.super_type();
         if s.is_some() {
@@ -46,6 +51,7 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Called when a Node is removed from a tree that is part of a Document.
     fn unbind_from_tree(&mut self, abstract_self: &JS<Node>) {
         let s = self.super_type();
         if s.is_some() {
@@ -53,6 +59,7 @@ pub trait VirtualMethods {
         }
    }
 
+    /// Called during event dispatch after the bubbling phase completes.
     fn handle_event(&mut self, abstract_self: &JS<Node>, event: &JS<Event>) {
         let s = self.super_type();
         if s.is_some() {
@@ -61,6 +68,9 @@ pub trait VirtualMethods {
     }
 }
 
+/// Obtain a VirtualMethods instance for a given Node-derived object. Any method call
+/// on the trait object will invoke the corresponding method on the concrete type,
+/// propagating up the parent hierarchy unless otherwise interrupted.
 pub fn vtable_for<'a>(node: &'a mut JS<Node>) -> &'a mut VirtualMethods {
     unsafe {
         match node.get().type_id {
