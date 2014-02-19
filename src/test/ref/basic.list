@@ -29,4 +29,5 @@
 == position_relative_a.html position_relative_b.html
 == attr_exists_selector.html attr_exists_selector_ref.html
 == data_img_a.html data_img_b.html
-== background_a.html background_b.html
+== background_style_attr.html background_ref.html
+== background_external_stylesheet.html background_ref.html
