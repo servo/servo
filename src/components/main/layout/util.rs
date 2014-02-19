@@ -130,7 +130,21 @@ impl ElementMapping {
 
 pub struct PseudoNode {
     parent: LayoutPseudoNode,
-    element: LayoutPseudoNode
+    child: LayoutPseudoNode
+}
+
+impl PseudoNode {
+    #[inline(always)]
+    pub fn new_from_parent_and_child(parent: AbstractNode, child: AbstractNode) -> PseudoNode {
+        PseudoNode {
+            parent: LayoutPseudoNode::from_layout_pseudo(parent),
+            child: LayoutPseudoNode::from_layout_pseudo(child),
+        }
+    }
+    #[inline(always)]
+    pub fn get_pseudo_node(&mut self) -> AbstractNode {
+        self.parent.get_abstract()
+    }
 }
 
 /// Data that layout associates with a node.
@@ -192,11 +206,43 @@ impl PrivateLayoutData {
         //FIXME To implement a clear() on SmallVec and use it(init_applicable_declarations).
     }
 
-    pub fn get_pseudo_element<'a>(&'a self, pseudo_element: PseudoElement) -> Option<&'a PseudoNode> {
-        match pseudo_element {
-            Before => self.before.as_ref(),
-            After => self.after.as_ref()
+    pub fn get_pseudo_node(&mut self, kind: PseudoElement) -> Option<AbstractNode> {
+        match kind {
+            Before =>{
+                if self.before.is_some() {
+                    return Some(self.before.get_mut_ref().get_pseudo_node())
+                }
+            },
+            After => {
+                if self.after.is_some() {
+                    return Some(self.after.get_mut_ref().get_pseudo_node())
+                }
+            }
         }
+        None
+    }
+    #[inline(always)]
+    pub fn set_pseudo_element(&mut self, parent: AbstractNode, child: AbstractNode, kind: PseudoElement) {
+        match kind {
+            Before => self.before = Some(PseudoNode::new_from_parent_and_child(parent, child)),
+            After => self.after = Some(PseudoNode::new_from_parent_and_child(parent, child)),
+        }
+    }
+
+    pub fn is_pseudo<'a>(&'a self, kind: PseudoElement) -> bool {
+        match kind {
+            Before => {
+                if self.before.is_some() {
+                    return true
+                }
+            }
+            After => {
+                if self.after.is_some() {
+                    return true
+                }
+            }
+        }
+        false
     }
 }
 
