@@ -9,6 +9,7 @@ use cssparser::ast::*;
 use errors::{ErrorLoggerIterator, log_css_error};
 use stylesheets::{CSSRule, CSSMediaRule, parse_style_rule, parse_nested_at_rule};
 use namespaces::NamespaceMap;
+use extra::url::Url;
 
 
 pub struct MediaRule {
@@ -48,7 +49,7 @@ pub struct Device {
 
 
 pub fn parse_media_rule(rule: AtRule, parent_rules: &mut ~[CSSRule],
-                        namespaces: &NamespaceMap) {
+                        namespaces: &NamespaceMap, base_url: &Url) {
     let media_queries = parse_media_query_list(rule.prelude);
     let block = match rule.block {
         Some(block) => block,
@@ -60,9 +61,9 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut ~[CSSRule],
     let mut rules = ~[];
     for rule in ErrorLoggerIterator(parse_rule_list(block.move_iter())) {
         match rule {
-            QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces),
+            QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces, base_url),
             AtRule(rule) => parse_nested_at_rule(
-                rule.name.to_ascii_lower(), rule, &mut rules, namespaces),
+                rule.name.to_ascii_lower(), rule, &mut rules, namespaces, base_url),
         }
     }
     parent_rules.push(CSSMediaRule(MediaRule {

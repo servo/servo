@@ -75,7 +75,7 @@ impl Stylesheet {
             match rule {
                 QualifiedRule(rule) => {
                     next_state = STATE_BODY;
-                    parse_style_rule(rule, &mut rules, &namespaces)
+                    parse_style_rule(rule, &mut rules, &namespaces, &base_url)
                 },
                 AtRule(rule) => {
                     let lower_name = rule.name.to_ascii_lower();
@@ -112,7 +112,7 @@ impl Stylesheet {
                         },
                         _ => {
                             next_state = STATE_BODY;
-                            parse_nested_at_rule(lower_name, rule, &mut rules, &namespaces)
+                            parse_nested_at_rule(lower_name, rule, &mut rules, &namespaces, &base_url)
                         },
                     }
                 },
@@ -125,14 +125,14 @@ impl Stylesheet {
 
 
 pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut ~[CSSRule],
-                        namespaces: &NamespaceMap) {
+                        namespaces: &NamespaceMap, base_url: &Url) {
     let QualifiedRule{location: location, prelude: prelude, block: block} = rule;
     // FIXME: avoid doing this for valid selectors
     let serialized = prelude.iter().to_css();
     match selectors::parse_selector_list(prelude, namespaces) {
         Some(selectors) => parent_rules.push(CSSStyleRule(StyleRule{
             selectors: selectors,
-            declarations: properties::parse_property_declaration_list(block.move_iter())
+            declarations: properties::parse_property_declaration_list(block.move_iter(), base_url)
         })),
         None => log_css_error(location, format!(
             "Invalid/unsupported selector: {}", serialized)),
@@ -142,9 +142,9 @@ pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut ~[CSSRule],
 
 // lower_name is passed explicitly to avoid computing it twice.
 pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
-                            parent_rules: &mut ~[CSSRule], namespaces: &NamespaceMap) {
+                            parent_rules: &mut ~[CSSRule], namespaces: &NamespaceMap, base_url: &Url) {
     match lower_name {
-        "media" => parse_media_rule(rule, parent_rules, namespaces),
+        "media" => parse_media_rule(rule, parent_rules, namespaces, base_url),
         _ => log_css_error(rule.location, format!("Unsupported at-rule: @{:s}", lower_name))
     }
 }
