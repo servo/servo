@@ -71,6 +71,11 @@ fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
         };
 
         for line in contents.lines() {
+            // ignore comments
+            if line.starts_with("#") {
+                continue;
+            }
+
             let parts: ~[&str] = line.split(' ').filter(|p| !p.is_empty()).collect();
 
             if parts.len() != 3 {
@@ -80,7 +85,6 @@ fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
             let kind = match parts[0] {
                 "==" => Same,
                 "!=" => Different,
-                "#" => continue,
                 _ => fail!("reftest line: '{:s}' has invalid kind '{:s}'",
                            line, parts[0])
             };

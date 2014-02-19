@@ -757,7 +757,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
             let container_block_size = match self.class() {
                 BlockFlowClass => {
                     if self.as_block().box_.is_some() {
-                        self.as_block().box_.get_ref().position.get().size
+                        self.as_block().box_.get_ref().border_box.get().size
                     } else {
                         base(self).position.size
                     }
