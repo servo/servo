@@ -334,6 +334,7 @@ impl Page {
         }
     }
 
+    /// Attempt to find a named element in this page's document.
     pub fn find_fragment_node(&mut self, fragid: ~str) -> Option<AbstractNode> {
         let document = self.frame.expect("root frame is None").document;
         document.document().GetElementById(fragid.to_owned()).or_else(|| {

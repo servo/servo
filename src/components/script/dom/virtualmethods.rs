@@ -13,9 +13,12 @@ use servo_util::str::DOMString;
 
 use std::unstable::raw::Box;
 
+/// Trait to allow DOM nodes to opt-in to overriding (or adding to) common behaviours.
+/// Replicates the effect of C++ virtual methods.
 pub trait VirtualMethods {
     fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods>;
 
+    /// Called during SetAttribute, before any modification has taken place.
     fn before_set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, old_value: Option<DOMString>, new_value: DOMString) {
         let s = self.super_type();
         if s.is_some() {
@@ -23,6 +26,7 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Called during SetAttribute, after the attribute's value has been updated.
     fn after_set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString) {
         let s = self.super_type();
         if s.is_some() {
@@ -30,6 +34,7 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Called during RemoveAttribute, before any modification has taken place.
     fn before_remove_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString) {
         let s = self.super_type();
         if s.is_some() {
@@ -37,6 +42,7 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Called during RemoveAttribute, after the attribute has been removed.
     fn after_remove_attr(&mut self, abstract_self: AbstractNode, name: DOMString) {
         let s = self.super_type();
         if s.is_some() {
@@ -44,6 +50,7 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Called when a Node is appended to a tree that is part of a Document.
     fn bind_to_tree(&mut self, abstract_self: AbstractNode) {
         let s = self.super_type();
         if s.is_some() {
@@ -51,6 +58,7 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Called when a Node is removed from a tree that is part of a Document.
     fn unbind_from_tree(&mut self, abstract_self: AbstractNode) {
         let s = self.super_type();
         if s.is_some() {
@@ -58,6 +66,7 @@ pub trait VirtualMethods {
         }
    }
 
+    /// Called during event dispatch after the bubbling phase completes.
     fn handle_event(&mut self, abstract_self: AbstractNode, event: AbstractEvent) {
         let s = self.super_type();
         if s.is_some() {
@@ -66,6 +75,9 @@ pub trait VirtualMethods {
     }
 }
 
+/// Obtain a VirtualMethods instance for a given Node-derived object. Any method call
+/// on the trait object will invoke the corresponding method on the concrete type,
+/// propagating up the parent hierarchy unless otherwise interrupted.
 pub fn vtable_for(node: AbstractNode) -> &mut VirtualMethods {
     unsafe {
         match node.type_id() {
