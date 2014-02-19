@@ -866,10 +866,6 @@ for (uint32_t i = 0; i < length; ++i) {
         argumentTypeName = typeName + "Argument"
         if nullable:
             typeName = "Option<" + typeName + " >"
-        #if isOptional:
-        #    nonConstDecl = "const_cast<Optional<" + typeName + " >& >(${declName})"
-        #else:
-        #    nonConstDecl = "const_cast<" + typeName + "& >(${declName})"
         nonConstDecl = "${declName}"
 
         def handleNull(templateBody, setToNullVar, extraConditionForNull=""):
@@ -896,10 +892,6 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             mutableDecl = nonConstDecl
             constructDecl = None
-            #if nullable:
-            #holderType = CGWrapper(holderType, pre="Option<", post=" >")
-            #    constructHolder = CGGeneric("${holderName} = Some(None);")
-            #else:
             holderInit = "${declName}"
             if nullable:
                 holderInit += ".get_mut_ref()"
@@ -1275,7 +1267,7 @@ for (uint32_t i = 0; i < length; ++i) {
     if failureCode is None:
         failureCode = 'return 0'
 
-    if type.nullable(): #or isOptional:
+    if type.nullable():
         dataLoc = "${declName}.SetValue()"
         nullCondition = "(RUST_JSVAL_IS_NULL(${val}) != 0 || RUST_JSVAL_IS_VOID(${val}) != 0)"
         if defaultValue is not None and isinstance(defaultValue, IDLNullValue):
@@ -3785,10 +3777,6 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     tryNextCode = """{
   return Ok(true);
 }"""
-    if type.isGeckoInterface():
-         tryNextCode = ("""/*if (mUnion.mType != mUnion.eUninitialized) {
-  mUnion.Destroy%s();
-}*/""" % name) + tryNextCode
     (template, declType, holderType,
      dealWithOptional, initialValue) = getJSToNativeConversionTemplate(
         type, descriptorProvider, failureCode=tryNextCode,
