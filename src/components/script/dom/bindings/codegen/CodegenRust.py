@@ -726,7 +726,7 @@ for (uint32_t i = 0; i < length; ++i) {
                     name = memberType.inner.identifier.name
                 else:
                     name = memberType.name
-                interfaceObject.append(CGGeneric("({failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, &mut tryNext); failed}) || !tryNext" % (unionArgumentObj, name)))
+                interfaceObject.append(CGGeneric("{res = %s.TrySetTo%s(cx, ${val}, ${valPtr}); res.is_err() || !res.unwrap()}" % (unionArgumentObj, name)))
                 names.append(name)
             interfaceObject = CGWrapper(CGList(interfaceObject, " ||\n"), pre="done = ", post=";\n", reindent=True)
         else:
@@ -737,7 +737,7 @@ for (uint32_t i = 0; i < length; ++i) {
             assert len(arrayObjectMemberTypes) == 1
             memberType = arrayObjectMemberTypes[0]
             name = memberType.name
-            arrayObject = CGGeneric("done = ({failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, &mut tryNext); failed}) || !tryNext;" % (unionArgumentObj, name))
+            arrayObject = CGGeneric("done = {res = %s.TrySetTo%s(cx, ${val}, ${valPtr}); res.is_err() || !res.unwrap()};" % (unionArgumentObj, name))
             # XXX Now we're supposed to check for an array or a platform object
             # that supports indexed properties... skip that last for now. It's a
             # bit of a pain.
@@ -767,7 +767,7 @@ for (uint32_t i = 0; i < length; ++i) {
             assert len(callbackMemberTypes) == 1
             memberType = callbackMemberTypes[0]
             name = memberType.name
-            callbackObject = CGGeneric("done = ({failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, &mut tryNext); failed}) || !tryNext;" % (unionArgumentObj, name))
+            callbackObject = CGGeneric("done = {res = %s.TrySetTo%s(cx, ${val}, ${valPtr}); res.is_err() || !res.unwrap()};" % (unionArgumentObj, name))
             names.append(name)
         else:
             callbackObject = None
@@ -837,7 +837,7 @@ for (uint32_t i = 0; i < length; ++i) {
                 name = memberType.inner.identifier.name
             else:
                 name = memberType.name
-            other = CGGeneric("done = ({failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, &mut tryNext); failed}) || !tryNext;" % (unionArgumentObj, name))
+            other = CGGeneric("done = {res = %s.TrySetTo%s(cx, ${val}, ${valPtr}); res.is_err() || !res.unwrap()};" % (unionArgumentObj, name))
             names.append(name)
             if hasObjectTypes:
                 other = CGWrapper(CGIndenter(other), "{\n", post="\n}")
@@ -851,9 +851,8 @@ for (uint32_t i = 0; i < length; ++i) {
             other = None
 
         templateBody = CGWrapper(templateBody, pre="let mut done = false;\n"
-                                 "let mut failed = false;\n"
-                                 "let mut tryNext = false;\n")
-        throw = CGGeneric("if failed {\n"
+                                 "let mut res = Ok(true);\n")
+        throw = CGGeneric("if res.is_err() {\n"
                           "  return 0;\n"
                           "}\n"
                           "if !done {\n"
@@ -3784,8 +3783,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         typeName = "/*" + type.name + "*/"
 
     tryNextCode = """{
-  *tryNext = true;
-  return true;
+  return Ok(true);
 }"""
     if type.isGeckoInterface():
          tryNextCode = ("""/*if (mUnion.mType != mUnion.eUninitialized) {
@@ -3818,10 +3816,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
             )
         jsConversion = CGWrapper(CGGeneric(jsConversion),
                                  post="\n"
-                                      "return true;")
+                                      "return Ok(true);")
         setter = CGWrapper(CGIndenter(jsConversion),
-                           pre="pub fn TrySetTo" + name + "(&mut self, cx: *JSContext, value: JSVal, pvalue: *JSVal, tryNext: &mut bool) -> bool {\n"
-                               "  *tryNext = false;\n",
+                           pre="pub fn TrySetTo" + name + "(&mut self, cx: *JSContext, value: JSVal, pvalue: *JSVal) -> Result<bool,()> {\n",
                            post="\n"
                                 "}")
 
