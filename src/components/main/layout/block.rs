@@ -386,7 +386,7 @@ impl BlockFlow {
 
         let mut noncontent_height = Au::new(0);
         for box_ in self.box_.iter() {
-            let mut position = box_.position.get();
+            let mut position = box_.border_box.get();
             let mut margin = box_.margin.get();
 
             // The associated box is the border box of this flow.
@@ -421,7 +421,7 @@ impl BlockFlow {
 
             noncontent_height = noncontent_height + clearance + margin.top + margin.bottom;
 
-            box_.position.set(position);
+            box_.border_box.set(position);
             box_.margin.set(margin);
         }
 
@@ -450,7 +450,7 @@ impl BlockFlow {
         let mut margin_height = Au(0);
 
         for box_ in self.box_.iter() {
-            height = box_.position.get().size.height;
+            height = box_.border_box.get().size.height;
             clearance = match box_.clear() {
                 None => Au(0),
                 Some(clear) => self.base.floats_in.clearance(clear),
@@ -507,7 +507,7 @@ impl BlockFlow {
 
         let mut noncontent_height;
         let box_ = self.box_.as_ref().unwrap();
-        let mut position = box_.position.get();
+        let mut position = box_.border_box.get();
 
         // The associated box is the border box of this flow.
         position.origin.y = box_.margin.get().top;
@@ -523,7 +523,7 @@ impl BlockFlow {
         debug!("assign_height_float -- height: {}", height);
 
         position.size.height = height;
-        box_.position.set(position);
+        box_.border_box.set(position);
     }
 
     pub fn build_display_list_block<E:ExtraDisplayListData>(
@@ -756,7 +756,7 @@ impl Flow for BlockFlow {
             remaining_width = w;
 
             // The associated box is the border box of this flow.
-            let mut position_ref = box_.position.borrow_mut();
+            let mut position_ref = box_.border_box.borrow_mut();
             if self.is_fixed {
                 position_ref.get().origin.x = x_offset + box_.margin.get().left;
                 x_offset = x_offset + box_.padding.get().left;

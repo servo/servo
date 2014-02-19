@@ -179,7 +179,7 @@ impl LineboxScanner {
                               -> (Rect<Au>, Au) {
         debug!("LineboxScanner: Trying to place first box of line {}", self.lines.len());
 
-        let first_box_size = first_box.position.get().size;
+        let first_box_size = first_box.border_box.get().size;
         let splittable = first_box.can_split();
         debug!("LineboxScanner: box size: {}, splittable: {}", first_box_size, splittable);
         let line_is_empty: bool = self.pending_line.range.length() == 0;
@@ -234,9 +234,9 @@ impl LineboxScanner {
 
                 debug!("LineboxScanner: case=box split and fit");
                 let actual_box_width = match (left, right) {
-                    (Some(l_box), Some(_))  => l_box.position.get().size.width,
-                    (Some(l_box), None)     => l_box.position.get().size.width,
-                    (None, Some(r_box))     => r_box.position.get().size.width,
+                    (Some(l_box), Some(_))  => l_box.border_box.get().size.width,
+                    (Some(l_box), None)     => l_box.border_box.get().size.width,
+                    (None, Some(r_box))     => r_box.border_box.get().size.width,
                     (None, None)            => fail!("This case makes no sense.")
                 };
                 return (line_bounds, actual_box_width);
@@ -248,9 +248,9 @@ impl LineboxScanner {
 
                 debug!("LineboxScanner: case=box split and fit didn't fit; trying to push it down");
                 let actual_box_width = match (left, right) {
-                    (Some(l_box), Some(_))  => l_box.position.get().size.width,
-                    (Some(l_box), None)     => l_box.position.get().size.width,
-                    (None, Some(r_box))     => r_box.position.get().size.width,
+                    (Some(l_box), Some(_))  => l_box.border_box.get().size.width,
+                    (Some(l_box), None)     => l_box.border_box.get().size.width,
+                    (None, Some(r_box))     => r_box.border_box.get().size.width,
                     (None, None)            => fail!("This case makes no sense.")
                 };
 
@@ -349,7 +349,7 @@ impl LineboxScanner {
         debug!("LineboxScanner: Trying to append box to line {:u} (box size: {}, green zone: \
                 {}): {:s}",
                self.lines.len(),
-               in_box.position.get().size,
+               in_box.border_box.get().size,
                self.pending_line.green_zone,
                in_box.debug_str());
 
@@ -369,7 +369,7 @@ impl LineboxScanner {
         // horizontally. We'll try to place the whole box on this line and break somewhere if it
         // doesn't fit.
 
-        let new_width = self.pending_line.bounds.size.width + in_box.position.get().size.width;
+        let new_width = self.pending_line.bounds.size.width + in_box.border_box.get().size.width;
         if new_width <= green_zone.width {
             debug!("LineboxScanner: case=box fits without splitting");
             self.push_box_to_line(in_box);
@@ -440,9 +440,9 @@ impl LineboxScanner {
         }
         self.pending_line.range.extend_by(1);
         self.pending_line.bounds.size.width = self.pending_line.bounds.size.width +
-            box_.position.get().size.width;
+            box_.border_box.get().size.width;
         self.pending_line.bounds.size.height = Au::max(self.pending_line.bounds.size.height,
-                                                       box_.position.get().size.height);
+                                                       box_.border_box.get().size.height);
         self.new_boxes.push(box_);
     }
 }
@@ -603,8 +603,8 @@ impl InlineFlow {
 
         for i in line.range.eachi() {
             let box_ = &boxes[i];
-            let size = box_.position.get().size;
-            box_.position.set(Rect(Point2D(offset_x, box_.position.get().origin.y), size));
+            let size = box_.border_box.get().size;
+            box_.border_box.set(Rect(Point2D(offset_x, box_.border_box.get().origin.y), size));
             offset_x = offset_x + size.width;
         }
     }
@@ -764,12 +764,12 @@ impl Flow for InlineFlow {
 
                         // Offset from the top of the box is 1/2 of the leading + ascent
                         let text_offset = text_ascent + (line_height - em_size).scale_by(0.5);
-                        text_bounds.translate(&Point2D(cur_box.position.get().origin.x, Au(0)));
+                        text_bounds.translate(&Point2D(cur_box.border_box.get().origin.x, Au(0)));
 
                         (text_offset, line_height - text_offset, text_ascent)
                     },
                     GenericBox | IframeBox(_) => {
-                        let height = cur_box.position.get().size.height;
+                        let height = cur_box.border_box.get().size.height;
                         (height, Au::new(0), height)
                     },
                     UnscannedTextBox(_) => {
@@ -824,7 +824,7 @@ impl Flow for InlineFlow {
                     bottommost = bottom_from_base;
                 }
 
-                cur_box.position.borrow_mut().get().origin.y = line.bounds.origin.y + offset + top;
+                cur_box.border_box.borrow_mut().get().origin.y = line.bounds.origin.y + offset + top;
             }
 
             // Calculate the distance from baseline to the top of the biggest box with 'bottom'
@@ -853,7 +853,7 @@ impl Flow for InlineFlow {
                     _ => baseline_offset,
                 };
 
-                cur_box.position.borrow_mut().get().origin.y = cur_box.position.get().origin.y +
+                cur_box.border_box.borrow_mut().get().origin.y = cur_box.border_box.get().origin.y +
                     adjust_offset;
 
                 if cur_box.inline_info.with(|info| info.is_none()) {

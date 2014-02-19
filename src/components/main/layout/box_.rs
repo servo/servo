@@ -73,7 +73,7 @@ pub struct Box {
 
     /// The position of this box relative to its owning flow.
     /// The size includes padding and border, but not margin.
-    position: RefCell<Rect<Au>>,
+    border_box: RefCell<Rect<Au>>,
 
     /// The border of the content box.
     ///
@@ -386,7 +386,7 @@ impl Box {
         Box {
             node: OpaqueNode::from_thread_safe_layout_node(&node),
             style: node.style().clone(),
-            position: RefCell::new(Au::zero_rect()),
+            border_box: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
@@ -405,7 +405,7 @@ impl Box {
         Box {
             node: node,
             style: style,
-            position: RefCell::new(Au::zero_rect()),
+            border_box: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
@@ -502,7 +502,7 @@ impl Box {
         Box {
             node: self.node,
             style: self.style.clone(),
-            position: RefCell::new(Rect(self.position.get().origin, size)),
+            border_box: RefCell::new(Rect(self.border_box.get().origin, size)),
             border: RefCell::new(self.border.get()),
             padding: RefCell::new(self.padding.get()),
             margin: RefCell::new(self.margin.get()),
@@ -992,7 +992,7 @@ impl Box {
                               flow: &Flow,
                               index: uint,
                               lists: &RefCell<DisplayListCollection<E>>) {
-        let box_bounds = self.position.get();
+        let box_bounds = self.border_box.get();
         let absolute_box_bounds = box_bounds.translate(&offset);
         debug!("Box::build_display_list at rel={}, abs={}: {:s}",
                box_bounds, absolute_box_bounds, self.debug_str());
@@ -1395,7 +1395,7 @@ impl Box {
                 let left_box = if left_range.length() > 0 {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
                     let mut new_metrics = new_text_box_info.run.get().metrics_for_range(&left_range);
-                    new_metrics.bounding_box.size.height = self.position.get().size.height;
+                    new_metrics.bounding_box.size.height = self.border_box.get().size.height;
                     Some(self.transform(new_metrics.bounding_box.size,
                                         ScannedTextBox(new_text_box_info)))
                 } else {
@@ -1405,7 +1405,7 @@ impl Box {
                 let right_box = right_range.map_default(None, |range: Range| {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), range);
                     let mut new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
-                    new_metrics.bounding_box.size.height = self.position.get().size.height;
+                    new_metrics.bounding_box.size.height = self.border_box.get().size.height;
                     Some(self.transform(new_metrics.bounding_box.size,
                                         ScannedTextBox(new_text_box_info)))
                 });
@@ -1464,14 +1464,14 @@ impl Box {
                     }
                 };
 
-                let mut position = self.position.borrow_mut();
+                let mut position = self.border_box.borrow_mut();
                 position.get().size.width = width + self.noncontent_width() +
                     self.noncontent_inline_left() + self.noncontent_inline_right();
                 image_box_info.computed_width.set(Some(width));
             }
             ScannedTextBox(_) => {
                 // Scanned text boxes will have already had their content_widths assigned by this point.
-                let mut position = self.position.borrow_mut();
+                let mut position = self.border_box.borrow_mut();
                 position.get().size.width = position.get().size.width + self.noncontent_width() +
                     self.noncontent_inline_left() + self.noncontent_inline_right();
             }
@@ -1508,13 +1508,13 @@ impl Box {
                     }
                 };
 
-                let mut position = self.position.borrow_mut();
+                let mut position = self.border_box.borrow_mut();
                 image_box_info.computed_height.set(Some(height));
                 position.get().size.height = height + self.noncontent_height()
             }
             ScannedTextBox(_) => {
                 // Scanned text boxes will have already had their widths assigned by this point
-                let mut position = self.position.borrow_mut();
+                let mut position = self.border_box.borrow_mut();
                 position.get().size.height
                     = position.get().size.height + self.noncontent_height()
             }
@@ -1589,8 +1589,8 @@ impl Box {
             self.padding.get().left;
         let top = offset.y + self.margin.get().top + self.border.get().top +
             self.padding.get().top;
-        let width = self.position.get().size.width - self.noncontent_width();
-        let height = self.position.get().size.height - self.noncontent_height();
+        let width = self.border_box.get().size.width - self.noncontent_width();
+        let height = self.border_box.get().size.height - self.noncontent_height();
         let origin = Point2D(geometry::to_frac_px(left) as f32, geometry::to_frac_px(top) as f32);
         let size = Size2D(geometry::to_frac_px(width) as f32, geometry::to_frac_px(height) as f32);
         let rect = Rect(origin, size);
