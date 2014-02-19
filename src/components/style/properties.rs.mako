@@ -7,6 +7,7 @@
 use std::ascii::StrAsciiExt;
 pub use servo_util::url::parse_url;
 pub use extra::arc::Arc;
+pub use extra::url::Url;
 use servo_util::cowarc::CowArc;
 
 pub use cssparser::*;
@@ -50,7 +51,9 @@ STYLE_STRUCTS = []
 THIS_STYLE_STRUCT = None
 LONGHANDS = []
 LONGHANDS_BY_NAME = {}
+LONGHANDS_WITH_URL = []
 SHORTHANDS = []
+SHORTHANDS_WITH_URL = []
 
 def new_style_struct(name, is_inherited):
     global THIS_STYLE_STRUCT
@@ -98,6 +101,32 @@ pub mod longhands {
                     Some(None) => Some(CSSWideKeyword(${
                         "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"})),
                     None => parse_specified(input),
+                }
+            }
+        }
+    </%def>
+
+    <%def name="url_longhand(name, no_super=False)">
+    <%
+        property = Longhand(name)
+        THIS_STYLE_STRUCT.longhands.append(property)
+        LONGHANDS_WITH_URL.append(property)
+        LONGHANDS_BY_NAME[name] = property
+    %>
+        pub mod ${property.ident} {
+            % if not no_super:
+                use super::*;
+            % endif
+            pub use self::computed_value::*;
+            ${caller.body()}
+
+            pub fn parse_declared(input: &[ComponentValue], base_url: &Url)
+                               -> Option<DeclaredValue<SpecifiedValue>> {
+                match CSSWideKeyword::parse(input) {
+                    Some(Some(keyword)) => Some(CSSWideKeyword(keyword)),
+                    Some(None) => Some(CSSWideKeyword(${
+                        "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"})),
+                    None => parse_specified(input, base_url),
                 }
             }
         }
@@ -475,7 +504,7 @@ pub mod longhands {
     ${predefined_type("background-color", "CSSColor",
                       "RGBA(RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
 
-    <%self:single_component_value name="background-image">
+    <%self:url_longhand name="background-image">
             // The computed value is the same as the specified value.
             pub use to_computed_value = super::computed_as_specified;
             pub mod computed_value {
@@ -486,16 +515,29 @@ pub mod longhands {
             #[inline] pub fn get_initial_value() -> SpecifiedValue {
                 None
             }
-            pub fn from_component_value(component_value: &ComponentValue) -> Option<SpecifiedValue> {
+            pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<SpecifiedValue> {
+                from_iter(input.skip_whitespace(), base_url)
+            }
+            pub fn from_iter<'a>(mut iter: SkipWhitespaceIterator<'a>, base_url: &Url) -> Option<SpecifiedValue> {
+                match iter.next() {
+                    Some(v) => from_component_value_with_url(v, base_url),
+                    _ => None
+                }
+            }
+            pub fn from_component_value_with_url(component_value: &ComponentValue, base_url: &Url) -> Option<SpecifiedValue> {
                 match component_value {
                     &ast::URL(ref url) => {
-                        let image_url = parse_url(url.as_slice(), None);
+                        let image_url = parse_url(url.as_slice(), Some(base_url.clone()));
                         Some(Some(image_url))
                     },
                     _ => None,
                 }
             }
-    </%self:single_component_value>
+            pub fn parse_specified(input: &[ComponentValue], base_url: &Url)
+                               -> Option<DeclaredValue<SpecifiedValue>> {
+                parse(input, base_url).map(super::SpecifiedValue)
+            }
+    </%self:url_longhand>
 
 
     ${new_style_struct("Color", is_inherited=True)}
@@ -805,6 +847,24 @@ pub mod shorthands {
         }
     </%def>
 
+    <%def name="url_shorthand(name, sub_properties)">
+    <%
+        shorthand = Shorthand(name, sub_properties.split())
+        SHORTHANDS_WITH_URL.append(shorthand)
+    %>
+        pub mod ${shorthand.ident} {
+            use super::*;
+
+            struct Longhands {
+                % for sub_property in shorthand.sub_properties:
+                    ${sub_property.ident}: Option<${sub_property.ident}::SpecifiedValue>,
+                % endfor
+            }
+            pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<Longhands> {
+                ${caller.body()}
+            }
+        }
+    </%def>
     <%def name="four_sides_shorthand(name, sub_property_pattern, parser_function)">
         <%self:shorthand name="${name}" sub_properties="${
                 ' '.join(sub_property_pattern % side
@@ -833,7 +893,7 @@ pub mod shorthands {
     </%def>
 
     // TODO: other background-* properties
-    <%self:shorthand name="background" sub_properties="background-color background-image">
+    <%self:url_shorthand name="background" sub_properties="background-color background-image">
                 let mut color = None;
                 let mut image = None;
                 let mut any = false;
@@ -847,7 +907,7 @@ pub mod shorthands {
                     }
 
                     if image.is_none() {
-                        match background_image::from_component_value(component_value) {
+                        match background_image::from_component_value_with_url(component_value, base_url) {
                             Some(v) => { image = Some(v); any = true; continue },
                             None => (),
                         }
@@ -856,7 +916,7 @@ pub mod shorthands {
                 }
                 if any { Some(Longhands { background_color: color, background_image: image }) }
                 else { None }
-    </%self:shorthand>
+    </%self:url_shorthand>
 
     ${four_sides_shorthand("margin", "margin-%s", "margin_top::from_component_value")}
     ${four_sides_shorthand("padding", "padding-%s", "padding_top::from_component_value")}
@@ -1014,12 +1074,12 @@ pub struct PropertyDeclarationBlock {
 }
 
 
-pub fn parse_style_attribute(input: &str) -> PropertyDeclarationBlock {
-    parse_property_declaration_list(tokenize(input))
+pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclarationBlock {
+    parse_property_declaration_list(tokenize(input), base_url)
 }
 
 
-pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I) -> PropertyDeclarationBlock {
+pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &Url) -> PropertyDeclarationBlock {
     let mut important = ~[];
     let mut normal = ~[];
     for item in ErrorLoggerIterator(parse_declaration_list(input)) {
@@ -1029,7 +1089,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I) -> PropertyD
             Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
                 let list = if i { &mut important } else { &mut normal };
-                match PropertyDeclaration::parse(n, v, list) {
+                match PropertyDeclaration::parse(n, v, list, base_url) {
                     UnknownProperty => log_css_error(l, format!(
                         "Unsupported property: {}:{}", n, v.iter().to_css())),
                     InvalidValue => log_css_error(l, format!(
@@ -1077,6 +1137,9 @@ pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.ident}_declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
     % endfor
+    % for property in LONGHANDS_WITH_URL:
+        ${property.ident}_declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
+    % endfor
 }
 
 
@@ -1086,15 +1149,25 @@ enum PropertyDeclarationParseResult {
     ValidDeclaration,
 }
 
+
 impl PropertyDeclaration {
     pub fn parse(name: &str, value: &[ComponentValue],
-                 result_list: &mut ~[PropertyDeclaration]) -> PropertyDeclarationParseResult {
+                 result_list: &mut ~[PropertyDeclaration],
+                 base_url: &Url) -> PropertyDeclarationParseResult {
         // FIXME: local variable to work around Rust #10683
         let name_lower = name.to_ascii_lower();
         match name_lower.as_slice() {
             % for property in LONGHANDS:
                 "${property.name}" => result_list.push(${property.ident}_declaration(
                     match longhands::${property.ident}::parse_declared(value) {
+                        Some(value) => value,
+                        None => return InvalidValue,
+                    }
+                )),
+            % endfor
+            % for property in LONGHANDS_WITH_URL:
+                "${property.name}" => result_list.push(${property.ident}_declaration(
+                    match longhands::${property.ident}::parse_declared(value, base_url) {
                         Some(value) => value,
                         None => return InvalidValue,
                     }
@@ -1118,6 +1191,38 @@ impl PropertyDeclaration {
                         % endfor
                     },
                     None => match shorthands::${shorthand.ident}::parse(value) {
+                        Some(result) => {
+                            % for sub_property in shorthand.sub_properties:
+                                result_list.push(${sub_property.ident}_declaration(
+                                    match result.${sub_property.ident} {
+                                        Some(value) => SpecifiedValue(value),
+                                        None => CSSWideKeyword(Initial),
+                                    }
+                                ));
+                            % endfor
+                        },
+                        None => return InvalidValue,
+                    }
+                },
+            % endfor
+            % for shorthand in SHORTHANDS_WITH_URL:
+                "${shorthand.name}" => match CSSWideKeyword::parse(value) {
+                    Some(Some(keyword)) => {
+                        % for sub_property in shorthand.sub_properties:
+                            result_list.push(${sub_property.ident}_declaration(
+                                CSSWideKeyword(keyword)
+                            ));
+                        % endfor
+                    },
+                    Some(None) => {
+                        % for sub_property in shorthand.sub_properties:
+                            result_list.push(${sub_property.ident}_declaration(
+                                CSSWideKeyword(${
+                                    "Inherit" if sub_property.style_struct.inherited else "Initial"})
+                            ));
+                        % endfor
+                    },
+                    None => match shorthands::${shorthand.ident}::parse(value, base_url) {
                         Some(result) => {
                             % for sub_property in shorthand.sub_properties:
                                 result_list.push(${sub_property.ident}_declaration(

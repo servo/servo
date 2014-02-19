@@ -26,7 +26,6 @@ use servo_util::url::parse_url;
 use std::cast;
 use std::cell::RefCell;
 use std::comm::{Port, SharedChan};
-use std::from_str::FromStr;
 use std::str;
 use style::Stylesheet;
 
@@ -277,7 +276,8 @@ pub fn parse_html(cx: *JSContext,
 
     debug!("Fetched page; metadata is {:?}", load_response.metadata);
 
-    let url2 = load_response.metadata.final_url.clone();
+    let base_url = load_response.metadata.final_url.clone();
+    let url2 = base_url.clone();
     let url3 = url2.clone();
 
     // Store the final URL before we start parsing, so that DOM routines
@@ -485,7 +485,6 @@ pub fn parse_html(cx: *JSContext,
             // We've reached the end of a <style> so we can submit all the text to the parser.
             unsafe {
                 let style: AbstractNode = NodeWrapping::from_hubbub_node(style);
-                let url = FromStr::from_str("http://example.com/"); // FIXME
                 let mut data = ~[];
                 debug!("iterating over children {:?}", style.first_child());
                 for child in style.children() {
@@ -496,7 +495,7 @@ pub fn parse_html(cx: *JSContext,
                 }
 
                 debug!("style data = {:?}", data);
-                let provenance = InlineProvenance(url.unwrap(), data.concat());
+                let provenance = InlineProvenance(base_url.clone(), data.concat());
                 css_chan3.send(CSSTaskNewFile(provenance));
             }
         },
