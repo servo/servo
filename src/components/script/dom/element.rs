@@ -221,7 +221,9 @@ impl Element {
 
         match local_name.as_slice() {
             "style" => {
-                self.style_attribute = Some(style::parse_style_attribute(value))
+                let doc = self.node.owner_doc();
+                let base_url = doc.document().url.clone();
+                self.style_attribute = Some(style::parse_style_attribute(value, &base_url))
             }
             "id" if abstract_self.is_in_doc() => {
                 // XXX: this dual declaration are workaround to avoid the compile error:

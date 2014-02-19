@@ -22,6 +22,7 @@ use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::*;
 use servo_util::namespace;
+
 use std::cast;
 use std::cell::RefCell;
 use std::cmp::ApproxEq;
@@ -937,6 +938,7 @@ impl Box {
     /// necessary.
     pub fn paint_background_if_applicable<E:ExtraDisplayListData>(
                                           &self,
+                                          builder: &DisplayListBuilder,
                                           index: uint,
                                           lists: &RefCell<DisplayListCollection<E>>,
                                           absolute_bounds: &Rect<Au>) {
@@ -958,6 +960,39 @@ impl Box {
 
                 lists.lists[index].append_item(SolidColorDisplayItemClass(solid_color_display_item))
             });
+        }
+
+        // The background image is painted on top of the background color.
+        // Implements background image, per spec:
+        // http://www.w3.org/TR/CSS21/colors.html#background
+        match style.Background.get().background_image {
+            Some(ref image_url) => {
+                let mut holder = ImageHolder::new(image_url.clone(), builder.ctx.image_cache.clone());
+                match holder.get_image() {
+                    Some(image) => {
+                        debug!("(building display list) building background image");
+
+                        // Place the image into the display list.
+                        lists.with_mut(|lists| {
+                            let image_display_item = ~ImageDisplayItem {
+                                base: BaseDisplayItem {
+                                    bounds: *absolute_bounds,
+                                    extra: ExtraDisplayListData::new(self),
+                                },
+                                image: image.clone(),
+                            };
+                            lists.lists[index].append_item(ImageDisplayItemClass(image_display_item));
+                        });
+                    }
+                    None => {
+                        // No image data at all? Do nothing.
+                        //
+                        // TODO: Add some kind of placeholder background image.
+                        debug!("(building display list) no background image :(");
+                    }
+                }
+            }
+            None => {}
         }
     }
 
@@ -1052,7 +1087,7 @@ impl Box {
 
         self.paint_inline_background_border_if_applicable(index, lists, &absolute_box_bounds, &offset);
         // Add the background to the list, if applicable.
-        self.paint_background_if_applicable(index, lists, &absolute_box_bounds);
+        self.paint_background_if_applicable(builder, index, lists, &absolute_box_bounds);
 
         match self.specific {
             UnscannedTextBox(_) => fail!("Shouldn't see unscanned boxes here."),
@@ -1259,7 +1294,6 @@ impl Box {
         //
         // TODO: Outlines.
         self.paint_borders_if_applicable(index, lists, &absolute_box_bounds);
-
     }
 
     /// Returns the *minimum width* and *preferred width* of this box as defined by CSS 2.1.
