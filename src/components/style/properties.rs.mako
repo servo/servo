@@ -51,9 +51,7 @@ STYLE_STRUCTS = []
 THIS_STYLE_STRUCT = None
 LONGHANDS = []
 LONGHANDS_BY_NAME = {}
-LONGHANDS_WITH_URL = []
 SHORTHANDS = []
-SHORTHANDS_WITH_URL = []
 
 def new_style_struct(name, is_inherited):
     global THIS_STYLE_STRUCT
@@ -94,32 +92,6 @@ pub mod longhands {
             % endif
             pub use self::computed_value::*;
             ${caller.body()}
-            pub fn parse_declared(input: &[ComponentValue])
-                               -> Option<DeclaredValue<SpecifiedValue>> {
-                match CSSWideKeyword::parse(input) {
-                    Some(Some(keyword)) => Some(CSSWideKeyword(keyword)),
-                    Some(None) => Some(CSSWideKeyword(${
-                        "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"})),
-                    None => parse_specified(input),
-                }
-            }
-        }
-    </%def>
-
-    <%def name="url_longhand(name, no_super=False)">
-    <%
-        property = Longhand(name)
-        THIS_STYLE_STRUCT.longhands.append(property)
-        LONGHANDS_WITH_URL.append(property)
-        LONGHANDS_BY_NAME[name] = property
-    %>
-        pub mod ${property.ident} {
-            % if not no_super:
-                use super::*;
-            % endif
-            pub use self::computed_value::*;
-            ${caller.body()}
-
             pub fn parse_declared(input: &[ComponentValue], base_url: &Url)
                                -> Option<DeclaredValue<SpecifiedValue>> {
                 match CSSWideKeyword::parse(input) {
@@ -135,9 +107,9 @@ pub mod longhands {
     <%def name="longhand(name, no_super=False)">
         <%self:raw_longhand name="${name}">
             ${caller.body()}
-            pub fn parse_specified(input: &[ComponentValue])
+            pub fn parse_specified(input: &[ComponentValue], base_url: &Url)
                                -> Option<DeclaredValue<SpecifiedValue>> {
-                parse(input).map(super::SpecifiedValue)
+                parse(input, base_url).map(super::SpecifiedValue)
             }
         </%self:raw_longhand>
     </%def>
@@ -145,8 +117,8 @@ pub mod longhands {
     <%def name="single_component_value(name)">
         <%self:longhand name="${name}">
             ${caller.body()}
-            pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
-                one_component_value(input).and_then(from_component_value)
+            pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<SpecifiedValue> {
+                one_component_value(input).and_then(|c| from_component_value(c, base_url))
             }
         </%self:longhand>
     </%def>
@@ -166,7 +138,8 @@ pub mod longhands {
             #[inline] pub fn get_initial_value() -> computed_value::T {
                 ${to_rust_ident(values.split()[0])}
             }
-            pub fn from_component_value(v: &ComponentValue) -> Option<SpecifiedValue> {
+            pub fn from_component_value(v: &ComponentValue, _base_url: &Url)
+                                        -> Option<SpecifiedValue> {
                 get_ident_lower(v).and_then(|keyword| {
                     match keyword.as_slice() {
                         % for value in values.split():
@@ -195,7 +168,8 @@ pub mod longhands {
                 pub type T = super::super::computed::${type};
             }
             #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
-            #[inline] pub fn from_component_value(v: &ComponentValue) -> Option<SpecifiedValue> {
+            #[inline] pub fn from_component_value(v: &ComponentValue, _base_url: &Url)
+                                                  -> Option<SpecifiedValue> {
                 specified::${type}::${parse_method}(v)
             }
         </%self:single_component_value>
@@ -238,7 +212,8 @@ pub mod longhands {
         </%self:longhand>
     % endfor
 
-    pub fn parse_border_width(component_value: &ComponentValue) -> Option<specified::Length> {
+    pub fn parse_border_width(component_value: &ComponentValue, _base_url: &Url)
+                              -> Option<specified::Length> {
         match component_value {
             &Ident(ref value) => {
                 // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
@@ -263,8 +238,8 @@ pub mod longhands {
             #[inline] pub fn get_initial_value() -> computed_value::T {
                 Au::from_px(3)  // medium
             }
-            pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
-                one_component_value(input).and_then(parse_border_width)
+            pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<SpecifiedValue> {
+                one_component_value(input).and_then(|c| parse_border_width(c, base_url))
             }
             #[inline]
             pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
@@ -349,7 +324,8 @@ pub mod longhands {
             // percentage are the same as em.
         }
         /// normal | <number> | <length> | <percentage>
-        pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
+        pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
+                                    -> Option<SpecifiedValue> {
             match input {
                 &ast::Number(ref value) if value.value >= 0.
                 => Some(SpecifiedNumber(value.value)),
@@ -399,7 +375,8 @@ pub mod longhands {
         }
         /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
         /// | <percentage> | <length>
-        pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
+        pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
+                                    -> Option<SpecifiedValue> {
             match input {
                 &Ident(ref value) => {
                     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
@@ -476,7 +453,7 @@ pub mod longhands {
 
             // normal | none | [ <string> ]+
             // TODO: <uri>, <counter>, attr(<identifier>), open-quote, close-quote, no-open-quote, no-close-quote
-            pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
+            pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Option<SpecifiedValue> {
                 match one_component_value(input) {
                     Some(&Ident(ref keyword)) => match keyword.to_ascii_lower().as_slice() {
                         "normal" => return Some(normal),
@@ -504,7 +481,7 @@ pub mod longhands {
     ${predefined_type("background-color", "CSSColor",
                       "RGBA(RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
 
-    <%self:url_longhand name="background-image">
+    <%self:single_component_value name="background-image">
             // The computed value is the same as the specified value.
             pub use to_computed_value = super::computed_as_specified;
             pub mod computed_value {
@@ -515,16 +492,7 @@ pub mod longhands {
             #[inline] pub fn get_initial_value() -> SpecifiedValue {
                 None
             }
-            pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<SpecifiedValue> {
-                from_iter(input.skip_whitespace(), base_url)
-            }
-            pub fn from_iter<'a>(mut iter: SkipWhitespaceIterator<'a>, base_url: &Url) -> Option<SpecifiedValue> {
-                match iter.next() {
-                    Some(v) => from_component_value_with_url(v, base_url),
-                    _ => None
-                }
-            }
-            pub fn from_component_value_with_url(component_value: &ComponentValue, base_url: &Url) -> Option<SpecifiedValue> {
+            pub fn from_component_value(component_value: &ComponentValue, base_url: &Url) -> Option<SpecifiedValue> {
                 match component_value {
                     &ast::URL(ref url) => {
                         let image_url = parse_url(url.as_slice(), Some(base_url.clone()));
@@ -533,11 +501,7 @@ pub mod longhands {
                     _ => None,
                 }
             }
-            pub fn parse_specified(input: &[ComponentValue], base_url: &Url)
-                               -> Option<DeclaredValue<SpecifiedValue>> {
-                parse(input, base_url).map(super::SpecifiedValue)
-            }
-    </%self:url_longhand>
+    </%self:single_component_value>
 
 
     ${new_style_struct("Color", is_inherited=True)}
@@ -551,7 +515,8 @@ pub mod longhands {
         #[inline] pub fn get_initial_value() -> computed_value::T {
             RGBA { red: 0., green: 0., blue: 0., alpha: 1. }  /* black */
         }
-        pub fn parse_specified(input: &[ComponentValue]) -> Option<DeclaredValue<SpecifiedValue>> {
+        pub fn parse_specified(input: &[ComponentValue], _base_url: &Url)
+                               -> Option<DeclaredValue<SpecifiedValue>> {
             match one_component_value(input).and_then(Color::parse) {
                 Some(RGBA(rgba)) => Some(SpecifiedValue(rgba)),
                 Some(CurrentColor) => Some(CSSWideKeyword(Inherit)),
@@ -584,7 +549,7 @@ pub mod longhands {
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
         /// TODO: <generic-familiy>
-        pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
+        pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Option<SpecifiedValue> {
             from_iter(input.skip_whitespace())
         }
         pub fn from_iter<'a>(mut iter: SkipWhitespaceIterator<'a>) -> Option<SpecifiedValue> {
@@ -655,7 +620,8 @@ pub mod longhands {
             % endfor
         }
         /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
-        pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
+        pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
+                                    -> Option<SpecifiedValue> {
             match input {
                 &Ident(ref value) => {
                     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
@@ -751,7 +717,8 @@ pub mod longhands {
         }
         /// <length> | <percentage>
         /// TODO: support <absolute-size> and <relative-size>
-        pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
+        pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
+                                    -> Option<SpecifiedValue> {
             specified::LengthOrPercentage::parse_non_negative(input).map(|value| {
                 match value {
                     specified::LP_Length(value) => value,
@@ -788,7 +755,7 @@ pub mod longhands {
             none
         }
         /// none | [ underline || overline || line-through || blink ]
-        pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
+        pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Option<SpecifiedValue> {
             let mut result = SpecifiedValue {
                 underline: false, overline: false, line_through: false,
             };
@@ -841,35 +808,17 @@ pub mod shorthands {
                     ${sub_property.ident}: Option<${sub_property.ident}::SpecifiedValue>,
                 % endfor
             }
-            pub fn parse(input: &[ComponentValue]) -> Option<Longhands> {
-                ${caller.body()}
-            }
-        }
-    </%def>
-
-    <%def name="url_shorthand(name, sub_properties)">
-    <%
-        shorthand = Shorthand(name, sub_properties.split())
-        SHORTHANDS_WITH_URL.append(shorthand)
-    %>
-        pub mod ${shorthand.ident} {
-            use super::*;
-
-            struct Longhands {
-                % for sub_property in shorthand.sub_properties:
-                    ${sub_property.ident}: Option<${sub_property.ident}::SpecifiedValue>,
-                % endfor
-            }
             pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<Longhands> {
                 ${caller.body()}
             }
         }
     </%def>
+
     <%def name="four_sides_shorthand(name, sub_property_pattern, parser_function)">
         <%self:shorthand name="${name}" sub_properties="${
                 ' '.join(sub_property_pattern % side
                          for side in ['top', 'right', 'bottom', 'left'])}">
-            let mut iter = input.skip_whitespace().map(${parser_function});
+            let mut iter = input.skip_whitespace().map(|c| ${parser_function}(c, base_url));
             // zero or more than four values is invalid.
             // one value sets them all
             // two values set (top, bottom) and (left, right)
@@ -893,21 +842,21 @@ pub mod shorthands {
     </%def>
 
     // TODO: other background-* properties
-    <%self:url_shorthand name="background" sub_properties="background-color background-image">
+    <%self:shorthand name="background" sub_properties="background-color background-image">
                 let mut color = None;
                 let mut image = None;
                 let mut any = false;
 
                 for component_value in input.skip_whitespace() {
                     if color.is_none() {
-                        match background_color::from_component_value(component_value) {
+                        match background_color::from_component_value(component_value, base_url) {
                             Some(v) => { color = Some(v); any = true; continue },
                             None => ()
                         }
                     }
 
                     if image.is_none() {
-                        match background_image::from_component_value_with_url(component_value, base_url) {
+                        match background_image::from_component_value(component_value, base_url) {
                             Some(v) => { image = Some(v); any = true; continue },
                             None => (),
                         }
@@ -916,17 +865,20 @@ pub mod shorthands {
                 }
                 if any { Some(Longhands { background_color: color, background_image: image }) }
                 else { None }
-    </%self:url_shorthand>
+    </%self:shorthand>
 
     ${four_sides_shorthand("margin", "margin-%s", "margin_top::from_component_value")}
     ${four_sides_shorthand("padding", "padding-%s", "padding_top::from_component_value")}
 
-    ${four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse")}
+    pub fn parse_color(value: &ComponentValue, _base_url: &Url) -> Option<specified::CSSColor> {
+        specified::CSSColor::parse(value)
+    }
+    ${four_sides_shorthand("border-color", "border-%s-color", "parse_color")}
     ${four_sides_shorthand("border-style", "border-%s-style",
                            "border_top_style::from_component_value")}
     ${four_sides_shorthand("border-width", "border-%s-width", "parse_border_width")}
 
-    pub fn parse_border(input: &[ComponentValue])
+    pub fn parse_border(input: &[ComponentValue], base_url: &Url)
                      -> Option<(Option<specified::CSSColor>,
                                 Option<border_top_style::SpecifiedValue>,
                                 Option<specified::Length>)> {
@@ -942,13 +894,13 @@ pub mod shorthands {
                 }
             }
             if style.is_none() {
-                match border_top_style::from_component_value(component_value) {
+                match border_top_style::from_component_value(component_value, base_url) {
                     Some(s) => { style = Some(s); any = true; continue },
                     None => ()
                 }
             }
             if width.is_none() {
-                match parse_border_width(component_value) {
+                match parse_border_width(component_value, base_url) {
                     Some(w) => { width = Some(w); any = true; continue },
                     None => ()
                 }
@@ -964,7 +916,7 @@ pub mod shorthands {
             'border-%s-%s' % (side, prop)
             for prop in ['color', 'style', 'width']
         )}">
-            parse_border(input).map(|(color, style, width)| {
+            parse_border(input, base_url).map(|(color, style, width)| {
                 Longhands {
                     % for prop in ["color", "style", "width"]:
                         ${"border_%s_%s: %s," % (side, prop, prop)}
@@ -979,7 +931,7 @@ pub mod shorthands {
         for side in ['top', 'right', 'bottom', 'left']
         for prop in ['color', 'style', 'width']
     )}">
-        parse_border(input).map(|(color, style, width)| {
+        parse_border(input, base_url).map(|(color, style, width)| {
             Longhands {
                 % for side in ["top", "right", "bottom", "left"]:
                     % for prop in ["color", "style", "width"]:
@@ -1009,24 +961,24 @@ pub mod shorthands {
                 continue;
             }
             if style.is_none() {
-                match font_style::from_component_value(component_value) {
+                match font_style::from_component_value(component_value, base_url) {
                     Some(s) => { style = Some(s); continue },
                     None => ()
                 }
             }
             if weight.is_none() {
-                match font_weight::from_component_value(component_value) {
+                match font_weight::from_component_value(component_value, base_url) {
                     Some(w) => { weight = Some(w); continue },
                     None => ()
                 }
             }
             if variant.is_none() {
-                match font_variant::from_component_value(component_value) {
+                match font_variant::from_component_value(component_value, base_url) {
                     Some(v) => { variant = Some(v); continue },
                     None => ()
                 }
             }
-            match font_size::from_component_value(component_value) {
+            match font_size::from_component_value(component_value, base_url) {
                 Some(s) => { size = Some(s); break },
                 None => return None
             }
@@ -1046,7 +998,7 @@ pub mod shorthands {
             Some(&Delim('/')) => {
                 iter = copied_iter;
                 line_height = match iter.next() {
-                    Some(v) => line_height::from_component_value(v),
+                    Some(v) => line_height::from_component_value(v, base_url),
                     _ => return None,
                 };
                 if line_height.is_none() { return None }
@@ -1137,9 +1089,6 @@ pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.ident}_declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
     % endfor
-    % for property in LONGHANDS_WITH_URL:
-        ${property.ident}_declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
-    % endfor
 }
 
 
@@ -1159,14 +1108,6 @@ impl PropertyDeclaration {
         match name_lower.as_slice() {
             % for property in LONGHANDS:
                 "${property.name}" => result_list.push(${property.ident}_declaration(
-                    match longhands::${property.ident}::parse_declared(value) {
-                        Some(value) => value,
-                        None => return InvalidValue,
-                    }
-                )),
-            % endfor
-            % for property in LONGHANDS_WITH_URL:
-                "${property.name}" => result_list.push(${property.ident}_declaration(
                     match longhands::${property.ident}::parse_declared(value, base_url) {
                         Some(value) => value,
                         None => return InvalidValue,
@@ -1174,38 +1115,6 @@ impl PropertyDeclaration {
                 )),
             % endfor
             % for shorthand in SHORTHANDS:
-                "${shorthand.name}" => match CSSWideKeyword::parse(value) {
-                    Some(Some(keyword)) => {
-                        % for sub_property in shorthand.sub_properties:
-                            result_list.push(${sub_property.ident}_declaration(
-                                CSSWideKeyword(keyword)
-                            ));
-                        % endfor
-                    },
-                    Some(None) => {
-                        % for sub_property in shorthand.sub_properties:
-                            result_list.push(${sub_property.ident}_declaration(
-                                CSSWideKeyword(${
-                                    "Inherit" if sub_property.style_struct.inherited else "Initial"})
-                            ));
-                        % endfor
-                    },
-                    None => match shorthands::${shorthand.ident}::parse(value) {
-                        Some(result) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push(${sub_property.ident}_declaration(
-                                    match result.${sub_property.ident} {
-                                        Some(value) => SpecifiedValue(value),
-                                        None => CSSWideKeyword(Initial),
-                                    }
-                                ));
-                            % endfor
-                        },
-                        None => return InvalidValue,
-                    }
-                },
-            % endfor
-            % for shorthand in SHORTHANDS_WITH_URL:
                 "${shorthand.name}" => match CSSWideKeyword::parse(value) {
                     Some(Some(keyword)) => {
                         % for sub_property in shorthand.sub_properties:
