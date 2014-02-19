@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! CSS block formatting contexts.
+//! CSS block layout.
 
 use layout::box_::Box;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::floats::{FloatKind, Floats, PlacementInfo};
+use layout::floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
 use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
@@ -19,6 +19,7 @@ use geom::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::{DisplayList, DisplayListCollection};
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use style::computed_values::{clear, float};
 
 /// Information specific to floated blocks.
 pub struct FloatedBlockInfo {
@@ -30,9 +31,6 @@ pub struct FloatedBlockInfo {
     /// Index into the box list for inline floats
     index: Option<uint>,
 
-    /// Number of floated children
-    floated_children: uint,
-
     /// Left or right?
     float_kind: FloatKind,
 }
@@ -43,7 +41,6 @@ impl FloatedBlockInfo {
             containing_width: Au(0),
             rel_pos: Point2D(Au(0), Au(0)),
             index: None,
-            floated_children: 0,
             float_kind: float_kind,
         }
     }
@@ -249,202 +246,8 @@ impl BlockFlow {
         return (width, margin_left, margin_right);
     }
 
-    // inline(always) because this is only ever called by in-order or non-in-order top-level
-    // methods
-    #[inline(always)]
-    fn assign_height_block_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
-        let mut cur_y = Au::new(0);
-        let mut clearance = Au::new(0);
-        // Offset to content edge of box_
-        let mut top_offset = Au::new(0);
-        let mut bottom_offset = Au::new(0);
-        let mut left_offset = Au::new(0);
-
-        for box_ in self.box_.iter() {
-            clearance = match box_.clear() {
-                None => Au::new(0),
-                Some(clear) => {
-                    self.base.floats.clearance(clear)
-                }
-            };
-
-            top_offset = clearance + box_.margin.get().top + box_.border.get().top +
-                box_.padding.get().top;
-            cur_y = cur_y + top_offset;
-            bottom_offset = box_.margin.get().bottom + box_.border.get().bottom +
-                box_.padding.get().bottom;
-            left_offset = box_.offset();
-        }
-
-        if inorder {
-            // Floats for blocks work like this:
-            // self.floats -> child[0].floats
-            // visit child[0]
-            // child[i-1].floats -> child[i].floats
-            // visit child[i]
-            // repeat until all children are visited.
-            // last_child.floats -> self.floats (done at the end of this method)
-            self.base.floats.translate(Point2D(-left_offset, -top_offset));
-            let mut floats = self.base.floats.clone();
-            for kid in self.base.child_iter() {
-                flow::mut_base(kid).floats = floats;
-                kid.assign_height_inorder(ctx);
-                floats = flow::mut_base(kid).floats.clone();
-            }
-            self.base.floats = floats;
-        }
-
-        // The amount of margin that we can potentially collapse with
-        let mut collapsible = Au::new(0);
-        // How much to move up by to get to the beginning of
-        // current kid flow.
-        // Example: if previous sibling's margin-bottom is 20px and your
-        // margin-top is 12px, the collapsed margin will be 20px. Since cur_y
-        // will be at the bottom margin edge of the previous sibling, we have
-        // to move up by 12px to get to our top margin edge. So, `collapsing`
-        // will be set to 12px
-        let mut collapsing = Au::new(0);
-        let mut margin_top = Au::new(0);
-        let mut margin_bottom = Au::new(0);
-        let mut top_margin_collapsible = false;
-        let mut bottom_margin_collapsible = false;
-        let mut first_in_flow = true;
-        for box_ in self.box_.iter() {
-            if !self.is_root && box_.border.get().top == Au(0) && box_.padding.get().top == Au(0) {
-                collapsible = box_.margin.get().top;
-                top_margin_collapsible = true;
-            }
-            if !self.is_root && box_.border.get().bottom == Au(0) &&
-                    box_.padding.get().bottom == Au(0) {
-                bottom_margin_collapsible = true;
-            }
-            margin_top = box_.margin.get().top;
-            margin_bottom = box_.margin.get().bottom;
-        }
-
-        // At this point, cur_y is at the content edge of the flow's box_
-        for kid in self.base.child_iter() {
-            // At this point, cur_y is at bottom margin edge of previous kid
-            kid.collapse_margins(top_margin_collapsible,
-                                 &mut first_in_flow,
-                                 &mut margin_top,
-                                 &mut top_offset,
-                                 &mut collapsing,
-                                 &mut collapsible);
-
-            let child_node = flow::mut_base(kid);
-            cur_y = cur_y - collapsing;
-            // At this point, after moving up by `collapsing`, cur_y is at the
-            // top margin edge of kid
-            child_node.position.origin.y = cur_y;
-            cur_y = cur_y + child_node.position.size.height;
-            // At this point, cur_y is at the bottom margin edge of kid
-        }
-
-        // The bottom margin collapses with its last in-flow block-level child's bottom margin
-        // if the parent has no bottom boder, no bottom padding.
-        collapsing = if bottom_margin_collapsible {
-            if margin_bottom < collapsible {
-                margin_bottom = collapsible;
-            }
-            collapsible
-        } else {
-            Au::new(0)
-        };
-
-        // TODO: A box's own margins collapse if the 'min-height' property is zero, and it has neither
-        // top or bottom borders nor top or bottom padding, and it has a 'height' of either 0 or 'auto',
-        // and it does not contain a line box, and all of its in-flow children's margins (if any) collapse.
-
-        let screen_height = ctx.screen_size.height;
-
-        let mut height = if self.is_root {
-            // FIXME(pcwalton): The max is taken here so that you can scroll the page, but this is
-            // not correct behavior according to CSS 2.1 § 10.5. Instead I think we should treat
-            // the root element as having `overflow: scroll` and use the layers-based scrolling
-            // infrastructure to make it scrollable.
-            Au::max(screen_height, cur_y)
-        } else {
-            // (cur_y - collapsing) will get you the bottom content edge
-            // top_offset will be at top content edge
-            // hence, height = content height
-            cur_y - top_offset - collapsing
-        };
-
-        for box_ in self.box_.iter() {
-            let style = box_.style();
-
-            // At this point, `height` is the height of the containing block, so passing `height`
-            // as the second argument here effectively makes percentages relative to the containing
-            // block per CSS 2.1 § 10.5.
-            // TODO: We need to pass in the correct containing block height
-            // for absolutely positioned elems
-            height = match MaybeAuto::from_style(style.Box.get().height, height) {
-                Auto => height,
-                Specified(value) => value
-            };
-        }
-
-        // Here, height is content height of box_
-
-        let mut noncontent_height = Au::new(0);
-        for box_ in self.box_.iter() {
-            let mut position = box_.border_box.get();
-            let mut margin = box_.margin.get();
-
-            // The associated box is the border box of this flow.
-            // Margin after collapse
-            margin.top = margin_top;
-            margin.bottom = margin_bottom;
-
-            noncontent_height = box_.padding.get().top + box_.padding.get().bottom +
-                box_.border.get().top + box_.border.get().bottom;
-
-            let (y, h) = box_.get_y_coord_and_new_height_if_fixed(screen_height,
-                                                                  height,
-                                                                  clearance + margin.top,
-                                                                  self.is_fixed);
-
-            position.origin.y = y;
-            height = h;
-
-            if self.is_fixed {
-                for kid in self.base.child_iter() {
-                    let child_node = flow::mut_base(kid);
-                    child_node.position.origin.y = position.origin.y + top_offset;
-                }
-            }
-
-            position.size.height = if self.is_fixed {
-                height
-            } else {
-                // Border box height
-                height + noncontent_height
-            };
-
-            noncontent_height = noncontent_height + clearance + margin.top + margin.bottom;
-
-            box_.border_box.set(position);
-            box_.margin.set(margin);
-        }
-
-        self.base.position.size.height = if self.is_fixed {
-            height
-        } else {
-            // Height of margin box + clearance
-            height + noncontent_height
-        };
-
-        if inorder {
-            let extra_height = height - (cur_y - top_offset) + bottom_offset;
-            self.base.floats.translate(Point2D(left_offset, -extra_height));
-        }
-    }
-
-    fn assign_height_float_inorder(&mut self) {
-        // assign_height_float was already called by the traversal function
-        // so this is well-defined
-
+    /// Assumes that the float has already had its height assigned.
+    fn place_float(&mut self) {
         let mut height = Au(0);
         let mut clearance = Au(0);
         let mut full_noncontent_width = Au(0);
@@ -482,18 +285,6 @@ impl BlockFlow {
 
     fn assign_height_float(&mut self, ctx: &mut LayoutContext) {
         // Now that we've determined our height, propagate that out.
-        let has_inorder_children = self.base.num_floats > 0;
-        if has_inorder_children {
-            let mut floats = Floats::new();
-            for kid in self.base.child_iter() {
-                flow::mut_base(kid).floats = floats;
-                kid.assign_height_inorder(ctx);
-                floats = flow::mut_base(kid).floats.clone();
-            }
-
-            // Floats establish a block formatting context, so we discard the output floats here.
-            drop(floats);
-        }
         let mut cur_y = Au(0);
         let mut top_offset = Au(0);
 
@@ -502,11 +293,27 @@ impl BlockFlow {
             cur_y = cur_y + top_offset;
         }
 
+        // Whether we found an in-order child (i.e. one that was impacted by floats).
+        let mut found_inorder = false;
+
+        let mut floats = Floats::new();
         for kid in self.base.child_iter() {
-            let child_base = flow::mut_base(kid);
-            child_base.position.origin.y = cur_y;
-            cur_y = cur_y + child_base.position.size.height;
+            {
+                let kid_base = flow::mut_base(kid);
+                kid_base.position.origin.y = cur_y;
+            }
+
+            // Now perform in-order subtraversals if necessary.
+            found_inorder = kid.process_inorder_child_if_necessary(ctx, floats) || found_inorder;
+
+            let kid_base = flow::mut_base(kid);
+            cur_y = cur_y + kid_base.position.size.height;
+
+            floats = kid_base.floats.clone();
         }
+
+        // Floats establish a block formatting context, so we discard the output floats here.
+        drop(floats);
 
         let mut height = cur_y - top_offset;
 
@@ -640,42 +447,79 @@ impl Flow for BlockFlow {
         self
     }
 
+    /// Returns the direction that this flow clears floats in, if any.
+    fn float_clearance(&self) -> clear::T {
+        self.box_.as_ref().unwrap().style().Box.get().clear
+    }
+
     /* Recursively (bottom-up) determine the context's preferred and
     minimum widths.  When called on this context, all child contexts
     have had their min/pref widths set. This function must decide
     min/pref widths based on child context widths and dimensions of
     any boxes it is responsible for flowing.  */
 
-    /* TODO: absolute contexts */
-    /* TODO: inline-blocks */
+    /// Recursively (bottom-up) determine the context's preferred and minimum widths. When called
+    /// on this context, all child contexts have had their min/pref widths set. This function must
+    /// decide min/pref widths based on child context widths and dimensions of any boxes it is
+    /// responsible for flowing.
+    ///
+    /// TODO(pradeep): Absolute contexts.
+    /// TODO(pcwalton): Inline-blocks.
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
         let mut min_width = Au::new(0);
         let mut pref_width = Au::new(0);
-        let mut num_floats = 0;
+        let (mut has_left_floated_descendants, mut has_right_floated_descendants) = (false, false);
 
-        /* find max width from child block contexts */
-        for child_ctx in self.base.child_iter() {
-            assert!(child_ctx.is_block_flow() || child_ctx.is_inline_flow());
+        // Find the maximum width from child block contexts.
+        for kid in self.base.child_iter() {
+            let kid_base = flow::mut_base(kid);
+            min_width = geometry::max(min_width, kid_base.min_width);
+            pref_width = geometry::max(pref_width, kid_base.pref_width);
 
-            let child_base = flow::mut_base(child_ctx);
-            min_width = geometry::max(min_width, child_base.min_width);
-            pref_width = geometry::max(pref_width, child_base.pref_width);
-            num_floats = num_floats + child_base.num_floats;
+            has_left_floated_descendants = has_left_floated_descendants ||
+                kid_base.flags_info.flags.has_left_floated_descendants();
+            has_right_floated_descendants = has_right_floated_descendants ||
+                kid_base.flags_info.flags.has_right_floated_descendants();
         }
 
-        if self.is_float() {
-            self.base.num_floats = 1;
-            self.float.get_mut_ref().floated_children = num_floats;
-        } else {
-            self.base.num_floats = num_floats;
-        }
-
-        /* if not an anonymous block context, add in block box's widths.
-           these widths will not include child elements, just padding etc. */
+        // If not an anonymous block context, add in block box's widths.
+        // These widths will not include child elements, just padding, etc.
         for box_ in self.box_.iter() {
             {
+                let style = box_.style();
+
+                match style.Box.get().float {
+                    float::none => {
+                        self.base
+                            .flags_info
+                            .flags
+                            .set_has_left_floated_descendants(has_left_floated_descendants);
+                        self.base
+                            .flags_info
+                            .flags
+                            .set_has_right_floated_descendants(has_right_floated_descendants);
+                    }
+                    float::left => {
+                        self.base.flags_info.flags.set_has_left_floated_descendants(true);
+                        self.base
+                            .flags_info
+                            .flags
+                            .set_has_right_floated_descendants(has_right_floated_descendants);
+                    }
+                    float::right => {
+                        self.base.flags_info.flags.set_has_right_floated_descendants(true);
+                        self.base
+                            .flags_info
+                            .flags
+                            .set_has_left_floated_descendants(has_left_floated_descendants);
+                    }
+                }
+
                 // Can compute border width here since it doesn't depend on anything.
-                box_.compute_borders(box_.style())
+                //
+                // TODO(pcwalton): Don't do this; just have later passes consult the style
+                // directly.
+                box_.compute_borders(style);
             }
 
             let (this_minimum_width, this_preferred_width) = box_.minimum_and_preferred_widths();
@@ -704,8 +548,10 @@ impl Flow for BlockFlow {
             debug!("Setting root position");
             self.base.position.origin = Au::zero_point();
             self.base.position.size.width = ctx.screen_size.width;
+
             self.base.floats = Floats::new();
-            self.base.flags_info.flags.set_inorder(false);
+            self.base.flags_info.flags.set_impacted_by_left_floats(false);
+            self.base.flags_info.flags.set_impacted_by_right_floats(false);
         }
 
         // The position was set to the containing block by the flow's parent.
@@ -716,7 +562,8 @@ impl Flow for BlockFlow {
             self.float.get_mut_ref().containing_width = remaining_width;
 
             // Parent usually sets this, but floats are never inorder
-            self.base.flags_info.flags.set_inorder(false);
+            self.base.flags_info.flags.set_impacted_by_left_floats(false);
+            self.base.flags_info.flags.set_impacted_by_right_floats(false);
         }
 
         for box_ in self.box_.iter() {
@@ -776,43 +623,72 @@ impl Flow for BlockFlow {
             self.base.position.size.width = remaining_width;
         }
 
-        let has_inorder_children = if self.is_float() {
-            self.base.num_floats > 0
-        } else {
-            self.base.flags_info.flags.inorder() || self.base.num_floats > 0
-        };
-
         // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
+
+        // Keep track of whether floats could impact each child.
+        let mut left_floats_impact_child = self.base.flags_info.flags.impacted_by_left_floats();
+        let mut right_floats_impact_child = self.base.flags_info.flags.impacted_by_right_floats();
+
         for kid in self.base.child_iter() {
-            assert!(kid.is_block_flow() || kid.is_inline_flow());
+            {
+                assert!(kid.is_block_flow() || kid.is_inline_flow());
 
-            let child_base = flow::mut_base(kid);
-            child_base.position.origin.x = x_offset;
-            child_base.position.size.width = remaining_width;
-            child_base.flags_info.flags.set_inorder(has_inorder_children);
-
-            if !child_base.flags_info.flags.inorder() {
-                child_base.floats = Floats::new();
+                let child_base = flow::mut_base(kid);
+                child_base.position.origin.x = x_offset;
+                child_base.position.size.width = remaining_width;
             }
+
+            match kid.float_clearance() {
+                clear::none => {}
+                clear::left => left_floats_impact_child = false,
+                clear::right => right_floats_impact_child = false,
+                clear::both => {
+                    left_floats_impact_child = false;
+                    right_floats_impact_child = false;
+                }
+            }
+
+            let kid_base = flow::mut_base(kid);
+            kid_base.flags_info.flags.set_impacted_by_left_floats(left_floats_impact_child);
+            kid_base.flags_info.flags.set_impacted_by_right_floats(right_floats_impact_child);
+
+            if !kid_base.flags_info.flags.impacted_by_left_floats() &&
+                    !kid_base.flags_info.flags.impacted_by_right_floats() {
+                kid_base.floats = Floats::new();
+            }
+
+            left_floats_impact_child = left_floats_impact_child ||
+                kid_base.flags_info.flags.has_left_floated_descendants();
+            right_floats_impact_child = right_floats_impact_child ||
+                kid_base.flags_info.flags.has_right_floated_descendants();
 
             // Per CSS 2.1 § 16.3.1, text decoration propagates to all children in flow.
             //
             // TODO(pcwalton): When we have out-of-flow children, don't unconditionally propagate.
+            // TODO(pcwalton): Do this in the cascade instead.
 
-            child_base.flags_info.propagate_text_decoration_from_parent(&flags_info);
-            child_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
+            kid_base.flags_info.propagate_text_decoration_from_parent(&flags_info);
+            kid_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
         }
     }
 
-    fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
+    fn process_inorder_child_if_necessary(&mut self,
+                                          layout_context: &mut LayoutContext,
+                                          floats: Floats)
+                                          -> bool {
         if self.is_float() {
-            debug!("assign_height_inorder_float: assigning height for float");
-            self.assign_height_float_inorder();
-        } else {
-            debug!("assign_height_inorder: assigning height for block");
-            self.assign_height_block_base(ctx, true);
+            self.base.floats = floats;
+            self.place_float();
+            return true
         }
+
+        let impacted = self.base.flags_info.flags.impacted_by_floats();
+        if impacted {
+            self.base.floats = floats;
+            self.assign_height(layout_context)
+        }
+        impacted
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
@@ -824,15 +700,207 @@ impl Flow for BlockFlow {
         if self.is_float() {
             debug!("assign_height_float: assigning height for float");
             self.assign_height_float(ctx);
-        } else {
-            debug!("assign_height: assigning height for block");
-            // This is the only case in which a block flow can start an inorder
-            // subtraversal.
-            if self.is_root && self.base.num_floats > 0 {
-                self.assign_height_inorder(ctx);
-                return;
+            return
+        }
+
+        let mut cur_y = Au::new(0);
+        // Offset to content edge of box_
+        let mut top_offset = Au::new(0);
+        let mut bottom_offset = Au::new(0);
+        let mut left_offset = Au::new(0);
+
+        for box_ in self.box_.iter() {
+            top_offset = box_.margin.get().top + box_.border.get().top + box_.padding.get().top;
+            cur_y = cur_y + top_offset;
+            bottom_offset = box_.margin.get().bottom + box_.border.get().bottom +
+                box_.padding.get().bottom;
+            left_offset = box_.offset();
+        }
+
+        self.base.floats.translate(Point2D(-left_offset, -top_offset));
+
+        // The amount of margin that we can potentially collapse with
+        let mut collapsible = Au::new(0);
+        // How much to move up by to get to the beginning of
+        // current kid flow.
+        // Example: if previous sibling's margin-bottom is 20px and your
+        // margin-top is 12px, the collapsed margin will be 20px. Since cur_y
+        // will be at the bottom margin edge of the previous sibling, we have
+        // to move up by 12px to get to our top margin edge. So, `collapsing`
+        // will be set to 12px
+        let mut collapsing = Au::new(0);
+        let mut margin_top = Au::new(0);
+        let mut margin_bottom = Au::new(0);
+        let mut top_margin_collapsible = false;
+        let mut bottom_margin_collapsible = false;
+        let mut first_in_flow = true;
+
+        // Whether we found an in-order child (i.e. one that was impacted by floats).
+        let mut found_inorder = false;
+
+        for box_ in self.box_.iter() {
+            if !self.is_root && box_.border.get().top == Au(0) && box_.padding.get().top == Au(0) {
+                collapsible = box_.margin.get().top;
+                top_margin_collapsible = true;
             }
-            self.assign_height_block_base(ctx, false);
+            if !self.is_root && box_.border.get().bottom == Au(0) &&
+                    box_.padding.get().bottom == Au(0) {
+                bottom_margin_collapsible = true;
+            }
+            margin_top = box_.margin.get().top;
+            margin_bottom = box_.margin.get().bottom;
+        }
+
+        // At this point, cur_y is at the content edge of the flow's box.
+        let mut floats = self.base.floats.clone();
+        for kid in self.base.child_iter() {
+            // At this point, cur_y is at bottom margin edge of previous kid.
+            kid.collapse_margins(top_margin_collapsible,
+                                 &mut first_in_flow,
+                                 &mut margin_top,
+                                 &mut top_offset,
+                                 &mut collapsing,
+                                 &mut collapsible);
+            cur_y = cur_y - collapsing;
+
+            let in_flow = kid.in_flow();
+            if in_flow {
+                // Take clearance into account. This must be done here (as opposed to within the
+                // kid's own `assign_heights` call) because the kid might have been laid out
+                // already.
+                let clearance = match kid.float_clearance() {
+                    clear::none => Au::new(0),
+                    clear::left => floats.clearance(ClearLeft),
+                    clear::right => floats.clearance(ClearRight),
+                    clear::both => floats.clearance(ClearBoth),
+                };
+                if clearance != Au::new(0) {
+                    cur_y = cur_y + clearance;
+                    floats.translate(Point2D(Au::new(0), -clearance));
+                }
+            }
+
+            // At this point, after moving up by `collapsing`, cur_y is at the top margin edge of
+            // kid.
+            //
+            // Now perform in-order subtraversals if necessary.
+            //
+            // Floats for blocks work like this:
+            //  * self.floats_in -> child[0].floats_in
+            //  * visit child[0]
+            //  * child[i-1].floats_out -> child[i].floats_in
+            //  * visit child[i]
+            //  * repeat until all children are visited.
+            //  * last_child.floats_out -> self.floats_out (done at the end of this function)
+            found_inorder = kid.process_inorder_child_if_necessary(ctx, floats) || found_inorder;
+
+            let kid_base = flow::mut_base(kid);
+            kid_base.position.origin.y = cur_y;
+            cur_y = cur_y + kid_base.position.size.height;
+
+            // At this point, cur_y is at the bottom margin edge of kid.
+            floats = kid_base.floats.clone();
+        }
+
+        self.base.floats = floats;
+
+        // The bottom margin collapses with its last in-flow block-level child's bottom margin
+        // if the parent has no bottom boder, no bottom padding.
+        collapsing = if bottom_margin_collapsible {
+            if margin_bottom < collapsible {
+                margin_bottom = collapsible;
+            }
+            collapsible
+        } else {
+            Au::new(0)
+        };
+
+        // TODO: A box's own margins collapse if the 'min-height' property is zero, and it has neither
+        // top or bottom borders nor top or bottom padding, and it has a 'height' of either 0 or 'auto',
+        // and it does not contain a line box, and all of its in-flow children's margins (if any) collapse.
+
+        let screen_height = ctx.screen_size.height;
+
+        let mut height = if self.is_root {
+            // FIXME(pcwalton): The max is taken here so that you can scroll the page, but this is
+            // not correct behavior according to CSS 2.1 § 10.5. Instead I think we should treat
+            // the root element as having `overflow: scroll` and use the layers-based scrolling
+            // infrastructure to make it scrollable.
+            Au::max(screen_height, cur_y)
+        } else {
+            // (cur_y - collapsing) will get you the bottom content edge
+            // top_offset will be at top content edge
+            // hence, height = content height
+            cur_y - top_offset - collapsing
+        };
+
+        for box_ in self.box_.iter() {
+            let style = box_.style();
+
+            // At this point, `height` is the height of the containing block, so passing `height`
+            // as the second argument here effectively makes percentages relative to the containing
+            // block per CSS 2.1 § 10.5.
+            // TODO: We need to pass in the correct containing block height
+            // for absolutely positioned elems
+            height = match MaybeAuto::from_style(style.Box.get().height, height) {
+                Auto => height,
+                Specified(value) => value
+            };
+        }
+
+        // Here, height is content height of box_
+
+        let mut noncontent_height = Au::new(0);
+        for box_ in self.box_.iter() {
+            let mut position = box_.border_box.get();
+            let mut margin = box_.margin.get();
+
+            // The associated box is the border box of this flow.
+            // Margin after collapse
+            margin.top = margin_top;
+            margin.bottom = margin_bottom;
+
+            noncontent_height = box_.padding.get().top + box_.padding.get().bottom +
+                box_.border.get().top + box_.border.get().bottom;
+
+            let (y, h) = box_.get_y_coord_and_new_height_if_fixed(screen_height,
+                                                                  height,
+                                                                  margin.top,
+                                                                  self.is_fixed);
+
+            position.origin.y = y;
+            height = h;
+
+            if self.is_fixed {
+                for kid in self.base.child_iter() {
+                    let child_node = flow::mut_base(kid);
+                    child_node.position.origin.y = position.origin.y + top_offset;
+                }
+            }
+
+            position.size.height = if self.is_fixed {
+                height
+            } else {
+                // Border box height
+                height + noncontent_height
+            };
+
+            noncontent_height = noncontent_height + margin.top + margin.bottom;
+
+            box_.border_box.set(position);
+            box_.margin.set(margin);
+        }
+
+        self.base.position.size.height = if self.is_fixed {
+            height
+        } else {
+            // Height of margin box
+            height + noncontent_height
+        };
+
+        if found_inorder {
+            let extra_height = height - (cur_y - top_offset) + bottom_offset;
+            self.base.floats.translate(Point2D(left_offset, -extra_height));
         }
     }
 
@@ -871,6 +939,10 @@ impl Flow for BlockFlow {
         }
 
         *first_in_flow = false;
+    }
+
+    fn in_flow(&self) -> bool {
+        !self.is_float()
     }
 
     fn mark_as_root(&mut self) {

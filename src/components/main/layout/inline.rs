@@ -620,12 +620,16 @@ impl Flow for InlineFlow {
     }
 
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
-        let mut num_floats = 0;
+        let (mut has_left_floated_descendants, mut has_right_floated_descendants) = (false, false);
 
         for kid in self.base.child_iter() {
             let child_base = flow::mut_base(kid);
-            num_floats += child_base.num_floats;
             child_base.floats = Floats::new();
+
+            has_left_floated_descendants = has_left_floated_descendants ||
+                child_base.flags_info.flags.has_left_floated_descendants();
+            has_right_floated_descendants = has_right_floated_descendants ||
+                child_base.flags_info.flags.has_right_floated_descendants();
         }
 
         let mut min_width = Au::new(0);
@@ -642,7 +646,15 @@ impl Flow for InlineFlow {
 
         self.base.min_width = min_width;
         self.base.pref_width = pref_width;
-        self.base.num_floats = num_floats;
+
+        self.base
+            .flags_info
+            .flags
+            .set_has_left_floated_descendants(has_left_floated_descendants);
+        self.base
+            .flags_info
+            .flags
+            .set_has_right_floated_descendants(has_right_floated_descendants);
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
@@ -666,7 +678,20 @@ impl Flow for InlineFlow {
         for kid in self.base.child_iter() {
             let child_base = flow::mut_base(kid);
             child_base.position.size.width = self.base.position.size.width;
-            child_base.flags_info.flags.set_inorder(self.base.flags_info.flags.inorder());
+
+            child_base.flags_info
+                      .flags
+                      .set_impacted_by_left_floats(self.base
+                                                       .flags_info
+                                                       .flags
+                                                       .impacted_by_left_floats());
+            child_base.flags_info
+                      .flags
+                      .set_impacted_by_right_floats(self.base
+                                                        .flags_info
+                                                        .flags
+                                                        .impacted_by_right_floats());
+
             child_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
         }
         // There are no child contexts, so stop here.
@@ -678,15 +703,12 @@ impl Flow for InlineFlow {
         // 'inline-block' box that created this flow before recursing.
     }
 
-    fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
-        for kid in self.base.child_iter() {
-            kid.assign_height_inorder(ctx);
-        }
-        self.assign_height(ctx);
-    }
-
-    fn assign_height(&mut self, _: &mut LayoutContext) {
+    fn assign_height(&mut self, layout_context: &mut LayoutContext) {
         debug!("assign_height_inline: assigning height for flow");
+
+        for kid in self.base.child_iter() {
+            kid.process_inorder_child_if_necessary(layout_context, Floats::new());
+        }
 
         // Divide the boxes into lines.
         //
