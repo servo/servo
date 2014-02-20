@@ -163,7 +163,17 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
 trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     fn run_parallel(&mut self,
                     unsafe_flow: UnsafeFlow,
-                    proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+                    proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>);
+
+    fn run_parallel_helper(&mut self,
+                           unsafe_flow: UnsafeFlow,
+                           proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>,
+                           top_down_func: extern "Rust" fn(PaddedUnsafeFlow,
+                                                           &mut WorkerProxy<*mut LayoutContext,
+                                                                            PaddedUnsafeFlow>),
+                           bottom_up_func: extern "Rust" fn(PaddedUnsafeFlow,
+                                                            &mut WorkerProxy<*mut LayoutContext,
+                                                                             PaddedUnsafeFlow>)) {
         let mut had_children = false;
         unsafe {
             // Get a real flow.
@@ -176,7 +186,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
             for kid in flow::child_iter(*flow) {
                 had_children = true;
                 proxy.push(WorkUnit {
-                    fun: assign_widths,
+                    fun: top_down_func,
                     data: UnsafeFlowConversions::from_flow(&borrowed_flow_to_unsafe_flow(kid)),
                 });
             }
@@ -185,15 +195,23 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
         // If there were no more children, start assigning heights.
         if !had_children {
-            assign_heights_and_store_overflow(UnsafeFlowConversions::from_flow(&unsafe_flow),
-                                              proxy)
+            bottom_up_func(UnsafeFlowConversions::from_flow(&unsafe_flow), proxy)
         }
     }
 }
 
 impl<'a> ParallelPostorderFlowTraversal for BubbleWidthsTraversal<'a> {}
 
-impl<'a> ParallelPreorderFlowTraversal for AssignWidthsTraversal<'a> {}
+impl<'a> ParallelPreorderFlowTraversal for AssignWidthsTraversal<'a> {
+    fn run_parallel(&mut self,
+                    unsafe_flow: UnsafeFlow,
+                    proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+        self.run_parallel_helper(unsafe_flow,
+                                 proxy,
+                                 assign_widths,
+                                 assign_heights_and_store_overflow)
+    }
+}
 
 impl<'a> ParallelPostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {}
 
