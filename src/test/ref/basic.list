@@ -33,3 +33,4 @@
 == background_external_stylesheet.html background_ref.html
 == block_image.html 500x300_green.html
 # == simple_iframe.html simple_iframe_ref.html -- disabled due to iframe crashiness
+== object_element_a.html object_element_b.html

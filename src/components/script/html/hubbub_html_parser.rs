@@ -392,7 +392,6 @@ pub fn parse_html(cx: *JSContext,
                         image_element.update_image(image_cache_task.clone(), Some(url2.clone()));
                     });
                 }
-
                 _ => {}
             }
 
