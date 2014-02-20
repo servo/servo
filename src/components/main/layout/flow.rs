@@ -29,11 +29,12 @@ use css::node_style::StyledNode;
 use layout::block::BlockFlow;
 use layout::box_::Box;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::floats::Floats;
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
-use layout::parallel::FlowParallelInfo;
+use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, AssignWidthsTraversal};
+use layout::parallel::{FlowParallelInfo, UnsafeFlow};
 use layout::parallel;
 use layout::wrapper::ThreadSafeLayoutNode;
 use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
@@ -43,7 +44,6 @@ use geom::point::Point2D;
 use geom::Size2D;
 use geom::rect::Rect;
 use gfx::display_list::{ClipDisplayItemClass, DisplayListCollection, DisplayList};
-use layout::display_list_builder::ToGfxColor;
 use gfx::color::Color;
 use servo_util::geometry::Au;
 use std::cast;
@@ -93,7 +93,7 @@ pub trait Flow {
     }
 
     /// Pass 3a of reflow: computes height.
-    fn assign_height(&mut self, _ctx: &mut LayoutContext) {
+    fn assign_height(&mut self, _ctx: &mut LayoutContext) -> AssignHeightsResult {
         fail!("assign_height not yet implemented")
     }
 
@@ -103,15 +103,15 @@ pub trait Flow {
     fn process_inorder_child_if_necessary(&mut self,
                                           layout_context: &mut LayoutContext,
                                           floats: Floats)
-                                          -> bool {
+                                          -> (AssignHeightsResult, bool) {
         let impacted = {
             base(self).flags_info.flags.impacted_by_floats()
         };
         if impacted {
             mut_base(self).floats = floats;
-            self.assign_height(layout_context)
+            return (self.assign_height(layout_context), true)
         }
-        impacted
+        (AssignHeightsFinished, false)
     }
 
     /// Collapses margins with the parent flow. This runs as part of assign-heights.
@@ -134,6 +134,12 @@ pub trait Flow {
     /// returns true.
     fn in_flow(&self) -> bool {
         true
+    }
+
+    /// Returns true if this flow is a block formatting context and false otherwise. The default
+    /// implementation returns false.
+    fn is_block_formatting_context(&self, _only_impactable_by_floats: bool) -> bool {
+        false
     }
 
     /// Marks this flow as the root flow. The default implementation is a no-op.
@@ -215,6 +221,11 @@ pub trait MutableFlowUtils {
     /// Traverses the tree in postorder.
     fn traverse_postorder<T:PostorderFlowTraversal>(self, traversal: &mut T) -> bool;
 
+    /// Assigns heights and stores overflow.
+    fn assign_heights_and_store_overflow_sequentially(
+            self,
+            traversal: &mut AssignHeightsAndStoreOverflowTraversal);
+
     // Mutators
 
     /// Invokes a closure with the first child of this flow.
@@ -255,6 +266,14 @@ pub trait MutableOwnedFlowUtils {
 
     /// Destroys the flow.
     fn destroy(&mut self);
+}
+
+#[deriving(Clone, Eq)]
+pub enum AssignHeightsResult {
+    AssignHeightsFinished,
+
+    /// TODO(pcwalton): Reference count flows.
+    AssignHeightsNeedsWidthOfFlow(UnsafeFlow),
 }
 
 pub enum FlowClass {
@@ -508,6 +527,13 @@ bitfield!(FlowFlags,
           set_impacted_by_right_floats,
           0b0100_0000_0000)
 
+// Whether this flow's width cannot be computed yet because it's impacted by floats and establishes
+// a block formatting context.
+bitfield!(FlowFlags,
+          assign_widths_delayed,
+          set_assign_widths_delayed,
+          0b1000_0000_0000)
+
 // The text alignment for this flow.
 impl FlowFlags {
     #[inline]
@@ -759,6 +785,41 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         }
 
         traversal.process(self)
+    }
+
+    /// Assigns heights and stores overflow.
+    fn assign_heights_and_store_overflow_sequentially(
+            self,
+            traversal: &mut AssignHeightsAndStoreOverflowTraversal) {
+        if traversal.should_prune(self) {
+            return
+        }
+
+        for kid in child_iter(self) {
+            kid.assign_heights_and_store_overflow_sequentially(traversal)
+        }
+
+        if !traversal.should_process(self) {
+            return
+        }
+
+        loop {
+            match traversal.process(self) {
+                AssignHeightsFinished => break,
+                AssignHeightsNeedsWidthOfFlow(unsafe_flow) => {
+                    unsafe {
+                        let flow: &mut Flow = cast::transmute(unsafe_flow);
+                        {
+                            let mut assign_widths_traversal = AssignWidthsTraversal {
+                                layout_context: &mut *traversal.layout_context,
+                            };
+                            flow.traverse_preorder(&mut assign_widths_traversal);
+                        }
+                        flow.assign_heights_and_store_overflow_sequentially(traversal)
+                    }
+                }
+            }
+        }
     }
 
     /// Invokes a closure with the first child of this flow.

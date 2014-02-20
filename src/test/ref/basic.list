@@ -36,3 +36,4 @@
 # == simple_iframe.html simple_iframe_ref.html -- disabled due to iframe crashiness
 == object_element_a.html object_element_b.html
 == height_compute_reset.html height_compute.html
+== block_formatting_context_a.html block_formatting_context_b.html

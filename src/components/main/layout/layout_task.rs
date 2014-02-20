@@ -12,8 +12,9 @@ use css::node_style::StyledNode;
 use layout::construct::{FlowConstructionResult, NoConstructionResult};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
-use layout::flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
-use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
+use layout::flow::{AssignHeightsFinished, AssignHeightsResult, Flow, ImmutableFlowUtils};
+use layout::flow::{MutableFlowUtils, MutableOwnedFlowUtils, PostorderFlowTraversal};
+use layout::flow::{PreorderFlowTraversal};
 use layout::flow;
 use layout::incremental::RestyleDamage;
 use layout::parallel::PaddedUnsafeFlow;
@@ -198,6 +199,11 @@ impl<'a> PreorderFlowTraversal for AssignWidthsTraversal<'a> {
         flow.assign_widths(self.layout_context);
         true
     }
+
+    #[inline]
+    fn should_prune(&mut self, flow: &mut Flow) -> bool {
+        flow::mut_base(flow).flags_info.flags.assign_widths_delayed()
+    }
 }
 
 /// The assign-heights-and-store-overflow traversal, the last (and most expensive) part of layout
@@ -207,17 +213,27 @@ pub struct AssignHeightsAndStoreOverflowTraversal<'a> {
     layout_context: &'a mut LayoutContext,
 }
 
-impl<'a> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {
+impl<'a> AssignHeightsAndStoreOverflowTraversal<'a> {
     #[inline]
-    fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.assign_height(self.layout_context);
+    pub fn process(&mut self, flow: &mut Flow) -> AssignHeightsResult {
+        let result = flow.assign_height(self.layout_context);
+        match result {
+            AssignHeightsFinished => {}
+            _ => return result,
+        }
+
         flow.store_overflow(self.layout_context);
-        true
+        AssignHeightsFinished
     }
 
     #[inline]
-    fn should_process(&mut self, flow: &mut Flow) -> bool {
+    pub fn should_process(&mut self, flow: &mut Flow) -> bool {
         !flow::base(flow).flags_info.flags.impacted_by_floats()
+    }
+
+    #[inline]
+    pub fn should_prune(&mut self, flow: &mut Flow) -> bool {
+        flow::base(flow).flags_info.flags.assign_widths_delayed()
     }
 }
 
@@ -465,7 +481,7 @@ impl LayoutTask {
             let mut traversal = AssignHeightsAndStoreOverflowTraversal {
                 layout_context: layout_context,
             };
-            layout_root.traverse_postorder(&mut traversal);
+            layout_root.assign_heights_and_store_overflow_sequentially(&mut traversal);
         }
     }
 
@@ -609,6 +625,8 @@ impl LayoutTask {
                 }
             }
         });
+
+        layout_root.dump();
 
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {

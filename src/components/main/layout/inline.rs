@@ -8,7 +8,8 @@ use layout::box_::{SplitDidNotFit, UnscannedTextBox, InlineInfo};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::floats::{FloatLeft, Floats, PlacementInfo};
-use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
+use layout::flow::{AssignHeightsFinished, AssignHeightsResult, BaseFlow, FlowClass, Flow};
+use layout::flow::{InlineFlowClass};
 use layout::flow;
 use layout::util::ElementMapping;
 use layout::wrapper::ThreadSafeLayoutNode;
@@ -624,7 +625,6 @@ impl Flow for InlineFlow {
 
         for kid in self.base.child_iter() {
             let child_base = flow::mut_base(kid);
-            child_base.floats = Floats::new();
 
             has_left_floated_descendants = has_left_floated_descendants ||
                 child_base.flags_info.flags.has_left_floated_descendants();
@@ -703,11 +703,17 @@ impl Flow for InlineFlow {
         // 'inline-block' box that created this flow before recursing.
     }
 
-    fn assign_height(&mut self, layout_context: &mut LayoutContext) {
+    fn assign_height(&mut self, layout_context: &mut LayoutContext) -> AssignHeightsResult {
         debug!("assign_height_inline: assigning height for flow");
 
+        if !self.base.flags_info.flags.impacted_by_floats() {
+            self.base.floats = Floats::new();
+        }
+
         for kid in self.base.child_iter() {
-            kid.process_inorder_child_if_necessary(layout_context, Floats::new());
+            let (result, _) = kid.process_inorder_child_if_necessary(layout_context,
+                                                                     Floats::new());
+            assert!(result == AssignHeightsFinished);
         }
 
         // Divide the boxes into lines.
@@ -903,6 +909,7 @@ impl Flow for InlineFlow {
 
         self.base.floats = scanner.floats();
         self.base.floats.translate(Point2D(Au::new(0), -self.base.position.size.height));
+        AssignHeightsFinished
     }
 
     fn collapse_margins(&mut self,
