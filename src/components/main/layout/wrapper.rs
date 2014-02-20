@@ -564,9 +564,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             return true
         }
 
-        traversal.pseudo_element_process(self, Before);
-        traversal.pseudo_element_process(self, After);
-        
+        let pseudo_elements = self.necessary_pseudo_elements();
+        for pseudo_element in pseudo_elements.iter() {
+            traversal.pseudo_element_process(self, *pseudo_element);
+        }
 
         let mut opt_kid = self.first_child();
         loop {
@@ -591,20 +592,11 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
         let ldw = self.borrow_layout_data();
         let ldw_ref = ldw.get().get_ref();
-        let p = unsafe {
-            self.parent_node()
-        };
-        if p.is_none() {
-            return ~[];
-        }
-        let p = p.unwrap();
-        let p_ldw = p.borrow_layout_data();
-        let p_ldw_ref = p_ldw.get().get_ref();
 
-        if p_ldw_ref.data.before_style.is_some() && ldw_ref.data.before.is_none() {
+        if ldw_ref.data.before_style.is_some() {
             pseudo_elements.push(Before);
         }
-        if p_ldw_ref.data.after_style.is_some() && ldw_ref.data.after.is_none() {
+        if ldw_ref.data.after_style.is_some() {
             pseudo_elements.push(After);
         }
 

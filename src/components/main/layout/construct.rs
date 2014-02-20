@@ -712,91 +712,60 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
     #[inline(always)]
     fn pseudo_element_process(&mut self, node: ThreadSafeLayoutNode, kind: PseudoElement) {
         // Create layout data for pseudo parent node
-        let mut content = ~"";
-        let mut layout_data_ref = node.mutate_layout_data();
-        let node_ldw = layout_data_ref.get().get_mut_ref();
+        let(parent, child) = {
+                                 let mut content = ~"";
+                                 let mut layout_data_ref = node.mutate_layout_data();
+                                 let node_ldw = layout_data_ref.get().get_mut_ref();
 
-        if kind == Before { 
-            if node_ldw.data.before_style.is_some() {
-                // Create pseudo parent_node
-                let pseudo_parent_element = ~Element::new_layout_pseudo(~"::before");
-                let pseudo_parent_abstract_node = unsafe { AbstractNode::from_layout_pseudo(pseudo_parent_element) };
-                let mut pseudo_parent_node = unsafe { node.new_with_this_lifetime(pseudo_parent_abstract_node.clone()) };
+                                 // Create pseudo parent_node
+                                 let pseudo_parent_element = match kind {
+                                     Before => ~Element::new_layout_pseudo(~"::before"),
+                                     After => ~Element::new_layout_pseudo(~"::after"),
+                                 };
 
-                match node_ldw.chan {
-                    Some(ref chan) => {
-                        ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_parent_node).initialize_layout_data(chan.clone());
-                    }
-                    None => {}
-                }
+                                 let pseudo_parent_abstract_node = unsafe { AbstractNode::from_layout_pseudo(pseudo_parent_element) };
+                                 let mut pseudo_parent_node = unsafe { node.new_with_this_lifetime(pseudo_parent_abstract_node.clone()) };
 
-                insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(node_ldw.data.before_style.clone()));
+                                 match node_ldw.chan {
+                                     Some(ref chan) => {
+                                         ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_parent_node).initialize_layout_data(chan.clone());
+                                     }
+                                     None => {}
+                                 }
+
+                                 insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(node_ldw.data.before_style.clone()));
                
-                {
-                    let before_style = node_ldw.data.before_style.get_ref();
-                    content = FlowConstructor::get_content(&before_style.get().Box.get().content);
-                }
+                                 {
+                                     let before_style = node_ldw.data.before_style.get_ref();
+                                     content = FlowConstructor::get_content(&before_style.get().Box.get().content);
+                                 }
 
-                // Create pseudo node
-                let pseudo_text = ~Text::new_layout_pseudo(content);
-                let pseudo_abstract_node = unsafe { AbstractNode::from_layout_pseudo(pseudo_text) };
-                let mut pseudo_node = unsafe { node.new_with_this_lifetime(pseudo_abstract_node) };
+                                 // Create pseudo node
+                                 let pseudo_text = ~Text::new_layout_pseudo(content);
+                                 let pseudo_abstract_node = unsafe { AbstractNode::from_layout_pseudo(pseudo_text) };
+                                 let mut pseudo_node = unsafe { node.new_with_this_lifetime(pseudo_abstract_node) };
 
-                match node_ldw.chan {
-                    Some(ref chan) => {
-                        ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_node).initialize_layout_data(chan.clone());
-                    }
-                    None => {}
-                }
+                                 match node_ldw.chan {
+                                     Some(ref chan) => {
+                                         ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_node).initialize_layout_data(chan.clone());
+                                     }
+                                     None => {}
+                                 }
 
-                insert_layout_data(&pseudo_node, ~PrivateLayoutData::new_with_style(node_ldw.data.before_style.clone()));
-                pseudo_parent_node.set_first_child(&mut pseudo_node);
-                pseudo_node.set_parent_node(&mut pseudo_parent_node);
+                                 insert_layout_data(&pseudo_node, ~PrivateLayoutData::new_with_style(node_ldw.data.before_style.clone()));
+                                 pseudo_parent_node.set_first_child(&mut pseudo_node);
+                                 pseudo_node.set_parent_node(&mut pseudo_parent_node);
 
+                                 (pseudo_parent_abstract_node, pseudo_abstract_node)
+                             };
+        match kind {
+            Before => {
                 if node.is_first_child() {
-                    pseudo_parent_abstract_node.mut_node().next_sibling = unsafe { node.get_abstract().node().first_child };
+                    parent.mut_node().next_sibling = unsafe { node.get_abstract().node().first_child };
                 }
-
-                 node_ldw.data.set_pseudo_element(pseudo_parent_abstract_node, pseudo_abstract_node, kind);
-            }
-        } else if kind == After {
-            if node_ldw.data.after_style.is_some() {
-                // Create pseudo parent_node
-                let pseudo_parent_element = ~Element::new_layout_pseudo(~"::after");
-                let pseudo_parent_abstract_node = unsafe { AbstractNode::from_layout_pseudo(pseudo_parent_element) };
-                let mut pseudo_parent_node = unsafe { node.new_with_this_lifetime(pseudo_parent_abstract_node.clone()) };
-
-                match node_ldw.chan {
-                    Some(ref chan) => {
-                        ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_parent_node).initialize_layout_data(chan.clone());
-                    }
-                    None => {}
-                }
-
-                insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(node_ldw.data.after_style.clone()));
-
-                {
-                    let before_style = node_ldw.data.before_style.get_ref();
-                    content = FlowConstructor::get_content(&before_style.get().Box.get().content);
-                }
-
-                // Create pseudo node
-                let pseudo_text = ~Text::new_layout_pseudo(content);
-                let pseudo_abstract_node = unsafe { AbstractNode::from_layout_pseudo(pseudo_text) };
-                let mut pseudo_node = unsafe { node.new_with_this_lifetime(pseudo_abstract_node) };
-
-                match node_ldw.chan {
-                    Some(ref chan) => {
-                        ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_node).initialize_layout_data(chan.clone());
-                    }
-                    None => {}
-                }
-
-                insert_layout_data(&pseudo_node, ~PrivateLayoutData::new_with_style(node_ldw.data.after_style.clone()));
-                pseudo_parent_node.set_first_child(&mut pseudo_node);
-                pseudo_node.set_parent_node(&mut pseudo_parent_node);
-                node_ldw.data.set_pseudo_element(pseudo_parent_abstract_node, pseudo_abstract_node, kind);
-            }
+                node.set_pseudo_node(parent, child, kind);            
+            },
+            After =>{}
         }
     }    
 }
