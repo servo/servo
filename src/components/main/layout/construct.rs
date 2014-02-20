@@ -31,9 +31,8 @@ use layout::flow::{Flow, FlowLeafSet, ImmutableFlowUtils, MutableOwnedFlowUtils}
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
-use layout::util::{PrivateLayoutData, PseudoNode};
+use layout::util::PrivateLayoutData;
 use layout::wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
-use layout::wrapper::LayoutPseudoNode;
 use layout::extra::LayoutAuxMethods;
 
 use gfx::font_context::FontContext;
@@ -386,6 +385,7 @@ impl<'fc> FlowConstructor<'fc> {
                             }
                         }
                     }
+                    // Add the boxes to the list we're maintaining.
                     opt_boxes_for_inline_flow.push_all_move(boxes)
                 }
                 ConstructionItemConstructionResult(WhitespaceConstructionItem(..)) => {
@@ -415,7 +415,6 @@ impl<'fc> FlowConstructor<'fc> {
     fn build_flow_for_block(&mut self, node: ThreadSafeLayoutNode, is_fixed: bool) -> ~Flow {
         let mut flow = ~BlockFlow::from_node(self, node, is_fixed) as ~Flow;
         self.build_children_of_block_flow(&mut flow, node);
-
         flow
     }
 
@@ -713,7 +712,6 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
     fn pseudo_element_process(&mut self, node: ThreadSafeLayoutNode, kind: PseudoElement) {
         // Create layout data for pseudo parent node
         let(parent, child) = {
-                                 let mut content = ~"";
                                  let mut layout_data_ref = node.mutate_layout_data();
                                  let node_ldw = layout_data_ref.get().get_mut_ref();
 
@@ -732,13 +730,19 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                                      }
                                      None => {}
                                  }
-
-                                 insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(node_ldw.data.before_style.clone()));
-               
-                                 {
-                                     let before_style = node_ldw.data.before_style.get_ref();
-                                     content = FlowConstructor::get_content(&before_style.get().Box.get().content);
-                                 }
+                                 
+                                 let content = match kind {
+                                     Before => {
+                                         insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(node_ldw.data.before_style.clone()));
+                                         let before_style = node_ldw.data.before_style.get_ref();
+                                         FlowConstructor::get_content(&before_style.get().Box.get().content)
+                                     }
+                                     After => {
+                                         insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(node_ldw.data.after_style.clone()));
+                                         let after_style = node_ldw.data.after_style.get_ref();
+                                         FlowConstructor::get_content(&after_style.get().Box.get().content)
+                                     }
+                                 };
 
                                  // Create pseudo node
                                  let pseudo_text = ~Text::new_layout_pseudo(content);
@@ -751,8 +755,14 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                                      }
                                      None => {}
                                  }
-
-                                 insert_layout_data(&pseudo_node, ~PrivateLayoutData::new_with_style(node_ldw.data.before_style.clone()));
+                                 match kind {
+                                     Before => {
+                                         insert_layout_data(&pseudo_node, ~PrivateLayoutData::new_with_style(node_ldw.data.before_style.clone()));
+                                     }
+                                     After => {
+                                         insert_layout_data(&pseudo_node, ~PrivateLayoutData::new_with_style(node_ldw.data.after_style.clone()));
+                                     }
+                                 }
                                  pseudo_parent_node.set_first_child(&mut pseudo_node);
                                  pseudo_node.set_parent_node(&mut pseudo_parent_node);
 
@@ -763,9 +773,19 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                 if node.is_first_child() {
                     parent.mut_node().next_sibling = unsafe { node.get_abstract().node().first_child };
                 }
-                node.set_pseudo_node(parent, child, kind);            
+                node.set_pseudo_before_node(parent, child);            
             },
-            After =>{}
+            After =>{
+                let last_child = unsafe { node.last_child() };
+                match last_child {
+                    Some(last_child) => {
+                        last_child.set_next_after_sibling_node(parent, child);
+                    }
+                    None => {
+                        node.set_pseudo_after_node(parent, child);
+                    }
+                }
+            }
         }
     }    
 }

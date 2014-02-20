@@ -96,6 +96,7 @@ pub enum ElementTypeId {
     HTMLParamElementTypeId,
     HTMLPreElementTypeId,
     HTMLProgressElementTypeId,
+    HTMLPseudoElementTypeId,
     HTMLQuoteElementTypeId,
     HTMLScriptElementTypeId,
     HTMLSelectElementTypeId,
@@ -139,7 +140,7 @@ impl Element {
 
     pub fn new_layout_pseudo(tag_name: ~str) -> Element {
         Element {
-            node: Node::new_without_doc(ElementNodeTypeId(HTMLUnknownElementTypeId)),
+            node: Node::new_without_doc(ElementNodeTypeId(HTMLPseudoElementTypeId)),
             tag_name: tag_name,
             namespace: namespace::HTML,
             attrs: ~[],
