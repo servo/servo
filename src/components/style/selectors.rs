@@ -240,7 +240,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
 /// simple_selector_sequence
 /// : [ type_selector | universal ] [ HASH | class | attrib | pseudo | negation ]*
 /// | [ HASH | class | attrib | pseudo | negation ]+
-/// 
+///
 /// None means invalid selector
 fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
                            -> Option<(~[SimpleSelector], Option<PseudoElement>)> {
@@ -257,7 +257,7 @@ fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
             InvalidSimpleSelector => return None,
             NotASimpleSelector => break,
             SimpleSelectorResult(s) => { simple_selectors.push(s); empty = false },
-            PseudoElementResult(p) => { pseudo_element = Some(p); break },
+            PseudoElementResult(p) => { pseudo_element = Some(p); empty = false; break },
         }
     }
     if empty { None }  // An empty selector is invalid
@@ -475,7 +475,7 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
 
 fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-    let name_lower = name.to_ascii_lower(); 
+    let name_lower = name.to_ascii_lower();
     match name_lower.as_slice() {
         "any-link" => Some(AnyLink),
         "link" => Some(Link),
@@ -647,6 +647,7 @@ mod tests {
             specificity: specificity(1, 1, 1),
         }]))
         // Default namespace does not apply to attribute selectors
+        // https://github.com/mozilla/servo/pull/1652
         let mut namespaces = NamespaceMap::new();
         assert_eq!(parse_ns("[Foo]", &namespaces), Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
@@ -661,6 +662,7 @@ mod tests {
             specificity: specificity(0, 1, 0),
         }]))
         // Default namespace does not apply to attribute selectors
+        // https://github.com/mozilla/servo/pull/1652
         namespaces.default = Some(namespace::MathML);
         assert_eq!(parse_ns("[Foo]", &namespaces), Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
@@ -686,6 +688,25 @@ mod tests {
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
         }]))
-
+        // https://github.com/mozilla/servo/issues/1723
+        assert_eq!(parse("::before"), Some(~[Selector{
+            compound_selectors: Arc::new(CompoundSelector {
+                simple_selectors: ~[],
+                next: None,
+            }),
+            pseudo_element: Some(Before),
+            specificity: specificity(0, 0, 1),
+        }]))
+        assert_eq!(parse("div :after"), Some(~[Selector{
+            compound_selectors: Arc::new(CompoundSelector {
+                simple_selectors: ~[],
+                next: Some((~CompoundSelector {
+                    simple_selectors: ~[LocalNameSelector(~"div")],
+                    next: None,
+                }, Descendant)),
+            }),
+            pseudo_element: Some(After),
+            specificity: specificity(0, 0, 2),
+        }]))
     }
 }
