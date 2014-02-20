@@ -21,13 +21,11 @@
 # inline_text_align_a.html inline_text_align_b.html
 == font_size_em.html font_size_em_ref.html
 == font_size_percentage.html font_size_em_ref.html
-== position_fixed_a.html position_fixed_b.html
 == img_size_a.html img_size_b.html
 == img_dynamic_remove.html img_dynamic_remove_ref.html
 == upper_id_attr.html upper_id_attr_ref.html
 # inline_border_a.html inline_border_b.html
 == anon_block_inherit_a.html anon_block_inherit_b.html
-== position_relative_a.html position_relative_b.html
 == attr_exists_selector.html attr_exists_selector_ref.html
 == data_img_a.html data_img_b.html
 == background_style_attr.html background_ref.html
@@ -36,3 +34,13 @@
 # == simple_iframe.html simple_iframe_ref.html -- disabled due to iframe crashiness
 == object_element_a.html object_element_b.html
 == height_compute_reset.html height_compute.html
+# Positioning tests
+== position_abs_cb_with_non_cb_kid_a.html position_abs_cb_with_non_cb_kid_b.html
+== position_abs_height_width_a.html position_abs_height_width_b.html
+== position_abs_left_a.html position_abs_left_b.html
+== position_abs_static_y_a.html position_abs_static_y_b.html
+== position_abs_width_percentage_a.html position_abs_width_percentage_b.html
+== position_fixed_a.html position_fixed_b.html
+== position_fixed_simple_a.html position_fixed_simple_b.html
+== position_fixed_static_y_a.html position_fixed_static_y_b.html
+== position_relative_a.html position_relative_b.html

@@ -11,11 +11,12 @@
 //! 'relative', 'absolute', or 'fixed'.
 
 use layout::box_::Box;
-use layout::construct::FlowConstructor;
+use layout::construct::{FlowConstructor, OptVector};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::floats::{FloatKind, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
+use layout::flow::{mut_base, PreorderFlowTraversal, PostorderFlowTraversal, MutableFlowUtils};
 use layout::flow;
 use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
 use layout::wrapper::ThreadSafeLayoutNode;
@@ -23,9 +24,10 @@ use style::computed_values::{position};
 
 use std::cell::RefCell;
 use geom::{Point2D, Rect, SideOffsets2D, Size2D};
-use gfx::display_list::{DisplayListCollection};
+use gfx::display_list::{DisplayListCollection, DisplayList};
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use servo_util::smallvec::{SmallVec, SmallVec0};
 
 /// Information specific to floated blocks.
 pub struct FloatedBlockInfo {
@@ -52,41 +54,6 @@ impl FloatedBlockInfo {
             index: None,
             floated_children: 0,
             float_kind: float_kind,
-        }
-    }
-}
-
-/// Details of a potential Containing Block.
-///
-/// If a flow has the block as its Containing Block, then this represents its
-/// Containing Block's details.
-/// Else, this represents intermediate data to be passed on to its descendants who
-/// may have this block as their Containing Block (e.g., absolutely positioned
-/// elements.)
-///
-/// This allows us to calculate width, height, etc. for the flow for which
-/// this represents the Containing Block.
-#[deriving(Clone)]
-pub struct ContainingBlockDetails {
-    width: Au,
-    height: Au,
-    // Absolute offset of the left margin edge of the current flow from the
-    // left edge of this Containing Block. This includes the margins, etc. of
-    // all the intermediate flows till the current flow.
-    static_x_offset: Au,
-    // Absolute offset of the top margin edge of the current flow from the top
-    // edge of this Containing Block. This includes the margins, etc. of all
-    // the intermediate flows till the current flow.
-    static_y_offset: Au,
-}
-
-impl ContainingBlockDetails {
-    fn default() -> ContainingBlockDetails {
-        ContainingBlockDetails {
-            width: Au::new(0),
-            height: Au::new(0),
-            static_x_offset: Au::new(0),
-            static_y_offset: Au::new(0),
         }
     }
 }
@@ -133,6 +100,169 @@ impl HeightConstraintSolution {
             margin_bottom: margin_bottom,
         }
     }
+
+    /// Solve the vertical constraint equation for absolute non-replaced elements.
+    ///
+    /// CSS Section 10.6.4
+    /// Constraint equation:
+    /// top + bottom + height + margin-top + margin-bottom
+    /// = absolute containing block height - (vertical padding and border)
+    /// [aka available_height]
+    ///
+    /// Return the solution for the equation.
+    fn solve_vertical_constraints_abs_position(height: MaybeAuto,
+                                               top_margin: MaybeAuto,
+                                               bottom_margin: MaybeAuto,
+                                               top: MaybeAuto,
+                                               bottom: MaybeAuto,
+                                               content_height: Au,
+                                               available_height: Au,
+                                               static_y_offset: Au)
+                                               -> HeightConstraintSolution {
+        // Distance from the top edge of the Absolute Containing Block to the
+        // top margin edge of a hypothetical box that would have been the
+        // first box of the element.
+        let static_position_top = static_y_offset;
+;
+        let (top, bottom, height, margin_top, margin_bottom) = match (top, bottom, height) {
+            (Auto, Auto, Auto) => {
+                let margin_top = top_margin.specified_or_zero();
+                let margin_bottom = bottom_margin.specified_or_zero();
+                let top = static_position_top;
+                // Now it is the same situation as top Specified and bottom
+                // and height Auto.
+
+                let height = content_height;
+                let sum = top + height + margin_top + margin_bottom;
+                (top, available_height - sum, height, margin_top, margin_bottom)
+            }
+            (Specified(top), Specified(bottom), Specified(height)) => {
+                match (top_margin, bottom_margin) {
+                    (Auto, Auto) => {
+                        let total_margin_val = (available_height - top - bottom - height);
+                        (top, bottom, height,
+                         total_margin_val.scale_by(0.5),
+                         total_margin_val.scale_by(0.5))
+                    }
+                    (Specified(margin_top), Auto) => {
+                        let sum = top + bottom + height + margin_top;
+                        (top, bottom, height, margin_top, available_height - sum)
+                    }
+                    (Auto, Specified(margin_bottom)) => {
+                        let sum = top + bottom + height + margin_bottom;
+                        (top, bottom, height, available_height - sum, margin_bottom)
+                    }
+                    (Specified(margin_top), Specified(margin_bottom)) => {
+                        // Values are over-constrained. Ignore value for 'bottom'.
+                        let sum = top + height + margin_top + margin_bottom;
+                        (top, available_height - sum, height, margin_top, margin_bottom)
+                    }
+                }
+            }
+
+            // For the rest of the cases, auto values for margin are set to 0
+
+            // If only one is Auto, solve for it
+            (Auto, Specified(bottom), Specified(height)) => {
+                let margin_top = top_margin.specified_or_zero();
+                let margin_bottom = bottom_margin.specified_or_zero();
+                let sum = bottom + height + margin_top + margin_bottom;
+                (available_height - sum, bottom, height, margin_top, margin_bottom)
+            }
+            (Specified(top), Auto, Specified(height)) => {
+                let margin_top = top_margin.specified_or_zero();
+                let margin_bottom = bottom_margin.specified_or_zero();
+                let sum = top + height + margin_top + margin_bottom;
+                (top, available_height - sum, height, margin_top, margin_bottom)
+            }
+            (Specified(top), Specified(bottom), Auto) => {
+                let margin_top = top_margin.specified_or_zero();
+                let margin_bottom = bottom_margin.specified_or_zero();
+                let sum = top + bottom + margin_top + margin_bottom;
+                (top, bottom, available_height - sum, margin_top, margin_bottom)
+            }
+
+            // If height is auto, then height is content height. Solve for the
+            // non-auto value.
+            (Specified(top), Auto, Auto) => {
+                let margin_top = top_margin.specified_or_zero();
+                let margin_bottom = bottom_margin.specified_or_zero();
+                let height = content_height;
+                let sum = top + height + margin_top + margin_bottom;
+                (top, available_height - sum, height, margin_top, margin_bottom)
+            }
+            (Auto, Specified(bottom), Auto) => {
+                let margin_top = top_margin.specified_or_zero();
+                let margin_bottom = bottom_margin.specified_or_zero();
+                let height = content_height;
+                let sum = bottom + height + margin_top + margin_bottom;
+                (available_height - sum, bottom, height, margin_top, margin_bottom)
+            }
+
+            (Auto, Auto, Specified(height)) => {
+                let margin_top = top_margin.specified_or_zero();
+                let margin_bottom = bottom_margin.specified_or_zero();
+                let top = static_position_top;
+                let sum = top + height + margin_top + margin_bottom;
+                (top, available_height - sum, height, margin_top, margin_bottom)
+            }
+        };
+        HeightConstraintSolution::new(top, bottom, height, margin_top, margin_bottom)
+    }
+}
+
+/// The real assign-heights traversal for flows with position 'absolute'.
+///
+/// This is a traversal of an Absolute Flow tree.
+/// - Relatively positioned flows and the Root flow start new Absolute flow trees.
+/// - The kids of a flow in this tree will be the flows for which it is the
+/// absolute Containing Block.
+/// - Thus, leaf nodes and inner non-root nodes are all Absolute Flows.
+///
+/// A Flow tree can have several Absolute Flow trees (depending on the number
+/// of relatively positioned flows it has).
+///
+/// Note that flows with position 'fixed' just form a flat list as they all
+/// have the Root flow as their CB.
+struct AbsoluteAssignHeightsTraversal<'a>(&'a mut LayoutContext);
+
+impl<'a> PreorderFlowTraversal for AbsoluteAssignHeightsTraversal<'a> {
+    #[inline]
+    fn process(&mut self, flow: &mut Flow) -> bool {
+        let block_flow = flow.as_block();
+
+        // The root of the absolute flow tree is definitely not absolutely
+        // positioned. Nothing to process here.
+        if block_flow.is_root_of_absolute_flow_tree() {
+            return true;
+        }
+
+        block_flow.calculate_abs_height_and_margins(**self);
+        true
+    }
+}
+
+/// The store-overflow traversal particular to absolute flows.
+///
+/// Propagate overflow up the Absolute flow tree and update overflow up to and
+/// not including the root of the Absolute flow tree.
+/// After that, it is up to the normal store-overflow traversal to propagate
+/// it further up.
+struct AbsoluteStoreOverflowTraversal<'a>{
+    layout_context: &'a mut LayoutContext,
+}
+
+impl<'a> PostorderFlowTraversal for AbsoluteStoreOverflowTraversal<'a> {
+    #[inline]
+    fn process(&mut self, flow: &mut Flow) -> bool {
+        // This will be taken care of by the normal store-overflow traversal.
+        if flow.is_root_of_absolute_flow_tree() {
+            return true;
+        }
+
+        flow.store_overflow(self.layout_context);
+        true
+    }
 }
 
 // A block formatting context.
@@ -147,13 +277,8 @@ pub struct BlockFlow {
     /// Whether this block flow is the root flow.
     is_root: bool,
 
-    positioning: position::T,
-
-    // Details of the nearest positioned ancestor - aka the Containing Block
-    // for any absolutely positioned elements.
-    absolute_cb_details: ContainingBlockDetails,
-    // Details about the Initial Containing Block and our offset wrt it
-    fixed_cb_details: ContainingBlockDetails,
+    /// Static y offset of an absolute flow from its CB.
+    static_y_offset: Au,
 
     /// Additional floating flow members.
     float: Option<~FloatedBlockInfo>
@@ -161,16 +286,13 @@ pub struct BlockFlow {
 
 impl BlockFlow {
     pub fn from_node(constructor: &mut FlowConstructor,
-                     node: &ThreadSafeLayoutNode,
-                     positioning: position::T)
+                     node: &ThreadSafeLayoutNode)
                      -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
             box_: Some(Box::new(constructor, node)),
             is_root: false,
-            positioning: positioning,
-            absolute_cb_details: ContainingBlockDetails::default(),
-            fixed_cb_details: ContainingBlockDetails::default(),
+            static_y_offset: Au::new(0),
             float: None
         }
     }
@@ -183,9 +305,7 @@ impl BlockFlow {
             base: BaseFlow::new((*node).clone()),
             box_: Some(Box::new(constructor, node)),
             is_root: false,
-            positioning: position::static_,
-            absolute_cb_details: ContainingBlockDetails::default(),
-            fixed_cb_details: ContainingBlockDetails::default(),
+            static_y_offset: Au::new(0),
             float: Some(~FloatedBlockInfo::new(float_kind))
         }
     }
@@ -195,9 +315,7 @@ impl BlockFlow {
             base: base,
             box_: None,
             is_root: true,
-            positioning: position::static_,
-            absolute_cb_details: ContainingBlockDetails::default(),
-            fixed_cb_details: ContainingBlockDetails::default(),
+            static_y_offset: Au::new(0),
             float: None
         }
     }
@@ -207,40 +325,103 @@ impl BlockFlow {
             base: base,
             box_: None,
             is_root: false,
-            positioning: position::static_,
-            absolute_cb_details: ContainingBlockDetails::default(),
-            fixed_cb_details: ContainingBlockDetails::default(),
+            static_y_offset: Au::new(0),
             float: Some(~FloatedBlockInfo::new(float_kind))
         }
     }
 
-    pub fn is_float(&self) -> bool {
-        self.float.is_some()
-    }
-
-    pub fn is_fixed(&self) -> bool {
-        self.positioning == position::fixed
-    }
-
-    pub fn is_absolutely_positioned(&self) -> bool {
-        self.positioning == position::absolute || self.is_fixed()
-    }
-
-    /// Return the appropriate Containing Block for this flow.
-    ///
-    /// Right now, this only gets the Containing Block for absolutely
-    /// positioned elements.
-    pub fn containing_block(&self) -> ContainingBlockDetails {
+    /// Return the static x offset from the appropriate Containing Block for this flow.
+    pub fn static_x_offset(&self) -> Au {
         assert!(self.is_absolutely_positioned());
         if self.is_fixed() {
-            self.fixed_cb_details
+            self.base.fixed_static_x_offset
         } else {
-            self.absolute_cb_details
+            self.base.absolute_static_x_offset
         }
     }
 
-    pub fn is_positioned(&self) -> bool {
-        self.positioning == position::relative || self.is_absolutely_positioned()
+    /// Return the size of the Containing Block for this flow.
+    ///
+    /// Right now, this only gets the Containing Block size for absolutely
+    /// positioned elements.
+    /// Note: Assume this is called in a top-down traversal, so it is ok to
+    /// reference the CB.
+    pub fn containing_block_size(&mut self, viewport_size: Size2D<Au>) -> Size2D<Au> {
+        assert!(self.is_absolutely_positioned());
+        if self.is_fixed() {
+            // Initial containing block is the CB for the root
+            viewport_size
+        } else {
+            let cb = self.base.absolute_cb.resolve().unwrap();
+            cb.generated_cb_size()
+        }
+    }
+
+    /// Traverse the Absolute flow tree in preorder.
+    ///
+    /// Traverse all your direct absolute descendants, who will then traverse
+    /// their direct absolute descendants.
+    /// Also, set the static y offsets for each descendant (using the value
+    /// which was bubbled up during normal assign-height).
+    ///
+    /// Return true if the traversal is to continue or false to stop.
+    fn traverse_preorder_absolute_flows<T:PreorderFlowTraversal>(&mut self,
+                                                                 traversal: &mut T)
+                                                                 -> bool {
+        let flow = self as &mut Flow;
+        if traversal.should_prune(flow) {
+            return true
+        }
+
+        if !traversal.process(flow) {
+            return false
+        }
+
+        let cb_top_edge_offset = flow.generated_cb_position().y;
+        let mut descendant_offset_iter = mut_base(flow).abs_descendants.iter_with_offset();
+        // Pass in the respective static y offset for each descendant.
+        for (ref mut descendant_link, ref y_offset) in descendant_offset_iter {
+            match descendant_link.resolve() {
+                Some(flow) => {
+                    let block = flow.as_block();
+                    // The stored y_offset is wrt to the flow box.
+                    // Translate it to the CB (which is the padding box).
+                    block.static_y_offset = **y_offset - cb_top_edge_offset;
+                    if !block.traverse_preorder_absolute_flows(traversal) {
+                        return false
+                    }
+                }
+                None => fail!("empty Rawlink to a descendant")
+            }
+        }
+
+        true
+    }
+
+    /// Traverse the Absolute flow tree in postorder.
+    ///
+    /// Return true if the traversal is to continue or false to stop.
+    fn traverse_postorder_absolute_flows<T:PostorderFlowTraversal>(&mut self,
+                                                                   traversal: &mut T)
+                                                                   -> bool {
+        let flow = self as &mut Flow;
+        if traversal.should_prune(flow) {
+            return true
+        }
+
+        for descendant_link in mut_base(flow).abs_descendants.iter() {
+            match descendant_link.resolve() {
+                Some(abs_flow) => {
+                    let block = abs_flow.as_block();
+                    if !block.traverse_postorder_absolute_flows(traversal) {
+                        return false
+                    }
+                }
+                None => fail!("empty Rawlink to a descendant")
+            }
+        }
+
+        traversal.process(flow)
     }
 
     pub fn teardown(&mut self) {
@@ -320,10 +501,9 @@ impl BlockFlow {
     /// + left margin, right margin, and content width for the flow's box
     /// + x-coordinate of the flow's box
     /// + x-coordinate of the absolute flow itself (wrt to its Containing Block)
-    fn calculate_abs_widths_and_margins(&mut self) {
-        let absolute_cb = self.containing_block();
-        let containing_block_width = absolute_cb.width;
-        let static_x_offset = absolute_cb.static_x_offset;
+    fn calculate_abs_widths_and_margins(&mut self, ctx: &mut LayoutContext) {
+        let containing_block_width = self.containing_block_size(ctx.screen_size).width;
+        let static_x_offset = self.static_x_offset();
         for box_ in self.box_.iter() {
             let style = box_.style();
 
@@ -331,12 +511,6 @@ impl BlockFlow {
             self.base.flags_info.flags.set_text_align(style.InheritedText.get().text_align);
 
             box_.compute_padding(style, containing_block_width);
-
-            // Top and bottom margins for blocks are 0 if auto.
-            let margin_top = MaybeAuto::from_style(style.Margin.get().margin_top,
-                                                   containing_block_width).specified_or_zero();
-            let margin_bottom = MaybeAuto::from_style(style.Margin.get().margin_bottom,
-                                                      containing_block_width).specified_or_zero();
 
             let (width, margin_left, margin_right) =
                 (MaybeAuto::from_style(style.Box.get().width, containing_block_width),
@@ -356,10 +530,10 @@ impl BlockFlow {
                                                                      available_width,
                                                                      static_x_offset);
 
-            box_.margin.set(SideOffsets2D::new(margin_top,
-                                               solution.margin_right,
-                                               margin_bottom,
-                                               solution.margin_left));
+            let mut margin = box_.margin.get();
+            margin.left = solution.margin_left;
+            margin.right = solution.margin_right;
+            box_.margin.set(margin);
 
             // The associated box is the border box of this flow.
             let mut position_ref = box_.border_box.borrow_mut();
@@ -378,9 +552,10 @@ impl BlockFlow {
     ///
     /// Also, set the x-coordinate for box_.
     fn calculate_widths_and_margins(&mut self,
-                                    containing_block_width: Au) {
+                                    containing_block_width: Au,
+                                    ctx: &mut LayoutContext) {
         if self.is_absolutely_positioned() {
-            self.calculate_abs_widths_and_margins();
+            self.calculate_abs_widths_and_margins(ctx);
             return;
         }
         for box_ in self.box_.iter() {
@@ -400,6 +575,8 @@ impl BlockFlow {
             let available_width = containing_block_width - box_.noncontent_width();
 
             // Top and bottom margins for blocks are 0 if auto.
+            // FIXME: This is wrong. We shouldn't even be touching margin-top
+            // and margin-bottom here.
             let margin_top = MaybeAuto::from_style(style.Margin.get().margin_top,
                                                    containing_block_width).specified_or_zero();
             let margin_bottom = MaybeAuto::from_style(style.Margin.get().margin_bottom,
@@ -446,8 +623,8 @@ impl BlockFlow {
                                             available_width: Au,
                                             static_x_offset: Au)
                                             -> WidthConstraintSolution {
-        // TODO: Check for direction of Containing Block (NOT parent flow)
-        // when right-to-left is implemented
+        // TODO: Check for direction of parent flow (NOT Containing Block)
+        // when right-to-left is implemented.
         // Assume direction is 'ltr' for now
 
         // Distance from the left edge of the Absolute Containing Block to the
@@ -624,6 +801,66 @@ impl BlockFlow {
         return (width, margin_left, margin_right);
     }
 
+
+    /// Collect and update static y-offsets bubbled up by kids.
+    ///
+    /// This would essentially give us offsets of all absolutely positioned
+    /// direct descendants and all fixed descendants, in tree order.
+    ///
+    /// Assume that this is called in a bottom-up traversal (specifically, the
+    /// assign-height traversal). So, kids have their flow origin already set.
+    /// In the case of absolute flow kids, they have their hypothetical box
+    /// position already set.
+    fn collect_static_y_offsets_from_kids(&mut self) {
+        let mut abs_descendant_y_offsets = SmallVec0::new();
+        let mut fixed_descendant_y_offsets = SmallVec0::new();
+
+        for kid in self.base.child_iter() {
+            let mut gives_abs_offsets = true;
+            if kid.is_block_like() {
+                let kid_block = kid.as_block();
+                if kid_block.is_fixed() {
+                    // It won't contribute any offsets for position 'absolute'
+                    // descendants because it would be the CB for them.
+                    gives_abs_offsets = false;
+                    // Add the offset for the current fixed flow too.
+                    fixed_descendant_y_offsets.push(kid_block.get_hypothetical_top_edge());
+                } else if kid_block.is_absolutely_positioned() {
+                    // It won't contribute any offsets for descendants because it
+                    // would be the CB for them.
+                    gives_abs_offsets = false;
+                    // Give the offset for the current absolute flow alone.
+                    abs_descendant_y_offsets.push(kid_block.get_hypothetical_top_edge());
+                } else if kid_block.is_positioned() {
+                    // It won't contribute any offsets because it would be the CB
+                    // for the descendants.
+                    gives_abs_offsets = false;
+                }
+            }
+
+            if gives_abs_offsets {
+                let kid_base = flow::mut_base(kid);
+                // Consume all the static y-offsets bubbled up by kid.
+                for y_offset in kid_base.abs_descendants.static_y_offsets.move_iter() {
+                    // The offsets are wrt the kid flow box. Translate them to current flow.
+                    y_offset = y_offset + kid_base.position.origin.y;
+                    abs_descendant_y_offsets.push(y_offset);
+                }
+            }
+
+            // Get all the fixed offsets.
+            let kid_base = flow::mut_base(kid);
+            // Consume all the static y-offsets bubbled up by kid.
+            for y_offset in kid_base.fixed_descendants.static_y_offsets.move_iter() {
+                // The offsets are wrt the kid flow box. Translate them to current flow.
+                y_offset = y_offset + kid_base.position.origin.y;
+                fixed_descendant_y_offsets.push(y_offset);
+            }
+        }
+        self.base.abs_descendants.static_y_offsets = abs_descendant_y_offsets;
+        self.base.fixed_descendants.static_y_offsets = fixed_descendant_y_offsets;
+    }
+
     /// Assign height for current flow.
     ///
     /// + Collapse margins for flow's children and set in-flow child flows'
@@ -703,11 +940,13 @@ impl BlockFlow {
         // its children.
         if !self.is_absolutely_positioned() {
             for box_ in self.box_.iter() {
-                if !self.is_root && box_.border.get().top == Au(0) && box_.padding.get().top == Au(0) {
+                if !self.is_root() && box_.border.get().top == Au(0)
+                    && box_.padding.get().top == Au(0) {
+
                     collapsible = box_.margin.get().top;
                     top_margin_collapsible = true;
                 }
-                if !self.is_root && box_.border.get().bottom == Au(0) &&
+                if !self.is_root() && box_.border.get().bottom == Au(0) &&
                     box_.padding.get().bottom == Au(0) {
                     bottom_margin_collapsible = true;
                 }
@@ -720,7 +959,7 @@ impl BlockFlow {
         for kid in self.base.child_iter() {
             // At this point, cur_y is at bottom margin edge of previous kid
 
-            if kid.is_block_like() && kid.as_block().is_absolutely_positioned() {
+            if kid.is_absolutely_positioned() {
                 // Assume that the `hypothetical box` for an absolute flow
                 // starts immediately after the bottom margin edge of the
                 // previous flow.
@@ -744,6 +983,8 @@ impl BlockFlow {
             }
         }
 
+        self.collect_static_y_offsets_from_kids();
+
         // The bottom margin collapses with its last in-flow block-level child's bottom margin
         // if the parent has no bottom border, no bottom padding.
         // The bottom margin for an absolutely positioned element does not
@@ -763,7 +1004,7 @@ impl BlockFlow {
 
         let screen_height = ctx.screen_size.height;
 
-        let mut height = if self.is_root {
+        let mut height = if self.is_root() {
             // FIXME(pcwalton): The max is taken here so that you can scroll the page, but this is
             // not correct behavior according to CSS 2.1 § 10.5. Instead I think we should treat
             // the root element as having `overflow: scroll` and use the layers-based scrolling
@@ -831,6 +1072,47 @@ impl BlockFlow {
         if inorder {
             let extra_height = height - (cur_y - top_offset) + bottom_offset;
             self.base.floats.translate(Point2D(left_offset, -extra_height));
+        }
+
+        if self.is_root_of_absolute_flow_tree() {
+            // Assign heights for all flows in this Absolute flow tree.
+            // This is preorder because the height of an absolute flow may depend on
+            // the height of its CB, which may also be an absolute flow.
+            self.traverse_preorder_absolute_flows(&mut AbsoluteAssignHeightsTraversal(ctx));
+            // Store overflow for all absolute descendants.
+            self.traverse_postorder_absolute_flows(&mut AbsoluteStoreOverflowTraversal {
+                layout_context: ctx,
+            });
+        }
+        if self.is_root() {
+            self.assign_height_store_overflow_fixed_flows(ctx);
+        }
+    }
+
+    /// Assign height for all fixed descendants.
+    ///
+    /// A flat iteration over all fixed descendants, passing their respective
+    /// static y offsets.
+    /// Also, store overflow immediately because nothing else depends on a
+    /// fixed flow's height.
+    fn assign_height_store_overflow_fixed_flows(&mut self, ctx: &mut LayoutContext) {
+        assert!(self.is_root());
+        let mut descendant_offset_iter = self.base.fixed_descendants.iter_with_offset();
+        // Pass in the respective static y offset for each descendant.
+        for (ref mut descendant_link, ref y_offset) in descendant_offset_iter {
+            match descendant_link.resolve() {
+                Some(fixed_flow) => {
+                    {
+                        let block = fixed_flow.as_block();
+                        // The stored y_offset is wrt to the flow box (which
+                        // will is also the CB, so it is the correct final value).
+                        block.static_y_offset = **y_offset;
+                        block.calculate_abs_height_and_margins(ctx);
+                    }
+                    fixed_flow.store_overflow(ctx);
+                }
+                None => fail!("empty Rawlink to a descendant")
+            }
         }
     }
 
@@ -944,67 +1226,6 @@ impl BlockFlow {
         box_.border_box.set(position);
     }
 
-    /// Pass down static y offset for absolute containing block
-    ///
-    /// Assume this is called in a top-down traversal (specifically, during
-    /// the build display list traversal because assign-heights is bottom-up).
-    /// So, our static y offset value is already set.
-    fn pass_down_static_y_offset(&mut self) {
-        assert!(self.box_.is_some(),
-                "All BlockFlows have a box_ in the current implementation");
-        for box_ in self.box_.iter() {
-            let parent_is_positioned = self.is_positioned();
-            // Static offset to the top outer edge of this flow
-            let parent_abs_cb_static_y_offset = self.absolute_cb_details.static_y_offset;
-            let parent_fixed_cb_static_y_offset = self.fixed_cb_details.static_y_offset;
-            let kid_fixed_cb_height = self.fixed_cb_details.height;
-            let mut kid_abs_cb_height;
-            let parent_top_margin_edge = box_.border_box.get().origin.y - box_.margin.get().top;
-            let parent_top_padding_edge = box_.border_box.get().origin.y + box_.border.get().top;
-            if parent_is_positioned {
-                // Send in parent as the CB
-                // Padding box height
-                kid_abs_cb_height = box_.border_box.get().size.height
-                    - box_.border.get().top - box_.border.get().bottom;
-            } else {
-                kid_abs_cb_height = self.absolute_cb_details.height;
-            }
-
-            for child in self.base.child_iter() {
-                if child.is_block_flow() {
-                    let child_block = child.as_block();
-                    child_block.absolute_cb_details.height = kid_abs_cb_height;
-                    child_block.fixed_cb_details.height = kid_fixed_cb_height;
-                    for box_ in child_block.box_.iter() {
-                        let child_top_margin_edge = if child_block.is_absolutely_positioned() {
-                            child_block.get_hypothetical_top_edge()
-                        } else {
-                            // Top margin edge = top border y-coordinate - margin-top
-                            // Note: We don't consider top edge of the
-                            // base.position box directly here because that
-                            // box may include clearance.
-                            let relative_top_margin_edge = box_.border_box.get().origin.y
-                                - box_.margin.get().top;
-                            // In the parent flow's coordinate system
-                            child_block.base.position.origin.y + relative_top_margin_edge
-                        };
-                        if parent_is_positioned {
-                            // The static y offset will be the distance from the top padding
-                            child_block.absolute_cb_details.static_y_offset = child_top_margin_edge
-                                - parent_top_padding_edge;
-                        } else {
-                            let offset = parent_abs_cb_static_y_offset
-                                + (child_top_margin_edge - parent_top_margin_edge);
-                            child_block.absolute_cb_details.static_y_offset = offset;
-                        }
-                        child_block.fixed_cb_details.static_y_offset = parent_fixed_cb_static_y_offset
-                            + (child_top_margin_edge - parent_top_margin_edge)
-                    }
-                }
-            }
-        }
-    }
-
     /// Add display items for current block.
     ///
     /// Set the absolute position for children after doing any offsetting for
@@ -1021,18 +1242,13 @@ impl BlockFlow {
 
         if self.is_float() {
             self.build_display_list_float(builder, container_block_size, dirty, index, lists);
-            self.pass_down_static_y_offset();
             return index;
         } else if self.is_absolutely_positioned() {
             self.build_display_list_abs(builder, container_block_size,
                                         absolute_cb_abs_position,
                                         dirty, index, lists);
-            // Pass down y-offset after calculating flow box dimensions.
-            self.pass_down_static_y_offset();
             return index;
         }
-
-        self.pass_down_static_y_offset();
 
         // FIXME: Shouldn't this be the abs_rect _after_ relative positioning?
         let abs_rect = Rect(self.base.abs_position, self.base.position.size);
@@ -1115,116 +1331,6 @@ impl BlockFlow {
         false
     }
 
-    /// Solve the vertical constraint equation for absolute non-replaced elements.
-    ///
-    /// CSS Section 10.6.4
-    /// Constraint equation:
-    /// top + bottom + height + margin-top + margin-bottom
-    /// = absolute containing block height - (vertical padding and border)
-    /// [aka available_height]
-    ///
-    /// Return the solution for the equation.
-    fn solve_vertical_constraints_abs_position(&self,
-                                               height: MaybeAuto,
-                                               top_margin: MaybeAuto,
-                                               bottom_margin: MaybeAuto,
-                                               top: MaybeAuto,
-                                               bottom: MaybeAuto,
-                                               content_height: Au,
-                                               available_height: Au,
-                                               static_y_offset: Au)
-                                               -> HeightConstraintSolution {
-        // Distance from the top edge of the Absolute Containing Block to the
-        // top margin edge of a hypothetical box that would have been the
-        // first box of the element.
-        let static_position_top = static_y_offset;
-
-        let (top, bottom, height, margin_top, margin_bottom) = match (top, bottom, height) {
-            (Auto, Auto, Auto) => {
-                let margin_top = top_margin.specified_or_zero();
-                let margin_bottom = bottom_margin.specified_or_zero();
-                let top = static_position_top;
-                // Now it is the same situation as top Specified and bottom
-                // and height Auto.
-
-                let height = content_height;
-                let sum = top + height + margin_top + margin_bottom;
-                (top, available_height - sum, height, margin_top, margin_bottom)
-            }
-            (Specified(top), Specified(bottom), Specified(height)) => {
-                match (top_margin, bottom_margin) {
-                    (Auto, Auto) => {
-                        let total_margin_val = (available_height - top - bottom - height);
-                        (top, bottom, height,
-                         total_margin_val.scale_by(0.5),
-                         total_margin_val.scale_by(0.5))
-                    }
-                    (Specified(margin_top), Auto) => {
-                        let sum = top + bottom + height + margin_top;
-                        (top, bottom, height, margin_top, available_height - sum)
-                    }
-                    (Auto, Specified(margin_bottom)) => {
-                        let sum = top + bottom + height + margin_bottom;
-                        (top, bottom, height, available_height - sum, margin_bottom)
-                    }
-                    (Specified(margin_top), Specified(margin_bottom)) => {
-                        // Values are over-constrained. Ignore value for 'bottom'.
-                        let sum = top + height + margin_top + margin_bottom;
-                        (top, available_height - sum, height, margin_top, margin_bottom)
-                    }
-                }
-            }
-
-            // For the rest of the cases, auto values for margin are set to 0
-
-            // If only one is Auto, solve for it
-            (Auto, Specified(bottom), Specified(height)) => {
-                let margin_top = top_margin.specified_or_zero();
-                let margin_bottom = bottom_margin.specified_or_zero();
-                let sum = bottom + height + margin_top + margin_bottom;
-                (available_height - sum, bottom, height, margin_top, margin_bottom)
-            }
-            (Specified(top), Auto, Specified(height)) => {
-                let margin_top = top_margin.specified_or_zero();
-                let margin_bottom = bottom_margin.specified_or_zero();
-                let sum = top + height + margin_top + margin_bottom;
-                (top, available_height - sum, height, margin_top, margin_bottom)
-            }
-            (Specified(top), Specified(bottom), Auto) => {
-                let margin_top = top_margin.specified_or_zero();
-                let margin_bottom = bottom_margin.specified_or_zero();
-                let sum = top + bottom + margin_top + margin_bottom;
-                (top, bottom, available_height - sum, margin_top, margin_bottom)
-            }
-
-            // If height is auto, then height is content height. Solve for the
-            // non-auto value.
-            (Specified(top), Auto, Auto) => {
-                let margin_top = top_margin.specified_or_zero();
-                let margin_bottom = bottom_margin.specified_or_zero();
-                let height = content_height;
-                let sum = top + height + margin_top + margin_bottom;
-                (top, available_height - sum, height, margin_top, margin_bottom)
-            }
-            (Auto, Specified(bottom), Auto) => {
-                let margin_top = top_margin.specified_or_zero();
-                let margin_bottom = bottom_margin.specified_or_zero();
-                let height = content_height;
-                let sum = bottom + height + margin_top + margin_bottom;
-                (available_height - sum, bottom, height, margin_top, margin_bottom)
-            }
-
-            (Auto, Auto, Specified(height)) => {
-                let margin_top = top_margin.specified_or_zero();
-                let margin_bottom = bottom_margin.specified_or_zero();
-                let top = static_position_top;
-                let sum = top + height + margin_top + margin_bottom;
-                (top, available_height - sum, height, margin_top, margin_bottom)
-            }
-        };
-        HeightConstraintSolution::new(top, bottom, height, margin_top, margin_bottom)
-    }
-
     /// Calculate and set the height, offsets, etc. for absolutely positioned flow.
     ///
     /// The layout for its in-flow children has been done during normal layout.
@@ -1232,9 +1338,9 @@ impl BlockFlow {
     /// + height for the flow
     /// + y-coordinate of the flow wrt its Containing Block.
     /// + height, vertical margins, and y-coordinate for the flow's box.
-    fn calculate_abs_height_and_margins(&mut self) {
-        let absolute_cb = self.containing_block();
-        let containing_block_height = absolute_cb.height;
+    fn calculate_abs_height_and_margins(&mut self, ctx: &LayoutContext) {
+        let containing_block_height = self.containing_block_size(ctx.screen_size).height;
+        let static_y_offset = self.static_y_offset;
 
         for box_ in self.box_.iter() {
             // This is the stored content height value from assign-height
@@ -1250,16 +1356,17 @@ impl BlockFlow {
             let (top, bottom) =
                 (MaybeAuto::from_style(style.PositionOffsets.get().top, containing_block_height),
                  MaybeAuto::from_style(style.PositionOffsets.get().bottom, containing_block_height));
-            let available_height = containing_block_height - box_.border_and_padding_vertical();
+            let available_height = containing_block_height - box_.border_and_padding_vert();
 
-            let solution = self.solve_vertical_constraints_abs_position(height_used_val,
-                                                                        margin_top,
-                                                                        margin_bottom,
-                                                                        top,
-                                                                        bottom,
-                                                                        content_height,
-                                                                        available_height,
-                                                                        absolute_cb.static_y_offset);
+            let solution = HeightConstraintSolution::solve_vertical_constraints_abs_position(
+                height_used_val,
+                margin_top,
+                margin_bottom,
+                top,
+                bottom,
+                content_height,
+                available_height,
+                static_y_offset);
 
             let mut margin = box_.margin.get();
             margin.top = solution.margin_top;
@@ -1269,7 +1376,7 @@ impl BlockFlow {
             let mut position = box_.border_box.get();
             position.origin.y = box_.margin.get().top;
             // Border box height
-            let border_and_padding = box_.border_and_padding_vertical();
+            let border_and_padding = box_.border_and_padding_vert();
             position.size.height = solution.height + border_and_padding;
             box_.border_box.set(position);
 
@@ -1280,31 +1387,30 @@ impl BlockFlow {
     }
 
     /// Add display items for Absolutely Positioned flow.
-    ///
-    /// Note: We calculate the actual dimensions of the Absolute Flow here,
-    /// because only now do we have access to the used value for the
-    /// Containing Block's height. We couldn't do this during assign-heights
-    /// because it was a bottom-up traversal.
-    /// This is ok because absolute flows are out-of-flow and nothing else
-    /// depends on their height, etc.
     pub fn build_display_list_abs<E:ExtraDisplayListData>(
                                  &mut self,
                                  builder: &DisplayListBuilder,
                                  _: &Size2D<Au>,
                                  absolute_cb_abs_position: Point2D<Au>,
                                  dirty: &Rect<Au>,
-                                 index: uint,
+                                 mut index: uint,
                                  lists: &RefCell<DisplayListCollection<E>>)
                                  -> bool {
-        self.calculate_abs_height_and_margins();
-
         let flow_origin = if self.is_fixed() {
+            // The viewport is initially at (0, 0).
             self.base.position.origin
         } else {
             // Absolute position of Containing Block + position of absolute flow
             // wrt Containing Block
             absolute_cb_abs_position + self.base.position.origin
         };
+
+        if self.is_fixed() {
+            lists.with_mut(|lists| {
+                index = lists.lists.len();
+                lists.add_list(DisplayList::<E>::new());
+            });
+        }
 
         // Set the absolute position, which will be passed down later as part
         // of containing block details for absolute descendants.
@@ -1329,6 +1435,8 @@ impl BlockFlow {
 
     /// Return the top outer edge of the Hypothetical Box for an absolute flow.
     ///
+    /// This is wrt its parent flow box.
+    ///
     /// During normal layout assign-height, the absolute flow's position is
     /// roughly set to its static position (the position it would have had in
     /// the normal flow).
@@ -1344,6 +1452,10 @@ impl Flow for BlockFlow {
 
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         self
+    }
+
+    fn is_store_overflow_delayed(&mut self) -> bool {
+        self.is_absolutely_positioned()
     }
 
     /* Recursively (bottom-up) determine the context's preferred and
@@ -1406,24 +1518,13 @@ impl Flow for BlockFlow {
                    "block"
                });
 
-        if self.is_root {
+        if self.is_root() {
             debug!("Setting root position");
             self.base.position.origin = Au::zero_point();
             self.base.position.size.width = ctx.screen_size.width;
             self.base.floats = Floats::new();
             // Root element is not floated
             self.base.flags_info.flags.set_inorder(false);
-            // Initial containing block is the CB for the root
-            let initial_cb = ContainingBlockDetails {
-                width: ctx.screen_size.width,
-                height: ctx.screen_size.height,
-                // The left margin edge of the root touches the viewport (which is its CB).
-                static_x_offset: Au::new(0),
-                // The top margin edge of the root touches the viewport (which is its CB).
-                static_y_offset: Au::new(0),
-            };
-            self.absolute_cb_details = initial_cb.clone();
-            self.fixed_cb_details = initial_cb;
         }
 
         // The position was set to the containing block by the flow's parent.
@@ -1438,7 +1539,7 @@ impl Flow for BlockFlow {
             self.base.flags_info.flags.set_inorder(false);
         }
 
-        self.calculate_widths_and_margins(containing_block_width);
+        self.calculate_widths_and_margins(containing_block_width, ctx);
 
         for box_ in self.box_.iter() {
             // Move in from the left border edge
@@ -1459,15 +1560,11 @@ impl Flow for BlockFlow {
             self.base.flags_info.flags.inorder() || self.base.num_floats > 0
         };
 
-        let kid_abs_cb_width;
         let kid_abs_cb_x_offset;
         if self.is_positioned() {
             match self.box_ {
                 Some(ref box_) => {
                     // Pass yourself as a new Containing Block
-                    // Padding box width
-                    kid_abs_cb_width = box_.border_box.get().size.width - box_.border.get().left
-                        - box_.border.get().right;
                     // The static x offset for any immediate kid flows will be the
                     // left padding
                     kid_abs_cb_x_offset = box_.padding.get().left;
@@ -1475,15 +1572,12 @@ impl Flow for BlockFlow {
                 None => fail!("BlockFlow: no principal box found"),
             }
         } else {
-            // Pass the original Containing Block, with updated static offset
-            kid_abs_cb_width = self.absolute_cb_details.width;
             // For kids, the left margin edge will be at our left content edge.
             // The current static offset is at our left margin
             // edge. So move in to the left content edge.
-            kid_abs_cb_x_offset = self.absolute_cb_details.static_x_offset + left_content_edge;
+            kid_abs_cb_x_offset = self.base.absolute_static_x_offset + left_content_edge;
         }
-        let kid_fixed_cb_width = self.fixed_cb_details.width;
-        let kid_fixed_cb_x_offset = self.fixed_cb_details.static_x_offset + left_content_edge;
+        let kid_fixed_cb_x_offset = self.base.fixed_static_x_offset + left_content_edge;
 
         // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
@@ -1492,10 +1586,8 @@ impl Flow for BlockFlow {
 
             if kid.is_block_flow() {
                 let kid_block = kid.as_block();
-                kid_block.absolute_cb_details.width = kid_abs_cb_width;
-                kid_block.absolute_cb_details.static_x_offset = kid_abs_cb_x_offset;
-                kid_block.fixed_cb_details.width = kid_fixed_cb_width;
-                kid_block.fixed_cb_details.static_x_offset = kid_fixed_cb_x_offset;
+                kid_block.base.absolute_static_x_offset = kid_abs_cb_x_offset;
+                kid_block.base.fixed_static_x_offset = kid_fixed_cb_x_offset;
             }
             let child_base = flow::mut_base(kid);
             // Left margin edge of kid flow is at our left content edge
@@ -1544,7 +1636,7 @@ impl Flow for BlockFlow {
             debug!("assign_height: assigning height for block");
             // This is the only case in which a block flow can start an inorder
             // subtraversal.
-            if self.is_root && self.base.num_floats > 0 {
+            if self.is_root() && self.base.num_floats > 0 {
                 self.assign_height_inorder(ctx);
                 return;
             }
@@ -1597,10 +1689,64 @@ impl Flow for BlockFlow {
         self.is_root = true
     }
 
+    /// Return true if store overflow is delayed for this flow.
+    ///
+    /// Currently happens only for absolutely positioned flows.
+    fn is_store_overflow_delayed(&mut self) -> bool {
+        self.is_absolutely_positioned()
+    }
+
+    fn is_root(&self) -> bool {
+        self.is_root
+    }
+
+    fn is_float(&self) -> bool {
+        self.float.is_some()
+    }
+
+    /// The 'position' property of this flow.
+    fn positioning(&self) -> position::T {
+        match self.box_ {
+            Some(ref box_) => {
+                box_.style.get().Box.get().position
+            }
+            None => fail!("BlockFlow does not have a box_")
+        }
+    }
+
+    /// Return true if this is the root of an Absolute flow tree.
+    ///
+    /// It has to be either relatively positioned or the Root flow.
+    fn is_root_of_absolute_flow_tree(&self) -> bool {
+        self.is_relatively_positioned() || self.is_root()
+    }
+
+    /// Return the dimensions of the CB generated _by_ this flow for absolute descendants.
+    ///
+    /// For Blocks, this will be the padding box.
+    fn generated_cb_size(&self) -> Size2D<Au> {
+        match self.box_ {
+            Some(ref box_) => {
+                box_.padding_box_size()
+            }
+            None => fail!("Containing Block must have a box")
+        }
+    }
+
+    /// Return position of the CB generated by this flow from the start of this flow.
+    fn generated_cb_position(&self) -> Point2D<Au> {
+        match self.box_ {
+            Some(ref box_) => {
+                // Border box y coordinate + border top
+                box_.border_box.get().origin + Point2D(box_.border.get().left, box_.border.get().top)}
+            None => fail!("Containing Block must have a box")
+        }
+    }
+
     fn debug_str(&self) -> ~str {
         let txt = if self.is_float() {
             ~"FloatFlow: "
-        } else if self.is_root {
+        } else if self.is_root() {
             ~"RootFlow: "
         } else {
             ~"BlockFlow: "

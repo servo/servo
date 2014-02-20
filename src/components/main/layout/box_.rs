@@ -605,12 +605,18 @@ impl Box {
         specified(padding, content_box_width)
     }
 
+    pub fn padding_box_size(&self) -> Size2D<Au> {
+        let border_box_size = self.border_box.get().size;
+        Size2D(border_box_size.width - self.border.get().left - self.border.get().right,
+               border_box_size.height - self.border.get().top - self.border.get().bottom)
+    }
+
     pub fn border_and_padding_horiz(&self) -> Au {
         self.border.get().left + self.border.get().right + self.padding.get().left
             + self.padding.get().right
     }
 
-    pub fn border_and_padding_vertical(&self) -> Au {
+    pub fn border_and_padding_vert(&self) -> Au {
         self.border.get().top + self.border.get().bottom + self.padding.get().top
             + self.padding.get().bottom
     }
@@ -989,7 +995,7 @@ impl Box {
     /// Arguments:
     /// * `builder`: The display list builder, which manages the coordinate system and options.
     /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
-    /// * `origin`: The total offset from the display list root flow to the owning flow of this
+    /// * `flow_origin`: Position of the origin of the owning flow wrt the display list root flow.
     ///   box.
     /// * `list`: The display list to which items should be appended.
     ///
@@ -1002,15 +1008,16 @@ impl Box {
                               &self,
                               builder: &DisplayListBuilder,
                               dirty: &Rect<Au>,
-                              offset: Point2D<Au>,
+                              flow_origin: Point2D<Au>,
                               flow: &Flow,
                               index: uint,
                               lists: &RefCell<DisplayListCollection<E>>) {
+        // Box position wrt to the owning flow.
         let box_bounds = self.border_box.get();
-        let absolute_box_bounds = box_bounds.translate(&offset);
+        let absolute_box_bounds = box_bounds.translate(&flow_origin);
         debug!("Box::build_display_list at rel={}, abs={}: {:s}",
                box_bounds, absolute_box_bounds, self.debug_str());
-        debug!("Box::build_display_list: dirty={}, offset={}", *dirty, offset);
+        debug!("Box::build_display_list: dirty={}, flow_origin={}", *dirty, flow_origin);
 
         if self.style().InheritedBox.get().visibility != visibility::visible {
             return;
@@ -1023,9 +1030,14 @@ impl Box {
             return;
         }
 
-        self.paint_inline_background_border_if_applicable(index, lists, &absolute_box_bounds, &offset);
+        self.paint_inline_background_border_if_applicable(index, lists, &absolute_box_bounds, &flow_origin);
         // Add the background to the list, if applicable.
         self.paint_background_if_applicable(builder, index, lists, &absolute_box_bounds);
+
+        // Add a border, if applicable.
+        //
+        // TODO: Outlines.
+        self.paint_borders_if_applicable(index, lists, &absolute_box_bounds);
 
         match self.specific {
             UnscannedTextBox(_) => fail!("Shouldn't see unscanned boxes here."),
@@ -1221,15 +1233,11 @@ impl Box {
         // iframe is actually going to be displayed.
         match self.specific {
             IframeBox(ref iframe_box) => {
-                self.finalize_position_and_size_of_iframe(iframe_box, offset, builder.ctx)
+                self.finalize_position_and_size_of_iframe(iframe_box, flow_origin, builder.ctx)
             }
             GenericBox | ImageBox(_) | ScannedTextBox(_) | UnscannedTextBox(_) => {}
         }
 
-        // Add a border, if applicable.
-        //
-        // TODO: Outlines.
-        self.paint_borders_if_applicable(index, lists, &absolute_box_bounds);
     }
 
     /// Returns the *minimum width* and *preferred width* of this box as defined by CSS 2.1.
