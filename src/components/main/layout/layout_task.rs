@@ -22,6 +22,7 @@ use layout::parallel;
 use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
 use layout::wrapper::{DomLeafSet, LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
+use extra::url::Url;
 use extra::arc::{Arc, MutexArc};
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -427,9 +428,9 @@ impl LayoutTask {
     /// is intertwined with selector matching, making it difficult to compare directly. It is
     /// marked `#[inline(never)]` to aid benchmarking in sampling profilers.
     #[inline(never)]
-    fn construct_flow_tree(&self, layout_context: &mut LayoutContext, node: LayoutNode) -> ~Flow {
+    fn construct_flow_tree(&self, layout_context: &mut LayoutContext, node: LayoutNode, url: &Url) -> ~Flow {
         let node = ThreadSafeLayoutNode::new(node);
-        node.traverse_postorder_mut(&mut FlowConstructor::init(layout_context));
+        node.traverse_postorder_mut(&mut FlowConstructor::init(layout_context, url));
 
         let mut layout_data_ref = node.mutate_layout_data();
         let result = match *layout_data_ref.get() {
@@ -594,7 +595,7 @@ impl LayoutTask {
             // Construct the flow tree.
             profile(time::LayoutTreeBuilderCategory,
                     self.profiler_chan.clone(),
-                    || self.construct_flow_tree(&mut layout_ctx, *node))
+                    || self.construct_flow_tree(&mut layout_ctx, *node, &data.url))
         });
 
         // Verification of the flow tree, which ensures that all nodes were either marked as leaves

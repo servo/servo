@@ -34,14 +34,19 @@ use layout::util::{LayoutDataAccess, OpaqueNode};
 use layout::wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
 
 use gfx::font_context::FontContext;
-use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId};
+use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId, HTMLObjectElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
 use script::dom::node::{TextNodeTypeId};
 use style::computed_values::{display, position, float, white_space};
 use style::ComputedValues;
+use servo_util::namespace;
+use servo_util::url::parse_url;
+use servo_util::url::is_image_data;
 
+use extra::url::Url;
 use extra::arc::Arc;
+
 use std::cell::RefCell;
 use std::util;
 use std::num::Zero;
@@ -220,16 +225,20 @@ pub struct FlowConstructor<'a> {
 
     /// The font context.
     font_context: ~FontContext,
+
+    /// The URL of the page.
+    url: &'a Url, 
 }
 
 impl<'fc> FlowConstructor<'fc> {
     /// Creates a new flow constructor.
-    pub fn init<'a>(layout_context: &'a mut LayoutContext) -> FlowConstructor<'a> {
+    pub fn init<'a>(layout_context: &'a mut LayoutContext, url: &'a Url) -> FlowConstructor<'a> {
         let font_context = ~FontContext::new(layout_context.font_context_info.clone());
         FlowConstructor {
             layout_context: layout_context,
             next_flow_id: RefCell::new(0),
             font_context: font_context,
+            url: url,
         }
     }
 
@@ -241,14 +250,13 @@ impl<'fc> FlowConstructor<'fc> {
     }
 
     /// Builds the `ImageBoxInfo` for the given image. This is out of line to guide inlining.
-    fn build_box_info_for_image(&mut self, node: ThreadSafeLayoutNode) -> Option<ImageBoxInfo> {
-        // FIXME(pcwalton): Don't copy URLs.
-        match node.image_url() {
-            None => None,
+    fn build_box_info_for_image(&mut self, node: ThreadSafeLayoutNode, url: Option<Url>) -> SpecificBoxInfo {
+        match url {
+            None => GenericBox,
             Some(url) => {
                 // FIXME(pcwalton): The fact that image boxes store the cache within them makes
                 // little sense to me.
-                Some(ImageBoxInfo::new(&node, url, self.layout_context.image_cache.clone()))
+                ImageBox(ImageBoxInfo::new(&node, url, self.layout_context.image_cache.clone()))
             }
         }
     }
@@ -257,13 +265,11 @@ impl<'fc> FlowConstructor<'fc> {
     pub fn build_specific_box_info_for_node(&mut self, node: ThreadSafeLayoutNode)
                                             -> SpecificBoxInfo {
         match node.type_id() {
-            ElementNodeTypeId(HTMLImageElementTypeId) => {
-                match self.build_box_info_for_image(node) {
-                    None => GenericBox,
-                    Some(image_box_info) => ImageBox(image_box_info),
-                }
-            }
+            ElementNodeTypeId(HTMLImageElementTypeId) => self.build_box_info_for_image(node, node.image_url()),
             ElementNodeTypeId(HTMLIframeElementTypeId) => IframeBox(IframeBoxInfo::new(&node)),
+            ElementNodeTypeId(HTMLObjectElementTypeId) => {
+                self.build_box_info_for_image(node, node.get_object_data(self.url))
+            }
             TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(&node)),
             _ => GenericBox,
         }
@@ -709,6 +715,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
             DocumentFragmentNodeTypeId |
             DocumentNodeTypeId(_) |
             ElementNodeTypeId(HTMLImageElementTypeId) => true,
+            ElementNodeTypeId(HTMLObjectElementTypeId) => self.has_object_data(),
             ElementNodeTypeId(_) => false,
         }
     }
@@ -757,6 +764,39 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
                 util::replace(&mut layout_data.data.flow_construction_result, NoConstructionResult)
             }
             None => fail!("no layout data"),
+        }
+    }
+}
+
+/// Methods for interacting with HTMLObjectElement nodes
+trait ObjectElement {
+    /// Returns None if this node is not matching attributes.
+    fn get_type_and_data(self) -> (Option<&'static str>, Option<&'static str>);
+
+    /// Returns true if this node has object data that is correct uri.
+    fn has_object_data(self) -> bool;
+
+    /// Returns the "data" attribute value parsed as a URL    
+    fn get_object_data(self, base_url: &Url) -> Option<Url>;
+}
+
+impl<'ln> ObjectElement for ThreadSafeLayoutNode<'ln> {
+    fn get_type_and_data(self) -> (Option<&'static str>, Option<&'static str>) {
+        (self.with_element(|e| { e.get_attr(&namespace::Null, "type") } ),
+        self.with_element(|e| { e.get_attr(&namespace::Null, "data") } ))
+    }
+
+    fn has_object_data(self) -> bool {
+        match self.get_type_and_data() {
+            (None, Some(uri)) => is_image_data(uri),
+            _ => false
+        }   
+    }
+
+    fn get_object_data(self, base_url: &Url) -> Option<Url> {
+        match self.get_type_and_data() {
+            (None, Some(uri)) if is_image_data(uri) => Some(parse_url(uri, Some(base_url.clone()))),
+            _ => None
         }
     }
 }
