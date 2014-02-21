@@ -19,6 +19,9 @@ pub fn null_str_as_empty_ref<'a>(s: &'a Option<DOMString>) -> &'a str {
     }
 }
 
-pub fn is_whitespace_not_nbsp(s: &str) -> bool {
-    s.chars().all(|c| c.is_whitespace() && c != '\xa0')
+pub fn is_whitespace(s: &str) -> bool {
+    s.chars().all(|c| match c {
+        '\u0020' | '\u0009' | '\u000D' | '\u000A' => true,
+        _ => false
+    })
 }
