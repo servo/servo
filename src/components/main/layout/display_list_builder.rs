@@ -4,40 +4,28 @@
 
 //! Constructs display lists from boxes.
 
-use layout::box::Box;
+use layout::box_::Box;
 use layout::context::LayoutContext;
-use std::cast::transmute;
-use script::dom::node::AbstractNode;
+use layout::util::OpaqueNode;
 
 use gfx;
 use style;
 
-/// Display list data is usually an AbstractNode with view () to indicate
-/// that nodes in this view shoud not really be touched. The idea is to
-/// store the nodes in the display list and have layout transmute them.
 pub trait ExtraDisplayListData {
-    fn new(box: &@Box) -> Self;
+    fn new(box_: &Box) -> Self;
 }
 
 pub type Nothing = ();
 
-impl ExtraDisplayListData for AbstractNode<()> {
-    fn new(box: &@Box) -> AbstractNode<()> {
-        unsafe {
-            transmute(box.node)
-        }
+impl ExtraDisplayListData for OpaqueNode {
+    fn new(box_: &Box) -> OpaqueNode {
+        box_.node
     }
 }
 
 impl ExtraDisplayListData for Nothing {
-    fn new(_: &@Box) -> Nothing {
+    fn new(_: &Box) -> Nothing {
         ()
-    }
-}
-
-impl ExtraDisplayListData for @Box {
-    fn new(box: &@Box) -> @Box {
-        *box
     }
 }
 
@@ -47,8 +35,8 @@ impl ExtraDisplayListData for @Box {
 ///
 /// Right now, the builder isn't used for much, but it establishes the pattern we'll need once we
 /// support display-list-based hit testing and so forth.
-pub struct DisplayListBuilder<'self> {
-    ctx:  &'self LayoutContext,
+pub struct DisplayListBuilder<'a> {
+    ctx: &'a LayoutContext,
 }
 
 //

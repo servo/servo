@@ -6,20 +6,21 @@ use dom::bindings::codegen::HTMLTemplateElementBinding;
 use dom::document::AbstractDocument;
 use dom::element::HTMLTemplateElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLTemplateElement {
     htmlelement: HTMLElement,
 }
 
 impl HTMLTemplateElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTemplateElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement: HTMLElement::new_inherited(HTMLTemplateElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLTemplateElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLTemplateElementBinding::Wrap)
     }

@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::str;
 use std::iter::Iterator;
 use std::ascii::StrAsciiExt;
-use cssparser::{tokenize, parse_stylesheet_rules, ToCss};
+use extra::url::Url;
+
+use encoding::EncodingRef;
+
+use cssparser::{decode_stylesheet_bytes, tokenize, parse_stylesheet_rules, ToCss};
 use cssparser::ast::*;
 use selectors;
 use properties;
@@ -20,6 +23,8 @@ pub struct Stylesheet {
     /// cascading order)
     rules: ~[CSSRule],
     namespaces: NamespaceMap,
+    encoding: EncodingRef,
+    base_url: Url,
 }
 
 
@@ -36,19 +41,26 @@ pub struct StyleRule {
 
 
 impl Stylesheet {
-    pub fn from_iter<I: Iterator<~[u8]>>(input: I) -> Stylesheet {
-        let mut string = ~"";
-        let mut input = input;
-        // TODO: incremental tokinization/parsing
+    pub fn from_bytes_iter<I: Iterator<~[u8]>>(
+            mut input: I, base_url: Url, protocol_encoding_label: Option<&str>,
+            environment_encoding: Option<EncodingRef>) -> Stylesheet {
+        let mut bytes = ~[];
+        // TODO: incremental decoding and tokinization/parsing
         for chunk in input {
-            // Assume UTF-8. This fails on invalid UTF-8
-            // TODO: support character encodings (use rust-encodings in rust-cssparser)
-            string.push_str(str::from_utf8_owned(chunk))
+            bytes.push_all(chunk)
         }
-        Stylesheet::from_str(string)
+        Stylesheet::from_bytes(bytes, base_url, protocol_encoding_label, environment_encoding)
     }
 
-    pub fn from_str(css: &str) -> Stylesheet {
+    pub fn from_bytes(
+            bytes: &[u8], base_url: Url, protocol_encoding_label: Option<&str>,
+            environment_encoding: Option<EncodingRef>) -> Stylesheet {
+        let (string, used_encoding) = decode_stylesheet_bytes(
+            bytes, protocol_encoding_label, environment_encoding);
+        Stylesheet::from_str(string, base_url, used_encoding)
+    }
+
+    pub fn from_str(css: &str, base_url: Url, encoding: EncodingRef) -> Stylesheet {
         static STATE_CHARSET: uint = 1;
         static STATE_IMPORTS: uint = 2;
         static STATE_NAMESPACES: uint = 3;
@@ -63,7 +75,7 @@ impl Stylesheet {
             match rule {
                 QualifiedRule(rule) => {
                     next_state = STATE_BODY;
-                    parse_style_rule(rule, &mut rules, &namespaces)
+                    parse_style_rule(rule, &mut rules, &namespaces, &base_url)
                 },
                 AtRule(rule) => {
                     let lower_name = rule.name.to_ascii_lower();
@@ -100,27 +112,27 @@ impl Stylesheet {
                         },
                         _ => {
                             next_state = STATE_BODY;
-                            parse_nested_at_rule(lower_name, rule, &mut rules, &namespaces)
+                            parse_nested_at_rule(lower_name, rule, &mut rules, &namespaces, &base_url)
                         },
                     }
                 },
             }
             state = next_state;
         }
-        Stylesheet{ rules: rules, namespaces: namespaces }
+        Stylesheet{ rules: rules, namespaces: namespaces, encoding: encoding, base_url: base_url }
     }
 }
 
 
 pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut ~[CSSRule],
-                        namespaces: &NamespaceMap) {
+                        namespaces: &NamespaceMap, base_url: &Url) {
     let QualifiedRule{location: location, prelude: prelude, block: block} = rule;
     // FIXME: avoid doing this for valid selectors
     let serialized = prelude.iter().to_css();
     match selectors::parse_selector_list(prelude, namespaces) {
         Some(selectors) => parent_rules.push(CSSStyleRule(StyleRule{
             selectors: selectors,
-            declarations: properties::parse_property_declaration_list(block.move_iter())
+            declarations: properties::parse_property_declaration_list(block.move_iter(), base_url)
         })),
         None => log_css_error(location, format!(
             "Invalid/unsupported selector: {}", serialized)),
@@ -130,16 +142,16 @@ pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut ~[CSSRule],
 
 // lower_name is passed explicitly to avoid computing it twice.
 pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
-                            parent_rules: &mut ~[CSSRule], namespaces: &NamespaceMap) {
+                            parent_rules: &mut ~[CSSRule], namespaces: &NamespaceMap, base_url: &Url) {
     match lower_name {
-        "media" => parse_media_rule(rule, parent_rules, namespaces),
+        "media" => parse_media_rule(rule, parent_rules, namespaces, base_url),
         _ => log_css_error(rule.location, format!("Unsupported at-rule: @{:s}", lower_name))
     }
 }
 
 
 pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
-                            callback: &fn(&StyleRule)) {
+                            callback: |&StyleRule|) {
     for rule in rules.iter() {
         match *rule {
             CSSStyleRule(ref rule) => callback(rule),

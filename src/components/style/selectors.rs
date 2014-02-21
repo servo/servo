@@ -4,27 +4,38 @@
 
 use std::{vec, iter};
 use std::ascii::StrAsciiExt;
+use extra::arc::Arc;
+
 use cssparser::ast::*;
 use cssparser::parse_nth;
+
+use servo_util::namespace::Namespace;
+use servo_util::namespace;
+
 use namespaces::NamespaceMap;
+
+
+// Only used in tests
+impl Eq for Arc<CompoundSelector> {
+    fn eq(&self, other: &Arc<CompoundSelector>) -> bool {
+        self.get() == other.get()
+    }
+}
 
 
 #[deriving(Eq, Clone)]
 pub struct Selector {
-    compound_selectors: CompoundSelector,
+    compound_selectors: Arc<CompoundSelector>,
     pseudo_element: Option<PseudoElement>,
     specificity: u32,
 }
-
-pub static STYLE_ATTRIBUTE_SPECIFICITY: u32 = 1 << 31;
-
 
 #[deriving(Eq, Clone)]
 pub enum PseudoElement {
     Before,
     After,
-    FirstLine,
-    FirstLetter,
+//    FirstLine,
+//    FirstLetter,
 }
 
 
@@ -47,7 +58,7 @@ pub enum SimpleSelector {
     IDSelector(~str),
     ClassSelector(~str),
     LocalNameSelector(~str),
-    NamespaceSelector(~str),
+    NamespaceSelector(Namespace),
 
     // Attribute selectors
     AttrExists(AttrSelector),  // [foo]
@@ -63,6 +74,7 @@ pub enum SimpleSelector {
     AnyLink,
     Link,
     Visited,
+    Hover,
     FirstChild, LastChild, OnlyChild,
 //    Empty,
     Root,
@@ -80,7 +92,14 @@ pub enum SimpleSelector {
 #[deriving(Eq, Clone)]
 pub struct AttrSelector {
     name: ~str,
-    namespace: Option<~str>,
+    lower_name: ~str,
+    namespace: NamespaceConstraint,
+}
+
+#[deriving(Eq, Clone)]
+pub enum NamespaceConstraint {
+    AnyNamespace,
+    SpecificNamespace(Namespace),
 }
 
 
@@ -157,7 +176,7 @@ fn parse_selector(iter: &mut Iter, namespaces: &NamespaceMap)
     }
     Some(Selector {
         specificity: compute_specificity(&compound, &pseudo_element),
-        compound_selectors: compound,
+        compound_selectors: Arc::new(compound),
         pseudo_element: pseudo_element,
     })
 }
@@ -192,19 +211,19 @@ fn compute_specificity(mut selector: &CompoundSelector,
                                     specificity: &mut Specificity) {
         for simple_selector in simple_selectors.iter() {
             match simple_selector {
-                &LocalNameSelector(*) => specificity.element_selectors += 1,
-                &IDSelector(*) => specificity.id_selectors += 1,
-                &ClassSelector(*)
-                | &AttrExists(*) | &AttrEqual(*) | &AttrIncludes(*) | &AttrDashMatch(*)
-                | &AttrPrefixMatch(*) | &AttrSubstringMatch(*) | &AttrSuffixMatch(*)
-                | &AnyLink | &Link | &Visited
+                &LocalNameSelector(..) => specificity.element_selectors += 1,
+                &IDSelector(..) => specificity.id_selectors += 1,
+                &ClassSelector(..)
+                | &AttrExists(..) | &AttrEqual(..) | &AttrIncludes(..) | &AttrDashMatch(..)
+                | &AttrPrefixMatch(..) | &AttrSubstringMatch(..) | &AttrSuffixMatch(..)
+                | &AnyLink | &Link | &Visited | &Hover
                 | &FirstChild | &LastChild | &OnlyChild | &Root
 //                | &Empty | &Lang(*)
-                | &NthChild(*) | &NthLastChild(*)
-                | &NthOfType(*) | &NthLastOfType(*)
+                | &NthChild(..) | &NthLastChild(..)
+                | &NthOfType(..) | &NthLastOfType(..)
                 | &FirstOfType | &LastOfType | &OnlyOfType
                 => specificity.class_like_selectors += 1,
-                &NamespaceSelector(*) => (),
+                &NamespaceSelector(..) => (),
                 &Negation(ref negated)
                 => simple_selectors_specificity(negated.as_slice(), specificity),
             }
@@ -221,7 +240,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
 /// simple_selector_sequence
 /// : [ type_selector | universal ] [ HASH | class | attrib | pseudo | negation ]*
 /// | [ HASH | class | attrib | pseudo | negation ]+
-/// 
+///
 /// None means invalid selector
 fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
                            -> Option<(~[SimpleSelector], Option<PseudoElement>)> {
@@ -238,7 +257,7 @@ fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
             InvalidSimpleSelector => return None,
             NotASimpleSelector => break,
             SimpleSelectorResult(s) => { simple_selectors.push(s); empty = false },
-            PseudoElementResult(p) => { pseudo_element = Some(p); break },
+            PseudoElementResult(p) => { pseudo_element = Some(p); empty = false; break },
         }
     }
     if empty { None }  // An empty selector is invalid
@@ -255,14 +274,14 @@ enum TypeSelectorParseResult {
 fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
                        -> TypeSelectorParseResult {
     skip_whitespace(iter);
-    match parse_qualified_name(iter, /* allow_universal = */ true, namespaces) {
+    match parse_qualified_name(iter, /* in_attr_selector = */ false, namespaces) {
         InvalidQualifiedName => InvalidTypeSelector,
         NotAQualifiedName => NotATypeSelector,
         QualifiedName(namespace, local_name) => {
             let mut simple_selectors = ~[];
             match namespace {
-                Some(url) => simple_selectors.push(NamespaceSelector(url)),
-                None => (),
+                SpecificNamespace(ns) => simple_selectors.push(NamespaceSelector(ns)),
+                AnyNamespace => (),
             }
             match local_name {
                 Some(name) => simple_selectors.push(LocalNameSelector(name)),
@@ -308,14 +327,18 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
             iter.next();
             match iter.next() {
                 Some(Ident(name)) => match parse_simple_pseudo_class(name) {
-                    None => match name.to_ascii_lower().as_slice() {
-                        // Supported CSS 2.1 pseudo-elements only.
-                        // ** Do not add to this list! **
-                        "before" => PseudoElementResult(Before),
-                        "after" => PseudoElementResult(After),
-                        "first-line" => PseudoElementResult(FirstLine),
-                        "first-letter" => PseudoElementResult(FirstLetter),
-                        _ => InvalidSimpleSelector
+                    None => {
+                        // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
+                        let name_lower = name.to_ascii_lower();
+                        match name_lower.as_slice() {
+                            // Supported CSS 2.1 pseudo-elements only.
+                            // ** Do not add to this list! **
+                            "before" => PseudoElementResult(Before),
+                            "after" => PseudoElementResult(After),
+//                            "first-line" => PseudoElementResult(FirstLine),
+//                            "first-letter" => PseudoElementResult(FirstLetter),
+                            _ => InvalidSimpleSelector
+                        }
                     },
                     Some(result) => SimpleSelectorResult(result),
                 },
@@ -344,30 +367,34 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
 enum QualifiedNameParseResult {
     InvalidQualifiedName,
     NotAQualifiedName,
-    QualifiedName(Option<~str>, Option<~str>)  // Namespace URL, local name. None means '*'
+    // Namespace URL, local name. None means '*'
+    QualifiedName(NamespaceConstraint, Option<~str>)
 }
 
-fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &NamespaceMap)
+fn parse_qualified_name(iter: &mut Iter, in_attr_selector: bool, namespaces: &NamespaceMap)
                        -> QualifiedNameParseResult {
     #[inline]
     fn default_namespace(namespaces: &NamespaceMap, local_name: Option<~str>)
                          -> QualifiedNameParseResult {
-        QualifiedName(namespaces.default.as_ref().map(|url| url.to_owned()), local_name)
+        QualifiedName(match namespaces.default {
+            Some(ref ns) => SpecificNamespace(ns.clone()),
+            None => AnyNamespace,
+        }, local_name)
     }
 
     #[inline]
-    fn explicit_namespace(iter: &mut Iter, allow_universal: bool, namespace_url: Option<~str>)
+    fn explicit_namespace(iter: &mut Iter, in_attr_selector: bool, namespace: NamespaceConstraint)
                          -> QualifiedNameParseResult {
         assert!(iter.next() == Some(Delim('|')),
                 "Implementation error, this should not happen.");
         match iter.peek() {
-            Some(&Delim('*')) if allow_universal => {
+            Some(&Delim('*')) if !in_attr_selector => {
                 iter.next();
-                QualifiedName(namespace_url, None)
+                QualifiedName(namespace, None)
             },
             Some(&Ident(_)) => {
                 let local_name = get_next_ident(iter);
-                QualifiedName(namespace_url, Some(local_name))
+                QualifiedName(namespace, Some(local_name))
             },
             _ => InvalidQualifiedName,
         }
@@ -378,26 +405,29 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
             let value = get_next_ident(iter);
             match iter.peek() {
                 Some(&Delim('|')) => {
-                    let namespace_url = match namespaces.prefix_map.find(&value) {
+                    let namespace = match namespaces.prefix_map.find(&value) {
                         None => return InvalidQualifiedName,  // Undeclared namespace prefix
-                        Some(ref url) => url.to_owned(),
+                        Some(ref ns) => (*ns).clone(),
                     };
-                    explicit_namespace(iter, allow_universal, Some(namespace_url))
+                    explicit_namespace(iter, in_attr_selector, SpecificNamespace(namespace))
                 },
+                _ if in_attr_selector => QualifiedName(
+                    SpecificNamespace(namespace::Null), Some(value)),
                 _ => default_namespace(namespaces, Some(value)),
             }
         },
         Some(&Delim('*')) => {
             iter.next();  // Consume '*'
             match iter.peek() {
-                Some(&Delim('|')) => explicit_namespace(iter, allow_universal, None),
+                Some(&Delim('|')) => explicit_namespace(iter, in_attr_selector, AnyNamespace),
                 _ => {
-                    if allow_universal { default_namespace(namespaces, None) }
+                    if !in_attr_selector { default_namespace(namespaces, None) }
                     else { InvalidQualifiedName }
                 },
             }
         },
-        Some(&Delim('|')) => explicit_namespace(iter, allow_universal, Some(~"")),
+        Some(&Delim('|')) => explicit_namespace(
+            iter, in_attr_selector, SpecificNamespace(namespace::Null)),
         _ => NotAQualifiedName,
     }
 }
@@ -406,11 +436,12 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
 fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMap)
                             -> Option<SimpleSelector> {
     let iter = &mut content.move_iter().peekable();
-    let attr = match parse_qualified_name(iter, /* allow_universal = */ false, namespaces) {
+    let attr = match parse_qualified_name(iter, /* in_attr_selector = */ true, namespaces) {
         InvalidQualifiedName | NotAQualifiedName => return None,
         QualifiedName(_, None) => fail!("Implementation error, this should not happen."),
         QualifiedName(namespace, Some(local_name)) => AttrSelector {
             namespace: namespace,
+            lower_name: local_name.to_ascii_lower(),
             name: local_name,
         },
     };
@@ -443,10 +474,13 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
 
 
 fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
-    match name.to_ascii_lower().as_slice() {
+    // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
+    let name_lower = name.to_ascii_lower();
+    match name_lower.as_slice() {
         "any-link" => Some(AnyLink),
         "link" => Some(Link),
         "visited" => Some(Visited),
+        "hover" => Some(Hover),
         "first-child" => Some(FirstChild),
         "last-child"  => Some(LastChild),
         "only-child"  => Some(OnlyChild),
@@ -463,7 +497,9 @@ fn parse_simple_pseudo_class(name: &str) -> Option<SimpleSelector> {
 fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
                                  namespaces: &NamespaceMap, inside_negation: bool)
                                  -> Option<SimpleSelector> {
-    match name.to_ascii_lower().as_slice() {
+    // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
+    let name_lower = name.to_ascii_lower();
+    match name_lower.as_slice() {
 //        "lang" => parse_lang(arguments),
         "nth-child"        => parse_nth(arguments).map(|(a, b)| NthChild(a, b)),
         "nth-last-child"   => parse_nth(arguments).map(|(a, b)| NthLastChild(a, b)),
@@ -476,12 +512,14 @@ fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
 
 
 fn parse_pseudo_element(name: ~str) -> Option<PseudoElement> {
-    match name.to_ascii_lower().as_slice() {
+    // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
+    let name_lower = name.to_ascii_lower();
+    match name_lower.as_slice() {
         // All supported pseudo-elements
         "before" => Some(Before),
         "after" => Some(After),
-        "first-line" => Some(FirstLine),
-        "first-letter" => Some(FirstLetter),
+//        "first-line" => Some(FirstLine),
+//        "first-letter" => Some(FirstLetter),
         _ => None
     }
 }
@@ -539,14 +577,20 @@ fn skip_whitespace(iter: &mut Iter) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use extra::arc::Arc;
     use cssparser;
+    use servo_util::namespace;
     use namespaces::NamespaceMap;
     use super::*;
 
     fn parse(input: &str) -> Option<~[Selector]> {
+        parse_ns(input, &NamespaceMap::new())
+    }
+
+    fn parse_ns(input: &str, namespaces: &NamespaceMap) -> Option<~[Selector]> {
         parse_selector_list(
             cssparser::tokenize(input).map(|(v, _)| v).to_owned_vec(),
-            &NamespaceMap::new())
+            namespaces)
     }
 
     fn specificity(a: u32, b: u32, c: u32) -> u32 {
@@ -557,50 +601,112 @@ mod tests {
     fn test_parsing() {
         assert_eq!(parse(""), None)
         assert_eq!(parse("e"), Some(~[Selector{
-            compound_selectors: CompoundSelector {
+            compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[LocalNameSelector(~"e")],
                 next: None,
-            },
+            }),
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
         }]))
         assert_eq!(parse(".foo"), Some(~[Selector{
-            compound_selectors: CompoundSelector {
+            compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[ClassSelector(~"foo")],
                 next: None,
-            },
+            }),
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
         }]))
         assert_eq!(parse("#bar"), Some(~[Selector{
-            compound_selectors: CompoundSelector {
+            compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[IDSelector(~"bar")],
                 next: None,
-            },
+            }),
             pseudo_element: None,
             specificity: specificity(1, 0, 0),
         }]))
         assert_eq!(parse("e.foo#bar"), Some(~[Selector{
-            compound_selectors: CompoundSelector {
+            compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[LocalNameSelector(~"e"),
                                     ClassSelector(~"foo"),
                                     IDSelector(~"bar")],
                 next: None,
-            },
+            }),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
         }]))
         assert_eq!(parse("e.foo #bar"), Some(~[Selector{
-            compound_selectors: CompoundSelector {
+            compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[IDSelector(~"bar")],
                 next: Some((~CompoundSelector {
                     simple_selectors: ~[LocalNameSelector(~"e"),
                                         ClassSelector(~"foo")],
                     next: None,
                 }, Descendant)),
-            },
+            }),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
+        }]))
+        // Default namespace does not apply to attribute selectors
+        // https://github.com/mozilla/servo/pull/1652
+        let mut namespaces = NamespaceMap::new();
+        assert_eq!(parse_ns("[Foo]", &namespaces), Some(~[Selector{
+            compound_selectors: Arc::new(CompoundSelector {
+                simple_selectors: ~[AttrExists(AttrSelector {
+                    name: ~"Foo",
+                    lower_name: ~"foo",
+                    namespace: SpecificNamespace(namespace::Null),
+                })],
+                next: None,
+            }),
+            pseudo_element: None,
+            specificity: specificity(0, 1, 0),
+        }]))
+        // Default namespace does not apply to attribute selectors
+        // https://github.com/mozilla/servo/pull/1652
+        namespaces.default = Some(namespace::MathML);
+        assert_eq!(parse_ns("[Foo]", &namespaces), Some(~[Selector{
+            compound_selectors: Arc::new(CompoundSelector {
+                simple_selectors: ~[AttrExists(AttrSelector {
+                    name: ~"Foo",
+                    lower_name: ~"foo",
+                    namespace: SpecificNamespace(namespace::Null),
+                })],
+                next: None,
+            }),
+            pseudo_element: None,
+            specificity: specificity(0, 1, 0),
+        }]))
+        // Default namespace does apply to type selectors
+        assert_eq!(parse_ns("e", &namespaces), Some(~[Selector{
+            compound_selectors: Arc::new(CompoundSelector {
+                simple_selectors: ~[
+                    NamespaceSelector(namespace::MathML),
+                    LocalNameSelector(~"e"),
+                ],
+                next: None,
+            }),
+            pseudo_element: None,
+            specificity: specificity(0, 0, 1),
+        }]))
+        // https://github.com/mozilla/servo/issues/1723
+        assert_eq!(parse("::before"), Some(~[Selector{
+            compound_selectors: Arc::new(CompoundSelector {
+                simple_selectors: ~[],
+                next: None,
+            }),
+            pseudo_element: Some(Before),
+            specificity: specificity(0, 0, 1),
+        }]))
+        assert_eq!(parse("div :after"), Some(~[Selector{
+            compound_selectors: Arc::new(CompoundSelector {
+                simple_selectors: ~[],
+                next: Some((~CompoundSelector {
+                    simple_selectors: ~[LocalNameSelector(~"div")],
+                    next: None,
+                }, Descendant)),
+            }),
+            pseudo_element: Some(After),
+            specificity: specificity(0, 0, 2),
         }]))
     }
 }

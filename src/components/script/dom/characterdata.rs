@@ -4,20 +4,21 @@
 
 //! DOM bindings for `CharacterData`.
 
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
+use dom::bindings::utils::{Fallible, ErrorResult};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::AbstractDocument;
-use dom::node::{Node, NodeTypeId, ScriptView};
+use dom::node::{Node, NodeTypeId};
+use servo_util::str::DOMString;
 
 pub struct CharacterData {
-    node: Node<ScriptView>,
-    data: ~str
+    node: Node,
+    data: DOMString,
 }
 
 impl CharacterData {
-    pub fn new(id: NodeTypeId, data: ~str, document: AbstractDocument) -> CharacterData {
+    pub fn new_inherited(id: NodeTypeId, data: DOMString, document: AbstractDocument) -> CharacterData {
         CharacterData {
-            node: Node::new(id, document),
+            node: Node::new_inherited(id, document),
             data: data
         }
     }

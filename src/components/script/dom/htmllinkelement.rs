@@ -3,24 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLLinkElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLLinkElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
 }
 
 impl HTMLLinkElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLLinkElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(HTMLLinkElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLLinkElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLLinkElementBinding::Wrap)
     }

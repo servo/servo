@@ -3,10 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::AttrBinding;
-use dom::bindings::utils::{Reflectable, Reflector, DOMString};
-use dom::bindings::utils::reflect_dom_object;
-use dom::namespace::{Namespace, Null};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
+use servo_util::namespace::{Namespace, Null};
+use servo_util::str::DOMString;
+
+use std::util;
 
 pub struct Attr {
     reflector_: Reflector,
@@ -49,15 +51,27 @@ impl Attr {
     pub fn new_ns(window: &Window, local_name: DOMString, value: DOMString,
                   name: DOMString, namespace: Namespace,
                   prefix: Option<DOMString>) -> @mut Attr {
-        Attr::new_helper(window, name, value, local_name, namespace, prefix)
+        Attr::new_helper(window, local_name, value, name, namespace, prefix)
     }
 
-    fn new_helper(window: &Window, name: DOMString, value: DOMString, local_name: DOMString,
-                  namespace: Namespace, prefix: Option<DOMString>) -> @mut Attr {
-        let attr = Attr::new_inherited(name, value, local_name, namespace, prefix);
+    fn new_helper(window: &Window, local_name: DOMString, value: DOMString,
+                  name: DOMString, namespace: Namespace,
+                  prefix: Option<DOMString>) -> @mut Attr {
+        let attr = Attr::new_inherited(local_name, value, name, namespace, prefix);
         reflect_dom_object(@mut attr, window, AttrBinding::Wrap)
     }
 
+    pub fn set_value(&mut self, mut value: DOMString) -> DOMString {
+        util::swap(&mut self.value, &mut value);
+        value
+    }
+
+    pub fn value_ref<'a>(&'a self) -> &'a str {
+        self.value.as_slice()
+    }
+}
+
+impl Attr {
     pub fn LocalName(&self) -> DOMString {
         self.local_name.clone()
     }
@@ -75,7 +89,10 @@ impl Attr {
     }
 
     pub fn GetNamespaceURI(&self) -> Option<DOMString> {
-        self.namespace.to_str()
+        match self.namespace.to_str() {
+            "" => None,
+            url => Some(url.to_owned()),
+        }
     }
 
     pub fn GetPrefix(&self) -> Option<DOMString> {

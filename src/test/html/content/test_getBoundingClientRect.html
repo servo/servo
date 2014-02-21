@@ -10,10 +10,12 @@ var rect = elems[0].getBoundingClientRect();
 is_a(rect, ClientRect);
 
 geq(rect.top,    100);
-geq(rect.bottom, 100);
+geq(rect.bottom, 200);
 geq(rect.left,   100);
-geq(rect.right,  100);
+geq(rect.right,  200);
 
+is(rect.width, 100);
+is(rect.height, 100);
 is(rect.width,  rect.right  - rect.left);
 is(rect.height, rect.bottom - rect.top);
 
@@ -23,6 +25,8 @@ finish();
 div {
     margin-top:  100px;
     margin-left: 100px;
+    width: 100px;
+    height: 100px;
 }
 </style>
 </head>

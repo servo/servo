@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector, DOMString, Fallible};
-use dom::bindings::utils::{InvalidState};
+use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Fallible, InvalidState};
 use dom::bindings::codegen::EventListenerBinding::EventListener;
 use dom::document::AbstractDocument;
 use dom::event::AbstractEvent;
 use dom::eventdispatcher::dispatch_event;
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::AbstractNode;
 use dom::window::Window;
+use servo_util::str::DOMString;
 
 use std::cast;
 use std::hashmap::HashMap;
@@ -36,7 +37,7 @@ struct EventListenerEntry {
 pub struct EventTarget {
     type_id: EventTargetTypeId,
     reflector_: Reflector,
-    handlers: HashMap<~str, ~[EventListenerEntry]>,
+    handlers: HashMap<DOMString, ~[EventListenerEntry]>,
 }
 
 pub struct AbstractEventTarget {
@@ -44,13 +45,13 @@ pub struct AbstractEventTarget {
 }
 
 impl AbstractEventTarget {
-    pub fn from_box<T>(box: *mut Box<T>) -> AbstractEventTarget {
+    pub fn from_box<T>(box_: *mut Box<T>) -> AbstractEventTarget {
         AbstractEventTarget {
-            eventtarget: box as *mut Box<EventTarget>
+            eventtarget: box_ as *mut Box<EventTarget>
         }
     }
 
-    pub fn from_node(node: AbstractNode<ScriptView>) -> AbstractEventTarget {
+    pub fn from_node(node: AbstractNode) -> AbstractEventTarget {
         unsafe {
             cast::transmute(node)
         }
@@ -86,15 +87,15 @@ impl AbstractEventTarget {
 
     fn transmute<'a, T>(&'a self) -> &'a T {
         unsafe {
-            let box: *Box<T> = self.eventtarget as *Box<T>;
-            &(*box).data
+            let box_: *Box<T> = self.eventtarget as *Box<T>;
+            &(*box_).data
         }
     }
 
     fn transmute_mut<'a, T>(&'a mut self) -> &'a mut T {
         unsafe {
-            let box: *mut Box<T> = self.eventtarget as *mut Box<T>;
-            &mut (*box).data
+            let box_: *mut Box<T> = self.eventtarget as *mut Box<T>;
+            &mut (*box_).data
         }
     }
 
@@ -127,17 +128,17 @@ impl EventTarget {
     }
 
     pub fn get_listeners(&self, type_: &str) -> Option<~[EventListener]> {
-        do self.handlers.find_equiv(&type_).map |listeners| {
+        self.handlers.find_equiv(&type_).map(|listeners| {
             listeners.iter().map(|entry| entry.listener).collect()
-        }
+        })
     }
 
     pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
         -> Option<~[EventListener]> {
-        do self.handlers.find_equiv(&type_).map |listeners| {
+        self.handlers.find_equiv(&type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener).collect()
-        }
+        })
     }
 
     pub fn AddEventListener(&mut self,

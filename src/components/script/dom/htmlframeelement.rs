@@ -3,25 +3,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLFrameElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLFrameElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use dom::windowproxy::WindowProxy;
+use servo_util::str::DOMString;
 
 pub struct HTMLFrameElement {
     htmlelement: HTMLElement
 }
 
 impl HTMLFrameElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLFrameElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLFrameElement {
         HTMLFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLFrameElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLFrameElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLFrameElementBinding::Wrap)
     }

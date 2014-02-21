@@ -5,18 +5,18 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps reduce
 /// coupling between these two components
 
-use std::comm::{Chan, SharedChan};
 use extra::url::Url;
-use extra::future::Future;
-use geom::size::Size2D;
 use geom::rect::Rect;
+use geom::size::Size2D;
+use std::comm::SharedChan;
 
 #[deriving(Clone)]
 pub struct ConstellationChan(SharedChan<Msg>);
 
 impl ConstellationChan {
-    pub fn new(chan: Chan<Msg>) -> ConstellationChan {
-        ConstellationChan(SharedChan::new(chan))
+    pub fn new() -> (Port<Msg>, ConstellationChan) {
+        let (port, chan) = SharedChan::new();
+        (port, ConstellationChan(chan))
     }
 }
 
@@ -26,14 +26,22 @@ pub enum IFrameSandboxState {
     IFrameUnsandboxed
 }
 
-/// Messages from the compositor to the constellation.
+// We pass this info to various tasks, so it lives in a separate, cloneable struct.
+#[deriving(Clone)]
+pub struct Failure {
+    pipeline_id: PipelineId,
+    subpage_id: Option<SubpageId>,
+}
+
+/// Messages from the compositor and script to the constellation.
 pub enum Msg {
-    ExitMsg(Chan<()>),
-    FailureMsg(PipelineId, Option<SubpageId>),
+    ExitMsg,
+    FailureMsg(Failure),
     InitLoadUrlMsg(Url),
+    LoadCompleteMsg(PipelineId, Url),
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
-    LoadUrlMsg(PipelineId, Url, Future<Size2D<uint>>),
-    LoadIframeUrlMsg(Url, PipelineId, SubpageId, Future<Size2D<uint>>, IFrameSandboxState),
+    LoadUrlMsg(PipelineId, Url),
+    LoadIframeUrlMsg(Url, PipelineId, SubpageId, IFrameSandboxState),
     NavigateMsg(NavigationDirection),
     RendererReadyMsg(PipelineId),
     ResizedWindowMsg(Size2D<uint>),
@@ -54,5 +62,6 @@ pub enum NavigationDirection {
 
 #[deriving(Clone, Eq, IterBytes)]
 pub struct PipelineId(uint);
+
 #[deriving(Clone, Eq, IterBytes)]
 pub struct SubpageId(uint);

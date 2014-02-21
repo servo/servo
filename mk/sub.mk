@@ -13,7 +13,6 @@ NO_TESTS += \
 
 # These submodules will not be cleaned by the `make clean-fast` target.
 SLOW_BUILDS += \
-	libcss \
 	libparserutils \
 	mozjs \
 	sharegl \
@@ -22,7 +21,6 @@ SLOW_BUILDS += \
 
 # Builds that do not require rustc
 NATIVE_BUILDS += \
-	libcss \
 	libhubbub \
 	libparserutils \
 	mozjs \
@@ -49,6 +47,15 @@ DEPS_rust-azure += \
 	glfw-rs \
 	glfw \
 	skia \
+	rust \
+	$(NULL)
+
+DEPS_rust-cssparser += \
+	rust-encoding \
+	rust \
+	$(NULL)
+
+DEPS_rust-encoding += \
 	rust \
 	$(NULL)
 
@@ -164,6 +171,7 @@ endif
 
 ifeq ($(CFG_OSTYPE),linux-androideabi)
 DEPS_rust-azure += \
+	rust-egl \
 	rust-freetype \
 	rust-fontconfig \
 	fontconfig \
@@ -174,6 +182,7 @@ DEPS_rust-azure += \
 
 # See note at top of file
 DEPS_rust-layers += \
+	rust-egl \
 	rust-freetype \
 	rust-fontconfig \
 	rust-xlib \

@@ -5,18 +5,17 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::AttrListBinding;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::{AbstractNode};
 use dom::window::Window;
 
 pub struct AttrList {
     reflector_: Reflector,
     window: @mut Window,
-    owner: AbstractNode<ScriptView>
+    owner: AbstractNode,
 }
 
 impl AttrList {
-        pub fn new_inherited(window: @mut Window,
-                             elem: AbstractNode<ScriptView>) -> AttrList {
+    pub fn new_inherited(window: @mut Window, elem: AbstractNode) -> AttrList {
         AttrList {
             reflector_: Reflector::new(),
             window: window,
@@ -24,28 +23,19 @@ impl AttrList {
         }
     }
 
-    pub fn new(window: @mut Window, elem: AbstractNode<ScriptView>) -> @mut AttrList {
+    pub fn new(window: @mut Window, elem: AbstractNode) -> @mut AttrList {
         reflect_dom_object(@mut AttrList::new_inherited(window, elem),
                            window, AttrListBinding::Wrap)
     }
 
     pub fn Length(&self) -> u32 {
-        self.owner.with_imm_element(|elem| elem.attrs_insert_order.len() as u32)
+        self.owner.with_imm_element(|elem| elem.attrs.len() as u32)
     }
 
     pub fn Item(&self, index: u32) -> Option<@mut Attr> {
-        if index >= self.Length() {
-            None
-        } else {
-            do self.owner.with_imm_element |elem| {
-                let insert_order = &elem.attrs_insert_order[index];
-                do elem.attrs.find_equiv(&insert_order.first()).and_then |attrs| {
-                    attrs.iter()
-                         .find(|attr| attr.namespace == insert_order.second())
-                         .map(|attr| *attr)
-                }
-            }
-        }
+        self.owner.with_imm_element(|elem| {
+            elem.attrs.get_opt(index as uint).map(|&x| x)
+        })
     }
 
     pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<@mut Attr> {

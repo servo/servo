@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use font::{CSSFontWeight, SpecifiedFontStyle};
+use font::SpecifiedFontStyle;
 use gfx_font::FontHandleMethods;
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_list::FontListHandle;
-use servo_util::time;
-use servo_util::time::profile;
-use servo_util::time::ProfilerChan;
+use style::computed_values::{font_weight, font_style};
 
+use servo_util::time::{ProfilerChan, profile};
+use servo_util::time;
 use std::hashmap::HashMap;
 
 pub type FontFamilyMap = HashMap<~str, FontFamily>;
@@ -28,7 +28,7 @@ pub struct FontList {
     prof_chan: ProfilerChan,
 }
 
-impl<'self> FontList {
+impl FontList {
     pub fn new(fctx: &FontContextHandle,
            prof_chan: ProfilerChan)
            -> FontList {
@@ -47,20 +47,20 @@ impl<'self> FontList {
         // changed.  Does OSX have a notification for this event?
         //
         // Should font families with entries be invalidated/refreshed too?
-        do profile(time::GfxRegenAvailableFontsCategory, self.prof_chan.clone()) {
+        profile(time::GfxRegenAvailableFontsCategory, self.prof_chan.clone(), || {
             self.family_map = self.handle.get_available_families();
-        }
+        });
     }
 
-    pub fn find_font_in_family(&'self mut self,
-                           family_name: &~str, 
-                           style: &SpecifiedFontStyle) -> Option<&'self FontEntry> {
+    pub fn find_font_in_family<'a>(&'a mut self,
+                                   family_name: &~str, 
+                                   style: &SpecifiedFontStyle) -> Option<&'a FontEntry> {
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
         if self.family_map.contains_key(family_name) {
             //FIXME call twice!(ksh8281)
             debug!("FontList: Found font family with name={:s}", family_name.to_str());
-            let s: &'self mut FontFamily = self.family_map.get_mut(family_name);
+            let s: &'a mut FontFamily = self.family_map.get_mut(family_name);
             // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
             // if such family exists, try to match style to a font
             let result = s.find_font_for_style(&mut self.handle, style);
@@ -82,12 +82,12 @@ impl<'self> FontList {
 }
 
 // Holds a specific font family, and the various 
-pub struct FontFamily<'self> {
+pub struct FontFamily {
     family_name: ~str,
     entries: ~[FontEntry],
 }
 
-impl<'self> FontFamily {
+impl FontFamily {
     pub fn new(family_name: &str) -> FontFamily {
         FontFamily {
             family_name: family_name.to_str(),
@@ -103,8 +103,8 @@ impl<'self> FontFamily {
         assert!(self.entries.len() > 0)
     }
 
-    pub fn find_font_for_style(&'self mut self, list: &FontListHandle, style: &SpecifiedFontStyle)
-                            -> Option<&'self FontEntry> {
+    pub fn find_font_for_style<'a>(&'a mut self, list: &FontListHandle, style: &SpecifiedFontStyle)
+                               -> Option<&'a FontEntry> {
         self.load_family_variations(list);
 
         // TODO(Issue #189): optimize lookup for
@@ -114,8 +114,8 @@ impl<'self> FontFamily {
         // TODO(Issue #190): if not in the fast path above, do
         // expensive matching of weights, etc.
         for entry in self.entries.iter() {
-            if (style.weight.is_bold() == entry.is_bold()) && 
-               (style.italic == entry.is_italic()) {
+            if (style.weight.is_bold() == entry.is_bold()) &&
+               ((style.style == font_style::italic) == entry.is_italic()) {
 
                 return Some(entry);
             }
@@ -132,7 +132,7 @@ impl<'self> FontFamily {
 /// standard four faces: Normal, Bold, Italic, BoldItalic.
 pub struct FontEntry {
     face_name: ~str,
-    priv weight: CSSFontWeight,
+    priv weight: font_weight::T,
     priv italic: bool,
     handle: FontHandle,
     // TODO: array of OpenType features, etc.

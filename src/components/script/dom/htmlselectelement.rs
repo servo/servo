@@ -3,25 +3,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLSelectElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLSelectElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use dom::validitystate::ValidityState;
+use servo_util::str::DOMString;
 
 pub struct HTMLSelectElement {
     htmlelement: HTMLElement
 }
 
 impl HTMLSelectElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLSelectElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement: HTMLElement::new_inherited(HTMLSelectElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLSelectElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLSelectElementBinding::Wrap)
     }
@@ -44,7 +45,7 @@ impl HTMLSelectElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetForm(&self) -> Option<AbstractNode> {
         None
     }
 
@@ -92,19 +93,19 @@ impl HTMLSelectElement {
         Ok(())
     }
 
-    pub fn Item(&self, _index: u32) -> Option<AbstractNode<ScriptView>> {
+    pub fn Item(&self, _index: u32) -> Option<AbstractNode> {
         None
     }
 
-    pub fn NamedItem(&self, _name: DOMString) -> Option<AbstractNode<ScriptView>> {
+    pub fn NamedItem(&self, _name: DOMString) -> Option<AbstractNode> {
         None
     }
 
-    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<AbstractNode<ScriptView>> {
+    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<AbstractNode> {
         None
     }
 
-    pub fn IndexedSetter(&mut self, _index: u32, _option: Option<AbstractNode<ScriptView>>) -> ErrorResult {
+    pub fn IndexedSetter(&mut self, _index: u32, _option: Option<AbstractNode>) -> ErrorResult {
         Ok(())
     }
 

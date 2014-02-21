@@ -6,20 +6,21 @@ use dom::bindings::codegen::HTMLMainElementBinding;
 use dom::document::AbstractDocument;
 use dom::element::HTMLMainElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLMainElement {
     htmlelement: HTMLElement
 }
 
 impl HTMLMainElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLMainElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLMainElement {
         HTMLMainElement {
             htmlelement: HTMLElement::new_inherited(HTMLMainElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLMainElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLMainElementBinding::Wrap)
     }

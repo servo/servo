@@ -2,17 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector, Traceable};
+use dom::bindings::utils::{Reflectable, Reflector, Traceable, trace_reflector};
 use dom::types::*;
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::AbstractNode;
 
 use std::cast;
 use std::libc;
 use std::ptr;
 use js::jsapi::{JSTracer, JSTRACE_OBJECT, JS_CallTracer};
-use servo_util::tree::TreeNodeRef;
 
-impl Reflectable for AbstractNode<ScriptView> {
+impl Reflectable for AbstractNode {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.node().reflector()
     }
@@ -22,10 +21,9 @@ impl Reflectable for AbstractNode<ScriptView> {
     }
 }
 
-impl Traceable for Node<ScriptView> {
+impl Traceable for Node {
     fn trace(&self, tracer: *mut JSTracer) {
-        #[fixed_stack_segment]
-        fn trace_node(tracer: *mut JSTracer, node: Option<AbstractNode<ScriptView>>, name: &str) {
+        fn trace_node(tracer: *mut JSTracer, node: Option<AbstractNode>, name: &str) {
             if node.is_none() {
                 return;
             }
@@ -36,10 +34,10 @@ impl Traceable for Node<ScriptView> {
             unsafe {
                 (*tracer).debugPrinter = ptr::null();
                 (*tracer).debugPrintIndex = -1;
-                do name.to_c_str().with_ref |name| {
+                name.to_c_str().with_ref(|name| {
                     (*tracer).debugPrintArg = name as *libc::c_void;
                     JS_CallTracer(cast::transmute(tracer), obj, JSTRACE_OBJECT as u32);
-                }
+                });
             }
         }
         debug!("tracing {:p}?:", self.reflector().get_jsobject());
@@ -48,5 +46,7 @@ impl Traceable for Node<ScriptView> {
         trace_node(tracer, self.last_child, "last child");
         trace_node(tracer, self.next_sibling, "next sibling");
         trace_node(tracer, self.prev_sibling, "prev sibling");
+        let owner_doc = self.owner_doc();
+        trace_reflector(tracer, "document", owner_doc.reflector());
     }
 }

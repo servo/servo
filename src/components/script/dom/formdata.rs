@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Fallible, Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::DOMString;
 use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::AbstractNode;
 use dom::window::Window;
+use servo_util::str::DOMString;
 
 use std::hashmap::HashMap;
 
@@ -17,14 +17,14 @@ enum FormDatum {
 }
 
 pub struct FormData {
-    data: HashMap<~str, FormDatum>,
+    data: HashMap<DOMString, FormDatum>,
     reflector_: Reflector,
     window: @mut Window,
-    form: Option<AbstractNode<ScriptView>>
+    form: Option<AbstractNode>
 }
 
 impl FormData {
-    pub fn new_inherited(form: Option<AbstractNode<ScriptView>>, window: @mut Window) -> FormData {
+    pub fn new_inherited(form: Option<AbstractNode>, window: @mut Window) -> FormData {
         FormData {
             data: HashMap::new(),
             reflector_: Reflector::new(),
@@ -33,12 +33,12 @@ impl FormData {
         }
     }
 
-    pub fn new(form: Option<AbstractNode<ScriptView>>, window: @mut Window) -> @mut FormData {
+    pub fn new(form: Option<AbstractNode>, window: @mut Window) -> @mut FormData {
         reflect_dom_object(@mut FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(window: @mut Window,
-                       form: Option<AbstractNode<ScriptView>>) -> Fallible<@mut FormData> {
+    pub fn Constructor(window: @mut Window, form: Option<AbstractNode>)
+                       -> Fallible<@mut FormData> {
         Ok(FormData::new(form, window))
     }
 

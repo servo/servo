@@ -9,6 +9,9 @@ use geom::size::Size2D;
 use std::num::{NumCast, One, Zero};
 use std::fmt;
 
+// An Au is an "App Unit" and represents 1/60th of a CSS pixel.  It was
+// originally proposed in 2002 as a standard unit of measure in Gecko.
+// See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
 pub struct Au(i32);
 
 // We don't use #[deriving] here for inlining.
@@ -98,31 +101,32 @@ pub fn min(x: Au, y: Au) -> Au { if x < y { x } else { y } }
 pub fn max(x: Au, y: Au) -> Au { if x > y { x } else { y } }
 
 impl NumCast for Au {
+    #[inline]
     fn from<T:ToPrimitive>(n: T) -> Option<Au> {
         Some(Au(n.to_i32().unwrap()))
     }
 }
 
 impl ToPrimitive for Au {
+    #[inline]
     fn to_i64(&self) -> Option<i64> {
         Some(**self as i64)
     }
 
+    #[inline]
     fn to_u64(&self) -> Option<u64> {
         Some(**self as u64)
     }
 
+    #[inline]
     fn to_f32(&self) -> Option<f32> {
         (**self).to_f32()
     }
 
+    #[inline]
     fn to_f64(&self) -> Option<f64> {
         (**self).to_f64()
     }
-}
-
-pub fn box<T:Clone + Ord + Add<T,T> + Sub<T,T>>(x: T, y: T, w: T, h: T) -> Rect<T> {
-    Rect(Point2D(x, y), Size2D(w, h))
 }
 
 impl Au {
@@ -223,5 +227,10 @@ pub fn to_frac_px(au: Au) -> f64 {
 // assumes 72 points per inch, and 96 px per inch
 pub fn from_pt(pt: f64) -> Au {
     from_px((pt / 72f64 * 96f64) as int)
+}
+
+// assumes 72 points per inch, and 96 px per inch
+pub fn to_pt(au: Au) -> f64 {
+    (*au as f64) / 60f64 * 72f64 / 96f64
 }
 

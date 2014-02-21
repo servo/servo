@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLHeadingElementBinding;
-use dom::bindings::utils::DOMString;
 use dom::document::AbstractDocument;
 use dom::element::HTMLHeadingElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub enum HeadingLevel {
     Heading1,
@@ -24,14 +24,14 @@ pub struct HTMLHeadingElement {
 }
 
 impl HTMLHeadingElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument, level: HeadingLevel) -> HTMLHeadingElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument, level: HeadingLevel) -> HTMLHeadingElement {
         HTMLHeadingElement {
             htmlelement: HTMLElement::new_inherited(HTMLHeadingElementTypeId, localName, document),
             level: level,
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument, level: HeadingLevel) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument, level: HeadingLevel) -> AbstractNode {
         let element = HTMLHeadingElement::new_inherited(localName, document, level);
         Node::reflect_node(@mut element, document, HTMLHeadingElementBinding::Wrap)
     }

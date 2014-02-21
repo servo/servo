@@ -4,26 +4,53 @@
 
 use resource_task::{Metadata, Payload, Done, LoadResponse, LoaderTask, start_sending};
 
-use std::cell::Cell;
 use std::vec;
+use std::hashmap::HashSet;
 use extra::url::Url;
 use http::client::RequestWriter;
 use http::method::Get;
 use http::headers::HeaderEnum;
-use std::rt::io::Reader;
+use std::io::Reader;
+use servo_util::task::spawn_named;
 
 pub fn factory() -> LoaderTask {
-    let f: LoaderTask = |url, start_chan| {
-        let url = Cell::new(url);
-        let start_chan = Cell::new(start_chan);
-        spawn(|| load(url.take(), start_chan.take()))
+    let f: LoaderTask = proc(url, start_chan) {
+        spawn_named("http_loader", proc() load(url, start_chan))
     };
     f
 }
 
+fn send_error(url: Url, start_chan: Chan<LoadResponse>) {
+    start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
+}
+
 fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
+    // FIXME: At the time of writing this FIXME, servo didn't have any central
+    //        location for configuration. If you're reading this and such a
+    //        repository DOES exist, please update this constant to use it.
+    let max_redirects = 50u;
+    let mut iters = 0u;
+
+    let mut redirected_to = HashSet::new();
+
     // Loop to handle redirects.
     loop {
+        iters = iters + 1;
+
+        if iters > max_redirects {
+            info!("too many redirects");
+            send_error(url, start_chan);
+            return;
+        }
+
+        if redirected_to.contains(&url) {
+            info!("redirect loop");
+            send_error(url, start_chan);
+            return;
+        }
+
+        redirected_to.insert(url.clone());
+
         assert!("http" == url.scheme);
 
         info!("requesting {:s}", url.to_str());
@@ -32,7 +59,7 @@ fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
         let mut response = match request.read_response() {
             Ok(r) => r,
             Err(_) => {
-                start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
+                send_error(url, start_chan);
                 return;
             }
         };
@@ -44,7 +71,6 @@ fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
                 info!(" - {:s}: {:s}", header.header_name(), header.header_value());
             });
 
-        // FIXME: detect redirect loops
         if 3 == (response.status.code() / 100) {
             match response.headers.location {
                 Some(new_url) => {
@@ -63,10 +89,10 @@ fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
         loop {
             let mut buf = vec::with_capacity(1024);
 
-            unsafe { vec::raw::set_len(&mut buf, 1024) };
+            unsafe { buf.set_len(1024); }
             match response.read(buf) {
                 Some(len) => {
-                    unsafe { vec::raw::set_len(&mut buf, len) };
+                    unsafe { buf.set_len(len); }
                     progress_chan.send(Payload(buf));
                 }
                 None => {

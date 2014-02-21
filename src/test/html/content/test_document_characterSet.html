@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            // test1: characterSet
+            {
+                is(document.characterSet, "utf-8", "test1-0, characterSet");
+
+                var xmldoc = new Document;
+                is(xmldoc.characterSet, "utf-8", "test2-1, characterSet");
+
+                var htmldoc = document.implementation.createHTMLDocument("title");
+                is(htmldoc.characterSet, "utf-8", "test2-2, characterSet");
+            }
+
+            finish();
+        </script>
+    </head>
+</html>

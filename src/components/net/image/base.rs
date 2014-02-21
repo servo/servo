@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::vec;
+use std::iter::range_step;
 use stb_image = stb_image::image;
 use png;
 
@@ -25,10 +25,28 @@ pub fn test_image_bin() -> ~[u8] {
     TEST_IMAGE.into_owned()
 }
 
+// TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
+fn byte_swap(color_type: png::ColorType, data: &mut [u8]) {
+    match color_type {
+        png::RGBA8 => {
+            let length = data.len();
+            for i in range_step(0, length, 4) {
+                let r = data[i + 2];
+                data[i + 2] = data[i + 0];
+                data[i + 0] = r;
+            }
+        }
+        _ => {}
+    }
+}
+
 pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
     if png::is_png(buffer) {
         match png::load_png_from_memory(buffer) {
-            Ok(png_image) => Some(png_image),
+            Ok(mut png_image) => {
+                byte_swap(png_image.color_type, png_image.pixels);
+                Some(png_image)
+            }
             Err(_err) => None,
         }
     } else {
@@ -37,24 +55,10 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
         static FORCE_DEPTH: uint = 4;
 
         match stb_image::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
-            stb_image::ImageU8(image) => {
+            stb_image::ImageU8(mut image) => {
                 assert!(image.depth == 4);
-                // Do color space conversion :(
-                let data = do vec::from_fn(image.width * image.height * 4) |i| {
-                    let color = i % 4;
-                    let pixel = i / 4;
-                    match color {
-                        0 => image.data[pixel * 4 + 2],
-                        1 => image.data[pixel * 4 + 1],
-                        2 => image.data[pixel * 4 + 0],
-                        3 => 0xffu8,
-                        _ => fail!()
-                    }
-                };
-
-                assert!(image.data.len() == data.len());
-
-                Some(Image(image.width as u32, image.height as u32, png::RGBA8, data))
+                byte_swap(png::RGBA8, image.data);
+                Some(Image(image.width as u32, image.height as u32, png::RGBA8, image.data))
             }
             stb_image::ImageF32(_image) => fail!(~"HDR images not implemented"),
             stb_image::Error => None

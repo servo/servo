@@ -4,33 +4,45 @@
 
 //! Timing functions.
 
-use extra::sort::tim_sort;
 use extra::time::precise_time_ns;
 use extra::treemap::TreeMap;
-use std::comm::{Port, SendDeferred, SharedChan};
+use std::comm::{Port, SharedChan};
 use std::iter::AdditiveIterator;
-use std::rt::io::timer::Timer;
-use std::task::spawn_with;
+use task::{spawn_named};
+
+// TODO: This code should be changed to use the commented code that uses timers
+// directly, once native timers land in Rust.
+extern {
+    pub fn usleep(secs: u64) -> u32;
+}
+
+pub struct Timer;
+impl Timer {
+    pub fn sleep(ms: u64) {
+        //
+        //  let mut timer = Timer::new().unwrap();
+        //  timer.sleep(period);
+       unsafe { usleep((ms * 1000)); }
+    }
+}
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
 pub struct ProfilerChan(SharedChan<ProfilerMsg>);
 
 impl ProfilerChan {
-    pub fn new(chan: Chan<ProfilerMsg>) -> ProfilerChan {
-        ProfilerChan(SharedChan::new(chan))
-    }
-
-    pub fn send_deferred(&self, msg: ProfilerMsg) {
-        (**self).send_deferred(msg);
+    pub fn send(&self, msg: ProfilerMsg) {
+        (**self).send(msg);
     }
 }
 
 pub enum ProfilerMsg {
-    // Normal message used for reporting time
+    /// Normal message used for reporting time
     TimeMsg(ProfilerCategory, f64),
-    // Message used to force print the profiling metrics
+    /// Message used to force print the profiling metrics
     PrintMsg,
+    /// Tells the profiler to shut down.
+    ExitMsg,
 }
 
 #[deriving(Eq, Clone, TotalEq, TotalOrd)]
@@ -38,10 +50,12 @@ pub enum ProfilerCategory {
     CompositingCategory,
     LayoutQueryCategory,
     LayoutPerformCategory,
-    LayoutAuxInitCategory,
+    LayoutStyleRecalcCategory,
     LayoutSelectorMatchCategory,
     LayoutTreeBuilderCategory,
+    LayoutDamagePropagateCategory,
     LayoutMainCategory,
+    LayoutParallelWarmupCategory,
     LayoutShapingCategory,
     LayoutDispListBuildCategory,
     GfxRegenAvailableFontsCategory,
@@ -64,11 +78,13 @@ impl ProfilerCategory {
         buckets.insert(CompositingCategory, ~[]);
         buckets.insert(LayoutQueryCategory, ~[]);
         buckets.insert(LayoutPerformCategory, ~[]);
-        buckets.insert(LayoutAuxInitCategory, ~[]);
+        buckets.insert(LayoutStyleRecalcCategory, ~[]);
         buckets.insert(LayoutSelectorMatchCategory, ~[]);
         buckets.insert(LayoutTreeBuilderCategory, ~[]);
         buckets.insert(LayoutMainCategory, ~[]);
+        buckets.insert(LayoutParallelWarmupCategory, ~[]);
         buckets.insert(LayoutShapingCategory, ~[]);
+        buckets.insert(LayoutDamagePropagateCategory, ~[]);
         buckets.insert(LayoutDispListBuildCategory, ~[]);
         buckets.insert(GfxRegenAvailableFontsCategory, ~[]);
         buckets.insert(RenderingDrawingCategory, ~[]);
@@ -82,8 +98,14 @@ impl ProfilerCategory {
     // and should be printed to indicate this
     pub fn format(self) -> ~str {
         let padding = match self {
-            LayoutAuxInitCategory | LayoutSelectorMatchCategory | LayoutTreeBuilderCategory |
-            LayoutMainCategory | LayoutDispListBuildCategory | LayoutShapingCategory=> " - ",
+            LayoutStyleRecalcCategory |
+            LayoutMainCategory |
+            LayoutDispListBuildCategory |
+            LayoutShapingCategory |
+            LayoutDamagePropagateCategory => "+ ",
+            LayoutParallelWarmupCategory |
+            LayoutSelectorMatchCategory |
+            LayoutTreeBuilderCategory => "| + ",
             _ => ""
         };
         format!("{:s}{:?}", padding, self)
@@ -100,32 +122,40 @@ pub struct Profiler {
 }
 
 impl Profiler {
-    pub fn create(port: Port<ProfilerMsg>, chan: ProfilerChan, period: Option<f64>) {
+    pub fn create(period: Option<f64>) -> ProfilerChan {
+        let (port, chan) = SharedChan::new();
         match period {
             Some(period) => {
                 let period = (period * 1000f64) as u64;
-                do spawn {
-                    let mut timer = Timer::new().unwrap();
+                let chan = chan.clone();
+                spawn_named("Profiler timer", proc() {
                     loop {
-                        timer.sleep(period);
+                        Timer::sleep(period);
                         if !chan.try_send(PrintMsg) {
                             break;
                         }
                     }
-                }
+                });
                 // Spawn the profiler
-                do spawn_with(port) |port| {
+                spawn_named("Profiler", proc() {
                     let mut profiler = Profiler::new(port);
                     profiler.start();
-                }
+                });
             }
             None => {
                 // no-op to handle profiler messages when the profiler is inactive
-                do spawn_with(port) |port| {
-                    while port.try_recv().is_some() {}
-                }
+                spawn_named("Profiler", proc() {
+                    loop {
+                        match port.recv_opt() {
+                            None | Some(ExitMsg) => break,
+                            _ => {}
+                        }
+                    }
+                });
             }
         }
+
+        ProfilerChan(chan)
     }
 
     pub fn new(port: Port<ProfilerMsg>) -> Profiler {
@@ -138,34 +168,46 @@ impl Profiler {
 
     pub fn start(&mut self) {
         loop {
-            let msg = self.port.try_recv();
+            let msg = self.port.recv_opt();
             match msg {
-               Some (msg) => self.handle_msg(msg),
+               Some(msg) => {
+                   if !self.handle_msg(msg) {
+                       break
+                   }
+               }
                None => break
             }
         }
     }
 
-    fn handle_msg(&mut self, msg: ProfilerMsg) {
+    fn handle_msg(&mut self, msg: ProfilerMsg) -> bool {
         match msg {
             TimeMsg(category, t) => self.buckets.find_mut(&category).unwrap().push(t),
             PrintMsg => match self.last_msg {
                 // only print if more data has arrived since the last printout
-                Some(TimeMsg(*)) => self.print_buckets(),
+                Some(TimeMsg(..)) => self.print_buckets(),
                 _ => ()
             },
+            ExitMsg => return false,
         };
         self.last_msg = Some(msg);
+        true
     }
 
     fn print_buckets(&mut self) {
-        println(format!("{:31s} {:15s} {:15s} {:15s} {:15s} {:15s}",
+        println(format!("{:39s} {:15s} {:15s} {:15s} {:15s} {:15s}",
                          "_category_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
         for (category, data) in self.buckets.iter() {
             // FIXME(XXX): TreeMap currently lacks mut_iter()
             let mut data = data.clone();
-            tim_sort(data);
+            data.sort_by(|a, b| {
+                if a < b {
+                    Less
+                } else {
+                    Greater
+                }
+            });
             let data_len = data.len();
             if data_len > 0 {
                 let (mean, median, &min, &max) =
@@ -173,7 +215,7 @@ impl Profiler {
                      data[data_len / 2],
                      data.iter().min().unwrap(),
                      data.iter().max().unwrap());
-                println(format!("{:-30s}: {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
+                println(format!("{:-35s}: {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
                              category.format(), mean, median, min, max, data_len));
             }
         }
@@ -184,17 +226,17 @@ impl Profiler {
 
 pub fn profile<T>(category: ProfilerCategory, 
                   profiler_chan: ProfilerChan,
-                  callback: &fn() -> T)
+                  callback: || -> T)
                   -> T {
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
     let ms = ((end_time - start_time) as f64 / 1000000f64);
-    profiler_chan.send_deferred(TimeMsg(category, ms));
+    profiler_chan.send(TimeMsg(category, ms));
     return val;
 }
 
-pub fn time<T>(msg: &str, callback: &fn() -> T) -> T{
+pub fn time<T>(msg: &str, callback: || -> T) -> T{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();

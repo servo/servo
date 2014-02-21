@@ -3,18 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLImageElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLImageElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use extra::url::Url;
 use servo_util::geometry::to_px;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
-use servo_util::url::make_url;
-use servo_util::tree::ElementLike;
+use servo_util::url::parse_url;
+use servo_util::namespace::Null;
+use servo_util::str::DOMString;
 
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
@@ -22,14 +23,14 @@ pub struct HTMLImageElement {
 }
 
 impl HTMLImageElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLImageElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, document),
             image: None,
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLImageElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLImageElementBinding::Wrap)
     }
@@ -40,11 +41,11 @@ impl HTMLImageElement {
     /// prefetching the image. This method must be called after `src` is changed.
     pub fn update_image(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
         let elem = &mut self.htmlelement.element;
-        let src_opt = elem.get_attr("src").map(|x| x.to_str());
+        let src_opt = elem.get_attribute(Null, "src").map(|x| x.Value());
         match src_opt {
             None => {}
             Some(src) => {
-                let img_url = make_url(src, url);
+                let img_url = parse_url(src, url);
                 self.image = Some(img_url.clone());
 
                 // inform the image cache to load this, but don't store a
@@ -66,6 +67,17 @@ impl HTMLImageElement {
         }
     }
 
+    pub fn AfterRemoveAttr(&mut self, name: DOMString) {
+        // FIXME (#1469):
+        // This might not handle remove src attribute actually since
+        // `self.update_image()` will see the missing src attribute and return early.
+        if "src" == name {
+            let document = self.htmlelement.element.node.owner_doc();
+            let window = document.document().window;
+            self.update_image(window.image_cache_task.clone(), None);
+        }
+    }
+
     pub fn Alt(&self) -> DOMString {
         ~""
     }
@@ -74,13 +86,11 @@ impl HTMLImageElement {
         Ok(())
     }
 
-    pub fn Src(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
+    pub fn Src(&self, _abstract_self: AbstractNode) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self,
-                  abstract_self: AbstractNode<ScriptView>,
-                  src: DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, abstract_self: AbstractNode, src: DOMString) -> ErrorResult {
         let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self, ~"src", src.clone());
         Ok(())
@@ -110,10 +120,10 @@ impl HTMLImageElement {
         Ok(())
     }
 
-    pub fn Width(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
+    pub fn Width(&self, abstract_self: AbstractNode) -> u32 {
         let node = &self.htmlelement.element.node;
         let page = node.owner_doc().document().window.page;
-        let (port, chan) = stream();
+        let (port, chan) = Chan::new();
         match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
             ContentBoxResponse(rect) => {
                 to_px(rect.size.width) as u32
@@ -121,18 +131,16 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn SetWidth(&mut self,
-                    abstract_self: AbstractNode<ScriptView>,
-                    width: u32) -> ErrorResult {
+    pub fn SetWidth(&mut self, abstract_self: AbstractNode, width: u32) -> ErrorResult {
         let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self, ~"width", width.to_str());
         Ok(())
     }
 
-    pub fn Height(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
+    pub fn Height(&self, abstract_self: AbstractNode) -> u32 {
         let node = &self.htmlelement.element.node;
         let page = node.owner_doc().document().window.page;
-        let (port, chan) = stream();
+        let (port, chan) = Chan::new();
         match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
             ContentBoxResponse(rect) => {
                 to_px(rect.size.height) as u32
@@ -140,9 +148,7 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn SetHeight(&mut self,
-                     abstract_self: AbstractNode<ScriptView>,
-                     height: u32) -> ErrorResult {
+    pub fn SetHeight(&mut self, abstract_self: AbstractNode, height: u32) -> ErrorResult {
         let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self, ~"height", height.to_str());
         Ok(())

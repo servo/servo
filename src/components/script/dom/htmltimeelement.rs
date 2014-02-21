@@ -3,24 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLTimeElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLTimeElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLTimeElement {
     htmlelement: HTMLElement
 }
 
 impl HTMLTimeElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLTimeElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLTimeElement {
         HTMLTimeElement {
             htmlelement: HTMLElement::new_inherited(HTMLTimeElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLTimeElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLTimeElementBinding::Wrap)
     }

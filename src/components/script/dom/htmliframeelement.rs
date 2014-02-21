@@ -3,21 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLIFrameElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLIframeElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use dom::windowproxy::WindowProxy;
-use geom::size::Size2D;
-use geom::rect::Rect;
+use servo_util::str::DOMString;
 
-use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
-
-use std::ascii::StrAsciiExt;
-use std::comm::ChanOne;
 use extra::url::Url;
-use std::util::replace;
+use servo_msg::constellation_msg::{PipelineId, SubpageId};
+use std::ascii::StrAsciiExt;
 
 enum SandboxAllowance {
     AllowNothing = 0x00,
@@ -36,22 +32,9 @@ pub struct HTMLIFrameElement {
     sandbox: Option<u8>
 }
 
-struct IFrameSize {
+pub struct IFrameSize {
     pipeline_id: PipelineId,
     subpage_id: SubpageId,
-    future_chan: Option<ChanOne<Size2D<uint>>>,
-    constellation_chan: ConstellationChan,
-}
-
-impl IFrameSize {
-    pub fn set_rect(&mut self, rect: Rect<f32>) {
-        let future_chan = replace(&mut self.future_chan, None);
-        do future_chan.map |future_chan| {
-            let Size2D { width, height } = rect.size;
-            future_chan.send(Size2D(width as uint, height as uint));
-        };
-        self.constellation_chan.send(FrameRectMsg(self.pipeline_id, self.subpage_id, rect));
-    }
 }
 
 impl HTMLIFrameElement {
@@ -61,7 +44,7 @@ impl HTMLIFrameElement {
 }
 
 impl HTMLIFrameElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLIFrameElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIframeElementTypeId, localName, document),
             frame: None,
@@ -70,7 +53,7 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLIFrameElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLIFrameElementBinding::Wrap)
     }
@@ -101,22 +84,22 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
-        match self.htmlelement.element.GetAttribute(~"sandbox") {
-            Some(s) => s.to_owned(),
-            None => ~"",
-        }
+    pub fn Sandbox(&self, _abstract_self: AbstractNode) -> DOMString {
+        self.htmlelement.element.get_string_attribute("sandbox")
     }
 
-    pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: DOMString) {
-        self.htmlelement.element.SetAttribute(abstract_self, ~"sandbox", sandbox);
+    pub fn SetSandbox(&mut self, abstract_self: AbstractNode, sandbox: DOMString) {
+        self.htmlelement.element.set_string_attribute(abstract_self, "sandbox",
+                                                      sandbox);
     }
 
     pub fn AfterSetAttr(&mut self, name: DOMString, value: DOMString) {
         if "sandbox" == name {
             let mut modes = AllowNothing as u8;
-            for word in value.split_iter(' ') {
-                modes |= match word.to_ascii_lower().as_slice() {
+            for word in value.split(' ') {
+                // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
+                let word_lower = word.to_ascii_lower();
+                modes |= match word_lower.as_slice() {
                     "allow-same-origin" => AllowSameOrigin,
                     "allow-forms" => AllowForms,
                     "allow-pointer-lock" => AllowPointerLock,
@@ -127,6 +110,12 @@ impl HTMLIFrameElement {
                 } as u8;
             }
             self.sandbox = Some(modes);
+        }
+    }
+
+    pub fn AfterRemoveAttr(&mut self, name: DOMString) {
+        if "sandbox" == name {
+            self.sandbox = None;
         }
     }
 

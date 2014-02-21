@@ -7,20 +7,21 @@ use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLMeterElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLMeterElement {
     htmlelement: HTMLElement
 }
 
 impl HTMLMeterElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLMeterElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLMeterElement {
         HTMLMeterElement {
             htmlelement: HTMLElement::new_inherited(HTMLMeterElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLMeterElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLMeterElementBinding::Wrap)
     }

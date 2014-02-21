@@ -5,50 +5,37 @@
 use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::document::{AbstractDocument, Document, HTML};
-use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
-use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
 use dom::window::Window;
+use servo_util::namespace::Null;
 
+use extra::url::Url;
 use js::jsapi::JSTracer;
-
-use servo_util::tree::{TreeNodeRef, ElementLike};
-
-use std::str::eq_slice;
 
 pub struct HTMLDocument {
     parent: Document
 }
 
 impl HTMLDocument {
-    pub fn new_inherited(window: @mut Window) -> HTMLDocument {
+    pub fn new_inherited(window: @mut Window, url: Option<Url>) -> HTMLDocument {
         HTMLDocument {
-            parent: Document::new_inherited(window, HTML)
+            parent: Document::new_inherited(window, url, HTML, None)
         }
     }
 
-    pub fn new(window: @mut Window) -> AbstractDocument {
-        let document = HTMLDocument::new_inherited(window);
+    pub fn new(window: @mut Window, url: Option<Url>) -> AbstractDocument {
+        let document = HTMLDocument::new_inherited(window, url);
         Document::reflect_document(@mut document, window, HTMLDocumentBinding::Wrap)
     }
 }
 
 impl HTMLDocument {
-    pub fn GetHead(&self) -> Option<AbstractNode<ScriptView>> {
-        match self.parent.GetDocumentElement() {
-            None => None,
-            Some(root) => root.traverse_preorder().find(|child| {
-                child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
-            })
-        }
-    }
-
     pub fn Images(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "img"))
+        self.parent.createHTMLCollection(|elem| "img" == elem.tag_name)
     }
 
     pub fn Embeds(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "embed"))
+        self.parent.createHTMLCollection(|elem| "embed" == elem.tag_name)
     }
 
     pub fn Plugins(&self) -> @mut HTMLCollection {
@@ -56,27 +43,29 @@ impl HTMLDocument {
     }
 
     pub fn Links(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem|
-            (eq_slice(elem.tag_name, "a") || eq_slice(elem.tag_name, "area"))
-            && elem.get_attr("href").is_some())
+        self.parent.createHTMLCollection(|elem| {
+            ("a" == elem.tag_name || "area" == elem.tag_name) &&
+            elem.get_attribute(Null, "href").is_some()
+        })
     }
 
     pub fn Forms(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "form"))
+        self.parent.createHTMLCollection(|elem| "form" == elem.tag_name)
     }
 
     pub fn Scripts(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "script"))
+        self.parent.createHTMLCollection(|elem| "script" == elem.tag_name)
     }
 
     pub fn Anchors(&self) -> @mut HTMLCollection {
-        self.parent.createHTMLCollection(|elem|
-            eq_slice(elem.tag_name, "a") && elem.get_attr("name").is_some())
+        self.parent.createHTMLCollection(|elem| {
+            "a" == elem.tag_name && elem.get_attribute(Null, "name").is_some()
+        })
     }
 
     pub fn Applets(&self) -> @mut HTMLCollection {
         // FIXME: This should be return OBJECT elements containing applets.
-        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "applet"))
+        self.parent.createHTMLCollection(|elem| "applet" == elem.tag_name)
     }
 }
 

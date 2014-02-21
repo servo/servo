@@ -3,25 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
+use dom::bindings::utils::{Fallible, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use js::jsapi::{JSContext, JSVal};
 use js::JSVAL_NULL;
+use servo_util::namespace;
+use servo_util::str::DOMString;
 
 pub struct HTMLElement {
     element: Element
 }
 
 impl HTMLElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> HTMLElement {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: AbstractDocument) -> HTMLElement {
         HTMLElement {
-            element: Element::new(type_id, tag_name, document)
+            element: Element::new_inherited(type_id, tag_name, namespace::HTML, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document);
         Node::reflect_node(@mut element, document, HTMLElementBinding::Wrap)
     }
@@ -132,7 +134,7 @@ impl HTMLElement {
     pub fn SetClassName(&self, _class: DOMString) {
     }
 
-    pub fn GetOffsetParent(&self) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetOffsetParent(&self) -> Option<AbstractNode> {
         None
     }
 

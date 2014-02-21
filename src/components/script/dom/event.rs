@@ -6,9 +6,10 @@ use dom::eventtarget::AbstractEventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
+use dom::bindings::utils::{Fallible, ErrorResult};
 use dom::mouseevent::MouseEvent;
 use dom::uievent::UIEvent;
+use servo_util::str::DOMString;
 
 use geom::point::Point2D;
 
@@ -21,6 +22,7 @@ pub enum Event_ {
     ClickEvent(uint, Point2D<f32>),
     MouseDownEvent(uint, Point2D<f32>),
     MouseUpEvent(uint, Point2D<f32>),
+    MouseMoveEvent(Point2D<f32>)
 }
 
 pub struct AbstractEvent {
@@ -35,9 +37,9 @@ pub enum EventPhase {
 }
 
 impl AbstractEvent {
-    pub fn from_box(box: *mut Box<Event>) -> AbstractEvent {
+    pub fn from_box(box_: *mut Box<Event>) -> AbstractEvent {
         AbstractEvent {
-            event: box
+            event: box_
         }
     }
 
@@ -47,15 +49,15 @@ impl AbstractEvent {
 
     fn transmute<'a, T>(&'a self) -> &'a T {
         unsafe {
-            let box: *Box<T> = self.event as *Box<T>;
-            &(*box).data
+            let box_: *Box<T> = self.event as *Box<T>;
+            &(*box_).data
         }
     }
 
     fn transmute_mut<'a, T>(&'a self) -> &'a mut T {
         unsafe {
-            let box: *mut Box<T> = self.event as *mut Box<T>;
-            &mut (*box).data
+            let box_: *mut Box<T> = self.event as *mut Box<T>;
+            &mut (*box_).data
         }
     }
 
@@ -131,7 +133,7 @@ pub struct Event {
     reflector_: Reflector,
     current_target: Option<AbstractEventTarget>,
     target: Option<AbstractEventTarget>,
-    type_: ~str,
+    type_: DOMString,
     phase: EventPhase,
     default_prevented: bool,
     stop_propagation: bool,

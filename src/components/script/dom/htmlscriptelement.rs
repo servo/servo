@@ -3,25 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLScriptElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLScriptElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
-use servo_util::tree::ElementLike;
+use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
 }
 
 impl HTMLScriptElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLScriptElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement: HTMLElement::new_inherited(HTMLScriptElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLScriptElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLScriptElementBinding::Wrap)
     }
@@ -29,10 +29,7 @@ impl HTMLScriptElement {
 
 impl HTMLScriptElement {
     pub fn Src(&self) -> DOMString {
-        match self.htmlelement.element.get_attr("src") {
-            Some(s) => s.to_owned(),
-            None => ~""
-        }
+        self.htmlelement.element.get_url_attribute("src")
     }
 
     pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {

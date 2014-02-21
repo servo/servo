@@ -2,18 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use extra::arc::Arc;
 use std::ascii::StrAsciiExt;
 use std::hashmap::HashMap;
-use extra::arc::Arc;
-use extra::sort::tim_sort;
+use std::to_bytes;
 
+use servo_util::namespace;
+use servo_util::smallvec::SmallVec;
+use servo_util::sort;
+use servo_util::str::DOMString;
+
+use media_queries::{Device, Screen};
+use node::{TElement, TNode};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use selectors::*;
 use stylesheets::{Stylesheet, iter_style_rules};
-use media_queries::{Device, Screen};
-use properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use servo_util::tree::{TreeNodeRefAsElement, TreeNode, ElementLike};
-
-use std::str;
 
 pub enum StylesheetOrigin {
     UserAgentOrigin,
@@ -21,6 +24,38 @@ pub enum StylesheetOrigin {
     UserOrigin,
 }
 
+/// The definition of whitespace per CSS Selectors Level 3 § 4.
+static SELECTOR_WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
+
+/// A newtype struct used to perform lowercase ASCII comparisons without allocating a whole new
+/// string.
+struct LowercaseAsciiString<'a>(&'a str);
+
+impl<'a> Equiv<DOMString> for LowercaseAsciiString<'a> {
+    fn equiv(&self, other: &DOMString) -> bool {
+        let LowercaseAsciiString(this) = *self;
+        this.eq_ignore_ascii_case(*other)
+    }
+}
+
+impl<'a> IterBytes for LowercaseAsciiString<'a> {
+    #[inline]
+    fn iter_bytes(&self, _: bool, f: to_bytes::Cb) -> bool {
+        for b in self.bytes() {
+            // FIXME(pcwalton): This is a nasty hack for performance. We temporarily violate the
+            // `Ascii` type's invariants by using `to_ascii_nocheck`, but it's OK as we simply
+            // convert to a byte afterward.
+            unsafe {
+                if !f([ b.to_ascii_nocheck().to_lower().to_byte() ]) {
+                    return false
+                }
+            }
+        }
+        // Terminate the string with a non-UTF-8 character, to match what the built-in string
+        // `ToBytes` implementation does. (See `libstd/to_bytes.rs`.)
+        f([ 0xff ])
+    }
+}
 
 /// Map node attributes to Rules whose last simple selector starts with them.
 ///
@@ -41,14 +76,16 @@ pub enum StylesheetOrigin {
 /// Hence, the union of the rules keyed on each of node's classes, ID,
 /// element name, etc. will contain the Rules that actually match that
 /// node.
-pub struct SelectorMap {
+struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
     // FIXME: Use interned strings
-    priv id_hash: HashMap<~str, ~[Rule]>,
-    priv class_hash: HashMap<~str, ~[Rule]>,
-    priv element_hash: HashMap<~str, ~[Rule]>,
+    id_hash: HashMap<DOMString, ~[Rule]>,
+    class_hash: HashMap<DOMString, ~[Rule]>,
+    element_hash: HashMap<DOMString, ~[Rule]>,
     // For Rules that don't have ID, class, or element selectors.
-    priv universal_rules: ~[Rule],
+    universal_rules: ~[Rule],
+    /// Whether this hash is empty.
+    empty: bool,
 }
 
 impl SelectorMap {
@@ -58,6 +95,7 @@ impl SelectorMap {
             class_hash: HashMap::new(),
             element_hash: HashMap::new(),
             universal_rules: ~[],
+            empty: true,
         }
     }
 
@@ -65,68 +103,106 @@ impl SelectorMap {
     ///
     /// Extract matching rules as per node's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
-    fn get_all_matching_rules<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        &self, node: &T,
-        pseudo_element: Option<PseudoElement>,
-        matching_rules_list: &mut [~[Rule]],
-        list_index: uint) {
+    fn get_all_matching_rules<E:TElement,
+                              N:TNode<E>,
+                              V:SmallVec<MatchedProperty>>(
+                              &self,
+                              node: &N,
+                              matching_rules_list: &mut V,
+                              shareable: &mut bool) {
+        if self.empty {
+            return
+        }
 
-        let init_len = matching_rules_list[list_index].len();
-        static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
-        do node.with_imm_element_like |element: &E| {
-            match element.get_attr("id") {
-                Some(id) => SelectorMap::get_matching_rules_from_hash(
-                    node, pseudo_element, &self.id_hash, id, &mut matching_rules_list[list_index]),
+        // At the end, we're going to sort the rules that we added, so remember where we began.
+        let init_len = matching_rules_list.len();
+        node.with_element(|element: &E| {
+            match element.get_attr(&namespace::Null, "id") {
+                Some(id) => {
+                    SelectorMap::get_matching_rules_from_hash(node,
+                                                              &self.id_hash,
+                                                              id,
+                                                              matching_rules_list,
+                                                              shareable)
+                }
                 None => {}
             }
 
-            match element.get_attr("class") {
+            match element.get_attr(&namespace::Null, "class") {
                 Some(ref class_attr) => {
-                    for class in class_attr.split_iter(WHITESPACE) {
-                        SelectorMap::get_matching_rules_from_hash(
-                            node, pseudo_element, &self.class_hash, class, &mut matching_rules_list[list_index]);
+                    for class in class_attr.split(SELECTOR_WHITESPACE) {
+                        SelectorMap::get_matching_rules_from_hash(node,
+                                                                  &self.class_hash,
+                                                                  class,
+                                                                  matching_rules_list,
+                                                                  shareable);
                     }
                 }
                 None => {}
             }
 
-            SelectorMap::get_matching_rules_from_hash(
-                node, pseudo_element, &self.element_hash,
-                // HTML elements in HTML documents must be matched case-insensitively
-                // TODO: case-sensitivity depends on the document type
-                element.get_local_name().to_ascii_lower(),
-                &mut matching_rules_list[list_index]);
-            SelectorMap::get_matching_rules(
-                node, pseudo_element, self.universal_rules, &mut matching_rules_list[list_index]);
-        }
+            // HTML elements in HTML documents must be matched case-insensitively.
+            // TODO(pradeep): Case-sensitivity depends on the document type.
+            SelectorMap::get_matching_rules_from_hash_ignoring_case(node,
+                                                                    &self.element_hash,
+                                                                    element.get_local_name(),
+                                                                    matching_rules_list,
+                                                                    shareable);
+
+            SelectorMap::get_matching_rules(node,
+                                            self.universal_rules,
+                                            matching_rules_list,
+                                            shareable);
+        });
 
         // Sort only the rules we just added.
-        tim_sort(matching_rules_list[list_index].mut_slice_from(init_len));
+        sort::quicksort(matching_rules_list.mut_slice_from(init_len));
     }
 
-    fn get_matching_rules_from_hash<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        node: &T,
-        pseudo_element: Option<PseudoElement>,
-        hash: &HashMap<~str, ~[Rule]>, 
-        key: &str,
-        matching_rules: &mut ~[Rule]) {
-        match hash.find(&key.to_str()) {
-            Some(rules) => SelectorMap::get_matching_rules(node, pseudo_element, *rules,
-                                                           matching_rules),
+    fn get_matching_rules_from_hash<E:TElement,
+                                    N:TNode<E>,
+                                    V:SmallVec<MatchedProperty>>(
+                                    node: &N,
+                                    hash: &HashMap<DOMString,~[Rule]>,
+                                    key: &str,
+                                    matching_rules: &mut V,
+                                    shareable: &mut bool) {
+        match hash.find_equiv(&key) {
+            Some(rules) => {
+                SelectorMap::get_matching_rules(node, *rules, matching_rules, shareable)
+            }
             None => {}
-        };
+        }
     }
-    
-    /// Return rules in `rules` that match `node`.
-    fn get_matching_rules<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        node: &T,
-        pseudo_element: Option<PseudoElement>,
-        rules: &[Rule],
-        matching_rules: &mut ~[Rule]) {
+
+    fn get_matching_rules_from_hash_ignoring_case<E:TElement,
+                                                  N:TNode<E>,
+                                                  V:SmallVec<MatchedProperty>>(
+                                                  node: &N,
+                                                  hash: &HashMap<DOMString,~[Rule]>,
+                                                  key: &str,
+                                                  matching_rules: &mut V,
+                                                  shareable: &mut bool) {
+        match hash.find_equiv(&LowercaseAsciiString(key)) {
+            Some(rules) => {
+                SelectorMap::get_matching_rules(node, *rules, matching_rules, shareable)
+            }
+            None => {}
+        }
+    }
+
+    /// Adds rules in `rules` that match `node` to the `matching_rules` list.
+    fn get_matching_rules<E:TElement,
+                          N:TNode<E>,
+                          V:SmallVec<MatchedProperty>>(
+                          node: &N,
+                          rules: &[Rule],
+                          matching_rules: &mut V,
+                          shareable: &mut bool) {
         for rule in rules.iter() {
-            if matches_selector(rule.selector.get(), node, pseudo_element) {
-                // TODO: Is the cloning inefficient?
-                matching_rules.push(rule.clone());
+            if matches_compound_selector(rule.selector.get(), node, shareable) {
+                // TODO(pradeep): Is the cloning inefficient?
+                matching_rules.push(rule.property.clone());
             }
         }
     }
@@ -134,6 +210,8 @@ impl SelectorMap {
     /// Insert rule into the correct hash.
     /// Order in which to try: id_hash, class_hash, element_hash, universal_rules.
     fn insert(&mut self, rule: Rule) {
+        self.empty = false;
+
         match SelectorMap::get_id_name(&rule) {
             Some(id_name) => {
                 match self.id_hash.find_mut(&id_name) {
@@ -183,10 +261,11 @@ impl SelectorMap {
 
     /// Retrieve the first ID name in Rule, or None otherwise.
     fn get_id_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.get().compound_selectors.simple_selectors;
+        let simple_selector_sequence = &rule.selector.get().simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
-                // TODO: Implement case-sensitivity based on the document type and quirks mode
+                // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
+                // mode.
                 IDSelector(ref id) => return Some(id.clone()),
                 _ => {}
             }
@@ -196,10 +275,11 @@ impl SelectorMap {
 
     /// Retrieve the FIRST class name in Rule, or None otherwise.
     fn get_class_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.get().compound_selectors.simple_selectors;
+        let simple_selector_sequence = &rule.selector.get().simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
-                // TODO: Implement case-sensitivity based on the document type and quirks mode
+                // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
+                // mode.
                 ClassSelector(ref class) => return Some(class.clone()),
                 _ => {}
             }
@@ -209,7 +289,7 @@ impl SelectorMap {
 
     /// Retrieve the name if it is a type selector, or None otherwise.
     fn get_element_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.get().compound_selectors.simple_selectors;
+        let simple_selector_sequence = &rule.selector.get().simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // HTML elements in HTML documents must be matched case-insensitively
@@ -223,109 +303,134 @@ impl SelectorMap {
 }
 
 pub struct Stylist {
-    priv ua_rule_map: PerOriginSelectorMap,
-    priv author_rule_map: PerOriginSelectorMap,
-    priv user_rule_map: PerOriginSelectorMap,
-    priv stylesheet_index: uint,
+    priv element_map: PerPseudoElementSelectorMap,
+    priv before_map: PerPseudoElementSelectorMap,
+    priv after_map: PerPseudoElementSelectorMap,
+    priv rules_source_order: uint,
 }
 
 impl Stylist {
     #[inline]
     pub fn new() -> Stylist {
         Stylist {
-            ua_rule_map: PerOriginSelectorMap::new(),
-            author_rule_map: PerOriginSelectorMap::new(),
-            user_rule_map: PerOriginSelectorMap::new(),
-            stylesheet_index: 0u,
+            element_map: PerPseudoElementSelectorMap::new(),
+            before_map: PerPseudoElementSelectorMap::new(),
+            after_map: PerPseudoElementSelectorMap::new(),
+            rules_source_order: 0u,
         }
     }
 
     pub fn add_stylesheet(&mut self, stylesheet: Stylesheet, origin: StylesheetOrigin) {
-        let rule_map = match origin {
-            UserAgentOrigin => &mut self.ua_rule_map,
-            AuthorOrigin => &mut self.author_rule_map,
-            UserOrigin => &mut self.user_rule_map,
+        let (mut element_map, mut before_map, mut after_map) = match origin {
+            UserAgentOrigin => (
+                &mut self.element_map.user_agent,
+                &mut self.before_map.user_agent,
+                &mut self.after_map.user_agent,
+            ),
+            AuthorOrigin => (
+                &mut self.element_map.author,
+                &mut self.before_map.author,
+                &mut self.after_map.author,
+            ),
+            UserOrigin => (
+                &mut self.element_map.user,
+                &mut self.before_map.user,
+                &mut self.after_map.user,
+            ),
         };
-        let mut added_normal_declarations = false;
-        let mut added_important_declarations = false;
-        let mut style_rule_index = 0u;
 
         // Take apart the StyleRule into individual Rules and insert
         // them into the SelectorMap of that priority.
         macro_rules! append(
-            ($priority: ident, $flag: ident) => {
+            ($priority: ident) => {
                 if style_rule.declarations.$priority.get().len() > 0 {
-                    $flag = true;
                     for selector in style_rule.selectors.iter() {
-                        // TODO: avoid copying?
-                        rule_map.$priority.insert(Rule {
-                                selector: Arc::new(selector.clone()),
-                                declarations: style_rule.declarations.$priority.clone(),
-                                index: style_rule_index,
-                                stylesheet_index: self.stylesheet_index,
-                            });
+                        let map = match selector.pseudo_element {
+                            None => &mut element_map,
+                            Some(Before) => &mut before_map,
+                            Some(After) => &mut after_map,
+                        };
+                        map.$priority.insert(Rule {
+                                selector: selector.compound_selectors.clone(),
+                                property: MatchedProperty {
+                                    specificity: selector.specificity,
+                                    declarations: style_rule.declarations.$priority.clone(),
+                                    source_order: self.rules_source_order,
+                                },
+                        });
                     }
                 }
             };
         );
 
         let device = &Device { media_type: Screen };  // TODO, use Print when printing
-        do iter_style_rules(stylesheet.rules.as_slice(), device) |style_rule| {
-            append!(normal, added_normal_declarations);
-            append!(important, added_important_declarations);
-            style_rule_index += 1u;
-        }
-        self.stylesheet_index += 1;
+        iter_style_rules(stylesheet.rules.as_slice(), device, |style_rule| {
+            append!(normal);
+            append!(important);
+            self.rules_source_order += 1;
+        });
     }
 
-    pub fn get_applicable_declarations<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-            &self, element: &T, style_attribute: Option<&PropertyDeclarationBlock>,
-            pseudo_element: Option<PseudoElement>) -> ~[Arc<~[PropertyDeclaration]>] {
+    /// Returns the applicable CSS declarations for the given element. This corresponds to
+    /// `ElementRuleCollector` in WebKit.
+    ///
+    /// The returned boolean indicates whether the style is *shareable*; that is, whether the
+    /// matched selectors are simple enough to allow the matching logic to be reduced to the logic
+    /// in `css::matching::PrivateMatchMethods::candidate_element_allows_for_style_sharing`.
+    pub fn push_applicable_declarations<E:TElement,
+                                        N:TNode<E>,
+                                        V:SmallVec<MatchedProperty>>(
+                                        &self,
+                                        element: &N,
+                                        style_attribute: Option<&PropertyDeclarationBlock>,
+                                        pseudo_element: Option<PseudoElement>,
+                                        applicable_declarations: &mut V)
+                                        -> bool {
         assert!(element.is_element());
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
-            
-        // In cascading order
-        let rule_map_list = [&self.ua_rule_map.normal,
-                             &self.user_rule_map.normal,
-                             &self.author_rule_map.normal,
-                             &self.author_rule_map.important,
-                             &self.user_rule_map.important,
-                             &self.ua_rule_map.important];
 
-        let mut matching_rules_list: [~[Rule], ..6] = [~[], ~[], ~[], ~[], ~[], ~[]];
-        for (i, rule_map) in rule_map_list.iter().enumerate() {
-            rule_map.get_all_matching_rules(element, pseudo_element, matching_rules_list, i);
-        }
-        
-        // Keeping this as a separate step because we will need it for further
-        // optimizations regarding grouping of Rules having the same Selector.
-        let declarations_list: ~[~[Arc<~[PropertyDeclaration]>]] = matching_rules_list.iter().map(
-            |rules| rules.iter().map(|r| r.declarations.clone()).collect()).collect();
+        let map = match pseudo_element {
+            None => &self.element_map,
+            Some(Before) => &self.before_map,
+            Some(After) => &self.after_map,
+        };
 
-        let mut applicable_declarations = ~[];
-        applicable_declarations.push_all_move(declarations_list.slice(0, 3).concat_vec());
-        // Style attributes have author origin but higher specificity than style rules.
-        // TODO: avoid copying?
-        style_attribute.map(|sa| applicable_declarations.push(sa.normal.clone()));
-        applicable_declarations.push_all_move(declarations_list.slice(3, 4).concat_vec());
-        style_attribute.map(|sa| applicable_declarations.push(sa.important.clone()));
-        applicable_declarations.push_all_move(declarations_list.slice(4, 6).concat_vec());
+        let mut shareable = true;
 
-        applicable_declarations
-    }
-}
+        // Step 1: Normal rules.
+        map.user_agent.normal.get_all_matching_rules(element,
+                                                     applicable_declarations,
+                                                     &mut shareable);
+        map.user.normal.get_all_matching_rules(element, applicable_declarations, &mut shareable);
+        map.author.normal.get_all_matching_rules(element, applicable_declarations, &mut shareable);
 
+        // Step 2: Normal style attributes.
+        style_attribute.map(|sa| {
+            shareable = false;
+            applicable_declarations.push(MatchedProperty::from_declarations(sa.normal.clone()))
+        });
 
-struct PerOriginRules {
-    normal: ~[Rule],
-    important: ~[Rule],
-}
+        // Step 3: Author-supplied `!important` rules.
+        map.author.important.get_all_matching_rules(element,
+                                                    applicable_declarations,
+                                                    &mut shareable);
 
-impl PerOriginRules {
-    #[inline]
-    fn new() -> PerOriginRules {
-        PerOriginRules { normal: ~[], important: ~[] }
+        // Step 4: `!important` style attributes.
+        style_attribute.map(|sa| {
+            shareable = false;
+            applicable_declarations.push(MatchedProperty::from_declarations(sa.important.clone()))
+        });
+
+        // Step 5: User and UA `!important` rules.
+        map.user.important.get_all_matching_rules(element,
+                                                  applicable_declarations,
+                                                  &mut shareable);
+        map.user_agent.important.get_all_matching_rules(element,
+                                                        applicable_declarations,
+                                                        &mut shareable);
+
+        shareable
     }
 }
 
@@ -337,7 +442,27 @@ struct PerOriginSelectorMap {
 impl PerOriginSelectorMap {
     #[inline]
     fn new() -> PerOriginSelectorMap {
-        PerOriginSelectorMap { normal: SelectorMap::new(), important:SelectorMap::new() }
+        PerOriginSelectorMap {
+            normal: SelectorMap::new(),
+            important: SelectorMap::new(),
+        }
+    }
+}
+
+struct PerPseudoElementSelectorMap {
+    user_agent: PerOriginSelectorMap,
+    author: PerOriginSelectorMap,
+    user: PerOriginSelectorMap,
+}
+
+impl PerPseudoElementSelectorMap {
+    #[inline]
+    fn new() -> PerPseudoElementSelectorMap {
+        PerPseudoElementSelectorMap {
+            user_agent: PerOriginSelectorMap::new(),
+            author: PerOriginSelectorMap::new(),
+            user: PerOriginSelectorMap::new(),
+        }
     }
 }
 
@@ -346,38 +471,63 @@ struct Rule {
     // This is an Arc because Rule will essentially be cloned for every node
     // that it matches. Selector contains an owned vector (through
     // CompoundSelector) and we want to avoid the allocation.
-    selector: Arc<Selector>,
-    declarations: Arc<~[PropertyDeclaration]>,
-    // Index of the parent StyleRule in the parent Stylesheet (useful for
-    // breaking ties while cascading).
-    index: uint,
-    // Index of the parent stylesheet among all the stylesheets
-    stylesheet_index: uint,
+    selector: Arc<CompoundSelector>,
+    property: MatchedProperty,
 }
 
+/// A property declaration together with its precedence among rules of equal specificity so that
+/// we can sort them.
+#[deriving(Clone)]
+pub struct MatchedProperty {
+    declarations: Arc<~[PropertyDeclaration]>,
+    source_order: uint,
+    specificity: u32,
+}
 
-impl Ord for Rule {
+impl MatchedProperty {
     #[inline]
-    fn lt(&self, other: &Rule) -> bool {
-        let this_rank = (self.selector.get().specificity, self.stylesheet_index, self.index);
-        let other_rank = (other.selector.get().specificity, other.stylesheet_index, other.index);
+    pub fn from_declarations(declarations: Arc<~[PropertyDeclaration]>) -> MatchedProperty {
+        MatchedProperty {
+            declarations: declarations,
+            source_order: 0,
+            specificity: 0,
+        }
+    }
+}
+
+impl Eq for MatchedProperty {
+    #[inline]
+    fn eq(&self, other: &MatchedProperty) -> bool {
+        let this_rank = (self.specificity, self.source_order);
+        let other_rank = (other.specificity, other.source_order);
+        this_rank == other_rank
+    }
+}
+
+impl Ord for MatchedProperty {
+    #[inline]
+    fn lt(&self, other: &MatchedProperty) -> bool {
+        let this_rank = (self.specificity, self.source_order);
+        let other_rank = (other.specificity, other.source_order);
         this_rank < other_rank
     }
 }
 
-
-#[inline]
-fn matches_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        selector: &Selector, element: &T, pseudo_element: Option<PseudoElement>) -> bool {
-    selector.pseudo_element == pseudo_element &&
-        matches_compound_selector::<N, T, E>(&selector.compound_selectors, element)
-}
-
-fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        selector: &CompoundSelector, element: &T) -> bool {
-    if !do selector.simple_selectors.iter().all |simple_selector| {
-            matches_simple_selector(simple_selector, element)
-    } {
+/// Determines whether the given element matches the given single or compound selector.
+///
+/// NB: If you add support for any new kinds of selectors to this routine, be sure to set
+/// `shareable` to false unless you are willing to update the style sharing logic. Otherwise things
+/// will almost certainly break as nodes will start mistakenly sharing styles. (See the code in
+/// `main/css/matching.rs`.)
+fn matches_compound_selector<E:TElement,
+                             N:TNode<E>>(
+                             selector: &CompoundSelector,
+                             element: &N,
+                             shareable: &mut bool)
+                             -> bool {
+    if !selector.simple_selectors.iter().all(|simple_selector| {
+            matches_simple_selector(simple_selector, element, shareable)
+    }) {
         return false
     }
     match selector.next {
@@ -389,19 +539,19 @@ fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
                 NextSibling => (true, true),
                 LaterSibling => (true, false),
             };
-            let mut node = element.clone();
+            let mut node = (*element).clone();
             loop {
                 let next_node = if siblings {
-                    node.node().prev_sibling()
+                    node.prev_sibling()
                 } else {
-                    node.node().parent_node()
+                    node.parent_node()
                 };
                 match next_node {
                     None => return false,
                     Some(next_node) => node = next_node,
                 }
                 if node.is_element() {
-                    if matches_compound_selector(&**next_selector, &node) {
+                    if matches_compound_selector(&**next_selector, &node, shareable) {
                         return true
                     } else if just_one {
                         return false
@@ -412,103 +562,185 @@ fn matches_compound_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
     }
 }
 
+/// Determines whether the given element matches the given single selector.
+///
+/// NB: If you add support for any new kinds of selectors to this routine, be sure to set
+/// `shareable` to false unless you are willing to update the style sharing logic. Otherwise things
+/// will almost certainly break as nodes will start mistakenly sharing styles. (See the code in
+/// `main/css/matching.rs`.)
 #[inline]
-fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        selector: &SimpleSelector, element: &T) -> bool {
-    static WHITESPACE: &'static [char] = &'static [' ', '\t', '\n', '\r', '\x0C'];
-
+fn matches_simple_selector<E:TElement,
+                           N:TNode<E>>(
+                           selector: &SimpleSelector,
+                           element: &N,
+                           shareable: &mut bool)
+                           -> bool {
     match *selector {
         // TODO: case-sensitivity depends on the document type
         // TODO: intern element names
         LocalNameSelector(ref name) => {
-            do element.with_imm_element_like |element: &E| {
+            element.with_element(|element: &E| {
                 element.get_local_name().eq_ignore_ascii_case(name.as_slice())
-            }
+            })
         }
-        NamespaceSelector(_) => false,  // TODO, when the DOM supports namespaces on elements.
+
+        NamespaceSelector(ref namespace) => {
+            *shareable = false;
+            element.with_element(|element: &E| {
+                element.get_namespace() == namespace
+            })
+        }
         // TODO: case-sensitivity depends on the document type and quirks mode
         // TODO: cache and intern IDs on elements.
         IDSelector(ref id) => {
-            do element.with_imm_element_like |element: &E| {
-                match element.get_attr("id") {
-                    Some(attr) => str::eq_slice(attr, *id),
-                    None => false
-                }
-            }
+            *shareable = false;
+            element.with_element(|element: &E| {
+                element.get_attr(&namespace::Null, "id")
+                       .map_default(false, |attr| {
+                    attr == *id
+                })
+            })
         }
-        // TODO: cache and intern classe names on elements.
+        // TODO: cache and intern class names on elements.
         ClassSelector(ref class) => {
-            do element.with_imm_element_like |element: &E| {
-                match element.get_attr("class") {
-                    None => false,
+            element.with_element(|element: &E| {
+                element.get_attr(&namespace::Null, "class")
+                       .map_default(false, |attr| {
                     // TODO: case-sensitivity depends on the document type and quirks mode
-                    Some(ref class_attr)
-                    => class_attr.split_iter(WHITESPACE).any(|c| c == class.as_slice()),
-                }
-            }
+                    attr.split(SELECTOR_WHITESPACE).any(|c| c == class.as_slice())
+                })
+            })
         }
 
-        AttrExists(ref attr) => match_attribute(attr, element, |_| true),
-        AttrEqual(ref attr, ref value) => match_attribute(attr, element, |v| v == value.as_slice()),
-        AttrIncludes(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
-            attr_value.split_iter(WHITESPACE).any(|v| v == value.as_slice())
-        },
-        AttrDashMatch(ref attr, ref value, ref dashing_value)
-        => do match_attribute(attr, element) |attr_value| {
-            attr_value == value.as_slice() || attr_value.starts_with(dashing_value.as_slice())
-        },
-        AttrPrefixMatch(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
-            attr_value.starts_with(value.as_slice())
-        },
-        AttrSubstringMatch(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
-            attr_value.contains(value.as_slice())
-        },
-        AttrSuffixMatch(ref attr, ref value) => do match_attribute(attr, element) |attr_value| {
-            attr_value.ends_with(value.as_slice())
-        },
-
+        AttrExists(ref attr) => {
+            *shareable = false;
+            element.match_attr(attr, |_| true)
+        }
+        AttrEqual(ref attr, ref value) => {
+            if value.as_slice() != "DIR" {
+                // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in
+                // here because the UA style otherwise disables all style sharing completely.
+                *shareable = false
+            }
+            element.match_attr(attr, |attr_value| {
+                attr_value == value.as_slice()
+            })
+        }
+        AttrIncludes(ref attr, ref value) => {
+            *shareable = false;
+            element.match_attr(attr, |attr_value| {
+                attr_value.split(SELECTOR_WHITESPACE).any(|v| v == value.as_slice())
+            })
+        }
+        AttrDashMatch(ref attr, ref value, ref dashing_value) => {
+            *shareable = false;
+            element.match_attr(attr, |attr_value| {
+                attr_value == value.as_slice() ||
+                attr_value.starts_with(dashing_value.as_slice())
+            })
+        }
+        AttrPrefixMatch(ref attr, ref value) => {
+            *shareable = false;
+            element.match_attr(attr, |attr_value| {
+                attr_value.starts_with(value.as_slice())
+            })
+        }
+        AttrSubstringMatch(ref attr, ref value) => {
+            *shareable = false;
+            element.match_attr(attr, |attr_value| {
+                attr_value.contains(value.as_slice())
+            })
+        }
+        AttrSuffixMatch(ref attr, ref value) => {
+            *shareable = false;
+            element.match_attr(attr, |attr_value| {
+                attr_value.ends_with(value.as_slice())
+            })
+        }
 
         AnyLink => {
-            do element.with_imm_element_like |element: &E| {
+            *shareable = false;
+            element.with_element(|element: &E| {
                 element.get_link().is_some()
-            }
+            })
         }
         Link => {
-            do element.with_imm_element_like |element: &E| {
+            *shareable = false;
+            element.with_element(|element: &E| {
                 match element.get_link() {
                     Some(url) => !url_is_visited(url),
                     None => false,
                 }
-            }
+            })
         }
         Visited => {
-            do element.with_imm_element_like |element: &E| {
+            *shareable = false;
+            element.with_element(|element: &E| {
                 match element.get_link() {
                     Some(url) => url_is_visited(url),
                     None => false,
                 }
-            }
+            })
         }
 
-        FirstChild => matches_first_child(element),
-        LastChild  => matches_last_child(element),
-        OnlyChild  => matches_first_child(element) &&
-                      matches_last_child(element),
+        Hover => {
+            *shareable = false;
+            element.with_element(|element: &E| {
+                element.get_hover_state()
+            })
+        },
+        FirstChild => {
+            *shareable = false;
+            matches_first_child(element)
+        }
+        LastChild => {
+            *shareable = false;
+            matches_last_child(element)
+        }
+        OnlyChild => {
+            *shareable = false;
+            matches_first_child(element) && matches_last_child(element)
+        }
 
-        Root => matches_root(element),
+        Root => {
+            *shareable = false;
+            matches_root(element)
+        }
 
-        NthChild(a, b)      => matches_generic_nth_child(element, a, b, false, false),
-        NthLastChild(a, b)  => matches_generic_nth_child(element, a, b, false, true),
-        NthOfType(a, b)     => matches_generic_nth_child(element, a, b, true, false),
-        NthLastOfType(a, b) => matches_generic_nth_child(element, a, b, true, true),
+        NthChild(a, b) => {
+            *shareable = false;
+            matches_generic_nth_child(element, a, b, false, false)
+        }
+        NthLastChild(a, b) => {
+            *shareable = false;
+            matches_generic_nth_child(element, a, b, false, true)
+        }
+        NthOfType(a, b) => {
+            *shareable = false;
+            matches_generic_nth_child(element, a, b, true, false)
+        }
+        NthLastOfType(a, b) => {
+            *shareable = false;
+            matches_generic_nth_child(element, a, b, true, true)
+        }
 
-        FirstOfType => matches_generic_nth_child(element, 0, 1, true, false),
-        LastOfType  => matches_generic_nth_child(element, 0, 1, true, true),
-        OnlyOfType  => matches_generic_nth_child(element, 0, 1, true, false) &&
-                       matches_generic_nth_child(element, 0, 1, true, true),
+        FirstOfType => {
+            *shareable = false;
+            matches_generic_nth_child(element, 0, 1, true, false)
+        }
+        LastOfType => {
+            *shareable = false;
+            matches_generic_nth_child(element, 0, 1, true, true)
+        }
+        OnlyOfType => {
+            *shareable = false;
+            matches_generic_nth_child(element, 0, 1, true, false) &&
+                matches_generic_nth_child(element, 0, 1, true, true)
+        }
 
         Negation(ref negated) => {
-            !negated.iter().all(|s| matches_simple_selector(s, element))
+            *shareable = false;
+            !negated.iter().all(|s| matches_simple_selector(s, element, shareable))
         },
     }
 }
@@ -521,36 +753,34 @@ fn url_is_visited(_url: &str) -> bool {
 }
 
 #[inline]
-fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        element: &T, a: i32, b: i32, is_of_type: bool, is_from_end: bool) -> bool {
+fn matches_generic_nth_child<'a,
+                             E:TElement,
+                             N:TNode<E>>(
+                             element: &N,
+                             a: i32,
+                             b: i32,
+                             is_of_type: bool,
+                             is_from_end: bool)
+                             -> bool {
     let mut node = element.clone();
     // fail if we can't find a parent or if the node is the root element
     // of the document (Cf. Selectors Level 3)
-    match node.node().parent_node() {
+    match node.parent_node() {
         Some(parent) => if parent.is_document() {
             return false;
         },
         None => return false
     };
 
-    let mut local_name = "";
-    if is_of_type {
-        // FIXME this is wrong
-        // TODO when the DOM supports namespaces on elements
-        do element.with_imm_element_like |element: &E| {
-            local_name = element.get_local_name();
-        }
-    }
-
     let mut index = 1;
     loop {
         if is_from_end {
-            match node.node().next_sibling() {
+            match node.next_sibling() {
                 None => break,
                 Some(next_sibling) => node = next_sibling
             }
         } else {
-            match node.node().prev_sibling() {
+            match node.prev_sibling() {
                 None => break,
                 Some(prev_sibling) => node = prev_sibling
             }
@@ -558,13 +788,14 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
 
         if node.is_element() {
             if is_of_type {
-                // FIXME this is wrong
-                // TODO when the DOM supports namespaces on elements
-                do node.with_imm_element_like |node: &E| {
-                    if local_name == node.get_local_name() {
-                        index += 1;
-                    }
-                }
+                element.with_element(|element: &E| {
+                    node.with_element(|node: &E| {
+                        if element.get_local_name() == node.get_local_name() &&
+                           element.get_namespace() == node.get_namespace() {
+                            index += 1;
+                        }
+                    })
+                })
             } else {
               index += 1;
             }
@@ -581,27 +812,25 @@ fn matches_generic_nth_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: E
 }
 
 #[inline]
-fn matches_root<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        element: &T) -> bool {
-    match element.node().parent_node() {
+fn matches_root<E:TElement,N:TNode<E>>(element: &N) -> bool {
+    match element.parent_node() {
         Some(parent) => parent.is_document(),
         None => false
     }
 }
 
 #[inline]
-fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        element: &T) -> bool {
+fn matches_first_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
     let mut node = element.clone();
     loop {
-        match node.node().prev_sibling() {
+        match node.prev_sibling() {
             Some(prev_sibling) => {
                 node = prev_sibling;
                 if node.is_element() {
                     return false
                 }
             },
-            None => match node.node().parent_node() {
+            None => match node.parent_node() {
                 // Selectors level 3 says :first-child does not match the
                 // root of the document; Warning, level 4 says, for the time
                 // being, the contrary...
@@ -613,18 +842,17 @@ fn matches_first_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Element
 }
 
 #[inline]
-fn matches_last_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        element: &T) -> bool {
+fn matches_last_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
     let mut node = element.clone();
     loop {
-        match node.node().next_sibling() {
+        match node.next_sibling() {
             Some(next_sibling) => {
                 node = next_sibling;
                 if node.is_element() {
                     return false
                 }
             },
-            None => match node.node().parent_node() {
+            None => match node.parent_node() {
                 // Selectors level 3 says :last-child does not match the
                 // root of the document; Warning, level 4 says, for the time
                 // being, the contrary...
@@ -635,82 +863,74 @@ fn matches_last_child<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementL
     }
 }
 
-#[inline]
-fn match_attribute<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: ElementLike>(
-        attr: &AttrSelector, element: &T, f: &fn(&str)-> bool) -> bool {
-    do element.with_imm_element_like |element: &E| {
-        match attr.namespace {
-            Some(_) => false,  // TODO, when the DOM supports namespaces on attributes
-            None => match element.get_attr(attr.name) {
-                None => false,
-                Some(ref value) => f(value.as_slice())
-            }
-        }
+
+#[cfg(test)]
+mod tests {
+    use extra::arc::Arc;
+    use super::{MatchedProperty, Rule, SelectorMap};
+
+    /// Helper method to get some Rules from selector strings.
+    /// Each sublist of the result contains the Rules for one StyleRule.
+    fn get_mock_rules(css_selectors: &[&str]) -> ~[~[Rule]] {
+        use namespaces::NamespaceMap;
+        use selectors::parse_selector_list;
+        use cssparser::tokenize;
+
+        let namespaces = NamespaceMap::new();
+        css_selectors.iter().enumerate().map(|(i, selectors)| {
+            parse_selector_list(tokenize(*selectors).map(|(c, _)| c).to_owned_vec(), &namespaces)
+            .unwrap().move_iter().map(|s| {
+                Rule {
+                    selector: s.compound_selectors.clone(),
+                    property: MatchedProperty {
+                        specificity: s.specificity,
+                        declarations: Arc::new(~[]),
+                        source_order: i,
+                    }
+                }
+            }).to_owned_vec()
+        }).to_owned_vec()
+    }
+
+    #[test]
+    fn test_rule_ordering_same_specificity(){
+        let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
+        let rule1 = rules_list[0][0].clone();
+        let rule2 = rules_list[1][0].clone();
+        assert!(rule1.property < rule2.property, "The rule that comes later should win.");
+    }
+
+    #[test]
+    fn test_get_id_name(){
+        let rules_list = get_mock_rules([".intro", "#top"]);
+        assert_eq!(SelectorMap::get_id_name(&rules_list[0][0]), None);
+        assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some(~"top"));
+    }
+
+    #[test]
+    fn test_get_class_name(){
+        let rules_list = get_mock_rules([".intro.foo", "#top"]);
+        assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(~"intro"));
+        assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
+    }
+
+    #[test]
+    fn test_get_element_name(){
+        let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
+        assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some(~"img"));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[1][0]), None);
+        assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some(~"img"));
+        assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some(~"img"));
+    }
+
+    #[test]
+    fn test_insert(){
+        let rules_list = get_mock_rules([".intro.foo", "#top"]);
+        let mut selector_map = SelectorMap::new();
+        selector_map.insert(rules_list[1][0].clone());
+        assert_eq!(1, selector_map.id_hash.find(&~"top").unwrap()[0].property.source_order);
+        selector_map.insert(rules_list[0][0].clone());
+        assert_eq!(0, selector_map.class_hash.find(&~"intro").unwrap()[0].property.source_order);
+        assert!(selector_map.class_hash.find(&~"foo").is_none());
     }
 }
-fn get_rules(css_string: &str) -> ~[~[Rule]] {
-    let device = &Device { media_type: Screen };
-    let sheet = Stylesheet::from_str(css_string);
-    let mut index = 0u;
-    let mut results = ~[];
-    do iter_style_rules(sheet.rules.as_slice(), device) |style_rule| {
-        results.push(style_rule.selectors.iter().map(|s| Rule {
-                    selector: Arc::new(s.clone()),
-                    declarations: style_rule.declarations.normal.clone(),
-                    index: index,
-                    stylesheet_index: 0u,
-                }).collect());
-        index += 1u;
-    }
-    results
-}
-
-/// Helper method to get some Rules from selector strings.
-/// Each sublist of the result contains the Rules for one StyleRule.
-fn get_mock_rules(css_selectors: &[&str]) -> ~[~[Rule]] {
-    let css_string = css_selectors.map(|s| s + " { color: red; } ").concat();
-    get_rules(css_string)
-}
-
-#[test]
-fn test_rule_ordering_same_specificity(){
-    let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
-    let rule1 = rules_list[0][0].clone();
-    let rule2 = rules_list[1][0].clone();
-    assert!(rule1 < rule2, "The rule that comes later should win.");
-}
-
-#[test]
-fn test_get_id_name(){
-    let rules_list = get_mock_rules([".intro", "#top"]);
-    assert_eq!(SelectorMap::get_id_name(&rules_list[0][0]), None);
-    assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some(~"top"));
-}
-
-#[test]
-fn test_get_class_name(){
-    let rules_list = get_mock_rules([".intro.foo", "#top"]);
-    assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(~"intro"));
-    assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
-}
-
-#[test]
-fn test_get_element_name(){
-    let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
-    assert_eq!(SelectorMap::get_element_name(&rules_list[0][0]), Some(~"img"));
-    assert_eq!(SelectorMap::get_element_name(&rules_list[1][0]), None);
-    assert_eq!(SelectorMap::get_element_name(&rules_list[2][0]), Some(~"img"));
-    assert_eq!(SelectorMap::get_element_name(&rules_list[3][0]), Some(~"img"));
-}
-
-#[test]
-fn test_insert(){
-    let rules_list = get_mock_rules([".intro.foo", "#top"]);
-    let mut selector_map = SelectorMap::new();
-    selector_map.insert(rules_list[1][0].clone());
-    assert_eq!(1, selector_map.id_hash.find(&~"top").unwrap()[0].index);
-    selector_map.insert(rules_list[0][0].clone());
-    assert_eq!(0, selector_map.class_hash.find(&~"intro").unwrap()[0].index);
-    assert!(selector_map.class_hash.find(&~"foo").is_none());
-}
-

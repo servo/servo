@@ -3,11 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::hashmap::HashMap;
+use std::rand::Rng;
+use std::rand;
+use std::vec::VecIterator;
+use std::vec;
 
 pub trait Cache<K: Eq, V: Clone> {
     fn insert(&mut self, key: K, value: V);
     fn find(&mut self, key: &K) -> Option<V>;
-    fn find_or_create(&mut self, key: &K, blk: &fn(&K) -> V) -> V;
+    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V;
     fn evict_all(&mut self);
 }
 
@@ -33,7 +37,7 @@ impl<K: Clone + Eq, V: Clone> Cache<K,V> for MonoCache<K,V> {
         }
     }
 
-    fn find_or_create(&mut self, key: &K, blk: &fn(&K) -> V) -> V {
+    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
         match self.find(key) {
             Some(value) => value,
             None => {
@@ -87,7 +91,7 @@ impl<K: Clone + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
         }
     }
 
-    fn find_or_create(&mut self, key: &K, blk: &fn(&K) -> V) -> V {
+    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
         self.entries.find_or_insert_with(key.clone(), blk).clone()
     }
 
@@ -124,6 +128,7 @@ impl<K: Clone + Eq, V: Clone> LRUCache<K,V> {
         }
     }
 
+    #[inline]
     pub fn touch(&mut self, pos: uint) -> V {
         let last_index = self.entries.len() - 1;
         if pos != last_index {
@@ -131,6 +136,10 @@ impl<K: Clone + Eq, V: Clone> LRUCache<K,V> {
             self.entries.push(entry);
         }
         self.entries[last_index].second_ref().clone()
+    }
+
+    pub fn iter<'a>(&'a self) -> VecIterator<'a,(K,V)> {
+        self.entries.iter()
     }
 }
 
@@ -149,7 +158,7 @@ impl<K: Clone + Eq, V: Clone> Cache<K,V> for LRUCache<K,V> {
         }
     }
 
-    fn find_or_create(&mut self, key: &K, blk: &fn(&K) -> V) -> V {
+    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
         match self.entries.iter().position(|&(ref k, _)| *k == *key) {
             Some(pos) => self.touch(pos),
             None => {
@@ -162,6 +171,73 @@ impl<K: Clone + Eq, V: Clone> Cache<K,V> for LRUCache<K,V> {
 
     fn evict_all(&mut self) {
         self.entries.clear();
+    }
+}
+
+pub struct SimpleHashCache<K,V> {
+    entries: ~[Option<(K,V)>],
+    k0: u64,
+    k1: u64,
+}
+
+impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
+    pub fn new(cache_size: uint) -> SimpleHashCache<K,V> {
+        let mut r = rand::task_rng();
+        SimpleHashCache {
+            entries: vec::from_elem(cache_size, None),
+            k0: r.gen(),
+            k1: r.gen(),
+        }
+    }
+
+    #[inline]
+    fn to_bucket(&self, h: uint) -> uint {
+        h % self.entries.len()
+    }
+
+    #[inline]
+    fn bucket_for_key<Q:Hash>(&self, key: &Q) -> uint {
+        self.to_bucket(key.hash_keyed(self.k0, self.k1) as uint)
+    }
+
+    #[inline]
+    pub fn find_equiv<'a,Q:Hash+Equiv<K>>(&'a self, key: &Q) -> Option<&'a V> {
+        let bucket_index = self.bucket_for_key(key);
+        match self.entries[bucket_index] {
+            Some((ref existing_key, ref value)) if key.equiv(existing_key) => Some(value),
+            _ => None,
+        }
+    }
+}
+
+impl<K:Clone+Eq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
+    fn insert(&mut self, key: K, value: V) {
+        let bucket_index = self.bucket_for_key(&key);
+        self.entries[bucket_index] = Some((key, value))
+    }
+
+    fn find(&mut self, key: &K) -> Option<V> {
+        let bucket_index = self.bucket_for_key(key);
+        match self.entries[bucket_index] {
+            Some((ref existing_key, ref value)) if existing_key == key => Some((*value).clone()),
+            _ => None,
+        }
+    }
+
+    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
+        match self.find(key) {
+            Some(value) => return value,
+            None => {}
+        }
+        let value = blk(key);
+        self.insert((*key).clone(), value.clone());
+        value
+    }
+
+    fn evict_all(&mut self) {
+        for slot in self.entries.mut_iter() {
+            *slot = None
+        }
     }
 }
 
@@ -191,7 +267,7 @@ fn test_lru_cache() {
     assert!(cache.find(&4).is_some());  // (2, 4) (no change)
 
     // Test find_or_create.
-    do cache.find_or_create(&1) |_| { one }; // (4, 1)
+    cache.find_or_create(&1, |_| { one }); // (4, 1)
 
     assert!(cache.find(&1).is_some()); // (4, 1) (no change)
     assert!(cache.find(&2).is_none()); // (4, 1) (no change)

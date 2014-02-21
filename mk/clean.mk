@@ -52,4 +52,4 @@ clean-style:
 clean-servo: clean-gfx clean-util clean-net clean-script clean-msg clean-style
 	@$(call E, "cleaning servo")
 	$(Q)rm -f servo servo-test $(foreach lib_crate,$(SERVO_LIB_CRATES),servo-test-$(lib_crate)) libservo*.so
-	$(Q)cd $(BINDINGS_SRC) && rm -f *.pkl
+	$(Q)cd $(BINDINGS_SRC) && rm -f *.pkl *.rs

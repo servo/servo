@@ -9,6 +9,7 @@ use cssparser::ast::*;
 use errors::{ErrorLoggerIterator, log_css_error};
 use stylesheets::{CSSRule, CSSMediaRule, parse_style_rule, parse_nested_at_rule};
 use namespaces::NamespaceMap;
+use extra::url::Url;
 
 
 pub struct MediaRule {
@@ -48,7 +49,7 @@ pub struct Device {
 
 
 pub fn parse_media_rule(rule: AtRule, parent_rules: &mut ~[CSSRule],
-                        namespaces: &NamespaceMap) {
+                        namespaces: &NamespaceMap, base_url: &Url) {
     let media_queries = parse_media_query_list(rule.prelude);
     let block = match rule.block {
         Some(block) => block,
@@ -60,9 +61,9 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut ~[CSSRule],
     let mut rules = ~[];
     for rule in ErrorLoggerIterator(parse_rule_list(block.move_iter())) {
         match rule {
-            QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces),
+            QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces, base_url),
             AtRule(rule) => parse_nested_at_rule(
-                rule.name.to_ascii_lower(), rule, &mut rules, namespaces),
+                rule.name.to_ascii_lower(), rule, &mut rules, namespaces, base_url),
         }
     }
     parent_rules.push(CSSMediaRule(MediaRule {
@@ -82,7 +83,9 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
     loop {
         let mq = match next {
             Some(&Ident(ref value)) => {
-                match value.to_ascii_lower().as_slice() {
+                // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
+                let value_lower = value.to_ascii_lower(); 
+                match value_lower.as_slice() {
                     "screen" => Some(MediaQuery{ media_type: MediaType(Screen) }),
                     "print" => Some(MediaQuery{ media_type: MediaType(Print) }),
                     "all" => Some(MediaQuery{ media_type: All }),
@@ -119,12 +122,12 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
 
 impl MediaQueryList {
     pub fn evaluate(&self, device: &Device) -> bool {
-        do self.media_queries.iter().any |mq| {
+        self.media_queries.iter().any(|mq| {
             match mq.media_type {
                 MediaType(media_type) => media_type == device.media_type,
                 All => true,
             }
             // TODO: match Level 3 expressions
-        }
+        })
     }
 }

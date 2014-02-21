@@ -3,24 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLVideoElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLVideoElementTypeId;
 use dom::htmlmediaelement::HTMLMediaElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLVideoElement {
     htmlmediaelement: HTMLMediaElement
 }
 
 impl HTMLVideoElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLVideoElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLVideoElement {
         HTMLVideoElement {
             htmlmediaelement: HTMLMediaElement::new_inherited(HTMLVideoElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLVideoElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLVideoElementBinding::Wrap)
     }

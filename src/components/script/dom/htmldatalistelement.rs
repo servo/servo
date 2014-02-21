@@ -7,20 +7,21 @@ use dom::document::AbstractDocument;
 use dom::element::HTMLDataListElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLDataListElement {
     htmlelement: HTMLElement
 }
 
 impl HTMLDataListElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLDataListElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLDataListElement {
         HTMLDataListElement {
             htmlelement: HTMLElement::new_inherited(HTMLDataListElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLDataListElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLDataListElementBinding::Wrap)
     }

@@ -3,16 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use font::FontHandleMethods;
-use font_context::FontContextHandleMethods;
 use font_list::{FontEntry, FontFamily, FontFamilyMap};
 use platform::macos::font::FontHandle;
 use platform::macos::font_context::FontContextHandle;
 
 use core_foundation::base::TCFType;
 use core_foundation::string::{CFString, CFStringRef};
-use core_text;
 use core_text::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef};
-
+use core_text;
 use std::cast;
 use std::hashmap::HashMap;
 
@@ -45,7 +43,8 @@ impl FontListHandle {
     pub fn load_variations_for_family(&self, family: &mut FontFamily) {
         debug!("Looking for faces of family: {:s}", family.family_name);
 
-        let family_collection = core_text::font_collection::create_for_family(family.family_name);
+        let family_collection =
+            core_text::font_collection::create_for_family(family.family_name);
         let family_descriptors = family_collection.get_descriptors();
         for descref in family_descriptors.iter() {
             let descref: CTFontDescriptorRef = unsafe { cast::transmute(descref) };

@@ -40,7 +40,7 @@ servo-test: $(DEPS_servo)
 
 reftest: $(S)src/test/harness/reftest/reftest.rs servo
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) -o $@ $<
+	$(Q)$(RUSTC) -L$(B)/src/support/png/rust-png/ -L$(B)/src/support/png/libpng/ -o $@ $<
 
 contenttest: $(S)src/test/harness/contenttest/contenttest.rs servo
 	@$(call E, compile: $@)
@@ -58,11 +58,11 @@ check-test:
 
 ifeq ($(CFG_OSTYPE),apple-darwin)
 .PHONY: check
-check: $(DEPS_CHECK_TARGETS_FAST) check-servo check-content tidy
+check: $(DEPS_CHECK_TARGETS_FAST) check-servo check-content check-ref tidy
 	@$(call E, check: all)
 
 .PHONY: check-all
-check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo check-content tidy
+check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo check-content check-ref tidy
 	@$(call E, check: all)
 else
 .PHONY: check

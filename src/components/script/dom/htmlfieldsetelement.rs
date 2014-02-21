@@ -3,26 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLFieldSetElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLFieldSetElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
 use dom::validitystate::ValidityState;
+use servo_util::str::DOMString;
 
 pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement
 }
 
 impl HTMLFieldSetElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLFieldSetElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement: HTMLElement::new_inherited(HTMLFieldSetElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLFieldSetElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLFieldSetElementBinding::Wrap)
     }
@@ -37,7 +38,7 @@ impl HTMLFieldSetElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode<ScriptView>> {
+    pub fn GetForm(&self) -> Option<AbstractNode> {
         None
     }
 

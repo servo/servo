@@ -15,20 +15,72 @@
 /// low-level drawing primitives.
 
 use color::Color;
-use servo_util::geometry::Au;
-use style::computed_values::border_style;
 use render_context::RenderContext;
 use text::TextRun;
 
-use std::cast::transmute_region;
+use extra::arc::Arc;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use servo_net::image::base::Image;
+use servo_util::geometry::Au;
 use servo_util::range::Range;
-use extra::arc::Arc;
+use std::cast::transmute_region;
+use std::vec::VecIterator;
+use style::computed_values::border_style;
+
+pub struct DisplayListCollection<E> {
+    lists: ~[DisplayList<E>]
+}
+
+impl<E> DisplayListCollection<E> {
+    pub fn new() -> DisplayListCollection<E> {
+        DisplayListCollection {
+            lists: ~[]
+        }
+    }
+
+    pub fn iter<'a>(&'a self) -> DisplayListIterator<'a,E> {
+        ParentDisplayListIterator(self.lists.iter())
+    }
+
+    pub fn add_list(&mut self, list: DisplayList<E>) {
+        self.lists.push(list);
+    }
+
+    pub fn draw_lists_into_context(&self, render_context: &mut RenderContext) {
+        for list in self.lists.iter() {
+            list.draw_into_context(render_context);
+        }
+        debug!("{:?}", self.dump());
+    }
+
+    fn dump(&self) {
+        let mut index = 0;
+        for list in self.lists.iter() {
+            debug!("dumping display list {:d}:", index);
+            list.dump();
+            index = index + 1;
+        }
+    }
+}
 
 /// A list of rendering operations to be performed.
 pub struct DisplayList<E> {
     list: ~[DisplayItem<E>]
+}
+
+pub enum DisplayListIterator<'a,E> {
+    EmptyDisplayListIterator,
+    ParentDisplayListIterator(VecIterator<'a,DisplayList<E>>),
+}
+
+impl<'a,E> Iterator<&'a DisplayList<E>> for DisplayListIterator<'a,E> {
+    #[inline]
+    fn next(&mut self) -> Option<&'a DisplayList<E>> {
+        match *self {
+            EmptyDisplayListIterator => None,
+            ParentDisplayListIterator(ref mut subiterator) => subiterator.next(),
+        }
+    }
 }
 
 impl<E> DisplayList<E> {
@@ -36,6 +88,12 @@ impl<E> DisplayList<E> {
     pub fn new() -> DisplayList<E> {
         DisplayList {
             list: ~[]
+        }
+    }
+
+    fn dump(&self) {
+        for item in self.list.iter() {
+            item.debug_with_level(0);
         }
     }
 
@@ -54,7 +112,12 @@ impl<E> DisplayList<E> {
             //debug!("drawing {}", *item);
             item.draw_into_context(render_context)
         }
-        debug!("Ending display list.")
+        debug!("Ending display list.");
+    }
+
+    /// Returns a preorder iterator over the given display list.
+    pub fn iter<'a>(&'a self) -> DisplayItemIterator<'a,E> {
+        ParentDisplayItemIterator(self.list.iter())
     }
 }
 
@@ -86,11 +149,42 @@ pub struct SolidColorDisplayItem<E> {
 
 /// Renders text.
 pub struct TextDisplayItem<E> {
+    /// Fields common to all display items.
     base: BaseDisplayItem<E>,
-    text_run: ~TextRun,
+
+    /// The text run.
+    text_run: Arc<~TextRun>,
+
+    /// The range of text within the text run.
     range: Range,
-    color: Color,
+
+    /// The color of the text.
+    text_color: Color,
+
+    /// A bitfield of flags for text display items.
+    flags: TextDisplayItemFlags,
+
+    /// The color of text-decorations
+    underline_color: Color,
+    overline_color: Color,
+    line_through_color: Color,
 }
+
+/// Flags for text display items.
+pub struct TextDisplayItemFlags(u8);
+
+impl TextDisplayItemFlags {
+    pub fn new() -> TextDisplayItemFlags {
+        TextDisplayItemFlags(0)
+    }
+}
+
+// Whether underlining is forced on.
+bitfield!(TextDisplayItemFlags, override_underline, set_override_underline, 0x01)
+// Whether overlining is forced on.
+bitfield!(TextDisplayItemFlags, override_overline, set_override_overline, 0x02)
+// Whether line-through is forced on.
+bitfield!(TextDisplayItemFlags, override_line_through, set_override_line_through, 0x04)
 
 /// Renders an image.
 pub struct ImageDisplayItem<E> {
@@ -118,6 +212,21 @@ pub struct ClipDisplayItem<E> {
     need_clip: bool
 }
 
+pub enum DisplayItemIterator<'a,E> {
+    EmptyDisplayItemIterator,
+    ParentDisplayItemIterator(VecIterator<'a,DisplayItem<E>>),
+}
+
+impl<'a,E> Iterator<&'a DisplayItem<E>> for DisplayItemIterator<'a,E> {
+    #[inline]
+    fn next(&mut self) -> Option<&'a DisplayItem<E>> {
+        match *self {
+            EmptyDisplayItemIterator => None,
+            ParentDisplayItemIterator(ref mut subiterator) => subiterator.next(),
+        }
+    }
+}
+
 impl<E> DisplayItem<E> {
     /// Renders this display item into the given render context.
     fn draw_into_context(&self, render_context: &mut RenderContext) {
@@ -142,19 +251,20 @@ impl<E> DisplayItem<E> {
                 debug!("Drawing text at {:?}.", text.base.bounds);
 
                 // FIXME(pcwalton): Allocating? Why?
-                let font = render_context.font_ctx.get_font_by_descriptor(&text.text_run.font_descriptor).unwrap();
+                let text_run = text.text_run.get();
+                let font = render_context.font_ctx.get_font_by_descriptor(&text_run.font_descriptor).unwrap();
 
-                let font_metrics = font.with_borrow( |font| {
+                let font_metrics = font.borrow().with(|font| {
                     font.metrics.clone()
                 });
                 let origin = text.base.bounds.origin;
                 let baseline_origin = Point2D(origin.x, origin.y + font_metrics.ascent);
-                font.with_mut_borrow( |font| {
+                font.borrow().with_mut(|font| {
                     font.draw_text_into_context(render_context,
-                                                &text.text_run,
+                                                text.text_run.get(),
                                                 &text.range,
                                                 baseline_origin,
-                                                text.color);
+                                                text.text_color);
                 });
                 let width = text.base.bounds.size.width;
                 let underline_size = font_metrics.underline_size;
@@ -162,22 +272,22 @@ impl<E> DisplayItem<E> {
                 let strikeout_size = font_metrics.strikeout_size;
                 let strikeout_offset = font_metrics.strikeout_offset;
 
-                if text.text_run.decoration.underline {
+                if text_run.decoration.underline || text.flags.override_underline() {
                     let underline_y = baseline_origin.y - underline_offset;
                     let underline_bounds = Rect(Point2D(baseline_origin.x, underline_y),
                                                 Size2D(width, underline_size));
-                    render_context.draw_solid_color(&underline_bounds, text.color);
+                    render_context.draw_solid_color(&underline_bounds, text.underline_color);
                 }
-                if text.text_run.decoration.overline {
+                if text_run.decoration.overline || text.flags.override_overline() {
                     let overline_bounds = Rect(Point2D(baseline_origin.x, origin.y),
                                                Size2D(width, underline_size));
-                    render_context.draw_solid_color(&overline_bounds, text.color);
+                    render_context.draw_solid_color(&overline_bounds, text.overline_color);
                 }
-                if text.text_run.decoration.line_through {
+                if text_run.decoration.line_through || text.flags.override_line_through() {
                     let strikeout_y = baseline_origin.y - strikeout_offset;
                     let strikeout_bounds = Rect(Point2D(baseline_origin.x, strikeout_y),
                                                 Size2D(width, strikeout_size));
-                    render_context.draw_solid_color(&strikeout_bounds, text.color);
+                    render_context.draw_solid_color(&strikeout_bounds, text.line_through_color);
                 }
             }
 
@@ -211,6 +321,38 @@ impl<E> DisplayItem<E> {
 
     pub fn bounds(&self) -> Rect<Au> {
         self.base().bounds
+    }
+
+    pub fn children<'a>(&'a self) -> DisplayItemIterator<'a,E> {
+        match *self {
+            ClipDisplayItemClass(ref clip) => ParentDisplayItemIterator(clip.child_list.iter()),
+            SolidColorDisplayItemClass(..) |
+            TextDisplayItemClass(..) |
+            ImageDisplayItemClass(..) |
+            BorderDisplayItemClass(..) => EmptyDisplayItemIterator,
+        }
+    }
+
+    pub fn debug_with_level(&self, level: uint) {
+            let mut indent = ~"";
+            for _ in range(0, level) {
+                indent.push_str("| ")
+            }
+            debug!("{}+ {}", indent, self.debug_str());
+            for child in self.children() {
+                child.debug_with_level(level + 1);
+            }
+    }
+
+    pub fn debug_str(&self) -> ~str {
+        let class = match *self {
+            SolidColorDisplayItemClass(_) => "SolidColor",
+            TextDisplayItemClass(_) => "Text",
+            ImageDisplayItemClass(_) => "Image",
+            BorderDisplayItemClass(_) => "Border",
+            ClipDisplayItemClass(_) => "Clip",
+        };
+        format!("{} @ {:?}", class, self.base().bounds)
     }
 }
 

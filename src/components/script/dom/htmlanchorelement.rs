@@ -3,24 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLAnchorElementBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::ErrorResult;
 use dom::document::AbstractDocument;
 use dom::element::HTMLAnchorElementTypeId;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node, ScriptView};
+use dom::node::{AbstractNode, Node};
+use servo_util::str::DOMString;
 
 pub struct HTMLAnchorElement {
     htmlelement: HTMLElement
 }
 
 impl HTMLAnchorElement {
-    pub fn new_inherited(localName: ~str, document: AbstractDocument) -> HTMLAnchorElement {
+    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLAnchorElement {
         HTMLAnchorElement {
             htmlelement: HTMLElement::new_inherited(HTMLAnchorElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: ~str, document: AbstractDocument) -> AbstractNode<ScriptView> {
+    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
         let element = HTMLAnchorElement::new_inherited(localName, document);
         Node::reflect_node(@mut element, document, HTMLAnchorElementBinding::Wrap)
     }

@@ -4,12 +4,12 @@
 
 /// Some little helpers for hooking up the HTML parser with the CSS parser.
 
-use std::cell::Cell;
-use std::comm;
 use std::comm::Port;
-use std::task;
+use encoding::EncodingRef;
+use encoding::all::UTF_8;
 use style::Stylesheet;
-use servo_net::resource_task::{Load, ProgressMsg, Payload, Done, ResourceTask};
+use servo_net::resource_task::{Load, LoadResponse, ProgressMsg, Payload, Done, ResourceTask};
+use servo_util::task::spawn_named;
 use extra::url::Url;
 
 /// Where a style sheet comes from.
@@ -21,33 +21,31 @@ pub enum StylesheetProvenance {
 pub fn spawn_css_parser(provenance: StylesheetProvenance,
                         resource_task: ResourceTask)
                      -> Port<Stylesheet> {
-    let (result_port, result_chan) = comm::stream();
+    let (result_port, result_chan) = Chan::new();
 
-    let provenance_cell = Cell::new(provenance);
-    do task::spawn {
-        // TODO: CSS parsing should take a base URL.
-        let _url = do provenance_cell.with_ref |p| {
-            match *p {
-                UrlProvenance(ref the_url) => (*the_url).clone(),
-                InlineProvenance(ref the_url, _) => (*the_url).clone()
-            }
-        };
+    // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
+    let environment_encoding = UTF_8 as EncodingRef;
 
-        let sheet = match provenance_cell.take() {
+    spawn_named("cssparser", proc() {
+        let sheet = match provenance {
             UrlProvenance(url) => {
                 debug!("cssparse: loading style sheet at {:s}", url.to_str());
-                let (input_port, input_chan) = comm::stream();
+                let (input_port, input_chan) = Chan::new();
                 resource_task.send(Load(url, input_chan));
-                Stylesheet::from_iter(ProgressMsgPortIterator {
-                    progress_port: input_port.recv().progress_port
-                })
+                let LoadResponse { metadata: metadata, progress_port: progress_port }
+                    = input_port.recv();
+                let protocol_encoding_label = metadata.charset.as_ref().map(|s| s.as_slice());
+                let iter = ProgressMsgPortIterator { progress_port: progress_port };
+                Stylesheet::from_bytes_iter(
+                    iter, metadata.final_url,
+                    protocol_encoding_label, Some(environment_encoding))
             }
-            InlineProvenance(_, data) => {
-                Stylesheet::from_str(data)
+            InlineProvenance(base_url, data) => {
+                Stylesheet::from_str(data, base_url, environment_encoding)
             }
         };
         result_chan.send(sheet);
-    }
+    });
 
     return result_port;
 }
@@ -60,7 +58,7 @@ impl Iterator<~[u8]> for ProgressMsgPortIterator {
     fn next(&mut self) -> Option<~[u8]> {
         match self.progress_port.recv() {
             Payload(data) => Some(data),
-            Done(*) => None
+            Done(..) => None
         }
     }
 }
