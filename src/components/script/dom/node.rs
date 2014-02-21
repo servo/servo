@@ -21,7 +21,7 @@ use dom::text::Text;
 
 use js::jsapi::{JSObject, JSContext};
 use servo_util::slot::{MutSlotRef, Slot, SlotRef};
-use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement, ElementLike};
+use servo_util::tree::{TreeNode, TreeNodeRef, TreeNodeRefAsElement};
 use std::cast::transmute;
 use std::cast;
 use std::unstable::raw::Box;
@@ -1177,19 +1177,8 @@ impl Node<ScriptView> {
         false
     }
 
-    pub fn GetNamespaceURI(&self, abstract_self: AbstractNode<ScriptView>) -> Option<DOMString> {
-        match self.type_id {
-            ElementNodeTypeId(*) => {
-                do abstract_self.with_imm_element_like |element| {
-                    Some(element.get_namespace())
-                }
-            }
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            DocumentFragmentNodeTypeId |
-            DoctypeNodeTypeId |
-            DocumentNodeTypeId(_) => None
-        }
+    pub fn GetNamespaceURI(&self) -> Option<DOMString> {
+        None
     }
 
     pub fn GetPrefix(&self) -> Option<DOMString> {
