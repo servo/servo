@@ -19,3 +19,9 @@ pub fn null_str_as_empty_ref<'a>(s: &'a Option<DOMString>) -> &'a str {
     }
 }
 
+pub fn is_whitespace(s: &str) -> bool {
+    s.chars().all(|c| match c {
+        '\u0020' | '\u0009' | '\u000D' | '\u000A' => true,
+        _ => false
+    })
+}

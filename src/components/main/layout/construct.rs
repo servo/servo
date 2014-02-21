@@ -43,6 +43,7 @@ use style::ComputedValues;
 use servo_util::namespace;
 use servo_util::url::parse_url;
 use servo_util::url::is_image_data;
+use servo_util::str::is_whitespace;
 
 use extra::url::Url;
 use extra::arc::Arc;
@@ -724,10 +725,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         match self.type_id() {
             TextNodeTypeId => {
                 unsafe {
-                    if !self.with_text(|text| text.characterdata
-                                                  .data
-                                                  .chars()
-                                                  .all(|c| c.is_whitespace())) {
+                    if !self.with_text(|text| is_whitespace(text.characterdata.data)) {
                         return false
                     }
 
