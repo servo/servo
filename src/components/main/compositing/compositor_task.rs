@@ -209,7 +209,8 @@ impl CompositorTask {
             }
             Headless => {
                 headless::NullCompositor::create(port,
-                                                 constellation_chan.clone())
+                                                 constellation_chan.clone(),
+                                                 profiler_chan)
             }
         };
     }
