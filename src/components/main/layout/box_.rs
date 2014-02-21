@@ -22,6 +22,7 @@ use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::*;
 use servo_util::namespace;
+use servo_util::str::is_whitespace;
 
 use std::cast;
 use std::cell::RefCell;
@@ -1428,7 +1429,7 @@ impl Box {
     /// Returns true if this box is an unscanned text box that consists entirely of whitespace.
     pub fn is_whitespace_only(&self) -> bool {
         match self.specific {
-            UnscannedTextBox(ref text_box_info) => text_box_info.text.is_whitespace(),
+            UnscannedTextBox(ref text_box_info) => is_whitespace(text_box_info.text),
             _ => false,
         }
     }
