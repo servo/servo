@@ -235,7 +235,7 @@ impl ImageResponder for LayoutImageResponder {
         let id = self.id.clone();
         let script_chan = self.script_chan.clone();
         let f: proc(ImageResponseMsg) = proc(_) {
-            script_chan.send(SendEventMsg(id.clone(), ReflowEvent))
+            drop(script_chan.try_send(SendEventMsg(id.clone(), ReflowEvent)))
         };
         f
     }
@@ -392,6 +392,7 @@ impl LayoutTask {
                     }
                 }
                 ExitNowMsg => {
+                    debug!("layout task is exiting...");
                     self.exit_now();
                     break
                 }
