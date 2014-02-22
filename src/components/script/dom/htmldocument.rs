@@ -8,10 +8,8 @@ use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, HTML, HTMLDocumentTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::htmlcollection::HTMLCollection;
 use dom::node::DocumentNodeTypeId;
 use dom::window::Window;
-use servo_util::namespace::Null;
 
 use extra::url::Url;
 
@@ -39,46 +37,6 @@ impl HTMLDocument {
     pub fn new(window: &JS<Window>, url: Option<Url>) -> JS<HTMLDocument> {
         let document = HTMLDocument::new_inherited(window.clone(), url);
         Document::reflect_document(~document, window, HTMLDocumentBinding::Wrap)
-    }
-}
-
-impl HTMLDocument {
-    pub fn Images(&self) -> JS<HTMLCollection> {
-        self.parent.createHTMLCollection(|elem| "img" == elem.tag_name)
-    }
-
-    pub fn Embeds(&self) -> JS<HTMLCollection> {
-        self.parent.createHTMLCollection(|elem| "embed" == elem.tag_name)
-    }
-
-    pub fn Plugins(&self) -> JS<HTMLCollection> {
-        self.Embeds()
-    }
-
-    pub fn Links(&self) -> JS<HTMLCollection> {
-        self.parent.createHTMLCollection(|elem| {
-            ("a" == elem.tag_name || "area" == elem.tag_name) &&
-            elem.get_attribute(Null, "href").is_some()
-        })
-    }
-
-    pub fn Forms(&self) -> JS<HTMLCollection> {
-        self.parent.createHTMLCollection(|elem| "form" == elem.tag_name)
-    }
-
-    pub fn Scripts(&self) -> JS<HTMLCollection> {
-        self.parent.createHTMLCollection(|elem| "script" == elem.tag_name)
-    }
-
-    pub fn Anchors(&self) -> JS<HTMLCollection> {
-        self.parent.createHTMLCollection(|elem| {
-            "a" == elem.tag_name && elem.get_attribute(Null, "name").is_some()
-        })
-    }
-
-    pub fn Applets(&self) -> JS<HTMLCollection> {
-        // FIXME: This should be return OBJECT elements containing applets.
-        self.parent.createHTMLCollection(|elem| "applet" == elem.tag_name)
     }
 }
 

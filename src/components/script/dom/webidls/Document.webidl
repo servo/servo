@@ -45,4 +45,13 @@ partial interface Document {
            attribute HTMLElement? body;
   readonly attribute HTMLHeadElement? head;
   /*NodeList*/ HTMLCollection getElementsByName(DOMString elementName);
+
+  readonly attribute HTMLCollection images;
+  readonly attribute HTMLCollection embeds;
+  readonly attribute HTMLCollection plugins;
+  readonly attribute HTMLCollection links;
+  readonly attribute HTMLCollection forms;
+  readonly attribute HTMLCollection scripts;
+  readonly attribute HTMLCollection anchors;
+  readonly attribute HTMLCollection applets;
 };

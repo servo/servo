@@ -431,6 +431,44 @@ impl Document {
         })
     }
 
+    pub fn Images(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| "img" == elem.tag_name)
+    }
+
+    pub fn Embeds(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| "embed" == elem.tag_name)
+    }
+
+    pub fn Plugins(&self) -> JS<HTMLCollection> {
+        self.Embeds()
+    }
+
+    pub fn Links(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| {
+            ("a" == elem.tag_name || "area" == elem.tag_name) &&
+            elem.get_attribute(Null, "href").is_some()
+        })
+    }
+
+    pub fn Forms(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| "form" == elem.tag_name)
+    }
+
+    pub fn Scripts(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| "script" == elem.tag_name)
+    }
+
+    pub fn Anchors(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| {
+            "a" == elem.tag_name && elem.get_attribute(Null, "name").is_some()
+        })
+    }
+
+    pub fn Applets(&self) -> JS<HTMLCollection> {
+        // FIXME: This should be return OBJECT elements containing applets.
+        self.createHTMLCollection(|elem| "applet" == elem.tag_name)
+    }
+
     pub fn createHTMLCollection(&self, callback: |elem: &Element| -> bool) -> JS<HTMLCollection> {
         let mut elements = ~[];
         match self.GetDocumentElement() {

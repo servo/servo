@@ -5,13 +5,4 @@
  */
 
 /* http://www.whatwg.org/specs/web-apps/current-work/#the-document-object */
-interface HTMLDocument : Document {
-  readonly attribute HTMLCollection images;
-  readonly attribute HTMLCollection embeds;
-  readonly attribute HTMLCollection plugins;
-  readonly attribute HTMLCollection links;
-  readonly attribute HTMLCollection forms;
-  readonly attribute HTMLCollection scripts;
-  readonly attribute HTMLCollection anchors;
-  readonly attribute HTMLCollection applets;
-};
+interface HTMLDocument : Document {};
