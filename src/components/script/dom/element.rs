@@ -118,6 +118,8 @@ pub enum ElementTypeId {
     HTMLUListElementTypeId,
     HTMLVideoElementTypeId,
     HTMLUnknownElementTypeId,
+
+    ElementTypeId,
 }
 
 //

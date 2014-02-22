@@ -1702,8 +1702,20 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-namespaceuri
-    pub fn GetNamespaceURI(&self) -> Option<DOMString> {
-        None
+    pub fn GetNamespaceURI(&self, abstract_self: AbstractNode) -> Option<DOMString> {
+        match self.type_id {
+           ElementNodeTypeId(_) => {
+               abstract_self.with_imm_element (|element| {
+                   Some(element.namespace.to_str().to_owned())
+               })
+           }
+           ProcessingInstructionNodeTypeId |
+           CommentNodeTypeId |
+           TextNodeTypeId |
+           DocumentFragmentNodeTypeId |
+           DoctypeNodeTypeId |
+           DocumentNodeTypeId(_) => None
+        }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-prefix
