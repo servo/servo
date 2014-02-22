@@ -223,16 +223,6 @@ impl Document {
         self.createHTMLCollection(|elem| elem.tag_name == tag)
     }
 
-    // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
-    pub fn GetElementsByTagNameNS(&self, _ns: Option<DOMString>, _tag: DOMString) -> JS<HTMLCollection> {
-        HTMLCollection::new(&self.window, ~[])
-    }
-
-    // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
-    pub fn GetElementsByClassName(&self, _class: DOMString) -> JS<HTMLCollection> {
-        HTMLCollection::new(&self.window, ~[])
-    }
-
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     pub fn GetElementById(&self, id: DOMString) -> Option<JS<Element>> {
         // TODO: "in tree order, within the context object's tree"
