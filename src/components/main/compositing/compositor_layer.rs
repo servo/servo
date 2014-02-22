@@ -22,6 +22,9 @@ use script::dom::event::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEven
 use script::script_task::SendEventMsg;
 use servo_msg::compositor_msg::{LayerBuffer, LayerBufferSet, Epoch, Tile};
 use servo_msg::constellation_msg::PipelineId;
+//FIXME: switch to std::rc when we upgrade Rust
+use layers::temp_rc::Rc;
+//use std::rc::Rc;
 use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use windowing::{MouseWindowMouseUpEvent};
 use azure::azure_hl::Color;
@@ -57,7 +60,7 @@ pub struct CompositorLayer {
 
     /// The root layer of this CompositorLayer's layer tree. Buffers are collected
     /// from the quadtree and inserted here when the layer is painted to the screen.
-    root_layer: @mut ContainerLayer,
+    root_layer: Rc<ContainerLayer>,
 
     /// When set to true, this layer is ignored by its parents. This is useful for
     /// soft deletion or when waiting on a page size.
@@ -80,10 +83,10 @@ pub struct CompositorLayer {
 /// Helper struct for keeping CompositorLayer children organized.
 struct CompositorLayerChild {
     /// The child itself.
-    child: ~CompositorLayer, 
+    child: ~CompositorLayer,
     /// A ContainerLayer managed by the parent node. This deals with clipping and
     /// positioning, and is added above the child's layer tree.
-    container: @mut ContainerLayer,
+    container: Rc<ContainerLayer>,
 }
 
 /// Helper enum for storing quadtrees. Either contains a quadtree, or contains
@@ -123,7 +126,7 @@ impl CompositorLayer {
                                                       tile_size,
                                                       max_mem)),
             },
-            root_layer: @mut ContainerLayer(),
+            root_layer: Rc::new(ContainerLayer()),
             hidden: true,
             epoch: Epoch(0),
             scroll_behavior: Scroll,
@@ -142,24 +145,23 @@ impl CompositorLayer {
         let mut layer = CompositorLayer::new(pipeline, None, tile_size, max_mem, cpu_painting);
         layer.children = (children.move_iter().map(|child| {
             let SendableChildFrameTree { frame_tree, rect } = child;
-            let container = @mut ContainerLayer();
+            let container = Rc::new(ContainerLayer());
             match rect {
                 Some(rect) => {
-                     container.scissor = Some(rect);
-                     container.common.transform = identity().translate(rect.origin.x,
-                                                                       rect.origin.y,
-                                                                       0f32);
-                    
+                     container.borrow().scissor.set(Some(rect));
+                     container.borrow().common.with_mut(|common| common.transform = identity().translate(rect.origin.x,
+                                                                                                         rect.origin.y,
+                                                                                                         0f32));
                 }
                 None => {}
             }
-            
+
             let child_layer = ~CompositorLayer::from_frame_tree(frame_tree,
                                                                 tile_size,
                                                                 max_mem,
                                                                 cpu_painting);
-            container.add_child_start(ContainerLayerKind(child_layer.root_layer));
-            
+            ContainerLayer::add_child_start(container.clone(), ContainerLayerKind(child_layer.root_layer.clone()));
+
             CompositorLayerChild {
                 child: child_layer,
                 container: container,
@@ -177,7 +179,9 @@ impl CompositorLayer {
                   -> bool {
         let cursor = cursor - self.scroll_offset;
         for child in self.children.mut_iter().filter(|x| !x.child.hidden) {
-            match child.container.scissor {
+            // NOTE: work around borrowchk
+            let tmp = child.container.borrow().scissor.borrow();
+            match *tmp.get() {
                 None => {
                     error!("CompositorLayer: unable to perform cursor hit test for layer");
                 }
@@ -213,9 +217,9 @@ impl CompositorLayer {
                     return false;
                 }
 
-                self.root_layer.common.set_transform(identity().translate(self.scroll_offset.x,
-                                                                          self.scroll_offset.y,
-                                                                          0.0));
+                self.root_layer.borrow().common.with_mut(|common| common.set_transform(identity().translate(self.scroll_offset.x,
+                                                                                                            self.scroll_offset.y,
+                                                                                                            0.0)));
                 true
             }
             FixedPosition => false, // Ignore this scroll event.
@@ -228,7 +232,9 @@ impl CompositorLayer {
     pub fn send_mouse_event(&self, event: MouseWindowEvent, cursor: Point2D<f32>) {
         let cursor = cursor - self.scroll_offset;
         for child in self.children.iter().filter(|&x| !x.child.hidden) {
-            match child.container.scissor {
+            // NOTE: work around borrowchk
+            let tmp = child.container.borrow().scissor.borrow();
+            match *tmp.get() {
                 None => {
                     error!("CompositorLayer: unable to perform cursor hit test for layer");
                 }
@@ -287,7 +293,9 @@ impl CompositorLayer {
             self.build_layer_tree(graphics_context);
         }
         let transform = |x: &mut CompositorLayerChild| -> bool {
-            match x.container.scissor {
+            // NOTE: work around borrowchk
+            let tmp = x.container.borrow().scissor.borrow();
+            match *tmp.get() {
                 Some(scissor) => {
                     let new_rect = rect.intersection(&scissor);
                     match new_rect {
@@ -323,12 +331,16 @@ impl CompositorLayer {
         match self.children.iter().position(|x| pipeline_id == x.child.pipeline.id) {
             Some(i) => {
                 let child_node = &mut self.children[i];
-                let con = child_node.container;
-                con.common.set_transform(identity().translate(new_rect.origin.x,
-                                                              new_rect.origin.y,
-                                                              0.0));
-                let old_rect = con.scissor;
-                con.scissor = Some(new_rect);
+                child_node.container.borrow().common.with_mut(|common|
+                                                              common.set_transform(identity().translate(new_rect.origin.x,
+                                                                                                        new_rect.origin.y,
+                                                                                                        0.0)));
+                let old_rect = {
+                    // NOTE: work around borrowchk
+                    let tmp = child_node.container.borrow().scissor.borrow();
+                    tmp.get().clone()
+                };
+                child_node.container.borrow().scissor.set(Some(new_rect));
                 match self.quadtree {
                     NoTree(..) => {} // Nothing to do
                         Tree(ref mut quadtree) => {
@@ -408,9 +420,10 @@ impl CompositorLayer {
                     return false;
                 }
 
-                self.root_layer.common.set_transform(identity().translate(self.scroll_offset.x,
-                                                                          self.scroll_offset.y,
-                                                                          0.0));
+                self.root_layer.borrow().common.with_mut(|common|
+                                                         common.set_transform(identity().translate(self.scroll_offset.x,
+                                                                                                   self.scroll_offset.y,
+                                                                                                   0.0)));
                 true
             }
             FixedPosition => false  // Ignore this scroll event.
@@ -465,7 +478,9 @@ impl CompositorLayer {
                                                             max_mem))
                     }
                 }
-                match child_node.container.scissor {
+                // NOTE: work around borrowchk
+                let tmp = child_node.container.borrow().scissor.borrow();
+                match *tmp.get() {
                     Some(scissor) => {
                         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the cursor position
                         // to make sure the scroll isn't propagated downwards.
@@ -492,15 +507,21 @@ impl CompositorLayer {
     // are not rebuilt directly from this method.
     pub fn build_layer_tree(&mut self, graphics_context: &NativeCompositingGraphicsContext) {
         // Iterate over the children of the container layer.
-        let mut current_layer_child = self.root_layer.first_child;
-        
+        let mut current_layer_child;
+
+        // NOTE: work around borrowchk
+        {
+            let tmp = self.root_layer.borrow().first_child.borrow();
+            current_layer_child = tmp.get().clone();
+        }
+
         // Delete old layer.
         while current_layer_child.is_some() {
-            let trash = current_layer_child.unwrap();
-            current_layer_child.unwrap().with_common(|common| {
-                current_layer_child = common.next_sibling;
+            let trash = current_layer_child.clone().unwrap();
+            current_layer_child.clone().unwrap().with_common(|common| {
+                current_layer_child = common.next_sibling.clone();
             });
-            self.root_layer.remove_child(trash);
+            ContainerLayer::remove_child(self.root_layer.clone(), trash);
         }
 
         // Add new tiles.
@@ -519,7 +540,7 @@ impl CompositorLayer {
 
             // Find or create a texture layer.
             let texture_layer;
-            current_layer_child = match current_layer_child {
+            current_layer_child = match current_layer_child.clone() {
                 None => {
                     debug!("osmain: adding new texture layer");
 
@@ -536,19 +557,20 @@ impl CompositorLayer {
                     buffer.native_surface.bind_to_texture(graphics_context, &texture, size);
 
                     // Make a texture layer and add it.
-                    texture_layer = @mut TextureLayer::new(texture, buffer.screen_pos.size, flip);
-                    self.root_layer.add_child_end(TextureLayerKind(texture_layer));
+                    texture_layer = Rc::new(TextureLayer::new(texture, buffer.screen_pos.size, flip));
+                    ContainerLayer::add_child_end(self.root_layer.clone(),
+                                                  TextureLayerKind(texture_layer.clone()));
                     None
                 }
                 Some(TextureLayerKind(existing_texture_layer)) => {
-                    texture_layer = existing_texture_layer;
+                    texture_layer = existing_texture_layer.clone();
 
-                    let texture = &texture_layer.texture;
+                    let texture = &existing_texture_layer.borrow().texture;
                     buffer.native_surface.bind_to_texture(graphics_context, texture, size);
 
                     // Move on to the next sibling.
                     current_layer_child.unwrap().with_common(|common| {
-                        common.next_sibling
+                        common.next_sibling.clone()
                     })
                 }
                 Some(_) => fail!(~"found unexpected layer kind"),
@@ -558,17 +580,20 @@ impl CompositorLayer {
             let rect = buffer.rect;
             let transform = identity().translate(rect.origin.x, rect.origin.y, 0.0);
             let transform = transform.scale(rect.size.width, rect.size.height, 1.0);
-            texture_layer.common.set_transform(transform);
+            texture_layer.borrow().common.with_mut(|common| common.set_transform(transform));
         }
 
         // Add child layers.
         for child in self.children.mut_iter().filter(|x| !x.child.hidden) {
             current_layer_child = match current_layer_child {
                 None => {
-                    child.container.common.parent = None;
-                    child.container.common.prev_sibling = None;
-                    child.container.common.next_sibling = None;
-                    self.root_layer.add_child_end(ContainerLayerKind(child.container));
+                    child.container.borrow().common.with_mut(|common| {
+                            common.parent = None;
+                            common.prev_sibling = None;
+                            common.next_sibling = None;
+                        });
+                    ContainerLayer::add_child_end(self.root_layer.clone(),
+                                                  ContainerLayerKind(child.container.clone()));
                     None
                 }
                 Some(_) => {
@@ -648,7 +673,9 @@ impl CompositorLayer {
                 match self.quadtree {
                     NoTree(..) => {} // Nothing to do
                     Tree(ref mut quadtree) => {
-                        match child.container.scissor {
+                        // NOTE: work around borrowchk
+                        let tmp = child.container.borrow().scissor.borrow();
+                        match *tmp.get() {
                             Some(rect) => {
                                 quadtree.set_status_page(rect, Normal, false); // Unhide this rect
                             }
@@ -692,7 +719,9 @@ impl CompositorLayer {
             Tree(ref mut quadtree) => quadtree,
         };
         for child in self.children.iter().filter(|x| !x.child.hidden) {
-            match child.container.scissor {
+            // NOTE: work around borrowchk
+            let tmp = child.container.borrow().scissor.borrow();
+            match *tmp.get() {
                 None => {} // Nothing to do
                 Some(rect) => {
                     quadtree.set_status_page(rect, Hidden, false);

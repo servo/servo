@@ -19,6 +19,10 @@ use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, Subpa
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::ProfilerChan;
+use std::cell::RefCell;
+//FIXME: switch to std::rc when we upgrade Rust
+use layers::temp_rc::Rc;
+//use std::rc::Rc;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and render task. 
 pub struct Pipeline {
@@ -30,7 +34,7 @@ pub struct Pipeline {
     layout_shutdown_port: Port<()>,
     render_shutdown_port: Port<()>,
     /// The most recently loaded url
-    url: Option<Url>,
+    url: RefCell<Option<Url>>,
 }
 
 /// The subset of the pipeline that is needed for layer composition.
@@ -51,7 +55,7 @@ impl Pipeline {
                        image_cache_task: ImageCacheTask,
                        profiler_chan: ProfilerChan,
                        opts: Opts,
-                       script_pipeline: &Pipeline)
+                       script_pipeline: Rc<Pipeline>)
                        -> Pipeline {
         let (layout_port, layout_chan) = LayoutChan::new();
         let (render_port, render_chan) = RenderChan::new();
@@ -77,7 +81,7 @@ impl Pipeline {
                            layout_chan.clone(),
                            constellation_chan,
                            failure,
-                           script_pipeline.script_chan.clone(),
+                           script_pipeline.borrow().script_chan.clone(),
                            render_chan.clone(),
                            image_cache_task.clone(),
                            opts.clone(),
@@ -85,16 +89,16 @@ impl Pipeline {
                            layout_shutdown_chan);
 
         let new_layout_info = NewLayoutInfo {
-            old_id: script_pipeline.id.clone(),
+            old_id: script_pipeline.borrow().id.clone(),
             new_id: id,
             layout_chan: layout_chan.clone(),
         };
 
-        script_pipeline.script_chan.send(AttachLayoutMsg(new_layout_info));
+        script_pipeline.borrow().script_chan.send(AttachLayoutMsg(new_layout_info));
 
         Pipeline::new(id,
                       subpage_id,
-                      script_pipeline.script_chan.clone(),
+                      script_pipeline.borrow().script_chan.clone(),
                       layout_chan,
                       render_chan,
                       layout_shutdown_port,
@@ -180,12 +184,12 @@ impl Pipeline {
             render_chan: render_chan,
             layout_shutdown_port: layout_shutdown_port,
             render_shutdown_port: render_shutdown_port,
-            url: None,
+            url: RefCell::new(None),
         }
     }
 
-    pub fn load(&mut self, url: Url) {
-        self.url = Some(url.clone());
+    pub fn load(&self, url: Url) {
+        self.url.set(Some(url.clone()));
         self.script_chan.send(LoadMsg(self.id, url));
     }
 
@@ -198,8 +202,8 @@ impl Pipeline {
         self.render_chan.try_send(PaintPermissionRevoked);
     }
 
-    pub fn reload(&mut self) {
-        self.url.clone().map(|url| {
+    pub fn reload(&self) {
+        self.url.get().clone().map(|url| {
             self.load(url);
         });
     }
