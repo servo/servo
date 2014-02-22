@@ -127,6 +127,7 @@ pub enum DisplayItem<E> {
     TextDisplayItemClass(~TextDisplayItem<E>),
     ImageDisplayItemClass(~ImageDisplayItem<E>),
     BorderDisplayItemClass(~BorderDisplayItem<E>),
+    LineDisplayItemClass(~LineDisplayItem<E>),
     ClipDisplayItemClass(~ClipDisplayItem<E>)
 }
 
@@ -204,6 +205,17 @@ pub struct BorderDisplayItem<E> {
 
     /// The border styles.
     style: SideOffsets2D<border_style::T>
+}
+
+/// Renders a line segment
+pub struct LineDisplayItem<E> {
+    base: BaseDisplayItem<E>,
+
+    /// The line segment color.
+    color: Color,
+
+    /// The line segemnt style.
+    style: border_style::T
 }
 
 pub struct ClipDisplayItem<E> {
@@ -303,6 +315,12 @@ impl<E> DisplayItem<E> {
                                            border.color,
                                            border.style)
             }
+
+            LineDisplayItemClass(ref line) => {
+                render_context.draw_line(&line.base.bounds,
+                                          line.color,
+                                          line.style)
+            }
         }
     }
 
@@ -314,6 +332,7 @@ impl<E> DisplayItem<E> {
                 TextDisplayItemClass(ref text) => transmute_region(&text.base),
                 ImageDisplayItemClass(ref image_item) => transmute_region(&image_item.base),
                 BorderDisplayItemClass(ref border) => transmute_region(&border.base),
+                LineDisplayItemClass(ref line) => transmute_region(&line.base),
                 ClipDisplayItemClass(ref clip) => transmute_region(&clip.base),
             }
         }
@@ -329,7 +348,8 @@ impl<E> DisplayItem<E> {
             SolidColorDisplayItemClass(..) |
             TextDisplayItemClass(..) |
             ImageDisplayItemClass(..) |
-            BorderDisplayItemClass(..) => EmptyDisplayItemIterator,
+            BorderDisplayItemClass(..) |
+            LineDisplayItemClass(..) => EmptyDisplayItemIterator,
         }
     }
 
@@ -350,6 +370,7 @@ impl<E> DisplayItem<E> {
             TextDisplayItemClass(_) => "Text",
             ImageDisplayItemClass(_) => "Image",
             BorderDisplayItemClass(_) => "Border",
+            LineDisplayItemClass(_) => "Line",
             ClipDisplayItemClass(_) => "Clip",
         };
         format!("{} @ {:?}", class, self.base().bounds)

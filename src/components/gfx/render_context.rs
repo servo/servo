@@ -62,6 +62,15 @@ impl<'a> RenderContext<'a>  {
         self.draw_border_segment(Left, bounds, border, color, style);
     }
 
+    pub fn draw_line(&self,
+                     bounds: &Rect<Au>,
+                     color: Color,
+                     style: border_style::T) {
+        self.draw_target.make_current();
+
+        self.draw_line_segment(bounds, color, style);
+    }
+
     pub fn draw_push_clip(&self, bounds: &Rect<Au>) {
         let rect = bounds.to_azure_rect();
         let path_builder = self.draw_target.create_path_builder();
@@ -144,6 +153,25 @@ impl<'a> RenderContext<'a>  {
                 self.draw_solid_border_segment(direction,bounds,border,color_select);
             }
             //FIXME(sammykim): Five more styles should be implemented.
+            //double, groove, ridge, inset, outset
+        }
+    }
+
+    fn draw_line_segment(&self, bounds: &Rect<Au>, color: Color, style: border_style::T) {
+        let border = SideOffsets2D::new_all_same(bounds.size.width).to_float_px();
+
+        match style{
+            border_style::none | border_style::hidden => {}
+            border_style::dotted => {
+                //FIXME(sankha93): Dotted style should be implemented.
+            }
+            border_style::dashed => {
+                self.draw_dashed_border_segment(Right,bounds,border,color);
+            }
+            border_style::solid => {
+                self.draw_solid_border_segment(Right,bounds,border,color);
+            }
+            //FIXME(sankha93): Five more styles should be implemented.
             //double, groove, ridge, inset, outset
         }
     }
