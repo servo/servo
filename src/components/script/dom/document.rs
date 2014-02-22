@@ -45,9 +45,9 @@ use std::hashmap::HashMap;
 use extra::serialize::{Encoder, Encodable};
 
 #[deriving(Eq,Encodable)]
-pub enum DocumentTypeId {
-    PlainDocumentTypeId,
-    HTMLDocumentTypeId
+pub enum IsHTMLDocument {
+    HTMLDocument,
+    NonHTMLDocument,
 }
 
 #[deriving(Encodable)]
@@ -59,6 +59,7 @@ pub struct Document {
     implementation: Option<JS<DOMImplementation>>,
     content_type: DOMString,
     encoding_name: DOMString,
+    is_html_document: bool,
     extra: Untraceable,
 }
 
@@ -75,7 +76,7 @@ impl<S: Encoder> Encodable<S> for Untraceable {
 impl DocumentDerived for EventTarget {
     fn is_document(&self) -> bool {
         match self.type_id {
-            NodeTargetTypeId(DocumentNodeTypeId(_)) => true,
+            NodeTargetTypeId(DocumentNodeTypeId) => true,
             _ => false
         }
     }
@@ -97,20 +98,23 @@ impl Document {
         raw_doc
     }
 
-    pub fn new_inherited(window: JS<Window>, url: Option<Url>, doctype: DocumentTypeId, content_type: Option<DOMString>) -> Document {
+    pub fn new_inherited(window: JS<Window>,
+                         url: Option<Url>,
+                         is_html_document: IsHTMLDocument,
+                         content_type: Option<DOMString>) -> Document {
         Document {
-            node: Node::new_without_doc(DocumentNodeTypeId(doctype)),
+            node: Node::new_without_doc(DocumentNodeTypeId),
             reflector_: Reflector::new(),
             window: window,
             idmap: HashMap::new(),
             implementation: None,
             content_type: match content_type {
                 Some(string) => string.clone(),
-                None => match doctype {
+                None => match is_html_document {
                     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    HTMLDocumentTypeId => ~"text/html",
+                    HTMLDocument => ~"text/html",
                     // http://dom.spec.whatwg.org/#concept-document-content-type
-                    PlainDocumentTypeId => ~"application/xml"
+                    NonHTMLDocument => ~"application/xml"
                 }
             },
             extra: Untraceable {
@@ -123,10 +127,11 @@ impl Document {
             },
             // http://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: ~"utf-8",
+            is_html_document: is_html_document == HTMLDocument,
         }
     }
 
-    pub fn new(window: &JS<Window>, url: Option<Url>, doctype: DocumentTypeId, content_type: Option<DOMString>) -> JS<Document> {
+    pub fn new(window: &JS<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> JS<Document> {
         let document = Document::new_inherited(window.clone(), url, doctype, content_type);
         Document::reflect_document(~document, window, DocumentBinding::Wrap)
     }
@@ -135,7 +140,7 @@ impl Document {
 impl Document {
     // http://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(owner: &JS<Window>) -> Fallible<JS<Document>> {
-        Ok(Document::new(owner, None, PlainDocumentTypeId, None))
+        Ok(Document::new(owner, None, NonHTMLDocument, None))
     }
 }
 

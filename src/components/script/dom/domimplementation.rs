@@ -8,13 +8,13 @@ use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::utils::{Fallible, InvalidCharacter, NamespaceError};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
-use dom::document::{Document, HTMLDocumentTypeId};
+use dom::document::{Document, HTMLDocument};
 use dom::documenttype::DocumentType;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
-use dom::node::{Node, DocumentNodeTypeId, NodeHelpers, INode};
+use dom::node::{Node, INode};
 use dom::text::Text;
 use dom::window::Window;
 use servo_util::str::DOMString;
@@ -66,9 +66,8 @@ impl DOMImplementation {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     pub fn CreateHTMLDocument(&self, title: Option<DOMString>) -> JS<Document> {
         // Step 1-2.
-        let doc = Document::new(&self.owner, None, HTMLDocumentTypeId, None);
+        let doc = Document::new(&self.owner, None, HTMLDocument, None);
         let mut doc_node: JS<Node> = NodeCast::from(&doc);
-        assert!(doc_node.type_id() == DocumentNodeTypeId(HTMLDocumentTypeId));
 
         {
             // Step 3.

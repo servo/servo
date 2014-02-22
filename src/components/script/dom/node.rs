@@ -12,7 +12,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::{ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::bindings::utils;
 use dom::characterdata::CharacterData;
-use dom::document::{Document, DocumentTypeId};
+use dom::document::Document;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementTypeId, HTMLAnchorElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -101,7 +101,7 @@ impl NodeFlags {
     pub fn new(type_id: NodeTypeId) -> NodeFlags {
         let mut flags = NodeFlags(0);
         match type_id {
-            DocumentNodeTypeId(_) => { flags.set_is_in_doc(true); }
+            DocumentNodeTypeId => { flags.set_is_in_doc(true); }
             _ => {}
         }
         flags
@@ -208,7 +208,7 @@ pub enum NodeTypeId {
     DoctypeNodeTypeId,
     DocumentFragmentNodeTypeId,
     CommentNodeTypeId,
-    DocumentNodeTypeId(DocumentTypeId),
+    DocumentNodeTypeId,
     ElementNodeTypeId(ElementTypeId),
     TextNodeTypeId,
     ProcessingInstructionNodeTypeId,
@@ -362,7 +362,7 @@ impl NodeHelpers for JS<Node> {
     #[inline]
     fn is_document(&self) -> bool {
         match self.type_id() {
-            DocumentNodeTypeId(..) => true,
+            DocumentNodeTypeId => true,
             _ => false
         }
     }
@@ -804,7 +804,7 @@ impl Node {
             TextNodeTypeId                  => 3,
             ProcessingInstructionNodeTypeId => 7,
             CommentNodeTypeId               => 8,
-            DocumentNodeTypeId(_)           => 9,
+            DocumentNodeTypeId              => 9,
             DoctypeNodeTypeId               => 10,
             DocumentFragmentNodeTypeId      => 11,
         }
@@ -829,7 +829,7 @@ impl Node {
                 doctype.get().name.clone()
             },
             DocumentFragmentNodeTypeId => ~"#document-fragment",
-            DocumentNodeTypeId(_) => ~"#document"
+            DocumentNodeTypeId => ~"#document"
         }
     }
 
@@ -847,7 +847,7 @@ impl Node {
             ProcessingInstructionNodeTypeId |
             DoctypeNodeTypeId |
             DocumentFragmentNodeTypeId => Some(self.owner_doc()),
-            DocumentNodeTypeId(_) => None
+            DocumentNodeTypeId => None
         }
     }
 
@@ -931,7 +931,7 @@ impl Node {
                 Some(characterdata.get().Data())
             }
             DoctypeNodeTypeId |
-            DocumentNodeTypeId(_) => {
+            DocumentNodeTypeId => {
                 None
             }
         }
@@ -975,7 +975,7 @@ impl Node {
                   -> Fallible<JS<Node>> {
         // Step 1.
         match parent.type_id() {
-            DocumentNodeTypeId(..) |
+            DocumentNodeTypeId |
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => (),
             _ => return Err(HierarchyRequest)
@@ -1010,12 +1010,12 @@ impl Node {
             ElementNodeTypeId(_) |
             ProcessingInstructionNodeTypeId |
             CommentNodeTypeId => (),
-            DocumentNodeTypeId(..) => return Err(HierarchyRequest)
+            DocumentNodeTypeId => return Err(HierarchyRequest)
         }
 
         // Step 6.
         match parent.type_id() {
-            DocumentNodeTypeId(_) => {
+            DocumentNodeTypeId => {
                 match node.type_id() {
                     // Step 6.1
                     DocumentFragmentNodeTypeId => {
@@ -1084,7 +1084,7 @@ impl Node {
                     TextNodeTypeId |
                     ProcessingInstructionNodeTypeId |
                     CommentNodeTypeId => (),
-                    DocumentNodeTypeId(_) => unreachable!(),
+                    DocumentNodeTypeId => unreachable!(),
                 }
             },
             _ => (),
@@ -1252,7 +1252,7 @@ impl Node {
                 document.get().content_changed();
             }
             DoctypeNodeTypeId |
-            DocumentNodeTypeId(_) => {}
+            DocumentNodeTypeId => {}
         }
         Ok(())
     }
@@ -1279,7 +1279,7 @@ impl Node {
                         -> Fallible<JS<Node>> {
         // Step 1.
         match parent.type_id() {
-            DocumentNodeTypeId(..) |
+            DocumentNodeTypeId |
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => (),
             _ => return Err(HierarchyRequest)
@@ -1305,12 +1305,12 @@ impl Node {
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId |
             CommentNodeTypeId => (),
-            DocumentNodeTypeId(..) => return Err(HierarchyRequest)
+            DocumentNodeTypeId => return Err(HierarchyRequest)
         }
 
         // Step 6.
         match parent.type_id() {
-            DocumentNodeTypeId(..) => {
+            DocumentNodeTypeId => {
                 match node.type_id() {
                     // Step 6.1
                     DocumentFragmentNodeTypeId => {
@@ -1358,7 +1358,7 @@ impl Node {
                     TextNodeTypeId |
                     ProcessingInstructionNodeTypeId |
                     CommentNodeTypeId => (),
-                    DocumentNodeTypeId(..) => unreachable!()
+                    DocumentNodeTypeId => unreachable!()
                 }
             },
             _ => ()
