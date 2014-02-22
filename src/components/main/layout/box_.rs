@@ -9,6 +9,7 @@ use extra::arc::{MutexArc, Arc};
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color::rgb;
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
+use gfx::display_list::{LineDisplayItem, LineDisplayItemClass};
 use gfx::display_list::{ImageDisplayItem, ImageDisplayItemClass};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextDisplayItem};
 use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags, ClipDisplayItem};
@@ -1086,25 +1087,22 @@ impl Box {
                     });
 
                     // Draw a rectangle representing the baselines.
-                    //
-                    // TODO(Issue #221): Create and use a Line display item for the baseline.
                     let ascent = text_box.run.get().metrics_for_range(
                         &text_box.range).ascent;
                     let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
                                         Size2D(absolute_box_bounds.size.width, Au(0)));
 
                     lists.with_mut(|lists| {
-                        let border_display_item = ~BorderDisplayItem {
+                        let line_display_item = ~LineDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: baseline,
                                 extra: ExtraDisplayListData::new(self),
                             },
-                            border: debug_border,
-                            color: SideOffsets2D::new_all_same(rgb(0, 200, 0)),
-                            style: SideOffsets2D::new_all_same(border_style::dashed)
+                            color: rgb(0, 200, 0),
+                            style: border_style::dashed
 
                         };
-                        lists.lists[index].append_item(BorderDisplayItemClass(border_display_item));
+                        lists.lists[index].append_item(LineDisplayItemClass(line_display_item));
                     });
                 });
             },
