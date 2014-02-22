@@ -9,7 +9,7 @@ use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCast};
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, GlobalStaticData, with_gc_enabled};
-use dom::document::{Document, HTML};
+use dom::document::{Document, HTMLDocumentTypeId};
 use dom::element::Element;
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use dom::event::Event;
@@ -717,7 +717,7 @@ impl ScriptTask {
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
-        let mut document = Document::new(&window, Some(url.clone()), HTML, None);
+        let mut document = Document::new(&window, Some(url.clone()), HTMLDocumentTypeId, None);
         let html_parsing_result = hubbub_html_parser::parse_html(cx.ptr,
                                                                  &mut document,
                                                                  url.clone(),

@@ -8,7 +8,7 @@ use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::utils::Fallible;
 use dom::bindings::utils::FailureUnknown;
-use dom::document::{Document, HTML};
+use dom::document::{Document, HTMLDocumentTypeId};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -41,7 +41,7 @@ impl DOMParser {
                            -> Fallible<JS<Document>> {
         match ty {
             Text_html => {
-                Ok(Document::new(&self.owner, None, HTML, None))
+                Ok(Document::new(&self.owner, None, HTMLDocumentTypeId, None))
             }
             Text_xml => {
                 Document::Constructor(&self.owner)
