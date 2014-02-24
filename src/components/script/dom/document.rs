@@ -288,7 +288,7 @@ impl Document {
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
     pub fn CreateElementNS(&self, abstract_self: AbstractDocument, namespace: Option<DOMString>, qualified_name: DOMString) -> Fallible<AbstractNode> {
-        let ns: Namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
+        let ns = Namespace::from_str(null_str_as_empty_ref(&namespace));
         match xml_name_type(qualified_name) {
             InvalidXMLName => {
                 debug!("Not a valid element name");
