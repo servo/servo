@@ -504,69 +504,32 @@ impl Document {
         self.window.wait_until_safe_to_modify_dom();
     }
 
-    pub fn register_nodes_with_id(&mut self, root: &AbstractNode) {
-        foreach_ided_elements(root, |id: &DOMString, abstract_node: &AbstractNode| {
-            // TODO: "in tree order, within the context object's tree"
-            // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
-            self.idmap.find_or_insert(id.clone(), *abstract_node);
-        });
+    /// Remove any existing association between the provided id and any elements in this document.
+    pub fn unregister_named_element(&mut self,
+                                    id: &DOMString) {
+        self.idmap.remove(id);
     }
 
-    pub fn unregister_nodes_with_id(&mut self, root: &AbstractNode) {
-        foreach_ided_elements(root, |id: &DOMString, _| {
-            // TODO: "in tree order, within the context object's tree"
-            // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
-            self.idmap.pop(id);
-        });
+    /// Associate an element present in this document with the provided id.
+    pub fn register_named_element(&mut self,
+                                  element: AbstractNode,
+                                  id: DOMString) {
+        assert!(element.is_in_doc());
+
+        // TODO: support the case if multiple elements
+        // which haves same id are in the same document.
+        self.idmap.mangle(id, element,
+                          |_, new_element: AbstractNode| -> AbstractNode {
+                              new_element
+                          },
+                          |_, old_element: &mut AbstractNode, new_element: AbstractNode| {
+                              *old_element = new_element;
+                          });
     }
 
-    pub fn update_idmap(&mut self,
-                        abstract_self: AbstractNode,
-                        new_id: Option<DOMString>,
-                        old_id: Option<DOMString>) {
-        // remove old ids:
-        // * if the old ones are not same as the new one,
-        // * OR if the new one is none.
-        match old_id {
-            Some(ref old_id) if new_id.is_none() ||
-                                (*new_id.get_ref() != *old_id) => {
-                self.idmap.remove(old_id);
-            }
-            _ => ()
-        }
-
-        match new_id {
-            Some(new_id) => {
-                // TODO: support the case if multiple elements
-                // which haves same id are in the same document.
-                self.idmap.mangle(new_id, abstract_self,
-                                  |_, new_node: AbstractNode| -> AbstractNode {
-                                      new_node
-                                  },
-                                  |_, old_node: &mut AbstractNode, new_node: AbstractNode| {
-                                      *old_node = new_node;
-                                  });
-            }
-            None => ()
-        }
-    }
-}
-
-#[inline(always)]
-fn foreach_ided_elements(root: &AbstractNode, callback: |&DOMString, &AbstractNode|) {
-    for node in root.traverse_preorder() {
-        if !node.is_element() {
-            continue;
-        }
-
-        node.with_imm_element(|element| {
-            match element.get_attribute(Null, "id") {
-                Some(id) => {
-                    callback(&id.Value(), &node);
-                }
-                None => ()
-            }
-        });
+    /// Commence a new URL load which could replace this document.
+    pub fn load_anchor_href(&self, href: DOMString) {
+        self.window.load_url(href);
     }
 }
 

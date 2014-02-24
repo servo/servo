@@ -17,8 +17,9 @@ use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlobjectelement::HTMLObjectElement;
 use dom::nodelist::{NodeList};
-use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
+use dom::text::Text;
+use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::{LayoutChan, ReapLayoutDataMsg, UntrustedNodeAddress};
 use servo_util::str::{DOMString, null_str_as_empty};
 
@@ -598,8 +599,10 @@ impl AbstractNode {
         assert!(self.parent_node().is_some());
         let document = self.node().owner_doc();
 
-        // Register elements having "id" attribute to the owner doc.
-        document.mut_document().register_nodes_with_id(&self);
+        for node in self.traverse_preorder() {
+            let vtable = vtable_for(node);
+            vtable.bind_to_tree(node);
+        }
 
         document.document().content_changed();
     }
@@ -609,8 +612,10 @@ impl AbstractNode {
         assert!(self.parent_node().is_none());
         let document = self.node().owner_doc();
 
-        // Unregister elements having "id".
-        document.mut_document().unregister_nodes_with_id(&self);
+        for node in self.traverse_preorder() {
+            let vtable = vtable_for(node);
+            vtable.unbind_from_tree(node);
+        }
 
         document.document().content_changed();
     }
@@ -1774,3 +1779,8 @@ impl Reflectable for Node {
     }
 }
 
+impl VirtualMethods for Node {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        Some(&mut self.eventtarget as &mut VirtualMethods)
+    }
+}

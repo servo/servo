@@ -13,11 +13,13 @@ use dom::location::Location;
 use dom::navigator::Navigator;
 
 use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
-use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan};
+use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan, TriggerLoadMsg};
+use script_task::TriggerFragmentMsg;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
+use servo_util::url::parse_url;
 
 use js::glue::*;
 use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JSTracer, JSVal};
@@ -242,6 +244,19 @@ impl Window {
         // FIXME: This disables concurrent layout while we are modifying the DOM, since
         //        our current architecture is entirely unsafe in the presence of races.
         self.page.join_layout();
+    }
+
+    /// Commence a new URL load which will either replace this window or scroll to a fragment.
+    pub fn load_url(&self, href: DOMString) {
+        let base_url = self.page.url.as_ref().map(|&(ref url, _)| url.clone());
+        debug!("current page url is {:?}", base_url);
+        let url = parse_url(href, base_url);
+
+        if href.starts_with("#") {
+            self.script_chan.send(TriggerFragmentMsg(self.page.id, url));
+        } else {
+            self.script_chan.send(TriggerLoadMsg(self.page.id, url));
+        }
     }
 
     pub fn new(cx: *JSContext,

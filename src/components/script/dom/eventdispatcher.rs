@@ -6,6 +6,7 @@ use dom::bindings::callback::eReportExceptions;
 use dom::eventtarget::{AbstractEventTarget, Capturing, Bubbling};
 use dom::event::{AbstractEvent, Phase_At_Target, Phase_None, Phase_Bubbling, Phase_Capturing};
 use dom::node::AbstractNode;
+use dom::virtualmethods::vtable_for;
 
 // See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
 pub fn dispatch_event(target: AbstractEventTarget,
@@ -98,6 +99,15 @@ pub fn dispatch_event(target: AbstractEventTarget,
             if stopped {
                 break;
             }
+        }
+    }
+
+    let target = event.event().GetTarget();
+    for &target in target.iter() {
+        if target.is_node() {
+            let nodetarget = AbstractNode::from_eventtarget(target);
+            let vtable = vtable_for(nodetarget);
+            vtable.handle_event(nodetarget, event);
         }
     }
 

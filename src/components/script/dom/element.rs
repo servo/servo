@@ -16,6 +16,7 @@ use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ElementNodeTypeId, Node, NodeIterator};
 use dom::document;
 use dom::htmlserializer::serialize;
+use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
@@ -191,34 +192,61 @@ impl Element {
         self.node.wait_until_safe_to_modify_dom();
 
         // FIXME: reduce the time of `value.clone()`.
-        let mut old_raw_value: Option<DOMString> = None;
-        for attr in self.attrs.iter() {
-            if attr.local_name == local_name {
-                old_raw_value = Some(attr.set_value(value.clone()));
-                break;
+        let idx = self.attrs.iter().position(|attr| attr.local_name == local_name);
+
+        if namespace == namespace::Null {
+            let old_raw_value = idx.map(|idx| self.attrs[idx].Value());
+
+            let vtable = vtable_for(abstract_self);
+            vtable.before_set_attr(abstract_self, local_name.clone(), old_raw_value, value.clone());
+        }
+
+        match idx {
+            Some(idx) => {
+                self.attrs[idx].set_value(value.clone());
+            }
+            None => {
+                let win = self.node.owner_doc().document().window;
+                let new_attr = Attr::new_ns(win, local_name.clone(), value.clone(),
+                                            name.clone(), namespace.clone(),
+                                            prefix);
+                self.attrs.push(new_attr);
             }
         }
 
-        if old_raw_value.is_none() {
-            let win = self.node.owner_doc().document().window;
-            let new_attr = Attr::new_ns(win, local_name.clone(), value.clone(),
-                                        name.clone(), namespace.clone(),
-                                        prefix);
-            self.attrs.push(new_attr);
-        }
-
         if namespace == namespace::Null {
-            self.after_set_attr(abstract_self, local_name, value, old_raw_value);
+            let vtable = vtable_for(abstract_self);
+            vtable.after_set_attr(abstract_self, local_name, value);
         }
         Ok(())
     }
 
-    fn after_set_attr(&mut self,
-                      abstract_self: AbstractNode,
-                      local_name: DOMString,
-                      value: DOMString,
-                      old_value: Option<DOMString>) {
+    fn before_set_attribute(&mut self,
+                            abstract_self: AbstractNode,
+                            local_name: DOMString,
+                            old_value: Option<DOMString>,
+                            new_value: DOMString) {
+        match local_name.as_slice() {
+            "id" if abstract_self.is_in_doc() => {
+                match old_value {
+                    Some(ref old_id) if new_value != *old_id => {
+                        // XXX: this dual declaration are workaround to avoid the compile error:
+                        // "borrowed value does not live long enough"
+                        let doc = self.node.owner_doc();
+                        let doc = doc.mut_document();
+                        doc.unregister_named_element(old_id);
+                    }
+                    _ => ()
+                }
+            }
+            _ => ()
+        }
+    }
 
+    fn after_set_attribute(&mut self,
+                           abstract_self: AbstractNode,
+                           local_name: DOMString,
+                           value: DOMString) {
         match local_name.as_slice() {
             "style" => {
                 let doc = self.node.owner_doc();
@@ -230,23 +258,7 @@ impl Element {
                 // "borrowed value does not live long enough"
                 let doc = self.node.owner_doc();
                 let doc = doc.mut_document();
-                doc.update_idmap(abstract_self, Some(value.clone()), old_value);
-            }
-            _ => ()
-        }
-
-        //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
-        //       This hardcoding is awful.
-        match abstract_self.type_id() {
-            ElementNodeTypeId(HTMLImageElementTypeId) => {
-                abstract_self.with_mut_image_element(|image| {
-                    image.AfterSetAttr(local_name.clone(), value.clone());
-                });
-            }
-            ElementNodeTypeId(HTMLIframeElementTypeId) => {
-                abstract_self.with_mut_iframe_element(|iframe| {
-                    iframe.AfterSetAttr(local_name.clone(), value.clone());
-                });
+                doc.register_named_element(abstract_self, value);
             }
             ElementNodeTypeId(HTMLObjectElementTypeId) => {
                 abstract_self.with_mut_object_element(|object| {
@@ -274,11 +286,16 @@ impl Element {
         match idx {
             None => (),
             Some(idx) => {
-                let removed = self.attrs.remove(idx);
-                let removed_raw_value = Some(removed.Value());
+                if namespace == namespace::Null {
+                    let vtable = vtable_for(abstract_self);
+                    vtable.before_remove_attr(abstract_self, local_name.clone(), self.attrs[idx].Value());
+                }
+
+                self.attrs.remove(idx);
 
                 if namespace == namespace::Null {
-                    self.after_remove_attr(abstract_self, local_name, removed_raw_value);
+                    let vtable = vtable_for(abstract_self);
+                    vtable.after_remove_attr(abstract_self, local_name.clone());
                 }
             }
         };
@@ -286,10 +303,10 @@ impl Element {
         Ok(())
     }
 
-    fn after_remove_attr(&mut self,
-                         abstract_self: AbstractNode,
-                         local_name: DOMString,
-                         old_value: Option<DOMString>) {
+    fn before_remove_attribute(&mut self,
+                               abstract_self: AbstractNode,
+                               local_name: DOMString,
+                               old_value: DOMString) {
         match local_name.as_slice() {
             "style" => {
                 self.style_attribute = None
@@ -299,23 +316,18 @@ impl Element {
                 // "borrowed value does not live long enough"
                 let doc = self.node.owner_doc();
                 let doc = doc.mut_document();
-                doc.update_idmap(abstract_self, None, old_value);
+                doc.unregister_named_element(&old_value);
             }
             _ => ()
         }
+    }
 
-        //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
-        //       This hardcoding is awful.
-        match abstract_self.type_id() {
-            ElementNodeTypeId(HTMLImageElementTypeId) => {
-                abstract_self.with_mut_image_element(|image| {
-                    image.AfterRemoveAttr(local_name.clone());
-                });
-            }
-            ElementNodeTypeId(HTMLIframeElementTypeId) => {
-                abstract_self.with_mut_iframe_element(|iframe| {
-                    iframe.AfterRemoveAttr(local_name.clone());
-                });
+    fn after_remove_attribute(&mut self,
+                              abstract_self: AbstractNode,
+                              local_name: DOMString) {
+        match local_name.as_slice() {
+            "style" => {
+                self.style_attribute = None
             }
             _ => ()
         }
@@ -623,6 +635,28 @@ impl Element {
     }
 }
 
+impl Element {
+    fn bind_to_tree_impl(&mut self, abstract_self: AbstractNode) {
+        match self.get_attribute(Null, "id") {
+            Some(attr) => {
+                let doc = self.node.owner_doc();
+                doc.mut_document().register_named_element(abstract_self, attr.Value());
+            }
+            _ => ()
+        }
+    }
+
+    fn unbind_from_tree_impl(&mut self, _abstract_self: AbstractNode) {
+        match self.get_attribute(Null, "id") {
+            Some(attr) => {
+                let doc = self.node.owner_doc();
+                doc.mut_document().unregister_named_element(&attr.Value());
+            }
+            _ => ()
+        }
+    }
+}
+
 fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
@@ -634,4 +668,40 @@ fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     };
 
     (prefix, local_name)
+}
+
+impl VirtualMethods for Element {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods> {
+        Some(&mut self.node as &mut VirtualMethods)
+    }
+
+    fn before_set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, old_value: Option<DOMString>, new_value: DOMString) {
+        self.super_type().map(|s| s.before_set_attr(abstract_self, name.clone(), old_value.clone(), new_value.clone()));
+        self.before_set_attribute(abstract_self, name, old_value, new_value);
+    }
+
+    fn after_set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.after_set_attr(abstract_self, name.clone(), value.clone()));
+        self.after_set_attribute(abstract_self, name, value);
+    }
+
+    fn before_remove_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString) {
+        self.super_type().map(|s| s.before_remove_attr(abstract_self, name.clone(), value.clone()));
+        self.before_remove_attribute(abstract_self, name, value);
+    }
+
+    fn after_remove_attr(&mut self, abstract_self: AbstractNode, name: DOMString) {
+        self.super_type().map(|s| s.after_remove_attr(abstract_self, name.clone()));
+        self.after_remove_attribute(abstract_self, name);
+    }
+
+    fn bind_to_tree(&mut self, abstract_self: AbstractNode) {
+        self.super_type().map(|s| s.bind_to_tree(abstract_self));
+        self.bind_to_tree_impl(abstract_self);
+    }
+
+    fn unbind_from_tree(&mut self, abstract_self: AbstractNode) {
+        self.super_type().map(|s| s.unbind_from_tree(abstract_self));
+        self.unbind_from_tree_impl(abstract_self);
+    }
 }
