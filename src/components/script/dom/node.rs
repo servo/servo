@@ -245,18 +245,15 @@ impl AbstractNode {
     }
 
     pub fn is_element(&self) -> bool {
-        match self.type_id() {
-            ElementNodeTypeId(..) => true,
-            _ => false
+        return (self.type_id() == ElementNodeTypeId(..))
         }
-    }
+    
 
     pub fn is_document(&self) -> bool {
-        match self.type_id() {
-            DocumentNodeTypeId(..) => true,
-            _ => false
-        }
+        return (self.type_id() == DocumentNodeTypeId(..))
+          
     }
+    
 
     /// If the given untrusted node address represents a valid DOM node in the given runtime,
     /// returns it.
