@@ -6,7 +6,7 @@
 <body>
   <div id="div1"></div>
   <script>
-    is_a(document.documentElement.parentNode, HTMLDocument);
+    is_a(document.documentElement.parentNode, Document);
     is(document.documentElement.parentElement, null);
 
     var elem = document.createElement("p");

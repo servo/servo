@@ -52,7 +52,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
                 DocumentFragmentNodeTypeId => {
                     ~""
                 }
-                DocumentNodeTypeId(_) => {
+                DocumentNodeTypeId => {
                     fail!("It shouldn't be possible to serialize a document node")
                 }
             }

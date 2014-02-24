@@ -4,13 +4,11 @@
 
 use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::codegen::InheritTypes::DocumentCast;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::utils::Fallible;
 use dom::bindings::utils::FailureUnknown;
-use dom::document::Document;
-use dom::htmldocument::HTMLDocument;
+use dom::document::{Document, HTMLDocument};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -43,7 +41,7 @@ impl DOMParser {
                            -> Fallible<JS<Document>> {
         match ty {
             Text_html => {
-                Ok(DocumentCast::from(&HTMLDocument::new(&self.owner, None)))
+                Ok(Document::new(&self.owner, None, HTMLDocument, None))
             }
             Text_xml => {
                 Document::Constructor(&self.owner)

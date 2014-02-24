@@ -6,15 +6,14 @@
 //! and layout tasks.
 
 use dom::bindings::codegen::RegisterBindings;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, DocumentCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCast};
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, GlobalStaticData, with_gc_enabled};
-use dom::document::Document;
+use dom::document::{Document, HTMLDocument};
 use dom::element::Element;
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
-use dom::htmldocument::HTMLDocument;
 use dom::node::{Node, NodeHelpers};
 use dom::window::{TimerData, TimerHandle, Window};
 use html::hubbub_html_parser::HtmlParserResult;
@@ -718,7 +717,7 @@ impl ScriptTask {
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
-        let mut document = DocumentCast::from(&HTMLDocument::new(&window, Some(url.clone())));
+        let mut document = Document::new(&window, Some(url.clone()), HTMLDocument, None);
         let html_parsing_result = hubbub_html_parser::parse_html(cx.ptr,
                                                                  &mut document,
                                                                  url.clone(),

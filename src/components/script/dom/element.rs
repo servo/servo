@@ -22,7 +22,6 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlobjectelement::HTMLObjectElement;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator};
-use dom::document;
 use dom::htmlserializer::serialize;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
@@ -153,10 +152,8 @@ impl Element {
     }
 
     pub fn html_element_in_html_document(&self) -> bool {
-        let owner = self.node.owner_doc();
         self.namespace == namespace::HTML &&
-        // FIXME: check that this matches what the spec calls "is in an HTML document"
-        owner.get().doctype == document::HTML
+        self.node.owner_doc().get().is_html_document
     }
 
     pub fn get_attribute(&self,
