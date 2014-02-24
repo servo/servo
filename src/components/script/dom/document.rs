@@ -323,7 +323,6 @@ impl Document {
         }
 
         if ns == namespace::HTML {
-            local_name = local_name.to_ascii_lower();
             Ok(build_element_from_tag(local_name, abstract_self))
         } else {
             Ok(Element::new(local_name, ns, abstract_self))
