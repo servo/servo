@@ -3,11 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLObjectElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
+use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLObjectElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::htmlformelement::HTMLFormElement;
+use dom::node::{Node, ElementNodeTypeId};
 use dom::validitystate::ValidityState;
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
@@ -19,20 +23,30 @@ use servo_util::url::parse_url;
 use servo_util::namespace::Null;
 use servo_util::url::is_image_data;
 
+#[deriving(Encodable)]
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLObjectElementDerived for EventTarget {
+    fn is_htmlobjectelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLObjectElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLObjectElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLObjectElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLObjectElement {
         HTMLObjectElement {
             htmlelement: HTMLElement::new_inherited(HTMLObjectElementTypeId, localName, document),
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLObjectElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLObjectElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLObjectElement> {
+        let element = HTMLObjectElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLObjectElementBinding::Wrap)
     }
 }
 
@@ -44,8 +58,8 @@ impl HTMLObjectElement {
         let elem = &mut self.htmlelement.element;
 
         // TODO: support other values
-        match (elem.get_attribute(Null, "type").map(|x| x.Value()),
-               elem.get_attribute(Null, "data").map(|x| x.Value())) {
+        match (elem.get_attribute(Null, "type").map(|x| x.get().Value()),
+               elem.get_attribute(Null, "data").map(|x| x.get().Value())) {
             (None, Some(uri)) => {
                 if is_image_data(uri) {
                     let data_url = parse_url(uri, url);
@@ -60,9 +74,9 @@ impl HTMLObjectElement {
     pub fn AfterSetAttr(&mut self, name: DOMString, _value: DOMString) {
         if "data" == name {
             let document = self.htmlelement.element.node.owner_doc();
-            let window = document.document().window;
-            let url = window.page.url.as_ref().map(|&(ref url, _)| url.clone());
-            self.process_data_url(window.image_cache_task.clone(), url);
+            let window = document.get().window.clone();
+            let url = window.get().page.url.as_ref().map(|&(ref url, _)| url.clone());
+            self.process_data_url(window.get().image_cache_task.clone(), url);
         }
     }
 
@@ -98,7 +112,7 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode> {
+    pub fn GetForm(&self) -> Option<JS<HTMLFormElement>> {
         None
     }
 
@@ -118,11 +132,11 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn GetContentDocument(&self) -> Option<AbstractDocument> {
+    pub fn GetContentDocument(&self) -> Option<JS<Document>> {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<@mut WindowProxy> {
+    pub fn GetContentWindow(&self) -> Option<JS<WindowProxy>> {
         None
     }
 
@@ -130,9 +144,10 @@ impl HTMLObjectElement {
         false
     }
 
-    pub fn Validity(&self) -> @mut ValidityState {
-        let global = self.htmlelement.element.node.owner_doc().document().window;
-        ValidityState::new(global)
+    pub fn Validity(&self) -> JS<ValidityState> {
+        let doc = self.htmlelement.element.node.owner_doc();
+        let doc = doc.get();
+        ValidityState::new(&doc.window)
     }
 
     pub fn ValidationMessage(&self) -> DOMString {
@@ -226,7 +241,7 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn GetSVGDocument(&self) -> Option<AbstractDocument> {
+    pub fn GetSVGDocument(&self) -> Option<JS<Document>> {
         None
     }
 }

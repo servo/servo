@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::WindowBinding;
-use dom::bindings::utils::{Reflectable, Reflector, Traceable};
-use dom::bindings::utils::{trace_option, trace_reflector};
-use dom::document::AbstractDocument;
+use dom::bindings::js::JS;
+use dom::bindings::utils::{Reflectable, Reflector};
+use dom::document::Document;
+use dom::element::Element;
 use dom::eventtarget::{EventTarget, WindowTypeId};
-use dom::node::AbstractNode;
 use dom::console::Console;
 use dom::location::Location;
 use dom::navigator::Navigator;
@@ -20,7 +20,7 @@ use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
 
 use js::glue::*;
-use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JSTracer, JSVal};
+use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JSVal};
 use js::{JSVAL_NULL, JSPROP_ENUMERATE};
 
 use std::cast;
@@ -32,6 +32,8 @@ use std::num;
 use std::ptr;
 use std::to_bytes::Cb;
 
+use extra::serialize::{Encoder, Encodable};
+
 pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
     TimerMessage_Close,
@@ -41,6 +43,11 @@ pub enum TimerControlMsg {
 pub struct TimerHandle {
     handle: i32,
     cancel_chan: Option<Chan<()>>,
+}
+
+impl<S: Encoder> Encodable<S> for TimerHandle {
+    fn encode(&self, _: &mut S) {
+    }
 }
 
 impl IterBytes for TimerHandle {
@@ -61,18 +68,28 @@ impl TimerHandle {
     }
 }
 
+#[deriving(Encodable)]
 pub struct Window {
     eventtarget: EventTarget,
     page: @mut Page,
     script_chan: ScriptChan,
     compositor: @ScriptListener,
-    console: Option<@mut Console>,
-    timer_chan: SharedChan<TimerControlMsg>,
-    location: Option<@mut Location>,
-    navigator: Option<@mut Navigator>,
+    console: Option<JS<Console>>,
+    location: Option<JS<Location>>,
+    navigator: Option<JS<Navigator>>,
     image_cache_task: ImageCacheTask,
     active_timers: ~HashSet<TimerHandle>,
     next_timer_handle: i32,
+    extra: Untraceable
+}
+
+struct Untraceable {
+    timer_chan: SharedChan<TimerControlMsg>,
+}
+
+impl<S: Encoder> Encodable<S> for Untraceable {
+    fn encode(&self, _: &mut S) {
+    }
 }
 
 impl Window {
@@ -84,7 +101,7 @@ impl Window {
 #[unsafe_destructor]
 impl Drop for Window {
     fn drop(&mut self) {
-        self.timer_chan.send(TimerMessage_Close);
+        self.extra.timer_chan.send(TimerMessage_Close);
         for handle in self.active_timers.iter() {
             handle.cancel();
         }
@@ -107,11 +124,11 @@ impl Window {
     }
 
     pub fn Close(&self) {
-        self.timer_chan.send(TimerMessage_TriggerExit);
+        self.extra.timer_chan.send(TimerMessage_TriggerExit);
     }
 
-    pub fn Document(&self) -> AbstractDocument {
-        self.page.frame.unwrap().document
+    pub fn Document(&self) -> JS<Document> {
+        self.page.frame.get_ref().document.clone()
     }
 
     pub fn Name(&self) -> DOMString {
@@ -141,29 +158,29 @@ impl Window {
     pub fn Blur(&self) {
     }
 
-    pub fn GetFrameElement(&self) -> Option<AbstractNode> {
+    pub fn GetFrameElement(&self) -> Option<JS<Element>> {
         None
     }
 
-    pub fn Location(&mut self) -> @mut Location {
+    pub fn Location(&mut self) -> JS<Location> {
         if self.location.is_none() {
             self.location = Some(Location::new(self, self.page));
         }
-        self.location.unwrap()
+        self.location.get_ref().clone()
     }
 
-    pub fn Console(&mut self) -> @mut Console {
+    pub fn Console(&mut self) -> JS<Console> {
         if self.console.is_none() {
             self.console = Some(Console::new(self));
         }
-        self.console.unwrap()
+        self.console.get_ref().clone()
     }
 
-    pub fn Navigator(&mut self) -> @mut Navigator {
+    pub fn Navigator(&mut self) -> JS<Navigator> {
         if self.navigator.is_none() {
             self.navigator = Some(Navigator::new(self));
         }
-        self.navigator.unwrap()
+        self.navigator.get_ref().clone()
     }
 
     pub fn Confirm(&self, _message: DOMString) -> bool {
@@ -202,7 +219,7 @@ impl Window {
         // to the relevant script handler that will deal with it.
         let tm = Timer::new().unwrap();
         let (cancel_port, cancel_chan) = Chan::new();
-        let chan = self.timer_chan.clone();
+        let chan = self.extra.timer_chan.clone();
         spawn_named("Window:SetTimeout", proc() {
             let mut tm = tm;
             let mut timeout_port = tm.oneshot(timeout);
@@ -249,26 +266,28 @@ impl Window {
                script_chan: ScriptChan,
                compositor: @ScriptListener,
                image_cache_task: ImageCacheTask)
-               -> @mut Window {
-        let win = @mut Window {
+               -> JS<Window> {
+        let mut win = ~Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
             page: page,
             script_chan: script_chan.clone(),
             compositor: compositor,
             console: None,
-            timer_chan: {
-                let (timer_port, timer_chan): (Port<TimerControlMsg>, SharedChan<TimerControlMsg>) = SharedChan::new();
-                let id = page.id.clone();
-                spawn_named("timer controller", proc() {
-                    loop {
-                        match timer_port.recv() {
-                            TimerMessage_Close => break,
-                            TimerMessage_Fire(td) => script_chan.send(FireTimerMsg(id, td)),
-                            TimerMessage_TriggerExit => script_chan.send(ExitWindowMsg(id)),
+            extra: Untraceable {
+                timer_chan: {
+                    let (timer_port, timer_chan): (Port<TimerControlMsg>, SharedChan<TimerControlMsg>) = SharedChan::new();
+                    let id = page.id.clone();
+                    spawn_named("timer controller", proc() {
+                        loop {
+                            match timer_port.recv() {
+                                TimerMessage_Close => break,
+                                TimerMessage_Fire(td) => script_chan.send(FireTimerMsg(id, td)),
+                                TimerMessage_TriggerExit => script_chan.send(ExitWindowMsg(id)),
+                            }
                         }
-                    }
-                });
-                timer_chan
+                    });
+                    timer_chan
+                }
             },
             location: None,
             navigator: None,
@@ -277,7 +296,9 @@ impl Window {
             next_timer_handle: 0
         };
 
+        let raw: *mut Window = &mut *win;
         let global = WindowBinding::Wrap(cx, ptr::null(), win);
+        assert!(global.is_not_null());
         unsafe {
             let fn_names = ["window","self"];
             for str in fn_names.iter() {
@@ -291,17 +312,7 @@ impl Window {
 
             }
 
+            JS::from_raw(raw)
         }
-        win
-    }
-}
-
-impl Traceable for Window {
-    fn trace(&self, tracer: *mut JSTracer) {
-        debug!("tracing window");
-
-        self.page.frame.map(|frame| trace_reflector(tracer, "document", frame.document.reflector()));
-        trace_option(tracer, "location", self.location);
-        trace_option(tracer, "navigator", self.navigator);
     }
 }

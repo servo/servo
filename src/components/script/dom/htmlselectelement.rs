@@ -3,28 +3,43 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLSelectElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLSelectElementDerived;
+use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
-use dom::document::AbstractDocument;
-use dom::element::HTMLSelectElementTypeId;
+use dom::document::Document;
+use dom::element::{Element, HTMLSelectElementTypeId};
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::htmlformelement::HTMLFormElement;
+use dom::node::{Node, ElementNodeTypeId};
+use dom::htmloptionelement::HTMLOptionElement;
 use dom::validitystate::ValidityState;
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLSelectElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLSelectElementDerived for EventTarget {
+    fn is_htmlselectelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLSelectElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLSelectElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLSelectElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement: HTMLElement::new_inherited(HTMLSelectElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLSelectElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLSelectElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLSelectElement> {
+        let element = HTMLSelectElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLSelectElementBinding::Wrap)
     }
 }
 
@@ -45,7 +60,7 @@ impl HTMLSelectElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode> {
+    pub fn GetForm(&self) -> Option<JS<HTMLFormElement>> {
         None
     }
 
@@ -93,19 +108,19 @@ impl HTMLSelectElement {
         Ok(())
     }
 
-    pub fn Item(&self, _index: u32) -> Option<AbstractNode> {
+    pub fn Item(&self, _index: u32) -> Option<JS<Element>> {
         None
     }
 
-    pub fn NamedItem(&self, _name: DOMString) -> Option<AbstractNode> {
+    pub fn NamedItem(&self, _name: DOMString) -> Option<JS<HTMLOptionElement>> {
         None
     }
 
-    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<AbstractNode> {
+    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<JS<Element>> {
         None
     }
 
-    pub fn IndexedSetter(&mut self, _index: u32, _option: Option<AbstractNode>) -> ErrorResult {
+    pub fn IndexedSetter(&mut self, _index: u32, _option: Option<JS<HTMLOptionElement>>) -> ErrorResult {
         Ok(())
     }
 
@@ -137,12 +152,13 @@ impl HTMLSelectElement {
     pub fn SetWillValidate(&mut self, _will_validate: bool) {
     }
 
-    pub fn Validity(&self) -> @mut ValidityState {
-        let global = self.htmlelement.element.node.owner_doc().document().window;
-        ValidityState::new(global)
+    pub fn Validity(&self) -> JS<ValidityState> {
+        let doc = self.htmlelement.element.node.owner_doc();
+        let doc = doc.get();
+        ValidityState::new(&doc.window)
     }
 
-    pub fn SetValidity(&mut self, _validity: @mut ValidityState) {
+    pub fn SetValidity(&mut self, _validity: JS<ValidityState>) {
     }
 
     pub fn ValidationMessage(&self) -> DOMString {

@@ -3,25 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLSpanElementBinding;
-use dom::document::AbstractDocument;
+use dom::bindings::codegen::InheritTypes::HTMLSpanElementDerived;
+use dom::bindings::js::JS;
+use dom::document::Document;
 use dom::element::HTMLSpanElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLSpanElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLSpanElementDerived for EventTarget {
+    fn is_htmlspanelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLSpanElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLSpanElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLSpanElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLSpanElement {
         HTMLSpanElement {
             htmlelement: HTMLElement::new_inherited(HTMLSpanElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLSpanElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLSpanElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLSpanElement> {
+        let element = HTMLSpanElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLSpanElementBinding::Wrap)
     }
 }

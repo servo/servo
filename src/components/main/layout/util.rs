@@ -8,9 +8,10 @@ use layout::parallel::DomParallelInfo;
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use extra::arc::Arc;
+use script::dom::bindings::js::JS;
 use script::dom::bindings::utils::Reflectable;
-use script::dom::node::AbstractNode;
-use script::layout_interface::{LayoutChan, UntrustedNodeAddress};
+use script::dom::node::Node;
+use script::layout_interface::{LayoutChan, UntrustedNodeAddress, TrustedNodeAddress};
 use servo_util::range::Range;
 use std::cast;
 use std::cell::{Ref, RefMut};
@@ -212,23 +213,28 @@ impl OpaqueNode {
     /// Converts a DOM node (layout view) to an `OpaqueNode`.
     pub fn from_layout_node(node: &LayoutNode) -> OpaqueNode {
         unsafe {
-            let abstract_node = node.get_abstract();
-            let ptr: uintptr_t = cast::transmute(abstract_node.reflector().get_jsobject());
-            OpaqueNode(ptr)
+            OpaqueNode::from_jsmanaged(node.get_jsmanaged())
         }
     }
 
     /// Converts a thread-safe DOM node (layout view) to an `OpaqueNode`.
     pub fn from_thread_safe_layout_node(node: &ThreadSafeLayoutNode) -> OpaqueNode {
         unsafe {
-            let abstract_node = node.get_abstract();
+            let abstract_node = node.get_jsmanaged();
             let ptr: uintptr_t = cast::transmute(abstract_node.reflector().get_jsobject());
             OpaqueNode(ptr)
         }
     }
 
     /// Converts a DOM node (script view) to an `OpaqueNode`.
-    pub fn from_script_node(node: &AbstractNode) -> OpaqueNode {
+    pub fn from_script_node(node: TrustedNodeAddress) -> OpaqueNode {
+        unsafe {
+            OpaqueNode::from_jsmanaged(&JS::from_trusted_node_address(node))
+        }
+    }
+
+    /// Converts a DOM node to an `OpaqueNode'.
+    fn from_jsmanaged(node: &JS<Node>) -> OpaqueNode {
         unsafe {
             let ptr: uintptr_t = cast::transmute(node.reflector().get_jsobject());
             OpaqueNode(ptr)

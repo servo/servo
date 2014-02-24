@@ -4,11 +4,14 @@
 
 use dom::bindings::utils::Reflectable;
 use js::jsapi::{JSContext, JSObject, JS_WrapObject, JSVal, JS_ObjectIsCallable};
-use js::jsapi::JS_GetProperty;
-use js::{JSVAL_IS_OBJECT, JSVAL_TO_OBJECT};
+use js::jsapi::{JS_GetProperty, JSTracer, JS_CallTracer};
+use js::{JSVAL_IS_OBJECT, JSVAL_TO_OBJECT, JSTRACE_OBJECT};
 
+use std::cast;
 use std::libc;
 use std::ptr;
+
+use extra::serialize::{Encodable, Encoder};
 
 pub enum ExceptionHandling {
     // Report any exception and don't throw it to the caller code.
@@ -24,6 +27,20 @@ pub enum ExceptionHandling {
 #[deriving(Clone,Eq)]
 pub struct CallbackInterface {
     callback: *JSObject
+}
+
+impl<S: Encoder> Encodable<S> for CallbackInterface {
+    fn encode(&self, s: &mut S) {
+        unsafe {
+            let tracer: *mut JSTracer = cast::transmute(s);
+            "callback".to_c_str().with_ref(|name| {
+                (*tracer).debugPrinter = ptr::null();
+                (*tracer).debugPrintIndex = -1;
+                (*tracer).debugPrintArg = name as *libc::c_void;
+                JS_CallTracer(tracer as *JSTracer, self.callback, JSTRACE_OBJECT as u32);
+            });
+        }
+    }
 }
 
 pub trait CallbackContainer {
@@ -66,7 +83,7 @@ pub fn GetJSObjectFromCallback<T: CallbackContainer>(callback: &T) -> *JSObject 
 
 pub fn WrapCallThisObject<T: 'static + CallbackContainer + Reflectable>(cx: *JSContext,
                                                                         _scope: *JSObject,
-                                                                        p: @mut T) -> *JSObject {
+                                                                        p: ~T) -> *JSObject {
     let obj = GetJSObjectFromCallback(p);
     assert!(obj.is_not_null());
 

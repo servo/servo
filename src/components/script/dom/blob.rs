@@ -2,32 +2,36 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::Fallible;
 use dom::bindings::codegen::BlobBinding;
 use dom::window::Window;
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct Blob {
     reflector_: Reflector,
-    window: @mut Window,
+    window: JS<Window>
 }
 
 impl Blob {
-    pub fn new_inherited(window: @mut Window) -> Blob {
+    pub fn new_inherited(window: JS<Window>) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            window: window,
+            window: window
         }
     }
 
-    pub fn new(window: @mut Window) -> @mut Blob {
-        reflect_dom_object(@mut Blob::new_inherited(window), window, BlobBinding::Wrap)
+    pub fn new(window: &JS<Window>) -> JS<Blob> {
+        reflect_dom_object(~Blob::new_inherited(window.clone()),
+                           window.get(),
+                           BlobBinding::Wrap)
     }
 }
 
 impl Blob {
-    pub fn Constructor(window: @mut Window) -> Fallible<@mut Blob> {
+    pub fn Constructor(window: &JS<Window>) -> Fallible<JS<Blob>> {
         Ok(Blob::new(window))
     }
 
@@ -39,8 +43,8 @@ impl Blob {
         ~""
     }
 
-    pub fn Slice(&self, _start: i64, _end: i64, _contentType: Option<DOMString>) -> @mut Blob {
-        Blob::new(self.window)
+    pub fn Slice(&self, _start: i64, _end: i64, _contentType: Option<DOMString>) -> JS<Blob> {
+        Blob::new(&self.window)
     }
 
     pub fn Close(&self) {}

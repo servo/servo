@@ -381,7 +381,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
         assert!(self.is_element());
 
         let parent_node = match parent_node {
-            Some(parent_node) if parent_node.is_element() => parent_node,
+            Some(ref parent_node) if parent_node.is_element() => parent_node,
             Some(_) | None => return None,
         };
 
@@ -455,7 +455,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         }
 
         for (i, &(ref candidate, ())) in style_sharing_candidate_cache.iter().enumerate() {
-            match self.share_style_with_candidate_if_possible(parent, candidate) {
+            match self.share_style_with_candidate_if_possible(parent.clone(), candidate) {
                 Some(shared_style) => {
                     // Yay, cache hit. Share the style.
                     let mut layout_data_ref = self.mutate_layout_data();
@@ -486,7 +486,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
         // First, check to see whether we can share a style with someone.
         let sharing_result = unsafe {
-            self.share_style_if_possible(style_sharing_candidate_cache, parent)
+            self.share_style_if_possible(style_sharing_candidate_cache, parent.clone())
         };
 
         // Otherwise, match and cascade selectors.
@@ -520,7 +520,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                                           initial_values,
                                           applicable_declarations_cache,
                                           style_sharing_candidate_cache,
-                                          Some(*self))
+                                          Some(self.clone()))
         }
     }
 

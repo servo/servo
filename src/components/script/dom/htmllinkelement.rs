@@ -3,27 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLLinkElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
+use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLLinkElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLLinkElementDerived for EventTarget {
+    fn is_htmllinkelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLLinkElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLLinkElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLLinkElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(HTMLLinkElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLLinkElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLLinkElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLLinkElement> {
+        let element = HTMLLinkElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLLinkElementBinding::Wrap)
     }
 }
 

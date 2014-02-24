@@ -18,8 +18,9 @@ pub use parsing_utils::*;
 pub use self::common_types::*;
 use selector_matching::MatchedProperty;
 
-pub mod common_types;
+use extra::serialize::{Encodable, Encoder};
 
+pub mod common_types;
 
 <%!
 
@@ -1023,6 +1024,11 @@ pub mod shorthands {
 pub struct PropertyDeclarationBlock {
     important: Arc<~[PropertyDeclaration]>,
     normal: Arc<~[PropertyDeclaration]>,
+}
+
+impl<S: Encoder> Encodable<S> for PropertyDeclarationBlock {
+    fn encode(&self, _: &mut S) {
+    }
 }
 
 

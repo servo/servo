@@ -5,6 +5,7 @@
 <body>
   <foo-á>foo</foo-á>
 <script>
+is_a(window.document, Node);
 gc(); // ensure that our document rooting works; subsequent accesses should be valid.
 is_a(window.document, Node);
 is(window.document.nodeType, Node.DOCUMENT_NODE);
