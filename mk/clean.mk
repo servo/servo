@@ -43,7 +43,7 @@ clean-gfx:
 
 clean-script:
 	@$(call E, "cleaning script")
-	$(Q)cd $(B)/src/components/script/ && rm -rf libscript*.dylib libscript*.dSYM libscript*.so $(DONE_script)
+	$(Q)cd $(B)/src/components/script/ && rm -rf libscript*.dylib libscript*.dSYM libscript*.so $(DONE_script) && find $(S)/src/components/script/ -name \*.pyc -delete
 
 clean-style:
 	@$(call E, "cleaning style")
