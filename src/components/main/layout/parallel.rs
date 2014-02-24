@@ -29,6 +29,36 @@ pub enum TraversalKind {
     AssignHeightsAndStoreOverflowTraversalKind,
 }
 
+#[allow(dead_code)]
+fn static_assertion(node: UnsafeLayoutNode) {
+    unsafe {
+        let _: PaddedUnsafeFlow = ::std::unstable::intrinsics::transmute(node);
+    }
+}
+
+/// Memory representation that is at least as large as UnsafeLayoutNode, as it must be
+/// safely transmutable to and from that type to accommodate the type-unsafe parallel work
+/// queue usage that stores both flows and nodes.
+pub type PaddedUnsafeFlow = (uint, uint, uint);
+
+trait UnsafeFlowConversions {
+    fn to_flow(&self) -> UnsafeFlow;
+    fn from_flow(flow: &UnsafeFlow) -> Self;
+}
+
+impl UnsafeFlowConversions for PaddedUnsafeFlow {
+    fn to_flow(&self) -> UnsafeFlow {
+        let (vtable, ptr, _padding) = *self;
+        (vtable, ptr)
+    }
+
+    fn from_flow(flow: &UnsafeFlow) -> PaddedUnsafeFlow {
+        let &(vtable, ptr) = flow;
+        (vtable, ptr, 0)
+    }
+}
+
+/// Vtable + pointer representation of a Flow trait object.
 pub type UnsafeFlow = (uint, uint);
 
 fn null_unsafe_flow() -> UnsafeFlow {
@@ -141,7 +171,7 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
         let layout_context: &mut LayoutContext = cast::transmute(*proxy.user_data());
 
         // Get a real layout node.
-        let node: LayoutNode = cast::transmute(unsafe_layout_node);
+        let node: LayoutNode = ::std::unstable::intrinsics::transmute(unsafe_layout_node);
 
         // Initialize layout data.
         //
@@ -159,7 +189,7 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
         // First, check to see whether we can share a style with someone.
         let style_sharing_candidate_cache = layout_context.style_sharing_candidate_cache();
         let sharing_result = node.share_style_if_possible(style_sharing_candidate_cache,
-                                                          parent_opt);
+                                                          parent_opt.clone());
 
         // Otherwise, match and cascade selectors.
         match sharing_result {
@@ -215,25 +245,25 @@ fn match_and_cascade_node(unsafe_layout_node: UnsafeLayoutNode,
     }
 }
 
-fn bubble_widths(unsafe_flow: UnsafeFlow, proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
+fn bubble_widths(unsafe_flow: PaddedUnsafeFlow, proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
     let layout_context: &mut LayoutContext = unsafe {
         cast::transmute(*proxy.user_data())
     };
     let mut bubble_widths_traversal = BubbleWidthsTraversal {
         layout_context: layout_context,
     };
-    bubble_widths_traversal.run_parallel(unsafe_flow)
+    bubble_widths_traversal.run_parallel(unsafe_flow.to_flow())
 }
 
-fn assign_heights_and_store_overflow(unsafe_flow: UnsafeFlow,
-                                     proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeFlow>) {
+fn assign_heights_and_store_overflow(unsafe_flow: PaddedUnsafeFlow,
+                                     proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
     let layout_context: &mut LayoutContext = unsafe {
         cast::transmute(*proxy.user_data())
     };
     let mut assign_heights_traversal = AssignHeightsAndStoreOverflowTraversal {
         layout_context: layout_context,
     };
-    assign_heights_traversal.run_parallel(unsafe_flow)
+    assign_heights_traversal.run_parallel(unsafe_flow.to_flow())
 }
 
 pub fn match_and_cascade_subtree(root_node: &LayoutNode,
@@ -258,7 +288,7 @@ pub fn traverse_flow_tree(kind: TraversalKind,
                           leaf_set: &Arc<FlowLeafSet>,
                           profiler_chan: ProfilerChan,
                           layout_context: &mut LayoutContext,
-                          queue: &mut WorkQueue<*mut LayoutContext,UnsafeFlow>) {
+                          queue: &mut WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>) {
     unsafe {
         queue.data = cast::transmute(layout_context)
     }
@@ -272,7 +302,7 @@ pub fn traverse_flow_tree(kind: TraversalKind,
         for (flow, _) in leaf_set.get().iter() {
             queue.push(WorkUnit {
                 fun: fun,
-                data: *flow,
+                data: UnsafeFlowConversions::from_flow(flow),
             })
         }
     });

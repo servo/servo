@@ -6,7 +6,7 @@
 /// coupling between these two components, and enables the DOM to be placed in a separate crate
 /// from layout.
 
-use dom::node::{AbstractNode, LayoutDataRef};
+use dom::node::LayoutDataRef;
 
 use extra::url::Url;
 use geom::point::Point2D;
@@ -52,13 +52,17 @@ pub enum Msg {
 /// Synchronous messages that script can send to layout.
 pub enum LayoutQuery {
     /// Requests the dimensions of the content box, as in the `getBoundingClientRect()` call.
-    ContentBoxQuery(AbstractNode, Chan<ContentBoxResponse>),
+    ContentBoxQuery(TrustedNodeAddress, Chan<ContentBoxResponse>),
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
-    ContentBoxesQuery(AbstractNode, Chan<ContentBoxesResponse>),
+    ContentBoxesQuery(TrustedNodeAddress, Chan<ContentBoxesResponse>),
     /// Requests the node containing the point of interest
-    HitTestQuery(AbstractNode, Point2D<f32>, Chan<Result<HitTestResponse, ()>>),
-    MouseOverQuery(AbstractNode, Point2D<f32>, Chan<Result<MouseOverResponse, ()>>),
+    HitTestQuery(TrustedNodeAddress, Point2D<f32>, Chan<Result<HitTestResponse, ()>>),
+    MouseOverQuery(TrustedNodeAddress, Point2D<f32>, Chan<Result<MouseOverResponse, ()>>),
 }
+
+/// The address of a node known to be valid. These must only be sent from content -> layout,
+/// because we do not trust layout.
+pub type TrustedNodeAddress = *c_void;
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -92,7 +96,7 @@ impl DocumentDamageLevel {
 /// Note that this is fairly coarse-grained and is separate from layout's notion of the document
 pub struct DocumentDamage {
     /// The topmost node in the tree that has changed.
-    root: AbstractNode,
+    root: TrustedNodeAddress,
     /// The amount of damage that occurred.
     level: DocumentDamageLevel,
 }
@@ -109,7 +113,7 @@ pub enum ReflowGoal {
 /// Information needed for a reflow.
 pub struct Reflow {
     /// The document node.
-    document_root: AbstractNode,
+    document_root: TrustedNodeAddress,
     /// The style changes that need to be done.
     damage: DocumentDamage,
     /// The goal of reflow: either to render to the screen or to flush layout info for script.

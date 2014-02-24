@@ -3,27 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLMeterElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLMeterElementDerived;
+use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLMeterElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLMeterElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLMeterElementDerived for EventTarget {
+    fn is_htmlmeterelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLMeterElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLMeterElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLMeterElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLMeterElement {
         HTMLMeterElement {
             htmlelement: HTMLElement::new_inherited(HTMLMeterElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLMeterElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLMeterElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLMeterElement> {
+        let element = HTMLMeterElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLMeterElementBinding::Wrap)
     }
 }
 

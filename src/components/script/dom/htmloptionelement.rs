@@ -3,27 +3,41 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLOptionElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLOptionElementDerived;
+use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLOptionElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::htmlformelement::HTMLFormElement;
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLOptionElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLOptionElementDerived for EventTarget {
+    fn is_htmloptionelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLOptionElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLOptionElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLOptionElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement: HTMLElement::new_inherited(HTMLOptionElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLOptionElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLOptionElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLOptionElement> {
+        let element = HTMLOptionElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLOptionElementBinding::Wrap)
     }
 }
 
@@ -36,7 +50,7 @@ impl HTMLOptionElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<AbstractNode> {
+    pub fn GetForm(&self) -> Option<JS<HTMLFormElement>> {
         None
     }
 

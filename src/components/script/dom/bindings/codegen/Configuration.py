@@ -158,10 +158,9 @@ class Descriptor(DescriptorProvider):
             if self.workers:
                 nativeTypeDefault = "workers::" + ifaceName
             else:
-                nativeTypeDefault = ifaceName
+                nativeTypeDefault = 'JS<%s>' % ifaceName
 
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
-        self.pointerType = desc.get('pointerType', '@mut ')
         self.concreteType = desc.get('concreteType', ifaceName)
         self.needsAbstract = desc.get('needsAbstract', [])
         self.hasInstanceInterface = desc.get('hasInstanceInterface', None)
@@ -253,7 +252,7 @@ class Descriptor(DescriptorProvider):
         self.prefable = desc.get('prefable', False)
 
         self.nativeIsISupports = not self.workers
-        self.customTrace = desc.get('customTrace', self.workers)
+        self.customTrace = desc.get('customTrace', self.workers) or 'trace'
         self.customFinalize = desc.get('customFinalize', self.workers)
         self.wrapperCache = self.workers or desc.get('wrapperCache', True)
 

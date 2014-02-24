@@ -466,7 +466,7 @@ pub struct InlineFlow {
 }
 
 impl InlineFlow {
-    pub fn from_boxes(id: int, node: ThreadSafeLayoutNode, boxes: ~[Box]) -> InlineFlow {
+    pub fn from_boxes(id: int, node: &ThreadSafeLayoutNode, boxes: ~[Box]) -> InlineFlow {
         InlineFlow {
             base: BaseFlow::new(id, node),
             boxes: boxes,

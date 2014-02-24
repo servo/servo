@@ -2,17 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::LocationBinding;
+use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::Fallible;
-use dom::bindings::codegen::LocationBinding;
 use dom::window::Window;
 use servo_util::str::DOMString;
 
 use script_task::{Page};
 
+#[deriving(Encodable)]
 pub struct Location {
     reflector_: Reflector, //XXXjdm cycle: window->Location->window
-    page: @mut Page
+    page: @mut Page,
 }
 
 impl Location {
@@ -23,8 +25,10 @@ impl Location {
         }
     }
 
-    pub fn new(window: &Window, page: @mut Page) -> @mut Location {
-        reflect_dom_object(@mut Location::new_inherited(page), window, LocationBinding::Wrap)
+    pub fn new(window: &Window, page: @mut Page) -> JS<Location> {
+        reflect_dom_object(~Location::new_inherited(page),
+                           window,
+                           LocationBinding::Wrap)
     }
 
     pub fn Assign(&self, _url: DOMString) {

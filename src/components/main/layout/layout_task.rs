@@ -17,7 +17,7 @@ use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::RestyleDamage;
 use layout::parallel::{AssignHeightsAndStoreOverflowTraversalKind, BubbleWidthsTraversalKind};
-use layout::parallel::{UnsafeFlow};
+use layout::parallel::{PaddedUnsafeFlow};
 use layout::parallel;
 use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
 use layout::wrapper::{DomLeafSet, LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
@@ -32,8 +32,9 @@ use gfx::font_context::FontContextInfo;
 use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
+use script::dom::bindings::js::JS;
 use script::dom::event::ReflowEvent;
-use script::dom::node::{ElementNodeTypeId, LayoutDataRef};
+use script::dom::node::{ElementNodeTypeId, LayoutDataRef, Node};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
 use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitNowMsg, LayoutQuery};
@@ -104,7 +105,7 @@ pub struct LayoutTask {
     initial_css_values: Arc<ComputedValues>,
 
     /// The workers that we use for parallel operation.
-    parallel_traversal: Option<WorkQueue<*mut LayoutContext,UnsafeFlow>>,
+    parallel_traversal: Option<WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>>,
 
     /// The channel on which messages can be sent to the profiler.
     profiler_chan: ProfilerChan,
@@ -429,8 +430,8 @@ impl LayoutTask {
     /// is intertwined with selector matching, making it difficult to compare directly. It is
     /// marked `#[inline(never)]` to aid benchmarking in sampling profilers.
     #[inline(never)]
-    fn construct_flow_tree(&self, layout_context: &mut LayoutContext, node: LayoutNode, url: &Url) -> ~Flow {
-        let node = ThreadSafeLayoutNode::new(node);
+    fn construct_flow_tree(&self, layout_context: &mut LayoutContext, node: &mut LayoutNode, url: &Url) -> ~Flow {
+        let mut node = ThreadSafeLayoutNode::new(node);
         node.traverse_postorder_mut(&mut FlowConstructor::init(layout_context, url));
 
         let mut layout_data_ref = node.mutate_layout_data();
@@ -527,8 +528,9 @@ impl LayoutTask {
     /// The high-level routine that performs layout tasks.
     fn handle_reflow(&mut self, data: &Reflow) {
         // FIXME: Isolate this transmutation into a "bridge" module.
-        let node: &LayoutNode = unsafe {
-            transmute(&data.document_root)
+        let node: &mut LayoutNode = unsafe {
+            let mut node: JS<Node> = JS::from_trusted_node_address(data.document_root);
+            transmute(&mut node)
         };
 
         debug!("layout: received layout request for: {:s}", data.url.to_str());
@@ -596,7 +598,7 @@ impl LayoutTask {
             // Construct the flow tree.
             profile(time::LayoutTreeBuilderCategory,
                     self.profiler_chan.clone(),
-                    || self.construct_flow_tree(&mut layout_ctx, *node, &data.url))
+                    || self.construct_flow_tree(&mut layout_ctx, node, &data.url))
         });
 
         // Verification of the flow tree, which ensures that all nodes were either marked as leaves
@@ -648,7 +650,7 @@ impl LayoutTask {
                     if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) || 
                             child.type_id() == ElementNodeTypeId(HTMLBodyElementTypeId) {
                         let element_bg_color = {
-                            let thread_safe_child = ThreadSafeLayoutNode::new(child);
+                            let thread_safe_child = ThreadSafeLayoutNode::new(&child);
                             thread_safe_child.style()
                                              .get()
                                              .resolve_color(thread_safe_child.style()
@@ -700,7 +702,7 @@ impl LayoutTask {
             // The neat thing here is that in order to answer the following two queries we only
             // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
             ContentBoxQuery(node, reply_chan) => {
-                let node = OpaqueNode::from_script_node(&node);
+                let node = OpaqueNode::from_script_node(node);
 
                 fn union_boxes_for_node<'a>(
                                         accumulator: &mut Option<Rect<Au>>,
@@ -724,7 +726,7 @@ impl LayoutTask {
                 reply_chan.send(ContentBoxResponse(rect.unwrap_or(Au::zero_rect())))
             }
             ContentBoxesQuery(node, reply_chan) => {
-                let node = OpaqueNode::from_script_node(&node);
+                let node = OpaqueNode::from_script_node(node);
 
                 fn add_boxes_for_node<'a>(
                                       accumulator: &mut ~[Rect<Au>],

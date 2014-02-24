@@ -2,18 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::codegen::ValidityStateBinding;
+use dom::bindings::js::JS;
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 
+#[deriving(Encodable)]
 pub struct ValidityState {
     reflector_: Reflector,
-    window: @mut Window,
+    window: JS<Window>,
     state: u8,
 }
 
 impl ValidityState {
-    pub fn new_inherited(window: @mut Window) -> ValidityState {
+    pub fn new_inherited(window: JS<Window>) -> ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
             window: window,
@@ -21,8 +23,9 @@ impl ValidityState {
         }
     }
 
-    pub fn new(window: @mut Window) -> @mut ValidityState {
-        reflect_dom_object(@mut ValidityState::new_inherited(window), window,
+    pub fn new(window: &JS<Window>) -> JS<ValidityState> {
+        reflect_dom_object(~ValidityState::new_inherited(window.clone()),
+                           window.get(),
                            ValidityStateBinding::Wrap)
     }
 }

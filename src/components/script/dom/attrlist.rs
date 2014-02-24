@@ -4,18 +4,20 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::AttrListBinding;
+use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::node::{AbstractNode};
+use dom::element::Element;
 use dom::window::Window;
 
+#[deriving(Encodable)]
 pub struct AttrList {
     reflector_: Reflector,
-    window: @mut Window,
-    owner: AbstractNode,
+    window: JS<Window>,
+    owner: JS<Element>,
 }
 
 impl AttrList {
-    pub fn new_inherited(window: @mut Window, elem: AbstractNode) -> AttrList {
+    pub fn new_inherited(window: JS<Window>, elem: JS<Element>) -> AttrList {
         AttrList {
             reflector_: Reflector::new(),
             window: window,
@@ -23,22 +25,20 @@ impl AttrList {
         }
     }
 
-    pub fn new(window: @mut Window, elem: AbstractNode) -> @mut AttrList {
-        reflect_dom_object(@mut AttrList::new_inherited(window, elem),
-                           window, AttrListBinding::Wrap)
+    pub fn new(window: &JS<Window>, elem: &JS<Element>) -> JS<AttrList> {
+        reflect_dom_object(~AttrList::new_inherited(window.clone(), elem.clone()),
+                           window.get(), AttrListBinding::Wrap)
     }
 
     pub fn Length(&self) -> u32 {
-        self.owner.with_imm_element(|elem| elem.attrs.len() as u32)
+        self.owner.get().attrs.len() as u32
     }
 
-    pub fn Item(&self, index: u32) -> Option<@mut Attr> {
-        self.owner.with_imm_element(|elem| {
-            elem.attrs.get_opt(index as uint).map(|&x| x)
-        })
+    pub fn Item(&self, index: u32) -> Option<JS<Attr>> {
+        self.owner.get().attrs.get_opt(index as uint).map(|x| x.clone())
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<@mut Attr> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JS<Attr>> {
         let item = self.Item(index);
         *found = item.is_some();
         item

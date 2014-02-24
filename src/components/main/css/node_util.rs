@@ -12,10 +12,10 @@ use style::ComputedValues;
 
 pub trait NodeUtil {
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;
-    fn have_css_select_results(self) -> bool;
+    fn have_css_select_results(&self) -> bool;
 
-    fn get_restyle_damage(self) -> RestyleDamage;
-    fn set_restyle_damage(self, damage: RestyleDamage);
+    fn get_restyle_damage(&self) -> RestyleDamage;
+    fn set_restyle_damage(&self, damage: RestyleDamage);
 }
 
 impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
@@ -36,14 +36,14 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
     }
 
     /// Does this node have a computed style yet?
-    fn have_css_select_results(self) -> bool {
+    fn have_css_select_results(&self) -> bool {
         let layout_data_ref = self.borrow_layout_data();
         layout_data_ref.get().get_ref().data.style.is_some()
     }
 
     /// Get the description of how to account for recent style changes.
     /// This is a simple bitfield and fine to copy by value.
-    fn get_restyle_damage(self) -> RestyleDamage {
+    fn get_restyle_damage(&self) -> RestyleDamage {
         // For DOM elements, if we haven't computed damage yet, assume the worst.
         // Other nodes don't have styles.
         let default = if self.node_is_element() {
@@ -63,7 +63,7 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
     }
 
     /// Set the restyle damage field.
-    fn set_restyle_damage(self, damage: RestyleDamage) {
+    fn set_restyle_damage(&self, damage: RestyleDamage) {
         let mut layout_data_ref = self.mutate_layout_data();
         match *layout_data_ref.get() {
             Some(ref mut layout_data) => layout_data.data.restyle_damage = Some(damage.to_int()),

@@ -3,19 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::ClientRectListBinding;
+use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::clientrect::ClientRect;
 use dom::window::Window;
 
+#[deriving(Encodable)]
 pub struct ClientRectList {
     reflector_: Reflector,
-    rects: ~[@mut ClientRect],
-    window: @mut Window,
+    rects: ~[JS<ClientRect>],
+    window: JS<Window>,
 }
 
 impl ClientRectList {
-    pub fn new_inherited(window: @mut Window,
-                         rects: ~[@mut ClientRect]) -> ClientRectList {
+    pub fn new_inherited(window: JS<Window>,
+                         rects: ~[JS<ClientRect>]) -> ClientRectList {
         ClientRectList {
             reflector_: Reflector::new(),
             rects: rects,
@@ -23,25 +25,25 @@ impl ClientRectList {
         }
     }
 
-    pub fn new(window: @mut Window,
-               rects: ~[@mut ClientRect]) -> @mut ClientRectList {
-        reflect_dom_object(@mut ClientRectList::new_inherited(window, rects),
-                           window, ClientRectListBinding::Wrap)
+    pub fn new(window: &JS<Window>,
+               rects: ~[JS<ClientRect>]) -> JS<ClientRectList> {
+        reflect_dom_object(~ClientRectList::new_inherited(window.clone(), rects),
+                           window.get(), ClientRectListBinding::Wrap)
     }
 
     pub fn Length(&self) -> u32 {
         self.rects.len() as u32
     }
 
-    pub fn Item(&self, index: u32) -> Option<@mut ClientRect> {
+    pub fn Item(&self, index: u32) -> Option<JS<ClientRect>> {
         if index < self.rects.len() as u32 {
-            Some(self.rects[index])
+            Some(self.rects[index].clone())
         } else {
             None
         }
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<@mut ClientRect> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JS<ClientRect>> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
     }

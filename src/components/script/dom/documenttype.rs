@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::InheritTypes::DocumentTypeDerived;
 use dom::bindings::codegen::DocumentTypeBinding;
-use dom::document::AbstractDocument;
-use dom::node::{AbstractNode, Node, DoctypeNodeTypeId};
+use dom::bindings::js::JS;
+use dom::document::Document;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::node::{Node, DoctypeNodeTypeId};
 use servo_util::str::DOMString;
 
 /// The `DOCTYPE` tag.
+#[deriving(Encodable)]
 pub struct DocumentType {
     node: Node,
     name: DOMString,
@@ -15,11 +19,20 @@ pub struct DocumentType {
     system_id: DOMString,
 }
 
+impl DocumentTypeDerived for EventTarget {
+    fn is_documenttype(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(DoctypeNodeTypeId) => true,
+            _ => false
+        }
+    }
+}
+
 impl DocumentType {
     pub fn new_inherited(name: DOMString,
                          public_id: Option<DOMString>,
                          system_id: Option<DOMString>,
-                         document: AbstractDocument)
+                         document: JS<Document>)
             -> DocumentType {
         DocumentType {
             node: Node::new_inherited(DoctypeNodeTypeId, document),
@@ -32,13 +45,13 @@ impl DocumentType {
     pub fn new(name: DOMString,
                public_id: Option<DOMString>,
                system_id: Option<DOMString>,
-               document: AbstractDocument)
-               -> AbstractNode {
+               document: &JS<Document>)
+               -> JS<DocumentType> {
         let documenttype = DocumentType::new_inherited(name,
                                                        public_id,
                                                        system_id,
-                                                       document);
-        Node::reflect_node(@mut documenttype, document, DocumentTypeBinding::Wrap)
+                                                       document.clone());
+        Node::reflect_node(~documenttype, document, DocumentTypeBinding::Wrap)
     }
 }
 

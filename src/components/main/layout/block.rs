@@ -68,7 +68,7 @@ pub struct BlockFlow {
 }
 
 impl BlockFlow {
-    pub fn from_node(constructor: &mut FlowConstructor, node: ThreadSafeLayoutNode, is_fixed: bool)
+    pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode, is_fixed: bool)
                      -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new(constructor.next_flow_id(), node),
@@ -80,7 +80,7 @@ impl BlockFlow {
     }
 
     pub fn float_from_node(constructor: &mut FlowConstructor,
-                           node: ThreadSafeLayoutNode,
+                           node: &ThreadSafeLayoutNode,
                            float_type: FloatType)
                            -> BlockFlow {
         BlockFlow {
