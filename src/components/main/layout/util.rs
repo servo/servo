@@ -6,6 +6,7 @@ use layout::box_::Box;
 use layout::construct::{ConstructionResult, NoConstructionResult};
 use layout::parallel::DomParallelInfo;
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
+use layout::wrapper::LayoutPseudoNode;
 
 use extra::arc::Arc;
 use script::dom::bindings::utils::Reflectable;
@@ -127,6 +128,25 @@ impl ElementMapping {
     }
 }
 
+pub struct PseudoNode {
+    parent: LayoutPseudoNode,
+    child: LayoutPseudoNode
+}
+
+impl PseudoNode {
+    #[inline(always)]
+    pub fn new_from_parent_and_child(parent: AbstractNode, child: AbstractNode) -> PseudoNode {
+        PseudoNode {
+            parent: LayoutPseudoNode::from_layout_pseudo(parent),
+            child: LayoutPseudoNode::from_layout_pseudo(child),
+        }
+    }
+    #[inline(always)]
+    pub fn get_pseudo_node(&mut self) -> AbstractNode {
+        self.parent.get_abstract()
+    }
+}
+
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
     /// The results of CSS styling for this node.
@@ -138,6 +158,11 @@ pub struct PrivateLayoutData {
     /// The results of CSS styling for this node's `after` pseudo-element, if any.
     after_style: Option<Arc<ComputedValues>>,
 
+    before: Option<PseudoNode>,
+
+    after: Option<PseudoNode>,
+
+    next_after_sibling: Option<PseudoNode>,
     /// Description of how to account for recent style changes.
     restyle_damage: Option<int>,
 
@@ -156,10 +181,83 @@ impl PrivateLayoutData {
             before_style: None,
             style: None,
             after_style: None,
+            before: None,
+            after: None,
+            next_after_sibling: None,
             restyle_damage: None,
             flow_construction_result: NoConstructionResult,
             parallel: DomParallelInfo::new(),
         }
+    }
+
+    pub fn new_with_style(style: Option<Arc<ComputedValues>>) -> PrivateLayoutData {
+        PrivateLayoutData {
+            before_style: None,
+            style: style,
+            after_style: None,
+            before: None,
+            after: None,
+            next_after_sibling: None,
+            restyle_damage: None,
+            flow_construction_result: NoConstructionResult,
+            parallel: DomParallelInfo::new(),
+        }
+    }
+
+    /// Initialize the function for applicable_declarations.
+    pub fn init_applicable_declarations(&mut self) {
+        //FIXME To implement a clear() on SmallVec and use it(init_applicable_declarations).
+    }
+
+    pub fn get_pseudo_before_node(&mut self) -> Option<AbstractNode> {
+        if self.before.is_some() {
+            return Some(self.before.get_mut_ref().get_pseudo_node())
+        }
+        None
+    }
+
+    pub fn get_pseudo_after_node(&mut self) -> Option<AbstractNode> {
+        if self.after.is_some() {
+            return Some(self.after.get_mut_ref().get_pseudo_node())
+        }
+        None
+    }
+
+    #[inline(always)]
+    pub fn set_pseudo_before_node(&mut self, parent: AbstractNode, child: AbstractNode) {
+        self.before = Some(PseudoNode::new_from_parent_and_child(parent, child));
+    }
+
+    #[inline(always)]
+    pub fn set_pseudo_after_node(&mut self, parent: AbstractNode, child: AbstractNode) {
+        self.after = Some(PseudoNode::new_from_parent_and_child(parent, child));
+    }
+
+    pub fn get_next_after_sibling_node(&mut self) -> Option<AbstractNode> {
+        if self.next_after_sibling.is_some() {
+            return Some(self.next_after_sibling.get_mut_ref().get_pseudo_node())
+        }
+        None
+    }
+
+    #[inline(always)]
+    pub fn set_next_after_sibling_node(&mut self, parent: AbstractNode, child: AbstractNode) {
+        self.next_after_sibling = Some(PseudoNode::new_from_parent_and_child(parent, child));
+    }
+
+    pub fn is_next_after_sibling(&mut self) -> bool {
+        if self.next_after_sibling.is_some() {
+            return true
+        }
+        false
+    }
+
+    pub fn is_pseudo_before<'a>(&'a self) -> bool {
+        self.before.is_some()
+    }
+
+    pub fn is_pseudo_after<'a>(&'a self) -> bool {
+        self.after.is_some()
     }
 }
 

@@ -96,6 +96,7 @@ pub enum ElementTypeId {
     HTMLParamElementTypeId,
     HTMLPreElementTypeId,
     HTMLProgressElementTypeId,
+    HTMLPseudoElementTypeId,
     HTMLQuoteElementTypeId,
     HTMLScriptElementTypeId,
     HTMLSelectElementTypeId,
@@ -131,6 +132,17 @@ impl Element {
             node: Node::new_inherited(ElementNodeTypeId(type_id), document),
             tag_name: tag_name,
             namespace: namespace,
+            attrs: ~[],
+            attr_list: None,
+            style_attribute: None,
+        }
+    }
+
+    pub fn new_layout_pseudo(tag_name: ~str) -> Element {
+        Element {
+            node: Node::new_without_doc(ElementNodeTypeId(HTMLPseudoElementTypeId)),
+            tag_name: tag_name,
+            namespace: namespace::HTML,
             attrs: ~[],
             attr_list: None,
             style_attribute: None,

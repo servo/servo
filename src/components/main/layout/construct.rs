@@ -31,14 +31,22 @@ use layout::flow::{Flow, FlowLeafSet, ImmutableFlowUtils, MutableOwnedFlowUtils}
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
+use layout::util::PrivateLayoutData;
 use layout::wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
+use layout::extra::LayoutAuxMethods;
 
 use gfx::font_context::FontContext;
 use script::dom::element::{HTMLIframeElementTypeId, HTMLImageElementTypeId, HTMLObjectElementTypeId};
+use script::dom::element::Element;
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
 use script::dom::node::{TextNodeTypeId};
+use script::dom::node::AbstractNode;
+use script::dom::text::Text;
 use style::computed_values::{display, position, float, white_space};
+use style::computed_values::content;
+use style::TNode;
+use style::{PseudoElement, Before, After};
 use style::ComputedValues;
 use servo_util::namespace;
 use servo_util::url::parse_url;
@@ -378,7 +386,6 @@ impl<'fc> FlowConstructor<'fc> {
                             }
                         }
                     }
-
                     // Add the boxes to the list we're maintaining.
                     opt_boxes_for_inline_flow.push_all_move(boxes)
                 }
@@ -624,6 +631,19 @@ impl<'fc> FlowConstructor<'fc> {
             self.build_boxes_for_replaced_inline_content(node)
         }
     }
+
+    fn get_content(content_list: &content::T) -> ~str{
+        match *content_list {
+            content::Content(ref value) => {
+                let iter = &mut value.clone().move_iter().peekable();
+                match iter.next() {
+                    Some(content::StringContent(str)) => str,
+                    _ => ~"",
+                }
+            }
+            _ => ~"",
+        }
+    }
 }
 
 impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
@@ -688,6 +708,87 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
 
         true
     }
+
+    #[inline(always)]
+    fn pseudo_element_process(&mut self, node: ThreadSafeLayoutNode, kind: PseudoElement) {
+        // Create layout data for pseudo parent node
+        let(parent, child) = {
+                                 let mut layout_data_ref = node.mutate_layout_data();
+                                 let node_ldw = layout_data_ref.get().get_mut_ref();
+
+                                 // Create pseudo parent_node
+                                 let pseudo_parent_element = match kind {
+                                     Before => ~Element::new_layout_pseudo(~"::before"),
+                                     After => ~Element::new_layout_pseudo(~"::after"),
+                                 };
+
+                                 let pseudo_parent_abstract_node = unsafe { AbstractNode::from_layout_pseudo(pseudo_parent_element) };
+                                 let mut pseudo_parent_node = unsafe { node.new_with_this_lifetime(pseudo_parent_abstract_node.clone()) };
+
+                                 match node_ldw.chan {
+                                     Some(ref chan) => {
+                                         ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_parent_node).initialize_layout_data(chan.clone());
+                                     }
+                                     None => {}
+                                 }
+                                 
+                                 let content = match kind {
+                                     Before => {
+                                         insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(node_ldw.data.before_style.clone()));
+                                         let before_style = node_ldw.data.before_style.get_ref();
+                                         FlowConstructor::get_content(&before_style.get().Box.get().content)
+                                     }
+                                     After => {
+                                         insert_layout_data(&pseudo_parent_node, ~PrivateLayoutData::new_with_style(node_ldw.data.after_style.clone()));
+                                         let after_style = node_ldw.data.after_style.get_ref();
+                                         FlowConstructor::get_content(&after_style.get().Box.get().content)
+                                     }
+                                 };
+
+                                 // Create pseudo node
+                                 let pseudo_text = ~Text::new_layout_pseudo(content);
+                                 let pseudo_abstract_node = unsafe { AbstractNode::from_layout_pseudo(pseudo_text) };
+                                 let mut pseudo_node = unsafe { node.new_with_this_lifetime(pseudo_abstract_node) };
+
+                                 match node_ldw.chan {
+                                     Some(ref chan) => {
+                                         ThreadSafeLayoutNode::to_pseudo_layout_node(pseudo_node).initialize_layout_data(chan.clone());
+                                     }
+                                     None => {}
+                                 }
+                                 match kind {
+                                     Before => {
+                                         insert_layout_data(&pseudo_node, ~PrivateLayoutData::new_with_style(node_ldw.data.before_style.clone()));
+                                     }
+                                     After => {
+                                         insert_layout_data(&pseudo_node, ~PrivateLayoutData::new_with_style(node_ldw.data.after_style.clone()));
+                                     }
+                                 }
+                                 pseudo_parent_node.set_first_child(&mut pseudo_node);
+                                 pseudo_node.set_parent_node(&mut pseudo_parent_node);
+
+                                 (pseudo_parent_abstract_node, pseudo_abstract_node)
+                             };
+        match kind {
+            Before => {
+                if node.is_first_child() {
+                    parent.mut_node().next_sibling = unsafe { node.get_abstract().node().first_child };
+                }
+                node.set_pseudo_before_node(parent, child);            
+            },
+            After =>{
+                let last_child = unsafe { node.last_child() };
+                match last_child {
+                    Some(last_child) => {
+                        last_child.set_next_after_sibling_node(parent, child);
+                    }
+                    None => {
+                        node.set_pseudo_after_node(parent, child);
+                    }
+                }
+            }
+        }
+    }    
 }
 
 /// A utility trait with some useful methods for node queries.
@@ -850,3 +951,10 @@ fn strip_ignorable_whitespace_from_end(opt_boxes: &mut Option<~[Box]>) {
     }
 }
 
+fn insert_layout_data(node: &ThreadSafeLayoutNode, new_layout_data: ~PrivateLayoutData) {
+    let mut layout_data = node.mutate_layout_data();
+    match *layout_data.get() {
+        Some(ref mut layout_data_wrapper) => layout_data_wrapper.data = new_layout_data,
+        None => { fail!("Dont have layout_data."); }
+    }
+}
