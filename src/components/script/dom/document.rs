@@ -302,19 +302,16 @@ impl Document {
         }
 
         let (prefix_from_qname, local_name_from_qname) = get_attribute_parts(qualified_name);
-        match (ns.clone(), prefix_from_qname, local_name_from_qname.clone()) {
-            (namespace::Null, None, _) => {},
-            (namespace::Null, _, _) => {
+        match (&ns, &prefix_from_qname, &local_name_from_qname) {
+            (&namespace::Null, &Some(_), _) => {
                 debug!("Namespace can't be null with a non-null prefix");
                 return Err(NamespaceError);
             },
-            (namespace::XML, Some(~"xml"), _) => {},
-            (namespace::XML, _, _) => {
+            (_, &Some(~"xml"), _) => if (ns != namespace::XML) {
                 debug!("Namespace must be the xml namespace if the prefix is 'xml'");
                 return Err(NamespaceError);
             },
-            (namespace::XMLNS, Some(~"xmlns"), _) | (namespace::XMLNS, _, ~"xmlns") => {},
-            (_, Some(~"xmlns"), _) | (_, _, ~"xmlns") => {
+            (_, &Some(~"xmlns"), _) | (_, _, &~"xmlns") =>  if (ns != namespace::XMLNS) {
                 debug!("Namespace must be the xmlns namespace if the prefix or the qualified name is 'xmlns'");
                 return Err(NamespaceError);
             },
