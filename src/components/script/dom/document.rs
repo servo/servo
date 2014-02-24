@@ -303,16 +303,20 @@ impl Document {
 
         let (prefix_from_qname, local_name_from_qname) = get_attribute_parts(qualified_name);
         match (&ns, &prefix_from_qname, &local_name_from_qname) {
+            // throw if prefix is not null and namespace is null
             (&namespace::Null, &Some(_), _) => {
                 debug!("Namespace can't be null with a non-null prefix");
                 return Err(NamespaceError);
             },
+            // throw if prefix is "xml" and namespace is not the XML namespace
             (_, &Some(~"xml"), _) => if (ns != namespace::XML) {
                 debug!("Namespace must be the xml namespace if the prefix is 'xml'");
                 return Err(NamespaceError);
             },
-            (_, &Some(~"xmlns"), _) | (_, _, &~"xmlns") =>  if (ns != namespace::XMLNS) {
-                debug!("Namespace must be the xmlns namespace if the prefix or the qualified name is 'xmlns'");
+            // throw if namespace is the XMLNS namespace and neither qualifiedName nor prefix is "xmlns"
+            (&namespace::XMLNS, &Some(~"xmlns"), _) | (&namespace::XMLNS, _, &~"xmlns") => {},
+            (&namespace::XMLNS, &Some(_), _) | (&namespace::XMLNS, _, _) => {
+                debug!("The prefix or the qualified name must be 'xmlns' if namespace is the XMLNS namespace ");
                 return Err(NamespaceError);
             },
             _ => {}
