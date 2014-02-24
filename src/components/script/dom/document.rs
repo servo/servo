@@ -4,14 +4,13 @@
 
 use dom::comment::Comment;
 use dom::bindings::codegen::DocumentBinding;
-use dom::bindings::codegen::ElementBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable, reflect_dom_object};
 use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest};
 use dom::bindings::utils::{xml_name_type, InvalidXMLName, Name, QName, NamespaceError};
 use dom::documentfragment::DocumentFragment;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element};
-use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId, HTMLBodyElementTypeId, HTMLFrameSetElementTypeId, ElementTypeId};
+use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId, HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::{AbstractEvent, Event};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
@@ -332,8 +331,7 @@ impl Document {
             local_name = local_name.to_ascii_lower();
             Ok(build_element_from_tag(local_name, abstract_self))
         } else {
-            let element = Element::new_inherited(ElementTypeId, local_name, ns, abstract_self);
-            Ok(Node::reflect_node(@mut element, abstract_self, ElementBinding::Wrap))
+            Ok(Element::new(local_name, ns, abstract_self))
         }
     }
 

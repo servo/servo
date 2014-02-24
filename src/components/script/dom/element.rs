@@ -6,6 +6,7 @@
 
 use dom::attr::Attr;
 use dom::attrlist::AttrList;
+use dom::bindings::codegen::ElementBinding;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
@@ -137,6 +138,11 @@ impl Element {
             attr_list: None,
             style_attribute: None,
         }
+    }
+
+    pub fn new(tag_name: ~str, namespace: Namespace, document: AbstractDocument) -> AbstractNode {
+        let element = Element::new_inherited(ElementTypeId, tag_name, namespace, document);
+        Node::reflect_node(@mut element, document, ElementBinding::Wrap)
     }
 
     pub fn html_element_in_html_document(&self) -> bool {
