@@ -286,6 +286,7 @@ impl Document {
         DocumentFragment::new(abstract_self)
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-createelementns
     pub fn CreateElementNS(&self, abstract_self: AbstractDocument, namespace: Option<DOMString>, qualified_name: DOMString) -> Fallible<AbstractNode> {
         let ns: Namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
         let mut local_name;
