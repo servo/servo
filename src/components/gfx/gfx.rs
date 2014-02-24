@@ -54,7 +54,6 @@ pub mod font_context;
 pub mod font_list;
 
 // Misc.
-pub mod opts;
 mod buffer_map;
 
 // Platform-specific implementations.
