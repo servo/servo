@@ -41,11 +41,11 @@ impl Traceable for Node {
             }
         }
         debug!("tracing {:p}?:", self.reflector().get_jsobject());
-        trace_node(tracer, self.parent_node, "parent");
-        trace_node(tracer, self.first_child, "first child");
-        trace_node(tracer, self.last_child, "last child");
-        trace_node(tracer, self.next_sibling, "next sibling");
-        trace_node(tracer, self.prev_sibling, "prev sibling");
+        trace_node(tracer, self.GetParentNode(), "parent");
+        trace_node(tracer, self.GetFirstChild(), "first child");
+        trace_node(tracer, self.GetLastChild(), "last child");
+        trace_node(tracer, self.GetNextSibling(), "next sibling");
+        trace_node(tracer, self.GetPreviousSibling(), "prev sibling");
         let owner_doc = self.owner_doc();
         trace_reflector(tracer, "document", owner_doc.reflector());
     }

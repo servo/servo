@@ -194,19 +194,19 @@ impl<'ln> LayoutNode<'ln> {
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.node().parent_node.map(|node| self.new_with_this_lifetime(node))
+            self.node.parent_node().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
     fn prev_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.node().prev_sibling.map(|node| self.new_with_this_lifetime(node))
+            self.node.prev_sibling().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
     fn next_sibling(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
-            self.node.node().next_sibling.map(|node| self.new_with_this_lifetime(node))
+            self.node.next_sibling().map(|node| self.new_with_this_lifetime(node))
         }
     }
 
