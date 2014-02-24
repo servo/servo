@@ -40,6 +40,8 @@ pub mod dom {
             pub mod PrototypeList;
             pub mod RegisterBindings;
             pub mod BindingDeclarations;
+            pub mod UnionConversions;
+            pub mod UnionTypes;
         }
     }
 

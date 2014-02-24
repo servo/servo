@@ -4,7 +4,9 @@
 
 use js::jsapi::JSVal;
 use js::{JSVAL_FALSE, JSVAL_TRUE};
-use js::glue::{RUST_UINT_TO_JSVAL, RUST_JSVAL_TO_INT, RUST_DOUBLE_TO_JSVAL, RUST_JSVAL_TO_DOUBLE};
+use js::glue::{RUST_UINT_TO_JSVAL, RUST_JSVAL_TO_INT, RUST_DOUBLE_TO_JSVAL};
+use js::glue::{RUST_JSVAL_TO_DOUBLE, RUST_JSVAL_IS_INT, RUST_JSVAL_IS_DOUBLE};
+use js::glue::{RUST_JSVAL_IS_BOOLEAN, RUST_JSVAL_TO_BOOLEAN};
 
 pub trait JSValConvertible {
     fn to_jsval(&self) -> JSVal;
@@ -21,7 +23,11 @@ impl JSValConvertible for i64 {
 
     fn from_jsval(val: JSVal) -> Option<i64> {
         unsafe {
-            Some(RUST_JSVAL_TO_DOUBLE(val) as i64)
+            if RUST_JSVAL_IS_INT(val) != 0 {
+                Some(RUST_JSVAL_TO_DOUBLE(val) as i64)
+            } else {
+                None
+            }
         }
     }
 }
@@ -35,7 +41,11 @@ impl JSValConvertible for u32 {
 
     fn from_jsval(val: JSVal) -> Option<u32> {
         unsafe {
-            Some(RUST_JSVAL_TO_INT(val) as u32)
+            if RUST_JSVAL_IS_INT(val) != 0 {
+                Some(RUST_JSVAL_TO_INT(val) as u32)
+            } else {
+                None
+            }
         }
     }
 }
@@ -49,7 +59,11 @@ impl JSValConvertible for i32 {
 
     fn from_jsval(val: JSVal) -> Option<i32> {
         unsafe {
-            Some(RUST_JSVAL_TO_INT(val) as i32)
+            if RUST_JSVAL_IS_INT(val) != 0 {
+                Some(RUST_JSVAL_TO_INT(val) as i32)
+            } else {
+                None
+            }
         }
     }
 }
@@ -63,7 +77,11 @@ impl JSValConvertible for u16 {
 
     fn from_jsval(val: JSVal) -> Option<u16> {
         unsafe {
-            Some(RUST_JSVAL_TO_INT(val) as u16)
+            if RUST_JSVAL_IS_INT(val) != 0 {
+                Some(RUST_JSVAL_TO_INT(val) as u16)
+            } else {
+                None
+            }
         }
     }
 }
@@ -78,12 +96,12 @@ impl JSValConvertible for bool {
     }
 
     fn from_jsval(val: JSVal) -> Option<bool> {
-        if val == JSVAL_TRUE {
-            Some(true)
-        } else if val == JSVAL_FALSE {
-            Some(false)
-        } else {
-            None
+        unsafe {
+            if RUST_JSVAL_IS_BOOLEAN(val) != 0 {
+                Some(RUST_JSVAL_TO_BOOLEAN(val) != 0)
+            } else {
+                None
+            }
         }
     }
 }
@@ -97,7 +115,11 @@ impl JSValConvertible for f32 {
 
     fn from_jsval(val: JSVal) -> Option<f32> {
         unsafe {
-            Some(RUST_JSVAL_TO_DOUBLE(val) as f32)
+            if RUST_JSVAL_IS_DOUBLE(val) != 0 {
+                Some(RUST_JSVAL_TO_DOUBLE(val) as f32)
+            } else {
+                None
+            }
         }
     }
 }
@@ -111,7 +133,11 @@ impl JSValConvertible for f64 {
 
     fn from_jsval(val: JSVal) -> Option<f64> {
         unsafe {
-            Some(RUST_JSVAL_TO_DOUBLE(val) as f64)
+            if RUST_JSVAL_IS_DOUBLE(val) != 0 {
+                Some(RUST_JSVAL_TO_DOUBLE(val) as f64)
+            } else {
+                None
+            }
         }
     }
 }
