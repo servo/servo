@@ -47,18 +47,16 @@ use constellation::Constellation;
 use servo_msg::constellation_msg::InitLoadUrlMsg;
 
 #[cfg(not(test))]
-use gfx::opts;
-
-#[cfg(not(test))]
 use servo_net::image_cache_task::{ImageCacheTask, SyncImageCacheTask};
 #[cfg(not(test))]
 use servo_net::resource_task::ResourceTask;
 #[cfg(not(test))]
 use servo_util::time::Profiler;
 
-pub use gfx::opts::Opts;
-pub use gfx::text;
-pub use servo_util::url::parse_url;
+#[cfg(not(test))]
+use servo_util::opts;
+#[cfg(not(test))]
+use servo_util::url::parse_url;
 
 #[cfg(not(test))]
 use std::os;
@@ -138,7 +136,7 @@ pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
 }
 
 #[cfg(not(test))]
-fn run(opts: Opts) {
+fn run(opts: opts::Opts) {
     let mut pool = green::SchedPool::new(green::PoolConfig::new());
 
     let (compositor_port, compositor_chan) = CompositorChan::new();

@@ -7,6 +7,7 @@
 
 #[feature(macro_rules, managed_boxes)];
 
+extern mod azure;
 extern mod extra;
 extern mod geom;
 extern mod native;
@@ -18,6 +19,7 @@ pub mod debug;
 pub mod geometry;
 pub mod io;
 pub mod namespace;
+pub mod opts;
 pub mod range;
 pub mod smallvec;
 pub mod sort;
