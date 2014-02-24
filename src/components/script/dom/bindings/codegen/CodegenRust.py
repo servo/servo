@@ -856,9 +856,7 @@ for (uint32_t i = 0; i < length; ++i) {
                           "  return 0;\n"
                           "}\n"
                           "if !done {\n"
-                          "  //XXXjdm throw exception\n"
-                          "  //return ThrowErrorMessage(cx, MSG_NOT_IN_UNION, \"%s\");\n"
-                          "  return 0;"
+                          "  return throw_not_in_union(cx, \"%s\");\n"
                           "}" % ", ".join(names))
         templateBody = CGWrapper(CGIndenter(CGList([templateBody, throw], "\n")), pre="{\n", post="\n}")
 
@@ -869,9 +867,9 @@ for (uint32_t i = 0; i < length; ++i) {
         nonConstDecl = "${declName}"
 
         def handleNull(templateBody, setToNullVar, extraConditionForNull=""):
-            null = CGGeneric("if %sRUST_JSVAL_IS_NULL(${val}) != 0 || %sRUST_JSVAL_IS_VOID(${val}) != 0 {\n"
+            null = CGGeneric("if %s(RUST_JSVAL_IS_NULL(${val}) != 0 || RUST_JSVAL_IS_VOID(${val}) != 0) {\n"
                              "  %s = None;\n"
-                             "}" % (extraConditionForNull, extraConditionForNull, setToNullVar))
+                             "}" % (extraConditionForNull, setToNullVar))
             templateBody = CGWrapper(CGIndenter(templateBody), pre="{\n", post="\n}")
             return CGList([null, templateBody], " else ")
 
@@ -3782,11 +3780,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         type, descriptorProvider, failureCode=tryNextCode,
         isDefinitelyObject=True, isOptional=type.nullable(), preSuccess="e" + name + "(", postSuccess=")")
 
-    # This is ugly, but UnionMember needs to call a constructor with no
-    # arguments so the type can't be const.
     structType = declType.define()
-    if structType.startswith("const "):
-        structType = structType[6:]
     externalType = getUnionAccessorSignatureType(type, descriptorProvider).define()
 
     if type.isObject():
@@ -3804,7 +3798,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
             )
         jsConversion = CGWrapper(CGGeneric(jsConversion),
                                  post="\n"
-                                      "return Ok(true);")
+                                      "return Ok(false);")
         setter = CGWrapper(CGIndenter(jsConversion),
                            pre="pub fn TrySetTo" + name + "(&mut self, cx: *JSContext, value: JSVal, pvalue: *JSVal) -> Result<bool,()> {\n",
                            post="\n"
@@ -3850,8 +3844,6 @@ class CGUnionStruct(CGThing):
 
         destructorTemplate = """  fn Destroy${name}(&mut self) {
     assert!(Is${name}(), "Wrong type!");
-    //mValue.m${name}.Destroy();
-    //mType = eUninitialized;
     *self.mUnion = None;
   }"""
         destructors = mapTemplate(destructorTemplate, templateVars)
