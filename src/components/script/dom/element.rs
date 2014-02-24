@@ -631,7 +631,7 @@ impl Element {
     }
 }
 
-fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
+pub fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
     let (prefix, local_name) = if name.contains(":")  {

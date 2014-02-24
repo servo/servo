@@ -9,7 +9,7 @@ use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter
 use dom::bindings::utils::{xml_name_type, InvalidXMLName, Name, QName, NamespaceError};
 use dom::documentfragment::DocumentFragment;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{Element};
+use dom::element::{Element, get_attribute_parts};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId, HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::{AbstractEvent, Event};
 use dom::htmlcollection::HTMLCollection;
@@ -299,12 +299,7 @@ impl Document {
                 return Err(NamespaceError);
             },
             QName => {
-                let (prefix_from_qname, local_name_from_qname) = if qualified_name.contains(":")  {
-                    let parts: ~[&str] = qualified_name.splitn(':', 1).collect();
-                    (Some(parts[0].to_owned()), parts[1].to_owned())
-                } else {
-                    (None, qualified_name.clone())
-                };
+                let (prefix_from_qname, local_name_from_qname) = get_attribute_parts(qualified_name);
                 match (ns.clone(), prefix_from_qname, local_name_from_qname.clone()) {
                     (namespace::Null, None, _) => {},
                     (namespace::Null, _, _) => {
