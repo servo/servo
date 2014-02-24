@@ -95,7 +95,7 @@ CSS2Properties.webidl: $(topsrcdir)/layout/style/nsCSSPropList.h \
                        $(srcdir)/GenerateCSS2PropertiesWebIDL.py \
                        $(GLOBAL_DEPS)
 	$(CPP) $(DEFINES) $(ACDEFINES) -I$(topsrcdir)/layout/style $(webidl_base)/CSS2PropertiesProps.h | \
-	  PYTHONDONTWRITEBYTECODE=1 $(PYTHON) \
+	  $(PYTHON) \
 	  $(srcdir)/GenerateCSS2PropertiesWebIDL.py $(webidl_base)/CSS2Properties.webidl.in > CSS2Properties.webidl
 
 $(webidl_files): %: $(webidl_base)/%
@@ -107,7 +107,7 @@ $(test_webidl_files): %: $(srcdir)/test/%
 $(binding_header_files): %Binding.h: $(bindinggen_dependencies) \
                                      %.webidl \
                                      $(NULL)
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(topsrcdir)/config/pythonpath.py \
+	$(PYTHON) $(topsrcdir)/config/pythonpath.py \
 	  $(PLY_INCLUDE) -I$(srcdir)/parser \
 	  $(srcdir)/BindingGen.py header \
 	  $(srcdir)/Bindings.conf $*Binding \
@@ -116,7 +116,7 @@ $(binding_header_files): %Binding.h: $(bindinggen_dependencies) \
 $(binding_cpp_files): %Binding.cpp: $(bindinggen_dependencies) \
                                     %.webidl \
                                     $(NULL)
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(topsrcdir)/config/pythonpath.py \
+	$(PYTHON) $(topsrcdir)/config/pythonpath.py \
 	  $(PLY_INCLUDE) -I$(srcdir)/parser \
 	  $(srcdir)/BindingGen.py cpp \
 	  $(srcdir)/Bindings.conf $*Binding \
@@ -142,7 +142,7 @@ $(CACHE_DIR)/.done:
 
 ParserResults.pkl: $(globalgen_dependencies) \
                    $(all_webidl_files)
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(topsrcdir)/config/pythonpath.py \
+	$(PYTHON) $(topsrcdir)/config/pythonpath.py \
     $(PLY_INCLUDE) -I$(srcdir)/parser \
     $(srcdir)/GlobalGen.py $(srcdir)/Bindings.conf . \
     --cachedir=$(CACHE_DIR) \
