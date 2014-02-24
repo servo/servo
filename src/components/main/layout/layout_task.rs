@@ -29,7 +29,6 @@ use geom::size::Size2D;
 use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator};
 use gfx::display_list::{DisplayList, DisplayListCollection};
 use gfx::font_context::FontContextInfo;
-use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use script::dom::bindings::js::JS;
@@ -47,6 +46,7 @@ use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, Failu
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
+use servo_util::opts::Opts;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::send_on_failure;

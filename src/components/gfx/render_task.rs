@@ -17,6 +17,7 @@ use servo_msg::compositor_msg::{RenderListener, RenderingRenderState};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, RendererReadyMsg};
 use servo_msg::constellation_msg::{Failure, FailureMsg};
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
+use servo_util::opts::Opts;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::send_on_failure;
@@ -28,7 +29,6 @@ use extra::arc::Arc;
 use buffer_map::BufferMap;
 use display_list::DisplayListCollection;
 use font_context::{FontContext, FontContextInfo};
-use opts::Opts;
 use render_context::RenderContext;
 
 pub struct RenderLayer<T> {
