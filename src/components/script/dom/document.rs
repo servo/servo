@@ -289,7 +289,6 @@ impl Document {
     // http://dom.spec.whatwg.org/#dom-document-createelementns
     pub fn CreateElementNS(&self, abstract_self: AbstractDocument, namespace: Option<DOMString>, qualified_name: DOMString) -> Fallible<AbstractNode> {
         let ns: Namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
-        //let mut local_name;
         match xml_name_type(qualified_name) {
             InvalidXMLName => {
                 debug!("Not a valid element name");
@@ -321,7 +320,6 @@ impl Document {
             },
             _ => {}
         }
-        //local_name = local_name_from_qname;
 
         if ns == namespace::HTML {
             Ok(build_element_from_tag(local_name_from_qname, abstract_self))
