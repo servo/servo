@@ -289,7 +289,7 @@ impl Document {
     // http://dom.spec.whatwg.org/#dom-document-createelementns
     pub fn CreateElementNS(&self, abstract_self: AbstractDocument, namespace: Option<DOMString>, qualified_name: DOMString) -> Fallible<AbstractNode> {
         let ns: Namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
-        let mut local_name;
+        //let mut local_name;
         match xml_name_type(qualified_name) {
             InvalidXMLName => {
                 debug!("Not a valid element name");
@@ -299,34 +299,34 @@ impl Document {
                 debug!("Not a valid qualified element name");
                 return Err(NamespaceError);
             },
-            QName => {
-                let (prefix_from_qname, local_name_from_qname) = get_attribute_parts(qualified_name);
-                match (ns.clone(), prefix_from_qname, local_name_from_qname.clone()) {
-                    (namespace::Null, None, _) => {},
-                    (namespace::Null, _, _) => {
-                        debug!("Namespace can't be null with a non-null prefix");
-                        return Err(NamespaceError);
-                    },
-                    (namespace::XML, Some(~"xml"), _) => {},
-                    (namespace::XML, _, _) => {
-                        debug!("Namespace must be the xml namespace if the prefix is 'xml'");
-                        return Err(NamespaceError);
-                    },
-                    (namespace::XMLNS, Some(~"xmlns"), _) | (namespace::XMLNS, _, ~"xmlns") => {},
-                    (_, Some(~"xmlns"), _) | (_, _, ~"xmlns") => {
-                        debug!("Namespace must be the xmlns namespace if the prefix or the qualified name is 'xmlns'");
-                        return Err(NamespaceError);
-                    },
-                    _ => {}
-                }
-                local_name = local_name_from_qname;
-            }
+            QName => {}
         }
 
+        let (prefix_from_qname, local_name_from_qname) = get_attribute_parts(qualified_name);
+        match (ns.clone(), prefix_from_qname, local_name_from_qname.clone()) {
+            (namespace::Null, None, _) => {},
+            (namespace::Null, _, _) => {
+                debug!("Namespace can't be null with a non-null prefix");
+                return Err(NamespaceError);
+            },
+            (namespace::XML, Some(~"xml"), _) => {},
+            (namespace::XML, _, _) => {
+                debug!("Namespace must be the xml namespace if the prefix is 'xml'");
+                return Err(NamespaceError);
+            },
+            (namespace::XMLNS, Some(~"xmlns"), _) | (namespace::XMLNS, _, ~"xmlns") => {},
+            (_, Some(~"xmlns"), _) | (_, _, ~"xmlns") => {
+                debug!("Namespace must be the xmlns namespace if the prefix or the qualified name is 'xmlns'");
+                return Err(NamespaceError);
+            },
+            _ => {}
+        }
+        //local_name = local_name_from_qname;
+
         if ns == namespace::HTML {
-            Ok(build_element_from_tag(local_name, abstract_self))
+            Ok(build_element_from_tag(local_name_from_qname, abstract_self))
         } else {
-            Ok(Element::new(local_name, ns, abstract_self))
+            Ok(Element::new(local_name_from_qname, ns, abstract_self))
         }
     }
 
