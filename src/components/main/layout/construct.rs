@@ -644,7 +644,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             CommentNodeTypeId |
             DoctypeNodeTypeId |
             DocumentFragmentNodeTypeId |
-            DocumentNodeTypeId(_) |
+            DocumentNodeTypeId |
             ProcessingInstructionNodeTypeId => (display::none, float::none, position::static_),
         };
 
@@ -717,7 +717,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
             CommentNodeTypeId |
             DoctypeNodeTypeId |
             DocumentFragmentNodeTypeId |
-            DocumentNodeTypeId(_) |
+            DocumentNodeTypeId |
             ElementNodeTypeId(HTMLImageElementTypeId) => true,
             ElementNodeTypeId(HTMLObjectElementTypeId) => self.has_object_data(),
             ElementNodeTypeId(_) => false,

@@ -13,7 +13,7 @@ use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter
 use dom::bindings::utils::{xml_name_type, InvalidXMLName};
 use dom::comment::Comment;
 use dom::documentfragment::DocumentFragment;
-use dom::documenttype;
+use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
@@ -45,16 +45,9 @@ use std::hashmap::HashMap;
 use extra::serialize::{Encoder, Encodable};
 
 #[deriving(Eq,Encodable)]
-pub enum DocumentTypeId {
-    PlainDocumentTypeId,
-    HTMLDocumentTypeId
-}
-
-#[deriving(Eq,Encodable)]
-pub enum DocumentType {
-    HTML,
-    SVG,
-    XML
+pub enum IsHTMLDocument {
+    HTMLDocument,
+    NonHTMLDocument,
 }
 
 #[deriving(Encodable)]
@@ -62,11 +55,11 @@ pub struct Document {
     node: Node,
     reflector_: Reflector,
     window: JS<Window>,
-    doctype: DocumentType,
     idmap: HashMap<DOMString, JS<Element>>,
     implementation: Option<JS<DOMImplementation>>,
     content_type: DOMString,
     encoding_name: DOMString,
+    is_html_document: bool,
     extra: Untraceable,
 }
 
@@ -83,7 +76,7 @@ impl<S: Encoder> Encodable<S> for Untraceable {
 impl DocumentDerived for EventTarget {
     fn is_document(&self) -> bool {
         match self.type_id {
-            NodeTargetTypeId(DocumentNodeTypeId(_)) => true,
+            NodeTargetTypeId(DocumentNodeTypeId) => true,
             _ => false
         }
     }
@@ -105,25 +98,23 @@ impl Document {
         raw_doc
     }
 
-    pub fn new_inherited(window: JS<Window>, url: Option<Url>, doctype: DocumentType, content_type: Option<DOMString>) -> Document {
-        let node_type = match doctype {
-            HTML => HTMLDocumentTypeId,
-            SVG | XML => PlainDocumentTypeId
-        };
+    pub fn new_inherited(window: JS<Window>,
+                         url: Option<Url>,
+                         is_html_document: IsHTMLDocument,
+                         content_type: Option<DOMString>) -> Document {
         Document {
-            node: Node::new_without_doc(DocumentNodeTypeId(node_type)),
+            node: Node::new_without_doc(DocumentNodeTypeId),
             reflector_: Reflector::new(),
             window: window,
-            doctype: doctype,
             idmap: HashMap::new(),
             implementation: None,
             content_type: match content_type {
                 Some(string) => string.clone(),
-                None => match doctype {
+                None => match is_html_document {
                     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    HTML => ~"text/html",
+                    HTMLDocument => ~"text/html",
                     // http://dom.spec.whatwg.org/#concept-document-content-type
-                    SVG | XML => ~"application/xml"
+                    NonHTMLDocument => ~"application/xml"
                 }
             },
             extra: Untraceable {
@@ -136,10 +127,11 @@ impl Document {
             },
             // http://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: ~"utf-8",
+            is_html_document: is_html_document == HTMLDocument,
         }
     }
 
-    pub fn new(window: &JS<Window>, url: Option<Url>, doctype: DocumentType, content_type: Option<DOMString>) -> JS<Document> {
+    pub fn new(window: &JS<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> JS<Document> {
         let document = Document::new_inherited(window.clone(), url, doctype, content_type);
         Document::reflect_document(~document, window, DocumentBinding::Wrap)
     }
@@ -148,7 +140,7 @@ impl Document {
 impl Document {
     // http://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(owner: &JS<Window>) -> Fallible<JS<Document>> {
-        Ok(Document::new(owner, None, XML, None))
+        Ok(Document::new(owner, None, NonHTMLDocument, None))
     }
 }
 
@@ -208,7 +200,7 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-doctype
-    pub fn GetDoctype(&self) -> Option<JS<documenttype::DocumentType>> {
+    pub fn GetDoctype(&self) -> Option<JS<DocumentType>> {
         self.node.children().find(|child| child.is_doctype())
                             .map(|node| DocumentTypeCast::to(&node))
     }
@@ -221,16 +213,6 @@ impl Document {
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     pub fn GetElementsByTagName(&self, tag: DOMString) -> JS<HTMLCollection> {
         self.createHTMLCollection(|elem| elem.tag_name == tag)
-    }
-
-    // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
-    pub fn GetElementsByTagNameNS(&self, _ns: Option<DOMString>, _tag: DOMString) -> JS<HTMLCollection> {
-        HTMLCollection::new(&self.window, ~[])
-    }
-
-    // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
-    pub fn GetElementsByClassName(&self, _class: DOMString) -> JS<HTMLCollection> {
-        HTMLCollection::new(&self.window, ~[])
     }
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
@@ -300,24 +282,17 @@ impl Document {
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     pub fn Title(&self, _: &JS<Document>) -> DOMString {
         let mut title = ~"";
-        match self.doctype {
-            SVG => {
-                fail!("no SVG document yet")
-            },
-            _ => {
-                self.GetDocumentElement().map(|root| {
-                    let root: JS<Node> = NodeCast::from(&root);
-                    root.traverse_preorder()
-                        .find(|node| node.type_id() == ElementNodeTypeId(HTMLTitleElementTypeId))
-                        .map(|title_elem| {
-                            for child in title_elem.children() {
-                                let text: JS<Text> = TextCast::to(&child);
-                                title.push_str(text.get().characterdata.data.as_slice());
-                            }
-                        });
+        self.GetDocumentElement().map(|root| {
+            let root: JS<Node> = NodeCast::from(&root);
+            root.traverse_preorder()
+                .find(|node| node.type_id() == ElementNodeTypeId(HTMLTitleElementTypeId))
+                .map(|title_elem| {
+                    for child in title_elem.children() {
+                        let text: JS<Text> = TextCast::to(&child);
+                        title.push_str(text.get().characterdata.data.as_slice());
+                    }
                 });
-            }
-        }
+        });
         let v: ~[&str] = title.words().collect();
         title = v.connect(" ");
         title = title.trim().to_owned();
@@ -326,41 +301,34 @@ impl Document {
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     pub fn SetTitle(&self, abstract_self: &JS<Document>, title: DOMString) -> ErrorResult {
-        match self.doctype {
-            SVG => {
-                fail!("no SVG document yet")
-            },
-            _ => {
-                self.GetDocumentElement().map(|root| {
-                    let root: JS<Node> = NodeCast::from(&root);
-                    let mut head_node = root.traverse_preorder().find(|child| {
-                        child.get().type_id == ElementNodeTypeId(HTMLHeadElementTypeId)
-                    });
-                    head_node.as_mut().map(|head| {
+        self.GetDocumentElement().map(|root| {
+            let root: JS<Node> = NodeCast::from(&root);
+            let mut head_node = root.traverse_preorder().find(|child| {
+                child.get().type_id == ElementNodeTypeId(HTMLHeadElementTypeId)
+            });
+            head_node.as_mut().map(|head| {
 
-                        let mut title_node = head.children().find(|child| {
-                            child.get().type_id == ElementNodeTypeId(HTMLTitleElementTypeId)
-                        });
-
-                        title_node.as_mut().map(|title_node| {
-                            for mut title_child in title_node.children() {
-                                title_node.RemoveChild(&mut title_child);
-                            }
-                            let new_text = self.CreateTextNode(abstract_self, title.clone());
-                            title_node.AppendChild(&mut NodeCast::from(&new_text));
-                        });
-
-                        if title_node.is_none() {
-                            let mut new_title: JS<Node> =
-                                NodeCast::from(&HTMLTitleElement::new(~"title", abstract_self));
-                            let new_text = self.CreateTextNode(abstract_self, title.clone());
-                            new_title.AppendChild(&mut NodeCast::from(&new_text));
-                            head.AppendChild(&mut new_title);
-                        }
-                    });
+                let mut title_node = head.children().find(|child| {
+                    child.get().type_id == ElementNodeTypeId(HTMLTitleElementTypeId)
                 });
-            }
-        }
+
+                title_node.as_mut().map(|title_node| {
+                    for mut title_child in title_node.children() {
+                        title_node.RemoveChild(&mut title_child);
+                    }
+                    let new_text = self.CreateTextNode(abstract_self, title.clone());
+                    title_node.AppendChild(&mut NodeCast::from(&new_text));
+                });
+
+                if title_node.is_none() {
+                    let mut new_title: JS<Node> =
+                        NodeCast::from(&HTMLTitleElement::new(~"title", abstract_self));
+                    let new_text = self.CreateTextNode(abstract_self, title.clone());
+                    new_title.AppendChild(&mut NodeCast::from(&new_text));
+                    head.AppendChild(&mut new_title);
+                }
+            });
+        });
         Ok(())
     }
 
@@ -439,6 +407,44 @@ impl Document {
                 attr.get().value_ref() == name
             })
         })
+    }
+
+    pub fn Images(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| "img" == elem.tag_name)
+    }
+
+    pub fn Embeds(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| "embed" == elem.tag_name)
+    }
+
+    pub fn Plugins(&self) -> JS<HTMLCollection> {
+        self.Embeds()
+    }
+
+    pub fn Links(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| {
+            ("a" == elem.tag_name || "area" == elem.tag_name) &&
+            elem.get_attribute(Null, "href").is_some()
+        })
+    }
+
+    pub fn Forms(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| "form" == elem.tag_name)
+    }
+
+    pub fn Scripts(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| "script" == elem.tag_name)
+    }
+
+    pub fn Anchors(&self) -> JS<HTMLCollection> {
+        self.createHTMLCollection(|elem| {
+            "a" == elem.tag_name && elem.get_attribute(Null, "name").is_some()
+        })
+    }
+
+    pub fn Applets(&self) -> JS<HTMLCollection> {
+        // FIXME: This should be return OBJECT elements containing applets.
+        self.createHTMLCollection(|elem| "applet" == elem.tag_name)
     }
 
     pub fn createHTMLCollection(&self, callback: |elem: &Element| -> bool) -> JS<HTMLCollection> {
