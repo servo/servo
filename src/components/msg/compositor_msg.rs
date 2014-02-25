@@ -94,6 +94,7 @@ pub trait ScriptListener : Clone {
     fn invalidate_rect(&self, PipelineId, Rect<uint>);
     fn scroll_fragment_point(&self, PipelineId, Point2D<f32>);
     fn close(&self);
+    fn dup(&self) -> ~ScriptListener;
 }
 
 impl<S: Encoder> Encodable<S> for @ScriptListener {
