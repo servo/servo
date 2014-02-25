@@ -246,20 +246,6 @@ class Descriptor(DescriptorProvider):
                     iface.setUserData('hasProxyDescendant', True)
                     iface = iface.parent
 
-        if self.interface.isExternal() and 'prefable' in desc:
-            raise TypeError("%s is external but has a prefable setting" %
-                            self.interface.identifier.name)
-        self.prefable = desc.get('prefable', False)
-
-        self.nativeIsISupports = not self.workers
-        self.customTrace = desc.get('customTrace', self.workers) or 'trace'
-        self.customFinalize = desc.get('customFinalize', self.workers)
-        self.wrapperCache = self.workers or desc.get('wrapperCache', True)
-
-        if not self.wrapperCache and self.prefable:
-            raise TypeError("Descriptor for %s is prefable but not wrappercached" %
-                            self.interface.identifier.name)
-
         def make_name(name):
             return name + "_workers" if self.workers else name
         self.name = make_name(interface.identifier.name)

@@ -960,11 +960,6 @@ for (uint32_t i = 0; i < length; ++i) {
 
         templateBody = ""
         if descriptor.castable:
-            if descriptor.prefable:
-                raise TypeError("We don't support prefable castable object "
-                                "arguments (like %s), because we don't know "
-                                "how to handle them being preffed off" %
-                                descriptor.interface.identifier.name)
             if descriptor.interface.isConsequential():
                 raise TypeError("Consequential interface %s being used as an "
                                 "argument but flagged as castable" %
@@ -1574,21 +1569,11 @@ for (uint32_t i = 0; i < length; ++i) {
         if (not descriptor.interface.isExternal() and
             not descriptor.interface.isCallback()):
             wrap = "GetReflector(cx, (%s).reflector(), ${jsvalPtr} as *mut JSVal)" % result
-            # We don't support prefable stuff in workers.
-            assert(not descriptor.prefable or not descriptor.workers)
-            if not descriptor.prefable:
-                # Non-prefable bindings can only fail to wrap as a new-binding object
-                # if they already threw an exception.  Same thing for
-                # non-prefable bindings.
-                failed = ("assert!(unsafe { JS_IsExceptionPending(cx) != 0 });\n" +
-                          "%s" % exceptionCode)
-            else:
-                if descriptor.notflattened:
-                    raise TypeError("%s is prefable but not flattened; "
-                                    "fallback won't work correctly" %
-                                    descriptor.interface.identifier.name)
-                # Try old-style wrapping for bindings which might be preffed off.
-                failed = wrapAndSetPtr("HandleNewBindingWrappingFailure(cx, ${obj}, %s, ${jsvalPtr})" % result)
+            # Non-prefable bindings can only fail to wrap as a new-binding object
+            # if they already threw an exception.  Same thing for
+            # non-prefable bindings.
+            failed = ("assert!(unsafe { JS_IsExceptionPending(cx) != 0 });\n" +
+                      "%s" % exceptionCode)
             wrappingCode += wrapAndSetPtr(wrap, failed)
         else:
             wrap = "GetReflector(cx, (%s).reflector(), ${jsvalPtr} as *mut JSVal)" % result
@@ -2238,8 +2223,7 @@ def DOMClass(descriptor):
         return """DOMClass {
   interface_chain: [ %s ] ,
   unused: %s, native_hooks: %s
-}""" % (prototypeChainString, "false", #toStringBool(descriptor.nativeIsISupports),
-          nativeHooks)
+}""" % (prototypeChainString, "false", nativeHooks)
 
 class CGDOMJSClass(CGThing):
     """
@@ -2252,7 +2236,7 @@ class CGDOMJSClass(CGThing):
         #return "extern DOMJSClass Class;\n"
         return ""
     def define(self):
-        traceHook = "Some(%s)" % TRACE_HOOK_NAME if self.descriptor.customTrace else 'None'
+        traceHook = "Some(%s)" % TRACE_HOOK_NAME
         if self.descriptor.createGlobal:
             flags = "JSCLASS_IS_GLOBAL"
             slots = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
@@ -2291,7 +2275,6 @@ static Class: DOMJSClass = DOMJSClass {
 """ % (len(self.descriptor.interface.identifier.name) + 1,
        str_to_const_array(self.descriptor.interface.identifier.name),
        flags, slots, slots,
-       #ADDPROPERTY_HOOK_NAME if self.descriptor.concrete and not self.descriptor.workers and self.descriptor.wrapperCache else 'crust::JS_PropertyStub',
        'crust::JS_PropertyStub',
        FINALIZE_HOOK_NAME, traceHook,
        CGIndenter(CGGeneric(DOMClass(self.descriptor))).define())
@@ -2702,27 +2685,6 @@ class CGWrapMethod(CGAbstractMethod):
     def definition_body(self):
         return "return Wrap_(aCx, aScope, aObject);"
 
-class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
-    def __init__(self, descriptor):
-        # XXX can we wrap if we don't have an interface prototype object?
-        assert descriptor.interface.hasInterfacePrototypeObject()
-        args = [Argument('JSContext*', 'aCx'), Argument('JSObject*', 'aScope'),
-                Argument('@' + descriptor.nativeType, 'aObject')]
-        CGAbstractMethod.__init__(self, descriptor, 'Wrap', 'JSObject*', args)
-
-    def definition_body(self):
-        return """
-  JSObject* global = JS_GetGlobalForObject(aCx, aScope);
-  JSObject* proto = GetProtoObject(aCx, global, global);
-  if (!proto) {
-    return NULL;
-  }
-
-%s
-  NS_ADDREF(aObject);
-
-  return obj;""" % CreateBindingJSObject(self.descriptor, "global")
-
 class CGAbstractExternMethod(CGAbstractMethod):
     """
     Abstract base class for codegen of implementation-only (no
@@ -3030,7 +2992,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
                                               CreateProxyHandler(ptr::to_unsafe_ptr(&traps), ptr::to_unsafe_ptr(&Class) as *libc::c_void));
 
 """ % (FINALIZE_HOOK_NAME,
-       ('Some(%s)' % TRACE_HOOK_NAME) if self.descriptor.customTrace else 'None',
+       ('Some(%s)' % TRACE_HOOK_NAME),
        self.descriptor.name)
         else:
             body += """  (*page).js_info.get_ref().dom_static.attribute_ids.insert(PrototypeList::id::%s as uint,
@@ -4883,16 +4845,10 @@ class CGAbstractClassHook(CGAbstractExternMethod):
         assert(False)
 
 def finalizeHook(descriptor, hookName, context):
-    if descriptor.customFinalize:
-        return """if (this) {
-  this->%s(%s);
-}""" % (hookName, context)
-    #clearWrapper = "ClearWrapper(self, self);\n" if descriptor.wrapperCache else ""
     if descriptor.workers:
         #release = "self->Release();"
         pass
     else:
-        assert descriptor.nativeIsISupports
         release = """let val = JS_GetReservedSlot(obj, dom_object_slot(obj));
 let _: %s %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
 debug!("%s finalize: {:p}", this);
@@ -5066,17 +5022,8 @@ class CGDescriptor(CGThing):
             #                                                     lenientThis=True))
 
         if descriptor.concrete:
-            if not descriptor.workers and descriptor.wrapperCache:
-                #cgThings.append(CGAddPropertyHook(descriptor))
-                pass
-
-            # Always have a finalize hook, regardless of whether the class wants a
-            # custom hook.
             cgThings.append(CGClassFinalizeHook(descriptor))
-
-            # Only generate a trace hook if the class wants a custom hook.
-            if (descriptor.customTrace):
-                cgThings.append(CGClassTraceHook(descriptor))
+            cgThings.append(CGClassTraceHook(descriptor))
 
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGClassConstructHook(descriptor))
@@ -5141,13 +5088,8 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGDOMJSClass(descriptor))
                 pass
 
-            if descriptor.wrapperCache:
-                cgThings.append(CGWrapWithCacheMethod(descriptor))
-                cgThings.append(CGWrapMethod(descriptor))
-                pass
-            else:
-                cgThings.append(CGWrapNonWrapperCacheMethod(descriptor))
-                pass
+            cgThings.append(CGWrapWithCacheMethod(descriptor))
+            cgThings.append(CGWrapMethod(descriptor))
 
         cgThings = CGList((CGIndenter(t, declareOnly=True) for t in cgThings), "\n")
         cgThings = CGWrapper(cgThings, pre='\n', post='\n')
