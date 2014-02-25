@@ -78,46 +78,31 @@ class Configuration:
         return filter(lambda e: e.filename() == webIDLFile, self.enums)
 
     @staticmethod
-    def _filterForFileAndWorkers(items, filters):
+    def _filterForFile(items, webIDLFile=""):
         """Gets the items that match the given filters."""
-        for key, val in filters.iteritems():
-            if key == 'webIDLFile':
-                items = filter(lambda x: x.filename() == val, items)
-            elif key == 'workers':
-                if val:
-                    items = filter(lambda x: x.getUserData("workers", False), items)
-                else:
-                    items = filter(lambda x: x.getUserData("mainThread", False), items)
-            else:
-                assert(0) # Unknown key
-        return items
-    def getDictionaries(self, **filters):
-        return self._filterForFileAndWorkers(self.dictionaries, filters)
-    def getCallbacks(self, **filters):
-        return self._filterForFileAndWorkers(self.callbacks, filters)
+        return filter(lambda x: x.filename() == webIDLFile, items)
+    def getDictionaries(self, webIDLFile=""):
+        return self._filterForFile(self.dictionaries, webIDLFile=webIDLFile)
+    def getCallbacks(self, webIDLFile=""):
+        return self._filterForFile(self.callbacks, webIDLFile=webIDLFile)
 
-    def getDescriptor(self, interfaceName, workers):
+    def getDescriptor(self, interfaceName):
         """
-        Gets the appropriate descriptor for the given interface name
-        and the given workers boolean.
+        Gets the appropriate descriptor for the given interface name.
         """
         iface = self.getInterface(interfaceName)
         descriptors = self.getDescriptors(interface=iface)
 
-        # The only filter we currently have is workers vs non-workers.
-        matches = filter(lambda x: x.workers is workers, descriptors)
-
-        # After filtering, we should have exactly one result.
-        if len(matches) is not 1:
+        # We should have exactly one result.
+        if len(descriptors) is not 1:
             raise NoSuchDescriptorError("For " + interfaceName + " found " +
                                         str(len(matches)) + " matches");
-        return matches[0]
-    def getDescriptorProvider(self, workers):
+        return descriptors[0]
+    def getDescriptorProvider(self):
         """
-        Gets a descriptor provider that can provide descriptors as needed,
-        for the given workers boolean
+        Gets a descriptor provider that can provide descriptors as needed.
         """
-        return DescriptorProvider(self, workers)
+        return DescriptorProvider(self)
 
 class NoSuchDescriptorError(TypeError):
     def __init__(self, str):
@@ -127,52 +112,35 @@ class DescriptorProvider:
     """
     A way of getting descriptors for interface names
     """
-    def __init__(self, config, workers):
+    def __init__(self, config):
         self.config = config
-        self.workers = workers
 
     def getDescriptor(self, interfaceName):
         """
         Gets the appropriate descriptor for the given interface name given the
-        context of the current descriptor. This selects the appropriate
-        implementation for cases like workers.
+        context of the current descriptor.
         """
-        return self.config.getDescriptor(interfaceName, self.workers)
+        return self.config.getDescriptor(interfaceName)
 
 class Descriptor(DescriptorProvider):
     """
     Represents a single descriptor for an interface. See Bindings.conf.
     """
     def __init__(self, config, interface, desc):
-        DescriptorProvider.__init__(self, config, desc.get('workers', False))
+        DescriptorProvider.__init__(self, config)
         self.interface = interface
 
         # Read the desc, and fill in the relevant defaults.
         ifaceName = self.interface.identifier.name
         if self.interface.isExternal() or self.interface.isCallback():
-            if self.workers:
-                nativeTypeDefault = "JSObject"
-            else:
-                nativeTypeDefault = "nsIDOM" + ifaceName
+            nativeTypeDefault = "nsIDOM" + ifaceName
         else:
-            if self.workers:
-                nativeTypeDefault = "workers::" + ifaceName
-            else:
-                nativeTypeDefault = 'JS<%s>' % ifaceName
+            nativeTypeDefault = 'JS<%s>' % ifaceName
 
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
         self.concreteType = desc.get('concreteType', ifaceName)
         self.needsAbstract = desc.get('needsAbstract', [])
-        self.hasInstanceInterface = desc.get('hasInstanceInterface', None)
         self.createGlobal = desc.get('createGlobal', False)
-
-        # Do something sane for JSObject
-        if self.nativeType == "JSObject":
-            headerDefault = "jsapi.h"
-        else:
-            headerDefault = self.nativeType
-            headerDefault = headerDefault.replace("::", "/") + ".h"
-        self.headerFile = desc.get('headerFile', headerDefault)
 
         if self.interface.isCallback() or self.interface.isExternal():
             if 'castable' in desc:
@@ -182,10 +150,7 @@ class Descriptor(DescriptorProvider):
         else:
             self.castable = desc.get('castable', True)
 
-        self.notflattened = desc.get('notflattened', False)
         self.register = desc.get('register', True)
-
-        self.hasXPConnectImpls = desc.get('hasXPConnectImpls', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
@@ -246,23 +211,7 @@ class Descriptor(DescriptorProvider):
                     iface.setUserData('hasProxyDescendant', True)
                     iface = iface.parent
 
-        if self.interface.isExternal() and 'prefable' in desc:
-            raise TypeError("%s is external but has a prefable setting" %
-                            self.interface.identifier.name)
-        self.prefable = desc.get('prefable', False)
-
-        self.nativeIsISupports = not self.workers
-        self.customTrace = desc.get('customTrace', self.workers) or 'trace'
-        self.customFinalize = desc.get('customFinalize', self.workers)
-        self.wrapperCache = self.workers or desc.get('wrapperCache', True)
-
-        if not self.wrapperCache and self.prefable:
-            raise TypeError("Descriptor for %s is prefable but not wrappercached" %
-                            self.interface.identifier.name)
-
-        def make_name(name):
-            return name + "_workers" if self.workers else name
-        self.name = make_name(interface.identifier.name)
+        self.name = interface.identifier.name
 
         # self.extendedAttributes is a dict of dicts, keyed on
         # all/getterOnly/setterOnly and then on member name. Values are an
@@ -289,16 +238,11 @@ class Descriptor(DescriptorProvider):
                 else:
                     add('all', [config], attribute)
 
-        for attribute in ['implicitJSContext', 'resultNotAddRefed']:
-            addExtendedAttribute(attribute, desc.get(attribute, {}))
-
-        self.binaryNames = desc.get('binaryNames', {})
-
         # Build the prototype chain.
         self.prototypeChain = []
         parent = interface
         while parent:
-            self.prototypeChain.insert(0, make_name(parent.identifier.name))
+            self.prototypeChain.insert(0, parent.identifier.name)
             parent = parent.parent
         config.maxProtoChainLength = max(config.maxProtoChainLength,
                                          len(self.prototypeChain))
@@ -314,19 +258,13 @@ class Descriptor(DescriptorProvider):
         return self.interface.hasInterfaceObject() or self.interface.hasInterfacePrototypeObject()
 
     def getExtendedAttributes(self, member, getter=False, setter=False):
-        def ensureValidThrowsExtendedAttribute(attr):
-            assert(attr is None or attr is True or len(attr) == 1)
-            if (attr is not None and attr is not True and
-                'Workers' not in attr and 'MainThread' not in attr):
-                raise TypeError("Unknown value for 'Throws': " + attr[0])
-
         def maybeAppendInfallibleToAttrs(attrs, throws):
-            ensureValidThrowsExtendedAttribute(throws)
-            if (throws is None or
-                (throws is not True and
-                 ('Workers' not in throws or not self.workers) and
-                 ('MainThread' not in throws or self.workers))):
+            if throws is None:
                 attrs.append("infallible")
+            elif throws is True:
+                pass
+            else:
+                raise TypeError("Unknown value for 'Throws'")
 
         name = member.identifier.name
         if member.isMethod():
