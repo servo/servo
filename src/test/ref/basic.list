@@ -23,6 +23,7 @@
 == font_size_percentage.html font_size_em_ref.html
 == position_fixed_a.html position_fixed_b.html
 == img_size_a.html img_size_b.html
+== img_dynamic_remove.html img_dynamic_remove_ref.html
 == upper_id_attr.html upper_id_attr_ref.html
 # inline_border_a.html inline_border_b.html
 == anon_block_inherit_a.html anon_block_inherit_b.html

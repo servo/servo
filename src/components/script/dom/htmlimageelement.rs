@@ -70,7 +70,9 @@ impl HTMLImageElement {
         let window = document.get().window.get();
         let image_cache = &window.image_cache_task;
         match value {
-            None => {}
+            None => {
+                self.extra.image = None;
+            }
             Some(src) => {
                 let img_url = parse_url(src, url);
                 self.extra.image = Some(img_url.clone());
@@ -95,9 +97,6 @@ impl HTMLImageElement {
     }
 
     pub fn AfterRemoveAttr(&mut self, name: DOMString) {
-        // FIXME (#1469):
-        // This might not handle remove src attribute actually since
-        // `self.update_image()` will see the missing src attribute and return early.
         if "src" == name {
             self.update_image(None, None);
         }
