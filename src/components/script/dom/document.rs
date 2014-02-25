@@ -478,20 +478,31 @@ impl Document {
         self.window.get().wait_until_safe_to_modify_dom();
     }
 
-    pub fn register_nodes_with_id(&mut self, root: &JS<Element>) {
-        foreach_ided_elements(root, |id: &DOMString, abstract_node: &JS<Element>| {
-            // TODO: "in tree order, within the context object's tree"
-            // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
-            self.idmap.find_or_insert(id.clone(), abstract_node.clone());
-        });
+
+    /// Remove any existing association between the provided id and any elements in this document.
+    pub fn unregister_named_element(&mut self,
+                                    id: DOMString) {
+        self.idmap.remove(&id);
     }
 
-    pub fn unregister_nodes_with_id(&mut self, root: &JS<Element>) {
-        foreach_ided_elements(root, |id: &DOMString, _| {
-            // TODO: "in tree order, within the context object's tree"
-            // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
-            self.idmap.pop(id);
+    /// Associate an element present in this document with the provided id.
+    pub fn register_named_element(&mut self,
+                                  element: &JS<Element>,
+                                  id: DOMString) {
+        assert!({
+            let node: JS<Node> = NodeCast::from(element);
+            node.is_in_doc()
         });
+
+        // TODO: support the case if multiple elements
+        // which haves same id are in the same document.
+        self.idmap.mangle(id, element,
+                          |_, new_element: &JS<Element>| -> JS<Element> {
+                              new_element.clone()
+                          },
+                          |_, old_element: &mut JS<Element>, new_element: &JS<Element>| {
+                              *old_element = new_element.clone();
+                          });
     }
 
     pub fn update_idmap(&mut self,
@@ -520,24 +531,6 @@ impl Document {
                                   |_, old_node: &mut JS<Element>, new_node: JS<Element>| {
                                       *old_node = new_node;
                                   });
-            }
-            None => ()
-        }
-    }
-}
-
-#[inline(always)]
-fn foreach_ided_elements(root: &JS<Element>, callback: |&DOMString, &JS<Element>|) {
-    let root: JS<Node> = NodeCast::from(root);
-    for node in root.traverse_preorder() {
-        if !node.is_element() {
-            continue;
-        }
-
-        let element: JS<Element> = ElementCast::to(&node);
-        match element.get().get_attribute(Null, "id") {
-            Some(id) => {
-                callback(&id.get().Value(), &element);
             }
             None => ()
         }

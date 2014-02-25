@@ -14,7 +14,7 @@ use dom::bindings::utils;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementTypeId, HTMLAnchorElementTypeId};
+use dom::element::{Element, ElementTypeId, HTMLAnchorElementTypeId, IElement};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
 use dom::text::Text;
@@ -396,11 +396,13 @@ impl NodeHelpers for JS<Node> {
     // http://dom.spec.whatwg.org/#node-is-inserted
     fn node_inserted(&self) {
         assert!(self.parent_node().is_some());
-        let mut document = self.get().owner_doc();
+        let document = self.get().owner_doc();
 
-        // Register elements having "id" attribute to the owner doc.
-        if self.is_element() {
-            document.get_mut().register_nodes_with_id(&ElementCast::to(self));
+        for node in self.traverse_preorder() {
+            if node.is_element() {
+                let element: JS<Element> = ElementCast::to(&node);
+                element.bind_to_tree_impl();
+            }
         }
 
         document.get().content_changed();
@@ -409,11 +411,13 @@ impl NodeHelpers for JS<Node> {
     // http://dom.spec.whatwg.org/#node-is-removed
     fn node_removed(&self) {
         assert!(self.parent_node().is_none());
-        let mut document = self.get().owner_doc();
+        let document = self.get().owner_doc();
 
-        // Unregister elements having "id".
-        if self.is_element() {
-            document.get_mut().unregister_nodes_with_id(&ElementCast::to(self));
+        for node in self.traverse_preorder() {
+            if node.is_element() {
+                let element: JS<Element> = ElementCast::to(&node);
+                element.unbind_from_tree_impl();
+            }
         }
 
         document.get().content_changed();

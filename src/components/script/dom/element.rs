@@ -646,6 +646,33 @@ impl Element {
     }
 }
 
+pub trait IElement {
+    fn bind_to_tree_impl(&self);
+    fn unbind_from_tree_impl(&self);
+}
+
+impl IElement for JS<Element> {
+    fn bind_to_tree_impl(&self) {
+        match self.get().get_attribute(Null, "id") {
+            Some(attr) => {
+                let mut doc = self.get().node.owner_doc();
+                doc.get_mut().register_named_element(self, attr.get().Value());
+            }
+            _ => ()
+        }
+    }
+
+    fn unbind_from_tree_impl(&self) {
+        match self.get().get_attribute(Null, "id") {
+            Some(attr) => {
+                let mut doc = self.get().node.owner_doc();
+                doc.get_mut().unregister_named_element(attr.get().Value());
+            }
+            _ => ()
+        }
+    }
+}
+
 fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
