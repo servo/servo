@@ -307,25 +307,25 @@ impl Document {
                 child.get().type_id == ElementNodeTypeId(HTMLHeadElementTypeId)
             });
             head_node.as_mut().map(|head| {
-
                 let mut title_node = head.children().find(|child| {
                     child.get().type_id == ElementNodeTypeId(HTMLTitleElementTypeId)
                 });
 
-                title_node.as_mut().map(|title_node| {
-                    for mut title_child in title_node.children() {
-                        title_node.RemoveChild(&mut title_child);
-                    }
-                    let new_text = self.CreateTextNode(abstract_self, title.clone());
-                    title_node.AppendChild(&mut NodeCast::from(&new_text));
-                });
-
-                if title_node.is_none() {
-                    let mut new_title: JS<Node> =
-                        NodeCast::from(&HTMLTitleElement::new(~"title", abstract_self));
-                    let new_text = self.CreateTextNode(abstract_self, title.clone());
-                    new_title.AppendChild(&mut NodeCast::from(&new_text));
-                    head.AppendChild(&mut new_title);
+                match title_node {
+                    Some(ref mut title_node) => {
+                        for mut title_child in title_node.children() {
+                            title_node.RemoveChild(&mut title_child);
+                        }
+                        let new_text = self.CreateTextNode(abstract_self, title.clone());
+                        title_node.AppendChild(&mut NodeCast::from(&new_text));
+                    },
+                    None => {
+                        let mut new_title: JS<Node> =
+                            NodeCast::from(&HTMLTitleElement::new(~"title", abstract_self));
+                        let new_text = self.CreateTextNode(abstract_self, title.clone());
+                        new_title.AppendChild(&mut NodeCast::from(&new_text));
+                        head.AppendChild(&mut new_title);
+                    },
                 }
             });
         });
