@@ -108,23 +108,6 @@ class CastableObjectUnwrapper():
                               "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define(),
                               "unwrapped_val" : ("Some(%s)" % unwrappedVal) if isOptional else unwrappedVal,
                               "unwrapFn": "unwrap_jsmanaged" if 'JS' in descriptor.nativeType else "unwrap_object"}
-        if descriptor.hasXPConnectImpls:
-            # We don't use xpc_qsUnwrapThis because it will always throw on
-            # unwrap failure, whereas we want to control whether we throw or
-            # not.
-            self.substitution["codeOnFailure"] = CGIndenter(CGGeneric(string.Template(
-                "${type} *objPtr;\n"
-                "xpc_qsSelfRef objRef;\n"
-                "JS::Value val = JS::ObjectValue(*${source});\n"
-                "nsresult rv = xpc_qsUnwrapArg<${type}>(cx, val, &objPtr, &objRef.ptr, &val);\n"
-                "if (NS_FAILED(rv)) {\n"
-                "${codeOnFailure}\n"
-                "}\n"
-                "// We should be castable!\n"
-                "MOZ_ASSERT(!objRef.ptr);\n"
-                "// We should have an object, too!\n"
-                "MOZ_ASSERT(objPtr);\n"
-                "${target} = objPtr;").substitute(self.substitution)), 4).define()
 
     def __str__(self):
         return string.Template(
@@ -413,7 +396,6 @@ class FakeCastableDescriptor():
         self.workers = descriptor.workers
         self.nativeType = "*Box<%s>" % descriptor.concreteType
         self.name = descriptor.name
-        self.hasXPConnectImpls = descriptor.hasXPConnectImpls
         class FakeInterface:
             def inheritanceDepth(self):
                 return descriptor.interface.inheritanceDepth()
@@ -2328,7 +2310,7 @@ class CGInterfaceObjectJSClass(CGThing):
         # We're purely for internal consumption
         return ""
     def define(self):
-        if not self.descriptor.hasInstanceInterface:
+        if True:
             return ""
         ctorname = "0 as *u8" if not self.descriptor.interface.ctor() else CONSTRUCT_HOOK_NAME
         hasinstance = HASINSTANCE_HOOK_NAME
@@ -2807,10 +2789,6 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                           "  return ptr::null();\n" +
                           "}\n") % getParentProto
 
-        needInterfaceObjectClass = (needInterfaceObject and
-                                    self.descriptor.hasInstanceInterface)
-        needConstructor = (needInterfaceObject and
-                           not self.descriptor.hasInstanceInterface)
         if self.descriptor.interface.ctor():
             constructHook = CONSTRUCT_HOOK_NAME
             constructArgs = methodLength(self.descriptor.interface.ctor())
@@ -2833,7 +2811,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             return "ptr::to_unsafe_ptr(&%s[0])" % val
 
         call = """return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
-                               %s, %s, %s, %d,
+                               %s, ptr::null(), %s, %d,
                                %s,
                                %s,
                                %s,
@@ -2841,8 +2819,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                                %s,
                                %s);""" % (
             "&PrototypeClass" if needInterfacePrototypeObject else "ptr::null()",
-            "&InterfaceObjectClass" if needInterfaceObjectClass else "ptr::null()",
-            "Some(%s)" % constructHook if needConstructor else "None",
+            "Some(%s)" % constructHook if needInterfaceObject else "None",
             constructArgs,
             domClass,
             arrayPtr("methods"), arrayPtr("attrs"),
@@ -4909,57 +4886,6 @@ class CGClassConstructHook(CGAbstractExternMethod):
                                      self.descriptor, self._ctor)
         return preamble + callGenerator.define();
 
-class CGClassHasInstanceHook(CGAbstractStaticMethod):
-    def __init__(self, descriptor):
-        args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', 'obj'),
-                Argument('JSMutableHandleValue', 'vp'), Argument('*JSBool', 'bp')]
-        CGAbstractStaticMethod.__init__(self, descriptor, HASINSTANCE_HOOK_NAME,
-                                        'JSBool', args)
-
-    def define(self):
-        if not self.descriptor.hasInstanceInterface:
-            return ""
-        return CGAbstractStaticMethod.define(self)
-
-    def definition_body(self):
-        return self.generate_code()
-
-    def generate_code(self):
-        return """  if (!vp.isObject()) {
-    *bp = 0;
-    return 1;
-  }
-
-  jsval protov;
-  if (!JS_GetProperty(cx, obj, "prototype", &protov))
-    return false;
-  if (!protov.isObject()) {
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_PROTOTYPE,
-                         "%s");
-    return false;
-  }
-  JSObject *objProto = &protov.toObject();
-
-  JSObject* instance = &vp.toObject();
-  JSObject* proto;
-  if (!JS_GetPrototype(cx, instance, &proto))
-    return false;
-  while (proto) {
-    if (proto == objProto) {
-      *bp = true;
-      return true;
-    }
-    if (!JS_GetPrototype(cx, proto, &proto))
-      return false;
-  }
-
-  nsISupports* native =
-    nsContentUtils::XPConnect()->GetNativeOfWrapper(cx, instance);
-  nsCOMPtr<%s> qiResult = do_QueryInterface(native);
-  *bp = !!qiResult;
-  return true;
-""" % (self.descriptor.name, self.descriptor.hasInstanceInterface)
-
 class CGClassFinalizeHook(CGAbstractClassHook):
     """
     A hook for finalize, used to release our native object.
@@ -5027,23 +4953,18 @@ class CGDescriptor(CGThing):
 
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGClassConstructHook(descriptor))
-            cgThings.append(CGClassHasInstanceHook(descriptor))
             cgThings.append(CGInterfaceObjectJSClass(descriptor))
-            pass
 
         if descriptor.interface.hasInterfacePrototypeObject():
             cgThings.append(CGPrototypeJSClass(descriptor))
-            pass
 
         properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(define=str(properties)))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
         if descriptor.interface.hasInterfacePrototypeObject():
             cgThings.append(CGGetProtoObjectMethod(descriptor))
-            pass
         else:
             cgThings.append(CGGetConstructorObjectMethod(descriptor))
-            pass
 
         # Set up our Xray callbacks as needed.  Note that we don't need to do
         # it in workers.

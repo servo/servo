@@ -163,16 +163,7 @@ class Descriptor(DescriptorProvider):
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
         self.concreteType = desc.get('concreteType', ifaceName)
         self.needsAbstract = desc.get('needsAbstract', [])
-        self.hasInstanceInterface = desc.get('hasInstanceInterface', None)
         self.createGlobal = desc.get('createGlobal', False)
-
-        # Do something sane for JSObject
-        if self.nativeType == "JSObject":
-            headerDefault = "jsapi.h"
-        else:
-            headerDefault = self.nativeType
-            headerDefault = headerDefault.replace("::", "/") + ".h"
-        self.headerFile = desc.get('headerFile', headerDefault)
 
         if self.interface.isCallback() or self.interface.isExternal():
             if 'castable' in desc:
@@ -182,10 +173,7 @@ class Descriptor(DescriptorProvider):
         else:
             self.castable = desc.get('castable', True)
 
-        self.notflattened = desc.get('notflattened', False)
         self.register = desc.get('register', True)
-
-        self.hasXPConnectImpls = desc.get('hasXPConnectImpls', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
