@@ -9,18 +9,17 @@ use css::matching::{ApplicableDeclarations, ApplicableDeclarationsCache, MatchMe
 use css::matching::{StyleSharingCandidateCache};
 use css::select::new_stylist;
 use css::node_style::StyledNode;
-use layout::construct::{FlowConstructionResult, FlowConstructor, NoConstructionResult};
+use layout::construct::{FlowConstructionResult, NoConstructionResult};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
-use layout::flow::{Flow, FlowLeafSet, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
+use layout::flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::RestyleDamage;
-use layout::parallel::{AssignHeightsAndStoreOverflowTraversalKind, BubbleWidthsTraversalKind};
-use layout::parallel::{PaddedUnsafeFlow};
+use layout::parallel::PaddedUnsafeFlow;
 use layout::parallel;
 use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
-use layout::wrapper::{DomLeafSet, LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
+use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use extra::url::Url;
 use extra::arc::{Arc, MutexArc};
@@ -28,7 +27,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator};
 use gfx::display_list::{DisplayList, DisplayListCollection};
-use gfx::font_context::FontContextInfo;
+use gfx::font_context::{FontContext, FontContextInfo};
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use script::dom::bindings::js::JS;
@@ -39,7 +38,7 @@ use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitNowMsg, LayoutQuery};
 use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse, MouseOverQuery, MouseOverResponse};
 use script::layout_interface::{ContentChangedDocumentDamage, LayoutChan, Msg, PrepareToExitMsg};
-use script::layout_interface::{QueryMsg, ReapLayoutDataMsg, Reflow, ReflowDocumentDamage, UntrustedNodeAddress};
+use script::layout_interface::{QueryMsg, ReapLayoutDataMsg, Reflow, UntrustedNodeAddress};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
 use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
@@ -86,12 +85,6 @@ pub struct LayoutTask {
 
     /// The local image cache.
     local_image_cache: MutexArc<LocalImageCache>,
-
-    /// The set of leaves in the DOM tree.
-    dom_leaf_set: Arc<DomLeafSet>,
-
-    /// The set of leaves in the flow tree.
-    flow_leaf_set: Arc<FlowLeafSet>,
 
     /// The size of the viewport.
     screen_size: Size2D<Au>,
@@ -195,12 +188,14 @@ impl<'a> PostorderFlowTraversal for BubbleWidthsTraversal<'a> {
 }
 
 /// The assign-widths traversal. In Gecko this corresponds to `Reflow`.
-struct AssignWidthsTraversal<'a>(&'a mut LayoutContext);
+pub struct AssignWidthsTraversal<'a> {
+    layout_context: &'a mut LayoutContext,
+}
 
 impl<'a> PreorderFlowTraversal for AssignWidthsTraversal<'a> {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
-        flow.assign_widths(**self);
+        flow.assign_widths(self.layout_context);
         true
     }
 }
@@ -304,8 +299,6 @@ impl LayoutTask {
             image_cache_task: image_cache_task.clone(),
             local_image_cache: local_image_cache,
             screen_size: screen_size,
-            dom_leaf_set: Arc::new(DomLeafSet::new()),
-            flow_leaf_set: Arc::new(FlowLeafSet::new()),
 
             display_list_collection: None,
             stylist: ~new_stylist(),
@@ -324,7 +317,7 @@ impl LayoutTask {
     }
 
     // Create a layout context for use in building display lists, hit testing, &c.
-    fn build_layout_context(&self, reflow_root: &LayoutNode) -> LayoutContext {
+    fn build_layout_context(&self, reflow_root: &LayoutNode, url: &Url) -> LayoutContext {
         let font_context_info = FontContextInfo {
             backend: self.opts.render_backend,
             needs_font_list: true,
@@ -335,13 +328,13 @@ impl LayoutTask {
             image_cache: self.local_image_cache.clone(),
             screen_size: self.screen_size.clone(),
             constellation_chan: self.constellation_chan.clone(),
-            dom_leaf_set: self.dom_leaf_set.clone(),
-            flow_leaf_set: self.flow_leaf_set.clone(),
             layout_chan: self.chan.clone(),
             font_context_info: font_context_info,
             stylist: &*self.stylist,
             initial_css_values: self.initial_css_values.clone(),
+            url: (*url).clone(),
             reflow_root: OpaqueNode::from_layout_node(reflow_root),
+            opts: self.opts.clone(),
         }
     }
 
@@ -423,17 +416,8 @@ impl LayoutTask {
         self.stylist.add_stylesheet(sheet, AuthorOrigin)
     }
 
-    /// Builds the flow tree.
-    ///
-    /// This corresponds to the various `nsCSSFrameConstructor` methods in Gecko or
-    /// `createRendererIfNeeded` in WebKit. Note, however that in WebKit `createRendererIfNeeded`
-    /// is intertwined with selector matching, making it difficult to compare directly. It is
-    /// marked `#[inline(never)]` to aid benchmarking in sampling profilers.
-    #[inline(never)]
-    fn construct_flow_tree(&self, layout_context: &mut LayoutContext, node: &mut LayoutNode, url: &Url) -> ~Flow {
-        let mut node = ThreadSafeLayoutNode::new(node);
-        node.traverse_postorder_mut(&mut FlowConstructor::init(layout_context, url));
-
+    /// Retrieves the flow tree root from the root node.
+    fn get_layout_root(&self, node: LayoutNode) -> ~Flow {
         let mut layout_data_ref = node.mutate_layout_data();
         let result = match *layout_data_ref.get() {
             Some(ref mut layout_data) => {
@@ -457,7 +441,7 @@ impl LayoutTask {
     fn solve_constraints(&mut self,
                          layout_root: &mut Flow,
                          layout_context: &mut LayoutContext) {
-        {
+        if layout_context.opts.bubble_widths_separately {
             let mut traversal = BubbleWidthsTraversal {
                 layout_context: layout_context,
             };
@@ -469,7 +453,12 @@ impl LayoutTask {
         // recompute them every time.
         // NOTE: this currently computes borders, so any pruning should separate that operation
         // out.
-        layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
+        {
+            let mut traversal = AssignWidthsTraversal {
+                layout_context: layout_context,
+            };
+            layout_root.traverse_preorder(&mut traversal);
+        }
 
         // FIXME(pcwalton): Prune this pass as well.
         {
@@ -486,28 +475,24 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints_parallel(&mut self,
-                                  layout_root: &mut Flow,
+                                  layout_root: &mut ~Flow,
                                   layout_context: &mut LayoutContext) {
+        if layout_context.opts.bubble_widths_separately {
+            let mut traversal = BubbleWidthsTraversal {
+                layout_context: layout_context,
+            };
+            layout_root.traverse_postorder(&mut traversal);
+        }
+
         match self.parallel_traversal {
             None => fail!("solve_contraints_parallel() called with no parallel traversal ready"),
             Some(ref mut traversal) => {
-                parallel::traverse_flow_tree(BubbleWidthsTraversalKind,
-                                             &self.flow_leaf_set,
-                                             self.profiler_chan.clone(),
-                                             layout_context,
-                                             traversal);
-
                 // NOTE: this currently computes borders, so any pruning should separate that
                 // operation out.
-                // TODO(pcwalton): Run this in parallel as well. This will require a bit more work
-                // because this is a top-down traversal, unlike the others.
-                layout_root.traverse_preorder(&mut AssignWidthsTraversal(layout_context));
-
-                parallel::traverse_flow_tree(AssignHeightsAndStoreOverflowTraversalKind,
-                                             &self.flow_leaf_set,
-                                             self.profiler_chan.clone(),
-                                             layout_context,
-                                             traversal);
+                parallel::traverse_flow_tree_preorder(layout_root,
+                                                      self.profiler_chan.clone(),
+                                                      layout_context,
+                                                      traversal);
             }
         }
     }
@@ -560,45 +545,51 @@ impl LayoutTask {
         self.screen_size = current_screen_size;
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_ctx = self.build_layout_context(node);
+        let mut layout_ctx = self.build_layout_context(node, &data.url);
+
+        // Create a font context, if this is sequential.
+        //
+        // FIXME(pcwalton): This is a pretty bogus thing to do. Essentially this is a workaround
+        // for libgreen having slow TLS.
+        let mut font_context_opt = if self.parallel_traversal.is_none() {
+            Some(~FontContext::new(layout_ctx.font_context_info.clone()))
+        } else {
+            None
+        };
+
+        // Create a font context, if this is sequential.
+        //
+        // FIXME(pcwalton): This is a pretty bogus thing to do. Essentially this is a workaround
+        // for libgreen having slow TLS.
+        let mut font_context_opt = if self.parallel_traversal.is_none() {
+            Some(~FontContext::new(layout_ctx.font_context_info.clone()))
+        } else {
+            None
+        };
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
                                       self.profiler_chan.clone(),
                                       || {
-            // Perform CSS selector matching if necessary.
-            match data.damage.level {
-                ReflowDocumentDamage => {}
-                _ => {
-                    profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone(), || {
-                        match self.parallel_traversal {
-                            None => {
-                                let mut applicable_declarations = ApplicableDeclarations::new();
-                                let mut applicable_declarations_cache =
-                                    ApplicableDeclarationsCache::new();
-                                let mut style_sharing_candidate_cache =
-                                    StyleSharingCandidateCache::new();
-                                node.match_and_cascade_subtree(self.stylist,
-                                                               &layout_ctx.layout_chan,
-                                                               &mut applicable_declarations,
-                                                               layout_ctx.initial_css_values.get(),
-                                                               &mut applicable_declarations_cache,
-                                                               &mut style_sharing_candidate_cache,
-                                                               None)
-                            }
-                            Some(ref mut traversal) => {
-                                parallel::match_and_cascade_subtree(node,
-                                                                    &mut layout_ctx,
-                                                                    traversal)
-                            }
-                        }
-                    })
+            // Perform CSS selector matching and flow construction.
+            match self.parallel_traversal {
+                None => {
+                    let mut applicable_declarations = ApplicableDeclarations::new();
+                    let mut applicable_declarations_cache = ApplicableDeclarationsCache::new();
+                    let mut style_sharing_candidate_cache = StyleSharingCandidateCache::new();
+                    drop(node.recalc_style_for_subtree(self.stylist,
+                                                       &mut layout_ctx,
+                                                       font_context_opt.take_unwrap(),
+                                                       &mut applicable_declarations,
+                                                       &mut applicable_declarations_cache,
+                                                       &mut style_sharing_candidate_cache,
+                                                       None))
+                }
+                Some(ref mut traversal) => {
+                    parallel::recalc_style_for_subtree(node, &mut layout_ctx, traversal)
                 }
             }
 
-            // Construct the flow tree.
-            profile(time::LayoutTreeBuilderCategory,
-                    self.profiler_chan.clone(),
-                    || self.construct_flow_tree(&mut layout_ctx, node, &data.url))
+            self.get_layout_root((*node).clone())
         });
 
         // Verification of the flow tree, which ensures that all nodes were either marked as leaves
@@ -624,7 +615,7 @@ impl LayoutTask {
                 }
                 Some(_) => {
                     // Parallel mode.
-                    self.solve_constraints_parallel(layout_root, &mut layout_ctx)
+                    self.solve_constraints_parallel(&mut layout_root, &mut layout_ctx)
                 }
             }
         });
@@ -685,7 +676,7 @@ impl LayoutTask {
             });
         }
 
-        layout_root.destroy(self.flow_leaf_set.get());
+        layout_root.destroy();
 
         // Tell script that we're done.
         //
