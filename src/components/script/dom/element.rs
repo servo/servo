@@ -291,7 +291,7 @@ impl Element {
             None => (),
             Some(idx) => {
                 let removed = self.attrs.remove(idx);
-                let removed_raw_value = Some(removed.get().Value());
+                let removed_raw_value = removed.get().Value();
 
                 if namespace == namespace::Null {
                     self.after_remove_attr(abstract_self, local_name, removed_raw_value);
@@ -305,7 +305,7 @@ impl Element {
     fn after_remove_attr(&mut self,
                          abstract_self: &JS<Element>,
                          local_name: DOMString,
-                         old_value: Option<DOMString>) {
+                         old_value: DOMString) {
         match local_name.as_slice() {
             "style" => {
                 self.style_attribute = None
@@ -317,7 +317,7 @@ impl Element {
                     // "borrowed value does not live long enough"
                     let mut doc = self.node.owner_doc();
                     let doc = doc.get_mut();
-                    doc.update_idmap(abstract_self, None, old_value);
+                    doc.update_idmap(abstract_self, None, Some(old_value));
                 }
             }
             _ => ()
