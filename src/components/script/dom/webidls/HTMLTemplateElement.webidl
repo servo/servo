@@ -9,11 +9,6 @@
  * liability, trademark and document use rules apply.
  */
 
-// import from http://mxr.mozilla.org/mozilla-central/source/dom/webidl/HTMLTemplateElement.webidl
-
 interface HTMLTemplateElement : HTMLElement {
-/* FIXME:
-    readonly attribute DocumentFragment content;
-*/
 };
 

@@ -13,10 +13,4 @@
  */
 
 interface HTMLTableHeaderCellElement : HTMLTableCellElement {
-/* TODO:
-           attribute DOMString scope;
-           attribute DOMString abbr;
-           attribute DOMString sorted;
-  void sort();
-*/
 };

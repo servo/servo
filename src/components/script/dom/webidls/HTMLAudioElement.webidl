@@ -11,27 +11,5 @@
  * and create derivative works of this document.
  */
 
-// import from http://mxr.mozilla.org/mozilla-central/source/dom/webidl/
-
 [NamedConstructor=Audio(optional DOMString src)]
 interface HTMLAudioElement : HTMLMediaElement {};
-
-partial interface HTMLAudioElement
-{
-/*
-  // Setup the audio stream for writing
-  [Pref="media.audio_data.enabled", Throws]
-  void mozSetup(unsigned long channels, unsigned long rate);
-
-  // Write audio to the audio stream
-  [Pref="media.audio_data.enabled", Throws]
-  unsigned long mozWriteAudio(Float32Array data);
-  [Pref="media.audio_data.enabled", Throws]
-  unsigned long mozWriteAudio(sequence<unrestricted float> data);
-
-  // Get the current offset (measured in samples since the start) of the audio
-  // stream created using mozWriteAudio().
-  [Pref="media.audio_data.enabled", Throws]
-  unsigned long long mozCurrentSampleOffset();
-*/
-};

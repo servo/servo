@@ -17,7 +17,6 @@ interface HTMLImageElement : HTMLElement {
            attribute DOMString alt;
            [SetterThrows]
            attribute DOMString src;
-//           attribute DOMString srcset;
            [SetterThrows]
            attribute DOMString crossOrigin;
            [SetterThrows]

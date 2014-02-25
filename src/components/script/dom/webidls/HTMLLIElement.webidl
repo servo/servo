@@ -12,9 +12,6 @@
  * and create derivative works of this document.
  */
 
-// original import from
-// http://hg.mozilla.org/mozilla-central/filelog/8c240c67f76c/dom/webidl/HTMLLIElement.webidl
-
 // http://www.whatwg.org/specs/web-apps/current-work/#the-li-element
 interface HTMLLIElement : HTMLElement {
            [SetterThrows, Pure]

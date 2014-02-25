@@ -18,10 +18,8 @@ interface HTMLIFrameElement : HTMLElement {
            attribute DOMString srcdoc;
   [SetterThrows, Pure]
            attribute DOMString name;
-  // [PutForwards=value] readonly attribute DOMSettableTokenList sandbox;
   // We're implementing sandbox as a string for now, see bug 845057.
   attribute DOMString sandbox;
-           // attribute boolean seamless;
   [SetterThrows, Pure]
            attribute boolean allowFullscreen;
   [SetterThrows, Pure]
@@ -51,17 +49,3 @@ partial interface HTMLIFrameElement {
   // GetSVGDocument
   Document? getSVGDocument();
 };
-
-/*partial interface HTMLIFrameElement {
-  // nsIDOMMozBrowserFrame
-  [ChromeOnly,SetterThrows]
-           attribute boolean mozbrowser;
-};
-
-partial interface HTMLIFrameElement {
-  // nsIMozBrowserFrame
-  [ChromeOnly]
-  readonly attribute DOMString appManifestURL;
-};
-
-HTMLIFrameElement implements MozFrameLoaderOwner;*/

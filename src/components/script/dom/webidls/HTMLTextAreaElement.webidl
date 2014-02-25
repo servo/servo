@@ -10,24 +10,14 @@
  * Opera Software ASA. You are granted a license to use, reproduce
  * and create derivative works of this document.
  */
-/*
-interface nsIEditor;
-interface MozControllers;
-*/
+
 interface HTMLTextAreaElement : HTMLElement {
-           // attribute DOMString autocomplete;
   [SetterThrows, Pure]
            attribute boolean autofocus;
   [SetterThrows, Pure]
            attribute unsigned long cols;
-           // attribute DOMString dirName;
   [SetterThrows, Pure]
            attribute boolean disabled;
-/*
-  [Pure]
-  readonly attribute HTMLFormElement? form;
-*/
-           // attribute DOMString inputMode;
   [SetterThrows, Pure]
            attribute long maxLength;
   [SetterThrows, Pure]
@@ -51,15 +41,9 @@ interface HTMLTextAreaElement : HTMLElement {
   readonly attribute unsigned long textLength;
 
   readonly attribute boolean willValidate;
-/*
-  readonly attribute ValidityState validity;
-*/
   readonly attribute DOMString validationMessage;
   boolean checkValidity();
   void setCustomValidity(DOMString error);
-/*
-  readonly attribute NodeList labels;
-*/
   void select();
   [Throws]
            attribute unsigned long selectionStart;
@@ -68,34 +52,4 @@ interface HTMLTextAreaElement : HTMLElement {
   [Throws]
            attribute DOMString selectionDirection;
   void setRangeText(DOMString replacement);
-/*
-  void setRangeText(DOMString replacement, unsigned long start, unsigned long end, optional SelectionMode selectionMode);
-
-  [Throws]
-  void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
-*/
 };
-/*
-partial interface HTMLTextAreaElement {
-  // Mirrored chrome-only Mozilla extensions to nsIDOMHTMLTextAreaElement.
-  // Please make sure to update this list of nsIDOMHTMLTextAreaElement changes.
-
-  [Throws, ChromeOnly]
-  readonly attribute MozControllers controllers;
-};
-
-partial interface HTMLTextAreaElement {
-  // Mirrored chrome-only nsIDOMNSEditableElement methods.  Please make sure
-  // to update this list if nsIDOMNSEditableElement changes.
-
-  [ChromeOnly]
-  readonly attribute nsIEditor? editor;
-
-  // This is similar to set .value on nsIDOMInput/TextAreaElements, but
-  // handling of the value change is closer to the normal user input, so
-  // 'change' event for example will be dispatched when focusing out the
-  // element.
-  [ChromeOnly]
-  void setUserInput(DOMString input);
-};
-*/

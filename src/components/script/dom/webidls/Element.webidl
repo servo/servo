@@ -55,29 +55,6 @@ interface Element : Node {
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
   HTMLCollection getElementsByClassName(DOMString classNames);
 
-  /**
-   * The ratio of font-size-inflated text font size to computed font
-   * size for this element. This will query the element for its primary frame,
-   * and then use this to get font size inflation information about the frame.
-   * This will be 1.0 if font size inflation is not enabled, and -1.0 if an
-   * error occurred during the retrieval of the font size inflation.
-   *
-   * @note The font size inflation ratio that is returned is actually the
-   *       font size inflation data for the element's _primary frame_, not the
-   *       element itself, but for most purposes, this should be sufficient.
-   */
-  /*[ChromeOnly]
-    readonly attribute float fontSizeInflation;*/
-
-  // Mozilla specific stuff
-
-  /*[SetterThrows,LenientThis]
-           attribute EventHandler onmouseenter;
-  [SetterThrows,LenientThis]
-           attribute EventHandler onmouseleave;
-  [SetterThrows]
-  attribute EventHandler onwheel;*/
-
   // Selectors API
   /**
    * Returns whether this element would be selected by the given selector
@@ -88,49 +65,6 @@ interface Element : Node {
   [Throws]
   boolean mozMatchesSelector(DOMString selector);
 
-  // Proprietary extensions
-  /**
-   * Set this during a mousedown event to grab and retarget all mouse events
-   * to this element until the mouse button is released or releaseCapture is
-   * called. If retargetToElement is true, then all events are targetted at
-   * this element. If false, events can also fire at descendants of this
-   * element.
-   * 
-   */
-  void setCapture(optional boolean retargetToElement = false);
-
-  /**
-   * If this element has captured the mouse, release the capture. If another
-   * element has captured the mouse, this method has no effect.
-   */
-  void releaseCapture();
-
-  // Mozilla extensions
-  /**
-   * Requests that this element be made the full-screen element, as per the DOM
-   * full-screen api.
-   *
-   * @see <https://wiki.mozilla.org/index.php?title=Gecko:FullScreenAPI>
-   */
-  void mozRequestFullScreen();
-
-  /**
-   * Requests that this element be made the pointer-locked element, as per the DOM
-   * pointer lock api.
-   *
-   * @see <http://dvcs.w3.org/hg/pointerlock/raw-file/default/index.html>
-   */
-  void mozRequestPointerLock();
-
-  // Obsolete methods.
-  /*Attr? getAttributeNode(DOMString name);
-  [Throws]
-  Attr? setAttributeNode(Attr newAttr);
-  [Throws]
-  Attr? removeAttributeNode(Attr oldAttr);
-  Attr? getAttributeNodeNS(DOMString? namespaceURI, DOMString localName);
-  [Throws]
-  Attr? setAttributeNodeNS(Attr newAttr);*/
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface
@@ -150,22 +84,7 @@ partial interface Element {
   readonly attribute long clientLeft;
   readonly attribute long clientWidth;
   readonly attribute long clientHeight;
-
-  // Mozilla specific stuff
-  /* The maximum offset that the element can be scrolled to
-     (i.e., the value that scrollLeft/scrollTop would be clamped to if they were
-     set to arbitrarily large values. */
-  /*readonly attribute long scrollTopMax;
-    readonly attribute long scrollLeftMax;*/
 };
-
-// http://dvcs.w3.org/hg/undomanager/raw-file/tip/undomanager.html
-/*partial interface Element {
-  [Pref="dom.undo_manager.enabled"]
-  readonly attribute UndoManager? undoManager;
-  [SetterThrows,Pref="dom.undo_manager.enabled"]
-  attribute boolean undoScope;
-  };*/
 
 // http://domparsing.spec.whatwg.org/#extensions-to-the-element-interface
 partial interface Element {

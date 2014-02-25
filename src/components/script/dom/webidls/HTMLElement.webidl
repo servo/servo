@@ -16,22 +16,8 @@ interface HTMLElement : Element {
   // metadata attributes
            attribute DOMString title;
            attribute DOMString lang;
-  //         attribute boolean translate;
   [SetterThrows, Pure]
            attribute DOMString dir;
-  /*[Constant]
-    readonly attribute DOMStringMap dataset;*/
-
-  // microdata 
-  /*[SetterThrows, Pure]
-           attribute boolean itemScope;
-  [PutForwards=value,Constant] readonly attribute DOMSettableTokenList itemType;
-  [SetterThrows, Pure]
-           attribute DOMString itemId;
-  [PutForwards=value,Constant] readonly attribute DOMSettableTokenList itemRef;
-  [PutForwards=value,Constant] readonly attribute DOMSettableTokenList itemProp;*/
-  /*[Constant]
-    readonly attribute HTMLPropertiesCollection properties;*/
   [Throws]
            attribute any itemValue;
 
@@ -51,40 +37,16 @@ interface HTMLElement : Element {
   readonly attribute DOMString accessKeyLabel;
   [SetterThrows, Pure]
            attribute boolean draggable;
-  //[PutForwards=value] readonly attribute DOMSettableTokenList dropzone;
   [SetterThrows, Pure]
            attribute DOMString contentEditable;
   [Pure]
   readonly attribute boolean isContentEditable;
-  /*[Pure]
-    readonly attribute HTMLMenuElement? contextMenu;*/
-  //[SetterThrows]
-  //         attribute HTMLMenuElement? contextMenu;
   [SetterThrows, Pure]
            attribute boolean spellcheck;
-
-  // command API
-  //readonly attribute DOMString? commandType;
-  //readonly attribute DOMString? commandLabel;
-  //readonly attribute DOMString? commandIcon;
-  //readonly attribute boolean? commandHidden;
-  //readonly attribute boolean? commandDisabled;
-  //readonly attribute boolean? commandChecked;
-
-  // styling
-  /*[PutForwards=cssText, Constant]
-    readonly attribute CSSStyleDeclaration style;*/
 
   // Mozilla specific stuff
   // FIXME Bug 810677 Move className from HTMLElement to Element
            attribute DOMString className;
-
-  /*[SetterThrows]
-           attribute EventHandler oncopy;
-  [SetterThrows]
-           attribute EventHandler oncut;
-  [SetterThrows]
-  attribute EventHandler onpaste;*/
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-htmlelement-interface
@@ -96,23 +58,3 @@ partial interface HTMLElement {
   readonly attribute long offsetWidth;
   readonly attribute long offsetHeight;
 };
-
-/*[NoInterfaceObject]
-interface TouchEventHandlers {
-  [SetterThrows,Func="nsGenericHTMLElement::TouchEventsEnabled"]
-           attribute EventHandler ontouchstart;
-  [SetterThrows,Func="nsGenericHTMLElement::TouchEventsEnabled"]
-           attribute EventHandler ontouchend;
-  [SetterThrows,Func="nsGenericHTMLElement::TouchEventsEnabled"]
-           attribute EventHandler ontouchmove;
-  [SetterThrows,Func="nsGenericHTMLElement::TouchEventsEnabled"]
-           attribute EventHandler ontouchenter;
-  [SetterThrows,Func="nsGenericHTMLElement::TouchEventsEnabled"]
-           attribute EventHandler ontouchleave;
-  [SetterThrows,Func="nsGenericHTMLElement::TouchEventsEnabled"]
-           attribute EventHandler ontouchcancel;
-};*/
-
-/*HTMLElement implements GlobalEventHandlers;
-HTMLElement implements NodeEventHandlers;
-HTMLElement implements TouchEventHandlers;*/

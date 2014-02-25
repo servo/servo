@@ -12,13 +12,6 @@
  * and create derivative works of this document.
  */
 
-// original import from:
-// http://hg.mozilla.org/mozilla-central/filelog/8c240c67f76c/dom/webidl/HTMLInputElement.webidl
-
-/*
-interface nsIControllers;
-*/
-
 interface HTMLInputElement : HTMLElement {
   [Pure, SetterThrows]
            attribute DOMString accept;
@@ -32,16 +25,8 @@ interface HTMLInputElement : HTMLElement {
            attribute boolean defaultChecked;
   [Pure]
            attribute boolean checked;
-/*
-           attribute DOMString dirName;
-*/
   [Pure, SetterThrows]
            attribute boolean disabled;
-/*
-  readonly attribute HTMLFormElement? form;
-  [Pure]
-  readonly attribute FileList? files;
-*/
   [Pure, SetterThrows]
            attribute DOMString formAction;
   [Pure, SetterThrows]
@@ -58,10 +43,6 @@ interface HTMLInputElement : HTMLElement {
            attribute boolean indeterminate;
   [Pure, SetterThrows]
            attribute DOMString inputMode;
-/*
-  [Pure]
-  readonly attribute HTMLElement? list;
-*/
   [Pure, SetterThrows]
            attribute DOMString max;
   [Pure, SetterThrows]
@@ -92,34 +73,14 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString defaultValue;
   [Pure, TreatNullAs=EmptyString, SetterThrows]
            attribute DOMString value;
-/*
-  [Throws, Pref="dom.experimental_forms"]
-           attribute Date? valueAsDate;
-  [Pure, SetterThrows]
-           attribute unrestricted double valueAsNumber;
-*/
            attribute unsigned long width;
-/*
-  [Throws]
-  void stepUp(optional long n = 1);
-  [Throws]
-  void stepDown(optional long n = 1);
-*/
 
   [Pure]
   readonly attribute boolean willValidate;
-/*
-  [Pure]
-  readonly attribute ValidityState validity;
-*/
   [GetterThrows]
   readonly attribute DOMString validationMessage;
   boolean checkValidity();
   void setCustomValidity(DOMString error);
-
-/*
-  readonly attribute NodeList labels;
-*/
 
   void select();
 
@@ -130,10 +91,6 @@ interface HTMLInputElement : HTMLElement {
            attribute long selectionEnd;
   [Throws]
            attribute DOMString selectionDirection;
-/*
-  // Bug 850364 void setRangeText(DOMString replacement);
-  // Bug 850364 setRangeText(DOMString replacement, unsigned long start, unsigned long end, optional SelectionMode selectionMode);
-*/
   // also has obsolete members
 };
 
@@ -143,47 +100,3 @@ partial interface HTMLInputElement {
   [Pure, SetterThrows]
            attribute DOMString useMap;
 };
-
-/*
-// Mozilla extensions
-partial interface HTMLInputElement {
-  [Throws]
-  void setSelectionRange(long start, long end, optional DOMString direction);
-
-  [GetterThrows]
-  readonly attribute nsIControllers        controllers;
-  [GetterThrows]
-  readonly attribute long                  textLength;
-
-  [ChromeOnly]
-  sequence<DOMString> mozGetFileNameArray();
-
-  [ChromeOnly]
-  void mozSetFileNameArray(sequence<DOMString> fileNames);
-
-  boolean mozIsTextField(boolean aExcludePassword);
-};
-
-partial interface HTMLInputElement {
-  // Mirrored chrome-only nsIDOMNSEditableElement methods.  Please make sure
-  // to update this list if nsIDOMNSEditableElement changes.
-
-  [Pure, ChromeOnly]
-  readonly attribute nsIEditor? editor;
-
-  // This is similar to set .value on nsIDOMInput/TextAreaElements, but handling
-  // of the value change is closer to the normal user input, so 'change' event
-  // for example will be dispatched when focusing out the element.
-  [ChromeOnly]
-  void setUserInput(DOMString input);
-};
-
-[NoInterfaceObject]
-interface MozPhonetic {
-  [Pure, ChromeOnly]
-  readonly attribute DOMString phonetic;
-};
-
-HTMLInputElement implements MozImageLoadingContent;
-HTMLInputElement implements MozPhonetic;
-*/
