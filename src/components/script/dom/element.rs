@@ -204,22 +204,23 @@ impl Element {
         self.node.wait_until_safe_to_modify_dom();
 
         // FIXME: reduce the time of `value.clone()`.
-        let mut old_raw_value: Option<DOMString> = None;
-        for attr in self.attrs.mut_iter() {
-            let attr = attr.get_mut();
-            if attr.local_name == local_name {
-                old_raw_value = Some(attr.set_value(value.clone()));
-                break;
-            }
-        }
+        let idx = self.attrs.iter().position(|attr| {
+            attr.get().local_name == local_name
+        });
+        let old_raw_value = idx.map(|idx| self.attrs[idx].get().Value());
 
-        if old_raw_value.is_none() {
-            let doc = self.node.owner_doc();
-            let doc = doc.get();
-            let new_attr = Attr::new_ns(doc.window.get(), local_name.clone(), value.clone(),
-                                        name.clone(), namespace.clone(),
-                                        prefix);
-            self.attrs.push(new_attr);
+        match idx {
+            Some(idx) => {
+                self.attrs[idx].get_mut().set_value(value.clone());
+            }
+            None => {
+                let doc = self.node.owner_doc();
+                let doc = doc.get();
+                let new_attr = Attr::new_ns(doc.window.get(), local_name.clone(), value.clone(),
+                                            name.clone(), namespace.clone(),
+                                            prefix);
+                self.attrs.push(new_attr);
+            }
         }
 
         if namespace == namespace::Null {
