@@ -317,7 +317,7 @@ impl Element {
                     // "borrowed value does not live long enough"
                     let mut doc = self.node.owner_doc();
                     let doc = doc.get_mut();
-                    doc.update_idmap(abstract_self, None, Some(old_value));
+                    doc.unregister_named_element(old_value);
                 }
             }
             _ => ()
