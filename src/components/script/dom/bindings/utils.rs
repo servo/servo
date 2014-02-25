@@ -879,6 +879,15 @@ pub fn throw_method_failed_with_details<T>(cx: *JSContext,
     return 0;
 }
 
+pub fn throw_not_in_union(cx: *JSContext, names: &'static str) -> JSBool {
+    assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
+    let message = format!("argument could not be converted to any of: {}", names);
+    message.with_c_str(|string| {
+        unsafe { ReportError(cx, string) };
+    });
+    return 0;
+}
+
 /// Execute arbitrary code with the JS GC enabled, then disable it afterwards.
 pub fn with_gc_enabled<R>(cx: *JSContext, f: || -> R) -> R {
     unsafe {
