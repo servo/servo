@@ -1680,8 +1680,7 @@ def memberIsCreator(member):
 # Returns a tuple consisting of a CGThing containing the type of the return
 # value, or None if there is no need for a return value, and a boolean signaling
 # whether the return value is passed in an out parameter.
-def getRetvalDeclarationForType(returnType, descriptorProvider,
-                                resultAlreadyAddRefed):
+def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType is None or returnType.isVoid():
         # Nothing to declare
         return None, False
@@ -1721,8 +1720,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
         # If our result is already addrefed, use the right type in the
         # sequence argument here.
         (result, _) = getRetvalDeclarationForType(returnType.inner,
-                                                  descriptorProvider,
-                                                  resultAlreadyAddRefed)
+                                                  descriptorProvider)
         result = CGWrapper(result, pre="nsTArray< ", post=" >")
         if nullable:
             result = CGWrapper(result, pre="Nullable< ", post=" >")
@@ -2956,14 +2954,10 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
   *aEnabled = true;
   return %s(aCx, global, aReceiver).is_not_null();""" % (getter))
 
-def isResultAlreadyAddRefed(extendedAttributes):
-    return not 'resultNotAddRefed' in extendedAttributes
-
 def needCx(returnType, arguments, extendedAttributes, considerTypes):
     return (considerTypes and
             (typeNeedsCx(returnType, True) or
-             any(typeNeedsCx(a.type) for a in arguments)) or
-            'implicitJSContext' in extendedAttributes)
+             any(typeNeedsCx(a.type) for a in arguments)))
 
 def needScopeObject(returnType, arguments, extendedAttributes,
                     isWrapperCached, considerTypes):
@@ -2988,12 +2982,8 @@ class CGCallGenerator(CGThing):
 
         isFallible = errorReport is not None
 
-        #resultAlreadyAddRefed = isResultAlreadyAddRefed(descriptorProvider,
-        #                                                extendedAttributes)
-        resultAlreadyAddRefed = True
         (result, resultOutParam) = getRetvalDeclarationForType(returnType,
-                                                               descriptorProvider,
-                                                               resultAlreadyAddRefed)
+                                                               descriptorProvider)
 
         args = CGList([CGGeneric(arg) for arg in argsPre], ", ")
         for (a, name) in arguments:
@@ -3014,8 +3004,7 @@ class CGCallGenerator(CGThing):
             args.append(CGGeneric("result"))
 
         needsCx = (typeNeedsCx(returnType, True) or
-                   any(typeNeedsCx(a.type) for (a, _) in arguments) or
-                   'implicitJSContext' in extendedAttributes)
+                   any(typeNeedsCx(a.type) for (a, _) in arguments))
 
         if not "cx" in argsPre and needsCx:
             args.prepend(CGGeneric("cx"))
@@ -3127,12 +3116,6 @@ class CGPerSignatureCall(CGThing):
 
     def wrap_return_value(self):
         isCreator = memberIsCreator(self.idlNode)
-        if isCreator:
-            # We better be returning addrefed things!
-            #assert(isResultAlreadyAddRefed(self.descriptor,
-            #                               self.extendedAttributes))
-            pass
-
         resultTemplateValues = { 'jsvalRef': '*vp', 'jsvalPtr': 'vp',
                                  'isCreator': isCreator}
         try:
@@ -3254,7 +3237,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
         if unwrapFailureCode is None:
-            self.unwrapFailureCode = ("return 0; //XXXjdm return Throw(cx, rv);")
+            self.unwrapFailureCode = "return 0; //XXXjdm return Throw(cx, rv);"
         else:
             self.unwrapFailureCode = unwrapFailureCode
 
@@ -3323,7 +3306,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
 
     def definition_body(self):
         name = self.method.identifier.name
-        nativeName = MakeNativeName(self.descriptor.binaryNames.get(name, name))
+        nativeName = MakeNativeName(name)
         extraPre = ''
         argsPre = []
         if name in self.descriptor.needsAbstract:
@@ -3378,13 +3361,11 @@ class CGSpecializedGetter(CGAbstractExternMethod):
 
     def definition_body(self):
         name = self.attr.identifier.name
-        nativeName = MakeNativeName(self.descriptor.binaryNames.get(name, name))
+        nativeName = MakeNativeName(name)
         extraPre = ''
         argsPre = []
-        # resultOutParam does not depend on whether resultAlreadyAddRefed is set
         (_, resultOutParam) = getRetvalDeclarationForType(self.attr.type,
-                                                          self.descriptor,
-                                                          False)
+                                                          self.descriptor)
         infallible = ('infallible' in
                       self.descriptor.getExtendedAttributes(self.attr,
                                                             getter=True))
@@ -3448,7 +3429,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
 
     def definition_body(self):
         name = self.attr.identifier.name
-        nativeName = "Set" + MakeNativeName(self.descriptor.binaryNames.get(name, name))
+        nativeName = "Set" + MakeNativeName(name)
         argsPre = []
         extraPre = ''
         if name in self.descriptor.needsAbstract:
@@ -4382,7 +4363,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
     (don't use this directly, use the derived classes below).
     """
     def __init__(self, descriptor, operation):
-        nativeName = MakeNativeName(descriptor.binaryNames.get(operation, operation))
+        nativeName = MakeNativeName(operation)
         operation = descriptor.operations[operation]
         assert len(operation.signatures()) == 1
         signature = operation.signatures()[0]
@@ -4745,8 +4726,7 @@ class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
     def getBody(self):
         stringifier = self.descriptor.operations['Stringifier']
         if stringifier:
-            name = stringifier.identifier.name
-            nativeName = MakeNativeName(self.descriptor.binaryNames.get(name, name))
+            nativeName = MakeNativeName(stringifier.identifier.name)
             signature = stringifier.signatures()[0]
             returnType = signature[0]
             extendedAttributes = self.descriptor.getExtendedAttributes(stringifier)
@@ -4838,8 +4818,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
   let global = (*page).frame.get_ref().window.clone();
   let obj = global.reflector().get_jsobject();
 """
-        name = self._ctor.identifier.name
-        nativeName = MakeNativeName(self.descriptor.binaryNames.get(name, name))
+        nativeName = MakeNativeName(self._ctor.identifier.name)
         callGenerator = CGMethodCall(["&global"], nativeName, True,
                                      self.descriptor, self._ctor)
         return preamble + callGenerator.define();
@@ -5401,13 +5380,11 @@ class CGNativeMember(ClassMethod):
         passed as JSObject*.
 
         If passJSBitsAsNeeded is false, we don't automatically pass in a
-        JSContext* or a JSObject* based on the return and argument types.  We
-        can still pass it based on 'implicitJSContext' annotations.
+        JSContext* or a JSObject* based on the return and argument types.
         """
         self.descriptorProvider = descriptorProvider
         self.member = member
         self.extendedAttrs = extendedAttrs
-        self.resultAlreadyAddRefed = isResultAlreadyAddRefed(self.extendedAttrs)
         self.passJSBitsAsNeeded = passJSBitsAsNeeded
         self.jsObjectsArePtr = jsObjectsArePtr
         self.variadicIsSequence = variadicIsSequence
@@ -5487,21 +5464,7 @@ class CGNativeMember(ClassMethod):
                 nativeType.pop(0)
                 if nativeType[0] == "dom":
                     nativeType.pop(0)
-            result = CGGeneric("::".join(nativeType))
-            if self.resultAlreadyAddRefed:
-                if isMember:
-                    holder = "nsRefPtr"
-                else:
-                    holder = "already_AddRefed"
-                if memberReturnsNewObject(self.member):
-                    warning = ""
-                else:
-                    warning = "// Mark this as resultNotAddRefed to return raw pointers\n"
-                result = CGWrapper(result,
-                                   pre=("%s%s<" % (warning, holder)),
-                                   post=">")
-            else:
-                result = CGWrapper(result, post="*")
+            result = CGWrapper(CGGeneric("::".join(nativeType)), post="*")
             # Since we always force an owning type for callback return values,
             # our ${declName} is an OwningNonNull or nsRefPtr.  So we can just
             # .forget() to get our already_AddRefed.
@@ -5902,11 +5865,6 @@ class FakeMember():
     def isMethod(self):
         return False
     def getExtendedAttribute(self, name):
-        # Claim to be a [NewObject] so we can avoid the "mark this
-        # resultNotAddRefed" comments CGNativeMember codegen would
-        # otherwise stick in.
-        if name == "NewObject":
-            return True
         return None
 
 class CallbackMember(CGNativeMember):

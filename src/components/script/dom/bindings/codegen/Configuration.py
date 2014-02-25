@@ -238,11 +238,6 @@ class Descriptor(DescriptorProvider):
                 else:
                     add('all', [config], attribute)
 
-        for attribute in ['implicitJSContext', 'resultNotAddRefed']:
-            addExtendedAttribute(attribute, desc.get(attribute, {}))
-
-        self.binaryNames = desc.get('binaryNames', {})
-
         # Build the prototype chain.
         self.prototypeChain = []
         parent = interface
