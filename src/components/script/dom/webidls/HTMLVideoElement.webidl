@@ -11,8 +11,6 @@
  * and create derivative works of this document.
  */
 
-// import from http://mxr.mozilla.org/mozilla-central/source/dom/webidl/
-
 interface HTMLVideoElement : HTMLMediaElement {
   [SetterThrows]
            attribute unsigned long width;
@@ -23,34 +21,3 @@ interface HTMLVideoElement : HTMLMediaElement {
   [SetterThrows]
            attribute DOMString poster;
 };
-/*
-partial interface HTMLVideoElement {
-  // A count of the number of video frames that have demuxed from the media
-  // resource. If we were playing perfectly, we'd be able to paint this many
-  // frames.
-  readonly attribute unsigned long mozParsedFrames;
-
-  // A count of the number of frames that have been decoded. We may drop
-  // frames if the decode is taking too much time.
-  readonly attribute unsigned long mozDecodedFrames;
-
-  // A count of the number of frames that have been presented to the rendering
-  // pipeline. We may drop frames if they arrive late at the renderer.
-  readonly attribute unsigned long mozPresentedFrames;
-
-  // Number of presented frames which were painted on screen.
-  readonly attribute unsigned long mozPaintedFrames;
-
-  // Time which the last painted video frame was late by, in seconds.
-  readonly attribute double mozFrameDelay;
-
-  // True if the video has an audio track available.
-  readonly attribute boolean mozHasAudio;
-};
-
-// https://dvcs.w3.org/hg/html-media/raw-file/default/media-source/media-source.html#idl-def-HTMLVideoElement
-partial interface HTMLVideoElement {
-  [Pref="media.mediasource.enabled", Creator]
-  VideoPlaybackQuality getVideoPlaybackQuality();
-};
-*/

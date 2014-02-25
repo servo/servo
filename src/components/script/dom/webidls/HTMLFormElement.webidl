@@ -38,8 +38,6 @@ interface HTMLFormElement : HTMLElement {
   readonly attribute long length;
 
   getter Element (unsigned long index);
-  // TODO this should be: getter (RadioNodeList or HTMLInputElement or HTMLImageElement) (DOMString name);
-//  getter nsISupports (DOMString name);
 
   [Throws]
   void submit();

@@ -14,9 +14,6 @@ interface DocumentType : Node {
   readonly attribute DOMString name;
   readonly attribute DOMString publicId;
   readonly attribute DOMString systemId;
-
-  // Mozilla extension
-  //readonly attribute DOMString? internalSubset;
 };
 
 //DocumentType implements ChildNode;

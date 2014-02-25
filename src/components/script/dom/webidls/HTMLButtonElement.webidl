@@ -10,9 +10,6 @@
  * and create derivative works of this document.
  */
 
-// FIXME: servo#707
-//interface HTMLFormElement;
-
 // http://www.whatwg.org/specs/web-apps/current-work/#the-button-element
 interface HTMLButtonElement : HTMLElement {
   [SetterThrows, Pure]
@@ -37,15 +34,10 @@ interface HTMLButtonElement : HTMLElement {
            attribute DOMString type;
   [SetterThrows, Pure]
            attribute DOMString value;
-// Not yet implemented:
-//           attribute HTMLMenuElement? menu;
 
   readonly attribute boolean willValidate;
   readonly attribute ValidityState validity;
   readonly attribute DOMString validationMessage;
   boolean checkValidity();
   void setCustomValidity(DOMString error);
-
-// Not yet implemented:
-//  readonly attribute NodeList labels;
 };
