@@ -557,16 +557,6 @@ impl LayoutTask {
             None
         };
 
-        // Create a font context, if this is sequential.
-        //
-        // FIXME(pcwalton): This is a pretty bogus thing to do. Essentially this is a workaround
-        // for libgreen having slow TLS.
-        let mut font_context_opt = if self.parallel_traversal.is_none() {
-            Some(~FontContext::new(layout_ctx.font_context_info.clone()))
-        } else {
-            None
-        };
-
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
                                       self.profiler_chan.clone(),
                                       || {
