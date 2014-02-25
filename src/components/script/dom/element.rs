@@ -207,10 +207,14 @@ impl Element {
         let idx = self.attrs.iter().position(|attr| {
             attr.get().local_name == local_name
         });
-        let old_raw_value = idx.map(|idx| self.attrs[idx].get().Value());
 
         match idx {
             Some(idx) => {
+                if namespace == namespace::Null {
+                    let old_value = self.attrs[idx].get().Value();
+                    self.before_remove_attr(abstract_self, local_name.clone(),
+                                            old_value);
+                }
                 self.attrs[idx].get_mut().set_value(value.clone());
             }
             None => {
@@ -224,7 +228,7 @@ impl Element {
         }
 
         if namespace == namespace::Null {
-            self.after_set_attr(abstract_self, local_name, value, old_raw_value);
+            self.after_set_attr(abstract_self, local_name, value);
         }
         Ok(())
     }
@@ -232,8 +236,7 @@ impl Element {
     fn after_set_attr(&mut self,
                       abstract_self: &JS<Element>,
                       local_name: DOMString,
-                      value: DOMString,
-                      old_value: Option<DOMString>) {
+                      value: DOMString) {
 
         match local_name.as_slice() {
             "style" => {
@@ -248,7 +251,7 @@ impl Element {
                     // "borrowed value does not live long enough"
                     let mut doc = self.node.owner_doc();
                     let doc = doc.get_mut();
-                    doc.update_idmap(abstract_self, Some(value.clone()), old_value);
+                    doc.register_named_element(abstract_self, value.clone());
                 }
             }
             _ => ()

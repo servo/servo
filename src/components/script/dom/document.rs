@@ -504,35 +504,4 @@ impl Document {
                               *old_element = new_element.clone();
                           });
     }
-
-    pub fn update_idmap(&mut self,
-                        abstract_self: &JS<Element>,
-                        new_id: Option<DOMString>,
-                        old_id: Option<DOMString>) {
-        // remove old ids:
-        // * if the old ones are not same as the new one,
-        // * OR if the new one is none.
-        match old_id {
-            Some(ref old_id) if new_id.is_none() ||
-                                (*new_id.get_ref() != *old_id) => {
-                self.idmap.remove(old_id);
-            }
-            _ => ()
-        }
-
-        match new_id {
-            Some(new_id) => {
-                // TODO: support the case if multiple elements
-                // which haves same id are in the same document.
-                self.idmap.mangle(new_id, abstract_self.clone(),
-                                  |_, new_node: JS<Element>| -> JS<Element> {
-                                      new_node
-                                  },
-                                  |_, old_node: &mut JS<Element>, new_node: JS<Element>| {
-                                      *old_node = new_node;
-                                  });
-            }
-            None => ()
-        }
-    }
 }
