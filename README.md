@@ -35,7 +35,7 @@ On Debian-based Linuxes (cross-compilation for Android):
 sudo apt-get install autoconf2.13 curl libtool ia32-libs
 ```
 And it needs pre-installed Android tools.
-See wiki for [details](https://github.com/mozilla/servo/wiki/Doc-building-for-android)
+See wiki for [details](https://github.com/mozilla/servo/wiki/Building-for-Android)
 
 
 Servo builds its own copy of Rust, so there is no need to provide a Rust
