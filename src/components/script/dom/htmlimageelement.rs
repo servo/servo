@@ -17,7 +17,6 @@ use servo_util::geometry::to_px;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
 use servo_util::url::parse_url;
-use servo_util::namespace::Null;
 use servo_util::str::DOMString;
 
 use extra::serialize::{Encoder, Encodable};
@@ -65,13 +64,12 @@ impl HTMLImageElement {
 impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
-    fn update_image(&mut self, url: Option<Url>) {
+    fn update_image(&mut self, value: Option<DOMString>, url: Option<Url>) {
         let elem = &mut self.htmlelement.element;
         let document = elem.node.owner_doc();
         let window = document.get().window.get();
         let image_cache = &window.image_cache_task;
-        let src_opt = elem.get_attribute(Null, "src").map(|x| x.get().Value());
-        match src_opt {
+        match value {
             None => {}
             Some(src) => {
                 let img_url = parse_url(src, url);
@@ -87,12 +85,12 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn AfterSetAttr(&mut self, name: DOMString, _value: DOMString) {
+    pub fn AfterSetAttr(&mut self, name: DOMString, value: DOMString) {
         if "src" == name {
             let document = self.htmlelement.element.node.owner_doc();
             let window = document.get().window.get();
             let url = window.page.url.as_ref().map(|&(ref url, _)| url.clone());
-            self.update_image(url);
+            self.update_image(Some(value), url);
         }
     }
 
@@ -101,7 +99,7 @@ impl HTMLImageElement {
         // This might not handle remove src attribute actually since
         // `self.update_image()` will see the missing src attribute and return early.
         if "src" == name {
-            self.update_image(None);
+            self.update_image(None, None);
         }
     }
 
