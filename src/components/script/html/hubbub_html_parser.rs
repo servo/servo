@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, TextCast, ElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLImageElementCast};
+use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::js::JS;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
-use dom::element::{HTMLLinkElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId};
+use dom::element::{HTMLLinkElementTypeId, HTMLIframeElementTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmliframeelement::IFrameSize;
@@ -21,7 +21,6 @@ use extra::url::Url;
 use hubbub::hubbub;
 use js::jsapi::JSContext;
 use servo_msg::constellation_msg::SubpageId;
-use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
 use servo_util::namespace::Null;
 use servo_util::str::DOMString;
@@ -251,7 +250,6 @@ pub fn parse_html(cx: *JSContext,
                   document: &mut JS<Document>,
                   url: Url,
                   resource_task: ResourceTask,
-                  image_cache_task: ImageCacheTask,
                   next_subpage_id: SubpageId)
                   -> HtmlParserResult {
     debug!("Hubbub: parsing {:?}", url);
@@ -381,13 +379,6 @@ pub fn parse_html(cx: *JSContext,
                                                                subpage_id,
                                                                sandboxed)));
                     }
-                }
-
-                //FIXME: This should be taken care of by set_attr, but we don't have
-                //       access to a window so HTMLImageElement::AfterSetAttr bails.
-                ElementNodeTypeId(HTMLImageElementTypeId) => {
-                    let mut image_element: JS<HTMLImageElement> = HTMLImageElementCast::to(&element);
-                    image_element.get_mut().update_image(image_cache_task.clone(), Some(url2.clone()));
                 }
                 _ => {}
             }
