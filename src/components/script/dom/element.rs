@@ -290,22 +290,22 @@ impl Element {
         match idx {
             None => (),
             Some(idx) => {
-                let removed = self.attrs.remove(idx);
-                let removed_raw_value = removed.get().Value();
-
                 if namespace == namespace::Null {
-                    self.after_remove_attr(abstract_self, local_name, removed_raw_value);
+                    let removed_raw_value = self.attrs[idx].get().Value();
+                    self.before_remove_attr(abstract_self, local_name, removed_raw_value);
                 }
+
+                self.attrs.remove(idx);
             }
         };
 
         Ok(())
     }
 
-    fn after_remove_attr(&mut self,
-                         abstract_self: &JS<Element>,
-                         local_name: DOMString,
-                         old_value: DOMString) {
+    fn before_remove_attr(&mut self,
+                          abstract_self: &JS<Element>,
+                          local_name: DOMString,
+                          old_value: DOMString) {
         match local_name.as_slice() {
             "style" => {
                 self.style_attribute = None
@@ -328,11 +328,11 @@ impl Element {
         match abstract_self.get().node.type_id {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self);
-                elem.get_mut().AfterRemoveAttr(local_name.clone());
+                elem.get_mut().BeforeRemoveAttr(local_name.clone());
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => {
                 let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self);
-                elem.get_mut().AfterRemoveAttr(local_name.clone());
+                elem.get_mut().BeforeRemoveAttr(local_name.clone());
             }
             _ => ()
         }
