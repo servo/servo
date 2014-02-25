@@ -16,6 +16,4 @@ interface HTMLMapElement : HTMLElement {
            attribute DOMString name;
   [Constant]
   readonly attribute HTMLCollection areas;
-  // Not supported yet.
-  //readonly attribute HTMLCollection images;
 };

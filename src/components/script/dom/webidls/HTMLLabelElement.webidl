@@ -14,11 +14,5 @@
 // import from http://mxr.mozilla.org/mozilla-central/source/dom/webidl/
 
 interface HTMLLabelElement : HTMLElement {
-/* FIXME:
-  readonly attribute HTMLFormElement? form;
-*/
            attribute DOMString htmlFor;
-/*
-  readonly attribute HTMLElement? control;
-*/
 };

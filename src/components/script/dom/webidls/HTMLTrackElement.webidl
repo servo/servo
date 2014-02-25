@@ -7,11 +7,6 @@
  * http://www.whatwg.org/specs/web-apps/current-work/#the-track-element
  */
 
-// import from http://mxr.mozilla.org/mozilla-central/source/dom/webidl/
-
-/*
-[Pref="media.webvtt.enabled"]
-*/
 interface HTMLTrackElement : HTMLElement {
   [SetterThrows, Pure]
   attribute DOMString kind;

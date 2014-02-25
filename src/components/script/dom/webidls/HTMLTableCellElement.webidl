@@ -16,9 +16,6 @@ interface HTMLTableCellElement : HTMLElement {
            attribute unsigned long colSpan;
            [SetterThrows]
            attribute unsigned long rowSpan;
-/*
-  [PutForwards=value] readonly attribute DOMSettableTokenList headers;
-*/
            [SetterThrows]
            attribute DOMString headers;
   readonly attribute long cellIndex;

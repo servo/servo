@@ -11,17 +11,10 @@
  * and create derivative works of this document.
  */
 
-// original import from:
-// http://hg.mozilla.org/mozilla-central/filelog/8c240c67f76c/dom/webidl/HTMLProgressElement.webidl
-
 interface HTMLProgressElement : HTMLElement {
            [SetterThrows]
            attribute double value;
            [SetterThrows]
            attribute double max;
   readonly attribute double position;
-
-/*
-  readonly attribute NodeList labels;
-*/
 };

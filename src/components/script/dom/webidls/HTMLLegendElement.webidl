@@ -12,14 +12,8 @@
  * and create derivative works of this document.
  */
 
-// import from http://mxr.mozilla.org/mozilla-central/source/dom/webidl/
-
 // http://www.whatwg.org/specs/web-apps/current-work/#the-legend-element
 interface HTMLLegendElement : HTMLElement {
-/*
-  FIXME:
-  readonly attribute HTMLFormElement? form;
-*/
 };
 
 // http://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis

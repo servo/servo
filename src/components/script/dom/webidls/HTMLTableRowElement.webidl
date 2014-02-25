@@ -14,11 +14,6 @@
 interface HTMLTableRowElement : HTMLElement {
   readonly attribute long rowIndex;
   readonly attribute long sectionRowIndex;
-/*
-  readonly attribute HTMLCollection cells;
-  [Throws]
-  HTMLElement insertCell(optional long index = -1);
-*/
   [Throws]
   void deleteCell(long index);
 };

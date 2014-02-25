@@ -12,30 +12,9 @@
  */
 
 interface HTMLTableElement : HTMLElement {
-  /*
-           attribute HTMLTableCaptionElement? caption;
-  HTMLElement createCaption();
-  */
   void deleteCaption();
-  /*
-           [SetterThrows]
-           attribute HTMLTableSectionElement? tHead;
-  HTMLElement createTHead();
-  */
   void deleteTHead();
-  /*
-           [SetterThrows]
-           attribute HTMLTableSectionElement? tFoot;
-  HTMLElement createTFoot();
-  */
   void deleteTFoot();
-  /*
-  readonly attribute HTMLCollection tBodies;
-  HTMLElement createTBody();
-  readonly attribute HTMLCollection rows;
-  [Throws]
-  HTMLElement insertRow(optional long index = -1);
-  */
   [Throws]
   void deleteRow(long index);
            attribute boolean sortable;

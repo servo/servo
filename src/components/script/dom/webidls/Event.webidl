@@ -37,54 +37,6 @@ interface Event {
   void initEvent(DOMString type, boolean bubbles, boolean cancelable);
 };
 
-/*// Mozilla specific legacy stuff.
-partial interface Event {
-  const long MOUSEDOWN    = 0x00000001;
-  const long MOUSEUP      = 0x00000002;
-  const long MOUSEOVER    = 0x00000004;
-  const long MOUSEOUT     = 0x00000008;
-  const long MOUSEMOVE    = 0x00000010;
-  const long MOUSEDRAG    = 0x00000020;
-  const long CLICK        = 0x00000040;
-  const long DBLCLICK     = 0x00000080;
-  const long KEYDOWN      = 0x00000100;
-  const long KEYUP        = 0x00000200;
-  const long KEYPRESS     = 0x00000400;
-  const long DRAGDROP     = 0x00000800;
-  const long FOCUS        = 0x00001000;
-  const long BLUR         = 0x00002000;
-  const long SELECT       = 0x00004000;
-  const long CHANGE       = 0x00008000;
-  const long RESET        = 0x00010000;
-  const long SUBMIT       = 0x00020000;
-  const long SCROLL       = 0x00040000;
-  const long LOAD         = 0x00080000;
-  const long UNLOAD       = 0x00100000;
-  const long XFER_DONE    = 0x00200000;
-  const long ABORT        = 0x00400000;
-  const long ERROR        = 0x00800000;
-  const long LOCATE       = 0x01000000;
-  const long MOVE         = 0x02000000;
-  const long RESIZE       = 0x04000000;
-  const long FORWARD      = 0x08000000;
-  const long HELP         = 0x10000000;
-  const long BACK         = 0x20000000;
-  const long TEXT         = 0x40000000;
-
-  const long ALT_MASK     = 0x00000001;
-  const long CONTROL_MASK = 0x00000002;
-  const long SHIFT_MASK   = 0x00000004;
-  const long META_MASK    = 0x00000008;
-
-  readonly attribute EventTarget? originalTarget;
-  readonly attribute EventTarget? explicitOriginalTarget;
-  [ChromeOnly] readonly attribute boolean multipleActionsPrevented;
-
-  void preventBubble();
-  void preventCapture();
-  boolean getPreventDefault();
-  };*/
-
 dictionary EventInit {
   boolean bubbles = false;
   boolean cancelable = false;
