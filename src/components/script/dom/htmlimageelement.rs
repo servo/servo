@@ -66,7 +66,7 @@ impl HTMLImageElement {
 impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
-    pub fn update_image(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
+    fn update_image(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
         let elem = &mut self.htmlelement.element;
         let src_opt = elem.get_attribute(Null, "src").map(|x| x.get().Value());
         match src_opt {
