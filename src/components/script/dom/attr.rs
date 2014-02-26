@@ -9,8 +9,6 @@ use dom::window::Window;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::DOMString;
 
-use std::util;
-
 #[deriving(Encodable)]
 pub struct Attr {
     reflector_: Reflector,
@@ -63,9 +61,8 @@ impl Attr {
         reflect_dom_object(~attr, window, AttrBinding::Wrap)
     }
 
-    pub fn set_value(&mut self, mut value: DOMString) -> DOMString {
-        util::swap(&mut self.value, &mut value);
-        value
+    pub fn set_value(&mut self, value: DOMString) {
+        self.value = value;
     }
 
     pub fn value_ref<'a>(&'a self) -> &'a str {
