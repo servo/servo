@@ -237,7 +237,7 @@ class CGMethodCall(CGThing):
             # Doesn't matter which of the possible signatures we use, since
             # they all have the same types up to that point; just use
             # possibleSignatures[0]
-            caseBody = [CGGeneric("let argv_start = JS_ARGV(cx, cast::transmute(vp));")]
+            caseBody = [CGGeneric("let argv_start = JS_ARGV(cx, vp as *JSVal);")]
             caseBody.extend([ CGArgumentConverter(possibleSignatures[0][1][i],
                                                   i, "argv_start", "argc",
                                                   descriptor) for i in
@@ -1465,7 +1465,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
                     "}\n" +
                     successCode)
         else:
-            tail = "return JS_WrapValue(cx, cast::transmute(${jsvalPtr}));"
+            tail = "return JS_WrapValue(cx, ${jsvalPtr} as *JSVal);"
         return ("${jsvalRef} = %s;\n" +
                 tail) % (value)
 
@@ -2844,7 +2844,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     return ptr::null();
   }*/
   /* Check to see whether the interface objects are already installed */
-  let protoOrIfaceArray: *mut *JSObject = cast::transmute(GetProtoOrIfaceArray(aGlobal));
+  let protoOrIfaceArray: *mut *JSObject = GetProtoOrIfaceArray(aGlobal) as *mut *JSObject;
   let cachedObject: *JSObject = *protoOrIfaceArray.offset(%s as int);
   if cachedObject.is_null() {
     let tmp: *JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
@@ -3105,7 +3105,7 @@ class CGPerSignatureCall(CGThing):
     def getArgv(self):
         return "argv" if self.argCount > 0 else ""
     def getArgvDecl(self):
-        return "\nlet argv = JS_ARGV(cx, cast::transmute(vp));\n"
+        return "\nlet argv = JS_ARGV(cx, vp as *JSVal);\n"
     def getArgc(self):
         return "argc"
     def getArguments(self):
@@ -3255,7 +3255,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
 
     def getThis(self):
         return CGIndenter(
-            CGGeneric("let obj: *JSObject = JS_THIS_OBJECT(cx, cast::transmute(vp));\n"
+            CGGeneric("let obj: *JSObject = JS_THIS_OBJECT(cx, vp as *mut JSVal);\n"
                       "if obj.is_null() {\n"
                       "  return false as JSBool;\n"
                       "}\n"
@@ -3402,8 +3402,8 @@ class CGGenericSetter(CGAbstractBindingMethod):
     def generate_code(self):
         return CGIndenter(CGGeneric(
                 "let undef = JSVAL_VOID;\n"
-                "let argv: *JSVal = if argc != 0 { JS_ARGV(cx, cast::transmute(vp)) } else { &undef as *JSVal };\n"
-                "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, cast::transmute(vp)));\n"
+                "let argv: *JSVal = if argc != 0 { JS_ARGV(cx, vp as *JSVal) } else { &undef as *JSVal };\n"
+                "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp as *JSVal));\n"
                 "let ok = with_gc_disabled(cx, || {\n"
                 "  CallJitPropertyOp(info, cx, obj, this as *libc::c_void, argv)\n"
                 "});\n"
@@ -4666,7 +4666,7 @@ if expando.is_not_null() {
   }
 
   if hasProp != 0 {
-    return JS_GetPropertyById(cx, expando, id, cast::transmute(vp));
+    return JS_GetPropertyById(cx, expando, id, vp as *JSVal);
   }
 }"""
 
@@ -4704,7 +4704,7 @@ if expando.is_not_null() {
 
 %s
 let mut found = false;
-if !GetPropertyOnPrototype(cx, proxy, id, &mut found, cast::transmute(vp)) {
+if !GetPropertyOnPrototype(cx, proxy, id, &mut found, vp as *JSVal) {
   return 0;
 }
 
