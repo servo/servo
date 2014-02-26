@@ -5339,6 +5339,7 @@ class CGBindingRoot(CGThing):
                           'dom::types::*',
                           'dom::bindings::js::JS',
                           'dom::bindings::utils::*',
+                          'dom::bindings::trace::Traceable',
                           'dom::bindings::callback::*',
                           'dom::bindings::conversions::*',
                           'dom::bindings::codegen::*', #XXXjdm
@@ -6353,7 +6354,7 @@ class GlobalGenRoots():
         allprotos = [CGGeneric(declare="#[allow(unused_imports)];\n"),
                      CGGeneric(declare="use dom::types::*;\n"),
                      CGGeneric(declare="use dom::bindings::js::JS;\n"),
-                     CGGeneric(declare="use dom::bindings::utils::Traceable;\n"),
+                     CGGeneric(declare="use dom::bindings::trace::Traceable;\n"),
                      CGGeneric(declare="use extra::serialize::{Encodable, Encoder};\n"),
                      CGGeneric(declare="use js::jsapi::JSTracer;\n\n")]
         for descriptor in descriptors:
