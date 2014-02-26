@@ -84,8 +84,8 @@ impl LineboxScanner {
         self.floats.clone()
     }
 
-    fn reset_scanner(&mut self, flow: &mut InlineFlow) {
-        debug!("Resetting line box scanner's state for flow f{:d}.", flow.base.id);
+    fn reset_scanner(&mut self) {
+        debug!("Resetting line box scanner's state for flow.");
         self.lines = ~[];
         self.new_boxes = ~[];
         self.cur_y = Au::new(0);
@@ -99,7 +99,7 @@ impl LineboxScanner {
     }
 
     pub fn scan_for_lines(&mut self, flow: &mut InlineFlow) {
-        self.reset_scanner(flow);
+        self.reset_scanner();
 
         loop {
             // acquire the next box to lay out from work list or box list
@@ -142,9 +142,8 @@ impl LineboxScanner {
     }
 
     fn swap_out_results(&mut self, flow: &mut InlineFlow) {
-        debug!("LineboxScanner: Propagating scanned lines[n={:u}] to inline flow f{:d}",
-               self.lines.len(),
-               flow.base.id);
+        debug!("LineboxScanner: Propagating scanned lines[n={:u}] to inline flow",
+               self.lines.len());
 
         util::swap(&mut flow.boxes, &mut self.new_boxes);
         util::swap(&mut flow.lines, &mut self.lines);
@@ -466,9 +465,9 @@ pub struct InlineFlow {
 }
 
 impl InlineFlow {
-    pub fn from_boxes(id: int, node: ThreadSafeLayoutNode, boxes: ~[Box]) -> InlineFlow {
+    pub fn from_boxes(node: ThreadSafeLayoutNode, boxes: ~[Box]) -> InlineFlow {
         InlineFlow {
-            base: BaseFlow::new(id, node),
+            base: BaseFlow::new(node),
             boxes: boxes,
             lines: ~[],
             elems: ElementMapping::new(),
@@ -497,9 +496,7 @@ impl InlineFlow {
 
         // TODO(#228): Once we form line boxes and have their cached bounds, we can be smarter and
         // not recurse on a line if nothing in it can intersect the dirty region.
-        debug!("Flow[{:d}]: building display list for {:u} inline boxes",
-               self.base.id,
-               self.boxes.len());
+        debug!("Flow: building display list for {:u} inline boxes", self.boxes.len());
 
         for box_ in self.boxes.iter() {
             let rel_offset: Point2D<Au> = box_.relative_position(container_block_size);
@@ -636,7 +633,7 @@ impl Flow for InlineFlow {
         let mut pref_width = Au::new(0);
 
         for box_ in self.boxes.iter() {
-            debug!("Flow[{:d}]: measuring {:s}", self.base.id, box_.debug_str());
+            debug!("Flow: measuring {:s}", box_.debug_str());
             box_.compute_borders(box_.style());
             let (this_minimum_width, this_preferred_width) =
                 box_.minimum_and_preferred_widths();
@@ -690,7 +687,7 @@ impl Flow for InlineFlow {
     }
 
     fn assign_height(&mut self, _: &mut LayoutContext) {
-        debug!("assign_height_inline: assigning height for flow {}", self.base.id);
+        debug!("assign_height_inline: assigning height for flow");
 
         // Divide the boxes into lines.
         //

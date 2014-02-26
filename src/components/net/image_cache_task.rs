@@ -14,6 +14,7 @@ use std::util::replace;
 use std::result;
 use extra::arc::{Arc,MutexArc};
 use extra::url::Url;
+use extra::serialize::{Encoder, Encodable};
 
 pub enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
@@ -78,6 +79,11 @@ impl Eq for ImageResponseMsg {
 #[deriving(Clone)]
 pub struct ImageCacheTask {
     chan: SharedChan<Msg>,
+}
+
+impl<S: Encoder> Encodable<S> for ImageCacheTask {
+    fn encode(&self, _: &mut S) {
+    }
 }
 
 type DecoderFactory = fn() -> proc(&[u8]) -> Option<Image>;

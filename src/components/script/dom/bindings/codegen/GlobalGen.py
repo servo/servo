@@ -83,12 +83,14 @@ def main():
     # Generate the type list.
     generate_file(config, 'InterfaceTypes', 'declare+define')
 
+    # Generate the type list.
+    generate_file(config, 'InheritTypes', 'declare+define')
+
     # Generate the module declarations.
     generate_file(config, 'BindingDeclarations', 'declare+define')
 
-    #XXXjdm No union support yet
-    #generate_file(config, 'UnionTypes', 'declare')
-    #generate_file(config, 'UnionConversions', 'declare')
+    generate_file(config, 'UnionTypes', 'declare+define')
+    generate_file(config, 'UnionConversions', 'declare+define')
 
 if __name__ == '__main__':
     main()

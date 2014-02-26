@@ -5,11 +5,10 @@
 //! Data needed by the layout task.
 
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-use layout::flow::FlowLeafSet;
 use layout::util::OpaqueNode;
-use layout::wrapper::DomLeafSet;
 
 use extra::arc::{Arc, MutexArc};
+use extra::url::Url;
 use geom::size::Size2D;
 use gfx::font_context::{FontContext, FontContextInfo};
 use green::task::GreenTask;
@@ -17,6 +16,7 @@ use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
+use servo_util::opts::Opts;
 use std::cast;
 use std::ptr;
 use std::rt::Runtime;
@@ -47,14 +47,8 @@ pub struct LayoutContext {
     /// A channel up to the constellation.
     constellation_chan: ConstellationChan,
 
-    /// The set of leaf DOM nodes.
-    dom_leaf_set: Arc<DomLeafSet>,
-
     /// A channel up to the layout task.
     layout_chan: LayoutChan,
-
-    /// The set of leaf flows.
-    flow_leaf_set: Arc<FlowLeafSet>,
 
     /// Information needed to construct a font context.
     font_context_info: FontContextInfo,
@@ -69,18 +63,26 @@ pub struct LayoutContext {
 
     /// The root node at which we're starting the layout.
     reflow_root: OpaqueNode,
+
+    /// The URL.
+    url: Url,
+
+    /// The command line options.
+    opts: Opts,
 }
 
 impl LayoutContext {
     pub fn font_context<'a>(&'a mut self) -> &'a mut FontContext {
         // Sanity check.
-        let mut task = Local::borrow(None::<Task>);
-        match task.get().maybe_take_runtime::<GreenTask>() {
-            Some(green) => {
-                task.get().put_runtime(green as ~Runtime);
-                fail!("can't call this on a green task!")
+        {
+            let mut task = Local::borrow(None::<Task>);
+            match task.get().maybe_take_runtime::<GreenTask>() {
+                Some(green) => {
+                    task.get().put_runtime(green as ~Runtime);
+                    fail!("can't call this on a green task!")
+                }
+                None => {}
             }
-            None => {}
         }
 
         unsafe {

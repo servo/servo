@@ -384,9 +384,9 @@ def_noncontent_horiz!(right, merge_noncontent_inline_right, clear_noncontent_inl
 
 impl Box {
     /// Constructs a new `Box` instance.
-    pub fn new(constructor: &mut FlowConstructor, node: ThreadSafeLayoutNode) -> Box {
+    pub fn new(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> Box {
         Box {
-            node: OpaqueNode::from_thread_safe_layout_node(&node),
+            node: OpaqueNode::from_thread_safe_layout_node(node),
             style: node.style().clone(),
             border_box: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),

@@ -6,15 +6,22 @@
 
 use dom::attr::Attr;
 use dom::attrlist::AttrList;
+use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLImageElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
+use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
-use dom::document::AbstractDocument;
-use dom::node::{AbstractNode, ElementNodeTypeId, Node, NodeIterator};
-use dom::document;
+use dom::document::Document;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::htmlimageelement::HTMLImageElement;
+use dom::htmliframeelement::HTMLIFrameElement;
+use dom::htmlobjectelement::HTMLObjectElement;
+use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator};
 use dom::htmlserializer::serialize;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
@@ -26,15 +33,24 @@ use servo_util::str::{DOMString, null_str_as_empty_ref};
 
 use std::ascii::StrAsciiExt;
 use std::cast;
-use std::unstable::raw::Box;
 
+#[deriving(Encodable)]
 pub struct Element {
     node: Node,
     tag_name: DOMString,     // TODO: This should be an atom, not a DOMString.
     namespace: Namespace,
-    attrs: ~[@mut Attr],
+    attrs: ~[JS<Attr>],
     style_attribute: Option<style::PropertyDeclarationBlock>,
-    attr_list: Option<@mut AttrList>
+    attr_list: Option<JS<AttrList>>
+}
+
+impl ElementDerived for EventTarget {
+    fn is_element(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(_)) => true,
+            _ => false
+        }
+    }
 }
 
 impl Reflectable for Element {
@@ -47,7 +63,7 @@ impl Reflectable for Element {
     }
 }
 
-#[deriving(Eq)]
+#[deriving(Eq,Encodable)]
 pub enum ElementTypeId {
     HTMLElementTypeId,
     HTMLAnchorElementTypeId,
@@ -104,7 +120,6 @@ pub enum ElementTypeId {
     HTMLStyleElementTypeId,
     HTMLTableElementTypeId,
     HTMLTableCaptionElementTypeId,
-    HTMLTableCellElementTypeId,
     HTMLTableDataCellElementTypeId,
     HTMLTableHeaderCellElementTypeId,
     HTMLTableColElementTypeId,
@@ -124,9 +139,8 @@ pub enum ElementTypeId {
 // Element methods
 //
 
-
 impl Element {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, namespace: Namespace, document: AbstractDocument) -> Element {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, namespace: Namespace, document: JS<Document>) -> Element {
         Element {
             node: Node::new_inherited(ElementNodeTypeId(type_id), document),
             tag_name: tag_name,
@@ -138,41 +152,40 @@ impl Element {
     }
 
     pub fn html_element_in_html_document(&self) -> bool {
-        let owner = self.node.owner_doc();
         self.namespace == namespace::HTML &&
-        // FIXME: check that this matches what the spec calls "is in an HTML document"
-        owner.document().doctype == document::HTML
+        self.node.owner_doc().get().is_html_document
     }
 
     pub fn get_attribute(&self,
                          namespace: Namespace,
-                         name: &str) -> Option<@mut Attr> {
+                         name: &str) -> Option<JS<Attr>> {
         self.attrs.iter().find(|attr| {
+            let attr = attr.get();
             name == attr.local_name && attr.namespace == namespace
-        }).map(|&x| x)
+        }).map(|x| x.clone())
     }
 
     #[inline]
     pub unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str)
                                           -> Option<&'static str> {
-        self.attrs.iter().find(|attr: & &@mut Attr| {
+        self.attrs.iter().find(|attr: & &JS<Attr>| {
             // unsafely avoid a borrow because this is accessed by many tasks
             // during parallel layout
-            let attr: ***Box<Attr> = cast::transmute(attr);
-            name == (***attr).data.local_name && (***attr).data.namespace == *namespace
+            let attr: ***Attr = cast::transmute(attr);
+            name == (***attr).local_name && (***attr).namespace == *namespace
        }).map(|attr| {
-            let attr: **Box<Attr> = cast::transmute(attr);
-            cast::transmute((**attr).data.value.as_slice())
+            let attr: **Attr = cast::transmute(attr);
+            cast::transmute((**attr).value.as_slice())
         })
     }
 
-    pub fn set_attr(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
+    pub fn set_attr(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString)
                     -> ErrorResult {
         self.set_attribute(abstract_self, namespace::Null, name, value)
     }
 
     pub fn set_attribute(&mut self,
-                         abstract_self: AbstractNode,
+                         abstract_self: &JS<Element>,
                          namespace: Namespace,
                          name: DOMString,
                          value: DOMString) -> ErrorResult {
@@ -192,7 +205,8 @@ impl Element {
 
         // FIXME: reduce the time of `value.clone()`.
         let mut old_raw_value: Option<DOMString> = None;
-        for attr in self.attrs.iter() {
+        for attr in self.attrs.mut_iter() {
+            let attr = attr.get_mut();
             if attr.local_name == local_name {
                 old_raw_value = Some(attr.set_value(value.clone()));
                 break;
@@ -200,8 +214,9 @@ impl Element {
         }
 
         if old_raw_value.is_none() {
-            let win = self.node.owner_doc().document().window;
-            let new_attr = Attr::new_ns(win, local_name.clone(), value.clone(),
+            let doc = self.node.owner_doc();
+            let doc = doc.get();
+            let new_attr = Attr::new_ns(doc.window.get(), local_name.clone(), value.clone(),
                                         name.clone(), namespace.clone(),
                                         prefix);
             self.attrs.push(new_attr);
@@ -214,7 +229,7 @@ impl Element {
     }
 
     fn after_set_attr(&mut self,
-                      abstract_self: AbstractNode,
+                      abstract_self: &JS<Element>,
                       local_name: DOMString,
                       value: DOMString,
                       old_value: Option<DOMString>) {
@@ -222,36 +237,36 @@ impl Element {
         match local_name.as_slice() {
             "style" => {
                 let doc = self.node.owner_doc();
-                let base_url = doc.document().url.clone();
+                let base_url = doc.get().extra.url.clone();
                 self.style_attribute = Some(style::parse_style_attribute(value, &base_url))
             }
-            "id" if abstract_self.is_in_doc() => {
-                // XXX: this dual declaration are workaround to avoid the compile error:
-                // "borrowed value does not live long enough"
-                let doc = self.node.owner_doc();
-                let doc = doc.mut_document();
-                doc.update_idmap(abstract_self, Some(value.clone()), old_value);
+            "id" => {
+                let self_node: JS<Node> = NodeCast::from(abstract_self);
+                if self_node.is_in_doc() {
+                    // XXX: this dual declaration are workaround to avoid the compile error:
+                    // "borrowed value does not live long enough"
+                    let mut doc = self.node.owner_doc();
+                    let doc = doc.get_mut();
+                    doc.update_idmap(abstract_self, Some(value.clone()), old_value);
+                }
             }
             _ => ()
         }
 
         //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
         //       This hardcoding is awful.
-        match abstract_self.type_id() {
+        match abstract_self.get().node.type_id {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
-                abstract_self.with_mut_image_element(|image| {
-                    image.AfterSetAttr(local_name.clone(), value.clone());
-                });
+                let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self);
+                elem.get_mut().AfterSetAttr(local_name.clone(), value.clone());
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => {
-                abstract_self.with_mut_iframe_element(|iframe| {
-                    iframe.AfterSetAttr(local_name.clone(), value.clone());
-                });
+                let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self);
+                elem.get_mut().AfterSetAttr(local_name.clone(), value.clone());
             }
             ElementNodeTypeId(HTMLObjectElementTypeId) => {
-                abstract_self.with_mut_object_element(|object| {
-                    object.AfterSetAttr(local_name.clone(), value.clone());
-                });
+                let mut elem: JS<HTMLObjectElement> = HTMLObjectElementCast::to(abstract_self);
+                elem.get_mut().AfterSetAttr(local_name.clone(), value.clone());
             }
             _ => ()
         }
@@ -260,22 +275,22 @@ impl Element {
     }
 
     pub fn remove_attribute(&mut self,
-                            abstract_self: AbstractNode,
+                            abstract_self: &JS<Element>,
                             namespace: Namespace,
                             name: DOMString) -> ErrorResult {
         let (_, local_name) = get_attribute_parts(name.clone());
 
         self.node.wait_until_safe_to_modify_dom();
 
-        let idx = self.attrs.iter().position(|attr: &@mut Attr| -> bool {
-            attr.local_name == local_name
+        let idx = self.attrs.iter().position(|attr: &JS<Attr>| -> bool {
+            attr.get().local_name == local_name
         });
 
         match idx {
             None => (),
             Some(idx) => {
                 let removed = self.attrs.remove(idx);
-                let removed_raw_value = Some(removed.Value());
+                let removed_raw_value = Some(removed.get().Value());
 
                 if namespace == namespace::Null {
                     self.after_remove_attr(abstract_self, local_name, removed_raw_value);
@@ -287,35 +302,36 @@ impl Element {
     }
 
     fn after_remove_attr(&mut self,
-                         abstract_self: AbstractNode,
+                         abstract_self: &JS<Element>,
                          local_name: DOMString,
                          old_value: Option<DOMString>) {
         match local_name.as_slice() {
             "style" => {
                 self.style_attribute = None
             }
-            "id" if abstract_self.is_in_doc() => {
-                // XXX: this dual declaration are workaround to avoid the compile error:
-                // "borrowed value does not live long enough"
-                let doc = self.node.owner_doc();
-                let doc = doc.mut_document();
-                doc.update_idmap(abstract_self, None, old_value);
+            "id" => {
+                let self_node: JS<Node> = NodeCast::from(abstract_self);
+                if self_node.is_in_doc() {
+                    // XXX: this dual declaration are workaround to avoid the compile error:
+                    // "borrowed value does not live long enough"
+                    let mut doc = self.node.owner_doc();
+                    let doc = doc.get_mut();
+                    doc.update_idmap(abstract_self, None, old_value);
+                }
             }
             _ => ()
         }
 
         //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
         //       This hardcoding is awful.
-        match abstract_self.type_id() {
+        match abstract_self.get().node.type_id {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
-                abstract_self.with_mut_image_element(|image| {
-                    image.AfterRemoveAttr(local_name.clone());
-                });
+                let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self);
+                elem.get_mut().AfterRemoveAttr(local_name.clone());
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => {
-                abstract_self.with_mut_iframe_element(|iframe| {
-                    iframe.AfterRemoveAttr(local_name.clone());
-                });
+                let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self);
+                elem.get_mut().AfterRemoveAttr(local_name.clone());
             }
             _ => ()
         }
@@ -324,15 +340,16 @@ impl Element {
     }
 
     fn notify_attribute_changed(&self,
-                                abstract_self: AbstractNode,
+                                abstract_self: &JS<Element>,
                                 local_name: DOMString) {
-        if abstract_self.is_in_doc() {
+        let node: JS<Node> = NodeCast::from(abstract_self);
+        if node.is_in_doc() {
             let damage = match local_name.as_slice() {
                 "style" | "id" | "class" => MatchSelectorsDocumentDamage,
                 _ => ContentChangedDocumentDamage
             };
             let document = self.node.owner_doc();
-            document.document().damage_and_reflow(damage);
+            document.get().damage_and_reflow(damage);
         }
     }
 
@@ -357,18 +374,18 @@ impl Element {
         // XXX Resolve URL.
         self.get_string_attribute(name)
     }
-    pub fn set_url_attribute(&mut self, abstract_self: AbstractNode,
+    pub fn set_url_attribute(&mut self, abstract_self: &JS<Element>,
                              name: &str, value: DOMString) {
         self.set_string_attribute(abstract_self, name, value);
     }
 
     pub fn get_string_attribute(&self, name: &str) -> DOMString {
         match self.get_attribute(Null, name) {
-            Some(x) => x.Value(),
+            Some(x) => x.get().Value(),
             None => ~""
         }
     }
-    pub fn set_string_attribute(&mut self, abstract_self: AbstractNode,
+    pub fn set_string_attribute(&mut self, abstract_self: &JS<Element>,
                                 name: &str, value: DOMString) {
         assert!(name == name.to_ascii_lower());
         self.set_attribute(abstract_self, Null, name.to_owned(), value);
@@ -382,25 +399,26 @@ impl Element {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-id
-    pub fn Id(&self, _abstract_self: AbstractNode) -> DOMString {
+    pub fn Id(&self, _abstract_self: &JS<Element>) -> DOMString {
         self.get_string_attribute("id")
     }
 
     // http://dom.spec.whatwg.org/#dom-element-id
-    pub fn SetId(&mut self, abstract_self: AbstractNode, id: DOMString) {
+    pub fn SetId(&mut self, abstract_self: &JS<Element>, id: DOMString) {
         self.set_string_attribute(abstract_self, "id", id);
     }
 
     // http://dom.spec.whatwg.org/#dom-element-attributes
-    pub fn Attributes(&mut self, abstract_self: AbstractNode) -> @mut AttrList {
+    pub fn Attributes(&mut self, abstract_self: &JS<Element>) -> JS<AttrList> {
         match self.attr_list {
             None => {
-                let window = self.node.owner_doc().document().window;
-                let list = AttrList::new(window, abstract_self);
-                self.attr_list = Some(list);
+                let doc = self.node.owner_doc();
+                let doc = doc.get();
+                let list = AttrList::new(&doc.window, abstract_self);
+                self.attr_list = Some(list.clone());
                 list
             }
-            Some(list) => list
+            Some(ref list) => list.clone()
         }
     }
 
@@ -411,18 +429,18 @@ impl Element {
         } else {
             name
         };
-        self.get_attribute(Null, name).map(|s| s.Value())
+        self.get_attribute(Null, name).map(|s| s.get().Value())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getattributens
     pub fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString> {
         let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
         self.get_attribute(namespace, local_name)
-            .map(|attr| attr.value.clone())
+            .map(|attr| attr.get().value.clone())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-setattribute
-    pub fn SetAttribute(&mut self, abstract_self: AbstractNode, name: DOMString, value: DOMString)
+    pub fn SetAttribute(&mut self, abstract_self: &JS<Element>, name: DOMString, value: DOMString)
                         -> ErrorResult {
         // FIXME: If name does not match the Name production in XML, throw an "InvalidCharacterError" exception.
         let name = if self.html_element_in_html_document() {
@@ -435,7 +453,7 @@ impl Element {
 
     // http://dom.spec.whatwg.org/#dom-element-setattributens
     pub fn SetAttributeNS(&mut self,
-                          abstract_self: AbstractNode,
+                          abstract_self: &JS<Element>,
                           namespace_url: Option<DOMString>,
                           name: DOMString,
                           value: DOMString) -> ErrorResult {
@@ -452,7 +470,7 @@ impl Element {
 
     // http://dom.spec.whatwg.org/#dom-element-removeattribute
     pub fn RemoveAttribute(&mut self,
-                           abstract_self: AbstractNode,
+                           abstract_self: &JS<Element>,
                            name: DOMString) -> ErrorResult {
         let name = if self.html_element_in_html_document() {
             name.to_ascii_lower()
@@ -464,7 +482,7 @@ impl Element {
 
     // http://dom.spec.whatwg.org/#dom-element-removeattributens
     pub fn RemoveAttributeNS(&mut self,
-                             abstract_self: AbstractNode,
+                             abstract_self: &JS<Element>,
                              namespace: Option<DOMString>,
                              localname: DOMString) -> ErrorResult {
         let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
@@ -482,21 +500,24 @@ impl Element {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getelementsbytagname
-    pub fn GetElementsByTagName(&self, _localname: DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByTagName(&self, _localname: DOMString) -> JS<HTMLCollection> {
         // FIXME: stub - https://github.com/mozilla/servo/issues/1660
-        HTMLCollection::new(self.node.owner_doc().document().window, ~[])
+        let doc = self.node.owner_doc();
+        HTMLCollection::new(&doc.get().window, ~[])
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
-    pub fn GetElementsByTagNameNS(&self, _namespace: Option<DOMString>, _localname: DOMString) -> Fallible<@mut HTMLCollection> {
+    pub fn GetElementsByTagNameNS(&self, _namespace: Option<DOMString>, _localname: DOMString) -> Fallible<JS<HTMLCollection>> {
         // FIXME: stub - https://github.com/mozilla/servo/issues/1660
-        Ok(HTMLCollection::new(self.node.owner_doc().document().window, ~[]))
+        let doc = self.node.owner_doc();
+        Ok(HTMLCollection::new(&doc.get().window, ~[]))
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
-    pub fn GetElementsByClassName(&self, _names: DOMString) -> @mut HTMLCollection {
+    pub fn GetElementsByClassName(&self, _names: DOMString) -> JS<HTMLCollection> {
         // FIXME: stub - https://github.com/mozilla/servo/issues/1660
-        HTMLCollection::new(self.node.owner_doc().document().window, ~[])
+        let doc = self.node.owner_doc();
+        HTMLCollection::new(&doc.get().window, ~[])
     }
 
     // http://dom.spec.whatwg.org/#dom-element-matches
@@ -517,13 +538,14 @@ impl Element {
     pub fn MozRequestPointerLock(&self) {
     }
 
-    pub fn GetClientRects(&self, abstract_self: AbstractNode) -> @mut ClientRectList {
-        let win = self.node.owner_doc().document().window;
-        let node = abstract_self;
-        assert!(node.is_element());
+    pub fn GetClientRects(&self, abstract_self: &JS<Element>) -> JS<ClientRectList> {
+        let doc = self.node.owner_doc();
+        let win = &doc.get().window;
+        let node: JS<Node> = NodeCast::from(abstract_self);
         let (port, chan) = Chan::new();
+        let addr = node.to_trusted_node_address();
         let rects =
-            match win.page.query_layout(ContentBoxesQuery(node, chan), port) {
+            match win.get().page.query_layout(ContentBoxesQuery(addr, chan), port) {
                 ContentBoxesResponse(rects) => {
                     rects.map(|r| {
                         ClientRect::new(
@@ -539,12 +561,13 @@ impl Element {
         ClientRectList::new(win, rects)
     }
 
-    pub fn GetBoundingClientRect(&self, abstract_self: AbstractNode) -> @mut ClientRect {
-        let win = self.node.owner_doc().document().window;
-        let node = abstract_self;
-        assert!(node.is_element());
+    pub fn GetBoundingClientRect(&self, abstract_self: &JS<Element>) -> JS<ClientRect> {
+        let doc = self.node.owner_doc();
+        let win = &doc.get().window;
+        let node: JS<Node> = NodeCast::from(abstract_self);
         let (port, chan) = Chan::new();
-        match win.page.query_layout(ContentBoxQuery(node, chan), port) {
+        let addr = node.to_trusted_node_address();
+        match win.get().page.query_layout(ContentBoxQuery(addr, chan), port) {
             ContentBoxResponse(rect) => {
                 ClientRect::new(
                     win,
@@ -597,20 +620,20 @@ impl Element {
         0
     }
 
-    pub fn GetInnerHTML(&self, abstract_self: AbstractNode) -> Fallible<DOMString> {
+    pub fn GetInnerHTML(&self, abstract_self: &JS<Element>) -> Fallible<DOMString> {
         //XXX TODO: XML case
-        Ok(serialize(&mut NodeIterator::new(abstract_self, false, false)))
+        Ok(serialize(&mut NodeIterator::new(NodeCast::from(abstract_self), false, false)))
     }
 
-    pub fn SetInnerHTML(&mut self, _abstract_self: AbstractNode, _value: DOMString) -> ErrorResult {
+    pub fn SetInnerHTML(&mut self, _abstract_self: &JS<Element>, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetOuterHTML(&self, abstract_self:AbstractNode) -> Fallible<DOMString> {
-        Ok(serialize(&mut NodeIterator::new(abstract_self, true, false)))
+    pub fn GetOuterHTML(&self, abstract_self: &JS<Element>) -> Fallible<DOMString> {
+        Ok(serialize(&mut NodeIterator::new(NodeCast::from(abstract_self), true, false)))
     }
 
-    pub fn SetOuterHTML(&mut self, _abstract_self: AbstractNode, _value: DOMString) -> ErrorResult {
+    pub fn SetOuterHTML(&mut self, _abstract_self: &JS<Element>, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
@@ -618,7 +641,7 @@ impl Element {
         Ok(())
     }
 
-    pub fn QuerySelector(&self, _selectors: DOMString) -> Fallible<Option<AbstractNode>> {
+    pub fn QuerySelector(&self, _selectors: DOMString) -> Fallible<Option<JS<Element>>> {
         Ok(None)
     }
 }

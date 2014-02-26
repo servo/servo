@@ -3,25 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLUnknownElementBinding;
-use dom::document::AbstractDocument;
+use dom::bindings::codegen::InheritTypes::HTMLUnknownElementDerived;
+use dom::bindings::js::JS;
+use dom::document::Document;
 use dom::element::HTMLUnknownElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLUnknownElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLUnknownElementDerived for EventTarget {
+    fn is_htmlunknownelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLUnknownElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLUnknownElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLUnknownElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLUnknownElement {
         HTMLUnknownElement {
             htmlelement: HTMLElement::new_inherited(HTMLUnknownElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLUnknownElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLUnknownElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLUnknownElement> {
+        let element = HTMLUnknownElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLUnknownElementBinding::Wrap)
     }
 }

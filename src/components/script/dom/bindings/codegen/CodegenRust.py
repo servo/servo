@@ -92,9 +92,13 @@ class CastableObjectUnwrapper():
 
     codeOnFailure is the code to run if unwrapping fails.
     """
-    def __init__(self, descriptor, source, target, codeOnFailure, isOptional=False):
+    def __init__(self, descriptor, source, target, codeOnFailure, isOptional=False,
+                 preUnwrapped=None, postUnwrapped=None):
         assert descriptor.castable
 
+        unwrappedVal = "val"
+        if preUnwrapped or postUnwrapped:
+            unwrappedVal = preUnwrapped + unwrappedVal + postUnwrapped
         self.substitution = { "type" : descriptor.nativeType,
                               "depth": descriptor.interface.inheritanceDepth(),
                               "prototype": "PrototypeList::id::" + descriptor.name,
@@ -102,7 +106,8 @@ class CastableObjectUnwrapper():
                               "source" : source,
                               "target" : target,
                               "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define(),
-                              "unwrapped_val" : "Some(val)" if isOptional else "val" }
+                              "unwrapped_val" : ("Some(%s)" % unwrappedVal) if isOptional else unwrappedVal,
+                              "unwrapFn": "unwrap_jsmanaged" if 'JS' in descriptor.nativeType else "unwrap_object"}
         if descriptor.hasXPConnectImpls:
             # We don't use xpc_qsUnwrapThis because it will always throw on
             # unwrap failure, whereas we want to control whether we throw or
@@ -123,7 +128,7 @@ class CastableObjectUnwrapper():
 
     def __str__(self):
         return string.Template(
-"""match unwrap_object(${source}, ${prototype}, ${depth}) {
+"""match ${unwrapFn}(${source}, ${prototype}, ${depth}) {
   Ok(val) => ${target} = ${unwrapped_val},
   Err(()) => {
     ${codeOnFailure}
@@ -406,8 +411,7 @@ class FakeCastableDescriptor():
     def __init__(self, descriptor):
         self.castable = True
         self.workers = descriptor.workers
-        self.nativeType = descriptor.nativeType
-        self.pointerType = descriptor.pointerType
+        self.nativeType = "*Box<%s>" % descriptor.concreteType
         self.name = descriptor.name
         self.hasXPConnectImpls = descriptor.hasXPConnectImpls
         class FakeInterface:
@@ -447,7 +451,9 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isClamp=False,
                                     exceptionCode=None,
                                     isCallbackReturnValue=False,
-                                    sourceDescription="value"):
+                                    sourceDescription="value",
+                                    preSuccess=None,
+                                    postSuccess=None):
     """
     Get a template for converting a JS value to a native object based on the
     given type and descriptor.  If failureCode is given, then we're actually
@@ -706,8 +712,8 @@ for (uint32_t i = 0; i < length; ++i) {
                (isinstance(defaultValue, IDLNullValue) and nullable))
 
         unionArgumentObj = "${holderName}"
-        if isOptional or nullable:
-            unionArgumentObj += ".ref()"
+        #if isOptional or nullable:
+        #    unionArgumentObj += ".get_mut_ref()"
 
         memberTypes = type.flatMemberTypes
         names = []
@@ -720,7 +726,7 @@ for (uint32_t i = 0; i < length; ++i) {
                     name = memberType.inner.identifier.name
                 else:
                     name = memberType.name
-                interfaceObject.append(CGGeneric("(failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext" % (unionArgumentObj, name)))
+                interfaceObject.append(CGGeneric("{res = %s.TrySetTo%s(cx, ${val}, ${valPtr}); res.is_err() || !res.unwrap()}" % (unionArgumentObj, name)))
                 names.append(name)
             interfaceObject = CGWrapper(CGList(interfaceObject, " ||\n"), pre="done = ", post=";\n", reindent=True)
         else:
@@ -731,7 +737,7 @@ for (uint32_t i = 0; i < length; ++i) {
             assert len(arrayObjectMemberTypes) == 1
             memberType = arrayObjectMemberTypes[0]
             name = memberType.name
-            arrayObject = CGGeneric("done = (failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext;" % (unionArgumentObj, name))
+            arrayObject = CGGeneric("done = {res = %s.TrySetTo%s(cx, ${val}, ${valPtr}); res.is_err() || !res.unwrap()};" % (unionArgumentObj, name))
             # XXX Now we're supposed to check for an array or a platform object
             # that supports indexed properties... skip that last for now. It's a
             # bit of a pain.
@@ -761,7 +767,7 @@ for (uint32_t i = 0; i < length; ++i) {
             assert len(callbackMemberTypes) == 1
             memberType = callbackMemberTypes[0]
             name = memberType.name
-            callbackObject = CGGeneric("done = (failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext;" % (unionArgumentObj, name))
+            callbackObject = CGGeneric("done = {res = %s.TrySetTo%s(cx, ${val}, ${valPtr}); res.is_err() || !res.unwrap()};" % (unionArgumentObj, name))
             names.append(name)
         else:
             callbackObject = None
@@ -816,7 +822,7 @@ for (uint32_t i = 0; i < length; ++i) {
             if any([arrayObject, dateObject, nonPlatformObject, object]):
                 templateBody.prepend(CGGeneric("JSObject& argObj = ${val}.toObject();"))
             templateBody = CGWrapper(CGIndenter(templateBody),
-                                     pre="if (${val}.isObject()) {\n",
+                                     pre="if JSVAL_IS_OBJECT(${val}) {\n",
                                      post="\n}")
         else:
             templateBody = CGGeneric()
@@ -831,7 +837,7 @@ for (uint32_t i = 0; i < length; ++i) {
                 name = memberType.inner.identifier.name
             else:
                 name = memberType.name
-            other = CGGeneric("done = (failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext;" % (unionArgumentObj, name))
+            other = CGGeneric("done = {res = %s.TrySetTo%s(cx, ${val}, ${valPtr}); res.is_err() || !res.unwrap()};" % (unionArgumentObj, name))
             names.append(name)
             if hasObjectTypes:
                 other = CGWrapper(CGIndenter(other), "{\n", post="\n}")
@@ -844,28 +850,25 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             other = None
 
-        templateBody = CGWrapper(templateBody, pre="bool done = false, failed = false, tryNext;\n")
-        throw = CGGeneric("if (failed) {\n"
-                          "  return false;\n"
+        templateBody = CGWrapper(templateBody, pre="let mut done = false;\n"
+                                 "let mut res = Ok(true);\n")
+        throw = CGGeneric("if res.is_err() {\n"
+                          "  return 0;\n"
                           "}\n"
-                          "if (!done) {\n"
-                          "  return ThrowErrorMessage(cx, MSG_NOT_IN_UNION, \"%s\");\n"
+                          "if !done {\n"
+                          "  return throw_not_in_union(cx, \"%s\");\n"
                           "}" % ", ".join(names))
         templateBody = CGWrapper(CGIndenter(CGList([templateBody, throw], "\n")), pre="{\n", post="\n}")
 
         typeName = type.name
         argumentTypeName = typeName + "Argument"
         if nullable:
-            typeName = "Nullable<" + typeName + " >"
-        if isOptional:
-            nonConstDecl = "const_cast<Optional<" + typeName + " >& >(${declName})"
-        else:
-            nonConstDecl = "const_cast<" + typeName + "& >(${declName})"
-            typeName = "const " + typeName
+            typeName = "Option<" + typeName + " >"
+        nonConstDecl = "${declName}"
 
         def handleNull(templateBody, setToNullVar, extraConditionForNull=""):
-            null = CGGeneric("if (%s${val}.isNullOrUndefined()) {\n"
-                             "  %s.SetNull();\n"
+            null = CGGeneric("if %s(RUST_JSVAL_IS_NULL(${val}) != 0 || RUST_JSVAL_IS_VOID(${val}) != 0) {\n"
+                             "  %s = None;\n"
                              "}" % (extraConditionForNull, setToNullVar))
             templateBody = CGWrapper(CGIndenter(templateBody), pre="{\n", post="\n}")
             return CGList([null, templateBody], " else ")
@@ -878,21 +881,24 @@ for (uint32_t i = 0; i < length; ++i) {
         if isOptional:
             mutableDecl = nonConstDecl + ".Value()"
             declType = CGWrapper(declType, pre="const Optional<", post=" >")
-            holderType = CGWrapper(holderType, pre="Maybe<", post=" >")
+            holderType = CGWrapper(holderType, pre="Option<", post=" >")
             constructDecl = CGGeneric(nonConstDecl + ".Construct();")
             if nullable:
-                constructHolder = CGGeneric("${holderName}.construct(%s.SetValue());" % mutableDecl)
+                constructHolder = CGGeneric("${holderName} = Some(%s.SetValue());" % mutableDecl)
             else:
-                constructHolder = CGGeneric("${holderName}.construct(${declName}.Value());")
+                constructHolder = CGGeneric("${holderName} = Some(${declName}.Value());")
         else:
             mutableDecl = nonConstDecl
             constructDecl = None
+            holderInit = "${declName}"
             if nullable:
-                holderType = CGWrapper(holderType, pre="Maybe<", post=" >")
-                constructHolder = CGGeneric("${holderName}.construct(%s.SetValue());" % mutableDecl)
+                holderInit += ".get_mut_ref()"
             else:
-                constructHolder = CGWrapper(holderType, post=" ${holderName}(${declName});")
-                holderType = None
+                holderInit = "&mut " + holderInit
+            constructHolder = CGWrapper(holderType, pre="let mut ${holderName} = ", post="::new(" + holderInit + ");")
+            if nullable:
+                constructHolder = CGWrapper(constructHolder, pre="${declName} = Some(uninit());\n")
+            holderType = None
 
         templateBody = CGList([constructHolder, templateBody], "\n")
         if nullable:
@@ -903,9 +909,10 @@ for (uint32_t i = 0; i < length; ++i) {
                 valueMissing = ""
             templateBody = handleNull(templateBody, mutableDecl,
                                       extraConditionForNull=valueMissing)
-        templateBody = CGList([constructDecl, templateBody], "\n")
+        templateBody = CGWrapper(CGIndenter(CGList([constructDecl, templateBody], "\n")),
+                                 pre="{\n", post="\n}")
 
-        return templateBody.define(), declType, holderType, False, None
+        return templateBody.define(), declType, holderType, False, "uninit()" if not nullable else None
 
     if type.isGeckoInterface():
         assert not isEnforceRange and not isClamp
@@ -934,8 +941,7 @@ for (uint32_t i = 0; i < length; ++i) {
         forceOwningType = (descriptor.interface.isCallback() and
                            not descriptor.workers) or isMember
 
-        typeName = descriptor.nativeType
-        typePtr = descriptor.pointerType + typeName
+        typePtr = descriptor.nativeType
 
         # Compute a few things:
         #  - declType is the type we want to return as the first element of our
@@ -969,7 +975,8 @@ for (uint32_t i = 0; i < length; ++i) {
                         "JSVAL_TO_OBJECT(${val})",
                         "${declName}",
                         failureCode,
-                        isOptional or argIsPointer or type.nullable()))
+                        isOptional or argIsPointer or type.nullable(),
+                        preUnwrapped=preSuccess, postUnwrapped=postSuccess))
             else:
                 templateBody += str(FailureFatalCastableObjectUnwrapper(
                         descriptor,
@@ -1255,32 +1262,41 @@ for (uint32_t i = 0; i < length; ++i) {
     elif isClamp:
         conversionBehavior = "eClamp"
 
+    if failureCode is None:
+        failureCode = 'return 0'
+
     if type.nullable():
         dataLoc = "${declName}.SetValue()"
         nullCondition = "(RUST_JSVAL_IS_NULL(${val}) != 0 || RUST_JSVAL_IS_VOID(${val}) != 0)"
         if defaultValue is not None and isinstance(defaultValue, IDLNullValue):
             nullCondition = "!(${haveValue}) || " + nullCondition
+        successVal = "val_"
+        if preSuccess or postSuccess:
+            successVal = preSuccess + successVal + postSuccess
         #XXXjdm support conversionBehavior here
         template = (
             "if (%s) {\n"
             "  ${declName} = None;\n"
             "} else {\n"
             "  match JSValConvertible::from_jsval(${val}) {\n"
-            "    Some(val_) => ${declName} = Some(val_),\n"
-            "    None => return 0\n"
+            "    Some(val_) => ${declName} = Some(%s),\n"
+            "    None => %s\n"
             "  }\n"
-           "}" % nullCondition)
+           "}" % (nullCondition, successVal, failureCode))
         declType = CGGeneric("Option<" + typeName + ">")
     else:
         assert(defaultValue is None or
                not isinstance(defaultValue, IDLNullValue))
         dataLoc = "${declName}"
         #XXXjdm conversionBehavior should be used
+        successVal = "v"
+        if preSuccess or postSuccess:
+            successVal = preSuccess + successVal + postSuccess
         template = (
             "match JSValConvertible::from_jsval(${val}) {\n"
-            "  None => return 0,\n"
-            "  Some(v) => %s = v\n"
-            "}" % (dataLoc,))
+            "  None => %s,\n"
+            "  Some(v) => %s = %s\n"
+            "}" % (failureCode, dataLoc, successVal))
         declType = CGGeneric(typeName)
     if (defaultValue is not None and
         # We already handled IDLNullValue, so just deal with the other ones
@@ -1730,9 +1746,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
             returnType.unroll().inner.identifier.name)
         result = CGGeneric(descriptor.nativeType)
         if returnType.nullable():
-            result = CGWrapper(result, pre=("Option<" + descriptor.pointerType), post=">")
-        else:
-            result = CGWrapper(result, pre=descriptor.pointerType)
+            result = CGWrapper(result, pre="Option<", post=">")
         return result, False
     if returnType.isCallback():
         # XXXbz we're going to assume that callback types are always
@@ -2388,6 +2402,112 @@ class CGGeneric(CGThing):
     def define(self):
         return self.defineText
 
+def getTypes(descriptor):
+    """
+    Get all argument and return types for all members of the descriptor
+    """
+    members = [m for m in descriptor.interface.members]
+    if descriptor.interface.ctor():
+        members.append(descriptor.interface.ctor())
+    signatures = [s for m in members if m.isMethod() for s in m.signatures()]
+    types = []
+    for s in signatures:
+        assert len(s) == 2
+        (returnType, arguments) = s
+        types.append(returnType)
+        types.extend([a.type for a in arguments])
+
+    types.extend(a.type for a in members if a.isAttr())
+    return types
+
+def SortedTuples(l):
+    """
+    Sort a list of tuples based on the first item in the tuple
+    """
+    return sorted(l, key=operator.itemgetter(0))
+
+def SortedDictValues(d):
+    """
+    Returns a list of values from the dict sorted by key.
+    """
+    # Create a list of tuples containing key and value, sorted on key.
+    d = SortedTuples(d.items())
+    # We're only interested in the values.
+    return (i[1] for i in d)
+
+def UnionTypes(descriptors):
+    """
+    Returns a tuple containing a set of header filenames to include, a set of
+    tuples containing a type declaration and a boolean if the type is a struct
+    for member types of the unions and a CGList containing CGUnionStructs for
+    every union.
+    """
+
+    # Now find all the things we'll need as arguments and return values because
+    # we need to wrap or unwrap them.
+    headers = set()
+    declarations = set()
+    unionStructs = dict()
+    for d in descriptors:
+        if d.interface.isExternal():
+            continue
+
+        for t in getTypes(d):
+            t = t.unroll()
+            if t.isUnion():
+                name = str(t)
+                if not name in unionStructs:
+                    unionStructs[name] = CGUnionStruct(t, d)
+                    for f in t.flatMemberTypes:
+                        f = f.unroll()
+                        if f.isInterface():
+                            if f.isSpiderMonkeyInterface():
+                                headers.add("jsfriendapi.h")
+                                headers.add("mozilla/dom/TypedArray.h")
+                            else:
+                                typeDesc = d.getDescriptor(f.inner.identifier.name)
+                                if typeDesc is not None:
+                                    declarations.add((typeDesc.nativeType, False))
+                        elif f.isDictionary():
+                            declarations.add((f.inner.identifier.name, True))
+
+    return (headers, declarations, CGList(SortedDictValues(unionStructs), "\n"))
+
+def UnionConversions(descriptors):
+    """
+    Returns a CGThing to declare all union argument conversion helper structs.
+    """
+    # Now find all the things we'll need as arguments because we
+    # need to unwrap them.
+    unionConversions = dict()
+    for d in descriptors:
+        if d.interface.isExternal():
+            continue
+
+        def addUnionTypes(type):
+            if type.isUnion():
+                type = type.unroll()
+                name = str(type)
+                if not name in unionConversions:
+                    unionConversions[name] = CGUnionConversionStruct(type, d)
+
+        members = [m for m in d.interface.members]
+        if d.interface.ctor():
+            members.append(d.interface.ctor())
+        signatures = [s for m in members if m.isMethod() for s in m.signatures()]
+        for s in signatures:
+            assert len(s) == 2
+            (_, arguments) = s
+            for a in arguments:
+                addUnionTypes(a.type)
+
+        for m in members:
+            if m.isAttr() and not m.readonly:
+                addUnionTypes(m.type)
+
+    return CGWrapper(CGList(SortedDictValues(unionConversions), "\n"),
+                     post="\n\n")
+
 class Argument():
     """
     A class for outputting the type and name of an argument
@@ -2497,33 +2617,40 @@ class CGAbstractMethod(CGThing):
     def definition_body(self):
         assert(False) # Override me!
 
+def DOMObjectPointerType(descriptor):
+    return "~"
+
+def DOMObjectPointerArg(descriptor):
+    return DOMObjectPointerType(descriptor) + descriptor.concreteType
+
 def CreateBindingJSObject(descriptor, parent=None):
+    create = "  let raw: *mut %s = &mut *aObject;\n" % descriptor.concreteType;
     if descriptor.proxy:
         assert not descriptor.createGlobal
         handler = """
   let page = page_from_context(aCx);
   let handler = (*page).js_info.get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
-        create = handler + """  let obj = NewProxyObject(aCx, *handler,
-                           ptr::to_unsafe_ptr(&RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void)),
+        create += handler + """  let obj = NewProxyObject(aCx, *handler,
+                           ptr::to_unsafe_ptr(&RUST_PRIVATE_TO_JSVAL(squirrel_away_unique(aObject) as *libc::c_void)),
                            proto, %s,
                            ptr::null(), ptr::null());
   if obj.is_null() {
     return ptr::null();
   }
 
-""" % parent
+""" % (parent)
     else:
         if descriptor.createGlobal:
-            create = "  let obj = CreateDOMGlobal(aCx, &Class.base);\n"
+            create += "  let obj = CreateDOMGlobal(aCx, &Class.base);\n"
         else:
-            create = "  let obj = JS_NewObject(aCx, &Class.base, proto, %s);\n" % parent
+            create += "  let obj = JS_NewObject(aCx, &Class.base, proto, %s);\n" % parent
         create += """  if obj.is_null() {
     return ptr::null();
   }
 
   JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                     RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void));
+                     RUST_PRIVATE_TO_JSVAL(squirrel_away_unique(aObject) as *libc::c_void));
 """
     return create
 
@@ -2531,7 +2658,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('@mut ' + descriptor.concreteType, 'aObject')]
+                Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap_', '*JSObject', args)
 
     def definition_body(self):
@@ -2548,20 +2675,20 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
   if proto.is_null() {
     return ptr::null();
   }
+
 %s
 
-  //NS_ADDREF(aObject);
+  (*raw).mut_reflector().set_jsobject(obj);
 
-  aObject.mut_reflector().set_jsobject(obj);
-
-  return obj;""" % (CreateBindingJSObject(self.descriptor, "aScope"))
+  return obj;""" % CreateBindingJSObject(self.descriptor, "aScope")
         else:
             return """
   assert!(aScope.is_null());
+
 %s
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);
-  aObject.mut_reflector().set_jsobject(obj);
+  (*raw).mut_reflector().set_jsobject(obj);
   return obj;""" % CreateBindingJSObject(self.descriptor)
 
 class CGWrapMethod(CGAbstractMethod):
@@ -2569,7 +2696,7 @@ class CGWrapMethod(CGAbstractMethod):
         # XXX can we wrap if we don't have an interface prototype object?
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('@mut ' + descriptor.concreteType, 'aObject')]
+                Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, inline=True, pub=True)
 
     def definition_body(self):
@@ -2961,7 +3088,11 @@ class CGCallGenerator(CGThing):
             if a.type.isObject() and not a.type.nullable() and not a.optional:
                 name = "(JSObject&)" + name
             #XXXjdm Perhaps we should pass all nontrivial types by borrowed pointer
-            if a.type.isDictionary():
+            if a.type.isGeckoInterface():
+                argDescriptor = descriptorProvider.getDescriptor(a.type.name)
+                if not (a.type.nullable() or a.optional):
+                    name = "&mut " + name
+            elif a.type.isDictionary():
                 name = "&" + name
             args.append(CGGeneric(name))
 
@@ -3288,8 +3419,8 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         argsPre = []
         if name in self.descriptor.needsAbstract:
             abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = '  let abstract_this = %s::from_box(this);\n' % abstractName
-            argsPre = ['abstract_this']
+            extraPre = '  let mut abstract_this = %s::from_box(this);\n' % abstractName
+            argsPre = ['&mut abstract_this']
         return CGWrapper(CGMethodCall(argsPre, nativeName, self.method.isStatic(),
                                       self.descriptor, self.method),
                          pre=extraPre +
@@ -3317,8 +3448,10 @@ class CGGenericGetter(CGAbstractBindingMethod):
 
     def generate_code(self):
         return CGIndenter(CGGeneric(
-            "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, &*vp));\n"
-            "return CallJitPropertyOp(info, cx, obj, this as *libc::c_void, &*vp);"))
+            "return with_gc_disabled(cx, || {\n"
+            "  let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, &*vp));\n"
+            "  CallJitPropertyOp(info, cx, obj, this as *libc::c_void, &*vp)\n"
+            "});\n"))
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -3348,8 +3481,8 @@ class CGSpecializedGetter(CGAbstractExternMethod):
                                                             getter=True))
         if name in self.descriptor.needsAbstract:
             abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = '  let abstract_this = %s::from_box(this);\n' % abstractName
-            argsPre = ['abstract_this']
+            extraPre = '  let mut abstract_this = %s::from_box(this);\n' % abstractName
+            argsPre = ['&mut abstract_this']
         if resultOutParam or self.attr.type.nullable() or not infallible:
             nativeName = "Get" + nativeName
         return CGWrapper(CGIndenter(CGGetterCall(argsPre, self.attr.type, nativeName,
@@ -3381,7 +3514,10 @@ class CGGenericSetter(CGAbstractBindingMethod):
                 "let undef = JSVAL_VOID;\n"
                 "let argv: *JSVal = if argc != 0 { JS_ARGV(cx, vp as *JSVal) } else { &undef as *JSVal };\n"
                 "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp as *JSVal));\n"
-                "if CallJitPropertyOp(info, cx, obj, this as *libc::c_void, argv) == 0 {"
+                "let ok = with_gc_disabled(cx, || {\n"
+                "  CallJitPropertyOp(info, cx, obj, this as *libc::c_void, argv)\n"
+                "});\n"
+                "if ok == 0 {\n"
                 "  return 0;\n"
                 "}\n"
                 "*vp = JSVAL_VOID;\n"
@@ -3408,8 +3544,8 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         extraPre = ''
         if name in self.descriptor.needsAbstract:
             abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = '  let abstract_this = %s::from_box(this);\n' % abstractName
-            argsPre = ['abstract_this']
+            extraPre = '  let mut abstract_this = %s::from_box(this);\n' % abstractName
+            argsPre = ['&mut abstract_this']
         return CGWrapper(CGIndenter(CGSetterCall(argsPre, self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
@@ -3530,6 +3666,282 @@ class CGEnum(CGThing):
   ];
 """ % (",\n    ".join(map(getEnumValueName, self.enum.values())),
        ",\n    ".join(['EnumEntry {value: &"' + val + '", length: ' + str(len(val)) + '}' for val in self.enum.values()]))
+
+def getUnionAccessorSignatureType(type, descriptorProvider):
+    """
+    Returns the types that are used in the getter and setter signatures for
+    union types
+    """
+    if type.isArray():
+        raise TypeError("Can't handle array arguments yet")
+
+    if type.isSequence():
+        nullable = type.nullable();
+        if nullable:
+            type = type.inner.inner
+        else:
+            type = type.inner
+        (elementTemplate, elementDeclType,
+         elementHolderType, dealWithOptional) = getJSToNativeConversionTemplate(
+            type, descriptorProvider, isSequenceMember=True)
+        typeName = CGWrapper(elementDeclType, pre="Sequence< ", post=" >&")
+        if nullable:
+            typeName = CGWrapper(typeName, pre="Nullable< ", post=" >&")
+
+        return typeName
+
+    if type.isUnion():
+        typeName = CGGeneric(type.name)
+        if type.nullable():
+            typeName = CGWrapper(typeName, pre="Nullable< ", post=" >&")
+
+        return typeName
+
+    if type.isGeckoInterface():
+        descriptor = descriptorProvider.getDescriptor(
+            type.unroll().inner.identifier.name)
+        typeName = CGGeneric(descriptor.nativeType)
+        # Allow null pointers for nullable types and old-binding classes
+        if type.nullable() or type.unroll().inner.isExternal():
+            typeName = CGWrapper(typeName, pre="Option<", post=">")
+        else:
+            typeName = CGWrapper(typeName, pre="&'a ")
+        return typeName
+
+    if type.isSpiderMonkeyInterface():
+        typeName = CGGeneric(type.name)
+        if type.nullable():
+            typeName = CGWrapper(typeName, pre="Option<", post=">")
+        else:
+            typeName = CGWrapper(typeName, pre="&")
+        return typeName
+
+    if type.isString():
+        return CGGeneric("const nsAString&")
+
+    if type.isEnum():
+        if type.nullable():
+            raise TypeError("We don't support nullable enumerated arguments or "
+                            "union members yet")
+        return CGGeneric(type.inner.identifier.name)
+
+    if type.isCallback():
+        return CGGeneric("JSObject*")
+
+    if type.isAny():
+        return CGGeneric("JS::Value")
+
+    if type.isObject():
+        typeName = CGGeneric("JSObject")
+        if type.nullable():
+            typeName = CGWrapper(typeName, post="*")
+        else:
+            typeName = CGWrapper(typeName, post="&")
+        return typeName
+
+    if not type.isPrimitive():
+        raise TypeError("Need native type for argument type '%s'" % str(type))
+
+    typeName = CGGeneric(builtinNames[type.tag()])
+    if type.nullable():
+        typeName = CGWrapper(typeName, pre="Nullable< ", post=" >&")
+    return typeName
+
+def getUnionTypeTemplateVars(type, descriptorProvider):
+    # For dictionaries and sequences we need to pass None as the failureCode
+    # for getJSToNativeConversionTemplate.
+    # Also, for dictionaries we would need to handle conversion of
+    # null/undefined to the dictionary correctly.
+    if type.isDictionary() or type.isSequence():
+        raise TypeError("Can't handle dictionaries or sequences in unions")
+
+    if type.isGeckoInterface():
+        name = type.inner.identifier.name
+        typeName = descriptorProvider.getDescriptor(name).nativeType
+    elif type.isEnum():
+        name = type.inner.identifier.name
+        typeName = name
+    elif type.isArray() or type.isSequence():
+        name = str(type)
+        #XXXjdm dunno about typeName here
+        typeName = "/*" + type.name + "*/"
+    elif type.isPrimitive():
+        name = type.name
+        typeName = builtinNames[type.tag()]
+    else:
+        name = type.name
+        typeName = "/*" + type.name + "*/"
+
+    tryNextCode = """{
+  return Ok(true);
+}"""
+    (template, declType, holderType,
+     dealWithOptional, initialValue) = getJSToNativeConversionTemplate(
+        type, descriptorProvider, failureCode=tryNextCode,
+        isDefinitelyObject=True, isOptional=type.nullable(), preSuccess="e" + name + "(", postSuccess=")")
+
+    structType = declType.define()
+    externalType = getUnionAccessorSignatureType(type, descriptorProvider).define()
+
+    if type.isObject():
+        setter = CGGeneric("pub fn SetToObject(obj: *JSObject) {\n"
+                           "  mUnion = Some(eObject(obj));\n"
+                           "}")
+    else:
+        jsConversion = string.Template(template).substitute(
+            {
+                "val": "value",
+                "valPtr": "pvalue",
+                "declName": "*self.mUnion",
+                "holderName": "m" + name + "Holder"
+                }
+            )
+        jsConversion = CGWrapper(CGGeneric(jsConversion),
+                                 post="\n"
+                                      "return Ok(false);")
+        setter = CGWrapper(CGIndenter(jsConversion),
+                           pre="pub fn TrySetTo" + name + "(&mut self, cx: *JSContext, value: JSVal, pvalue: *JSVal) -> Result<bool,()> {\n",
+                           post="\n"
+                                "}")
+
+    return {
+                "name": name,
+                "typeName": typeName,
+                "structType": structType,
+                "externalType": externalType,
+                "optRef": 'ref ' if externalType[0] == '&' else '',
+                "setter": CGIndenter(setter).define(),
+                "holderType": holderType.define() if holderType else None
+                }
+
+def mapTemplate(template, templateVarArray):
+    return map(lambda v: string.Template(template).substitute(v),
+               templateVarArray)
+
+class CGUnionStruct(CGThing):
+    def __init__(self, type, descriptorProvider):
+        CGThing.__init__(self)
+        self.type = type.unroll()
+        self.descriptorProvider = descriptorProvider
+
+    def declare(self):
+        templateVars = map(lambda t: getUnionTypeTemplateVars(t, self.descriptorProvider),
+                           self.type.flatMemberTypes)
+
+        callDestructors = []
+        enumValues = []
+        methods = []
+        if self.type.hasNullableType:
+            callDestructors.append("      case eNull:\n"
+                                   "        break;")
+            enumValues.append("eNull")
+            methods.append("""  pub fn IsNull(&self) -> bool {
+    match *self {
+      eNull => true,
+      _ => false
+    }
+  }""")
+
+        destructorTemplate = """  fn Destroy${name}(&mut self) {
+    assert!(Is${name}(), "Wrong type!");
+    *self.mUnion = None;
+  }"""
+        destructors = mapTemplate(destructorTemplate, templateVars)
+        callDestructors.extend(mapTemplate("      case e${name}:\n"
+                                           "         Destroy${name}();\n"
+                                           "         break;", templateVars))
+        enumValues.extend(mapTemplate("e${name}(${typeName})", templateVars))
+        methodTemplate = """  pub fn Is${name}(&self) -> bool {
+    match *self {
+      e${name}(_) => true,
+      _ => false
+    }
+  }
+  pub fn GetAs${name}<'a>(&'a self) -> ${externalType} {
+    assert!(self.Is${name}());
+    match *self {
+      e${name}(${optRef}inner) => inner,
+      _ => unreachable!()
+    }
+  }"""
+        methods.extend(mapTemplate(methodTemplate, templateVars))
+        values = mapTemplate("UnionMember<${structType} > m${name};", templateVars)
+        return string.Template("""
+pub enum ${structName} {
+  ${enumValues}
+}
+
+impl ${structName} {
+${methods}
+}
+""").substitute(
+    {
+       "structName": self.type.__str__(),
+       "callDestructors": "\n".join(callDestructors),
+       "destructors": "\n".join(destructors),
+       "methods": "\n\n".join(methods),
+       "enumValues": ",\n    ".join(enumValues),
+       "values": "\n    ".join(values),
+       })
+
+    def define(self):
+        return """
+"""
+
+class CGUnionConversionStruct(CGThing):
+    def __init__(self, type, descriptorProvider):
+        CGThing.__init__(self)
+        self.type = type.unroll()
+        self.descriptorProvider = descriptorProvider
+
+    def declare(self):
+        setters = []
+
+        if self.type.hasNullableType:
+            setters.append("""  pub fn SetNull(&mut self) -> bool
+  {
+    mUnion = Some(eNull);
+    return true;
+  }""")
+
+        templateVars = map(lambda t: getUnionTypeTemplateVars(t, self.descriptorProvider),
+                           self.type.flatMemberTypes)
+        structName = self.type.__str__()
+
+        setters.extend(mapTemplate("${setter}", templateVars))
+        private = "\n".join(mapTemplate("""  fn SetAs${name}() -> &${structType}
+  {
+    mUnion.mType = mUnion.e${name};
+    return mUnion.mValue.m${name}.SetValue();
+  }""", templateVars))
+        private += "\n\n"
+        holders = filter(lambda v: v["holderType"] is not None, templateVars)
+        if len(holders) > 0:
+            private += "\n".join(mapTemplate("  ${holderType} m${name}Holder;", holders))
+            private += "\n\n"
+        private += "  " + structName + "& mUnion;"
+        return string.Template("""
+pub struct ${structName}Argument<'a> {
+  mUnion: &'a mut ${innerType}
+}
+
+impl<'a> ${structName}Argument<'a> {
+  pub fn new(union: &'a mut ${innerType}) -> ${structName}Argument<'a> {
+    ${structName}Argument {
+      mUnion: union
+    }
+  }
+
+${setters}
+}
+""").substitute({"structName": structName,
+       "innerType": ("Option<%s>" % structName) if self.type.nullable() else structName,
+       "setters": "\n\n".join(setters),
+       })
+
+    def define(self):
+        return """
+"""
 
 class ClassItem:
     """ Use with CGClass """
@@ -4482,9 +4894,9 @@ def finalizeHook(descriptor, hookName, context):
     else:
         assert descriptor.nativeIsISupports
         release = """let val = JS_GetReservedSlot(obj, dom_object_slot(obj));
-let _: @mut %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
+let _: %s %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
 debug!("%s finalize: {:p}", this);
-""" % (descriptor.concreteType, descriptor.concreteType)
+""" % (DOMObjectPointerType(descriptor), descriptor.concreteType, descriptor.concreteType)
     #return clearWrapper + release
     return release
 
@@ -4530,10 +4942,10 @@ class CGClassConstructHook(CGAbstractExternMethod):
   //       or through unwrapping a slot or something). We'll punt and get the Window
   //       from the context for now. 
   let page = page_from_context(cx);
-  let global = (*page).frame.get_ref().window;
+  let global = (*page).frame.get_ref().window.clone();
   let obj = global.reflector().get_jsobject();
 """
-            preArgs = ["global"]
+            preArgs = ["&global"]
 
         name = self._ctor.identifier.name
         nativeName = MakeNativeName(self.descriptor.binaryNames.get(name, name))
@@ -5151,17 +5563,16 @@ class CGBindingRoot(CGThing):
                           'js::jsfriendapi::bindgen::*',
                           'js::glue::*',
                           'dom::types::*',
+                          'dom::bindings::js::JS',
                           'dom::bindings::utils::*',
                           'dom::bindings::callback::*',
                           'dom::bindings::conversions::*',
                           'dom::bindings::codegen::*', #XXXjdm
+                          'dom::bindings::codegen::UnionTypes::*', #XXXjdm
+                          'dom::bindings::codegen::UnionConversions::*', #XXXjdm
                           'script_task::{JSPageInfo, page_from_context}',
                           'dom::bindings::proxyhandler',
                           'dom::bindings::proxyhandler::*',
-                          'dom::document::AbstractDocument',
-                          'dom::node::AbstractNode',
-                          'dom::eventtarget::AbstractEventTarget',
-                          'dom::event::AbstractEvent',
                           'servo_util::str::DOMString',
                           'servo_util::vec::zip_copies',
                           'std::cast',
@@ -5170,6 +5581,7 @@ class CGBindingRoot(CGThing):
                           'std::vec',
                           'std::str',
                           'std::num',
+                          'std::unstable::intrinsics::uninit',
                           'std::unstable::raw::Box',
                          ], 
                          [],
@@ -5427,9 +5839,9 @@ class CGNativeMember(ClassMethod):
                     else:
                         typeDecl = "NonNull<%s>"
                 else:
-                    typeDecl = "%s%s"
+                    typeDecl = "%s"
             descriptor = self.descriptorProvider.getDescriptor(iface.identifier.name)
-            return (typeDecl % (descriptor.pointerType, descriptor.nativeType),
+            return (typeDecl % descriptor.nativeType,
                     False, False)
 
         if type.isSpiderMonkeyInterface():
@@ -5560,7 +5972,7 @@ class CGCallback(CGClass):
                          bases=[ClassBase(baseName)],
                          constructors=self.getConstructors(),
                          methods=realMethods+getters+setters,
-                         decorators="#[deriving(Eq,Clone)]")
+                         decorators="#[deriving(Eq,Clone,Encodable)]")
 
     def getConstructors(self):
         return [ClassConstructor(
@@ -5591,20 +6003,19 @@ class CGCallback(CGClass):
         args.append(Argument("ExceptionHandling", "aExceptionHandling",
                              "eReportExceptions"))
 
-        # Ensure the first argument is mutable
-        args[0] = Argument(args[0].argType, args[0].name, args[0].default, mutable=True)
+        args[0] = Argument('&' + args[0].argType, args[0].name, args[0].default)
         method.args[2] = args[0]
 
         # And now insert our template argument.
         argsWithoutThis = list(args)
-        args.insert(0, Argument("@mut T",  "thisObj"))
+        args.insert(0, Argument("~T",  "thisObj"))
 
         # And the self argument
         method.args.insert(0, Argument(None, "&self"))
         args.insert(0, Argument(None, "&self"))
         argsWithoutThis.insert(0, Argument(None, "&self"))
 
-        setupCall = ("let s = CallSetup::new(cx_for_dom_object(&mut ${cxProvider}), aExceptionHandling);\n"
+        setupCall = ("let s = CallSetup::new(cx_for_dom_object(${cxProvider}), aExceptionHandling);\n"
                      "if s.GetContext().is_null() {\n"
                      "  return${errorReturn};\n"
                      "}\n")
@@ -5619,7 +6030,7 @@ class CGCallback(CGClass):
                 "errorReturn" : method.getDefaultRetval(),
                 "callArgs" : ", ".join(argnamesWithThis),
                 "methodName": 'self.' + method.name,
-                "cxProvider": '*thisObj'
+                "cxProvider": 'thisObj'
                 })
         bodyWithoutThis = string.Template(
             setupCall +
@@ -5954,8 +6365,14 @@ class CallbackMethod(CallbackMember):
             replacements["argv"] = "nullptr"
             replacements["argc"] = "0"
         return string.Template("${getCallable}"
-                "if unsafe { JS_CallFunctionValue(cx, ${thisObj}, callable,\n"
-                "                        ${argc}, ${argv}, &rval) == 0 } {\n"
+                "let ok = unsafe {\n"
+                "  //JS_AllowGC(cx); // It's unsafe to enable GC at arbitrary points during Rust execution; leave it disabled\n"
+                "  let ok = JS_CallFunctionValue(cx, ${thisObj}, callable,\n"
+                "                                ${argc}, ${argv}, &rval);\n"
+                "  //JS_InhibitGC(cx);\n"
+                "  ok\n"
+                "};\n"
+                "if ok == 0 {\n"
                 "  return${errorReturn};\n"
                 "}\n").substitute(replacements)
 
@@ -6175,4 +6592,153 @@ class GlobalGenRoots():
         descriptors = [d.name for d in config.getDescriptors(register=True)]
         curr = CGList([CGGeneric(declare="pub mod %sBinding;\n" % name) for name in descriptors])
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
+        return curr
+
+    @staticmethod
+    def InheritTypes(config):
+
+        descriptors = config.getDescriptors(register=True, hasInterfaceObject=True)
+        allprotos = [CGGeneric(declare="#[allow(unused_imports)];\n"),
+                     CGGeneric(declare="use dom::types::*;\n"),
+                     CGGeneric(declare="use dom::bindings::js::JS;\n"),
+                     CGGeneric(declare="use dom::bindings::utils::Traceable;\n"),
+                     CGGeneric(declare="use extra::serialize::{Encodable, Encoder};\n"),
+                     CGGeneric(declare="use js::jsapi::JSTracer;\n\n")]
+        for descriptor in descriptors:
+            name = descriptor.name
+            protos = [CGGeneric(declare='pub trait %s {}\n' % (name + 'Base'))]
+            for proto in descriptor.prototypeChain:
+                protos += [CGGeneric(declare='impl %s for %s {}\n' % (proto + 'Base',
+                                                                      descriptor.concreteType))]
+            derived = [CGGeneric(declare='pub trait %s { fn %s(&self) -> bool; }\n' %
+                                 (name + 'Derived', 'is_' + name.lower()))]
+            for protoName in descriptor.prototypeChain[1:-1]:
+                protoDescriptor = config.getDescriptor(protoName, False)
+                delegate = string.Template('''impl ${selfName} for ${baseName} {
+  fn ${fname}(&self) -> bool {
+    self.${parentName}.${fname}()
+  }
+}
+''').substitute({'fname': 'is_' + name.lower(),
+                 'selfName': name + 'Derived',
+                 'baseName': protoDescriptor.concreteType,
+                 'parentName': protoDescriptor.prototypeChain[-2].lower()})
+                derived += [CGGeneric(declare=delegate)]
+            derived += [CGGeneric(declare='\n')]
+
+            cast = [CGGeneric(declare=string.Template('''pub trait ${castTraitName} {
+  fn from<T: ${fromBound}>(derived: &JS<T>) -> JS<Self> {
+    unsafe { derived.clone().transmute() }
+  }
+
+  fn to<T: ${toBound}>(base: &JS<T>) -> JS<Self> {
+    assert!(base.get().${checkFn}());
+    unsafe { base.clone().transmute() }
+  }
+}
+''').substitute({'checkFn': 'is_' + name.lower(),
+                 'castTraitName': name + 'Cast',
+                 'fromBound': name + 'Base',
+                 'toBound': name + 'Derived'})),
+                    CGGeneric(declare="impl %s for %s {}\n\n" % (name + 'Cast', name))]
+
+            trace = [CGGeneric(declare=string.Template('''impl Traceable for ${name} {
+    fn trace(&self, tracer: *mut JSTracer) {
+        unsafe {
+            self.encode(&mut *tracer);
+        }
+    }
+}
+''').substitute({'name': name}))]
+
+            allprotos += protos + derived + cast + trace
+
+        curr = CGList(allprotos)
+        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
+        return curr
+
+    @staticmethod
+    def UnionTypes(config):
+
+        (includes, declarations, unions) = UnionTypes(config.getDescriptors())
+        includes.add("mozilla/dom/BindingUtils.h")
+
+        # Wrap all of that in our namespaces.
+        #curr = CGNamespace.build(['mozilla', 'dom'], unions, public=True)
+        curr = unions
+
+        curr = CGWrapper(curr, post='\n')
+
+        namespaces = []
+        stack = [CGList([])]
+        for (clazz, isStruct) in SortedTuples(declarations):
+            elements = clazz.split("::")
+            elements.pop()
+            #clazz = CGClassForwardDeclare(elements.pop(), isStruct=isStruct)
+            i = 0
+            if len(elements) > 0:
+                common = min(len(namespaces), len(elements))
+                while i < common and namespaces[i] == elements[i]:
+                    i += 1
+
+            # pop all the namespaces that should be closed
+            namespaces = namespaces[:i]
+
+            # add all the namespaces that should be opened
+            for j, namespace in enumerate(elements[i:]):
+                namespaces.append(namespace)
+                # every CGNamespace that we add holds a CGList
+                list = CGList([])
+                # add the new namespace to the list on top of the stack
+                stack[i + j].append(CGNamespace(namespace, list))
+                # set the top of the namespace stack to the list of the new
+                # namespace
+                stack[i + j + 1:] = [list]
+
+            #stack[len(elements)].append(clazz)
+
+        curr = CGList([stack[0], curr], "\n")
+
+        #curr = CGHeaders([], [], includes, [], curr)
+
+        # Add include guards.
+        #curr = CGIncludeGuard('UnionTypes', curr)
+
+        curr = CGImports([], [], ['dom::bindings::js::JS',
+                                  'dom::types::*'], [], curr)
+
+        # Add the auto-generated comment.
+        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
+
+        # Done.
+        return curr
+
+    @staticmethod
+    def UnionConversions(config):
+
+        unions = UnionConversions(config.getDescriptors())
+        curr = unions
+
+        # Wrap all of that in our namespaces.
+        #curr = CGNamespace.build(['mozilla', 'dom'], unions)
+
+        curr = CGWrapper(curr, post='\n')
+
+        #curr = CGHeaders([], [], ["nsDebug.h", "mozilla/dom/UnionTypes.h", "nsDOMQS.h"], [], curr)
+
+        # Add include guards.
+        #curr = CGIncludeGuard('UnionConversions', curr)
+
+        curr = CGImports([], [], ['dom::bindings::utils::unwrap_jsmanaged',
+                                  'dom::bindings::codegen::UnionTypes::*',
+                                  'dom::bindings::codegen::PrototypeList',
+                                  'dom::bindings::conversions::JSValConvertible',
+                                  'js::*',
+                                  'js::jsapi::*',
+                                  'js::glue::*'], [], curr)
+
+        # Add the auto-generated comment.
+        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
+
+        # Done.
         return curr

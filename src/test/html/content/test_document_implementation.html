@@ -27,7 +27,6 @@
                 var htmldoc = document.implementation.createHTMLDocument("example title");
                 isnot(htmldoc, null, "test3-0, createHTMLDocument");
                 is_a(htmldoc, Document, "test3-1, createHTMLDocument");
-                is_a(htmldoc, HTMLDocument, "test3-2, createHTMLDocument");
                 is(htmldoc.childNodes.length, 2, "test3-3, createHTMLDocument");
 
                 is_a(htmldoc.doctype && htmldoc.doctype, DocumentType, "test3-4, createHTMLDocument");

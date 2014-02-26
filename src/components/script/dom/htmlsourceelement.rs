@@ -3,27 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLSourceElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLSourceElementDerived;
+use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLSourceElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLSourceElement {
     htmlelement: HTMLElement
 }
 
+impl HTMLSourceElementDerived for EventTarget {
+    fn is_htmlsourceelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLSourceElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLSourceElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLSourceElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLSourceElement {
         HTMLSourceElement {
             htmlelement: HTMLElement::new_inherited(HTMLSourceElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLSourceElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLSourceElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLSourceElement> {
+        let element = HTMLSourceElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLSourceElementBinding::Wrap)
     }
 }
 

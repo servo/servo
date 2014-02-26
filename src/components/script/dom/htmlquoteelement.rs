@@ -3,27 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLQuoteElementBinding;
+use dom::bindings::codegen::InheritTypes::HTMLQuoteElementDerived;
+use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLQuoteElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct HTMLQuoteElement {
     htmlelement: HTMLElement,
 }
 
+impl HTMLQuoteElementDerived for EventTarget {
+    fn is_htmlquoteelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLQuoteElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
 impl HTMLQuoteElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLQuoteElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLQuoteElement {
         HTMLQuoteElement {
             htmlelement: HTMLElement::new_inherited(HTMLQuoteElementTypeId, localName, document)
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLQuoteElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLQuoteElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLQuoteElement> {
+        let element = HTMLQuoteElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLQuoteElementBinding::Wrap)
     }
 }
 

@@ -68,10 +68,10 @@ pub struct BlockFlow {
 }
 
 impl BlockFlow {
-    pub fn from_node(constructor: &mut FlowConstructor, node: ThreadSafeLayoutNode, is_fixed: bool)
+    pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode, is_fixed: bool)
                      -> BlockFlow {
         BlockFlow {
-            base: BaseFlow::new(constructor.next_flow_id(), node),
+            base: BaseFlow::new((*node).clone()),
             box_: Some(Box::new(constructor, node)),
             is_root: false,
             is_fixed: is_fixed,
@@ -80,11 +80,11 @@ impl BlockFlow {
     }
 
     pub fn float_from_node(constructor: &mut FlowConstructor,
-                           node: ThreadSafeLayoutNode,
+                           node: &ThreadSafeLayoutNode,
                            float_type: FloatType)
                            -> BlockFlow {
         BlockFlow {
-            base: BaseFlow::new(constructor.next_flow_id(), node),
+            base: BaseFlow::new((*node).clone()),
             box_: Some(Box::new(constructor, node)),
             is_root: false,
             is_fixed: false,
@@ -688,13 +688,12 @@ impl Flow for BlockFlow {
     /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
     /// contexts.
     fn assign_widths(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_widths({}): assigning width for flow {}",
+        debug!("assign_widths({}): assigning width for flow",
                if self.is_float() {
                    "float"
                } else {
                    "block"
-               },
-               self.base.id);
+               });
 
         if self.is_root {
             debug!("Setting root position");
@@ -803,10 +802,10 @@ impl Flow for BlockFlow {
 
     fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
         if self.is_float() {
-            debug!("assign_height_inorder_float: assigning height for float {}", self.base.id);
+            debug!("assign_height_inorder_float: assigning height for float");
             self.assign_height_float_inorder();
         } else {
-            debug!("assign_height_inorder: assigning height for block {}", self.base.id);
+            debug!("assign_height_inorder: assigning height for block");
             self.assign_height_block_base(ctx, true);
         }
     }
@@ -818,10 +817,10 @@ impl Flow for BlockFlow {
         }
 
         if self.is_float() {
-            debug!("assign_height_float: assigning height for float {}", self.base.id);
+            debug!("assign_height_float: assigning height for float");
             self.assign_height_float(ctx);
         } else {
-            debug!("assign_height: assigning height for block {}", self.base.id);
+            debug!("assign_height: assigning height for block");
             // This is the only case in which a block flow can start an inorder
             // subtraversal.
             if self.is_root && self.base.num_floats > 0 {

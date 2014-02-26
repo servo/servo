@@ -46,6 +46,12 @@ pub struct Opts {
     output_file: Option<~str>,
     headless: bool,
     hard_fail: bool,
+
+    /// True if we should bubble intrinsic widths sequentially (`-b`). If this is true, then
+    /// intrinsic widths are computed as a separate pass instead of during flow construction. You
+    /// may wish to turn this flag on in order to benchmark style recalculation against other
+    /// browser engines.
+    bubble_widths_separately: bool,
 }
 
 fn print_usage(app: &str, opts: &[groups::OptGroup]) {
@@ -68,6 +74,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         groups::optopt("y", "layout-threads", "Number of threads to use for layout", "1"),
         groups::optflag("z", "headless", "Headless mode"),
         groups::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
+        groups::optflag("b", "bubble-widths", "Bubble intrinsic widths separately like other engines"),
         groups::optflag("h", "help", "Print this message")
     ];
 
@@ -143,5 +150,6 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         output_file: opt_match.opt_str("o"),
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
+        bubble_widths_separately: opt_match.opt_present("b"),
     }
 }

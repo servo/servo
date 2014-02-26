@@ -79,9 +79,9 @@ $(CPPSRCS): ../%Binding.cpp: $(bindinggen_dependencies) \
 	$(MAKE) -C .. $*Binding.cpp
 
 check::
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(topsrcdir)/config/pythonpath.py \
+	$(PYTHON) $(topsrcdir)/config/pythonpath.py \
 	  $(PLY_INCLUDE) $(srcdir)/../parser/runtests.py
 
 check-interactive:
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(topsrcdir)/config/pythonpath.py \
+	$(PYTHON) $(topsrcdir)/config/pythonpath.py \
 	  $(PLY_INCLUDE) $(srcdir)/../parser/runtests.py -q

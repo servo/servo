@@ -3,12 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DOMExceptionBinding;
+use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[repr(uint)]
-#[deriving(ToStr)]
+#[deriving(ToStr, Encodable)]
 enum DOMErrorName {
     IndexSizeError = 1,
     HierarchyRequestError = 3,
@@ -33,6 +34,7 @@ enum DOMErrorName {
     EncodingError
 }
 
+#[deriving(Encodable)]
 pub struct DOMException {
     code: DOMErrorName,
     reflector_: Reflector
@@ -46,8 +48,8 @@ impl DOMException {
         }
     }
 
-    pub fn new(window: &Window, code: DOMErrorName) -> @mut DOMException {
-        reflect_dom_object(@mut DOMException::new_inherited(code), window, DOMExceptionBinding::Wrap)
+    pub fn new(window: &Window, code: DOMErrorName) -> JS<DOMException> {
+        reflect_dom_object(~DOMException::new_inherited(code), window, DOMExceptionBinding::Wrap)
     }
 }
 
@@ -67,7 +69,7 @@ impl DOMException {
         match self.code {
             // http://dom.spec.whatwg.org/#concept-throw
             EncodingError => 0,
-            _ => self.code as u16
+            code => code as u16
         }
     }
 

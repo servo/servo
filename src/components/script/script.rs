@@ -26,18 +26,22 @@ mod macros;
 
 pub mod dom {
     pub mod bindings {
+        pub mod js;
         pub mod element;
-        pub mod node;
         pub mod utils;
         pub mod callback;
         pub mod conversions;
         pub mod proxyhandler;
+        pub mod trace;
         pub mod codegen {
             pub use self::BindingDeclarations::*;
             pub mod InterfaceTypes;
+            pub mod InheritTypes;
             pub mod PrototypeList;
             pub mod RegisterBindings;
             pub mod BindingDeclarations;
+            pub mod UnionConversions;
+            pub mod UnionTypes;
         }
     }
 
@@ -79,7 +83,6 @@ pub mod dom {
     pub mod htmldirectoryelement;
     pub mod htmldivelement;
     pub mod htmldlistelement;
-    pub mod htmldocument;
     pub mod htmlelement;
     pub mod htmlembedelement;
     pub mod htmlfieldsetelement;

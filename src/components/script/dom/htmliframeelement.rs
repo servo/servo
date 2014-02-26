@@ -3,17 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLIFrameElementBinding;
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived};
+use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
-use dom::document::AbstractDocument;
+use dom::document::Document;
 use dom::element::HTMLIframeElementTypeId;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Node};
+use dom::node::{Node, ElementNodeTypeId};
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
 use extra::url::Url;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use std::ascii::StrAsciiExt;
+use extra::serialize::{Encoder, Encodable};
 
 enum SandboxAllowance {
     AllowNothing = 0x00,
@@ -25,13 +29,33 @@ enum SandboxAllowance {
     AllowPopups = 0x20
 }
 
+#[deriving(Encodable)]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
-    frame: Option<Url>,
+    extra: Untraceable,
     size: Option<IFrameSize>,
     sandbox: Option<u8>
 }
 
+struct Untraceable {
+    frame: Option<Url>,
+}
+
+impl<S: Encoder> Encodable<S> for Untraceable {
+    fn encode(&self, _s: &mut S) {
+    }
+}
+
+impl HTMLIFrameElementDerived for EventTarget {
+    fn is_htmliframeelement(&self) -> bool {
+        match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(HTMLIframeElementTypeId)) => true,
+            _ => false
+        }
+    }
+}
+
+#[deriving(Encodable)]
 pub struct IFrameSize {
     pipeline_id: PipelineId,
     subpage_id: SubpageId,
@@ -44,18 +68,20 @@ impl HTMLIFrameElement {
 }
 
 impl HTMLIFrameElement {
-    pub fn new_inherited(localName: DOMString, document: AbstractDocument) -> HTMLIFrameElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIframeElementTypeId, localName, document),
-            frame: None,
+            extra: Untraceable {
+                frame: None
+            },
             size: None,
             sandbox: None,
         }
     }
 
-    pub fn new(localName: DOMString, document: AbstractDocument) -> AbstractNode {
-        let element = HTMLIFrameElement::new_inherited(localName, document);
-        Node::reflect_node(@mut element, document, HTMLIFrameElementBinding::Wrap)
+    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLIFrameElement> {
+        let element = HTMLIFrameElement::new_inherited(localName, document.clone());
+        Node::reflect_node(~element, document, HTMLIFrameElementBinding::Wrap)
     }
 }
 
@@ -84,12 +110,13 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn Sandbox(&self, _abstract_self: AbstractNode) -> DOMString {
+    pub fn Sandbox(&self, _abstract_self: &JS<HTMLIFrameElement>) -> DOMString {
         self.htmlelement.element.get_string_attribute("sandbox")
     }
 
-    pub fn SetSandbox(&mut self, abstract_self: AbstractNode, sandbox: DOMString) {
-        self.htmlelement.element.set_string_attribute(abstract_self, "sandbox",
+    pub fn SetSandbox(&mut self, abstract_self: &JS<HTMLIFrameElement>, sandbox: DOMString) {
+        self.htmlelement.element.set_string_attribute(&ElementCast::from(abstract_self),
+                                                      "sandbox",
                                                       sandbox);
     }
 
@@ -143,11 +170,11 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn GetContentDocument(&self) -> Option<AbstractDocument> {
+    pub fn GetContentDocument(&self) -> Option<JS<Document>> {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<@mut WindowProxy> {
+    pub fn GetContentWindow(&self) -> Option<JS<WindowProxy>> {
         None
     }
 
@@ -199,7 +226,7 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn GetSVGDocument(&self) -> Option<AbstractDocument> {
+    pub fn GetSVGDocument(&self) -> Option<JS<Document>> {
         None
     }
 }

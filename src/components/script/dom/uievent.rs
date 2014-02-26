@@ -3,47 +3,55 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::UIEventBinding;
+use dom::bindings::codegen::InheritTypes::UIEventDerived;
+use dom::bindings::js::JS;
 use dom::bindings::utils::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::node::AbstractNode;
-use dom::event::{AbstractEvent, Event, EventTypeId, UIEventTypeId};
+use dom::event::{Event, EventTypeId, UIEventTypeId};
+use dom::node::Node;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct UIEvent {
-    parent: Event,
-    view: Option<@mut WindowProxy>,
+    event: Event,
+    view: Option<JS<WindowProxy>>,
     detail: i32
+}
+
+impl UIEventDerived for Event {
+    fn is_uievent(&self) -> bool {
+        self.type_id == UIEventTypeId
+    }
 }
 
 impl UIEvent {
     pub fn new_inherited(type_id: EventTypeId) -> UIEvent {
         UIEvent {
-            parent: Event::new_inherited(type_id),
+            event: Event::new_inherited(type_id),
             view: None,
             detail: 0
         }
     }
 
-    pub fn new(window: @mut Window) -> AbstractEvent {
-        let ev = reflect_dom_object(@mut UIEvent::new_inherited(UIEventTypeId),
-                                    window,
-                                    UIEventBinding::Wrap);
-        Event::as_abstract(ev)
+    pub fn new(window: &JS<Window>) -> JS<UIEvent> {
+        reflect_dom_object(~UIEvent::new_inherited(UIEventTypeId),
+                           window.get(),
+                           UIEventBinding::Wrap)
     }
 
-    pub fn Constructor(owner: @mut Window,
+    pub fn Constructor(owner: &JS<Window>,
                        type_: DOMString,
-                       init: &UIEventBinding::UIEventInit) -> Fallible<AbstractEvent> {
-        let ev = UIEvent::new(owner);
-        ev.mut_uievent().InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
-                                     init.view, init.detail);
+                       init: &UIEventBinding::UIEventInit) -> Fallible<JS<UIEvent>> {
+        let mut ev = UIEvent::new(owner);
+        ev.get_mut().InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
+                                   init.view.clone(), init.detail);
         Ok(ev)
     }
 
-    pub fn GetView(&self) -> Option<@mut WindowProxy> {
-        self.view
+    pub fn GetView(&self) -> Option<JS<WindowProxy>> {
+        self.view.clone()
     }
 
     pub fn Detail(&self) -> i32 {
@@ -54,9 +62,9 @@ impl UIEvent {
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
-                       view: Option<@mut WindowProxy>,
+                       view: Option<JS<WindowProxy>>,
                        detail: i32) {
-        self.parent.InitEvent(type_, can_bubble, cancelable);
+        self.event.InitEvent(type_, can_bubble, cancelable);
         self.view = view;
         self.detail = detail;
     }
@@ -86,7 +94,7 @@ impl UIEvent {
         0
     }
 
-    pub fn GetRangeParent(&self) -> Option<AbstractNode> {
+    pub fn GetRangeParent(&self) -> Option<JS<Node>> {
         //TODO
         None
     }
@@ -113,10 +121,10 @@ impl UIEvent {
 
 impl Reflectable for UIEvent {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.parent.reflector()
+        self.event.reflector()
     }
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.parent.mut_reflector()
+        self.event.mut_reflector()
     }
 }

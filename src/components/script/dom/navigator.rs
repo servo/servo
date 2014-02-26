@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::NavigatorBinding;
+use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::utils::Fallible;
-use dom::bindings::codegen::NavigatorBinding;
 use dom::window::Window;
 use servo_util::str::DOMString;
 
+#[deriving(Encodable)]
 pub struct Navigator {
     reflector_: Reflector //XXXjdm cycle: window->navigator->window
 }
@@ -19,8 +21,10 @@ impl Navigator {
         }
     }
 
-    pub fn new(window: &Window) -> @mut Navigator {
-        reflect_dom_object(@mut Navigator::new_inherited(), window, NavigatorBinding::Wrap)
+    pub fn new(window: &Window) -> JS<Navigator> {
+        reflect_dom_object(~Navigator::new_inherited(),
+                           window,
+                           NavigatorBinding::Wrap)
     }
 
     pub fn DoNotTrack(&self) -> DOMString {

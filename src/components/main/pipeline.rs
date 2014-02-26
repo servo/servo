@@ -7,7 +7,6 @@ use layout::layout_task::LayoutTask;
 
 use extra::url::Url;
 use geom::size::Size2D;
-use gfx::opts::Opts;
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::render_task::{RenderChan, RenderTask};
 use layout::util::OpaqueNode;
@@ -18,6 +17,7 @@ use script::script_task;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
+use servo_util::opts::Opts;
 use servo_util::time::ProfilerChan;
 use std::cell::RefCell;
 //FIXME: switch to std::rc when we upgrade Rust

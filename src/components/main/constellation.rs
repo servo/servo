@@ -7,7 +7,6 @@ use compositing::{CompositorChan, LoadComplete, SetIds, SetLayerClipRect, Shutdo
 use extra::url::Url;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::opts::Opts;
 use gfx::render_task;
 use pipeline::{Pipeline, CompositionPipeline};
 use script::script_task::{ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg};
@@ -21,6 +20,7 @@ use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
+use servo_util::opts::Opts;
 use servo_util::time::ProfilerChan;
 use servo_util::url::parse_url;
 use servo_util::task::spawn_named;

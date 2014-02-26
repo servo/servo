@@ -21,8 +21,6 @@ interface Document : Node {
   readonly attribute DocumentType? doctype;
   readonly attribute Element? documentElement;
   HTMLCollection getElementsByTagName(DOMString localName);
-  HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
-  HTMLCollection getElementsByClassName(DOMString classNames);
   Element? getElementById(DOMString elementId);
 
   [Creator, Throws]
@@ -47,4 +45,13 @@ partial interface Document {
            attribute HTMLElement? body;
   readonly attribute HTMLHeadElement? head;
   /*NodeList*/ HTMLCollection getElementsByName(DOMString elementName);
+
+  readonly attribute HTMLCollection images;
+  readonly attribute HTMLCollection embeds;
+  readonly attribute HTMLCollection plugins;
+  readonly attribute HTMLCollection links;
+  readonly attribute HTMLCollection forms;
+  readonly attribute HTMLCollection scripts;
+  readonly attribute HTMLCollection anchors;
+  readonly attribute HTMLCollection applets;
 };

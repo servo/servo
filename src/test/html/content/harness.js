@@ -37,6 +37,24 @@ function is_function(val, name) {
   starts_with(String(val), "function " + name + "(");
 }
 
+function should_throw(f) {
+  try {
+    f();
+    _fail("operation should have thrown but did not");
+  } catch (x) {
+    _pass("operation successfully threw an exception", x.toString());
+  }
+}
+
+function should_not_throw(f) {
+  try {
+    f();
+    _pass("operation did not throw an exception");
+  } catch (x) {
+    _fail("operation should have not thrown", x.toString());
+  }
+}
+
 var _test_complete = false;
 var _test_timeout = 10000; //10 seconds
 function finish() {
