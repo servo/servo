@@ -30,10 +30,10 @@ use js::jsapi::{JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject};
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
 use js::jsapi::{JS_NewUCStringCopyN, JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
-use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
+use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
-use js::jsapi::{JSString, JS_CallTracer, JSTRACE_OBJECT};
+use js::jsapi::{JSString};
 use js::jsapi::{JS_IsExceptionPending, JS_AllowGC, JS_InhibitGC};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
@@ -554,23 +554,6 @@ fn CreateInterfacePrototypeObject(cx: *JSContext, global: *JSObject,
 pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: c_uint, _vp: *mut JSVal) -> JSBool {
     //XXX should trigger exception here
     return 0;
-}
-
-pub trait Traceable {
-    fn trace(&self, trc: *mut JSTracer);
-}
-
-pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
-    unsafe {
-        description.to_c_str().with_ref(|name| {
-            (*tracer).debugPrinter = ptr::null();
-            (*tracer).debugPrintIndex = -1;
-            (*tracer).debugPrintArg = name as *libc::c_void;
-            debug!("tracing {:s}", description);
-            JS_CallTracer(tracer as *JSTracer, reflector.get_jsobject(),
-                          JSTRACE_OBJECT as u32);
-        });
-    }
 }
 
 pub fn initialize_global(global: *JSObject) {
