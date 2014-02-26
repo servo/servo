@@ -140,7 +140,7 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn AfterRemoveAttr(&mut self, name: DOMString) {
+    pub fn BeforeRemoveAttr(&mut self, name: DOMString) {
         if "sandbox" == name {
             self.sandbox = None;
         }

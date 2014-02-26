@@ -96,7 +96,7 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn AfterRemoveAttr(&mut self, name: DOMString) {
+    pub fn BeforeRemoveAttr(&mut self, name: DOMString) {
         if "src" == name {
             self.update_image(None, None);
         }

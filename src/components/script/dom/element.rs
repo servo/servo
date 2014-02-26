@@ -204,26 +204,31 @@ impl Element {
         self.node.wait_until_safe_to_modify_dom();
 
         // FIXME: reduce the time of `value.clone()`.
-        let mut old_raw_value: Option<DOMString> = None;
-        for attr in self.attrs.mut_iter() {
-            let attr = attr.get_mut();
-            if attr.local_name == local_name {
-                old_raw_value = Some(attr.set_value(value.clone()));
-                break;
+        let idx = self.attrs.iter().position(|attr| {
+            attr.get().local_name == local_name
+        });
+
+        match idx {
+            Some(idx) => {
+                if namespace == namespace::Null {
+                    let old_value = self.attrs[idx].get().Value();
+                    self.before_remove_attr(abstract_self, local_name.clone(),
+                                            old_value);
+                }
+                self.attrs[idx].get_mut().set_value(value.clone());
+            }
+            None => {
+                let doc = self.node.owner_doc();
+                let doc = doc.get();
+                let new_attr = Attr::new_ns(doc.window.get(), local_name.clone(), value.clone(),
+                                            name.clone(), namespace.clone(),
+                                            prefix);
+                self.attrs.push(new_attr);
             }
         }
 
-        if old_raw_value.is_none() {
-            let doc = self.node.owner_doc();
-            let doc = doc.get();
-            let new_attr = Attr::new_ns(doc.window.get(), local_name.clone(), value.clone(),
-                                        name.clone(), namespace.clone(),
-                                        prefix);
-            self.attrs.push(new_attr);
-        }
-
         if namespace == namespace::Null {
-            self.after_set_attr(abstract_self, local_name, value, old_raw_value);
+            self.after_set_attr(abstract_self, local_name, value);
         }
         Ok(())
     }
@@ -231,8 +236,7 @@ impl Element {
     fn after_set_attr(&mut self,
                       abstract_self: &JS<Element>,
                       local_name: DOMString,
-                      value: DOMString,
-                      old_value: Option<DOMString>) {
+                      value: DOMString) {
 
         match local_name.as_slice() {
             "style" => {
@@ -247,7 +251,7 @@ impl Element {
                     // "borrowed value does not live long enough"
                     let mut doc = self.node.owner_doc();
                     let doc = doc.get_mut();
-                    doc.update_idmap(abstract_self, Some(value.clone()), old_value);
+                    doc.register_named_element(abstract_self, value.clone());
                 }
             }
             _ => ()
@@ -289,22 +293,22 @@ impl Element {
         match idx {
             None => (),
             Some(idx) => {
-                let removed = self.attrs.remove(idx);
-                let removed_raw_value = Some(removed.get().Value());
-
                 if namespace == namespace::Null {
-                    self.after_remove_attr(abstract_self, local_name, removed_raw_value);
+                    let removed_raw_value = self.attrs[idx].get().Value();
+                    self.before_remove_attr(abstract_self, local_name, removed_raw_value);
                 }
+
+                self.attrs.remove(idx);
             }
         };
 
         Ok(())
     }
 
-    fn after_remove_attr(&mut self,
-                         abstract_self: &JS<Element>,
-                         local_name: DOMString,
-                         old_value: Option<DOMString>) {
+    fn before_remove_attr(&mut self,
+                          abstract_self: &JS<Element>,
+                          local_name: DOMString,
+                          old_value: DOMString) {
         match local_name.as_slice() {
             "style" => {
                 self.style_attribute = None
@@ -316,7 +320,7 @@ impl Element {
                     // "borrowed value does not live long enough"
                     let mut doc = self.node.owner_doc();
                     let doc = doc.get_mut();
-                    doc.update_idmap(abstract_self, None, old_value);
+                    doc.unregister_named_element(old_value);
                 }
             }
             _ => ()
@@ -327,11 +331,11 @@ impl Element {
         match abstract_self.get().node.type_id {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self);
-                elem.get_mut().AfterRemoveAttr(local_name.clone());
+                elem.get_mut().BeforeRemoveAttr(local_name.clone());
             }
             ElementNodeTypeId(HTMLIframeElementTypeId) => {
                 let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self);
-                elem.get_mut().AfterRemoveAttr(local_name.clone());
+                elem.get_mut().BeforeRemoveAttr(local_name.clone());
             }
             _ => ()
         }
@@ -643,6 +647,33 @@ impl Element {
 
     pub fn QuerySelector(&self, _selectors: DOMString) -> Fallible<Option<JS<Element>>> {
         Ok(None)
+    }
+}
+
+pub trait IElement {
+    fn bind_to_tree_impl(&self);
+    fn unbind_from_tree_impl(&self);
+}
+
+impl IElement for JS<Element> {
+    fn bind_to_tree_impl(&self) {
+        match self.get().get_attribute(Null, "id") {
+            Some(attr) => {
+                let mut doc = self.get().node.owner_doc();
+                doc.get_mut().register_named_element(self, attr.get().Value());
+            }
+            _ => ()
+        }
+    }
+
+    fn unbind_from_tree_impl(&self) {
+        match self.get().get_attribute(Null, "id") {
+            Some(attr) => {
+                let mut doc = self.get().node.owner_doc();
+                doc.get_mut().unregister_named_element(attr.get().Value());
+            }
+            _ => ()
+        }
     }
 }
 

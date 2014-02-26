@@ -478,68 +478,30 @@ impl Document {
         self.window.get().wait_until_safe_to_modify_dom();
     }
 
-    pub fn register_nodes_with_id(&mut self, root: &JS<Element>) {
-        foreach_ided_elements(root, |id: &DOMString, abstract_node: &JS<Element>| {
-            // TODO: "in tree order, within the context object's tree"
-            // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
-            self.idmap.find_or_insert(id.clone(), abstract_node.clone());
+
+    /// Remove any existing association between the provided id and any elements in this document.
+    pub fn unregister_named_element(&mut self,
+                                    id: DOMString) {
+        self.idmap.remove(&id);
+    }
+
+    /// Associate an element present in this document with the provided id.
+    pub fn register_named_element(&mut self,
+                                  element: &JS<Element>,
+                                  id: DOMString) {
+        assert!({
+            let node: JS<Node> = NodeCast::from(element);
+            node.is_in_doc()
         });
-    }
 
-    pub fn unregister_nodes_with_id(&mut self, root: &JS<Element>) {
-        foreach_ided_elements(root, |id: &DOMString, _| {
-            // TODO: "in tree order, within the context object's tree"
-            // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
-            self.idmap.pop(id);
-        });
-    }
-
-    pub fn update_idmap(&mut self,
-                        abstract_self: &JS<Element>,
-                        new_id: Option<DOMString>,
-                        old_id: Option<DOMString>) {
-        // remove old ids:
-        // * if the old ones are not same as the new one,
-        // * OR if the new one is none.
-        match old_id {
-            Some(ref old_id) if new_id.is_none() ||
-                                (*new_id.get_ref() != *old_id) => {
-                self.idmap.remove(old_id);
-            }
-            _ => ()
-        }
-
-        match new_id {
-            Some(new_id) => {
-                // TODO: support the case if multiple elements
-                // which haves same id are in the same document.
-                self.idmap.mangle(new_id, abstract_self.clone(),
-                                  |_, new_node: JS<Element>| -> JS<Element> {
-                                      new_node
-                                  },
-                                  |_, old_node: &mut JS<Element>, new_node: JS<Element>| {
-                                      *old_node = new_node;
-                                  });
-            }
-            None => ()
-        }
-    }
-}
-
-#[inline(always)]
-fn foreach_ided_elements(root: &JS<Element>, callback: |&DOMString, &JS<Element>|) {
-    let root: JS<Node> = NodeCast::from(root);
-    for node in root.traverse_preorder() {
-        if !node.is_element() {
-            continue;
-        }
-
-        let element: JS<Element> = ElementCast::to(&node);
-        match element.get().get_attribute(Null, "id") {
-            Some(id) => {
-                callback(&id.get().Value(), &element);
-            }
-            None => ()
-        }
+        // TODO: support the case if multiple elements
+        // which haves same id are in the same document.
+        self.idmap.mangle(id, element,
+                          |_, new_element: &JS<Element>| -> JS<Element> {
+                              new_element.clone()
+                          },
+                          |_, old_element: &mut JS<Element>, new_element: &JS<Element>| {
+                              *old_element = new_element.clone();
+                          });
     }
 }
