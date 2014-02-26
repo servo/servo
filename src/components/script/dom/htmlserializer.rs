@@ -104,7 +104,7 @@ fn serialize_elem(elem: &JS<Element>, open_elements: &mut ~[~str]) -> ~str {
             match elem.get().node.first_child {
                 Some(ref child) if child.is_text() => {
                     let text: JS<CharacterData> = CharacterDataCast::to(child);
-                    if text.get().data[0] == 0x0A as u8 {
+                    if text.get().data.len() > 0 && text.get().data[0] == 0x0A as u8 {
                         rv.push_str("\x0A");
                     }
                 },
