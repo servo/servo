@@ -10,6 +10,8 @@ use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBacke
 use extra::getopts::groups;
 use std::num;
 use std::rt;
+use std::io;
+use std::os;
 
 /// Global flags for Servo, currently set on the command line.
 #[deriving(Clone)]
@@ -59,7 +61,12 @@ fn print_usage(app: &str, opts: &[groups::OptGroup]) {
     println(groups::usage(message, opts));
 }
 
-pub fn from_cmdline_args(args: &[~str]) -> Opts {
+fn args_fail(msg: &str) {
+    io::stderr().write_line(msg);
+    os::set_exit_status(1);
+}
+
+pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
     let app_name = args[0].to_str();
     let args = args.tail();
 
@@ -80,19 +87,21 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
 
     let opt_match = match groups::getopts(args, opts) {
         Ok(m) => m,
-        Err(f) => fail!(f.to_err_msg()),
+        Err(f) => {
+            args_fail(f.to_err_msg());
+            return None;
+        }
     };
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(app_name, opts);
-        // TODO: how to return a null struct and let the caller know that
-        // it should abort?
-        fail!("")
+        return None;
     };
 
     let urls = if opt_match.free.is_empty() {
         print_usage(app_name, opts);
-        fail!(~"servo asks that you provide 1 or more URLs")
+        args_fail("servo asks that you provide 1 or more URLs");
+        return None;
     } else {
         opt_match.free.clone()
     };
@@ -138,7 +147,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         None => num::max(rt::default_sched_threads() * 3 / 4, 1),
     };
 
-    Opts {
+    Some(Opts {
         urls: urls,
         render_backend: render_backend,
         n_render_threads: n_render_threads,
@@ -151,5 +160,5 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_widths_separately: opt_match.opt_present("b"),
-    }
+    })
 }
