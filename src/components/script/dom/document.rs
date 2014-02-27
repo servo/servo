@@ -35,7 +35,7 @@ use dom::window::Window;
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
-use servo_util::namespace::Null;
+use servo_util::namespace::{Namespace, Null};
 use servo_util::str::DOMString;
 
 use extra::url::{Url, from_str};
@@ -218,6 +218,19 @@ impl Document {
             false => tag_name
         };
         HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), tag_name)
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
+    pub fn GetElementsByTagNameNS(&self, abstract_self: &JS<Document>, maybe_ns: Option<DOMString>, tag_name: DOMString) -> JS<HTMLCollection> {
+        let tag_name = match self.is_html_document {
+            true => tag_name.to_ascii_lower(),
+            false => tag_name
+        };
+        let namespace = match maybe_ns {
+            Some(namespace) => Namespace::from_str(namespace),
+            None => Null
+        };
+        HTMLCollection::by_tag_name_ns(&self.window, &NodeCast::from(abstract_self), tag_name, namespace)
     }
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid

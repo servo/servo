@@ -513,11 +513,19 @@ impl Element {
         HTMLCollection::by_tag_name(&doc.window, &NodeCast::from(abstract_self), tag_name)
     }
 
-    // http://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
-    pub fn GetElementsByTagNameNS(&self, _namespace: Option<DOMString>, _localname: DOMString) -> Fallible<JS<HTMLCollection>> {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1660
+    pub fn GetElementsByTagNameNS(&self, abstract_self: &JS<Element>, maybe_ns: Option<DOMString>,
+                                  localname: DOMString) -> JS<HTMLCollection> {
         let doc = self.node.owner_doc();
-        Ok(HTMLCollection::new(&doc.get().window, ~[]))
+        let doc = doc.get();
+        let tag_name = match self.html_element_in_html_document() {
+            true => localname.to_ascii_lower(),
+            false => localname
+        };
+        let namespace = match maybe_ns {
+            Some(namespace) => Namespace::from_str(namespace),
+            None => Null
+        };
+        HTMLCollection::by_tag_name_ns(&doc.window, &NodeCast::from(abstract_self), tag_name, namespace)
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getelementsbyclassname

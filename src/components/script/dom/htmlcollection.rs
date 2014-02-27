@@ -11,6 +11,8 @@ use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
+use servo_util::namespace::Namespace;
+
 use std::ascii::StrAsciiExt;
 
 #[deriving(Encodable)]
@@ -51,6 +53,10 @@ impl HTMLCollection {
 
     pub fn by_tag_name(window: &JS<Window>, root: &JS<Node>, tag_name: DOMString) -> JS<HTMLCollection> {
         HTMLCollection::create(window, root, |elem| elem.tag_name == tag_name)
+    }
+
+    pub fn by_tag_name_ns(window: &JS<Window>, root: &JS<Node>, tag_name: DOMString, namespace: Namespace) -> JS<HTMLCollection> {
+        HTMLCollection::create(window, root, |elem| elem.namespace == namespace && elem.tag_name == tag_name)
     }
 }
 
