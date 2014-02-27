@@ -89,11 +89,22 @@ impl<T> JS<T> {
             &mut (**borrowed.get())
         }
     }
+
+    /// Returns an unsafe pointer to the interior of this JS object without touching the borrow
+    /// flags. This is the only method that be safely accessed from layout. (The fact that this
+    /// is unsafe is what necessitates the layout wrappers.)
+    pub unsafe fn unsafe_get(&self) -> *mut T {
+        cast::transmute_copy(&self.ptr)
+    }
 }
 
 impl<From, To> JS<From> {
     //XXXjdm It would be lovely if this could be private.
     pub unsafe fn transmute(self) -> JS<To> {
         cast::transmute(self)
+    }
+
+    pub unsafe fn transmute_copy(&self) -> JS<To> {
+        cast::transmute_copy(self)
     }
 }

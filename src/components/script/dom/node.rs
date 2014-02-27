@@ -332,7 +332,7 @@ impl NodeHelpers for JS<Node> {
     fn parent_node(&self) -> Option<JS<Node>> {
         self.get().parent_node.clone()
     }
-
+    
     fn first_child(&self) -> Option<JS<Node>> {
         self.get().first_child.clone()
     }
@@ -1589,6 +1589,31 @@ impl Node {
 
     pub fn set_hover_state(&mut self, state: bool) {
         self.flags.set_is_in_hover_state(state);
+    }
+
+    #[inline]
+    pub fn parent_node_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        self.parent_node.as_ref()
+    }
+
+    #[inline]
+    pub fn first_child_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        self.first_child.as_ref()
+    }
+
+    #[inline]
+    pub fn last_child_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        self.last_child.as_ref()
+    }
+
+    #[inline]
+    pub fn prev_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        self.prev_sibling.as_ref()
+    }
+
+    #[inline]
+    pub fn next_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        self.next_sibling.as_ref()
     }
 }
 
