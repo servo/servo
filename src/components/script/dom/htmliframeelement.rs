@@ -7,7 +7,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived
 use dom::bindings::js::JS;
 use dom::bindings::utils::ErrorResult;
 use dom::document::Document;
-use dom::element::HTMLIframeElementTypeId;
+use dom::element::HTMLIFrameElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId};
@@ -49,7 +49,7 @@ impl<S: Encoder> Encodable<S> for Untraceable {
 impl HTMLIFrameElementDerived for EventTarget {
     fn is_htmliframeelement(&self) -> bool {
         match self.type_id {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLIframeElementTypeId)) => true,
+            NodeTargetTypeId(ElementNodeTypeId(HTMLIFrameElementTypeId)) => true,
             _ => false
         }
     }
@@ -70,7 +70,7 @@ impl HTMLIFrameElement {
 impl HTMLIFrameElement {
     pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement: HTMLElement::new_inherited(HTMLIframeElementTypeId, localName, document),
+            htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, document),
             extra: Untraceable {
                 frame: None
             },
