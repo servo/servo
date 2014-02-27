@@ -288,8 +288,10 @@ impl Document {
                 .find(|node| node.type_id() == ElementNodeTypeId(HTMLTitleElementTypeId))
                 .map(|title_elem| {
                     for child in title_elem.children() {
-                        let text: JS<Text> = TextCast::to(&child);
-                        title.push_str(text.get().characterdata.data.as_slice());
+                        if child.is_text() {
+                            let text: JS<Text> = TextCast::to(&child);
+                            title.push_str(text.get().characterdata.data.as_slice());
+                        }
                     }
                 });
         });
