@@ -33,6 +33,7 @@ use std::ptr;
 use std::to_bytes::Cb;
 
 use extra::serialize::{Encoder, Encodable};
+use extra::url::{Url};
 
 pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
@@ -95,6 +96,9 @@ impl<S: Encoder> Encodable<S> for Untraceable {
 impl Window {
     pub fn get_cx(&self) -> *JSObject {
         self.page.js_info.get_ref().js_compartment.cx.ptr
+    }
+    pub fn get_url(&self) -> Url {
+        self.page.get_url()
     }
 }
 

@@ -75,7 +75,7 @@ impl HTMLObjectElement {
         if "data" == name {
             let document = self.htmlelement.element.node.owner_doc();
             let window = document.get().window.clone();
-            let url = window.get().page.url.as_ref().map(|&(ref url, _)| url.clone());
+            let url = Some(window.get().get_url());
             self.process_data_url(window.get().image_cache_task.clone(), url);
         }
     }

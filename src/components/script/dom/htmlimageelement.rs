@@ -91,7 +91,7 @@ impl HTMLImageElement {
         if "src" == name {
             let document = self.htmlelement.element.node.owner_doc();
             let window = document.get().window.get();
-            let url = window.page.url.as_ref().map(|&(ref url, _)| url.clone());
+            let url = Some(window.get_url());
             self.update_image(Some(value), url);
         }
     }
