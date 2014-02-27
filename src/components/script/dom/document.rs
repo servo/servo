@@ -431,43 +431,49 @@ impl Document {
         })
     }
 
-    pub fn Images(&self) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| "img" == elem.get().tag_name)
+    pub fn Images(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+        // FIXME: https://github.com/mozilla/servo/issues/1847
+        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"img")
     }
 
-    pub fn Embeds(&self) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| "embed" == elem.get().tag_name)
+    pub fn Embeds(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+        // FIXME: https://github.com/mozilla/servo/issues/1847
+        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"embed")
     }
 
-    pub fn Plugins(&self) -> JS<HTMLCollection> {
-        self.Embeds()
+    pub fn Plugins(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+        // FIXME: https://github.com/mozilla/servo/issues/1847
+        self.Embeds(abstract_self)
     }
 
-    pub fn Links(&self) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| {
+    pub fn Links(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+        // FIXME: https://github.com/mozilla/servo/issues/1847
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), |elem| {
             ("a" == elem.get().tag_name || "area" == elem.get().tag_name) &&
             elem.get().get_attribute(Null, "href").is_some()
         })
     }
 
-    pub fn Forms(&self) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| "form" == elem.get().tag_name)
+    pub fn Forms(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+        // FIXME: https://github.com/mozilla/servo/issues/1847
+        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"form")
     }
 
-    pub fn Scripts(&self) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| "script" == elem.get().tag_name)
+    pub fn Scripts(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+        // FIXME: https://github.com/mozilla/servo/issues/1847
+        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"script")
     }
 
-    pub fn Anchors(&self) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| {
-            "a" == elem.get().tag_name &&
-            elem.get().get_attribute(Null, "name").is_some()
+    pub fn Anchors(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+        // FIXME: https://github.com/mozilla/servo/issues/1847
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), |elem| {
+            "a" == elem.get().tag_name && elem.get().get_attribute(Null, "name").is_some()
         })
     }
 
-    pub fn Applets(&self) -> JS<HTMLCollection> {
+    pub fn Applets(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
-        self.createHTMLCollection(|elem| "applet" == elem.get().tag_name)
+        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"applet")
     }
 
     pub fn create_collection<T>(&self, callback: |elem: &JS<Node>| -> Option<JS<T>>) -> ~[JS<T>] {
@@ -485,21 +491,6 @@ impl Document {
             }
         }
         nodes
-    }
-
-    pub fn createHTMLCollection(&self, callback: |elem: &JS<Element>| -> bool) -> JS<HTMLCollection> {
-        HTMLCollection::new(&self.window, self.create_collection(|node| {
-            if !node.is_element() {
-                return None;
-            }
-
-            let element: JS<Element> = ElementCast::to(node);
-            if !callback(&element) {
-                return None;
-            }
-
-            Some(element)
-        }))
     }
 
     pub fn createNodeList(&self, callback: |node: &JS<Node>| -> bool) -> JS<NodeList> {
