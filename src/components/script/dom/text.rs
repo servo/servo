@@ -5,7 +5,7 @@
 use dom::bindings::codegen::TextBinding;
 use dom::bindings::codegen::InheritTypes::TextDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::Fallible;
+use dom::bindings::error::Fallible;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

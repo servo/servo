@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLOListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOListElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOListElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

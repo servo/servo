@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::InheritTypes::CharacterDataDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::{Fallible, ErrorResult};
+use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLButtonElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLButtonElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

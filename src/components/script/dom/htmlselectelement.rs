@@ -6,7 +6,7 @@ use dom::bindings::codegen::HTMLSelectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementDerived;
 use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement};
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLSelectElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

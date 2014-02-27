@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLInputElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLInputElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::{ErrorResult, Fallible};
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::HTMLInputElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

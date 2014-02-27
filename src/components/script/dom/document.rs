@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest};
+use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest};
 use dom::bindings::utils::{xml_name_type, InvalidXMLName};
 use dom::comment::Comment;
 use dom::documentfragment::DocumentFragment;

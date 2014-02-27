@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLHRElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHRElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLHRElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

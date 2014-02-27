@@ -30,6 +30,7 @@ pub mod dom {
         pub mod element;
         pub mod utils;
         pub mod callback;
+        pub mod error;
         pub mod conversions;
         pub mod proxyhandler;
         pub mod trace;

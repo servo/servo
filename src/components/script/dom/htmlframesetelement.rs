@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLFrameSetElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFrameSetElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFrameSetElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
