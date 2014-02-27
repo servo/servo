@@ -233,6 +233,11 @@ impl Document {
         HTMLCollection::by_tag_name_ns(&self.window, &NodeCast::from(abstract_self), tag_name, namespace)
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
+    pub fn GetElementsByClassName(&self, abstract_self: &JS<Document>, classes: DOMString) -> JS<HTMLCollection> {
+        HTMLCollection::by_class_name(&self.window, &NodeCast::from(abstract_self), classes)
+    }
+
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     pub fn GetElementById(&self, id: DOMString) -> Option<JS<Element>> {
         // TODO: "in tree order, within the context object's tree"

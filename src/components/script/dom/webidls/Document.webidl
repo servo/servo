@@ -22,6 +22,7 @@ interface Document : Node {
   readonly attribute Element? documentElement;
   HTMLCollection getElementsByTagName(DOMString localName);
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
+  HTMLCollection getElementsByClassName(DOMString classNames);
   Element? getElementById(DOMString elementId);
 
   [Creator, Throws]

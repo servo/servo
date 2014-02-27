@@ -58,6 +58,10 @@ impl HTMLCollection {
     pub fn by_tag_name_ns(window: &JS<Window>, root: &JS<Node>, tag_name: DOMString, namespace: Namespace) -> JS<HTMLCollection> {
         HTMLCollection::create(window, root, |elem| elem.namespace == namespace && elem.tag_name == tag_name)
     }
+
+    pub fn by_class_name(window: &JS<Window>, root: &JS<Node>, classes: DOMString) -> JS<HTMLCollection> {
+        HTMLCollection::create(window, root, |elem| classes.split(' ').all(|class| elem.has_class(class)))
+    }
 }
 
 impl HTMLCollection {
