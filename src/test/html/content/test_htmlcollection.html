@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            let foo1 = document.getElementById("foo-1");
+            let foo2 = document.getElementById("foo-2");
+            let bar = document.getElementById("bar");
+            let live = document.getElementById("live");
+            let child = document.createElement("p");
+            let p1 = document.getElementById("p1");
+            let p2 = document.getElementById("p2");
+            let p3 = document.getElementById("p3");
+
+            let htmlcollection = null;
+
+            // test1: HTMLCollection interface
+            {
+                htmlcollection = document.getElementsByClassName("foo");
+                is(htmlcollection.length, 2);
+                is(htmlcollection.item(0), foo1);
+                is(htmlcollection.item(1), foo2);
+                is(htmlcollection.item(2), null);
+                is(htmlcollection.namedItem("foo-1"), foo1);
+                is(htmlcollection.namedItem("bar"), null);
+
+                htmlcollection = document.getElementsByClassName("FOO");
+                is(htmlcollection.length, 0);
+
+                htmlcollection = document.getElementsByClassName("bar");
+                is(htmlcollection.length, 1);
+                is(htmlcollection.item(0), bar);
+                is(htmlcollection.item(1), null);
+                is(htmlcollection.namedItem("bar"), bar);
+            }
+
+            // test2: live HTMLCollection
+            {
+                htmlcollection = document.getElementsByClassName("live");
+                is(htmlcollection.length, 1);
+                is(htmlcollection.item(0), live);
+
+                is(live.childNodes.length, 0)
+                is(htmlcollection.item(0).childNodes.length, 0);
+                is(document.getElementById("live").childNodes.length, 0);
+
+                live.appendChild(child);
+
+                is(live.childNodes.length, 1);
+                is(htmlcollection.item(0).childNodes.length, 1);
+                is(document.getElementById("live").childNodes.length, 1);
+            }
+
+            // test3: getElementsByTagName
+            {
+                htmlcollection = document.getElementsByTagName("div");
+                is(htmlcollection.length, 5);
+
+                let from_element = document.documentElement.getElementsByTagName("div");
+                is(htmlcollection.length, from_element.length);
+
+                htmlcollection = document.getElementsByTagName("DIV");
+                is(htmlcollection.length, 0);
+
+                htmlcollection = document.getElementsByTagName("p");
+                is(htmlcollection.length, 4);
+
+                from_element = document.getElementById("class-example").getElementsByTagName("p");
+                is(from_element.length, 3);
+            }
+
+            // test4: getElementsByTagNameNS
+            {
+                htmlcollection = document.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "div");
+                is(htmlcollection.length, 5);
+
+                let from_element = document.documentElement.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "div");
+                is(htmlcollection.length, from_element.length);
+
+                htmlcollection = document.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "DIV");
+                is(htmlcollection.length, 0);
+
+                htmlcollection = document.getElementsByTagNameNS("", "div");
+                is(htmlcollection.length, 0);
+
+                htmlcollection = document.getElementsByTagNameNS("invalid", "div");
+                is(htmlcollection.length, 0);
+
+                from_element = document.getElementById("class-example").getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "p");
+                is(from_element.length, 3);
+            }
+
+            // test5: document.getElementsByClassName
+            {
+                htmlcollection = document.getElementsByClassName("aaa");
+                is(htmlcollection.length, 2);
+                is(htmlcollection.item(0), p1);
+                is(htmlcollection.item(1), p2);
+
+                htmlcollection = document.getElementsByClassName("ccc bbb");
+                is(htmlcollection.length, 1);
+                is(htmlcollection.item(0), p3);
+
+                htmlcollection = document.getElementsByClassName("aaa,bbb");
+                is(htmlcollection.length, 0);
+
+                let from_element = document.getElementById("class-example").getElementsByClassName("bbb");
+                is(from_element.length, 2);
+                is(from_element.item(0), p1);
+                is(from_element.item(1), p3);
+            }
+
+            finish();
+        </script>
+    </head>
+    <body>
+        <div id="foo-1" class="foo"></div>
+        <div id="foo-2" class="foo"></div>
+        <div id="bar" class="bar"></div>
+        <div id="live" class="live"></div>
+        <div id="class-example">
+            <p id="p1" class="aaa bbb"/>
+            <p id="p2" class="aaa ccc"/>
+            <p id="p3" class="bbb ccc"/>
+        </div>
+    </body>
+</html>
