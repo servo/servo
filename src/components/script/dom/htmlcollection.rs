@@ -48,6 +48,10 @@ impl HTMLCollection {
         }
         HTMLCollection::new(window, elements)
     }
+
+    pub fn by_tag_name(window: &JS<Window>, root: &JS<Node>, tag_name: DOMString) -> JS<HTMLCollection> {
+        HTMLCollection::create(window, root, |elem| elem.tag_name == tag_name)
+    }
 }
 
 impl HTMLCollection {
