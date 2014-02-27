@@ -7,9 +7,9 @@ use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTex
 use layout::box_::{SplitDidNotFit, UnscannedTextBox, InlineInfo};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::floats::{FloatLeft, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
 use layout::flow;
-use layout::float_context::{FloatContext, FloatLeft, PlacementInfo};
 use layout::util::ElementMapping;
 use layout::wrapper::ThreadSafeLayoutNode;
 
@@ -56,7 +56,7 @@ struct LineBox {
 }
 
 struct LineboxScanner {
-    floats: FloatContext,
+    floats: Floats,
     new_boxes: ~[Box],
     work_list: RingBuf<Box>,
     pending_line: LineBox,
@@ -65,7 +65,7 @@ struct LineboxScanner {
 }
 
 impl LineboxScanner {
-    pub fn new(float_ctx: FloatContext) -> LineboxScanner {
+    pub fn new(float_ctx: Floats) -> LineboxScanner {
         LineboxScanner {
             floats: float_ctx,
             new_boxes: ~[],
@@ -80,7 +80,7 @@ impl LineboxScanner {
         }
     }
 
-    pub fn floats_out(&mut self) -> FloatContext {
+    pub fn floats(&mut self) -> Floats {
         self.floats.clone()
     }
 
@@ -193,11 +193,10 @@ impl LineboxScanner {
         };
 
         let mut info = PlacementInfo {
-            width: placement_width,
-            height: first_box_size.height,
+            size: Size2D(placement_width, first_box_size.height),
             ceiling: ceiling,
             max_width: flow.base.position.size.width,
-            f_type: FloatLeft
+            kind: FloatLeft,
         };
 
         let line_bounds = self.floats.place_between_floats(&info);
@@ -253,7 +252,7 @@ impl LineboxScanner {
                     (None, None)            => fail!("This case makes no sense.")
                 };
 
-                info.width = actual_box_width;
+                info.size.width = actual_box_width;
                 let new_bounds = self.floats.place_between_floats(&info);
 
                 debug!("LineboxScanner: case=new line position: {}", new_bounds);
@@ -626,7 +625,7 @@ impl Flow for InlineFlow {
         for kid in self.base.child_iter() {
             let child_base = flow::mut_base(kid);
             num_floats += child_base.num_floats;
-            child_base.floats_in = FloatContext::new(child_base.num_floats);
+            child_base.floats = Floats::new();
         }
 
         let mut min_width = Au::new(0);
@@ -653,7 +652,7 @@ impl Flow for InlineFlow {
         //
         // TODO: Combine this with `LineboxScanner`'s walk in the box list, or put this into `Box`.
 
-        debug!("InlineFlow::assign_widths: floats_in: {:?}", self.base.floats_in);
+        debug!("InlineFlow::assign_widths: floats in: {:?}", self.base.floats);
 
         {
             let this = &mut *self;
@@ -698,12 +697,12 @@ impl Flow for InlineFlow {
         // determine its height for computing linebox height.
         //
         // TODO(pcwalton): Cache the linebox scanner?
-        debug!("assign_height_inline: floats_in: {:?}", self.base.floats_in);
+        debug!("assign_height_inline: floats in: {:?}", self.base.floats);
         // assign height for inline boxes
         for box_ in self.boxes.iter() {
             box_.assign_height();
         }
-        let scanner_floats = self.base.floats_in.clone();
+        let scanner_floats = self.base.floats.clone();
         let mut scanner = LineboxScanner::new(scanner_floats);
 
         // Access the linebox scanner.
@@ -880,9 +879,8 @@ impl Flow for InlineFlow {
                 Au::new(0)
             };
 
-        self.base.floats_out = scanner.floats_out()
-                                      .translate(Point2D(Au::new(0),
-                                                         -self.base.position.size.height));
+        self.base.floats = scanner.floats();
+        self.base.floats.translate(Point2D(Au::new(0), -self.base.position.size.height));
     }
 
     fn collapse_margins(&mut self,

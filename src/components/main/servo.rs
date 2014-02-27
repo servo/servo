@@ -90,7 +90,7 @@ pub mod layout {
     pub mod construct;
     pub mod context;
     pub mod display_list_builder;
-    pub mod float_context;
+    pub mod floats;
     pub mod flow;
     pub mod flow_list;
     pub mod layout_task;
