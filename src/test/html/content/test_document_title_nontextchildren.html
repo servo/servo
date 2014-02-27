@@ -1,0 +1,9 @@
+<html>
+<title>x</title>
+<script src="harness.js"></script>
+<script>
+document.head.firstChild.appendChild(document.createElement("foo"));
+is(document.title, "x");
+finish();
+</script>
+</html>
