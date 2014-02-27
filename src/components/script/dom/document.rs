@@ -213,7 +213,7 @@ impl Document {
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     pub fn GetElementsByTagName(&self, tag: DOMString) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| elem.tag_name == tag)
+        self.createHTMLCollection(|elem| elem.get().tag_name == tag)
     }
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
@@ -406,18 +406,18 @@ impl Document {
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
     pub fn GetElementsByName(&self, name: DOMString) -> JS<NodeList> {
         self.createNodeList(|elem| {
-            elem.get_attribute(Null, "name").map_default(false, |attr| {
+            elem.get().get_attribute(Null, "name").map_default(false, |attr| {
                 attr.get().value_ref() == name
             })
         })
     }
 
     pub fn Images(&self) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| "img" == elem.tag_name)
+        self.createHTMLCollection(|elem| "img" == elem.get().tag_name)
     }
 
     pub fn Embeds(&self) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| "embed" == elem.tag_name)
+        self.createHTMLCollection(|elem| "embed" == elem.get().tag_name)
     }
 
     pub fn Plugins(&self) -> JS<HTMLCollection> {
@@ -426,31 +426,32 @@ impl Document {
 
     pub fn Links(&self) -> JS<HTMLCollection> {
         self.createHTMLCollection(|elem| {
-            ("a" == elem.tag_name || "area" == elem.tag_name) &&
-            elem.get_attribute(Null, "href").is_some()
+            ("a" == elem.get().tag_name || "area" == elem.get().tag_name) &&
+            elem.get().get_attribute(Null, "href").is_some()
         })
     }
 
     pub fn Forms(&self) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| "form" == elem.tag_name)
+        self.createHTMLCollection(|elem| "form" == elem.get().tag_name)
     }
 
     pub fn Scripts(&self) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| "script" == elem.tag_name)
+        self.createHTMLCollection(|elem| "script" == elem.get().tag_name)
     }
 
     pub fn Anchors(&self) -> JS<HTMLCollection> {
         self.createHTMLCollection(|elem| {
-            "a" == elem.tag_name && elem.get_attribute(Null, "name").is_some()
+            "a" == elem.get().tag_name &&
+            elem.get().get_attribute(Null, "name").is_some()
         })
     }
 
     pub fn Applets(&self) -> JS<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
-        self.createHTMLCollection(|elem| "applet" == elem.tag_name)
+        self.createHTMLCollection(|elem| "applet" == elem.get().tag_name)
     }
 
-    pub fn create_collection(&self, callback: |elem: &Element| -> bool) -> ~[JS<Element>] {
+    pub fn create_collection(&self, callback: |elem: &JS<Element>| -> bool) -> ~[JS<Element>] {
         let mut elements = ~[];
         match self.GetDocumentElement() {
             None => {},
@@ -459,7 +460,7 @@ impl Document {
                 for child in root.traverse_preorder() {
                     if child.is_element() {
                         let elem: JS<Element> = ElementCast::to(&child);
-                        if callback(elem.get()) {
+                        if callback(&elem) {
                             elements.push(elem);
                         }
                     }
@@ -469,11 +470,11 @@ impl Document {
         elements
     }
 
-    pub fn createHTMLCollection(&self, callback: |elem: &Element| -> bool) -> JS<HTMLCollection> {
+    pub fn createHTMLCollection(&self, callback: |elem: &JS<Element>| -> bool) -> JS<HTMLCollection> {
         HTMLCollection::new(&self.window, self.create_collection(callback))
     }
 
-    pub fn createNodeList(&self, callback: |elem: &Element| -> bool) -> JS<NodeList> {
+    pub fn createNodeList(&self, callback: |elem: &JS<Element>| -> bool) -> JS<NodeList> {
         let elements = self.create_collection(callback);
         let nodes = elements.map(|element| {
             let node: JS<Node> = NodeCast::from(element);
