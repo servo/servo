@@ -503,11 +503,10 @@ impl Element {
         self.GetAttributeNS(namespace, local_name).is_some()
     }
 
-    // http://dom.spec.whatwg.org/#dom-element-getelementsbytagname
-    pub fn GetElementsByTagName(&self, _localname: DOMString) -> JS<HTMLCollection> {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1660
+    pub fn GetElementsByTagName(&self, abstract_self: &JS<Element>, localname: DOMString) -> JS<HTMLCollection> {
         let doc = self.node.owner_doc();
-        HTMLCollection::new(&doc.get().window, ~[])
+        let doc = doc.get();
+        HTMLCollection::by_tag_name(&doc.window, &NodeCast::from(abstract_self), localname)
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens

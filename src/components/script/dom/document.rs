@@ -212,8 +212,8 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
-    pub fn GetElementsByTagName(&self, tag: DOMString) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| elem.get().tag_name == tag)
+    pub fn GetElementsByTagName(&self, abstract_self: &JS<Document>, tag_name: DOMString) -> JS<HTMLCollection> {
+        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), tag_name)
     }
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
