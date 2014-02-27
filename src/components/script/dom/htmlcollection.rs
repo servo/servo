@@ -9,6 +9,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
+use servo_util::namespace::Namespace;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -49,6 +50,10 @@ impl HTMLCollection {
 
     pub fn by_tag_name(window: &JS<Window>, root: &JS<Node>, tag_name: DOMString) -> JS<HTMLCollection> {
         HTMLCollection::create(window, root, |elem| elem.get().tag_name == tag_name)
+    }
+
+    pub fn by_tag_name_ns(window: &JS<Window>, root: &JS<Node>, tag_name: DOMString, namespace: Namespace) -> JS<HTMLCollection> {
+        HTMLCollection::create(window, root, |elem| elem.get().namespace == namespace && elem.get().tag_name == tag_name)
     }
 }
 
