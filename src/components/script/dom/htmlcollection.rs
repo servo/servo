@@ -55,6 +55,12 @@ impl HTMLCollection {
     pub fn by_tag_name_ns(window: &JS<Window>, root: &JS<Node>, tag_name: DOMString, namespace: Namespace) -> JS<HTMLCollection> {
         HTMLCollection::create(window, root, |elem| elem.get().namespace == namespace && elem.get().tag_name == tag_name)
     }
+
+    pub fn by_class_name(window: &JS<Window>, root: &JS<Node>, classes: DOMString) -> JS<HTMLCollection> {
+        // FIXME: https://github.com/mozilla/servo/issues/1840
+        let classes: ~[&str] = classes.split(' ').collect();
+        HTMLCollection::create(window, root, |elem| classes.iter().all(|class| elem.get().has_class(*class)))
+    }
 }
 
 impl HTMLCollection {

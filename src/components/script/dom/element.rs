@@ -370,6 +370,13 @@ impl Element {
             _ => false
         }
     }
+
+    pub fn has_class(&self, name: &str) -> bool {
+        // FIXME: https://github.com/mozilla/servo/issues/1840
+        let class_names = self.get_string_attribute("class");
+        let mut classes = class_names.split(' ');
+        classes.any(|class| name == class)
+    }
 }
 
 // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
@@ -520,11 +527,10 @@ impl Element {
         HTMLCollection::by_tag_name_ns(&doc.window, &NodeCast::from(abstract_self), localname, namespace)
     }
 
-    // http://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
-    pub fn GetElementsByClassName(&self, _names: DOMString) -> JS<HTMLCollection> {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1660
+    pub fn GetElementsByClassName(&self, abstract_self: &JS<Element>, classes: DOMString) -> JS<HTMLCollection> {
         let doc = self.node.owner_doc();
-        HTMLCollection::new(&doc.get().window, ~[])
+        let doc = doc.get();
+        HTMLCollection::by_class_name(&doc.window, &NodeCast::from(abstract_self), classes)
     }
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getclientrects
