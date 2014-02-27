@@ -524,24 +524,7 @@ impl Element {
         HTMLCollection::new(&doc.get().window, ~[])
     }
 
-    // http://dom.spec.whatwg.org/#dom-element-matches
-    pub fn MozMatchesSelector(&self, _selector: DOMString) -> Fallible<bool> {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1660
-        Ok(false)
-    }
-
-    pub fn SetCapture(&self, _retargetToElement: bool) {
-    }
-
-    pub fn ReleaseCapture(&self) {
-    }
-
-    pub fn MozRequestFullScreen(&self) {
-    }
-
-    pub fn MozRequestPointerLock(&self) {
-    }
-
+    // http://dev.w3.org/csswg/cssom-view/#dom-element-getclientrects
     pub fn GetClientRects(&self, abstract_self: &JS<Element>) -> JS<ClientRectList> {
         let doc = self.node.owner_doc();
         let win = &doc.get().window;
@@ -565,6 +548,7 @@ impl Element {
         ClientRectList::new(win, rects)
     }
 
+    // http://dev.w3.org/csswg/cssom-view/#dom-element-getboundingclientrect
     pub fn GetBoundingClientRect(&self, abstract_self: &JS<Element>) -> JS<ClientRect> {
         let doc = self.node.owner_doc();
         let win = &doc.get().window;
@@ -583,70 +567,13 @@ impl Element {
         }
     }
 
-    pub fn ScrollIntoView(&self, _top: bool) {
-    }
-
-    pub fn ScrollTop(&self) -> i32 {
-        0
-    }
-
-    pub fn SetScrollTop(&mut self, _scroll_top: i32) {
-    }
-
-    pub fn ScrollLeft(&self) -> i32 {
-        0
-    }
-
-    pub fn SetScrollLeft(&mut self, _scroll_left: i32) {
-    }
-
-    pub fn ScrollWidth(&self) -> i32 {
-        0
-    }
-
-    pub fn ScrollHeight(&self) -> i32 {
-        0
-    }
-
-    pub fn ClientTop(&self) -> i32 {
-        0
-    }
-
-    pub fn ClientLeft(&self) -> i32 {
-        0
-    }
-
-    pub fn ClientWidth(&self) -> i32 {
-        0
-    }
-
-    pub fn ClientHeight(&self) -> i32 {
-        0
-    }
-
     pub fn GetInnerHTML(&self, abstract_self: &JS<Element>) -> Fallible<DOMString> {
         //XXX TODO: XML case
         Ok(serialize(&mut NodeIterator::new(NodeCast::from(abstract_self), false, false)))
     }
 
-    pub fn SetInnerHTML(&mut self, _abstract_self: &JS<Element>, _value: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
     pub fn GetOuterHTML(&self, abstract_self: &JS<Element>) -> Fallible<DOMString> {
         Ok(serialize(&mut NodeIterator::new(NodeCast::from(abstract_self), true, false)))
-    }
-
-    pub fn SetOuterHTML(&mut self, _abstract_self: &JS<Element>, _value: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    pub fn InsertAdjacentHTML(&mut self, _position: DOMString, _text: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    pub fn QuerySelector(&self, _selectors: DOMString) -> Fallible<Option<JS<Element>>> {
-        Ok(None)
     }
 }
 
