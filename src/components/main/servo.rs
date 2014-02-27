@@ -117,7 +117,7 @@ pub mod util;
 #[start]
 fn start(argc: int, argv: **u8) -> int {
     native::start(argc, argv, proc() {
-        run(opts::from_cmdline_args(os::args()))
+        opts::from_cmdline_args(os::args()).map(run);
     })
 }
 
@@ -131,7 +131,7 @@ pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
                 args.push(str::raw::from_c_str(*argv.offset(i as int) as *i8));
             }
         }
-        run(opts::from_cmdline_args(args))
+        opts::from_cmdline_args(os::args()).map(run);
     })
 }
 
