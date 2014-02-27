@@ -38,7 +38,7 @@ use css::node_style::StyledNode;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
-use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
+use layout::floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
 use layout::flow::{Flow, FlowFlagsInfo};
 use layout::flow;
 use layout::model::{MaybeAuto, specified, Auto, Specified};

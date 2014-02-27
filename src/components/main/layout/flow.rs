@@ -30,7 +30,7 @@ use layout::block::BlockFlow;
 use layout::box_::Box;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::float_context::{FloatContext, Invalid};
+use layout::floats::Floats;
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
 use layout::parallel::FlowParallelInfo;
@@ -511,9 +511,13 @@ pub struct BaseFlow {
     /// TODO(pcwalton): Group with other transient data to save space.
     parallel: FlowParallelInfo,
 
-    floats_in: FloatContext,
-    floats_out: FloatContext,
+    /// The floats next to this flow.
+    floats: Floats,
+
+    /// The number of floated descendants of this flow (including this flow, if it's floated).
     num_floats: uint,
+
+    /// The position of this flow in page coordinates, computed during display list construction.
     abs_position: Point2D<Au>,
 
     /// Whether this flow has been destroyed.
@@ -569,8 +573,7 @@ impl BaseFlow {
 
             parallel: FlowParallelInfo::new(),
 
-            floats_in: Invalid,
-            floats_out: Invalid,
+            floats: Floats::new(),
             num_floats: 0,
             abs_position: Point2D(Au::new(0), Au::new(0)),
 

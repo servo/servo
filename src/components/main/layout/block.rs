@@ -8,7 +8,7 @@ use layout::box_::Box;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::float_context::{FloatContext, PlacementInfo, Invalid, FloatType};
+use layout::floats::{FloatKind, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
 use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
@@ -34,17 +34,17 @@ pub struct FloatedBlockInfo {
     floated_children: uint,
 
     /// Left or right?
-    float_type: FloatType
+    float_kind: FloatKind,
 }
 
 impl FloatedBlockInfo {
-    pub fn new(float_type: FloatType) -> FloatedBlockInfo {
+    pub fn new(float_kind: FloatKind) -> FloatedBlockInfo {
         FloatedBlockInfo {
             containing_width: Au(0),
             rel_pos: Point2D(Au(0), Au(0)),
             index: None,
             floated_children: 0,
-            float_type: float_type
+            float_kind: float_kind,
         }
     }
 }
@@ -68,7 +68,9 @@ pub struct BlockFlow {
 }
 
 impl BlockFlow {
-    pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode, is_fixed: bool)
+    pub fn from_node(constructor: &mut FlowConstructor,
+                     node: &ThreadSafeLayoutNode,
+                     is_fixed: bool)
                      -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
@@ -81,14 +83,14 @@ impl BlockFlow {
 
     pub fn float_from_node(constructor: &mut FlowConstructor,
                            node: &ThreadSafeLayoutNode,
-                           float_type: FloatType)
+                           float_kind: FloatKind)
                            -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
             box_: Some(Box::new(constructor, node)),
             is_root: false,
             is_fixed: false,
-            float: Some(~FloatedBlockInfo::new(float_type))
+            float: Some(~FloatedBlockInfo::new(float_kind))
         }
     }
 
@@ -102,13 +104,13 @@ impl BlockFlow {
         }
     }
 
-    pub fn new_float(base: BaseFlow, float_type: FloatType) -> BlockFlow {
+    pub fn new_float(base: BaseFlow, float_kind: FloatKind) -> BlockFlow {
         BlockFlow {
             base: base,
             box_: None,
             is_root: false,
             is_fixed: false,
-            float: Some(~FloatedBlockInfo::new(float_type))
+            float: Some(~FloatedBlockInfo::new(float_kind))
         }
     }
 
@@ -257,13 +259,12 @@ impl BlockFlow {
         let mut top_offset = Au::new(0);
         let mut bottom_offset = Au::new(0);
         let mut left_offset = Au::new(0);
-        let mut float_ctx = Invalid;
 
         for box_ in self.box_.iter() {
             clearance = match box_.clear() {
                 None => Au::new(0),
                 Some(clear) => {
-                    self.base.floats_in.clearance(clear)
+                    self.base.floats.clearance(clear)
                 }
             };
 
@@ -277,18 +278,20 @@ impl BlockFlow {
 
         if inorder {
             // Floats for blocks work like this:
-            // self.floats_in -> child[0].floats_in
+            // self.floats -> child[0].floats
             // visit child[0]
-            // child[i-1].floats_out -> child[i].floats_in
+            // child[i-1].floats -> child[i].floats
             // visit child[i]
             // repeat until all children are visited.
-            // last_child.floats_out -> self.floats_out (done at the end of this method)
-            float_ctx = self.base.floats_in.translate(Point2D(-left_offset, -top_offset));
+            // last_child.floats -> self.floats (done at the end of this method)
+            self.base.floats.translate(Point2D(-left_offset, -top_offset));
+            let mut floats = self.base.floats.clone();
             for kid in self.base.child_iter() {
-                flow::mut_base(kid).floats_in = float_ctx.clone();
+                flow::mut_base(kid).floats = floats;
                 kid.assign_height_inorder(ctx);
-                float_ctx = flow::mut_base(kid).floats_out.clone();
+                floats = flow::mut_base(kid).floats.clone();
             }
+            self.base.floats = floats;
         }
 
         // The amount of margin that we can potentially collapse with
@@ -434,9 +437,7 @@ impl BlockFlow {
 
         if inorder {
             let extra_height = height - (cur_y - top_offset) + bottom_offset;
-            self.base.floats_out = float_ctx.translate(Point2D(left_offset, -extra_height));
-        } else {
-            self.base.floats_out = self.base.floats_in.clone();
+            self.base.floats.translate(Point2D(left_offset, -extra_height));
         }
     }
 
@@ -453,7 +454,7 @@ impl BlockFlow {
             height = box_.border_box.get().size.height;
             clearance = match box_.clear() {
                 None => Au(0),
-                Some(clear) => self.base.floats_in.clearance(clear),
+                Some(clear) => self.base.floats.clearance(clear),
             };
 
             let noncontent_width = box_.padding.get().left + box_.padding.get().right +
@@ -465,29 +466,33 @@ impl BlockFlow {
         }
 
         let info = PlacementInfo {
-            width: self.base.position.size.width + full_noncontent_width,
-            height: height + margin_height,
+            size: Size2D(self.base.position.size.width + full_noncontent_width,
+                         height + margin_height),
             ceiling: clearance,
             max_width: self.float.get_ref().containing_width,
-            f_type: self.float.get_ref().float_type,
+            kind: self.float.get_ref().float_kind,
         };
 
-        // Place the float and return the FloatContext back to the parent flow.
+        // Place the float and return the `Floats` back to the parent flow.
         // After, grab the position and use that to set our position.
-        self.base.floats_out = self.base.floats_in.add_float(&info);
-        self.float.get_mut_ref().rel_pos = self.base.floats_out.last_float_pos();
+        self.base.floats.add_float(&info);
+
+        self.float.get_mut_ref().rel_pos = self.base.floats.last_float_pos().unwrap();
     }
 
     fn assign_height_float(&mut self, ctx: &mut LayoutContext) {
         // Now that we've determined our height, propagate that out.
         let has_inorder_children = self.base.num_floats > 0;
         if has_inorder_children {
-            let mut float_ctx = FloatContext::new(self.float.get_ref().floated_children);
+            let mut floats = Floats::new();
             for kid in self.base.child_iter() {
-                flow::mut_base(kid).floats_in = float_ctx.clone();
+                flow::mut_base(kid).floats = floats;
                 kid.assign_height_inorder(ctx);
-                float_ctx = flow::mut_base(kid).floats_out.clone();
+                floats = flow::mut_base(kid).floats.clone();
             }
+
+            // Floats establish a block formatting context, so we discard the output floats here.
+            drop(floats);
         }
         let mut cur_y = Au(0);
         let mut top_offset = Au(0);
@@ -699,7 +704,7 @@ impl Flow for BlockFlow {
             debug!("Setting root position");
             self.base.position.origin = Au::zero_point();
             self.base.position.size.width = ctx.screen_size.width;
-            self.base.floats_in = FloatContext::new(self.base.num_floats);
+            self.base.floats = Floats::new();
             self.base.flags_info.flags.set_inorder(false);
         }
 
@@ -788,7 +793,7 @@ impl Flow for BlockFlow {
             child_base.flags_info.flags.set_inorder(has_inorder_children);
 
             if !child_base.flags_info.flags.inorder() {
-                child_base.floats_in = FloatContext::new(0);
+                child_base.floats = Floats::new();
             }
 
             // Per CSS 2.1 § 16.3.1, text decoration propagates to all children in flow.

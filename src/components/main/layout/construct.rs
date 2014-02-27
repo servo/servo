@@ -26,7 +26,7 @@ use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBox
 use layout::box_::{InlineInfo, InlineParentInfo, SpecificBoxInfo, UnscannedTextBox};
 use layout::box_::{UnscannedTextBoxInfo};
 use layout::context::LayoutContext;
-use layout::float_context::FloatType;
+use layout::floats::FloatKind;
 use layout::flow::{Flow, MutableOwnedFlowUtils};
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
@@ -418,9 +418,9 @@ impl<'a> FlowConstructor<'a> {
 
     /// Builds the flow for a node with `float: {left|right}`. This yields a float `BlockFlow` with
     /// a `BlockFlow` underneath it.
-    fn build_flow_for_floated_block(&mut self, node: &ThreadSafeLayoutNode, float_type: FloatType)
+    fn build_flow_for_floated_block(&mut self, node: &ThreadSafeLayoutNode, float_kind: FloatKind)
                                     -> ~Flow {
-        let mut flow = ~BlockFlow::float_from_node(self, node, float_type) as ~Flow;
+        let mut flow = ~BlockFlow::float_from_node(self, node, float_kind) as ~Flow;
         self.build_children_of_block_flow(&mut flow, node);
         flow
     }
@@ -684,8 +684,8 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
 
             // Floated flows contribute float flow construction results.
             (_, float_value, _) => {
-                let float_type = FloatType::from_property(float_value);
-                let flow = self.build_flow_for_floated_block(node, float_type);
+                let float_kind = FloatKind::from_property(float_value);
+                let flow = self.build_flow_for_floated_block(node, float_kind);
                 node.set_flow_construction_result(FlowConstructionResult(flow))
             }
         }
