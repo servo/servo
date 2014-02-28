@@ -7,7 +7,7 @@ use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::js::JS;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
-use dom::element::{HTMLLinkElementTypeId, HTMLIframeElementTypeId};
+use dom::element::{HTMLLinkElementTypeId, HTMLIFrameElementTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmliframeelement::IFrameSize;
@@ -350,7 +350,7 @@ pub fn parse_html(cx: *JSContext,
                     }
                 }
 
-                ElementNodeTypeId(HTMLIframeElementTypeId) => {
+                ElementNodeTypeId(HTMLIFrameElementTypeId) => {
                     let iframe_chan = discovery_chan.clone();
                     let mut iframe_element: JS<HTMLIFrameElement> =
                         HTMLIFrameElementCast::to(&element);
