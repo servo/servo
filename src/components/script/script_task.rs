@@ -261,6 +261,10 @@ impl Page {
         };
     }
 
+    pub fn get_url(&self) -> Url {
+        self.url.get_ref().first().clone()
+    }
+
     /// Sends a ping to layout and waits for the response. The response will arrive when the
     /// layout task has finished any pending request messages.
     pub fn join_layout(&mut self) {
@@ -332,7 +336,7 @@ impl Page {
                 let root: JS<Node> = NodeCast::from(&root);
                 let reflow = ~Reflow {
                     document_root: root.to_trusted_node_address(),
-                    url: self.url.get_ref().first().clone(),
+                    url: self.get_url(),
                     goal: goal,
                     window_size: self.window_size,
                     script_chan: script_chan,
@@ -989,9 +993,7 @@ impl ScriptTask {
         for href in attr.iter() {
             debug!("ScriptTask: clicked on link to {:s}", href.get().Value());
             let click_frag = href.get().value_ref().starts_with("#");
-            let base_url = page.url.as_ref().map(|&(ref url, _)| {
-                url.clone()
-            });
+            let base_url = Some(page.get_url());
             debug!("ScriptTask: current url is {:?}", base_url);
             let url = parse_url(href.get().value_ref(), base_url);
 
