@@ -687,6 +687,11 @@ do
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --sysconfdir=/etc"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --localstatedir=/var"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-shared" # work around Rust #12557
+            if [ -f /etc/redhat-release ]; then
+                # Some RedHat-based distros (including our CentOS 6 build machines) are missing
+                # pkg-config files for expat: https://bugzilla.redhat.com/show_bug.cgi?id=833338
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-expat=/usr"
+            fi
             CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
             ;;
         platform/android/fontconfig)
