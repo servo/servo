@@ -90,7 +90,7 @@ pub enum ElementTypeId {
     HTMLHeadElementTypeId,
     HTMLHeadingElementTypeId,
     HTMLHtmlElementTypeId,
-    HTMLIframeElementTypeId,
+    HTMLIFrameElementTypeId,
     HTMLImageElementTypeId,
     HTMLInputElementTypeId,
     HTMLLabelElementTypeId,
@@ -264,7 +264,7 @@ impl Element {
                 let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self);
                 elem.get_mut().AfterSetAttr(local_name.clone(), value.clone());
             }
-            ElementNodeTypeId(HTMLIframeElementTypeId) => {
+            ElementNodeTypeId(HTMLIFrameElementTypeId) => {
                 let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self);
                 elem.get_mut().AfterSetAttr(local_name.clone(), value.clone());
             }
@@ -333,7 +333,7 @@ impl Element {
                 let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self);
                 elem.get_mut().BeforeRemoveAttr(local_name.clone());
             }
-            ElementNodeTypeId(HTMLIframeElementTypeId) => {
+            ElementNodeTypeId(HTMLIFrameElementTypeId) => {
                 let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self);
                 elem.get_mut().BeforeRemoveAttr(local_name.clone());
             }
