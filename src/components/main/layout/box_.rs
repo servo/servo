@@ -532,6 +532,13 @@ impl Box {
         }
     }
 
+    pub fn compute_borders_if_necessary(&self, style: &ComputedValues) {
+        match self.specific {
+            TableWrapperBox | TableColumnBox(_) => {},
+            _ => self.compute_borders(style)
+        }
+    }
+
     /// Populates the box model border parameters from the given computed style.
     ///
     /// FIXME(pcwalton): This should not be necessary. Just go to the style.
@@ -599,19 +606,43 @@ impl Box {
     }
 
     pub fn noncontent_left(&self) -> Au {
-        self.margin.get().left + self.border.get().left + self.padding.get().left
+        match self.specific {
+            TableWrapperBox => self.margin.get().left,
+            TableBox | TableCellBox => self.border.get().left + self.padding.get().left,
+            TableRowBox => self.border.get().left,
+            TableColumnBox(_) => Au(0),
+            _ => self.margin.get().left + self.border.get().left + self.padding.get().left
+        }
     }
 
     pub fn noncontent_right(&self) -> Au {
-        self.margin.get().right + self.border.get().right + self.padding.get().right
+        match self.specific {
+            TableWrapperBox => self.margin.get().right,
+            TableBox | TableCellBox => self.border.get().right + self.padding.get().right,
+            TableRowBox => self.border.get().right,
+            TableColumnBox(_) => Au(0),
+            _ => self.margin.get().right + self.border.get().right + self.padding.get().right
+        }
     }
 
     pub fn noncontent_top(&self) -> Au {
-        self.margin.get().top + self.border.get().top + self.padding.get().top
+        match self.specific {
+            TableWrapperBox => self.margin.get().top,
+            TableBox | TableCellBox => self.border.get().top + self.padding.get().top,
+            TableRowBox => self.border.get().top,
+            TableColumnBox(_) => Au(0),
+            _ => self.margin.get().top + self.border.get().top + self.padding.get().top
+        }
     }
 
     pub fn noncontent_bottom(&self) -> Au {
-        self.margin.get().bottom + self.border.get().bottom + self.padding.get().bottom
+        match self.specific {
+            TableWrapperBox => self.margin.get().bottom,
+            TableBox | TableCellBox => self.border.get().bottom + self.padding.get().bottom,
+            TableRowBox => self.border.get().bottom,
+            TableColumnBox(_) => Au(0),
+            _ => self.margin.get().bottom + self.border.get().bottom + self.padding.get().bottom
+        }
     }
 
     pub fn noncontent_inline_left(&self) -> Au {
@@ -827,7 +858,13 @@ impl Box {
 
     /// Returns the sum of margin, border, and padding on the left.
     pub fn offset(&self) -> Au {
-        self.margin.get().left + self.border.get().left + self.padding.get().left
+        match self.specific {
+            TableWrapperBox => self.margin.get().left,
+            TableBox | TableCellBox => self.border.get().left + self.padding.get().left,
+            TableRowBox => self.border.get().left,
+            TableColumnBox(_) => Au(0),
+            _ => self.margin.get().left + self.border.get().left + self.padding.get().left
+        }
     }
 
     /// Returns true if this element is replaced content. This is true for images, form elements,

@@ -5,279 +5,36 @@
 //! CSS table formatting contexts.
 
 use layout::box_::Box;
+use layout::block::BlockFlow;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::flow::{BaseFlow, TableCaptionFlowClass, FlowClass, Flow, ImmutableFlowUtils};
-use layout::flow;
-use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
-use layout::float_context::{FloatContext, Invalid};
+use layout::flow::{BaseFlow, TableCaptionFlowClass, FlowClass, Flow};
 
 use std::cell::RefCell;
-use geom::{Point2D, Rect, SideOffsets2D};
+use geom::{Rect};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
-use servo_util::geometry;
 
 /// A table formatting context.
 pub struct TableCaptionFlow {
-    /// Data common to all flows.
-    base: BaseFlow,
-
-    /// The associated box.
-    box_: Option<Box>,
+    block_flow: BlockFlow,
 }
 
 impl TableCaptionFlow {
     pub fn new(base: BaseFlow) -> TableCaptionFlow {
         TableCaptionFlow {
-            base: base,
-            box_: None,
+            block_flow: BlockFlow::new(base),
         }
     }
 
     pub fn from_box(base: BaseFlow, box_: Box) -> TableCaptionFlow {
         TableCaptionFlow {
-            base: base,
-            box_: Some(box_),
+            block_flow: BlockFlow::from_box(base, box_, false),
         }
     }
 
     pub fn teardown(&mut self) {
-        for box_ in self.box_.iter() {
-            box_.teardown();
-        }
-        self.box_ = None;
-    }
-
-    /// Computes left and right margins and width based on CSS 2.1 section 10.3.3.
-    /// Requires borders and padding to already be computed.
-    fn compute_horiz(&self,
-                     width: MaybeAuto,
-                     left_margin: MaybeAuto,
-                     right_margin: MaybeAuto,
-                     available_width: Au)
-                     -> (Au, Au, Au) {
-        // If width is not 'auto', and width + margins > available_width, all 'auto' margins are
-        // treated as 0.
-        let (left_margin, right_margin) = match width {
-            Auto => (left_margin, right_margin),
-            Specified(width) => {
-                let left = left_margin.specified_or_zero();
-                let right = right_margin.specified_or_zero();
-
-                if((left + right + width) > available_width) {
-                    (Specified(left), Specified(right))
-                } else {
-                    (left_margin, right_margin)
-                }
-            }
-        };
-
-        //Invariant: left_margin_Au + width_Au + right_margin_Au == available_width
-        let (left_margin_Au, width_Au, right_margin_Au) = match (left_margin, width, right_margin) {
-            //If all have a computed value other than 'auto', the system is over-constrained and we need to discard a margin.
-            //if direction is ltr, ignore the specified right margin and solve for it. If it is rtl, ignore the specified
-            //left margin. FIXME(eatkinson): this assumes the direction is ltr
-            (Specified(margin_l), Specified(width), Specified(_margin_r)) => (margin_l, width, available_width - (margin_l + width )),
-
-            //If exactly one value is 'auto', solve for it
-            (Auto, Specified(width), Specified(margin_r)) => (available_width - (width + margin_r), width, margin_r),
-            (Specified(margin_l), Auto, Specified(margin_r)) => (margin_l, available_width - (margin_l + margin_r), margin_r),
-            (Specified(margin_l), Specified(width), Auto) => (margin_l, width, available_width - (margin_l + width)),
-
-            //If width is set to 'auto', any other 'auto' value becomes '0', and width is solved for
-            (Auto, Auto, Specified(margin_r)) => (Au::new(0), available_width - margin_r, margin_r),
-            (Specified(margin_l), Auto, Auto) => (margin_l, available_width - margin_l, Au::new(0)),
-            (Auto, Auto, Auto) => (Au::new(0), available_width, Au::new(0)),
-
-            //If left and right margins are auto, they become equal
-            (Auto, Specified(width), Auto) => {
-                let margin = (available_width - width).scale_by(0.5);
-                (margin, width, margin)
-            }
-
-        };
-        //return values in same order as params
-        (width_Au, left_margin_Au, right_margin_Au)
-    }
-
-    fn compute_table_margins(&self, box_: &Box, remaining_width: Au, available_width: Au)
-                             -> (Au, Au, Au) {
-        let style = box_.style();
-
-        let (width, maybe_margin_left, maybe_margin_right) =
-            (MaybeAuto::from_style(style.Box.width, remaining_width),
-             MaybeAuto::from_style(style.Margin.margin_left, remaining_width),
-             MaybeAuto::from_style(style.Margin.margin_right, remaining_width));
-
-        let (width, margin_left, margin_right) = self.compute_horiz(width,
-                                                                    maybe_margin_left,
-                                                                    maybe_margin_right,
-                                                                    available_width);
-
-        // If the tentative used width is greater than 'max-width', width should be recalculated,
-        // but this time using the computed value of 'max-width' as the computed value for 'width'.
-        let (width, margin_left, margin_right) = {
-            match specified_or_none(style.Box.max_width, remaining_width) {
-                Some(value) if value < width => self.compute_horiz(Specified(value),
-                                                                   maybe_margin_left,
-                                                                   maybe_margin_right,
-                                                                   available_width),
-                _ => (width, margin_left, margin_right)
-            }
-        };
-
-        // If the resulting width is smaller than 'min-width', width should be recalculated,
-        // but this time using the value of 'min-width' as the computed value for 'width'.
-        let (width, margin_left, margin_right) = {
-            let computed_min_width = specified(style.Box.min_width, remaining_width);
-            if computed_min_width > width {
-                self.compute_horiz(Specified(computed_min_width),
-                                   maybe_margin_left,
-                                   maybe_margin_right,
-                                   available_width)
-            } else {
-                (width, margin_left, margin_right)
-            }
-        };
-
-        return (width, margin_left, margin_right);
-    }
-
-    // inline(always) because this is only ever called by in-order or non-in-order top-level
-    // methods
-    #[inline(always)]
-    fn assign_height_table_caption_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
-        let mut cur_y = Au::new(0);
-        let mut clearance = Au::new(0);
-        let mut top_offset = Au::new(0);
-        let mut bottom_offset = Au::new(0);
-        let mut left_offset = Au::new(0);
-        let mut float_ctx = Invalid;
-
-        for box_ in self.box_.iter() {
-            clearance = match box_.clear() {
-                None => Au::new(0),
-                Some(clear) => {
-                    self.base.floats_in.clearance(clear)
-                }
-            };
-
-            top_offset = clearance + box_.noncontent_top();
-            cur_y = cur_y + top_offset;
-            bottom_offset = box_.noncontent_bottom();
-            left_offset = box_.noncontent_left();
-        }
-
-        if inorder {
-            // Floats for blocks work like this:
-            // self.floats_in -> child[0].floats_in
-            // visit child[0]
-            // child[i-1].floats_out -> child[i].floats_in
-            // visit child[i]
-            // repeat until all children are visited.
-            // last_child.floats_out -> self.floats_out (done at the end of this method)
-            float_ctx = self.base.floats_in.translate(Point2D(-left_offset, -top_offset));
-            for kid in self.base.child_iter() {
-                flow::mut_base(*kid).floats_in = float_ctx.clone();
-                kid.assign_height_inorder(ctx);
-                float_ctx = flow::mut_base(*kid).floats_out.clone();
-            }
-        }
-
-        let mut collapsible = Au::new(0);
-        let mut collapsing = Au::new(0);
-        let mut margin_top = Au::new(0);
-        let mut margin_bottom = Au::new(0);
-        let mut top_margin_collapsible = false;
-        let mut bottom_margin_collapsible = false;
-        let mut first_in_flow = true;
-        for box_ in self.box_.iter() {
-            if box_.border.get().top == Au(0) && box_.padding.get().top == Au(0) {
-                collapsible = box_.margin.get().top;
-                top_margin_collapsible = true;
-            }
-            if box_.border.get().bottom == Au(0) &&
-                    box_.padding.get().bottom == Au(0) {
-                bottom_margin_collapsible = true;
-            }
-            margin_top = box_.margin.get().top;
-            margin_bottom = box_.margin.get().bottom;
-        }
-
-        for kid in self.base.child_iter() {
-            kid.collapse_margins(top_margin_collapsible,
-                                 &mut first_in_flow,
-                                 &mut margin_top,
-                                 &mut top_offset,
-                                 &mut collapsing,
-                                 &mut collapsible);
-
-            let child_node = flow::mut_base(*kid);
-            cur_y = cur_y - collapsing;
-            child_node.position.origin.y = cur_y;
-            cur_y = cur_y + child_node.position.size.height;
-        }
-
-        // The bottom margin collapses with its last in-flow block-level child's bottom margin
-        // if the parent has no bottom boder, no bottom padding.
-        collapsing = if bottom_margin_collapsible {
-            if margin_bottom < collapsible {
-                margin_bottom = collapsible;
-            }
-            collapsible
-        } else {
-            Au::new(0)
-        };
-
-        // TODO: A box's own margins collapse if the 'min-height' property is zero, and it has neither
-        // top or bottom borders nor top or bottom padding, and it has a 'height' of either 0 or 'auto',
-        // and it does not contain a line box, and all of its in-flow children's margins (if any) collapse.
-
-
-        let mut height = cur_y - top_offset - collapsing;
-
-        for box_ in self.box_.iter() {
-            let style = box_.style();
-
-            // At this point, `height` is the height of the containing block, so passing `height`
-            // as the second argument here effectively makes percentages relative to the containing
-            // block per CSS 2.1 § 10.5.
-            height = match MaybeAuto::from_style(style.Box.height, height) {
-                Auto => height,
-                Specified(value) => value
-            };
-        }
-
-        let mut noncontent_height = Au::new(0);
-        for box_ in self.box_.iter() {
-            let mut position = box_.position.get();
-            let mut margin = box_.margin.get();
-
-            // The associated box is the border box of this flow.
-            margin.top = margin_top;
-            margin.bottom = margin_bottom;
-
-            noncontent_height = box_.padding.get().top + box_.padding.get().bottom +
-                box_.border.get().top + box_.border.get().bottom;
-
-            position.origin.y = clearance + margin.top;
-            position.size.height = height + noncontent_height;
-
-            noncontent_height = noncontent_height + clearance + margin.top + margin.bottom;
-
-            box_.position.set(position);
-            box_.margin.set(margin);
-        }
-
-        self.base.position.size.height = height + noncontent_height;
-
-        if inorder {
-            let extra_height = height - (cur_y - top_offset) + bottom_offset;
-            self.base.floats_out = float_ctx.translate(Point2D(left_offset, -extra_height));
-        } else {
-            self.base.floats_out = self.base.floats_in.clone();
-        }
+        self.block_flow.teardown();
     }
 
     pub fn build_display_list_table_caption<E:ExtraDisplayListData>(
@@ -286,26 +43,8 @@ impl TableCaptionFlow {
                                     dirty: &Rect<Au>,
                                     list: &RefCell<DisplayList<E>>)
                                     -> bool {
-        let abs_rect = Rect(self.base.abs_position, self.base.position.size);
-        if !abs_rect.intersects(dirty) {
-            return true;
-        }
-
-        debug!("build_display_list_table[Caption]: adding display element");
-
-        // add box that starts table context
-        for box_ in self.box_.iter() {
-            box_.build_display_list(builder, dirty, self.base.abs_position, (&*self) as &Flow, list)
-        }
-        // TODO: handle any out-of-flow elements
-        let this_position = self.base.abs_position;
-
-        for child in self.base.child_iter() {
-            let child_base = flow::mut_base(*child);
-            child_base.abs_position = this_position + child_base.position.origin;
-        }
-
-        false
+        debug!("build_display_list_table_caption: same process as block flow");
+        self.block_flow.build_display_list_block(builder, dirty, list)
     }
 }
 
@@ -318,129 +57,23 @@ impl Flow for TableCaptionFlow {
         self
     }
 
-    /* Recursively (bottom-up) determine the context's preferred and
-    minimum widths.  When called on this context, all child contexts
-    have had their min/pref widths set. This function must decide
-    min/pref widths based on child context widths and dimensions of
-    any boxes it is responsible for flowing.  */
-
-    fn bubble_widths(&mut self, _: &mut LayoutContext) {
-        let mut min_width = Au::new(0);
-        let mut pref_width = Au::new(0);
-        let mut num_floats = 0;
-
-        /* find max width from child block contexts */
-        for kid in self.base.child_iter() {
-            assert!(kid.starts_block_flow() || kid.starts_inline_flow() || kid.is_table_kind());
-
-            let child_base = flow::mut_base(*kid);
-            min_width = geometry::max(min_width, child_base.min_width);
-            pref_width = geometry::max(pref_width, child_base.pref_width);
-            num_floats = num_floats + child_base.num_floats;
-        }
-
-        self.base.num_floats = num_floats;
-
-        /* if not an anonymous block context, add in block box's widths.
-           these widths will not include child elements, just padding etc. */
-        for box_ in self.box_.iter() {
-            {
-                // Can compute border width here since it doesn't depend on anything.
-                box_.compute_borders(box_.style())
-            }
-
-            let (this_minimum_width, this_preferred_width) = box_.minimum_and_preferred_widths();
-            min_width = min_width + this_minimum_width;
-            pref_width = pref_width + this_preferred_width;
-        }
-
-        self.base.min_width = min_width;
-        self.base.pref_width = pref_width;
+    fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
+        self.block_flow.bubble_widths(ctx);
     }
 
-    /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
-    /// on this context, the context has had its width set by the parent context.
-    ///
-    /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
-    /// contexts.
-    fn assign_widths(&mut self, _: &mut LayoutContext) {
-        debug!("assign_widths({}): assigning width for flow {}", "table_caption", self.base.id);
-
-        // The position was set to the containing block by the flow's parent.
-        let mut remaining_width = self.base.position.size.width;
-        let mut x_offset = Au::new(0);
-
-        for box_ in self.box_.iter() {
-            let style = box_.style();
-
-            // The text alignment of a table_caption flow is the text alignment of its box's style.
-            self.base.flags_info.flags.set_text_align(style.Text.text_align);
-
-            box_.assign_width(remaining_width);
-            // Can compute padding here since we know containing block width.
-            box_.compute_padding(style, remaining_width);
-
-            // Margins are 0 right now so base.noncontent_width() is just borders + padding.
-            let available_width = remaining_width - box_.noncontent_width();
-
-            // Top and bottom margins for table are 0 if auto.
-            let margin_top = MaybeAuto::from_style(style.Margin.margin_top,
-                                                   remaining_width).specified_or_zero();
-            let margin_bottom = MaybeAuto::from_style(style.Margin.margin_bottom,
-                                                      remaining_width).specified_or_zero();
-
-            let (width, margin_left, margin_right) = self.compute_table_margins(box_,
-                                                                                remaining_width, available_width);
-
-            box_.margin.set(SideOffsets2D::new(margin_top,
-                                              margin_right,
-                                              margin_bottom,
-                                              margin_left));
-
-            x_offset = box_.offset();
-            remaining_width = width;
-
-            // The associated box is the border box of this flow.
-            let mut position_ref = box_.position.borrow_mut();
-            position_ref.get().origin.x = box_.margin.get().left;
-            let padding_and_borders = box_.padding.get().left + box_.padding.get().right +
-                box_.border.get().left + box_.border.get().right;
-            position_ref.get().size.width = remaining_width + padding_and_borders;
-        }
-
-        let has_inorder_children = self.base.flags_info.flags.inorder() || self.base.num_floats > 0;
-
-        // FIXME(ksh8281): avoid copy
-        let flags_info = self.base.flags_info.clone();
-        for kid in self.base.child_iter() {
-            assert!(kid.starts_block_flow() || kid.starts_inline_flow() || kid.is_table_kind());
-
-            let child_base = flow::mut_base(*kid);
-            child_base.position.origin.x = x_offset;
-            child_base.position.size.width = remaining_width;
-            child_base.flags_info.flags.set_inorder(has_inorder_children);
-
-            if !child_base.flags_info.flags.inorder() {
-                child_base.floats_in = FloatContext::new(0);
-            }
-
-            // Per CSS 2.1 § 16.3.1, text decoration propagates to all children in flow.
-            //
-            // TODO(pcwalton): When we have out-of-flow children, don't unconditionally propagate.
-            child_base.flags_info.propagate_text_decoration_from_parent(&flags_info);
-
-            child_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
-        }
+    fn assign_widths(&mut self, ctx: &mut LayoutContext) {
+        debug!("assign_widths({}): assigning width for flow {}", "table_caption", self.block_flow.base.id);
+        self.block_flow.assign_widths(ctx);
     }
 
     fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height_inorder: assigning height for table_caption {}", self.base.id);
-        self.assign_height_table_caption_base(ctx, true);
+        debug!("assign_height_inorder: assigning height for table_caption {}", self.block_flow.base.id);
+        self.block_flow.assign_height_inorder(ctx);
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height: assigning height for table_caption {}", self.base.id);
-        self.assign_height_table_caption_base(ctx, false);
+        debug!("assign_height: assigning height for table_caption {}", self.block_flow.base.id);
+        self.block_flow.assign_height(ctx);
     }
 
     fn collapse_margins(&mut self,
@@ -450,35 +83,19 @@ impl Flow for TableCaptionFlow {
                         top_offset: &mut Au,
                         collapsing: &mut Au,
                         collapsible: &mut Au) {
-        for box_ in self.box_.iter() {
-            // The top margin collapses with its first in-flow block-level child's
-            // top margin if the parent has no top border, no top padding.
-            if *first_in_flow && top_margin_collapsible {
-                // If top-margin of parent is less than top-margin of its first child,
-                // the parent box goes down until its top is aligned with the child.
-                if *margin_top < box_.margin.get().top {
-                    // TODO: The position of child floats should be updated and this
-                    // would influence clearance as well. See #725
-                    let extra_margin = box_.margin.get().top - *margin_top;
-                    *top_offset = *top_offset + extra_margin;
-                    *margin_top = box_.margin.get().top;
-                }
-            }
-            // The bottom margin of an in-flow block-level element collapses
-            // with the top margin of its next in-flow block-level sibling.
-            *collapsing = geometry::min(box_.margin.get().top, *collapsible);
-            *collapsible = box_.margin.get().bottom;
-        }
-
-        *first_in_flow = false;
+        self.block_flow.collapse_margins(top_margin_collapsible,
+                                         first_in_flow,
+                                         margin_top,
+                                         top_offset,
+                                         collapsing,
+                                         collapsible);
     }
 
     fn debug_str(&self) -> ~str {
         let txt = ~"TableCaptionFlow: ";
-        txt.append(match self.box_ {
+        txt.append(match self.block_flow.box_ {
             Some(ref rb) => rb.debug_str(),
             None => ~"",
         })
     }
 }
-
