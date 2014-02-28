@@ -60,6 +60,9 @@ impl ScriptListener for CompositorChan {
         port.recv();
     }
 
+    fn dup(&self) -> ~ScriptListener {
+        ~self.clone() as ~ScriptListener
+    }
 }
 
 /// Implementation of the abstract `RenderListener` interface.

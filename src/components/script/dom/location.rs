@@ -10,22 +10,38 @@ use dom::window::Window;
 use servo_util::str::DOMString;
 
 use script_task::{Page};
+use std::rc::Rc;
+
+use extra::serialize::{Encoder, Encodable};
+
 
 #[deriving(Encodable)]
 pub struct Location {
     reflector_: Reflector, //XXXjdm cycle: window->Location->window
-    page: @mut Page,
+    extra: Untraceable,
+}
+
+struct Untraceable {
+    page: Rc<Page>,
+}
+
+impl<S: Encoder> Encodable<S> for Untraceable {
+    fn encode(&self, s: &mut S) {
+        self.page.borrow().encode(s);
+    }
 }
 
 impl Location {
-    pub fn new_inherited(page: @mut Page) -> Location {
+    pub fn new_inherited(page: Rc<Page>) -> Location {
         Location {
             reflector_: Reflector::new(),
-            page: page
+            extra: Untraceable {
+                page: page
+            }
         }
     }
 
-    pub fn new(window: &Window, page: @mut Page) -> JS<Location> {
+    pub fn new(window: &Window, page: Rc<Page>) -> JS<Location> {
         reflect_dom_object(~Location::new_inherited(page),
                            window,
                            LocationBinding::Wrap)
@@ -44,7 +60,7 @@ impl Location {
     }
 
     pub fn Href(&self) -> DOMString {
-        self.page.get_url().to_str()
+        self.extra.page.borrow().get_url().to_str()
     }
 
     pub fn SetHref(&self, _href: DOMString) -> Fallible<()> {

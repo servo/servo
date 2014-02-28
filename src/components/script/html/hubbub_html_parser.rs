@@ -15,11 +15,10 @@ use dom::htmlformelement::HTMLFormElement;
 use dom::node::{ElementNodeTypeId, INode, NodeHelpers};
 use dom::types::*;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
-use script_task::page_from_context;
+use script_task::Page;
 
 use extra::url::Url;
 use hubbub::hubbub;
-use js::jsapi::JSContext;
 use servo_msg::constellation_msg::SubpageId;
 use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
 use servo_util::namespace::Null;
@@ -246,7 +245,7 @@ pub fn build_element_from_tag(tag: DOMString, document: &JS<Document>) -> JS<Ele
     return ElementCast::from(&HTMLUnknownElement::new(tag, document));
 }
 
-pub fn parse_html(cx: *JSContext,
+pub fn parse_html(page: &Page,
                   document: &mut JS<Document>,
                   url: Url,
                   resource_task: ResourceTask,
@@ -282,16 +281,15 @@ pub fn parse_html(cx: *JSContext,
     let url2 = base_url.clone();
     let url3 = url2.clone();
 
-    // Store the final URL before we start parsing, so that DOM routines
-    // (e.g. HTMLImageElement::update_image) can resolve relative URLs
-    // correctly.
-    //
-    // FIXME: is this safe? When we instead pass an &mut Page to parse_html,
-    // we crash with a dynamic borrow failure.
-    let page = page_from_context(cx);
-    unsafe {
-        (*page).url = Some((url2.clone(), true));
+    {
+        // Store the final URL before we start parsing, so that DOM routines
+        // (e.g. HTMLImageElement::update_image) can resolve relative URLs
+        // correctly.
+        let mut page_url = page.mut_url();
+        *page_url.get() = Some((url2.clone(), true));
     }
+
+    let pipeline_id = page.id;
 
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
@@ -364,12 +362,6 @@ pub fn parse_html(cx: *JSContext,
                         // Subpage Id
                         let subpage_id = next_subpage_id.get();
                         next_subpage_id.set(SubpageId(*subpage_id + 1));
-
-                        // Pipeline Id
-                        let pipeline_id = {
-                            let page = page_from_context(cx);
-                            unsafe { (*page).id }
-                        };
 
                         iframe_element.get_mut().size = Some(IFrameSize {
                             pipeline_id: pipeline_id,

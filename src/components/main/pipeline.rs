@@ -134,7 +134,7 @@ impl Pipeline {
         };
 
         ScriptTask::create(id,
-                           compositor_chan.clone(),
+                           ~compositor_chan.clone(),
                            layout_chan.clone(),
                            script_port,
                            script_chan.clone(),

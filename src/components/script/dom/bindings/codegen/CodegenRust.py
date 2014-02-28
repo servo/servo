@@ -2578,7 +2578,8 @@ def CreateBindingJSObject(descriptor, parent=None):
         assert not descriptor.createGlobal
         handler = """
   let page = page_from_context(aCx);
-  let handler = (*page).js_info.get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
+  let mut js_info = (*page).js_info();
+  let handler = js_info.get().get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
         create += handler + """  let obj = NewProxyObject(aCx, *handler,
                            ptr::to_unsafe_ptr(&RUST_PRIVATE_TO_JSVAL(squirrel_away_unique(aObject) as *libc::c_void)),
@@ -2727,7 +2728,8 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                     idsToInit.append(props.variableName(False))
         if len(idsToInit) > 0:
             setup = CGList([CGGeneric("let page = page_from_context(aCx);"),
-                            CGList([CGGeneric("let %s_ids_mut = (*page).js_info.get_ref().dom_static.attribute_ids.get(&(PrototypeList::id::%s as uint));" % (varname, self.descriptor.name)) for varname in idsToInit], '\n')], '\n')
+                            CGList([CGGeneric("let mut js_info = (*page).js_info();\n"
+                                              "let %s_ids_mut = js_info.get().get_ref().dom_static.attribute_ids.get(&(PrototypeList::id::%s as uint));" % (varname, self.descriptor.name)) for varname in idsToInit], '\n')], '\n')
             initIds = CGList(
                 [CGGeneric("!InitIds(aCx, %s, *%s_ids_mut)" % (varname, varname)) for
                  varname in idsToInit], ' ||\n')
@@ -2884,8 +2886,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     a given interface.
     """
     def __init__(self, descriptor):
-        args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aReceiver'),
-                Argument('*mut bool', 'aEnabled')]
+        args = [Argument('&mut JSPageInfo', 'js_info')]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'bool', args, pub=True)
 
     def declare(self):
@@ -2903,7 +2904,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         else:
             getter = "GetConstructorObject"
 
-        body = "let page = page_from_context(aCx);"
+        body = ""
         #XXXjdm This self.descriptor.concrete check shouldn't be necessary
         if not self.descriptor.concrete or self.descriptor.proxy:
             body += """  let traps = ProxyTraps {
@@ -2937,22 +2938,22 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     getPrototypeOf: ptr::null(),
     trace: %s
   };
-  (*page).js_info.get_mut_ref().dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
-                                              CreateProxyHandler(ptr::to_unsafe_ptr(&traps), ptr::to_unsafe_ptr(&Class) as *libc::c_void));
+  js_info.dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
+                                           CreateProxyHandler(ptr::to_unsafe_ptr(&traps), ptr::to_unsafe_ptr(&Class) as *libc::c_void));
 
 """ % (FINALIZE_HOOK_NAME,
        ('Some(%s)' % TRACE_HOOK_NAME),
        self.descriptor.name)
         else:
-            body += """  (*page).js_info.get_ref().dom_static.attribute_ids.insert(PrototypeList::id::%s as uint,
+            body += """  js_info.dom_static.attribute_ids.insert(PrototypeList::id::%s as uint,
                                              vec::cast_to_mut(vec::from_slice(sAttributes_ids)));
 """ % self.descriptor.name
             body = "" #XXXjdm xray stuff isn't necessary yet
 
-        return (body + "  let global: *JSObject = JS_GetGlobalForObject(aCx, aReceiver);\n" +
-                """
-  *aEnabled = true;
-  return %s(aCx, global, aReceiver).is_not_null();""" % (getter))
+        return (body + """  let cx = js_info.js_context.borrow().ptr;
+  let receiver = js_info.js_compartment.borrow().global_obj.borrow().ptr;
+  let global: *JSObject = JS_GetGlobalForObject(cx, receiver);
+  return %s(cx, global, receiver).is_not_null();""" % (getter))
 
 def needCx(returnType, arguments, extendedAttributes, considerTypes):
     return (considerTypes and
@@ -4306,7 +4307,8 @@ class CGXrayHelper(CGAbstractExternMethod):
         methods = self.properties.methods
         if methods.hasNonChromeOnly() or methods.hasChromeOnly():
             methodArgs = "Some(zip_copies(%(methods)s, *method_ids))" % varNames
-            setup += "let method_ids = (*page).js_info.get_ref().dom_static.method_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
+            setup += "let mut js_info = (*page).js_info();\n" \
+                     "let method_ids = js_info.get().get_ref().dom_static.method_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             methodArgs = "None"
         methodArgs = CGGeneric(methodArgs)
@@ -4314,7 +4316,8 @@ class CGXrayHelper(CGAbstractExternMethod):
         attrs = self.properties.attrs
         if attrs.hasNonChromeOnly() or attrs.hasChromeOnly():
             attrArgs = "Some(zip_copies(%(attrs)s, *attr_ids))" % varNames
-            setup += "let attr_ids = (*page).js_info.get_ref().dom_static.attribute_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
+            setup += "let mut js_info = (*page).js_info();\n" \
+                     "let attr_ids = js_info.get().get_ref().dom_static.attribute_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             attrArgs = "None"
         attrArgs = CGGeneric(attrArgs)
@@ -4322,7 +4325,8 @@ class CGXrayHelper(CGAbstractExternMethod):
         consts = self.properties.consts
         if consts.hasNonChromeOnly() or consts.hasChromeOnly():
             constArgs = "Some(zip_copies(%(consts)s, *const_ids))" % varNames
-            setup += "let const_ids = (*page).js_info.get_ref().dom_static.constant_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
+            setup += "let mut js_info = (*page).js_info();\n" \
+                     "let const_ids = js_info.get().get_ref().dom_static.constant_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             constArgs = "None"
         constArgs = CGGeneric(constArgs)
@@ -4815,7 +4819,8 @@ class CGClassConstructHook(CGAbstractExternMethod):
   //       or through unwrapping a slot or something). We'll punt and get the Window
   //       from the context for now. 
   let page = page_from_context(cx);
-  let global = (*page).frame.get_ref().window.clone();
+  let frame = (*page).frame();
+  let global = frame.get().get_ref().window.clone();
   let obj = global.reflector().get_jsobject();
 """
         nativeName = MakeNativeName(self._ctor.identifier.name)
@@ -5241,21 +5246,18 @@ class CGDictionary(CGThing):
 class CGRegisterProtos(CGAbstractMethod):
     def __init__(self, config):
         CGAbstractMethod.__init__(self, None, 'Register', 'void',
-                                  [Argument('@mut Compartment', 'compartment')],
+                                  [Argument('&mut JSPageInfo', 'js_info')],
                                   unsafe=False, pub=True)
         self.config = config
 
     def _registerProtos(self):
-        lines = ["  assert!(codegen::%sBinding::DefineDOMInterface(\n"
-                 "      compartment.cx.ptr,\n"
-                 "      compartment.global_obj.ptr,\n"
-                 "      &mut unused));" % (desc.name)
+        lines = ["  assert!(codegen::%sBinding::DefineDOMInterface(js_info));" % (desc.name)
                  for desc in self.config.getDescriptors(hasInterfaceObject=True,
                                                         isExternal=False,
                                                         register=True)]
         return '\n'.join(lines) + '\n'
     def definition_body(self):
-        return "  let mut unused = false;\n" + self._registerProtos()
+        return self._registerProtos()
 
 class CGBindingRoot(CGThing):
     """
@@ -6322,7 +6324,7 @@ class GlobalGenRoots():
                           for desc in config.getDescriptors(hasInterfaceObject=True,
                                                             register=True)]
         curr = CGImports([], [], ['dom::bindings::codegen',
-                                  'js::rust::Compartment'], defineIncludes, curr)
+                                  'script_task::JSPageInfo'], defineIncludes, curr)
 
         # Done.
         return curr
