@@ -6,16 +6,18 @@
 //! and layout tasks.
 
 use dom::bindings::codegen::RegisterBindings;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCast, EventCast};
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, GlobalStaticData, with_gc_enabled};
 use dom::document::{Document, HTMLDocument};
 use dom::element::Element;
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use dom::event::Event;
+use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{Node, NodeHelpers};
 use dom::window::{TimerData, TimerHandle, Window};
+use dom::windowproxy::WindowProxy;
 use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
@@ -862,6 +864,23 @@ impl ScriptTask {
                 match page.fragment_node.take() {
                     Some(node) => self.scroll_fragment_point(pipeline_id, page, node),
                     None => {}
+                }
+
+                match page.frame {
+                    Some(ref frame) => {
+                        // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
+                        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
+                        let window_proxy: JS<WindowProxy> = WindowProxy::new(frame.window.clone());
+                        let mut uievent = UIEvent::new(&frame.window);
+                        uievent.get_mut().InitUIEvent(~"resize", false, false, Some(window_proxy), 0i32);
+                        let event: &mut JS<Event> = &mut EventCast::from(&uievent);
+
+                        // FIXME: this event should be dispatch on WindowProxy. See #1715
+                        let mut wintarget: JS<EventTarget> = EventTargetCast::from(&frame.window);
+                        let winclone = wintarget.clone();
+                        wintarget.get_mut().dispatch_event_with_target(&winclone, None, event);
+                    }
+                    None =>()
                 }
             }
 
