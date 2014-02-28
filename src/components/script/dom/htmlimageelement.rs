@@ -147,7 +147,7 @@ impl HTMLImageElement {
     pub fn Width(&self, abstract_self: &JS<HTMLImageElement>) -> u32 {
         let node: JS<Node> = NodeCast::from(abstract_self);
         let doc = node.get().owner_doc();
-        let page = doc.get().window.get().page;
+        let page = doc.get().window.get().page();
         let (port, chan) = Chan::new();
         let addr = node.to_trusted_node_address();
         match page.query_layout(ContentBoxQuery(addr, chan), port) {
@@ -167,7 +167,7 @@ impl HTMLImageElement {
     pub fn Height(&self, abstract_self: &JS<HTMLImageElement>) -> u32 {
         let node = &self.htmlelement.element.node;
         let doc = node.owner_doc();
-        let page = doc.get().window.get().page;
+        let page = doc.get().window.get().page();
         let (port, chan) = Chan::new();
         let this_node: JS<Node> = NodeCast::from(abstract_self);
         let addr = this_node.to_trusted_node_address();

@@ -30,6 +30,7 @@ use std::hashmap::HashSet;
 use std::io::timer::Timer;
 use std::num;
 use std::ptr;
+use std::rc::Rc;
 use std::to_bytes::Cb;
 
 use extra::serialize::{Encoder, Encodable};
@@ -72,9 +73,7 @@ impl TimerHandle {
 #[deriving(Encodable)]
 pub struct Window {
     eventtarget: EventTarget,
-    page: @mut Page,
     script_chan: ScriptChan,
-    compositor: @ScriptListener,
     console: Option<JS<Console>>,
     location: Option<JS<Location>>,
     navigator: Option<JS<Navigator>>,
@@ -85,20 +84,30 @@ pub struct Window {
 }
 
 struct Untraceable {
+    page: Rc<Page>,
+    compositor: ~ScriptListener,
     timer_chan: SharedChan<TimerControlMsg>,
 }
 
 impl<S: Encoder> Encodable<S> for Untraceable {
-    fn encode(&self, _: &mut S) {
+    fn encode(&self, s: &mut S) {
+        let page = self.page.borrow();
+        page.encode(s);
     }
 }
 
 impl Window {
     pub fn get_cx(&self) -> *JSObject {
-        self.page.js_info.get_ref().js_compartment.cx.ptr
+        let js_info = self.page().js_info();
+        (*js_info.get()).get_ref().js_compartment.borrow().cx.borrow().ptr
+    }
+
+    pub fn page<'a>(&'a self) -> &'a Page {
+        let page = &self.extra.page;
+        page.borrow()
     }
     pub fn get_url(&self) -> Url {
-        self.page.get_url()
+        self.page().get_url()
     }
 }
 
@@ -132,7 +141,8 @@ impl Window {
     }
 
     pub fn Document(&self) -> JS<Document> {
-        self.page.frame.get_ref().document.clone()
+        let frame = self.page().frame();
+        (*frame.get()).get_ref().document.clone()
     }
 
     pub fn Name(&self) -> DOMString {
@@ -168,7 +178,7 @@ impl Window {
 
     pub fn Location(&mut self) -> JS<Location> {
         if self.location.is_none() {
-            self.location = Some(Location::new(self, self.page));
+            self.location = Some(Location::new(self, self.extra.page.clone()));
         }
         self.location.get_ref().clone()
     }
@@ -255,32 +265,32 @@ impl Window {
         // FIXME This should probably be ReflowForQuery, not Display. All queries currently
         // currently rely on the display list, which means we can't destroy it by
         // doing a query reflow.
-        self.page.damage(damage);
-        self.page.reflow(ReflowForDisplay, self.script_chan.clone(), self.compositor);
+        self.page().damage(damage);
+        self.page().reflow(ReflowForDisplay, self.script_chan.clone(), self.extra.compositor);
     }
 
     pub fn wait_until_safe_to_modify_dom(&self) {
         // FIXME: This disables concurrent layout while we are modifying the DOM, since
         //        our current architecture is entirely unsafe in the presence of races.
-        self.page.join_layout();
+        self.page().join_layout();
     }
 
     pub fn new(cx: *JSContext,
-               page: @mut Page,
+               page: Rc<Page>,
                script_chan: ScriptChan,
-               compositor: @ScriptListener,
+               compositor: ~ScriptListener,
                image_cache_task: ImageCacheTask)
                -> JS<Window> {
         let mut win = ~Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
-            page: page,
             script_chan: script_chan.clone(),
-            compositor: compositor,
             console: None,
             extra: Untraceable {
+                compositor: compositor,
+                page: page.clone(),
                 timer_chan: {
                     let (timer_port, timer_chan): (Port<TimerControlMsg>, SharedChan<TimerControlMsg>) = SharedChan::new();
-                    let id = page.id.clone();
+                    let id = page.borrow().id.clone();
                     spawn_named("timer controller", proc() {
                         loop {
                             match timer_port.recv() {

@@ -193,11 +193,11 @@ pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth
     }
 }
 
-pub unsafe fn squirrel_away<T>(x: @mut T) -> *Box<T> {
+pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *Box<T> {
     cast::transmute(x)
 }
 
-pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *Box<T> {
+pub unsafe fn squirrel_away_unboxed<T>(x: ~T) -> *T {
     cast::transmute(x)
 }
 
@@ -556,14 +556,12 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: c_uint, _vp: *mut JSVa
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut ([0 as *JSObject, ..PrototypeList::id::_ID_Count as uint]);
+    let protoArray = ~([0 as *JSObject, ..PrototypeList::id::_ID_Count as uint]);
     unsafe {
-        //XXXjdm we should be storing the box pointer instead of the inner
-        let box_ = squirrel_away(protoArray);
-        let inner = ptr::to_unsafe_ptr(&(*box_).data);
+        let box_ = squirrel_away_unboxed(protoArray);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
-                           RUST_PRIVATE_TO_JSVAL(inner as *libc::c_void));
+                           RUST_PRIVATE_TO_JSVAL(box_ as *libc::c_void));
     }
 }
 
@@ -817,8 +815,9 @@ fn global_object_for_js_object(obj: *JSObject) -> *Box<window::Window> {
 fn cx_for_dom_reflector(obj: *JSObject) -> *JSContext {
     unsafe {
         let win = global_object_for_js_object(obj);
-        match (*win).data.page.js_info {
-            Some(ref info) => info.js_context.ptr,
+        let js_info = (*win).data.page().js_info();
+        match *js_info.get() {
+            Some(ref info) => info.js_context.borrow().ptr,
             None => fail!("no JS context for DOM global")
         }
     }
