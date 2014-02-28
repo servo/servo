@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::HTMLBaseElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::bindings::js::JS;
 use dom::document::Document;
 use dom::element::HTMLBaseElementTypeId;

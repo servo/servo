@@ -5,7 +5,7 @@
 use dom::bindings::codegen::MouseEventBinding;
 use dom::bindings::codegen::InheritTypes::MouseEventDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::{ErrorResult, Fallible};
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, MouseEventTypeId};
 use dom::eventtarget::EventTarget;

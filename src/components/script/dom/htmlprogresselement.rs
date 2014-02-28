@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLProgressElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLProgressElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::{ErrorResult, Fallible};
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::HTMLProgressElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

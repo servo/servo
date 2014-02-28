@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLAppletElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAppletElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLAppletElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

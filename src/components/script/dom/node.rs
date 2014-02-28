@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDeri
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::{ErrorResult, Fallible, NotFound, HierarchyRequest};
+use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::bindings::utils;
 use dom::characterdata::CharacterData;
 use dom::document::Document;

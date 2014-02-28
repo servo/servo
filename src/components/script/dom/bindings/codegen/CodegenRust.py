@@ -5341,6 +5341,7 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::utils::*',
                           'dom::bindings::trace::Traceable',
                           'dom::bindings::callback::*',
+                          'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult, throw_method_failed_with_details, throw_not_in_union}',
                           'dom::bindings::conversions::*',
                           'dom::bindings::codegen::*', #XXXjdm
                           'dom::bindings::codegen::UnionTypes::*', #XXXjdm

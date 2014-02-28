@@ -5,7 +5,7 @@
 use dom::bindings::codegen::UIEventBinding;
 use dom::bindings::codegen::InheritTypes::UIEventDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::Fallible;
+use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, UIEventTypeId};
 use dom::node::Node;

@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOptGroupElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

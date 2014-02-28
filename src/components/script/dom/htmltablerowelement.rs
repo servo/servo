@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLTableRowElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableRowElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableRowElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

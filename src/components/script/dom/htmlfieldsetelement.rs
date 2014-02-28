@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFieldSetElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFieldSetElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

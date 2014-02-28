@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLModElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLModElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLModElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
