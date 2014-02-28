@@ -5,7 +5,7 @@
 use dom::bindings::codegen::EventBinding;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::{Fallible, ErrorResult};
+use dom::bindings::error::{Fallible, ErrorResult};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use servo_util::str::DOMString;

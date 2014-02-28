@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived};
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLIframeElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

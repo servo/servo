@@ -11,7 +11,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::utils::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
+use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;

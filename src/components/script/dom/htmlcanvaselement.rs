@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLCanvasElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::{ErrorResult};
+use dom::bindings::error::{ErrorResult};
 use dom::document::Document;
 use dom::element::HTMLCanvasElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

@@ -6,7 +6,7 @@ use dom::bindings::codegen::HTMLImageElementBinding;
 use dom::bindings::codegen::InheritTypes::{NodeCast, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{ElementCast};
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLImageElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

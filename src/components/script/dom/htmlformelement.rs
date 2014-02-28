@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLFormElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLFormElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

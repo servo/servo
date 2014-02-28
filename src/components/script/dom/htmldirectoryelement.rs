@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLDirectoryElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDirectoryElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::ErrorResult;
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLDirectoryElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

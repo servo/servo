@@ -21,7 +21,6 @@ use std::unstable::raw::Box;
 use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
-use js::glue::{ReportError};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
@@ -34,7 +33,7 @@ use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsapi::{JSString};
-use js::jsapi::{JS_IsExceptionPending, JS_AllowGC, JS_InhibitGC};
+use js::jsapi::{JS_AllowGC, JS_InhibitGC};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
@@ -738,21 +737,6 @@ pub fn InitIds(cx: *JSContext, specs: &[JSPropertySpec], ids: &mut [jsid]) -> bo
     true
 }
 
-#[deriving(ToStr)]
-pub enum Error {
-    FailureUnknown,
-    NotFound,
-    HierarchyRequest,
-    InvalidCharacter,
-    NotSupported,
-    InvalidState,
-    NamespaceError
-}
-
-pub type Fallible<T> = Result<T, Error>;
-
-pub type ErrorResult = Fallible<()>;
-
 pub struct EnumEntry {
     value: &'static str,
     length: uint
@@ -847,28 +831,6 @@ pub fn global_object_for_dom_object<T: Reflectable>(obj: &T) -> *Box<window::Win
 
 pub fn cx_for_dom_object<T: Reflectable>(obj: &T) -> *JSContext {
     cx_for_dom_reflector(obj.reflector().get_jsobject())
-}
-
-pub fn throw_method_failed_with_details<T>(cx: *JSContext,
-                                           result: Result<T, Error>,
-                                           interface: &'static str,
-                                           member: &'static str) -> JSBool {
-    assert!(result.is_err());
-    assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
-    let message = format!("Method failed: {}.{}", interface, member);
-    message.with_c_str(|string| {
-        unsafe { ReportError(cx, string) };
-    });
-    return 0;
-}
-
-pub fn throw_not_in_union(cx: *JSContext, names: &'static str) -> JSBool {
-    assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
-    let message = format!("argument could not be converted to any of: {}", names);
-    message.with_c_str(|string| {
-        unsafe { ReportError(cx, string) };
-    });
-    return 0;
 }
 
 /// Execute arbitrary code with the JS GC enabled, then disable it afterwards.

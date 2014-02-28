@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLPreElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLPreElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::{ErrorResult};
+use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLPreElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

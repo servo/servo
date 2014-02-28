@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementDerived;
 use dom::bindings::js::JS;
-use dom::bindings::utils::{ErrorResult, Fallible};
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::HTMLTextAreaElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

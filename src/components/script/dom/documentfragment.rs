@@ -5,7 +5,7 @@
 use dom::bindings::codegen::InheritTypes::DocumentFragmentDerived;
 use dom::bindings::codegen::DocumentFragmentBinding;
 use dom::bindings::js::JS;
-use dom::bindings::utils::Fallible;
+use dom::bindings::error::Fallible;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{DocumentFragmentNodeTypeId, Node};
