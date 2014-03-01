@@ -156,6 +156,7 @@ ifeq ($(CFG_OSTYPE),unknown-linux-gnu)
 DEPS_rust-azure += \
 	rust-freetype \
 	rust-fontconfig \
+	fontconfig \
 	rust-xlib \
 	rust \
 	$(NULL)
@@ -166,6 +167,15 @@ DEPS_rust-layers += \
 	rust-fontconfig \
 	rust-xlib \
 	rust \
+	$(NULL)
+
+DEPS_rust-fontconfig += \
+	fontconfig \
+	rust \
+	$(NULL)
+
+NATIVE_BUILD += \
+	fontconfig \
 	$(NULL)
 endif
 
