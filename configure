@@ -524,6 +524,7 @@ if [ $CFG_OSTYPE = "unknown-linux-gnu" ]
 then
 CFG_SUBMODULES="\
     platform/linux/rust-xlib \
+    platform/linux/fontconfig \
     support/glfw/glfw \
     support/glfw/glfw-rs \
     platform/linux/rust-fontconfig \
@@ -621,7 +622,7 @@ then
     cd ${CFG_BUILD_DIR}
 fi
 
-#fontconfig expects to use an installed freetype, but we want to override that behavior to use our version
+# fontconfig expects to use an installed freetype, but we want to use our version on Android
 if [ $CFG_OSTYPE = "linux-androideabi" ]
 then
     export FREETYPE_CFLAGS="-I${CFG_SRC_DIR}src/platform/android/libfreetype2/include -I${CFG_BUILD_DIR}src/platform/android/libfreetype2/include"
@@ -679,6 +680,18 @@ do
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-sysroot=${CFG_ANDROID_CROSS_PATH}/sysroot"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --without-zlib"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
+            ;;
+        platform/linux/fontconfig)
+            CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/autogen.sh"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --sysconfdir=/etc"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --localstatedir=/var"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-shared" # work around Rust #12557
+            if [ -f /etc/redhat-release ]; then
+                # Some RedHat-based distros (including our CentOS 6 build machines) are missing
+                # pkg-config files for expat: https://bugzilla.redhat.com/show_bug.cgi?id=833338
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-expat=/usr"
+            fi
             CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
             ;;
         platform/android/fontconfig)
