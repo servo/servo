@@ -11,7 +11,7 @@ use dom::document::Document;
 use dom::element::{Element, HTMLImageElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId, NodeHelpers};
+use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use extra::url::Url;
 use servo_util::geometry::to_px;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
@@ -146,8 +146,8 @@ impl HTMLImageElement {
 
     pub fn Width(&self, abstract_self: &JS<HTMLImageElement>) -> u32 {
         let node: JS<Node> = NodeCast::from(abstract_self);
-        let doc = node.get().owner_doc();
-        let page = doc.get().window.get().page();
+        let window = window_from_node(&node);
+        let page = window.get().page();
         let (port, chan) = Chan::new();
         let addr = node.to_trusted_node_address();
         match page.query_layout(ContentBoxQuery(addr, chan), port) {
