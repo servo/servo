@@ -21,7 +21,7 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlobjectelement::HTMLObjectElement;
-use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator};
+use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
 use dom::htmlserializer::serialize;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
@@ -586,7 +586,7 @@ impl IElement for JS<Element> {
     fn bind_to_tree_impl(&self) {
         match self.get().get_attribute(Null, "id") {
             Some(attr) => {
-                let mut doc = self.get().node.owner_doc();
+                let mut doc = document_from_node(self);
                 doc.get_mut().register_named_element(self, attr.get().Value());
             }
             _ => ()
@@ -596,7 +596,7 @@ impl IElement for JS<Element> {
     fn unbind_from_tree_impl(&self) {
         match self.get().get_attribute(Null, "id") {
             Some(attr) => {
-                let mut doc = self.get().node.owner_doc();
+                let mut doc = document_from_node(self);
                 doc.get_mut().unregister_named_element(attr.get().Value());
             }
             _ => ()
