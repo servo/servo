@@ -7,7 +7,7 @@ use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, T
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::error::{Fallible, FailureUnknown};
-use dom::document::{Document, HTMLDocument};
+use dom::document::{Document, HTMLDocument, NonHTMLDocument};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -40,10 +40,10 @@ impl DOMParser {
                            -> Fallible<JS<Document>> {
         match ty {
             Text_html => {
-                Ok(Document::new(&self.owner, None, HTMLDocument, None))
+                Ok(Document::new(&self.owner, None, HTMLDocument, Some(~"text/html")))
             }
             Text_xml => {
-                Document::Constructor(&self.owner)
+                Ok(Document::new(&self.owner, None, NonHTMLDocument, Some(~"text/xml")))
             }
             _ => {
                 Err(FailureUnknown)
