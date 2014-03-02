@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use js::jsapi::JSVal;
+use js::jsapi::{JSVal, JSContext};
 use js::{JSVAL_FALSE, JSVAL_TRUE};
 use js::glue::{RUST_UINT_TO_JSVAL, RUST_JSVAL_TO_INT, RUST_DOUBLE_TO_JSVAL};
 use js::glue::{RUST_JSVAL_TO_DOUBLE, RUST_JSVAL_IS_INT, RUST_JSVAL_IS_DOUBLE};
@@ -10,7 +10,7 @@ use js::glue::{RUST_JSVAL_IS_BOOLEAN, RUST_JSVAL_TO_BOOLEAN};
 
 pub trait JSValConvertible {
     fn to_jsval(&self) -> JSVal;
-    fn from_jsval(val: JSVal) -> Option<Self>;
+    fn from_jsval(cx: *JSContext, val: JSVal) -> Option<Self>;
 }
 
 
@@ -21,7 +21,7 @@ impl JSValConvertible for i64 {
         }
     }
 
-    fn from_jsval(val: JSVal) -> Option<i64> {
+    fn from_jsval(_cx: *JSContext, val: JSVal) -> Option<i64> {
         unsafe {
             if RUST_JSVAL_IS_INT(val) != 0 {
                 Some(RUST_JSVAL_TO_DOUBLE(val) as i64)
@@ -39,7 +39,7 @@ impl JSValConvertible for u32 {
         }
     }
 
-    fn from_jsval(val: JSVal) -> Option<u32> {
+    fn from_jsval(_cx: *JSContext, val: JSVal) -> Option<u32> {
         unsafe {
             if RUST_JSVAL_IS_INT(val) != 0 {
                 Some(RUST_JSVAL_TO_INT(val) as u32)
@@ -57,7 +57,7 @@ impl JSValConvertible for i32 {
         }
     }
 
-    fn from_jsval(val: JSVal) -> Option<i32> {
+    fn from_jsval(_cx: *JSContext, val: JSVal) -> Option<i32> {
         unsafe {
             if RUST_JSVAL_IS_INT(val) != 0 {
                 Some(RUST_JSVAL_TO_INT(val) as i32)
@@ -75,7 +75,7 @@ impl JSValConvertible for u16 {
         }
     }
 
-    fn from_jsval(val: JSVal) -> Option<u16> {
+    fn from_jsval(_cx: *JSContext, val: JSVal) -> Option<u16> {
         unsafe {
             if RUST_JSVAL_IS_INT(val) != 0 {
                 Some(RUST_JSVAL_TO_INT(val) as u16)
@@ -95,7 +95,7 @@ impl JSValConvertible for bool {
         }
     }
 
-    fn from_jsval(val: JSVal) -> Option<bool> {
+    fn from_jsval(_cx: *JSContext, val: JSVal) -> Option<bool> {
         unsafe {
             if RUST_JSVAL_IS_BOOLEAN(val) != 0 {
                 Some(RUST_JSVAL_TO_BOOLEAN(val) != 0)
@@ -113,7 +113,7 @@ impl JSValConvertible for f32 {
         }
     }
 
-    fn from_jsval(val: JSVal) -> Option<f32> {
+    fn from_jsval(_cx: *JSContext, val: JSVal) -> Option<f32> {
         unsafe {
             if RUST_JSVAL_IS_DOUBLE(val) != 0 {
                 Some(RUST_JSVAL_TO_DOUBLE(val) as f32)
@@ -131,7 +131,7 @@ impl JSValConvertible for f64 {
         }
     }
 
-    fn from_jsval(val: JSVal) -> Option<f64> {
+    fn from_jsval(_cx: *JSContext, val: JSVal) -> Option<f64> {
         unsafe {
             if RUST_JSVAL_IS_DOUBLE(val) != 0 {
                 Some(RUST_JSVAL_TO_DOUBLE(val) as f64)
