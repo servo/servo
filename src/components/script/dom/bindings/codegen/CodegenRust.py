@@ -910,8 +910,7 @@ for (uint32_t i = 0; i < length; ++i) {
         # This is an interface that we implement as a concrete class
         # or an XPCOM interface.
 
-        # Allow null pointers for nullable types and old-binding classes
-        argIsPointer = type.nullable() or type.unroll().inner.isExternal()
+        argIsPointer = type.nullable()
 
         # Sequences and callbacks have to hold a strong ref to the thing being
         # passed down.
@@ -1539,8 +1538,7 @@ for (uint32_t i = 0; i < length; ++i) {
                             "let mut %s = %s.unwrap();\n" % (result, result))
         else:
             wrappingCode = ""
-        if (not descriptor.interface.isExternal() and
-            not descriptor.interface.isCallback()):
+        if not descriptor.interface.isCallback():
             wrap = "GetReflector(cx, (%s).reflector(), ${jsvalPtr} as *mut JSVal)" % result
             # Non-prefable bindings can only fail to wrap as a new-binding object
             # if they already threw an exception.  Same thing for
@@ -2398,9 +2396,6 @@ def UnionTypes(descriptors):
     declarations = set()
     unionStructs = dict()
     for d in descriptors:
-        if d.interface.isExternal():
-            continue
-
         for t in getTypes(d):
             t = t.unroll()
             if t.isUnion():
@@ -2430,9 +2425,6 @@ def UnionConversions(descriptors):
     # need to unwrap them.
     unionConversions = dict()
     for d in descriptors:
-        if d.interface.isExternal():
-            continue
-
         def addUnionTypes(type):
             if type.isUnion():
                 type = type.unroll()
@@ -3592,8 +3584,7 @@ def getUnionAccessorSignatureType(type, descriptorProvider):
         descriptor = descriptorProvider.getDescriptor(
             type.unroll().inner.identifier.name)
         typeName = CGGeneric(descriptor.nativeType)
-        # Allow null pointers for nullable types and old-binding classes
-        if type.nullable() or type.unroll().inner.isExternal():
+        if type.nullable():
             typeName = CGWrapper(typeName, pre="Option<", post=">")
         else:
             typeName = CGWrapper(typeName, pre="&'a ")
@@ -4919,8 +4910,7 @@ class CGDescriptor(CGThing):
 
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
-            if (not descriptor.interface.isExternal() and
-                descriptor.interface.getExtendedAttribute("PrefControlled") is not None):
+            if (descriptor.interface.getExtendedAttribute("PrefControlled") is not None):
                 #cgThings.append(CGPrefEnabled(descriptor))
                 pass
 
@@ -5253,7 +5243,6 @@ class CGRegisterProtos(CGAbstractMethod):
     def _registerProtos(self):
         lines = ["  assert!(codegen::%sBinding::DefineDOMInterface(js_info));" % (desc.name)
                  for desc in self.config.getDescriptors(hasInterfaceObject=True,
-                                                        isExternal=False,
                                                         register=True)]
         return '\n'.join(lines) + '\n'
     def definition_body(self):
@@ -5587,7 +5576,7 @@ class CGNativeMember(ClassMethod):
 
         if type.isGeckoInterface() and not type.isCallbackInterface():
             iface = type.unroll().inner
-            argIsPointer = type.nullable() or iface.isExternal()
+            argIsPointer = type.nullable()
             forceOwningType = iface.isCallback() or isMember
             if argIsPointer:
                 if (optional or isMember) and forceOwningType:

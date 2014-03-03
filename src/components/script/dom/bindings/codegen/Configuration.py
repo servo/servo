@@ -57,17 +57,13 @@ class Configuration:
             if key == 'webIDLFile':
                 getter = lambda x: x.interface.filename()
             elif key == 'hasInterfaceObject':
-                getter = lambda x: (not x.interface.isExternal() and
-                                    x.interface.hasInterfaceObject())
+                getter = lambda x: x.interface.hasInterfaceObject()
             elif key == 'hasInterfacePrototypeObject':
-                getter = lambda x: (not x.interface.isExternal() and
-                                    x.interface.hasInterfacePrototypeObject())
+                getter = lambda x: x.interface.hasInterfacePrototypeObject()
             elif key == 'hasInterfaceOrInterfacePrototypeObject':
                 getter = lambda x: x.hasInterfaceOrInterfacePrototypeObject()
             elif key == 'isCallback':
                 getter = lambda x: x.interface.isCallback()
-            elif key == 'isExternal':
-                getter = lambda x: x.interface.isExternal()
             elif key == 'isJSImplemented':
                 getter = lambda x: x.interface.isJSImplemented()
             else:
@@ -132,7 +128,7 @@ class Descriptor(DescriptorProvider):
 
         # Read the desc, and fill in the relevant defaults.
         ifaceName = self.interface.identifier.name
-        if self.interface.isExternal() or self.interface.isCallback():
+        if self.interface.isCallback():
             nativeTypeDefault = "nsIDOM" + ifaceName
         else:
             nativeTypeDefault = 'JS<%s>' % ifaceName
@@ -142,9 +138,9 @@ class Descriptor(DescriptorProvider):
         self.needsAbstract = desc.get('needsAbstract', [])
         self.createGlobal = desc.get('createGlobal', False)
 
-        if self.interface.isCallback() or self.interface.isExternal():
+        if self.interface.isCallback():
             if 'castable' in desc:
-                raise TypeError("%s is external or callback but has a castable "
+                raise TypeError("%s is callback but has a castable "
                                 "setting" % self.interface.identifier.name)
             self.castable = False
         else:
@@ -154,7 +150,7 @@ class Descriptor(DescriptorProvider):
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
-        self.concrete = desc.get('concrete', not self.interface.isExternal())
+        self.concrete = desc.get('concrete', True)
         if self.concrete:
             self.proxy = False
             operations = {
@@ -248,13 +244,6 @@ class Descriptor(DescriptorProvider):
                                          len(self.prototypeChain))
 
     def hasInterfaceOrInterfacePrototypeObject(self):
-
-        # Forward-declared interfaces don't need either interface object or
-        # interface prototype object as they're going to use QI (on main thread)
-        # or be passed as a JSObject (on worker threads).
-        if self.interface.isExternal():
-            return False
-
         return self.interface.hasInterfaceObject() or self.interface.hasInterfacePrototypeObject()
 
     def getExtendedAttributes(self, member, getter=False, setter=False):
