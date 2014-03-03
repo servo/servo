@@ -31,6 +31,7 @@ use std::cast;
 use std::cell::{RefCell, Ref, RefMut};
 use std::iter::{Map, Filter};
 use std::libc::uintptr_t;
+use std::ptr;
 use std::unstable::raw::Box;
 use std::util;
 
@@ -1499,9 +1500,52 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
-    pub fn CompareDocumentPosition(&self, _other: &JS<Node>) -> u16 {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
-        0
+    pub fn CompareDocumentPosition(&self, abstract_self: &JS<Node>, other: &JS<Node>) -> u16 {
+        if abstract_self == other {
+            0
+        }else{
+            let mut lastself = None;
+            let mut lastother = None;
+            for ancestor in abstract_self.ancestors() {
+                if &ancestor == other {
+                    return 8 + 2; // DOCUMENT_POSITION_CONTAINS to DOCUMENT_POSITION_PRECEDING
+                }
+                lastself = Some(ancestor);
+            }
+            for ancestor in other.ancestors() {
+                if &ancestor == abstract_self {
+                    return 0x10 + 4; // DOCUMENT_POSITION_CONTAINED_BY to DOCUMENT_POSITION_FOLLOWING
+                }
+                lastother = Some(ancestor);
+            }        
+            let in_same_tree = match (lastself.clone(),lastother) {
+                (Some(x), Some(y)) => x == y,
+                _ => false
+            };
+            if !in_same_tree {
+                let random = if ptr::to_unsafe_ptr(abstract_self) < ptr::to_unsafe_ptr(other) {
+                    4 // DOCUMENT_POSITION_FOLLOWING 
+                }else{
+                    2 // DOCUMENT_POSITION_PRECEDING
+                };
+                return 1 + 0x20 + random; // DOCUMENT_POSITION_DISCONNECTED + DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC
+            }
+            match lastself {
+                None => {},
+                Some(root) => {
+                    let root: JS<Node> = NodeCast::from(&root);
+                    for child in root.traverse_preorder() {
+                        if(&child == other){
+                            return 2; // DOCUMENT_POSITION_PRECEDING
+                        }
+                        if(&child == abstract_self){
+                            return 4; // DOCUMENT_POSITION_FOLLOWING
+                        }
+                    }
+                }
+            }
+            4 // DOCUMENT_POSITION_FOLLOWING 
+        }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-contains
