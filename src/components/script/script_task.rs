@@ -811,12 +811,11 @@ impl ScriptTask {
         //
         // Note: We can parse the next document in parallel with any previous documents.
         let mut document = Document::new(&window, Some(url.clone()), HTMLDocument, None);
-        let next_subpage_id = page.next_subpage_id.borrow();
         let html_parsing_result = hubbub_html_parser::parse_html(page,
                                                                  &mut document,
                                                                  url.clone(),
                                                                  self.resource_task.clone(),
-                                                                 next_subpage_id.get().clone());
+                                                                 page.next_subpage_id.get());
 
         let HtmlParserResult {
             discovery_port
@@ -847,8 +846,7 @@ impl ScriptTask {
                     page.layout_chan.send(AddStylesheetMsg(sheet));
                 }
                 Some(HtmlDiscoveredIFrame((iframe_url, subpage_id, sandboxed))) => {
-                    let mut next_subpage_id = page.next_subpage_id.borrow_mut();
-                    *next_subpage_id.get() = SubpageId(*subpage_id + 1);
+                    page.next_subpage_id.set(SubpageId(*subpage_id + 1));
                     let sandboxed = if sandboxed {
                         IFrameSandboxed
                     } else {
