@@ -131,7 +131,7 @@ pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
                 args.push(str::raw::from_c_str(*argv.offset(i as int) as *i8));
             }
         }
-        opts::from_cmdline_args(os::args()).map(run);
+        opts::from_cmdline_args(args).map(run);
     })
 }
 
