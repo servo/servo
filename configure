@@ -686,6 +686,7 @@ do
             CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/autogen.sh"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --sysconfdir=/etc"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --localstatedir=/var"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-docs"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --disable-shared" # work around Rust #12557
             if [ -f /etc/redhat-release ]; then
                 # Some RedHat-based distros (including our CentOS 6 build machines) are missing
