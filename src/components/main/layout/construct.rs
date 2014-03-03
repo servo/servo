@@ -28,6 +28,8 @@ use layout::box_::{UnscannedTextBoxInfo};
 use layout::context::LayoutContext;
 use layout::floats::FloatKind;
 use layout::flow::{Flow, MutableOwnedFlowUtils};
+use layout::flow::{Descendants, AbsDescendants, FixedDescendants};
+use layout::flow_list::{Rawlink};
 use layout::inline::InlineFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
@@ -59,9 +61,10 @@ pub enum ConstructionResult {
     /// created nodes have their `ConstructionResult` set to.
     NoConstructionResult,
 
-    /// This node contributed a flow at the proper position in the tree. Nothing more needs to be
-    /// done for this node.
-    FlowConstructionResult(~Flow),
+    /// This node contributed a flow at the proper position in the tree.
+    /// Nothing more needs to be done for this node. It has bubbled up fixed
+    /// and absolute descendant flows that have a CB above it.
+    FlowConstructionResult(~Flow, AbsDescendants, FixedDescendants),
 
     /// This node contributed some object or objects that will be needed to construct a proper flow
     /// later up the tree, but these objects have not yet found their home.
@@ -72,7 +75,7 @@ impl ConstructionResult {
     fn destroy(&mut self) {
         match *self {
             NoConstructionResult => {}
-            FlowConstructionResult(ref mut flow) => flow.destroy(),
+            FlowConstructionResult(ref mut flow, _, _) => flow.destroy(),
             ConstructionItemConstructionResult(ref mut item) => item.destroy(),
         }
     }
@@ -112,6 +115,12 @@ struct InlineBoxesConstructionResult {
 
     /// Any boxes that succeed the {ib} splits.
     boxes: ~[Box],
+
+    /// Any absolute descendants that we're bubbling up.
+    abs_descendants: AbsDescendants,
+
+    /// Any fixed descendants that we're bubbling up.
+    fixed_descendants: FixedDescendants,
 }
 
 /// Represents an {ib} split that has not yet found the containing block that it belongs to. This
@@ -155,7 +164,7 @@ impl InlineBlockSplit {
 /// Methods on optional vectors.
 ///
 /// TODO(pcwalton): I think this will no longer be necessary once Rust #8981 lands.
-trait OptVector<T> {
+pub trait OptVector<T> {
     /// Turns this optional vector into an owned one. If the optional vector is `None`, then this
     /// simply returns an empty owned vector.
     fn to_vec(self) -> ~[T];
@@ -316,17 +325,27 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    /// Builds the children flows underneath a node with `display: block`. After this call,
-    /// other `BlockFlow`s or `InlineFlow`s will be populated underneath this node, depending on
-    /// whether {ib} splits needed to happen.
-    fn build_children_of_block_flow(&mut self, flow: &mut ~Flow, node: &ThreadSafeLayoutNode) {
+    /// Build block flow for current node using information from children nodes.
+    ///
+    /// Consume results from children and combine them, handling {ib} splits.
+    /// Block flows and inline flows thus created will become the children of
+    /// this block flow.
+    /// Also, deal with the absolute and fixed descendants bubbled up by
+    /// children nodes.
+    fn build_block_flow_using_children(&mut self,
+                                       mut flow: ~Flow,
+                                       node: &ThreadSafeLayoutNode)
+                                       -> ConstructionResult {
         // Gather up boxes for the inline flows we might need to create.
         let mut opt_boxes_for_inline_flow = None;
         let mut first_box = true;
+        // List of absolute descendants, in tree order.
+        let mut abs_descendants = Descendants::new();
+        let mut fixed_descendants = Descendants::new();
         for kid in node.children() {
             match kid.swap_out_construction_result() {
                 NoConstructionResult => {}
-                FlowConstructionResult(kid_flow) => {
+                FlowConstructionResult(kid_flow, kid_abs_descendants, kid_fixed_descendants) => {
                     // Strip ignorable whitespace from the start of this flow per CSS 2.1 §
                     // 9.2.1.1.
                     if first_box {
@@ -340,14 +359,19 @@ impl<'a> FlowConstructor<'a> {
                            opt_boxes_for_inline_flow.as_ref()
                                                     .map_default(0, |boxes| boxes.len()));
                     self.flush_inline_boxes_to_flow_if_necessary(&mut opt_boxes_for_inline_flow,
-                                                                 flow,
+                                                                 &mut flow,
                                                                  node);
-                    flow.add_new_child(kid_flow)
+                    flow.add_new_child(kid_flow);
+                    abs_descendants.push_descendants(kid_abs_descendants);
+                    fixed_descendants.push_descendants(kid_fixed_descendants);
+
                 }
                 ConstructionItemConstructionResult(InlineBoxesConstructionItem(
                         InlineBoxesConstructionResult {
                             splits: opt_splits,
-                            boxes: boxes
+                            boxes: boxes,
+                            abs_descendants: kid_abs_descendants,
+                            fixed_descendants: kid_fixed_descendants,
                         })) => {
                     // Add any {ib} splits.
                     match opt_splits {
@@ -377,7 +401,7 @@ impl<'a> FlowConstructor<'a> {
                                                                              |boxes| boxes.len()));
                                 self.flush_inline_boxes_to_flow_if_necessary(
                                         &mut opt_boxes_for_inline_flow,
-                                        flow,
+                                        &mut flow,
                                         node);
 
                                 // Push the flow generated by the {ib} split onto our list of
@@ -388,7 +412,9 @@ impl<'a> FlowConstructor<'a> {
                     }
 
                     // Add the boxes to the list we're maintaining.
-                    opt_boxes_for_inline_flow.push_all_move(boxes)
+                    opt_boxes_for_inline_flow.push_all_move(boxes);
+                    abs_descendants.push_descendants(kid_abs_descendants);
+                    fixed_descendants.push_descendants(kid_fixed_descendants);
                 }
                 ConstructionItemConstructionResult(WhitespaceConstructionItem(..)) => {
                     // Nothing to do here.
@@ -400,29 +426,45 @@ impl<'a> FlowConstructor<'a> {
         // splits, after stripping ignorable whitespace.
         strip_ignorable_whitespace_from_end(&mut opt_boxes_for_inline_flow);
         self.flush_inline_boxes_to_flow_if_necessary(&mut opt_boxes_for_inline_flow,
-                                                     flow,
+                                                     &mut flow,
                                                      node);
 
-        // The flow is done. If it ended up with no kids, add the flow to the leaf set.
-        flow.finish(self.layout_context)
+        // The flow is done.
+        flow.finish(self.layout_context);
+        let is_positioned = flow.as_block().is_positioned();
+        let is_fixed_positioned = flow.as_block().is_fixed();
+        let is_absolutely_positioned = flow.as_block().is_absolutely_positioned();
+        if is_positioned {
+            // This is the CB for all the absolute descendants.
+            flow.set_abs_descendants(abs_descendants);
+            abs_descendants = Descendants::new();
+
+            if is_fixed_positioned {
+                // Send itself along with the other fixed descendants.
+                fixed_descendants.push(Rawlink::some(flow));
+            } else if is_absolutely_positioned {
+                // This is now the only absolute flow in the subtree which hasn't yet
+                // reached its CB.
+                abs_descendants.push(Rawlink::some(flow));
+            }
+        }
+        FlowConstructionResult(flow, abs_descendants, fixed_descendants)
     }
 
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
     /// other `BlockFlow`s or `InlineFlow`s underneath it, depending on whether {ib} splits needed
     /// to happen.
-    fn build_flow_for_block(&mut self, node: &ThreadSafeLayoutNode, is_fixed: bool) -> ~Flow {
-        let mut flow = ~BlockFlow::from_node(self, node, is_fixed) as ~Flow;
-        self.build_children_of_block_flow(&mut flow, node);
-        flow
+    fn build_flow_for_block(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
+        let flow = ~BlockFlow::from_node(self, node) as ~Flow;
+        self.build_block_flow_using_children(flow, node)
     }
 
     /// Builds the flow for a node with `float: {left|right}`. This yields a float `BlockFlow` with
     /// a `BlockFlow` underneath it.
     fn build_flow_for_floated_block(&mut self, node: &ThreadSafeLayoutNode, float_kind: FloatKind)
-                                    -> ~Flow {
-        let mut flow = ~BlockFlow::float_from_node(self, node, float_kind) as ~Flow;
-        self.build_children_of_block_flow(&mut flow, node);
-        flow
+                                    -> ConstructionResult {
+        let flow = ~BlockFlow::float_from_node(self, node, float_kind) as ~Flow;
+        self.build_block_flow_using_children(flow, node)
     }
 
 
@@ -433,24 +475,30 @@ impl<'a> FlowConstructor<'a> {
                                                   -> ConstructionResult {
         let mut opt_inline_block_splits = None;
         let mut opt_box_accumulator = None;
- 
+        let mut abs_descendants = Descendants::new();
+        let mut fixed_descendants = Descendants::new();
+
         // Concatenate all the boxes of our kids, creating {ib} splits as necessary.
         for kid in node.children() {
             match kid.swap_out_construction_result() {
                 NoConstructionResult => {}
-                FlowConstructionResult(flow) => {
+                FlowConstructionResult(flow, kid_abs_descendants, kid_fixed_descendants) => {
                     // {ib} split. Flush the accumulator to our new split and make a new
                     // accumulator to hold any subsequent boxes we come across.
                     let split = InlineBlockSplit {
                         predecessor_boxes: util::replace(&mut opt_box_accumulator, None).to_vec(),
                         flow: flow,
                     };
-                    opt_inline_block_splits.push(split)
+                    opt_inline_block_splits.push(split);
+                    abs_descendants.push_descendants(kid_abs_descendants);
+                    fixed_descendants.push_descendants(kid_fixed_descendants);
                 }
                 ConstructionItemConstructionResult(InlineBoxesConstructionItem(
                         InlineBoxesConstructionResult {
                             splits: opt_splits,
-                            boxes: boxes
+                            boxes: boxes,
+                            abs_descendants: kid_abs_descendants,
+                            fixed_descendants: kid_fixed_descendants,
                         })) => {
 
                     // Bubble up {ib} splits.
@@ -475,7 +523,9 @@ impl<'a> FlowConstructor<'a> {
                     }
 
                     // Push residual boxes.
-                    opt_box_accumulator.push_all_move(boxes)
+                    opt_box_accumulator.push_all_move(boxes);
+                    abs_descendants.push_descendants(kid_abs_descendants);
+                    fixed_descendants.push_descendants(kid_fixed_descendants);
                 }
                 ConstructionItemConstructionResult(WhitespaceConstructionItem(whitespace_node,
                                                                               whitespace_style))
@@ -533,10 +583,14 @@ impl<'a> FlowConstructor<'a> {
         }
 
         // Finally, make a new construction result.
-        if opt_inline_block_splits.len() > 0 || opt_box_accumulator.len() > 0 {
+        if opt_inline_block_splits.len() > 0 || opt_box_accumulator.len() > 0
+            || abs_descendants.len() > 0 {
+
             let construction_item = InlineBoxesConstructionItem(InlineBoxesConstructionResult {
                 splits: opt_inline_block_splits,
                 boxes: opt_box_accumulator.to_vec(),
+                abs_descendants: abs_descendants,
+                fixed_descendants: fixed_descendants,
             });
             ConstructionItemConstructionResult(construction_item)
         } else {
@@ -612,6 +666,8 @@ impl<'a> FlowConstructor<'a> {
             boxes: ~[
                 Box::new(self, node)
             ],
+            abs_descendants: Descendants::new(),
+            fixed_descendants: Descendants::new(),
         });
         ConstructionItemConstructionResult(construction_item)
     }
@@ -636,7 +692,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
     #[inline(always)]
     fn process(&mut self, node: &ThreadSafeLayoutNode) -> bool {
         // Get the `display` property for this node, and determine whether this node is floated.
-        let (display, float, position) = match node.type_id() {
+        let (display, float, positioning) = match node.type_id() {
             ElementNodeTypeId(_) => {
                 let style = node.style().get();
                 (style.Box.get().display, style.Box.get().float, style.Box.get().position)
@@ -652,7 +708,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
         debug!("building flow for node: {:?} {:?}", display, float);
 
         // Switch on display and floatedness.
-        match (display, float, position) {
+        match (display, float, positioning) {
             // `display: none` contributes no flow construction result. Nuke the flow construction
             // results of children.
             (display::none, _, _) => {
@@ -660,6 +716,10 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                     let mut old_result = child.swap_out_construction_result();
                     old_result.destroy()
                 }
+            }
+
+            (_, _, position::absolute) | (_, _, position::fixed) => {
+                node.set_flow_construction_result(self.build_flow_for_block(node))
             }
 
             // Inline items contribute inline box construction results.
@@ -673,20 +733,15 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // TODO(pcwalton): Make this only trigger for blocks and handle the other `display`
             // properties separately.
 
-            (_, _, position::fixed) => {
-                let flow = self.build_flow_for_block(node, true);
-                node.set_flow_construction_result(FlowConstructionResult(flow))
-            }
             (_, float::none, _) => {
-                let flow = self.build_flow_for_block(node, false);
-                node.set_flow_construction_result(FlowConstructionResult(flow))
+                node.set_flow_construction_result(self.build_flow_for_block(node))
             }
 
             // Floated flows contribute float flow construction results.
             (_, float_value, _) => {
                 let float_kind = FloatKind::from_property(float_value);
-                let flow = self.build_flow_for_floated_block(node, float_kind);
-                node.set_flow_construction_result(FlowConstructionResult(flow))
+                node.set_flow_construction_result(
+                    self.build_flow_for_floated_block(node, float_kind))
             }
         }
 
@@ -779,7 +834,7 @@ trait ObjectElement {
     /// Returns true if this node has object data that is correct uri.
     fn has_object_data(&self) -> bool;
 
-    /// Returns the "data" attribute value parsed as a URL    
+    /// Returns the "data" attribute value parsed as a URL
     fn get_object_data(&self, base_url: &Url) -> Option<Url>;
 }
 
@@ -793,7 +848,7 @@ impl<'ln> ObjectElement for ThreadSafeLayoutNode<'ln> {
         match self.get_type_and_data() {
             (None, Some(uri)) => is_image_data(uri),
             _ => false
-        }   
+        }
     }
 
     fn get_object_data(&self, base_url: &Url) -> Option<Url> {
@@ -854,4 +909,3 @@ fn strip_ignorable_whitespace_from_end(opt_boxes: &mut Option<~[Box]>) {
         *opt_boxes = None
     }
 }
-

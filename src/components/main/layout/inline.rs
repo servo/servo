@@ -657,18 +657,13 @@ impl Flow for InlineFlow {
         {
             let this = &mut *self;
             for box_ in this.boxes.iter() {
-                box_.assign_width(self.base.position.size.width);
+                box_.assign_replaced_width_if_necessary(self.base.position.size.width);
             }
         }
 
-        // FIXME(ksh8281) avoid copy
-        let flags_info = self.base.flags_info.clone();
-        for kid in self.base.child_iter() {
-            let child_base = flow::mut_base(kid);
-            child_base.position.size.width = self.base.position.size.width;
-            child_base.flags_info.flags.set_inorder(self.base.flags_info.flags.inorder());
-            child_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
-        }
+        assert!(self.base.children.len() == 0,
+                "InlineFlow: should not have children flows in the current layout implementation.");
+
         // There are no child contexts, so stop here.
 
         // TODO(Issue #225): once there are 'inline-block' elements, this won't be
@@ -685,6 +680,9 @@ impl Flow for InlineFlow {
         self.assign_height(ctx);
     }
 
+    /// Calculate and set the height of this Flow.
+    ///
+    /// CSS Section 10.6.1
     fn assign_height(&mut self, _: &mut LayoutContext) {
         debug!("assign_height_inline: assigning height for flow");
 
@@ -901,4 +899,3 @@ impl Flow for InlineFlow {
         ~"InlineFlow: " + self.boxes.map(|s| s.debug_str()).connect(", ")
     }
 }
-
