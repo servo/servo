@@ -362,7 +362,7 @@ pub fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
 
 pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSObject,
                                protoProto: *JSObject, protoClass: *JSClass,
-                               constructorClass: *JSClass, constructor: Option<JSNative>,
+                               constructor: Option<JSNative>,
                                ctorNargs: u32,
                                domClass: *DOMClass,
                                methods: *JSFunctionSpec,
@@ -386,9 +386,9 @@ pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSO
     }
 
     let mut interface = ptr::null();
-    if constructorClass.is_not_null() || constructor.is_some() {
+    if constructor.is_some() {
         interface = name.to_c_str().with_ref(|s| {
-            CreateInterfaceObject(cx, global, receiver, constructorClass,
+            CreateInterfaceObject(cx, global, receiver, ptr::null(),
                                   constructor, ctorNargs, proto,
                                   staticMethods, constants, s)
         });
