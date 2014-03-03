@@ -2792,7 +2792,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             return "ptr::to_unsafe_ptr(&%s[0])" % val
 
         call = """return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
-                               %s, ptr::null(), %s, %d,
+                               %s, %s, %d,
                                %s,
                                %s,
                                %s,

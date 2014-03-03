@@ -19,13 +19,13 @@ use std::str;
 use std::vec;
 use std::unstable::raw::Box;
 use js::glue::*;
-use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
+use js::glue::{RUST_OBJECT_TO_JSVAL};
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
-use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction};
+use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
 use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate};
-use js::jsapi::{JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject};
+use js::jsapi::{JS_InternString, JS_GetFunctionObject};
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
 use js::jsapi::{JS_NewUCStringCopyN, JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
@@ -38,16 +38,12 @@ use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
 use js::{JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
-use js::{JS_THIS_OBJECT, JSFUN_CONSTRUCTOR, JS_CALLEE, JSPROP_READONLY};
+use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
 use js;
-
-static TOSTRING_CLASS_RESERVED_SLOT: libc::size_t = 0;
-static TOSTRING_NAME_RESERVED_SLOT: libc::size_t = 1;
 
 mod jsval {
     use js::glue::{RUST_JSVAL_IS_NULL, RUST_JSVAL_IS_VOID};
-    use js::glue::{RUST_JSVAL_IS_STRING, RUST_JSVAL_TO_STRING};
-    use js::jsapi::{JSVal, JSString};
+    use js::jsapi::JSVal;
 
     pub fn is_null(v: JSVal) -> bool {
         unsafe { RUST_JSVAL_IS_NULL(v) == 1 }
@@ -55,14 +51,6 @@ mod jsval {
 
     pub fn is_undefined(v: JSVal) -> bool {
         unsafe { RUST_JSVAL_IS_VOID(v) == 1 }
-    }
-
-    pub fn is_string(v: JSVal) -> bool {
-        unsafe { RUST_JSVAL_IS_STRING(v) == 1 }
-    }
-
-    pub unsafe fn to_string(v: JSVal) -> *JSString {
-        RUST_JSVAL_TO_STRING(v)
     }
 }
 
@@ -80,40 +68,6 @@ pub fn GlobalStaticData() -> GlobalStaticData {
         method_ids: HashMap::new(),
         constant_ids: HashMap::new()
     }
-}
-
-extern fn InterfaceObjectToString(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
-  unsafe {
-    let callee = RUST_JSVAL_TO_OBJECT(*JS_CALLEE(cx, cast::transmute(&vp)));
-    let obj = JS_THIS_OBJECT(cx, cast::transmute(&vp));
-    if obj.is_null() {
-        //XXXjdm figure out JSMSG madness
-        /*JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_CONVERT_TO,
-                             "null", "object");*/
-        return 0;
-    }
-
-    let v = GetFunctionNativeReserved(callee, TOSTRING_CLASS_RESERVED_SLOT);
-    let clasp: *JSClass = cast::transmute(RUST_JSVAL_TO_PRIVATE(*v));
-
-    if GetObjectJSClass(obj) != clasp {
-      /*let jsname: *JSString = RUST_JSVAL_TO_STRING(*v);
-      let length = 0;
-      let name = JS_GetInternedStringCharsAndLength(jsname, &length);*/
-        //XXXjdm figure out JSMSG madness
-        /*JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INCOMPATIBLE_PROTO,
-                             NS_ConvertUTF16toUTF8(name).get(), "toString",
-                             "object");*/
-        return 0;
-    }
-
-    let v = *GetFunctionNativeReserved(callee, TOSTRING_NAME_RESERVED_SLOT);
-    assert!(jsval::is_string(v));
-    let name = jsstring_to_str(cx, jsval::to_string(v));
-    let retval = ~"function " + name + "() {\n    [native code]\n}";
-    *vp = str_to_jsval(cx, retval);
-    return 1;
-  }
 }
 
 fn is_dom_class(clasp: *JSClass) -> bool {
@@ -362,7 +316,7 @@ pub fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
 
 pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSObject,
                                protoProto: *JSObject, protoClass: *JSClass,
-                               constructorClass: *JSClass, constructor: Option<JSNative>,
+                               constructor: Option<JSNative>,
                                ctorNargs: u32,
                                domClass: *DOMClass,
                                methods: *JSFunctionSpec,
@@ -386,9 +340,9 @@ pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSO
     }
 
     let mut interface = ptr::null();
-    if constructorClass.is_not_null() || constructor.is_some() {
+    if constructor.is_some() {
         interface = name.to_c_str().with_ref(|s| {
-            CreateInterfaceObject(cx, global, receiver, constructorClass,
+            CreateInterfaceObject(cx, global, receiver,
                                   constructor, ctorNargs, proto,
                                   staticMethods, constants, s)
         });
@@ -405,57 +359,24 @@ pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSO
 }
 
 fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
-                         constructorClass: *JSClass, constructorNative: Option<JSNative>,
+                         constructorNative: Option<JSNative>,
                          ctorNargs: u32, proto: *JSObject,
                          staticMethods: *JSFunctionSpec,
                          constants: *ConstantSpec,
                          name: *libc::c_char) -> *JSObject {
     unsafe {
-        let constructor = if constructorClass.is_not_null() {
-            let functionProto = JS_GetFunctionPrototype(cx, global);
-            if functionProto.is_null() {
-                ptr::null()
-            } else {
-                JS_NewObject(cx, constructorClass, functionProto, global)
-            }
-        } else {
-            let fun = JS_NewFunction(cx, constructorNative, ctorNargs,
-                                     JSFUN_CONSTRUCTOR, global, name);
-            if fun.is_null() {
-                ptr::null()
-            } else {
-                JS_GetFunctionObject(fun)
-            }
-        };
-
-        if constructor.is_null() {
+        let fun = JS_NewFunction(cx, constructorNative, ctorNargs,
+                                 JSFUN_CONSTRUCTOR, global, name);
+        if fun.is_null() {
             return ptr::null();
         }
+
+        let constructor = JS_GetFunctionObject(fun);
+        assert!(constructor.is_not_null());
 
         if staticMethods.is_not_null() &&
             !DefineMethods(cx, constructor, staticMethods) {
             return ptr::null();
-        }
-
-        if constructorClass.is_not_null() {
-            let toString = "toString".to_c_str().with_ref(|s| {
-                DefineFunctionWithReserved(cx, constructor, s,
-                                           InterfaceObjectToString,
-                                           0, 0)
-            });
-            if toString.is_null() {
-                return ptr::null();
-            }
-
-            let toStringObj = JS_GetFunctionObject(toString);
-            SetFunctionNativeReserved(toStringObj, TOSTRING_CLASS_RESERVED_SLOT,
-                                      &RUST_PRIVATE_TO_JSVAL(constructorClass as *libc::c_void));
-            let s = JS_InternString(cx, name);
-            if s.is_null() {
-                return ptr::null();
-            }
-            SetFunctionNativeReserved(toStringObj, TOSTRING_NAME_RESERVED_SLOT,
-                                      &RUST_STRING_TO_JSVAL(s));
         }
 
         if constants.is_not_null() &&
