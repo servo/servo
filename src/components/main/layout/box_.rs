@@ -605,6 +605,22 @@ impl Box {
         specified(padding, content_box_width)
     }
 
+    pub fn padding_box_size(&self) -> Size2D<Au> {
+        let border_box_size = self.border_box.get().size;
+        Size2D(border_box_size.width - self.border.get().left - self.border.get().right,
+               border_box_size.height - self.border.get().top - self.border.get().bottom)
+    }
+
+    pub fn border_and_padding_horiz(&self) -> Au {
+        self.border.get().left + self.border.get().right + self.padding.get().left
+            + self.padding.get().right
+    }
+
+    pub fn border_and_padding_vert(&self) -> Au {
+        self.border.get().top + self.border.get().bottom + self.padding.get().top
+            + self.padding.get().bottom
+    }
+
     pub fn noncontent_width(&self) -> Au {
         self.noncontent_left() + self.noncontent_right()
     }
@@ -613,6 +629,7 @@ impl Box {
         self.noncontent_top() + self.noncontent_bottom()
     }
 
+    // Return offset from original position because of `position: relative`.
     pub fn relative_position(&self, container_block_size: &Size2D<Au>) -> Point2D<Au> {
         fn left_right(style: &ComputedValues, block_width: Au) -> Au {
             // TODO(ksh8281) : consider RTL(right-to-left) culture
@@ -651,6 +668,7 @@ impl Box {
             rel_pos.y = rel_pos.y + top_bottom(self.style(), container_block_size.height);
         }
 
+        // Go over the ancestor boxes and add all relative offsets (if any).
         let info = self.inline_info.borrow();
         match info.get() {
             &Some(ref info) => {
@@ -977,7 +995,7 @@ impl Box {
     /// Arguments:
     /// * `builder`: The display list builder, which manages the coordinate system and options.
     /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
-    /// * `origin`: The total offset from the display list root flow to the owning flow of this
+    /// * `flow_origin`: Position of the origin of the owning flow wrt the display list root flow.
     ///   box.
     /// * `list`: The display list to which items should be appended.
     ///
@@ -990,15 +1008,16 @@ impl Box {
                               &self,
                               builder: &DisplayListBuilder,
                               dirty: &Rect<Au>,
-                              offset: Point2D<Au>,
+                              flow_origin: Point2D<Au>,
                               flow: &Flow,
                               index: uint,
                               lists: &RefCell<DisplayListCollection<E>>) {
+        // Box position wrt to the owning flow.
         let box_bounds = self.border_box.get();
-        let absolute_box_bounds = box_bounds.translate(&offset);
+        let absolute_box_bounds = box_bounds.translate(&flow_origin);
         debug!("Box::build_display_list at rel={}, abs={}: {:s}",
                box_bounds, absolute_box_bounds, self.debug_str());
-        debug!("Box::build_display_list: dirty={}, offset={}", *dirty, offset);
+        debug!("Box::build_display_list: dirty={}, flow_origin={}", *dirty, flow_origin);
 
         if self.style().InheritedBox.get().visibility != visibility::visible {
             return;
@@ -1011,9 +1030,14 @@ impl Box {
             return;
         }
 
-        self.paint_inline_background_border_if_applicable(index, lists, &absolute_box_bounds, &offset);
+        self.paint_inline_background_border_if_applicable(index, lists, &absolute_box_bounds, &flow_origin);
         // Add the background to the list, if applicable.
         self.paint_background_if_applicable(builder, index, lists, &absolute_box_bounds);
+
+        // Add a border, if applicable.
+        //
+        // TODO: Outlines.
+        self.paint_borders_if_applicable(index, lists, &absolute_box_bounds);
 
         match self.specific {
             UnscannedTextBox(_) => fail!("Shouldn't see unscanned boxes here."),
@@ -1122,6 +1146,7 @@ impl Box {
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
                 debug!("{:?}", {
+                    // This prints a debug border around the border of this box.
                     let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
                     lists.with_mut(|lists| {
@@ -1208,15 +1233,11 @@ impl Box {
         // iframe is actually going to be displayed.
         match self.specific {
             IframeBox(ref iframe_box) => {
-                self.finalize_position_and_size_of_iframe(iframe_box, offset, builder.ctx)
+                self.finalize_position_and_size_of_iframe(iframe_box, flow_origin, builder.ctx)
             }
             GenericBox | ImageBox(_) | ScannedTextBox(_) | UnscannedTextBox(_) => {}
         }
 
-        // Add a border, if applicable.
-        //
-        // TODO: Outlines.
-        self.paint_borders_if_applicable(index, lists, &absolute_box_bounds);
     }
 
     /// Returns the *minimum width* and *preferred width* of this box as defined by CSS 2.1.
@@ -1432,8 +1453,10 @@ impl Box {
         }
     }
 
-    /// Assigns the appropriate width to this box.
-    pub fn assign_width(&self,container_width: Au) {
+    /// Assigns replaced width for this box only if it is replaced content.
+    ///
+    /// CSS 2.1 § 10.3.2.
+    pub fn assign_replaced_width_if_necessary(&self,container_width: Au) {
         match self.specific {
             GenericBox | IframeBox(_) => {
             }
@@ -1469,7 +1492,8 @@ impl Box {
                 image_box_info.computed_width.set(Some(width));
             }
             ScannedTextBox(_) => {
-                // Scanned text boxes will have already had their content_widths assigned by this point.
+                // Scanned text boxes will have already had their
+                // content_widths assigned by this point.
                 let mut position = self.border_box.borrow_mut();
                 position.get().size.width = position.get().size.width + self.noncontent_width() +
                     self.noncontent_inline_left() + self.noncontent_inline_right();
@@ -1478,6 +1502,7 @@ impl Box {
         }
     }
 
+    /// Assign height for image and scanned text boxes.
     pub fn assign_height(&self) {
         match self.specific {
             GenericBox | IframeBox(_) => {
@@ -1514,6 +1539,8 @@ impl Box {
             ScannedTextBox(_) => {
                 // Scanned text boxes will have already had their widths assigned by this point
                 let mut position = self.border_box.borrow_mut();
+                // Scanned text boxes' content heights are calculated by the
+                // text run scanner during Flow construction.
                 position.get().size.height
                     = position.get().size.height + self.noncontent_height()
             }

@@ -19,6 +19,10 @@ pub struct Rawlink {
     priv obj: *mut (),
 }
 
+/// Doubly-linked list of Flows.
+///
+/// The forward links are strong references.
+/// The backward links are weak references.
 pub struct FlowList {
     priv length: uint,
     priv list_head: Link,
@@ -51,7 +55,7 @@ impl Rawlink {
     }
 
     /// Like Option::Some for Rawlink
-    fn some(n: &mut Flow) -> Rawlink {
+    pub fn some(n: &mut Flow) -> Rawlink {
         unsafe { cast::transmute(n) }
     }
 
@@ -65,7 +69,7 @@ impl Rawlink {
         }
     }
 
-    fn resolve(&mut self) -> Option<&mut Flow> {
+    pub fn resolve(&mut self) -> Option<&mut Flow> {
         if self.obj.is_null() {
             None
         } else {
