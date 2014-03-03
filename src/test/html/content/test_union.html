@@ -18,7 +18,7 @@
   });
 
   should_throw(function() { sel.add(div) });
-  should_throw(function() { sel.add(optgroup, function() {}) });
+  should_not_throw(function() { sel.add(optgroup, function() {}) });
 
   finish();
 </script>
