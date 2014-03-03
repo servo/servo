@@ -10,7 +10,8 @@ use css::matching::{ApplicableDeclarations, CannotShare, MatchMethods, StyleWasS
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::extra::LayoutAuxMethods;
-use layout::flow::{Flow, PreorderFlowTraversal, PostorderFlowTraversal};
+use layout::flow::{AssignHeightsFinished, AssignHeightsNeedsWidthOfFlow, Flow};
+use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, AssignWidthsTraversal};
 use layout::layout_task::{BubbleWidthsTraversal};
@@ -117,11 +118,42 @@ impl FlowParallelInfo {
     }
 }
 
-/// A parallel bottom-up flow traversal.
-trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
-    fn run_parallel(&mut self,
-                    mut unsafe_flow: UnsafeFlow,
-                    _: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+/// Returns true if we should continue or false if we're done.
+unsafe fn enqueue_parent_for_bottom_up_traversal(unsafe_flow: &mut UnsafeFlow, flow: &mut ~Flow)
+                                                 -> bool {
+    let base = flow::mut_base(*flow);
+
+    // Possibly enqueue the parent.
+    let unsafe_parent = base.parallel.parent;
+    if unsafe_parent == null_unsafe_flow() {
+        // We're done!
+        return false
+    }
+
+    // No, we're not at the root yet. Then are we the last sibling of our parent? If
+    // so, we can continue on with our parent; otherwise, we've gotta wait.
+    let parent: &mut ~Flow = cast::transmute(&unsafe_parent);
+    let parent_base = flow::mut_base(*parent);
+    if parent_base.parallel.children_count.fetch_sub(1, SeqCst) == 1 {
+        // We were the last child of our parent. Reflow our parent.
+        *unsafe_flow = unsafe_parent;
+        return true
+    }
+
+    // Stop.
+    false
+}
+
+trait ParallelPostorderFlowTraversal {
+    fn run(&mut self,
+           mut unsafe_flow: UnsafeFlow,
+           _: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>);
+}
+
+impl<'a> ParallelPostorderFlowTraversal for BubbleWidthsTraversal<'a> {
+    fn run(&mut self,
+           mut unsafe_flow: UnsafeFlow,
+           _: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
         loop {
             unsafe {
                 // Get a real flow.
@@ -132,27 +164,59 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                     self.process(*flow);
                 }
 
-                let base = flow::mut_base(*flow);
-
-                // Reset the count of children for the next layout traversal.
-                base.parallel.children_count.store(base.children.len() as int, Relaxed);
-
-                // Possibly enqueue the parent.
-                let unsafe_parent = base.parallel.parent;
-                if unsafe_parent == null_unsafe_flow() {
-                    // We're done!
+                if !enqueue_parent_for_bottom_up_traversal(&mut unsafe_flow, flow) {
                     break
                 }
+            }
+        }
+    }
+}
 
-                // No, we're not at the root yet. Then are we the last sibling of our parent? If
-                // so, we can continue on with our parent; otherwise, we've gotta wait.
-                let parent: &mut ~Flow = cast::transmute(&unsafe_parent);
-                let parent_base = flow::mut_base(*parent);
-                if parent_base.parallel.children_count.fetch_sub(1, SeqCst) == 1 {
-                    // We were the last child of our parent. Reflow our parent.
-                    unsafe_flow = unsafe_parent
-                } else {
-                    // Stop.
+impl<'a> ParallelPostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {
+    fn run(&mut self,
+           mut unsafe_flow: UnsafeFlow,
+           proxy: &mut WorkerProxy<*mut LayoutContext,PaddedUnsafeFlow>) {
+        loop {
+            unsafe {
+                // Get a real flow.
+                let flow: &mut ~Flow = cast::transmute(&unsafe_flow);
+
+                // Before running the assign-heights function, we reset our child count to one.
+                // This is subtle. It deals with the case in which we have something like this:
+                //
+                //         A      -+
+                //        / \      |
+                //       B   O     | inorder, waiting on D to complete
+                //      / \ / \    |
+                //     O  CO   O  -+
+                //        |
+                //        D       <-- parallel assign-widths starts here
+                //       / \
+                //      O   O
+                //
+                // When the traversal rooted at D completes, then we must work our way up back to
+                // A. The easiest way to do that is to ensure that the nodes A, B, and C all have
+                // a child count of one. That way, once assign-heights for D completes, assign-
+                // heights for C will run, which will cause assign-heights for B to run, which
+                // will cause assign-heights for A to resume and complete the in-order traversal.
+                flow::mut_base(*flow).parallel.children_count.store(1, SeqCst);
+
+                // Perform the operation.
+                if self.should_process(*flow) {
+                    match self.process(*flow) {
+                        AssignHeightsFinished => {}
+                        AssignHeightsNeedsWidthOfFlow(unsafe_child_flow) => {
+                            // The assign-heights operation couldn't complete because some
+                            // descendant in an in-order traversal needs its width computed. Do
+                            // that now.
+                            assign_widths(UnsafeFlowConversions::from_flow(&unsafe_child_flow),
+                                          proxy);
+                            return
+                        }
+                    }
+                }
+
+                if !enqueue_parent_for_bottom_up_traversal(&mut unsafe_flow, flow) {
                     break
                 }
             }
@@ -180,18 +244,26 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
             // Get a real flow.
             let flow: &mut ~Flow = cast::transmute(&unsafe_flow);
 
-            // Perform the appropriate traversal.
-            self.process(*flow);
-
-            // Possibly enqueue the children.
-            for kid in flow::child_iter(*flow) {
-                had_children = true;
-                proxy.push(WorkUnit {
-                    fun: top_down_func,
-                    data: UnsafeFlowConversions::from_flow(&borrowed_flow_to_unsafe_flow(kid)),
-                });
+            // Count our children so that the bottom-up traversal that follows will be able to
+            // proceed.
+            {
+                let base = flow::mut_base(*flow);
+                base.parallel.children_count.store(base.children.len() as int, SeqCst);
             }
 
+            // Perform the appropriate traversal.
+            if !self.should_prune(*flow) {
+                self.process(*flow);
+
+                // Possibly enqueue the children.
+                for kid in flow::child_iter(*flow) {
+                    had_children = true;
+                    proxy.push(WorkUnit {
+                        fun: top_down_func,
+                        data: UnsafeFlowConversions::from_flow(&borrowed_flow_to_unsafe_flow(kid)),
+                    });
+                }
+            }
         }
 
         // If there were no more children, start assigning heights.
@@ -200,8 +272,6 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
         }
     }
 }
-
-impl<'a> ParallelPostorderFlowTraversal for BubbleWidthsTraversal<'a> {}
 
 impl<'a> ParallelPreorderFlowTraversal for AssignWidthsTraversal<'a> {
     fn run_parallel(&mut self,
@@ -213,8 +283,6 @@ impl<'a> ParallelPreorderFlowTraversal for AssignWidthsTraversal<'a> {
                                  assign_heights_and_store_overflow)
     }
 }
-
-impl<'a> ParallelPostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {}
 
 fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
                          proxy: &mut WorkerProxy<*mut LayoutContext,UnsafeLayoutNode>) {
@@ -386,7 +454,7 @@ fn assign_heights_and_store_overflow(unsafe_flow: PaddedUnsafeFlow,
     let mut assign_heights_traversal = AssignHeightsAndStoreOverflowTraversal {
         layout_context: layout_context,
     };
-    assign_heights_traversal.run_parallel(unsafe_flow.to_flow(), proxy)
+    assign_heights_traversal.run(unsafe_flow.to_flow(), proxy)
 }
 
 pub fn recalc_style_for_subtree(root_node: &LayoutNode,

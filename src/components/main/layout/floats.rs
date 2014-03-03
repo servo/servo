@@ -379,5 +379,12 @@ impl Floats {
         }
         clearance
     }
+
+    pub fn len(&self) -> uint {
+        match self.list.get() {
+            None => 0,
+            Some(list) => list.floats.len(),
+        }
+    }
 }
 

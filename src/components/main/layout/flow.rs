@@ -29,11 +29,12 @@ use css::node_style::StyledNode;
 use layout::block::BlockFlow;
 use layout::box_::Box;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::floats::Floats;
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
-use layout::parallel::FlowParallelInfo;
+use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, AssignWidthsTraversal};
+use layout::parallel::{FlowParallelInfo, UnsafeFlow};
 use layout::parallel;
 use layout::wrapper::ThreadSafeLayoutNode;
 use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
@@ -43,14 +44,13 @@ use geom::point::Point2D;
 use geom::Size2D;
 use geom::rect::Rect;
 use gfx::display_list::{ClipDisplayItemClass, DisplayListCollection, DisplayList};
-use layout::display_list_builder::ToGfxColor;
 use gfx::color::Color;
 use servo_util::geometry::Au;
 use std::cast;
 use std::cell::RefCell;
 use std::sync::atomics::Relaxed;
 use style::ComputedValues;
-use style::computed_values::text_align;
+use style::computed_values::{clear, text_align};
 
 /// Virtual methods that make up a float context.
 ///
@@ -93,13 +93,25 @@ pub trait Flow {
     }
 
     /// Pass 3a of reflow: computes height.
-    fn assign_height(&mut self, _ctx: &mut LayoutContext) {
+    fn assign_height(&mut self, _ctx: &mut LayoutContext) -> AssignHeightsResult {
         fail!("assign_height not yet implemented")
     }
 
-    /// In-order version of pass 3a of reflow: computes heights with floats present.
-    fn assign_height_inorder(&mut self, _ctx: &mut LayoutContext) {
-        fail!("assign_height_inorder not yet implemented")
+    /// Assigns heights in-order; or, if this is a float, places the float. The default
+    /// implementation simply assigns heights if this flow is impacted by floats. Returns true if
+    /// this child was impacted by floats or false otherwise.
+    fn process_inorder_child_if_necessary(&mut self,
+                                          layout_context: &mut LayoutContext,
+                                          floats: Floats)
+                                          -> (AssignHeightsResult, bool) {
+        let impacted = {
+            base(self).flags_info.flags.impacted_by_floats()
+        };
+        if impacted {
+            mut_base(self).floats = floats;
+            return (self.assign_height(layout_context), true)
+        }
+        (AssignHeightsFinished, false)
     }
 
     /// Collapses margins with the parent flow. This runs as part of assign-heights.
@@ -111,6 +123,23 @@ pub trait Flow {
                         _collapsing: &mut Au,
                         _collapsible: &mut Au) {
         fail!("collapse_margins not yet implemented")
+    }
+
+    /// Returns the direction that this flow clears floats in, if any.
+    fn float_clearance(&self) -> clear::T {
+        clear::none
+    }
+
+    /// Returns true if this flow is in-flow and false otherwise. The default implementation
+    /// returns true.
+    fn in_flow(&self) -> bool {
+        true
+    }
+
+    /// Returns true if this flow is a block formatting context and false otherwise. The default
+    /// implementation returns false.
+    fn is_block_formatting_context(&self, _only_impactable_by_floats: bool) -> bool {
+        false
     }
 
     /// Marks this flow as the root flow. The default implementation is a no-op.
@@ -192,6 +221,11 @@ pub trait MutableFlowUtils {
     /// Traverses the tree in postorder.
     fn traverse_postorder<T:PostorderFlowTraversal>(self, traversal: &mut T) -> bool;
 
+    /// Assigns heights and stores overflow.
+    fn assign_heights_and_store_overflow_sequentially(
+            self,
+            traversal: &mut AssignHeightsAndStoreOverflowTraversal);
+
     // Mutators
 
     /// Invokes a closure with the first child of this flow.
@@ -232,6 +266,14 @@ pub trait MutableOwnedFlowUtils {
 
     /// Destroys the flow.
     fn destroy(&mut self);
+}
+
+#[deriving(Clone, Eq)]
+pub enum AssignHeightsResult {
+    AssignHeightsFinished,
+
+    /// TODO(pcwalton): Reference count flows.
+    AssignHeightsNeedsWidthOfFlow(UnsafeFlow),
 }
 
 pub enum FlowClass {
@@ -289,22 +331,22 @@ pub struct RareFlowFlags {
 
 /// Flags used in flows, tightly packed to save space.
 #[deriving(Clone)]
-pub struct FlowFlags(u8);
+pub struct FlowFlags(u16);
 
 /// The bitmask of flags that represent text decoration fields that get propagated downward.
 ///
 /// NB: If you update this field, you must update the bitfields below.
-static TEXT_DECORATION_OVERRIDE_BITMASK: u8 = 0b0000_1110;
+static TEXT_DECORATION_OVERRIDE_BITMASK: u16 = 0b0000_0000_1110;
 
 /// The bitmask of flags that represent the text alignment field.
 ///
 /// NB: If you update this field, you must update the bitfields below.
-static TEXT_ALIGN_BITMASK: u8 = 0b0011_0000;
+static TEXT_ALIGN_BITMASK: u16 = 0b0000_0011_0000;
 
 /// The number of bits we must shift off to handle the text alignment field.
 ///
 /// NB: If you update this field, you must update the bitfields below.
-static TEXT_ALIGN_SHIFT: u8 = 4;
+static TEXT_ALIGN_SHIFT: u16 = 4;
 
 impl FlowFlagsInfo {
     /// Creates a new set of flow flags from the given style.
@@ -437,34 +479,72 @@ impl FlowFlagsInfo {
     }
 }
 
-// Whether we need an in-order traversal.
-bitfield!(FlowFlags, inorder, set_inorder, 0b0000_0001)
-
 // Whether this flow forces `text-decoration: underline` on.
 //
 // NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
-bitfield!(FlowFlags, override_underline, set_override_underline, 0b0000_0010)
+bitfield!(FlowFlags, override_underline, set_override_underline, 0b0000_0000_0010)
 
 // Whether this flow forces `text-decoration: overline` on.
 //
 // NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
-bitfield!(FlowFlags, override_overline, set_override_overline, 0b0000_0100)
+bitfield!(FlowFlags, override_overline, set_override_overline, 0b0000_0000_0100)
 
 // Whether this flow forces `text-decoration: line-through` on.
 //
 // NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
-bitfield!(FlowFlags, override_line_through, set_override_line_through, 0b0000_1000)
+bitfield!(FlowFlags, override_line_through, set_override_line_through, 0b0000_0000_1000)
+
+// Whether this flow has descendants that float left in the same block formatting context.
+bitfield!(FlowFlags,
+          has_left_floated_descendants,
+          set_has_left_floated_descendants,
+          0b0000_0100_0000)
+
+// Whether this flow has descendants that float right in the same block formatting context.
+bitfield!(FlowFlags,
+          has_right_floated_descendants,
+          set_has_right_floated_descendants,
+          0b0000_1000_0000)
+
+// Whether this flow's width depends on floats in a different block formatting context (which must
+// be established by an ancestor flow).
+bitfield!(FlowFlags,
+          width_depends_on_floats,
+          set_width_depends_on_floats,
+          0b0001_0000_0000)
+
+// Whether this flow is impacted by floats to the left in the same block formatting context (i.e.
+// its height depends on some prior flows with `float: left`).
+bitfield!(FlowFlags,
+          impacted_by_left_floats,
+          set_impacted_by_left_floats,
+          0b0010_0000_0000)
+
+// Whether this flow is impacted by floats to the right in the same block formatting context (i.e.
+// its height depends on some prior flows with `float: right`).
+bitfield!(FlowFlags,
+          impacted_by_right_floats,
+          set_impacted_by_right_floats,
+          0b0100_0000_0000)
+
+// Whether this flow's width cannot be computed yet because it's impacted by floats and establishes
+// a block formatting context.
+bitfield!(FlowFlags,
+          assign_widths_delayed,
+          set_assign_widths_delayed,
+          0b1000_0000_0000)
 
 // The text alignment for this flow.
 impl FlowFlags {
     #[inline]
     pub fn text_align(self) -> text_align::T {
-        FromPrimitive::from_u8((*self & TEXT_ALIGN_BITMASK) >> TEXT_ALIGN_SHIFT).unwrap()
+        FromPrimitive::from_u16((*self & TEXT_ALIGN_BITMASK) >> TEXT_ALIGN_SHIFT).unwrap()
     }
 
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
-        *self = FlowFlags((**self & !TEXT_ALIGN_BITMASK) | ((value as u8) << TEXT_ALIGN_SHIFT))
+        assert!((value as u16) < 4);
+        *self = FlowFlags((**self & !TEXT_ALIGN_BITMASK) | ((value as u16) << TEXT_ALIGN_SHIFT))
     }
 
     #[inline]
@@ -480,6 +560,16 @@ impl FlowFlags {
     #[inline]
     pub fn is_text_decoration_enabled(&self) -> bool {
         (**self & TEXT_DECORATION_OVERRIDE_BITMASK) != 0
+    }
+
+    #[inline]
+    pub fn has_floated_descendants(&self) -> bool {
+        self.has_left_floated_descendants() || self.has_right_floated_descendants()
+    }
+
+    #[inline]
+    pub fn impacted_by_floats(&self) -> bool {
+        self.impacted_by_left_floats() || self.impacted_by_right_floats()
     }
 }
 
@@ -695,6 +785,41 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         }
 
         traversal.process(self)
+    }
+
+    /// Assigns heights and stores overflow.
+    fn assign_heights_and_store_overflow_sequentially(
+            self,
+            traversal: &mut AssignHeightsAndStoreOverflowTraversal) {
+        if traversal.should_prune(self) {
+            return
+        }
+
+        for kid in child_iter(self) {
+            kid.assign_heights_and_store_overflow_sequentially(traversal)
+        }
+
+        if !traversal.should_process(self) {
+            return
+        }
+
+        loop {
+            match traversal.process(self) {
+                AssignHeightsFinished => break,
+                AssignHeightsNeedsWidthOfFlow(unsafe_flow) => {
+                    unsafe {
+                        let flow: &mut Flow = cast::transmute(unsafe_flow);
+                        {
+                            let mut assign_widths_traversal = AssignWidthsTraversal {
+                                layout_context: &mut *traversal.layout_context,
+                            };
+                            flow.traverse_preorder(&mut assign_widths_traversal);
+                        }
+                        flow.assign_heights_and_store_overflow_sequentially(traversal)
+                    }
+                }
+            }
+        }
     }
 
     /// Invokes a closure with the first child of this flow.

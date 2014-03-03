@@ -745,7 +745,7 @@ impl Box {
     }
 
     /// Returns the sum of margin, border, and padding on the left.
-    pub fn offset(&self) -> Au {
+    pub fn content_left(&self) -> Au {
         self.margin.get().left + self.border.get().left + self.padding.get().left
     }
 
@@ -1514,8 +1514,7 @@ impl Box {
             ScannedTextBox(_) => {
                 // Scanned text boxes will have already had their widths assigned by this point
                 let mut position = self.border_box.borrow_mut();
-                position.get().size.height
-                    = position.get().size.height + self.noncontent_height()
+                position.get().size.height = position.get().size.height + self.noncontent_height()
             }
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
         }
