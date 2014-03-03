@@ -885,12 +885,12 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         match self.class() {
             BlockFlowClass => self.as_block().build_display_list_block(builder, dirty, list),
             InlineFlowClass => self.as_inline().build_display_list_inline(builder, dirty, list),
-            TableWrapperFlowClass => self.as_table_wrapper().build_display_list_table(builder, dirty, list),
+            TableWrapperFlowClass => self.as_table_wrapper().build_display_list_table_wrapper(builder, dirty, list),
             TableFlowClass => self.as_table().build_display_list_table(builder, dirty, list),
-            TableRowGroupFlowClass => self.as_table_rowgroup().build_display_list_table(builder, dirty, list),
-            TableRowFlowClass => self.as_table_row().build_display_list_table(builder, dirty, list),
-            TableCaptionFlowClass => self.as_table_caption().build_display_list_table(builder, dirty, list),
-            TableCellFlowClass => self.as_table_cell().build_display_list_table(builder, dirty, list),
+            TableRowGroupFlowClass => self.as_table_rowgroup().build_display_list_table_rowgroup(builder, dirty, list),
+            TableRowFlowClass => self.as_table_row().build_display_list_table_row(builder, dirty, list),
+            TableCaptionFlowClass => self.as_table_caption().build_display_list_table_caption(builder, dirty, list),
+            TableCellFlowClass => self.as_table_cell().build_display_list_table_cell(builder, dirty, list),
             TableColGroupFlowClass => false,
         };
 

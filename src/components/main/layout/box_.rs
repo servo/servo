@@ -545,19 +545,14 @@ impl Box {
             }
         }
 
-        match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableColumnBox(_) | TableCellBox |
-            TableRowBox | TableWrapperBox | ScannedTextBox(_) | UnscannedTextBox(_) => {
-                self.border.set(SideOffsets2D::new(width(style.Border.border_top_width,
-                                                         style.Border.border_top_style),
-                                                   width(style.Border.border_right_width,
-                                                         style.Border.border_right_style),
-                                                   width(style.Border.border_bottom_width,
-                                                         style.Border.border_bottom_style),
-                                                   width(style.Border.border_left_width,
-                                                         style.Border.border_left_style)))
-            }
-        }
+        self.border.set(SideOffsets2D::new(width(style.Border.border_top_width,
+                                                 style.Border.border_top_style),
+                                           width(style.Border.border_right_width,
+                                                 style.Border.border_right_style),
+                                           width(style.Border.border_bottom_width,
+                                                 style.Border.border_bottom_style),
+                                           width(style.Border.border_left_width,
+                                                 style.Border.border_left_style)))
     }
 
     pub fn compute_positioned_offsets(&self, style: &ComputedValues, containing_width: Au, containing_height: Au) {

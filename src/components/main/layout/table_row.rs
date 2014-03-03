@@ -57,7 +57,7 @@ impl TableRowFlow {
     // inline(always) because this is only ever called by in-order or non-in-order top-level
     // methods
     #[inline(always)]
-    fn assign_height_table_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
+    fn assign_height_table_row_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
         let mut cur_y = Au::new(0);
         let top_offset = Au::new(0);
         let bottom_offset = Au::new(0);
@@ -134,7 +134,7 @@ impl TableRowFlow {
         }
     }
 
-    pub fn build_display_list_table<E:ExtraDisplayListData>(
+    pub fn build_display_list_table_row<E:ExtraDisplayListData>(
                                     &mut self,
                                     builder: &DisplayListBuilder,
                                     dirty: &Rect<Au>,
@@ -239,8 +239,7 @@ impl Flow for TableRowFlow {
 
         // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
-        let mut i = 0;
-        for kid in self.base.child_iter() {
+        for (i, kid) in self.base.child_iter().enumerate() {
             assert!(kid.is_table_cell());
 
             let child_base = flow::mut_base(*kid);
@@ -249,7 +248,6 @@ impl Flow for TableRowFlow {
             child_base.flags_info.flags.set_inorder(has_inorder_children);
 
             x_offset = x_offset + self.col_widths[i];
-            i += 1;
 
             if !child_base.flags_info.flags.inorder() {
                 child_base.floats_in = FloatContext::new(0);
@@ -266,14 +264,16 @@ impl Flow for TableRowFlow {
 
     fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height_inorder: assigning height for table_row {}", self.base.id);
-        self.assign_height_table_base(ctx, true);
+        self.assign_height_table_row_base(ctx, true);
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height: assigning height for table_row {}", self.base.id);
-        self.assign_height_table_base(ctx, false);
+        self.assign_height_table_row_base(ctx, false);
     }
 
+    /// TableRowBox and their parents(TableBox) do not have margins.
+    /// Therefore, margins to be collapsed do not exist.
     fn collapse_margins(&mut self, _: bool, _: &mut bool, _: &mut Au,
                         _: &mut Au, _: &mut Au, _: &mut Au) {
     }

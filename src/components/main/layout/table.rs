@@ -10,6 +10,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{BaseFlow, TableFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
 use layout::float_context::{FloatContext, Invalid};
+use layout::table_wrapper::{TableLayout, FixedLayout, AutoLayout};
 
 use std::cell::RefCell;
 use style::computed_values::table_layout;
@@ -32,7 +33,7 @@ pub struct TableFlow {
     col_widths: ~[Au],
 
     /// Table-layout property
-    is_fixed_table_layout: bool,
+    table_layout: TableLayout,
 }
 
 impl TableFlow {
@@ -41,17 +42,21 @@ impl TableFlow {
             base: base,
             box_: None,
             col_widths: ~[],
-            is_fixed_table_layout: false,
+            table_layout: AutoLayout,
         }
     }
 
     pub fn from_box(base: BaseFlow, box_: Box) -> TableFlow {
-        let is_fixed_table_layout = box_.style().Table.table_layout == table_layout::fixed;
+        let table_layout = if (box_.style().Table.table_layout == table_layout::fixed) {
+            FixedLayout
+        } else {
+            AutoLayout
+        };
         TableFlow {
             base: base,
             box_: Some(box_),
             col_widths: ~[],
-            is_fixed_table_layout: is_fixed_table_layout,
+            table_layout: table_layout,
         }
     }
 
@@ -170,7 +175,7 @@ impl Flow for TableFlow {
         let mut min_width = Au::new(0);
         let mut pref_width = Au::new(0);
         let mut num_floats = 0;
-        let mut first_row = false;
+        let mut did_first_row = false;
 
         /* find max width from child block contexts */
         for kid in self.base.child_iter() {
@@ -188,8 +193,26 @@ impl Flow for TableFlow {
                 } else {
                     &kid.as_table_row().col_widths
                 };
-                if self.is_fixed_table_layout && !first_row {
-                    first_row = true;
+                match self.table_layout {
+                    FixedLayout if !did_first_row => {
+                        did_first_row = true;
+                        let mut child_widths = kid_col_widths.iter();
+                        for col_width in self.col_widths.mut_iter() {
+                            match child_widths.next() {
+                                Some(child_width) => {
+                                    if *col_width == Au::new(0) {
+                                        *col_width = *child_width;
+                                    }
+                                },
+                                None => break
+                            }
+                        }
+                    },
+                    _ => {}
+                }
+                /*
+                if self.table_layout == FixedLayout && !did_first_row {
+                    did_first_row = true;
                     let mut child_widths = kid_col_widths.iter();
                     for col_width in self.col_widths.mut_iter() {
                         match child_widths.next() {
@@ -201,10 +224,10 @@ impl Flow for TableFlow {
                             None => break
                         }
                     }
-                }
+                }*/
                 let num_child_cols = kid_col_widths.len();
                 let num_cols = self.col_widths.len();
-                debug!("{:?} column(s) from colgroup, but the child has {:?} column(s)", num_cols, num_child_cols);
+                debug!("colgroup has {} column(s) and child has {} column(s)", num_cols, num_child_cols);
                 for i in range(num_cols, num_child_cols) {
                     self.col_widths.push( kid_col_widths[i] );
                 }
@@ -243,12 +266,12 @@ impl Flow for TableFlow {
         let mut x_offset = Au::new(0);
 
         let mut num_unspecified_widths = 0;
-        let mut total_cell_widths = Au::new(0);
+        let mut total_columns_widths = Au::new(0);
         for col_width in self.col_widths.iter() {
             if *col_width == Au::new(0) {
                 num_unspecified_widths += 1;
             } else {
-                total_cell_widths = total_cell_widths.add(col_width);
+                total_columns_widths = total_columns_widths.add(col_width);
             }
         }
 
@@ -273,15 +296,17 @@ impl Flow for TableFlow {
 
         remaining_width = remaining_width - padding_and_borders;
 
-        // In fixed table layout, calculate the equally divided cell widths for undecided columns.
-        let final_cell_width = if (total_cell_widths < remaining_width) &&
+        // In fixed table layout, we distribute extra space among the unspecified columns if there are
+        // any, or among all the columns if all are specified.
+        let extra_column_width = if (total_columns_widths < remaining_width) &&
                                     (num_unspecified_widths == 0) {
+            let ratio = remaining_width.to_f64().unwrap() / total_columns_widths.to_f64().unwrap();
             for col_width in self.col_widths.mut_iter() {
-                *col_width = *col_width * remaining_width / total_cell_widths;
+                *col_width = (*col_width).scale_by(ratio);
             }
             Au(0)
         } else if num_unspecified_widths != 0 {
-            (remaining_width - total_cell_widths) / Au::new(num_unspecified_widths)
+            (remaining_width - total_columns_widths) / Au::new(num_unspecified_widths)
         } else {
             Au(0)
         };
@@ -293,9 +318,12 @@ impl Flow for TableFlow {
         for kid in self.base.child_iter() {
             assert!(kid.is_proper_table_child());
 
+            if kid.is_table_colgroup() {
+                continue;
+            }
             let final_col_widths = self.col_widths.map(|width| {
                 if *width == Au(0) {
-                    final_cell_width
+                    extra_column_width
                 } else {
                     *width
                 }

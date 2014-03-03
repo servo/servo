@@ -98,8 +98,7 @@ impl ConstructionItem {
                     }
                 }
             }
-            TableColumnBoxConstructionItem(_) => {
-            }
+            TableColumnBoxConstructionItem(_) => {}
         }
     }
 }

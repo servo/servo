@@ -5,6 +5,7 @@
 //! CSS table formatting contexts.
 
 use layout::box_::Box;
+use layout::block::FloatedBlockInfo;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{BaseFlow, TableWrapperFlowClass, FlowClass, Flow, ImmutableFlowUtils};
@@ -19,33 +20,9 @@ use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 
-/// Information specific to floated blocks.
-pub struct FloatedTableInfo {
-    containing_width: Au,
-
-    /// Offset relative to where the parent tried to position this flow
-    rel_pos: Point2D<Au>,
-
-    /// Index into the box list for inline floats
-    index: Option<uint>,
-
-    /// Number of floated children
-    floated_children: uint,
-
-    /// Left or right?
-    float_type: FloatType
-}
-
-impl FloatedTableInfo {
-    pub fn new(float_type: FloatType) -> FloatedTableInfo {
-        FloatedTableInfo {
-            containing_width: Au(0),
-            rel_pos: Point2D(Au(0), Au(0)),
-            index: None,
-            floated_children: 0,
-            float_type: float_type
-        }
-    }
+pub enum TableLayout {
+    FixedLayout,
+    AutoLayout
 }
 
 /// A table wrapper flow based on a block formatting context.
@@ -61,13 +38,13 @@ pub struct TableWrapperFlow {
     is_fixed: bool,
 
     /// Additional floating flow members.
-    float: Option<~FloatedTableInfo>,
+    float: Option<~FloatedBlockInfo>,
 
     /// Column widths
     col_widths: ~[Au],
 
     /// Table-layout property
-    is_fixed_table_layout: bool,
+    table_layout: TableLayout,
 }
 
 impl TableWrapperFlow {
@@ -78,19 +55,23 @@ impl TableWrapperFlow {
             is_fixed: false,
             float: None,
             col_widths: ~[],
-            is_fixed_table_layout: false,
+            table_layout: AutoLayout,
         }
     }
 
     pub fn from_box(base: BaseFlow, box_: Box, is_fixed: bool) -> TableWrapperFlow {
-        let is_fixed_table_layout = box_.style().Table.table_layout == table_layout::fixed;
+        let table_layout = if (box_.style().Table.table_layout == table_layout::fixed) {
+            FixedLayout
+        } else {
+            AutoLayout
+        };
         TableWrapperFlow {
             base: base,
             box_: Some(box_),
             is_fixed: is_fixed,
             float: None,
             col_widths: ~[],
-            is_fixed_table_layout: is_fixed_table_layout,
+            table_layout: table_layout,
         }
     }
 
@@ -99,9 +80,9 @@ impl TableWrapperFlow {
             base: base,
             box_: Some(box_),
             is_fixed: false,
-            float: Some(~FloatedTableInfo::new(float_type)),
+            float: Some(~FloatedBlockInfo::new(float_type)),
             col_widths: ~[],
-            is_fixed_table_layout: false,
+            table_layout: AutoLayout,
         }
     }
 
@@ -110,9 +91,9 @@ impl TableWrapperFlow {
             base: base,
             box_: None,
             is_fixed: false,
-            float: Some(~FloatedTableInfo::new(float_type)),
+            float: Some(~FloatedBlockInfo::new(float_type)),
             col_widths: ~[],
-            is_fixed_table_layout: false,
+            table_layout: AutoLayout,
         }
     }
 
@@ -126,7 +107,6 @@ impl TableWrapperFlow {
         }
         self.box_ = None;
         self.float = None;
-        self.is_fixed_table_layout = false;
     }
 
     /// Computes left and right margins and width based on CSS 2.1 section 10.3.3.
@@ -241,7 +221,7 @@ impl TableWrapperFlow {
     // inline(always) because this is only ever called by in-order or non-in-order top-level
     // methods
     #[inline(always)]
-    fn assign_height_table_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
+    fn assign_height_table_wrapper_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
         let mut cur_y = Au::new(0);
         let mut clearance = Au::new(0);
         let mut top_offset = Au::new(0);
@@ -440,7 +420,7 @@ impl TableWrapperFlow {
         box_.position.set(position);
     }
 
-    pub fn build_display_list_table<E:ExtraDisplayListData>(
+    pub fn build_display_list_table_wrapper<E:ExtraDisplayListData>(
                                     &mut self,
                                     builder: &DisplayListBuilder,
                                     dirty: &Rect<Au>,
@@ -563,7 +543,7 @@ impl Flow for TableWrapperFlow {
     fn assign_widths(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_widths({}): assigning width for flow {}",
                if self.is_float() {
-                   "float"
+                   "floated table_wrapper"
                } else {
                    "table_wrapper"
                },
@@ -573,10 +553,7 @@ impl Flow for TableWrapperFlow {
         let mut remaining_width = self.base.position.size.width;
         let mut x_offset = Au::new(0);
 
-        let mut fix_cell_width = Au(0);
-        for col_width in self.col_widths.iter() {
-            fix_cell_width = fix_cell_width.add(col_width);
-        }
+        let fixed_cells_width = self.col_widths.iter().fold(Au(0), |sum, width| sum.add(width));
 
         if self.is_float() {
             self.float.get_mut_ref().containing_width = remaining_width;
@@ -625,7 +602,7 @@ impl Flow for TableWrapperFlow {
             let border_left = style.Border.border_left_width;
             let border_right = style.Border.border_right_width;
             let padding_and_borders = padding_left + padding_right + border_left + border_right;
-            remaining_width = geometry::max(fix_cell_width + padding_and_borders, w);
+            remaining_width = geometry::max(fixed_cells_width + padding_and_borders, w);
 
             // The associated box is the border box of this flow.
             let mut position_ref = box_.position.borrow_mut();
@@ -637,7 +614,11 @@ impl Flow for TableWrapperFlow {
             position_ref.get().size.width = remaining_width;
         }
 
-        self.base.position.size.width = remaining_width;
+        match self.table_layout {
+            FixedLayout | _ if self.is_float() =>
+                self.base.position.size.width = remaining_width,
+            _ => {}
+        }
 
         let has_inorder_children = if self.is_float() {
             self.base.num_floats > 0
@@ -674,7 +655,7 @@ impl Flow for TableWrapperFlow {
             self.assign_height_float_inorder();
         } else {
             debug!("assign_height_inorder: assigning height for table_wrapper {}", self.base.id);
-            self.assign_height_table_base(ctx, true);
+            self.assign_height_table_wrapper_base(ctx, true);
         }
     }
 
@@ -684,7 +665,7 @@ impl Flow for TableWrapperFlow {
             self.assign_height_float(ctx);
         } else {
             debug!("assign_height: assigning height for table_wrapper {}", self.base.id);
-            self.assign_height_table_base(ctx, false);
+            self.assign_height_table_wrapper_base(ctx, false);
         }
     }
 
@@ -726,7 +707,7 @@ impl Flow for TableWrapperFlow {
 
     fn debug_str(&self) -> ~str {
         let txt = if self.is_float() {
-            ~"FloatFlow: "
+            ~"TableWrapperFlow(Float): "
         } else {
             ~"TableWrapperFlow: "
         };

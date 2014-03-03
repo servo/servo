@@ -68,7 +68,7 @@ impl Flow for TableColGroupFlow {
             // get the specified value from width property
             let width = MaybeAuto::from_style(box_.style().Box.width, Au::new(0)).specified_or_zero();
 
-            let span:int = match box_.specific {
+            let span: int = match box_.specific {
                 TableColumnBox(col_box) => col_box.span.unwrap_or(1),
                 _ => fail!("Other box come out in TableColGroupFlow. {:?}", box_.specific)
             };
@@ -78,17 +78,17 @@ impl Flow for TableColGroupFlow {
         }
     }
 
-    /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
-    /// on this context, the context has had its width set by the parent context.
-    ///
-    /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
-    /// contexts.
+    /// Table column widths are assigned in table flow and propagated to table row or rowgroup flow.
+    /// Therefore, table colgroup flow does not need to assign its width.
     fn assign_widths(&mut self, _ctx: &mut LayoutContext) {
     }
 
+    /// Table column do not have height.
     fn assign_height(&mut self, _ctx: &mut LayoutContext) {
     }
 
+    /// TableColumnBox and their parents(TableBox) do not have margins.
+    /// Therefore, margins to be collapsed do not exist.
     fn collapse_margins(&mut self, _: bool, _: &mut bool, _: &mut Au,
                         _: &mut Au, _: &mut Au, _: &mut Au) {
     }

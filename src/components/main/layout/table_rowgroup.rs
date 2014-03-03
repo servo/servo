@@ -57,7 +57,7 @@ impl TableRowGroupFlow {
     // inline(always) because this is only ever called by in-order or non-in-order top-level
     // methods
     #[inline(always)]
-    fn assign_height_table_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
+    fn assign_height_table_rowgroup_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
         let mut cur_y = Au::new(0);
         let top_offset = Au::new(0);
         let bottom_offset = Au::new(0);
@@ -106,7 +106,7 @@ impl TableRowGroupFlow {
         }
     }
 
-    pub fn build_display_list_table<E:ExtraDisplayListData>(
+    pub fn build_display_list_table_rowgroup<E:ExtraDisplayListData>(
                                     &mut self,
                                     builder: &DisplayListBuilder,
                                     dirty: &Rect<Au>,
@@ -238,14 +238,16 @@ impl Flow for TableRowGroupFlow {
 
     fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height_inorder: assigning height for table_rowgroup {}", self.base.id);
-        self.assign_height_table_base(ctx, true);
+        self.assign_height_table_rowgroup_base(ctx, true);
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height: assigning height for table_rowgroup {}", self.base.id);
-        self.assign_height_table_base(ctx, false);
+        self.assign_height_table_rowgroup_base(ctx, false);
     }
 
+    /// TableRowBox and their parents(TableBox) do not have margins.
+    /// Therefore, margins to be collapsed do not exist.
     fn collapse_margins(&mut self, _: bool, _: &mut bool, _: &mut Au,
                         _: &mut Au, _: &mut Au, _: &mut Au) {
     }
