@@ -1246,7 +1246,7 @@ for (uint32_t i = 0; i < length; ++i) {
             "if (%s) {\n"
             "  ${declName} = None;\n"
             "} else {\n"
-            "  match JSValConvertible::from_jsval(${val}) {\n"
+            "  match JSValConvertible::from_jsval(cx, ${val}) {\n"
             "    Some(val_) => ${declName} = Some(%s),\n"
             "    None => %s\n"
             "  }\n"
@@ -1261,7 +1261,7 @@ for (uint32_t i = 0; i < length; ++i) {
         if preSuccess or postSuccess:
             successVal = preSuccess + successVal + postSuccess
         template = (
-            "match JSValConvertible::from_jsval(${val}) {\n"
+            "match JSValConvertible::from_jsval(cx, ${val}) {\n"
             "  None => %s,\n"
             "  Some(v) => %s = %s\n"
             "}" % (failureCode, dataLoc, successVal))
