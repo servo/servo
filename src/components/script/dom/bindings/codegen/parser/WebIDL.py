@@ -450,41 +450,8 @@ class IDLIdentifierPlaceholder(IDLObjectWithIdentifier):
 
 class IDLExternalInterface(IDLObjectWithIdentifier):
     def __init__(self, location, parentScope, identifier):
-        assert isinstance(identifier, IDLUnresolvedIdentifier)
-        assert isinstance(parentScope, IDLScope)
-        self.parent = None
-        IDLObjectWithIdentifier.__init__(self, location, parentScope, identifier)
-        IDLObjectWithIdentifier.resolve(self, parentScope)
-
-    def finish(self, scope):
-        pass
-
-    def validate(self):
-        pass
-
-    def isExternal(self):
-        return True
-
-    def isInterface(self):
-        return True
-
-    def isConsequential(self):
-        return False
-
-    def addExtendedAttributes(self, attrs):
-        assert len(attrs) == 0
-
-    def resolve(self, parentScope):
-        pass
-
-    def getJSImplementation(self):
-        return None
-
-    def isJSImplemented(self):
-        return False
-
-    def _getDependentObjects(self):
-        return set()
+        raise WebIDLError("Servo does not support external interfaces.",
+                          [self.location])
 
 class IDLInterface(IDLObjectWithScope):
     def __init__(self, location, parentScope, name, parent, members,
