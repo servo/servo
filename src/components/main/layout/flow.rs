@@ -957,9 +957,9 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
             // TODO(pradeep): Move this into a generated CB function and stuff in Flow.
             match block.box_ {
                 Some(ref box_) => {
-                    // FIXME: This should be the size of the content box (which is the
-                    // Containing Block formed by a BlockFlow), not the border box.
-                    container_block_size = box_.border_box.get().size;
+                    // The Containing Block formed by a Block for relatively
+                    // positioned descendants is the content box.
+                    container_block_size = box_.content_box_size();
 
                     abs_cb_position = if block.is_positioned() {
                         block.base.abs_position + block.generated_cb_position()
