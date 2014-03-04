@@ -1500,8 +1500,20 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
     pub fn CompareDocumentPosition(&self, _other: &JS<Node>) -> u16 {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
-        0
+        if this == other{
+            0
+        }else if this.is_inclusive_ancestor_of(other){
+            0x10 + 4 // DOCUMENT_POSITION_CONTAINED_BY to DOCUMENT_POSITION_FOLLOWING
+        }else if this.owner_doc != other.owner_doc {
+            let random = if ptr::to_unsafe_ptr(self) < ptr::to_unsafe_ptr(other) {
+                4 // DOCUMENT_POSITION_FOLLOWING 
+            }else{
+                2 // DOCUMENT_POSITION_PRECEDING
+            }
+            1 + 0x20 + random // DOCUMENT_POSITION_DISCONNECTED + DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC
+        }else{
+            0
+        }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-contains
