@@ -4805,13 +4805,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def generate_code(self):
         preamble = """
-  //JSObject* obj = JS_GetGlobalForObject(cx, JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)));
-  //XXXjdm Gecko obtains a GlobalObject from the global (maybe from the private value,
-  //       or through unwrapping a slot or something). We'll punt and get the Window
-  //       from the context for now. 
-  let page = page_from_context(cx);
-  let frame = (*page).frame();
-  let global = frame.get().get_ref().window.clone();
+  let global = global_object_for_js_object(RUST_JSVAL_TO_OBJECT(JS_CALLEE(cx, &*vp)));
   let obj = global.reflector().get_jsobject();
 """
         nativeName = MakeNativeName(self._ctor.identifier.name)
