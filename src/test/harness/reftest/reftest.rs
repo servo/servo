@@ -22,13 +22,16 @@ use extra::test::run_tests_console;
 
 fn main() {
     let args = os::args();
-    if args.len() < 2 {
-        println("error: at least one reftest list must be given");
-        os::set_exit_status(1);
-        return;
+    let mut parts = args.tail().split(|e| "--" == e.as_slice());
+
+    let files = parts.next().unwrap();  // .split() is never empty
+    let servo_args = parts.next().unwrap_or(&[]);
+
+    if files.len() == 0 {
+        fail!("error: at least one reftest list must be given");
     }
 
-    let tests = parse_lists(args.tail());
+    let tests = parse_lists(files, servo_args);
     let test_opts = TestOpts {
         filter: None,
         run_ignored: false,
@@ -55,12 +58,12 @@ enum ReftestKind {
 struct Reftest {
     name: ~str,
     kind: ReftestKind,
-    left: ~str,
-    right: ~str,
+    files: [~str, ..2],
     id: uint,
+    servo_args: ~[~str],
 }
 
-fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
+fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> ~[TestDescAndFn] {
     let mut tests: ~[TestDescAndFn] = ~[];
     let mut next_id = 0;
     for file in filenames.iter() {
@@ -96,9 +99,9 @@ fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
             let reftest = Reftest {
                 name: parts[1] + " / " + parts[2],
                 kind: kind,
-                left: file_left,
-                right: file_right,
+                files: [file_left, file_right],
                 id: next_id,
+                servo_args: servo_args.to_owned(),
             };
 
             next_id += 1;
@@ -123,23 +126,21 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
     }
 }
 
+fn capture(reftest: &Reftest, side: uint) -> png::Image {
+    let filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
+    let mut args = reftest.servo_args.clone();
+    args.push_all_move(~[~"-f", ~"-o", filename.clone(), reftest.files[side].clone()]);
+
+    let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
+    let retval = process.finish();
+    assert!(retval == ExitStatus(0));
+
+    png::load_png(&from_str::<Path>(filename).unwrap()).unwrap()
+}
+
 fn check_reftest(reftest: Reftest) {
-    let left_filename = format!("/tmp/servo-reftest-{:06u}-left.png", reftest.id);
-    let right_filename = format!("/tmp/servo-reftest-{:06u}-right.png", reftest.id);
-
-    let args = ~[~"-f", ~"-o", left_filename.clone(), reftest.left.clone()];
-    let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
-    let retval = process.finish();
-    assert!(retval == ExitStatus(0));
-
-    let args = ~[~"-f", ~"-o", right_filename.clone(), reftest.right.clone()];
-    let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
-    let retval = process.finish();
-    assert!(retval == ExitStatus(0));
-
-    // check the pngs are bit equal
-    let left = png::load_png(&from_str::<Path>(left_filename).unwrap()).unwrap();
-    let right = png::load_png(&from_str::<Path>(right_filename).unwrap()).unwrap();
+    let left  = capture(&reftest, 0);
+    let right = capture(&reftest, 1);
 
     let pixels: ~[u8] = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
             if (a as i8 - b as i8 == 0) {
