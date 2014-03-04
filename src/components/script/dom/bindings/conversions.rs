@@ -26,39 +26,18 @@ unsafe fn convert_from_jsval<T: Default>(
 }
 
 
-impl JSValConvertible for i64 {
+impl JSValConvertible for bool {
     fn to_jsval(&self) -> JSVal {
-        unsafe {
-            RUST_DOUBLE_TO_JSVAL(*self as f64)
+        if *self {
+            JSVAL_TRUE
+        } else {
+            JSVAL_FALSE
         }
     }
 
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Option<i64> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToInt64) }
-    }
-}
-
-impl JSValConvertible for u32 {
-    fn to_jsval(&self) -> JSVal {
-        unsafe {
-            RUST_UINT_TO_JSVAL(*self)
-        }
-    }
-
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Option<u32> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToECMAUint32) }
-    }
-}
-
-impl JSValConvertible for i32 {
-    fn to_jsval(&self) -> JSVal {
-        unsafe {
-            RUST_UINT_TO_JSVAL(*self as u32)
-        }
-    }
-
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Option<i32> {
-        unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) }
+    fn from_jsval(cx: *JSContext, val: JSVal) -> Option<bool> {
+        let result = unsafe { convert_from_jsval(cx, val, JS_ValueToBoolean) };
+        result.map(|b| b != 0)
     }
 }
 
@@ -74,18 +53,39 @@ impl JSValConvertible for u16 {
     }
 }
 
-impl JSValConvertible for bool {
+impl JSValConvertible for i32 {
     fn to_jsval(&self) -> JSVal {
-        if *self {
-            JSVAL_TRUE
-        } else {
-            JSVAL_FALSE
+        unsafe {
+            RUST_UINT_TO_JSVAL(*self as u32)
         }
     }
 
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Option<bool> {
-        let result = unsafe { convert_from_jsval(cx, val, JS_ValueToBoolean) };
-        result.map(|b| b != 0)
+    fn from_jsval(cx: *JSContext, val: JSVal) -> Option<i32> {
+        unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) }
+    }
+}
+
+impl JSValConvertible for u32 {
+    fn to_jsval(&self) -> JSVal {
+        unsafe {
+            RUST_UINT_TO_JSVAL(*self)
+        }
+    }
+
+    fn from_jsval(cx: *JSContext, val: JSVal) -> Option<u32> {
+        unsafe { convert_from_jsval(cx, val, JS_ValueToECMAUint32) }
+    }
+}
+
+impl JSValConvertible for i64 {
+    fn to_jsval(&self) -> JSVal {
+        unsafe {
+            RUST_DOUBLE_TO_JSVAL(*self as f64)
+        }
+    }
+
+    fn from_jsval(cx: *JSContext, val: JSVal) -> Option<i64> {
+        unsafe { convert_from_jsval(cx, val, JS_ValueToInt64) }
     }
 }
 
