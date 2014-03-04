@@ -86,7 +86,7 @@ impl Document {
     pub fn reflect_document<D: Reflectable+DocumentBase>
             (document:  ~D,
              window:    &JS<Window>,
-             wrap_fn:   extern "Rust" fn(*JSContext, *JSObject, ~D) -> *JSObject)
+             wrap_fn:   extern "Rust" fn(*JSContext, &JS<Window>, ~D) -> *JSObject)
              -> JS<D> {
         assert!(document.reflector().get_jsobject().is_null());
         let raw_doc = reflect_dom_object(document, window, wrap_fn);

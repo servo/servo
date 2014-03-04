@@ -32,11 +32,10 @@ impl <T> Clone for JS<T> {
 impl<T: Reflectable> JS<T> {
     pub fn new(mut obj: ~T,
                window:  &JS<Window>,
-               wrap_fn: extern "Rust" fn(*JSContext, *JSObject, ~T) -> *JSObject) -> JS<T> {
+               wrap_fn: extern "Rust" fn(*JSContext, &JS<Window>, ~T) -> *JSObject) -> JS<T> {
         let cx = window.get().get_cx();
-        let scope = window.get().reflector().get_jsobject();
         let raw: *mut T = &mut *obj;
-        if wrap_fn(cx, scope, obj).is_null() {
+        if wrap_fn(cx, window, obj).is_null() {
             fail!("Could not eagerly wrap object");
         }
         JS {
