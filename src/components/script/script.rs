@@ -151,6 +151,8 @@ pub mod dom {
     pub mod validitystate;
     pub mod window;
     pub mod windowproxy;
+
+    pub mod testbinding;
 }
 
 pub mod html {
