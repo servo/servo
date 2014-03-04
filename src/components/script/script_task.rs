@@ -814,8 +814,7 @@ impl ScriptTask {
         let html_parsing_result = hubbub_html_parser::parse_html(page,
                                                                  &mut document,
                                                                  url.clone(),
-                                                                 self.resource_task.clone(),
-                                                                 page.next_subpage_id.get());
+                                                                 self.resource_task.clone());
 
         let HtmlParserResult {
             discovery_port

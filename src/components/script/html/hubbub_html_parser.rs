@@ -248,10 +248,10 @@ pub fn build_element_from_tag(tag: DOMString, document: &JS<Document>) -> JS<Ele
 pub fn parse_html(page: &Page,
                   document: &mut JS<Document>,
                   url: Url,
-                  resource_task: ResourceTask,
-                  next_subpage_id: SubpageId)
+                  resource_task: ResourceTask)
                   -> HtmlParserResult {
     debug!("Hubbub: parsing {:?}", url);
+    let next_subpage_id: SubpageId = page.next_subpage_id.get();
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
 
