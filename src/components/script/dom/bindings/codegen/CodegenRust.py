@@ -2599,8 +2599,12 @@ def CreateBindingJSObject(descriptor, parent=None):
 class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
-        args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
+        if not descriptor.createGlobal:
+            args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
+                    Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
+        else:
+            args = [Argument('*JSContext', 'aCx'),
+                    Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, pub=True)
 
     def definition_body(self):
@@ -2622,8 +2626,6 @@ class CGWrapMethod(CGAbstractMethod):
   return obj;""" % CreateBindingJSObject(self.descriptor, "aScope")
         else:
             return """
-  assert!(aScope.is_null());
-
 %s
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);

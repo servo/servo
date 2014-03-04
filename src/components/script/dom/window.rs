@@ -29,7 +29,6 @@ use std::comm::Select;
 use std::hashmap::HashSet;
 use std::io::timer::Timer;
 use std::num;
-use std::ptr;
 use std::rc::Rc;
 use std::to_bytes::Cb;
 
@@ -311,7 +310,7 @@ impl Window {
         };
 
         let raw: *mut Window = &mut *win;
-        let global = WindowBinding::Wrap(cx, ptr::null(), win);
+        let global = WindowBinding::Wrap(cx, win);
         assert!(global.is_not_null());
         unsafe {
             let fn_names = ["window","self"];
