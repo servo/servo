@@ -13,8 +13,11 @@ impl TestBinding {
     pub fn BooleanAttribute(&self) -> bool { false }
     pub fn SetBooleanAttribute(&self, _: bool) {}
     pub fn ByteAttribute(&self) -> i8 { 0 }
+    pub fn SetByteAttribute(&self, _: i8) {}
     pub fn OctetAttribute(&self) -> u8 { 0 }
+    pub fn SetOctetAttribute(&self, _: u8) {}
     pub fn ShortAttribute(&self) -> i16 { 0 }
+    pub fn SetShortAttribute(&self, _: i16) {}
     pub fn UnsignedShortAttribute(&self) -> u16 { 0 }
     pub fn SetUnsignedShortAttribute(&self, _: u16) {}
     pub fn LongAttribute(&self) -> i32 { 0 }

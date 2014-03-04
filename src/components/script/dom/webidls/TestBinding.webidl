@@ -4,14 +4,14 @@
 
 interface TestBinding {
            attribute boolean booleanAttribute;
-  readonly attribute byte byteAttribute;
-  readonly attribute octet octetAttribute;
-  readonly attribute short shortAttribute;
+           attribute byte byteAttribute;
+           attribute octet octetAttribute;
+           attribute short shortAttribute;
            attribute unsigned short unsignedShortAttribute;
            attribute long longAttribute;
            attribute unsigned long unsignedLongAttribute;
            attribute long long longLongAttribute;
-  readonly attribute unsigned long long unsignedLongLongAttribute;
+           attribute unsigned long long unsignedLongLongAttribute;
            attribute float floatAttribute;
            attribute double doubleAttribute;
 };
