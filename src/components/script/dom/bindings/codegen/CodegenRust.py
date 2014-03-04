@@ -2569,8 +2569,7 @@ def CreateBindingJSObject(descriptor, parent=None):
     if descriptor.proxy:
         assert not descriptor.createGlobal
         handler = """
-  let page = page_from_context(aCx);
-  let mut js_info = (*page).js_info();
+  let js_info = aScope.get().page().js_info();
   let handler = js_info.get().get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
         create += handler + """  let obj = NewProxyObject(aCx, *handler,
