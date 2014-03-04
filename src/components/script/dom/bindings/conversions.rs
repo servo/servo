@@ -6,8 +6,9 @@ use js::jsapi::{JSVal, JSBool, JSContext};
 use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
 use js::jsapi::{JS_ValueToECMAUint32, JS_ValueToECMAInt32};
 use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
-use js::{JSVAL_FALSE, JSVAL_TRUE};
+use js::{JSVAL_FALSE, JSVAL_TRUE, JSVAL_NULL};
 use js::glue::{RUST_INT_TO_JSVAL, RUST_UINT_TO_JSVAL, RUST_JS_NumberValue};
+use js::glue::{RUST_JSVAL_IS_NULL, RUST_JSVAL_IS_VOID};
 
 pub trait JSValConvertible {
     fn to_jsval(&self) -> JSVal;
@@ -163,5 +164,23 @@ impl JSValConvertible for f64 {
 
     fn from_jsval(cx: *JSContext, val: JSVal) -> Option<f64> {
         unsafe { convert_from_jsval(cx, val, JS_ValueToNumber) }
+    }
+}
+
+impl<T: JSValConvertible> JSValConvertible for Option<T> {
+    fn to_jsval(&self) -> JSVal {
+        match self {
+            &Some(ref value) => value.to_jsval(),
+            &None => JSVAL_NULL,
+        }
+    }
+
+    fn from_jsval(cx: *JSContext, value: JSVal) -> Option<Option<T>> {
+        if unsafe { RUST_JSVAL_IS_NULL(value) != 0 || RUST_JSVAL_IS_VOID(value) != 0 } {
+            Some(None)
+        } else {
+            let result: Option<T> = JSValConvertible::from_jsval(cx, value);
+            result.map(|v| Some(v))
+        }
     }
 }

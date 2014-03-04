@@ -1233,23 +1233,24 @@ for (uint32_t i = 0; i < length; ++i) {
         failureCode = 'return 0'
 
     if type.nullable():
-        dataLoc = "${declName}.SetValue()"
-        nullCondition = "(RUST_JSVAL_IS_NULL(${val}) != 0 || RUST_JSVAL_IS_VOID(${val}) != 0)"
-        if defaultValue is not None and isinstance(defaultValue, IDLNullValue):
-            nullCondition = "!(${haveValue}) || " + nullCondition
-        successVal = "val_"
+        successVal = "v"
         if preSuccess or postSuccess:
             successVal = preSuccess + successVal + postSuccess
         #XXXjdm support conversionBehavior here
         template = (
-            "if (%s) {\n"
-            "  ${declName} = None;\n"
-            "} else {\n"
-            "  match JSValConvertible::from_jsval(cx, ${val}) {\n"
-            "    Some(val_) => ${declName} = Some(%s),\n"
-            "    None => %s\n"
-            "  }\n"
-           "}" % (nullCondition, successVal, failureCode))
+            "match JSValConvertible::from_jsval(cx, ${val}) {\n"
+            "  Some(v) => ${declName} = %s,\n"
+            "  None => %s\n"
+            "}" % (successVal, failureCode))
+
+        if defaultValue is not None and isinstance(defaultValue, IDLNullValue):
+            template = CGWrapper(CGIndenter(CGGeneric(template)),
+                                 pre="if ${haveValue} {\n",
+                                 post=("\n"
+                                       "} else {\n"
+                                       "  ${declName} = None;\n"
+                                       "}")).define()
+
         declType = CGGeneric("Option<" + typeName + ">")
     else:
         assert(defaultValue is None or
@@ -1598,14 +1599,6 @@ if %(resultStr)s.is_null() {
 
     if not type.isPrimitive():
         raise TypeError("Need to learn to wrap %s" % type)
-
-    if type.nullable():
-        (recTemplate, recInfal) = getWrapTemplateForType(type.inner, descriptorProvider,
-                                                         "%s.unwrap()" % result, successCode,
-                                                         isCreator, exceptionCode)
-        return ("if (%s.is_none()) {\n" % result +
-                CGIndenter(CGGeneric(setValue("JSVAL_NULL"))).define() + "\n" +
-                "}\n" + recTemplate, recInfal)
 
     return (setValue("(%s).to_jsval()" % result), True)
 
