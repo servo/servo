@@ -9,9 +9,9 @@ use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 
 use azure::azure_hl::BackendType;
+use collections::hashmap::HashMap;
 use servo_util::cache::{Cache, LRUCache};
 use servo_util::time::ProfilerChan;
-use std::hashmap::HashMap;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -198,11 +198,9 @@ impl FontContext {
 
         debug!("(create font group) --- finished ---");
 
-        unsafe {
-            Rc::new_unchecked(
-                RefCell::new(
-                    FontGroup::new(style.families.to_owned(), &used_style, fonts)))
-        }
+        Rc::new(
+            RefCell::new(
+                FontGroup::new(style.families.to_owned(), &used_style, fonts)))
     }
 
     fn create_font_instance(&self, desc: &FontDescriptor) -> Result<Rc<RefCell<Font>>, ()> {
@@ -213,7 +211,7 @@ impl FontContext {
                                                                             desc.style.clone());
                 result_handle.and_then(|handle| {
                     Ok(
-                        Rc::from_mut(
+                        Rc::new(
                             RefCell::new(
                                 Font::new_from_adopted_handle(self,
                                                               handle,

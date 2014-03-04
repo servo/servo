@@ -5,12 +5,19 @@
 use std::comm::{Chan, Port};
 use servo_util::task::spawn_named;
 
-pub fn spawn_listener<A: Send, S: IntoSendStr>(name: S, f: proc(Port<A>)) -> SharedChan<A> {
+
+    // FIXME: code cloned from spawn_listener due to:
+    //  error: internal compiler error: cannot relate bound region: ReLateBound(6270, BrNamed(syntax::ast::DefId{krate: 0u32, node: 6294u32}, a)) <= ReInfer(1)
+    //This message reflects a bug in the Rust compiler. 
+
+/*
+pub fn spawn_listener<'a, A: Send, S: IntoMaybeOwned<'a>>(name: S, f: proc(Port<A>)) -> Chan<A> {
     let (setup_port, setup_chan) = Chan::new();
-    do spawn_named(name) {
-        let (port, chan) = SharedChan::new();
+    spawn_named(name, proc() {
+        let (port, chan) = Chan::new();
         setup_chan.send(chan);
         f(port);
-    }
+    });
     setup_port.recv()
 }
+*/

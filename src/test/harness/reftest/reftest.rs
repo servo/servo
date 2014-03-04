@@ -7,18 +7,18 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-extern mod extra;
-extern mod png;
-extern mod std;
+extern crate extra;
+extern crate png;
+extern crate std;
+extern crate test;
 
 use std::io;
-use std::io::{File, Reader};
+use std::io::{File, Reader, Process};
 use std::io::process::ExitStatus;
 use std::os;
-use std::run::{Process, ProcessOptions};
 use std::str;
-use extra::test::{DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};
-use extra::test::run_tests_console;
+use test::{DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};
+use test::run_tests_console;
 
 fn main() {
     let args = os::args();
@@ -44,8 +44,9 @@ fn main() {
         test_shard: None,
     };
 
-    if !run_tests_console(&test_opts, tests) {
-        os::set_exit_status(1);
+    match run_tests_console(&test_opts, tests) {
+        Err(_) => os::set_exit_status(1),
+        _ => (),
     }
 }
 
@@ -69,11 +70,14 @@ fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> ~[TestDescAndFn] {
     for file in filenames.iter() {
         let file_path = Path::new(file.clone());
         let contents = match File::open_mode(&file_path, io::Open, io::Read) {
-            Some(mut f) => str::from_utf8_owned(f.read_to_end()),
-            None => fail!("Could not open file")
+            Ok(mut f) => str::from_utf8_owned(match f.read_to_end() {
+                Ok(s) => s,
+                _ => fail!("Could not read file"),
+            }),
+            _ => fail!("Could not convert file")
         };
 
-        for line in contents.lines() {
+        for line in contents.unwrap().lines() {
             // ignore comments
             if line.starts_with("#") {
                 continue;
@@ -131,8 +135,10 @@ fn capture(reftest: &Reftest, side: uint) -> png::Image {
     let mut args = reftest.servo_args.clone();
     args.push_all_move(~[~"-f", ~"-o", filename.clone(), reftest.files[side].clone()]);
 
-    let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
-    let retval = process.finish();
+    let retval = match Process::status("./servo", args) {
+        Ok(status) => status,
+        Err(e) => fail!("failed to execute process: {}", e),
+    };
     assert!(retval == ExitStatus(0));
 
     png::load_png(&from_str::<Path>(filename).unwrap()).unwrap()

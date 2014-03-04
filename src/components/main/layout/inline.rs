@@ -13,15 +13,14 @@ use layout::flow;
 use layout::util::ElementMapping;
 use layout::wrapper::ThreadSafeLayoutNode;
 
-use extra::container::Deque;
-use extra::ringbuf::RingBuf;
+use collections::{Deque, RingBuf};
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayListCollection;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use std::cell::RefCell;
+use std::mem;
 use std::u16;
-use std::util;
 use style::computed_values::{text_align, vertical_align, white_space};
 
 /// Lineboxes are represented as offsets into the child list, rather than
@@ -107,7 +106,7 @@ impl LineboxScanner {
                 if flow.boxes.is_empty() {
                     break;
                 }
-                let box_ = flow.boxes.remove(0); // FIXME: use a linkedlist
+                let box_ = flow.boxes.remove(0).unwrap(); // FIXME: use a linkedlist
                 debug!("LineboxScanner: Working with box from box list: b{}", box_.debug_id());
                 box_
             } else {
@@ -145,8 +144,8 @@ impl LineboxScanner {
         debug!("LineboxScanner: Propagating scanned lines[n={:u}] to inline flow",
                self.lines.len());
 
-        util::swap(&mut flow.boxes, &mut self.new_boxes);
-        util::swap(&mut flow.lines, &mut self.lines);
+        mem::swap(&mut flow.boxes, &mut self.new_boxes);
+        mem::swap(&mut flow.lines, &mut self.lines);
     }
 
     fn flush_current_line(&mut self) {
@@ -433,7 +432,7 @@ impl LineboxScanner {
         debug!("LineboxScanner: Pushing box {} to line {:u}", box_.debug_id(), self.lines.len());
 
         if self.pending_line.range.length() == 0 {
-            assert!(self.new_boxes.len() <= (u16::max_value as uint));
+            assert!(self.new_boxes.len() <= (u16::MAX as uint));
             self.pending_line.range.reset(self.new_boxes.len(), 0);
         }
         self.pending_line.range.extend_by(1);
@@ -872,7 +871,7 @@ impl Flow for InlineFlow {
 
         self.base.position.size.height =
             if self.lines.len() > 0 {
-                self.lines.last().bounds.origin.y + self.lines.last().bounds.size.height
+                self.lines.last().get_ref().bounds.origin.y + self.lines.last().get_ref().bounds.size.height
             } else {
                 Au::new(0)
             };

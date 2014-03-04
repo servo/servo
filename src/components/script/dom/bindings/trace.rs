@@ -11,7 +11,7 @@ use std::cast;
 use std::libc;
 use std::ptr;
 use std::ptr::null;
-use extra::serialize::{Encodable, Encoder};
+use serialize::{Encodable, Encoder};
 
 // IMPORTANT: We rely on the fact that we never attempt to encode DOM objects using
 //            any encoder but JSTracer. Since we derive trace hooks automatically,

@@ -126,11 +126,11 @@ impl LocalImageCache {
                 assert!(self.on_image_available.is_some());
                 let on_image_available = self.on_image_available.as_ref().unwrap().respond();
                 let url = (*url).clone();
-                do spawn_named("LocalImageCache") {
+                spawn_named("LocalImageCache", proc() {
                     let (response_port, response_chan) = Chan::new();
                     image_cache_task.send(WaitForImage(url.clone(), response_chan));
                     on_image_available(response_port.recv());
-                }
+                });
             }
             _ => ()
         }

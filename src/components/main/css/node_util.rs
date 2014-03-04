@@ -6,9 +6,9 @@ use layout::incremental::RestyleDamage;
 use layout::util::LayoutDataAccess;
 use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
-use extra::arc::Arc;
 use std::cast;
 use style::ComputedValues;
+use sync::Arc;
 
 pub trait NodeUtil {
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues>;

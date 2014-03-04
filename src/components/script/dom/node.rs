@@ -36,12 +36,11 @@ use std::cast::transmute;
 use std::cast;
 use std::cell::{RefCell, Ref, RefMut};
 use std::iter::{Map, Filter};
-use std::libc::uintptr_t;
-use std::ptr;
-use std::unstable::raw::Box;
-use std::util;
+use std::libc::{c_void, uintptr_t};
+use std::mem;
+use std::raw::Box;
 
-use extra::serialize::{Encoder, Encodable};
+use serialize::{Encoder, Encodable};
 
 //
 // The basic Node structure
@@ -806,11 +805,14 @@ impl Node {
     /// Sends layout data, if any, back to the script task to be destroyed.
     pub unsafe fn reap_layout_data(&mut self) {
         if self.layout_data.is_present() {
-            let layout_data = util::replace(&mut self.layout_data, LayoutDataRef::new());
+            let layout_data = mem::replace(&mut self.layout_data, LayoutDataRef::new());
             let layout_chan = layout_data.take_chan();
             match layout_chan {
                 None => {}
-                Some(chan) => chan.send(ReapLayoutDataMsg(layout_data)),
+                Some(chan) => {
+                    let LayoutChan(chan) = chan;
+                    chan.send(ReapLayoutDataMsg(layout_data))
+                },
             }
         }
     }
@@ -1268,7 +1270,7 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: &mut JS<Node>, parent: &mut JS<Node>, suppress_observers: SuppressObserver) {
-        assert!(node.parent_node().map_default(false, |ref node_parent| node_parent == parent));
+        assert!(node.parent_node().map_or(false, |ref node_parent| node_parent == parent));
 
         // Step 1-5: ranges.
         // Step 6-7: mutation observers.
@@ -1685,15 +1687,20 @@ impl Node {
             }
 
             if lastself != lastother {
-                let random = if ptr::to_unsafe_ptr(abstract_self.get()) < ptr::to_unsafe_ptr(other.get()) {
-                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
-                } else {
-                    NodeConstants::DOCUMENT_POSITION_PRECEDING
-                };
-                // step 3.
-                return random +
-                       NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                       NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+                unsafe {
+                    let abstract_uint: uintptr_t = cast::transmute(abstract_self.get());
+                    let other_uint: uintptr_t = cast::transmute(other.get());
+                    
+                    let random = if (abstract_uint < other_uint) {
+                        NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                    } else {
+                        NodeConstants::DOCUMENT_POSITION_PRECEDING
+                    };
+                    // step 3.
+                    return random +
+                           NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
+                           NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+                }
             }
 
             for child in lastself.traverse_preorder() {

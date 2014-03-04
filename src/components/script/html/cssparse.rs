@@ -34,10 +34,11 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
                 resource_task.send(Load(url, input_chan));
                 let LoadResponse { metadata: metadata, progress_port: progress_port }
                     = input_port.recv();
+                let final_url = &metadata.final_url;
                 let protocol_encoding_label = metadata.charset.as_ref().map(|s| s.as_slice());
                 let iter = ProgressMsgPortIterator { progress_port: progress_port };
                 Stylesheet::from_bytes_iter(
-                    iter, metadata.final_url,
+                    iter, final_url.clone(),
                     protocol_encoding_label, Some(environment_encoding))
             }
             InlineProvenance(base_url, data) => {

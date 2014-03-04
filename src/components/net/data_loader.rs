@@ -5,7 +5,7 @@
 use resource_task::{Done, Payload, Metadata, LoadResponse, LoaderTask, start_sending};
 
 use extra::url::Url;
-use extra::base64::FromBase64;
+use serialize::base64::FromBase64;
 
 use http::headers::test_utils::from_stream_with_str;
 use http::headers::content_type::MediaType;

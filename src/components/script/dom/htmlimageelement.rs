@@ -19,7 +19,7 @@ use servo_net::image_cache_task;
 use servo_util::url::parse_url;
 use servo_util::str::DOMString;
 
-use extra::serialize::{Encoder, Encodable};
+use serialize::{Encoder, Encodable};
 
 #[deriving(Encodable)]
 pub struct HTMLImageElement {

@@ -7,17 +7,21 @@
 
 #[feature(macro_rules, managed_boxes)];
 
-extern mod azure;
-extern mod extra;
-extern mod geom;
-extern mod native;
+extern crate azure;
+extern crate collections;
+extern crate extra;
+extern crate geom;
+extern crate getopts;
+extern crate native;
+extern crate serialize;
+extern crate sync;
+extern crate std_time = "time";
 
 pub mod cache;
 pub mod concurrentmap;
 pub mod cowarc;
 pub mod debug;
 pub mod geometry;
-pub mod io;
 pub mod namespace;
 pub mod opts;
 pub mod range;

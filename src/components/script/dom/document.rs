@@ -38,12 +38,12 @@ use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::DOMString;
 
+use collections::hashmap::HashMap;
 use extra::url::{Url, from_str};
 use js::jsapi::{JSObject, JSContext};
 use std::ascii::StrAsciiExt;
-use std::hashmap::HashMap;
 
-use extra::serialize::{Encoder, Encodable};
+use serialize::{Encoder, Encodable};
 
 #[deriving(Eq,Encodable)]
 pub enum IsHTMLDocument {
@@ -435,7 +435,7 @@ impl Document {
             }
 
             let element: JS<Element> = ElementCast::to(node);
-            element.get().get_attribute(Null, "name").map_default(false, |attr| {
+            element.get().get_attribute(Null, "name").map_or(false, |attr| {
                 attr.get().value_ref() == name
             })
         })

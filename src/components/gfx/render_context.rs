@@ -9,7 +9,6 @@ use azure::azure_hl::{B8G8R8A8, Color, ColorPattern, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, Linear, StrokeOptions};
 use azure::AZ_CAP_BUTT;
 use azure::AzFloat;
-use extra::arc::Arc;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -20,6 +19,7 @@ use servo_util::geometry::Au;
 use servo_util::opts::Opts;
 use std::libc::types::common::c99::uint16_t;
 use std::libc::size_t;
+use sync::Arc;
 
 pub struct RenderContext<'a> {
     draw_target: &'a DrawTarget,

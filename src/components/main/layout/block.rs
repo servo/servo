@@ -291,7 +291,9 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignHeightsTraversal<'a> {
             return true;
         }
 
-        block_flow.calculate_abs_height_and_margins(**self);
+
+        let AbsoluteAssignHeightsTraversal(ref ctx) = *self;
+        block_flow.calculate_abs_height_and_margins(*ctx);
         true
     }
 }

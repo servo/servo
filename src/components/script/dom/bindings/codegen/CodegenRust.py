@@ -370,7 +370,7 @@ class CGMethodCall(CGThing):
 
         overloadCGThings = []
         overloadCGThings.append(
-            CGGeneric("let argcount = argc.min(&%d);" %
+            CGGeneric("let argcount = cmp::min(argc,%d);" %
                       maxArgCount))
         overloadCGThings.append(
             CGSwitch("argcount",
@@ -720,7 +720,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                 return handleDefault(conversionCode,
                                      "${declName}.SetNull()")
 
-            value = "str::from_utf8(data).to_owned()"
+            value = "str::from_utf8(data).unwrap().to_owned()"
             if type.nullable():
                 value = "Some(%s)" % value
 
@@ -1132,7 +1132,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
             raise TypeError("We don't support nullable enumerated return types "
                             "yet")
         return ("""assert!((%(result)s as uint) < %(strings)s.len());
-let %(resultStr)s: *JSString = JS_NewStringCopyN(cx, ptr::to_unsafe_ptr(&%(strings)s[%(result)s as u32].value[0]) as *i8, %(strings)s[%(result)s as u32].length as libc::size_t);
+let %(resultStr)s: *JSString = JS_NewStringCopyN(cx, &%(strings)s[%(result)s as u32].value[0] as *i8, %(strings)s[%(result)s as u32].length as libc::size_t);
 if %(resultStr)s.is_null() {
   return 0;
 }
@@ -2066,7 +2066,7 @@ def CreateBindingJSObject(descriptor, parent=None):
   let handler = js_info.get().get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
         create += handler + """  let obj = NewProxyObject(aCx, *handler,
-                           ptr::to_unsafe_ptr(&PrivateValue(squirrel_away_unique(aObject) as *libc::c_void)),
+                           &PrivateValue(squirrel_away_unique(aObject) as *libc::c_void),
                            proto, %s,
                            ptr::null(), ptr::null());
   if obj.is_null() {
@@ -2230,7 +2230,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             val = ('%(' + name + ')s') % self.properties.variableNames(False)
             if val == "ptr::null()":
                 return val
-            return "ptr::to_unsafe_ptr(&%s[0])" % val
+            return "&%s[0]" % val
 
         call = """return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
                                %s, %s, %d,
@@ -2376,7 +2376,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     trace: %s
   };
   js_info.dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
-                                           CreateProxyHandler(ptr::to_unsafe_ptr(&traps), ptr::to_unsafe_ptr(&Class) as *libc::c_void));
+                                           CreateProxyHandler(&traps, cast::transmute(&Class)));
 
 """ % (FINALIZE_HOOK_NAME,
        ('Some(%s)' % TRACE_HOOK_NAME),
@@ -3892,7 +3892,7 @@ class CGProxyUnwrap(CGAbstractMethod):
   }*/
   //MOZ_ASSERT(IsProxy(obj));
   let box_: *Box<%s> = cast::transmute(GetProxyPrivate(obj).to_private());
-  return ptr::to_unsafe_ptr(&(*box_).data);""" % (self.descriptor.concreteType)
+  return cast::transmute(&(*box_).data);""" % (self.descriptor.concreteType)
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
@@ -3913,7 +3913,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         if indexedGetter:
             readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
             fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn 1;" % readonly
-            templateValues = {'jsvalRef': '(*desc).value', 'jsvalPtr': 'ptr::to_mut_unsafe_ptr(&mut (*desc).value)',
+            templateValues = {'jsvalRef': '(*desc).value', 'jsvalPtr': '&mut (*desc).value',
                               'obj': 'proxy', 'successCode': fillDescriptor}
             get = ("if index.is_some() {\n" +
                    "  let index = index.unwrap();\n" +
@@ -3955,7 +3955,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         if namedGetter:
             readonly = toStringBool(self.descriptor.operations['NamedSetter'] is None)
             fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn 1;" % readonly
-            templateValues = {'jsvalRef': '(*desc).value', 'jsvalPtr': 'ptr::to_unsafe_ptr(&(*desc).value)',
+            templateValues = {'jsvalRef': '(*desc).value', 'jsvalPtr': '&mut(*desc).value',
                               'obj': 'proxy', 'successCode': fillDescriptor}
             # Once we start supporting OverrideBuiltins we need to make
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
@@ -4101,7 +4101,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
         getFromExpando = """let expando = GetExpandoObject(proxy);
 if expando.is_not_null() {
   let hasProp = 0;
-  if JS_HasPropertyById(cx, expando, id, ptr::to_unsafe_ptr(&hasProp)) == 0 {
+  if JS_HasPropertyById(cx, expando, id, &hasProp) == 0 {
     return 0;
   }
 
@@ -4604,15 +4604,15 @@ class CGDictionary(CGThing):
 
         if True: #XXXjdm hack until 'static mut' exists for global jsids
             propName = member.identifier.name
-            propCheck = ('"%s".to_c_str().with_ref(|s| { JS_HasProperty(cx, val.to_object(), s, ptr::to_unsafe_ptr(&found)) })' %
+            propCheck = ('"%s".to_c_str().with_ref(|s| { JS_HasProperty(cx, val.to_object(), s, &found) })' %
                          propName)
-            propGet = ('"%s".to_c_str().with_ref(|s| { JS_GetProperty(cx, val.to_object(), s, ptr::to_unsafe_ptr(&temp)) })' %
+            propGet = ('"%s".to_c_str().with_ref(|s| { JS_GetProperty(cx, val.to_object(), s, &temp) })' %
                        propName)
         else:
             propId = self.makeIdName(member.identifier.name);
-            propCheck = ("JS_HasPropertyById(cx, val.to_object(), %s, ptr::to_unsafe_ptr(&found))" %
+            propCheck = ("JS_HasPropertyById(cx, val.to_object(), %s, &found)" %
                          propId)
-            propGet = ("JS_GetPropertyById(cx, val.to_object(), %s, ptr::to_unsafe_ptr(&temp))" %
+            propGet = ("JS_GetPropertyById(cx, val.to_object(), %s, &temp)" %
                        propId)
 
         conversionReplacements = {
@@ -4818,12 +4818,14 @@ class CGBindingRoot(CGThing):
             'servo_util::str::DOMString',
             'servo_util::vec::zip_copies',
             'std::cast',
+            'std::cmp',
             'std::libc',
             'std::ptr',
             'std::vec',
             'std::str',
             'std::num',
-            'std::unstable::raw::Box',
+            'std::intrinsics::uninit',
+            'std::raw::Box',
         ])
 
         # Add the auto-generated comment.
@@ -5767,7 +5769,7 @@ class GlobalGenRoots():
                      CGGeneric("use dom::types::*;\n"),
                      CGGeneric("use dom::bindings::js::JS;\n"),
                      CGGeneric("use dom::bindings::trace::Traceable;\n"),
-                     CGGeneric("use extra::serialize::{Encodable, Encoder};\n"),
+                     CGGeneric("use serialize::{Encodable, Encoder};\n"),
                      CGGeneric("use js::jsapi::JSTracer;\n\n")]
         for descriptor in descriptors:
             name = descriptor.name

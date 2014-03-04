@@ -15,8 +15,8 @@ fn hexdump_slice(buf: &[u8]) {
         let output = format!("{:02X} ", v as uint);
         stderr.write(output.as_bytes());
         match i % 16 {
-            15 => stderr.write(bytes!("\n    ")),
-             7 => stderr.write(bytes!("   ")),
+            15 => { stderr.write(bytes!("\n    ")); },
+            7 =>  { stderr.write(bytes!("   ")); },
              _ => ()
         }
         stderr.flush();

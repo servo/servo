@@ -9,7 +9,7 @@ use layout_interface::TrustedNodeAddress;
 
 use std::cast;
 use std::cell::RefCell;
-use std::unstable::raw::Box;
+use std::raw::Box;
 
 pub struct JS<T> {
     priv ptr: RefCell<*mut T>

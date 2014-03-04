@@ -5,7 +5,6 @@
 use azure::{AzFloat, AzScaledFontRef};
 use azure::azure_hl::{BackendType, ColorPattern};
 use azure::scaled_font::ScaledFont;
-use extra::arc::Arc;
 use geom::{Point2D, Rect, Size2D};
 use std::cast;
 use std::ptr;
@@ -15,6 +14,7 @@ use std::cell::RefCell;
 use servo_util::cache::{Cache, HashCache};
 use servo_util::range::Range;
 use style::computed_values::{text_decoration, font_weight, font_style};
+use sync::Arc;
 
 use color::Color;
 use font_context::FontContext;
@@ -230,7 +230,7 @@ impl<'a> Font {
 
         let metrics = handle.get_metrics();
 
-        return Ok(Rc::from_mut(RefCell::new(Font {
+        return Ok(Rc::new(RefCell::new(Font {
             handle: handle,
             azure_font: None,
             shaper: None,
@@ -269,7 +269,7 @@ impl<'a> Font {
             Err(()) => return Err(())
         };
 
-        return Ok(Rc::from_mut(RefCell::new(Font::new_from_adopted_handle(fctx, styled_handle, style, backend))));
+        return Ok(Rc::new(RefCell::new(Font::new_from_adopted_handle(fctx, styled_handle, style, backend))));
     }
 
     fn make_shaper(&'a mut self) -> &'a Shaper {
@@ -394,9 +394,9 @@ impl Font {
             // TODO(Issue #64): this call needs to move into azure_hl.rs
             AzDrawTargetFillGlyphs(target.azure_draw_target,
                                    azfontref,
-                                   ptr::to_unsafe_ptr(&glyphbuf),
+                                   &glyphbuf,
                                    azure_pattern,
-                                   ptr::to_unsafe_ptr(&options),
+                                   &options,
                                    ptr::null());
         }
     }
@@ -428,9 +428,10 @@ impl Font {
 
         //FIXME (ksh8281)
         self.make_shaper();
+        let shaper = &self.shaper;
         self.shape_cache.find_or_create(&text, |txt| {
             let mut glyphs = GlyphStore::new(text.char_len(), is_whitespace);
-            self.shaper.get_ref().shape_text(*txt, &mut glyphs);
+            shaper.get_ref().shape_text(*txt, &mut glyphs);
             Arc::new(glyphs)
         })
     }
@@ -444,8 +445,9 @@ impl Font {
     }
 
     pub fn glyph_h_advance(&mut self, glyph: GlyphIndex) -> FractionalPixel {
+        let handle = &self.handle;
         self.glyph_advance_cache.find_or_create(&glyph, |glyph| {
-            match self.handle.glyph_h_advance(*glyph) {
+            match handle.glyph_h_advance(*glyph) {
                 Some(adv) => adv,
                 None => /* FIXME: Need fallback strategy */ 10f64 as FractionalPixel
             }

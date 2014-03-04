@@ -7,16 +7,17 @@
 
 #[feature(managed_boxes)];
 
-extern mod azure;
-extern mod extra;
-extern mod geom;
-extern mod layers;
-extern mod std;
+extern crate azure;
+extern crate extra;
+extern crate geom;
+extern crate layers;
+extern crate serialize;
+extern crate std;
 
 #[cfg(target_os="macos")]
-extern mod core_foundation;
+extern crate core_foundation;
 #[cfg(target_os="macos")]
-extern mod io_surface;
+extern crate io_surface;
 
 pub mod compositor_msg;
 pub mod constellation_msg;

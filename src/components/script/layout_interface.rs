@@ -15,7 +15,7 @@ use geom::size::Size2D;
 use script_task::{ScriptChan};
 use servo_util::geometry::Au;
 use std::cmp;
-use std::comm::{Chan, SharedChan};
+use std::comm::Chan;
 use std::libc::c_void;
 use style::Stylesheet;
 
@@ -132,11 +132,11 @@ pub struct Reflow {
 
 /// Encapsulates a channel to the layout task.
 #[deriving(Clone)]
-pub struct LayoutChan(SharedChan<Msg>);
+pub struct LayoutChan(Chan<Msg>);
 
 impl LayoutChan {
     pub fn new() -> (Port<Msg>, LayoutChan) {
-        let (port, chan) = SharedChan::new();
+        let (port, chan) = Chan::new();
         (port, LayoutChan(chan))
     }
 }

@@ -8,16 +8,16 @@ use dom::bindings::js::JS;
 use dom::window;
 use servo_util::str::DOMString;
 
+use collections::hashmap::HashMap;
 use std::libc::c_uint;
 use std::cast;
 use std::cmp::Eq;
-use std::hashmap::HashMap;
 use std::libc;
 use std::ptr;
 use std::ptr::null;
 use std::str;
 use std::vec;
-use std::unstable::raw::Box;
+use std::raw::Box;
 use js::glue::*;
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
@@ -149,7 +149,7 @@ pub fn jsstring_to_str(cx: *JSContext, s: *JSString) -> DOMString {
         let length = 0;
         let chars = JS_GetStringCharsAndLength(cx, s, &length);
         vec::raw::buf_as_slice(chars, length as uint, |char_vec| {
-            str::from_utf16(char_vec)
+            str::from_utf16(char_vec).unwrap()
         })
     }
 }
@@ -470,7 +470,7 @@ pub fn GetPropertyOnPrototype(cx: *JSContext, proxy: *JSObject, id: jsid, found:
           return true;
       }
       let hasProp = 0;
-      if JS_HasPropertyById(cx, proto, id, ptr::to_unsafe_ptr(&hasProp)) == 0 {
+      if JS_HasPropertyById(cx, proto, id, &hasProp) == 0 {
           return false;
       }
       *found = hasProp != 0;

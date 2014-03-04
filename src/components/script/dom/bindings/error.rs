@@ -7,7 +7,7 @@ use js::jsapi::{JS_IsExceptionPending};
 
 use js::glue::{ReportError};
 
-#[deriving(ToStr)]
+#[deriving(Show)]
 pub enum Error {
     FailureUnknown,
     NotFound,

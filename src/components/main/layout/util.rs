@@ -7,7 +7,6 @@ use layout::construct::{ConstructionResult, NoConstructionResult};
 use layout::parallel::DomParallelInfo;
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
-use extra::arc::Arc;
 use script::dom::bindings::js::JS;
 use script::dom::bindings::utils::Reflectable;
 use script::dom::node::Node;
@@ -17,8 +16,9 @@ use std::cast;
 use std::cell::{Ref, RefMut};
 use std::iter::Enumerate;
 use std::libc::uintptr_t;
-use std::vec::VecIterator;
+use std::vec::Items;
 use style::ComputedValues;
+use sync::Arc;
 
 /// A range of nodes.
 pub struct NodeRange {
@@ -59,7 +59,7 @@ impl ElementMapping {
         true
     }
 
-    pub fn eachi<'a>(&'a self) -> Enumerate<VecIterator<'a, NodeRange>> {
+    pub fn eachi<'a>(&'a self) -> Enumerate<Items<'a, NodeRange>> {
         self.entries.iter().enumerate()
     }
 
@@ -113,8 +113,8 @@ impl ElementMapping {
                 old_i += 1;
 
                 // possibly pop several items
-                while repair_stack.len() > 0 && old_i == entries[repair_stack.last().entry_idx].range.end() {
-                    let item = repair_stack.pop();
+                while repair_stack.len() > 0 && old_i == entries[repair_stack.last().get_ref().entry_idx].range.end() {
+                    let item = repair_stack.pop().unwrap();
                     debug!("repair_for_box_changes: Set range for {:u} to {}",
                            item.entry_idx, Range::new(item.begin_idx, new_j - item.begin_idx));
                     entries[item.entry_idx].range = Range::new(item.begin_idx, new_j - item.begin_idx);

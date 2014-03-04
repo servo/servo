@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::hashmap::HashMap;
+use collections::HashMap;
+use std::hash::{Hash, sip};
 use std::rand::Rng;
 use std::rand;
-use std::vec::VecIterator;
+use std::vec::Items;
 use std::vec;
 
 pub trait Cache<K: Eq, V: Clone> {
@@ -56,8 +57,8 @@ impl<K: Clone + Eq, V: Clone> Cache<K,V> for MonoCache<K,V> {
 #[test]
 fn test_monocache() {
     let mut cache = MonoCache::new(10);
-    let one = @"one";
-    let two = @"two";
+    let one = ~"one";
+    let two = ~"two";
     cache.insert(1, one);
 
     assert!(cache.find(&1).is_some());
@@ -103,8 +104,8 @@ impl<K: Clone + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
 #[test]
 fn test_hashcache() {
     let mut cache = HashCache::new();
-    let one = @"one";
-    let two = @"two";
+    let one = ~"one";
+    let two = ~"two";
 
     cache.insert(1, one);
     assert!(cache.find(&1).is_some());
@@ -133,12 +134,12 @@ impl<K: Clone + Eq, V: Clone> LRUCache<K,V> {
         let last_index = self.entries.len() - 1;
         if pos != last_index {
             let entry = self.entries.remove(pos);
-            self.entries.push(entry);
+            self.entries.push(entry.unwrap());
         }
-        self.entries[last_index].second_ref().clone()
+        self.entries[last_index].ref1().clone()
     }
 
-    pub fn iter<'a>(&'a self) -> VecIterator<'a,(K,V)> {
+    pub fn iter<'a>(&'a self) -> Items<'a,(K,V)> {
         self.entries.iter()
     }
 }
@@ -197,7 +198,7 @@ impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
 
     #[inline]
     fn bucket_for_key<Q:Hash>(&self, key: &Q) -> uint {
-        self.to_bucket(key.hash_keyed(self.k0, self.k1) as uint)
+        self.to_bucket(sip::hash_with_keys(self.k0, self.k1, key) as uint)
     }
 
     #[inline]
@@ -243,10 +244,10 @@ impl<K:Clone+Eq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
 
 #[test]
 fn test_lru_cache() {
-    let one = @"one";
-    let two = @"two";
-    let three = @"three";
-    let four = @"four";
+    let one = ~"one";
+    let two = ~"two";
+    let three = ~"three";
+    let four = ~"four";
 
     // Test normal insertion.
     let mut cache = LRUCache::new(2); // (_, _) (cache is empty)

@@ -12,7 +12,7 @@ use std::cast;
 use std::libc;
 use std::ptr;
 
-use extra::serialize::{Encodable, Encoder};
+use serialize::{Encodable, Encoder};
 
 pub enum ExceptionHandling {
     // Report any exception and don't throw it to the caller code.
