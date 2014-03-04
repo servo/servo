@@ -4293,13 +4293,13 @@ class CGXrayHelper(CGAbstractExternMethod):
     def definition_body(self):
         varNames = self.properties.variableNames(True)
 
-        setup = "let page = page_from_context(cx);\n"
+        setup = ("let window = global_object_for_js_object(wrapper);\n"
+                 "let js_info = window.get().page().js_info();\n")
 
         methods = self.properties.methods
         if methods.hasNonChromeOnly() or methods.hasChromeOnly():
             methodArgs = "Some(zip_copies(%(methods)s, *method_ids))" % varNames
-            setup += "let mut js_info = (*page).js_info();\n" \
-                     "let method_ids = js_info.get().get_ref().dom_static.method_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
+            setup += "let method_ids = js_info.get().get_ref().dom_static.method_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             methodArgs = "None"
         methodArgs = CGGeneric(methodArgs)
@@ -4307,8 +4307,7 @@ class CGXrayHelper(CGAbstractExternMethod):
         attrs = self.properties.attrs
         if attrs.hasNonChromeOnly() or attrs.hasChromeOnly():
             attrArgs = "Some(zip_copies(%(attrs)s, *attr_ids))" % varNames
-            setup += "let mut js_info = (*page).js_info();\n" \
-                     "let attr_ids = js_info.get().get_ref().dom_static.attribute_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
+            setup += "let attr_ids = js_info.get().get_ref().dom_static.attribute_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             attrArgs = "None"
         attrArgs = CGGeneric(attrArgs)
@@ -4316,8 +4315,7 @@ class CGXrayHelper(CGAbstractExternMethod):
         consts = self.properties.consts
         if consts.hasNonChromeOnly() or consts.hasChromeOnly():
             constArgs = "Some(zip_copies(%(consts)s, *const_ids))" % varNames
-            setup += "let mut js_info = (*page).js_info();\n" \
-                     "let const_ids = js_info.get().get_ref().dom_static.constant_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
+            setup += "let const_ids = js_info.get().get_ref().dom_static.constant_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             constArgs = "None"
         constArgs = CGGeneric(constArgs)
