@@ -38,7 +38,6 @@ check_collection(document.scripts, 2, [HTMLScriptElement], "SCRIPT");
 check_collection(document.applets, 1, [HTMLAppletElement], "APPLET");
 check_collection(document.forms,   1, [HTMLFormElement],   "FORM");
 
-check_collection(document.getElementsByName("test"), 2);
 check_collection(document.getElementsByTagName("nosuchtag"), 0);
 
 check_tag("section",  1, []);

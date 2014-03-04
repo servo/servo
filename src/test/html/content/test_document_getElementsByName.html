@@ -1,0 +1,15 @@
+<html>
+<head >
+  <title></title>
+  <script src="harness.js"></script>
+</head>
+<body>
+  <div name="foo"></div>
+  <script>
+    let nameList = document.getElementsByName("foo");
+    is_a(nameList, NodeList);
+    is_not_a(nameList, HTMLCollection);
+    finish();
+  </script>
+</body>
+</html>
