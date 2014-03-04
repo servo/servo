@@ -13,7 +13,7 @@ pub struct WindowProxy {
 }
 
 impl WindowProxy {
-    pub fn new(owner: JS<Window>) -> JS<WindowProxy> {
+    pub fn new(owner: &JS<Window>) -> JS<WindowProxy> {
         let proxy = ~WindowProxy {
             reflector_: Reflector::new()
         };

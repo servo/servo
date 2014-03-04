@@ -984,7 +984,7 @@ impl ScriptTask {
                     Some(ref frame) => {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                        let window_proxy: JS<WindowProxy> = WindowProxy::new(frame.window.clone());
+                        let window_proxy: JS<WindowProxy> = WindowProxy::new(&frame.window);
                         let mut uievent = UIEvent::new(&frame.window);
                         uievent.get_mut().InitUIEvent(~"resize", false, false, Some(window_proxy), 0i32);
                         let event: &mut JS<Event> = &mut EventCast::from(&uievent);

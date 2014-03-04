@@ -48,8 +48,8 @@ impl DOMException {
         }
     }
 
-    pub fn new(window: &Window, code: DOMErrorName) -> JS<DOMException> {
-        reflect_dom_object(~DOMException::new_inherited(code), window, DOMExceptionBinding::Wrap)
+    pub fn new(window: &JS<Window>, code: DOMErrorName) -> JS<DOMException> {
+        reflect_dom_object(~DOMException::new_inherited(code), window.get(), DOMExceptionBinding::Wrap)
     }
 }
 

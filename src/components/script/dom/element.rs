@@ -220,7 +220,7 @@ impl Element {
             None => {
                 let doc = self.node.owner_doc();
                 let doc = doc.get();
-                let new_attr = Attr::new_ns(doc.window.get(), local_name.clone(), value.clone(),
+                let new_attr = Attr::new_ns(&doc.window, local_name.clone(), value.clone(),
                                             name.clone(), namespace.clone(),
                                             prefix);
                 self.attrs.push(new_attr);

@@ -21,9 +21,9 @@ impl Navigator {
         }
     }
 
-    pub fn new(window: &Window) -> JS<Navigator> {
+    pub fn new(window: &JS<Window>) -> JS<Navigator> {
         reflect_dom_object(~Navigator::new_inherited(),
-                           window,
+                           window.get(),
                            NavigatorBinding::Wrap)
     }
 
