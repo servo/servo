@@ -55,6 +55,41 @@ impl TestBinding {
     pub fn SetFloatAttributeNullable(&self, _: Option<f32>) {}
     pub fn GetDoubleAttributeNullable(&self) -> Option<f64> { Some(0.) }
     pub fn SetDoubleAttributeNullable(&self, _: Option<f64>) {}
+
+    // FIXME (issue #1813) Doesn't currently compile.
+    // pub fn PassOptionalBoolean(&self, _: Option<bool>) {}
+    // pub fn PassOptionalByte(&self, _: Option<i8>) {}
+    // pub fn PassOptionalOctet(&self, _: Option<u8>) {}
+    // pub fn PassOptionalShort(&self, _: Option<i16>) {}
+    // pub fn PassOptionalUnsignedShort(&self, _: Option<u16>) {}
+    // pub fn PassOptionalLong(&self, _: Option<i32>) {}
+    // pub fn PassOptionalUnsignedLong(&self, _: Option<u32>) {}
+    // pub fn PassOptionalLongLong(&self, _: Option<i64>) {}
+    // pub fn PassOptionalUnsignedLongLong(&self, _: Option<u64>) {}
+    // pub fn PassOptionalFloat(&self, _: Option<f32>) {}
+    // pub fn PassOptionalDouble(&self, _: Option<f64>) {}
+
+    pub fn PassOptionalBooleanWithDefault(&self, _: bool) {}
+    pub fn PassOptionalByteWithDefault(&self, _: i8) {}
+    pub fn PassOptionalOctetWithDefault(&self, _: u8) {}
+    pub fn PassOptionalShortWithDefault(&self, _: i16) {}
+    pub fn PassOptionalUnsignedShortWithDefault(&self, _: u16) {}
+    pub fn PassOptionalLongWithDefault(&self, _: i32) {}
+    pub fn PassOptionalUnsignedLongWithDefault(&self, _: u32) {}
+    pub fn PassOptionalLongLongWithDefault(&self, _: i64) {}
+    pub fn PassOptionalUnsignedLongLongWithDefault(&self, _: u64) {}
+
+    pub fn PassOptionalNullableBooleanWithDefault(&self, _: Option<bool>) {}
+    pub fn PassOptionalNullableByteWithDefault(&self, _: Option<i8>) {}
+    pub fn PassOptionalNullableOctetWithDefault(&self, _: Option<u8>) {}
+    pub fn PassOptionalNullableShortWithDefault(&self, _: Option<i16>) {}
+    pub fn PassOptionalNullableUnsignedShortWithDefault(&self, _: Option<u16>) {}
+    pub fn PassOptionalNullableLongWithDefault(&self, _: Option<i32>) {}
+    pub fn PassOptionalNullableUnsignedLongWithDefault(&self, _: Option<u32>) {}
+    pub fn PassOptionalNullableLongLongWithDefault(&self, _: Option<i64>) {}
+    pub fn PassOptionalNullableUnsignedLongLongWithDefault(&self, _: Option<u64>) {}
+    pub fn PassOptionalNullableFloatWithDefault(&self, _: Option<f32>) {}
+    pub fn PassOptionalNullableDoubleWithDefault(&self, _: Option<f64>) {}
 }
 
 impl Reflectable for TestBinding {
