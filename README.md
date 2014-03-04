@@ -94,4 +94,4 @@ There are lots of make targets you can use:
 - `make bindings` - generate the Rust WebIDL bindings
 - `make DEP` - builds only the specified dependency. e.g. `make rust-opengles`
 - `make check-DEP` - build and run tests for specified dependency
-
+- `make check-content` - run tests residing in `src/test/html/content`
