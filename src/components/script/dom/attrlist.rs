@@ -27,7 +27,7 @@ impl AttrList {
 
     pub fn new(window: &JS<Window>, elem: &JS<Element>) -> JS<AttrList> {
         reflect_dom_object(~AttrList::new_inherited(window.clone(), elem.clone()),
-                           window.get(), AttrListBinding::Wrap)
+                           window, AttrListBinding::Wrap)
     }
 
     pub fn Length(&self) -> u32 {

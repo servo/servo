@@ -21,7 +21,7 @@ impl Console {
     }
 
     pub fn new(window: &JS<Window>) -> JS<Console> {
-        reflect_dom_object(~Console::new_inherited(), window.get(), ConsoleBinding::Wrap)
+        reflect_dom_object(~Console::new_inherited(), window, ConsoleBinding::Wrap)
     }
 
     pub fn Log(&self, message: DOMString) {

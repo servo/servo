@@ -34,7 +34,7 @@ impl NodeList {
     pub fn new(window: &JS<Window>,
                list_type: NodeListType) -> JS<NodeList> {
         reflect_dom_object(~NodeList::new_inherited(window.clone(), list_type),
-                           window.get(), NodeListBinding::Wrap)
+                           window, NodeListBinding::Wrap)
     }
 
     pub fn new_simple_list(window: &JS<Window>, elements: ~[JS<Node>]) -> JS<NodeList> {

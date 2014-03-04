@@ -43,7 +43,7 @@ impl Location {
 
     pub fn new(window: &JS<Window>, page: Rc<Page>) -> JS<Location> {
         reflect_dom_object(~Location::new_inherited(page),
-                           window.get(),
+                           window,
                            LocationBinding::Wrap)
     }
 

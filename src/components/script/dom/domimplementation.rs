@@ -34,7 +34,7 @@ impl DOMImplementation {
     }
 
     pub fn new(owner: &JS<Window>) -> JS<DOMImplementation> {
-        reflect_dom_object(~DOMImplementation::new_inherited(owner.clone()), owner.get(),
+        reflect_dom_object(~DOMImplementation::new_inherited(owner.clone()), owner,
                            DOMImplementationBinding::Wrap)
     }
 }

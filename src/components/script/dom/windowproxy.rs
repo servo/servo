@@ -17,7 +17,7 @@ impl WindowProxy {
         let proxy = ~WindowProxy {
             reflector_: Reflector::new()
         };
-        reflect_dom_object(proxy, owner.get(), WindowProxyBinding::Wrap)
+        reflect_dom_object(proxy, owner, WindowProxyBinding::Wrap)
     }
 }
 

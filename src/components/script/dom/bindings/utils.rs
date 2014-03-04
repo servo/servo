@@ -493,7 +493,7 @@ pub trait Reflectable {
 
 pub fn reflect_dom_object<T: Reflectable>
         (obj:     ~T,
-         window:  &window::Window,
+         window:  &JS<window::Window>,
          wrap_fn: extern "Rust" fn(*JSContext, *JSObject, ~T) -> *JSObject)
          ->       JS<T> {
     JS::new(obj, window, wrap_fn)

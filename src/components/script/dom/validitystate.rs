@@ -25,7 +25,7 @@ impl ValidityState {
 
     pub fn new(window: &JS<Window>) -> JS<ValidityState> {
         reflect_dom_object(~ValidityState::new_inherited(window.clone()),
-                           window.get(),
+                           window,
                            ValidityStateBinding::Wrap)
     }
 }

@@ -26,7 +26,7 @@ impl DOMParser {
     }
 
     pub fn new(owner: &JS<Window>) -> JS<DOMParser> {
-        reflect_dom_object(~DOMParser::new_inherited(owner.clone()), owner.get(),
+        reflect_dom_object(~DOMParser::new_inherited(owner.clone()), owner,
                            DOMParserBinding::Wrap)
     }
 

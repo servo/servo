@@ -58,7 +58,7 @@ impl Attr {
                   name: DOMString, namespace: Namespace,
                   prefix: Option<DOMString>) -> JS<Attr> {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix);
-        reflect_dom_object(~attr, window.get(), AttrBinding::Wrap)
+        reflect_dom_object(~attr, window, AttrBinding::Wrap)
     }
 
     pub fn set_value(&mut self, value: DOMString) {
