@@ -55,8 +55,7 @@ enum ReftestKind {
 struct Reftest {
     name: ~str,
     kind: ReftestKind,
-    left: ~str,
-    right: ~str,
+    files: [~str, ..2],
     id: uint,
 }
 
@@ -96,8 +95,7 @@ fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
             let reftest = Reftest {
                 name: parts[1] + " / " + parts[2],
                 kind: kind,
-                left: file_left,
-                right: file_right,
+                files: [file_left, file_right],
                 id: next_id,
             };
 
@@ -123,23 +121,19 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
     }
 }
 
+fn capture(reftest: &Reftest, side: uint) -> png::Image {
+    let filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
+    let args = ~[~"-f", ~"-o", filename.clone(), reftest.files[side].clone()];
+    let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
+    let retval = process.finish();
+    assert!(retval == ExitStatus(0));
+
+    png::load_png(&from_str::<Path>(filename).unwrap()).unwrap()
+}
+
 fn check_reftest(reftest: Reftest) {
-    let left_filename = format!("/tmp/servo-reftest-{:06u}-left.png", reftest.id);
-    let right_filename = format!("/tmp/servo-reftest-{:06u}-right.png", reftest.id);
-
-    let args = ~[~"-f", ~"-o", left_filename.clone(), reftest.left.clone()];
-    let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
-    let retval = process.finish();
-    assert!(retval == ExitStatus(0));
-
-    let args = ~[~"-f", ~"-o", right_filename.clone(), reftest.right.clone()];
-    let mut process = Process::new("./servo", args, ProcessOptions::new()).unwrap();
-    let retval = process.finish();
-    assert!(retval == ExitStatus(0));
-
-    // check the pngs are bit equal
-    let left = png::load_png(&from_str::<Path>(left_filename).unwrap()).unwrap();
-    let right = png::load_png(&from_str::<Path>(right_filename).unwrap()).unwrap();
+    let left  = capture(&reftest, 0);
+    let right = capture(&reftest, 1);
 
     let pixels: ~[u8] = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
             if (a as i8 - b as i8 == 0) {
