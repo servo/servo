@@ -211,11 +211,9 @@ pub unsafe fn str_to_jsval(cx: *JSContext, string: DOMString) -> JSVal {
     let string_utf16 = string.to_utf16();
     let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr(), string_utf16.len() as libc::size_t);
     if jsstr.is_null() {
-        // FIXME: is there something else we should do on failure?
-        JSVAL_NULL
-    } else {
-        RUST_STRING_TO_JSVAL(jsstr)
+        fail!("JS_NewUCStringCopyN failed");
     }
+    RUST_STRING_TO_JSVAL(jsstr)
 }
 
 pub unsafe fn domstring_to_jsval(cx: *JSContext, string: Option<DOMString>) -> JSVal {
