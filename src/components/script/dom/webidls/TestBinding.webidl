@@ -14,4 +14,16 @@ interface TestBinding {
            attribute unsigned long long unsignedLongLongAttribute;
            attribute float floatAttribute;
            attribute double doubleAttribute;
+
+           attribute boolean? booleanAttributeNullable;
+           attribute byte? byteAttributeNullable;
+           attribute octet? octetAttributeNullable;
+           attribute short? shortAttributeNullable;
+           attribute unsigned short? unsignedShortAttributeNullable;
+           attribute long? longAttributeNullable;
+           attribute unsigned long? unsignedLongAttributeNullable;
+           attribute long long? longLongAttributeNullable;
+           attribute unsigned long long? unsignedLongLongAttributeNullable;
+           attribute float? floatAttributeNullable;
+           attribute double? doubleAttributeNullable;
 };

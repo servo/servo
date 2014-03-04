@@ -32,6 +32,29 @@ impl TestBinding {
     pub fn SetFloatAttribute(&self, _: f32) {}
     pub fn DoubleAttribute(&self) -> f64 { 0. }
     pub fn SetDoubleAttribute(&self, _: f64) {}
+
+    pub fn GetBooleanAttributeNullable(&self) -> Option<bool> { Some(false) }
+    pub fn SetBooleanAttributeNullable(&self, _: Option<bool>) {}
+    pub fn GetByteAttributeNullable(&self) -> Option<i8> { Some(0) }
+    pub fn SetByteAttributeNullable(&self, _: Option<i8>) {}
+    pub fn GetOctetAttributeNullable(&self) -> Option<u8> { Some(0) }
+    pub fn SetOctetAttributeNullable(&self, _: Option<u8>) {}
+    pub fn GetShortAttributeNullable(&self) -> Option<i16> { Some(0) }
+    pub fn SetShortAttributeNullable(&self, _: Option<i16>) {}
+    pub fn GetUnsignedShortAttributeNullable(&self) -> Option<u16> { Some(0) }
+    pub fn SetUnsignedShortAttributeNullable(&self, _: Option<u16>) {}
+    pub fn GetLongAttributeNullable(&self) -> Option<i32> { Some(0) }
+    pub fn SetLongAttributeNullable(&self, _: Option<i32>) {}
+    pub fn GetUnsignedLongAttributeNullable(&self) -> Option<u32> { Some(0) }
+    pub fn SetUnsignedLongAttributeNullable(&self, _: Option<u32>) {}
+    pub fn GetLongLongAttributeNullable(&self) -> Option<i64> { Some(0) }
+    pub fn SetLongLongAttributeNullable(&self, _: Option<i64>) {}
+    pub fn GetUnsignedLongLongAttributeNullable(&self) -> Option<u64> { Some(0) }
+    pub fn SetUnsignedLongLongAttributeNullable(&self, _: Option<u64>) {}
+    pub fn GetFloatAttributeNullable(&self) -> Option<f32> { Some(0.) }
+    pub fn SetFloatAttributeNullable(&self, _: Option<f32>) {}
+    pub fn GetDoubleAttributeNullable(&self) -> Option<f64> { Some(0.) }
+    pub fn SetDoubleAttributeNullable(&self, _: Option<f64>) {}
 }
 
 impl Reflectable for TestBinding {

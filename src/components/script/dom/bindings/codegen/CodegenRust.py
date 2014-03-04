@@ -1601,9 +1601,9 @@ if %(resultStr)s.is_null() {
 
     if type.nullable():
         (recTemplate, recInfal) = getWrapTemplateForType(type.inner, descriptorProvider,
-                                                         "%s.Value()" % result, successCode,
+                                                         "%s.unwrap()" % result, successCode,
                                                          isCreator, exceptionCode)
-        return ("if (%s.IsNull()) {\n" % result +
+        return ("if (%s.is_none()) {\n" % result +
                 CGIndenter(CGGeneric(setValue("JSVAL_NULL"))).define() + "\n" +
                 "}\n" + recTemplate, recInfal)
 
@@ -1667,7 +1667,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isPrimitive() and returnType.tag() in builtinNames:
         result = CGGeneric(builtinNames[returnType.tag()])
         if returnType.nullable():
-            result = CGWrapper(result, pre="Nullable<", post=">")
+            result = CGWrapper(result, pre="Option<", post=">")
         return result, False
     if returnType.isString():
         result = CGGeneric("DOMString")
