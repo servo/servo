@@ -1606,27 +1606,9 @@ if %(resultStr)s.is_null() {
         return ("if (%s.IsNull()) {\n" % result +
                 CGIndenter(CGGeneric(setValue("JSVAL_NULL"))).define() + "\n" +
                 "}\n" + recTemplate, recInfal)
-    
-    tag = type.tag()
-    
-    if tag in [IDLType.Tags.int8, IDLType.Tags.uint8, IDLType.Tags.int16,
-               IDLType.Tags.uint16, IDLType.Tags.int32]:
-        return (setValue("RUST_INT_TO_JSVAL(%s as i32)" % result), True)
 
-    elif tag in [IDLType.Tags.int64, IDLType.Tags.uint64, IDLType.Tags.float,
-                 IDLType.Tags.double]:
-        # XXXbz will cast to double do the "even significand" thing that webidl
-        # calls for for 64-bit ints?  Do we care?
-        return (setValue("RUST_JS_NumberValue(%s as f64)" % result), True)
+    return (setValue("(%s).to_jsval()" % result), True)
 
-    elif tag == IDLType.Tags.uint32:
-        return (setValue("RUST_UINT_TO_JSVAL(%s)" % result), True)
-
-    elif tag == IDLType.Tags.bool:
-        return (setValue("RUST_BOOLEAN_TO_JSVAL(%s as JSBool)" % result), True)
-
-    else:
-        raise TypeError("Need to learn to wrap primitive: %s" % type)
 
 def wrapForType(type, descriptorProvider, templateValues):
     """
