@@ -4805,8 +4805,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def generate_code(self):
         preamble = """
-  let window = global_object_for_js_object(RUST_JSVAL_TO_OBJECT(JS_CALLEE(cx, &*vp)));
-  let global = JS::from_box(window);
+  let global = global_object_for_js_object(RUST_JSVAL_TO_OBJECT(JS_CALLEE(cx, &*vp)));
   let obj = global.reflector().get_jsobject();
 """
         nativeName = MakeNativeName(self._ctor.identifier.name)
