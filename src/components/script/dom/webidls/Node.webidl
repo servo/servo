@@ -50,14 +50,6 @@ interface Node : EventTarget {
            attribute DOMString? nodeValue;
   [SetterThrows, Pure]
            attribute DOMString? textContent;
-  [Throws]
-  Node insertBefore(Node node, Node? child);
-  [Throws]
-  Node appendChild(Node node);
-  [Throws]
-  Node replaceChild(Node node, Node child);
-  [Throws]
-  Node removeChild(Node child);
   void normalize();
 
   [Throws]
@@ -69,13 +61,22 @@ interface Node : EventTarget {
   const unsigned short DOCUMENT_POSITION_FOLLOWING = 0x04;
   const unsigned short DOCUMENT_POSITION_CONTAINS = 0x08;
   const unsigned short DOCUMENT_POSITION_CONTAINED_BY = 0x10;
-  const unsigned short DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC = 0x20; // historical
+  const unsigned short DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC = 0x20;
   unsigned short compareDocumentPosition(Node other);
   boolean contains(Node? other);
 
   DOMString? lookupPrefix(DOMString? namespace);
   DOMString? lookupNamespaceURI(DOMString? prefix);
   boolean isDefaultNamespace(DOMString? namespace);
+
+  [Throws]
+  Node insertBefore(Node node, Node? child);
+  [Throws]
+  Node appendChild(Node node);
+  [Throws]
+  Node replaceChild(Node node, Node child);
+  [Throws]
+  Node removeChild(Node child);
 
   // Mozilla-specific stuff
   // These have been moved to Element in the spec.
