@@ -2675,38 +2675,6 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         # if we don't need to create anything, why are we generating this?
         assert needInterfaceObject or needInterfacePrototypeObject
 
-        idsToInit = []
-        if False: #XXXjdm don't need xray stuff yet
-            for var in self.properties.xrayRelevantArrayNames():
-                props = getattr(self.properties, var)
-                # We only have non-chrome ids to init if we have no chrome ids.
-                if props.hasChromeOnly():
-                    idsToInit.append(props.variableName(True))
-                elif props.hasNonChromeOnly():
-                    idsToInit.append(props.variableName(False))
-        if len(idsToInit) > 0:
-            setup = CGList([CGGeneric("let page = page_from_context(aCx);"),
-                            CGList([CGGeneric("let mut js_info = (*page).js_info();\n"
-                                              "let %s_ids_mut = js_info.get().get_ref().dom_static.attribute_ids.get(&(PrototypeList::id::%s as uint));" % (varname, self.descriptor.name)) for varname in idsToInit], '\n')], '\n')
-            initIds = CGList(
-                [CGGeneric("!InitIds(aCx, %s, *%s_ids_mut)" % (varname, varname)) for
-                 varname in idsToInit], ' ||\n')
-            if len(idsToInit) > 1:
-                initIds = CGWrapper(initIds, pre="(", post=")", reindent=True)
-            initIds = CGList(
-                [CGGeneric("%s_ids_mut[0] == JSID_VOID &&" % idsToInit[0]), initIds],
-                "\n")
-            initIds = CGWrapper(initIds, pre="if ", post=" {", reindent=True)
-            initIds = CGList(
-                [setup,
-                 initIds,
-                 CGGeneric(("  %s_ids_mut[0] = JSID_VOID;\n"
-                            "  return ptr::null();") % idsToInit[0]),
-                 CGGeneric("}")],
-                "\n")
-        else:
-            initIds = None
-
         prefCacheData = []
         for var in self.properties.arrayNames():
             props = getattr(self.properties, var)
@@ -2773,7 +2741,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             chrome = None
 
         functionBody = CGList(
-            [CGGeneric(getParentProto), initIds, prefCache, chrome,
+            [CGGeneric(getParentProto), prefCache, chrome,
              CGGeneric(call % self.properties.variableNames(False))],
             "\n\n")
         #return CGIndenter(CGWrapper(functionBody, pre="/*", post="*/return ptr::null()")).define()
@@ -5294,7 +5262,7 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::codegen::*', #XXXjdm
                           'dom::bindings::codegen::UnionTypes::*', #XXXjdm
                           'dom::bindings::codegen::UnionConversions::*', #XXXjdm
-                          'script_task::{JSPageInfo, page_from_context}',
+                          'script_task::JSPageInfo',
                           'dom::bindings::proxyhandler',
                           'dom::bindings::proxyhandler::*',
                           'servo_util::str::DOMString',
