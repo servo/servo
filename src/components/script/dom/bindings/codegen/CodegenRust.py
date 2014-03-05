@@ -1233,23 +1233,24 @@ for (uint32_t i = 0; i < length; ++i) {
         failureCode = 'return 0'
 
     if type.nullable():
-        dataLoc = "${declName}.SetValue()"
-        nullCondition = "(RUST_JSVAL_IS_NULL(${val}) != 0 || RUST_JSVAL_IS_VOID(${val}) != 0)"
-        if defaultValue is not None and isinstance(defaultValue, IDLNullValue):
-            nullCondition = "!(${haveValue}) || " + nullCondition
-        successVal = "val_"
+        successVal = "v"
         if preSuccess or postSuccess:
             successVal = preSuccess + successVal + postSuccess
         #XXXjdm support conversionBehavior here
         template = (
-            "if (%s) {\n"
-            "  ${declName} = None;\n"
-            "} else {\n"
-            "  match JSValConvertible::from_jsval(cx, ${val}) {\n"
-            "    Some(val_) => ${declName} = Some(%s),\n"
-            "    None => %s\n"
-            "  }\n"
-           "}" % (nullCondition, successVal, failureCode))
+            "match JSValConvertible::from_jsval(cx, ${val}) {\n"
+            "  Some(v) => ${declName} = %s,\n"
+            "  None => %s\n"
+            "}" % (successVal, failureCode))
+
+        if defaultValue is not None and isinstance(defaultValue, IDLNullValue):
+            template = CGWrapper(CGIndenter(CGGeneric(template)),
+                                 pre="if ${haveValue} {\n",
+                                 post=("\n"
+                                       "} else {\n"
+                                       "  ${declName} = None;\n"
+                                       "}")).define()
+
         declType = CGGeneric("Option<" + typeName + ">")
     else:
         assert(defaultValue is None or
@@ -1599,34 +1600,8 @@ if %(resultStr)s.is_null() {
     if not type.isPrimitive():
         raise TypeError("Need to learn to wrap %s" % type)
 
-    if type.nullable():
-        (recTemplate, recInfal) = getWrapTemplateForType(type.inner, descriptorProvider,
-                                                         "%s.Value()" % result, successCode,
-                                                         isCreator, exceptionCode)
-        return ("if (%s.IsNull()) {\n" % result +
-                CGIndenter(CGGeneric(setValue("JSVAL_NULL"))).define() + "\n" +
-                "}\n" + recTemplate, recInfal)
-    
-    tag = type.tag()
-    
-    if tag in [IDLType.Tags.int8, IDLType.Tags.uint8, IDLType.Tags.int16,
-               IDLType.Tags.uint16, IDLType.Tags.int32]:
-        return (setValue("RUST_INT_TO_JSVAL(%s as i32)" % result), True)
+    return (setValue("(%s).to_jsval()" % result), True)
 
-    elif tag in [IDLType.Tags.int64, IDLType.Tags.uint64, IDLType.Tags.float,
-                 IDLType.Tags.double]:
-        # XXXbz will cast to double do the "even significand" thing that webidl
-        # calls for for 64-bit ints?  Do we care?
-        return (setValue("RUST_JS_NumberValue(%s as f64)" % result), True)
-
-    elif tag == IDLType.Tags.uint32:
-        return (setValue("RUST_UINT_TO_JSVAL(%s)" % result), True)
-
-    elif tag == IDLType.Tags.bool:
-        return (setValue("RUST_BOOLEAN_TO_JSVAL(%s as JSBool)" % result), True)
-
-    else:
-        raise TypeError("Need to learn to wrap primitive: %s" % type)
 
 def wrapForType(type, descriptorProvider, templateValues):
     """
@@ -1685,7 +1660,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isPrimitive() and returnType.tag() in builtinNames:
         result = CGGeneric(builtinNames[returnType.tag()])
         if returnType.nullable():
-            result = CGWrapper(result, pre="Nullable<", post=">")
+            result = CGWrapper(result, pre="Option<", post=">")
         return result, False
     if returnType.isString():
         result = CGGeneric("DOMString")
