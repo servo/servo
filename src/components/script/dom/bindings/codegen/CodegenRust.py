@@ -1239,8 +1239,8 @@ for (uint32_t i = 0; i < length; ++i) {
         #XXXjdm support conversionBehavior here
         template = (
             "match JSValConvertible::from_jsval(cx, ${val}) {\n"
-            "  Some(v) => ${declName} = %s,\n"
-            "  None => %s\n"
+            "  Ok(v) => ${declName} = %s,\n"
+            "  Err(_) => %s\n"
             "}" % (successVal, failureCode))
 
         if defaultValue is not None and isinstance(defaultValue, IDLNullValue):
@@ -1262,8 +1262,8 @@ for (uint32_t i = 0; i < length; ++i) {
             successVal = preSuccess + successVal + postSuccess
         template = (
             "match JSValConvertible::from_jsval(cx, ${val}) {\n"
-            "  None => %s,\n"
-            "  Some(v) => %s = %s\n"
+            "  Err(_) => %s,\n"
+            "  Ok(v) => %s = %s\n"
             "}" % (failureCode, dataLoc, successVal))
         declType = CGGeneric(typeName)
     if (defaultValue is not None and
