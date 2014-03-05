@@ -584,6 +584,24 @@ impl Box {
                 .specified_or_zero()));
     }
 
+    /// Compute and set margin-top and margin-bottom values.
+    ///
+    /// If a value is specified or is a percentage, we calculate the right value here.
+    /// If it is auto, it is up to assign-height to ignore this value and
+    /// calculate the correct margin values.
+    pub fn compute_margin_top_bottom(&self, containing_block_width: Au) {
+        let style = self.style();
+        // Note: CSS 2.1 defines margin % values wrt CB *width* (not height).
+        let margin_top = MaybeAuto::from_style(style.Margin.get().margin_top,
+                                               containing_block_width).specified_or_zero();
+        let margin_bottom = MaybeAuto::from_style(style.Margin.get().margin_bottom,
+                                                  containing_block_width).specified_or_zero();
+        let mut margin = self.margin.get();
+        margin.top = margin_top;
+        margin.bottom = margin_bottom;
+        self.margin.set(margin);
+    }
+
     /// Populates the box model padding parameters from the given computed style.
     pub fn compute_padding(&self, style: &ComputedValues, containing_block_width: Au) {
         let padding = SideOffsets2D::new(self.compute_padding_length(style.Padding
@@ -613,16 +631,6 @@ impl Box {
         let border_box_size = self.border_box.get().size;
         Size2D(border_box_size.width - self.border.get().left - self.border.get().right,
                border_box_size.height - self.border.get().top - self.border.get().bottom)
-    }
-
-    pub fn border_and_padding_horiz(&self) -> Au {
-        self.border.get().left + self.border.get().right + self.padding.get().left
-            + self.padding.get().right
-    }
-
-    pub fn border_and_padding_vert(&self) -> Au {
-        self.border.get().top + self.border.get().bottom + self.padding.get().top
-            + self.padding.get().bottom
     }
 
     pub fn noncontent_width(&self) -> Au {
