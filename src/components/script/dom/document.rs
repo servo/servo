@@ -21,6 +21,7 @@ use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
+use dom::nodelist::NodeList;
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
@@ -403,8 +404,8 @@ impl Document {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
-    pub fn GetElementsByName(&self, name: DOMString) -> JS<HTMLCollection> {
-        self.createHTMLCollection(|elem| {
+    pub fn GetElementsByName(&self, name: DOMString) -> JS<NodeList> {
+        self.createNodeList(|elem| {
             elem.get_attribute(Null, "name").map_default(false, |attr| {
                 attr.get().value_ref() == name
             })
@@ -449,7 +450,7 @@ impl Document {
         self.createHTMLCollection(|elem| "applet" == elem.tag_name)
     }
 
-    pub fn createHTMLCollection(&self, callback: |elem: &Element| -> bool) -> JS<HTMLCollection> {
+    pub fn create_collection(&self, callback: |elem: &Element| -> bool) -> ~[JS<Element>] {
         let mut elements = ~[];
         match self.GetDocumentElement() {
             None => {},
@@ -465,7 +466,20 @@ impl Document {
                 }
             }
         }
-        HTMLCollection::new(&self.window, elements)
+        elements
+    }
+
+    pub fn createHTMLCollection(&self, callback: |elem: &Element| -> bool) -> JS<HTMLCollection> {
+        HTMLCollection::new(&self.window, self.create_collection(callback))
+    }
+
+    pub fn createNodeList(&self, callback: |elem: &Element| -> bool) -> JS<NodeList> {
+        let elements = self.create_collection(callback);
+        let nodes = elements.map(|element| {
+            let node: JS<Node> = NodeCast::from(element);
+            node
+        });
+        NodeList::new_simple_list(&self.window, nodes)
     }
 
     pub fn content_changed(&self) {

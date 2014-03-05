@@ -44,7 +44,7 @@ partial interface Document {
            attribute DOMString title;
            attribute HTMLElement? body;
   readonly attribute HTMLHeadElement? head;
-  /*NodeList*/ HTMLCollection getElementsByName(DOMString elementName);
+  NodeList getElementsByName(DOMString elementName);
 
   readonly attribute HTMLCollection images;
   readonly attribute HTMLCollection embeds;
