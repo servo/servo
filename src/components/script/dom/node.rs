@@ -840,6 +840,7 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#dom-node-baseuri
     pub fn GetBaseURI(&self) -> Option<DOMString> {
+        // FIXME (#1824) implement.
         None
     }
 
@@ -871,6 +872,20 @@ impl Node {
     // http://dom.spec.whatwg.org/#dom-node-haschildnodes
     pub fn HasChildNodes(&self) -> bool {
         self.first_child.is_some()
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-childnodes
+    pub fn ChildNodes(&mut self, abstract_self: &JS<Node>) -> JS<NodeList> {
+        match self.child_list {
+            None => {
+                let doc = self.owner_doc();
+                let doc = doc.get();
+                let list = NodeList::new_child_list(&doc.window, abstract_self);
+                self.child_list = Some(list.clone());
+                list
+            }
+            Some(ref list) => list.clone()
+        }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-firstchild
@@ -911,7 +926,7 @@ impl Node {
     // http://dom.spec.whatwg.org/#dom-node-nodevalue
     pub fn SetNodeValue(&mut self, _abstract_self: &JS<Node>, _val: Option<DOMString>)
                         -> ErrorResult {
-        // FIXME: Stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1825) implement.
         Ok(())
     }
 
@@ -942,18 +957,39 @@ impl Node {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-childnodes
-    pub fn ChildNodes(&mut self, abstract_self: &JS<Node>) -> JS<NodeList> {
-        match self.child_list {
-            None => {
-                let doc = self.owner_doc();
-                let doc = doc.get();
-                let list = NodeList::new_child_list(&doc.window, abstract_self);
-                self.child_list = Some(list.clone());
-                list
+    // http://dom.spec.whatwg.org/#dom-node-textcontent
+    pub fn SetTextContent(&mut self, abstract_self: &mut JS<Node>, value: Option<DOMString>)
+                          -> ErrorResult {
+        let value = null_str_as_empty(&value);
+        match self.type_id {
+            DocumentFragmentNodeTypeId |
+            ElementNodeTypeId(..) => {
+                // Step 1-2.
+                let node = if value.len() == 0 {
+                    None
+                } else {
+                    let document = self.owner_doc();
+                    Some(NodeCast::from(&document.get().CreateTextNode(&document, value)))
+                };
+                // Step 3.
+                Node::replace_all(node, abstract_self);
             }
-            Some(ref list) => list.clone()
+            CommentNodeTypeId |
+            TextNodeTypeId |
+            ProcessingInstructionNodeTypeId => {
+                self.wait_until_safe_to_modify_dom();
+
+                let mut characterdata: JS<CharacterData> = CharacterDataCast::to(abstract_self);
+                characterdata.get_mut().data = value.clone();
+
+                // Notify the document that the content of this node is different
+                let document = self.owner_doc();
+                document.get().content_changed();
+            }
+            DoctypeNodeTypeId |
+            DocumentNodeTypeId => {}
         }
+        Ok(())
     }
 
     // http://dom.spec.whatwg.org/#concept-node-adopt
@@ -1227,41 +1263,6 @@ impl Node {
         }
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-textcontent
-    pub fn SetTextContent(&mut self, abstract_self: &mut JS<Node>, value: Option<DOMString>)
-                          -> ErrorResult {
-        let value = null_str_as_empty(&value);
-        match self.type_id {
-            DocumentFragmentNodeTypeId |
-            ElementNodeTypeId(..) => {
-                // Step 1-2.
-                let node = if value.len() == 0 {
-                    None
-                } else {
-                    let document = self.owner_doc();
-                    Some(NodeCast::from(&document.get().CreateTextNode(&document, value)))
-                };
-                // Step 3.
-                Node::replace_all(node, abstract_self);
-            }
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId => {
-                self.wait_until_safe_to_modify_dom();
-
-                let mut characterdata: JS<CharacterData> = CharacterDataCast::to(abstract_self);
-                characterdata.get_mut().data = value.clone();
-
-                // Notify the document that the content of this node is different
-                let document = self.owner_doc();
-                document.get().content_changed();
-            }
-            DoctypeNodeTypeId |
-            DocumentNodeTypeId => {}
-        }
-        Ok(())
-    }
-
     // http://dom.spec.whatwg.org/#dom-node-insertbefore
     pub fn InsertBefore(&self, abstract_self: &mut JS<Node>, node: &mut JS<Node>, child: Option<JS<Node>>)
                         -> Fallible<JS<Node>> {
@@ -1415,7 +1416,7 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#dom-node-normalize
     pub fn Normalize(&mut self) {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1823) implement.
     }
 
     // http://dom.spec.whatwg.org/#dom-node-clonenode
@@ -1500,7 +1501,7 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
     pub fn CompareDocumentPosition(&self, _other: &JS<Node>) -> u16 {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1794) implement.
         0
     }
 
@@ -1514,19 +1515,19 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#dom-node-lookupprefix
     pub fn LookupPrefix(&self, _prefix: Option<DOMString>) -> Option<DOMString> {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1826) implement.
         None
     }
 
     // http://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
     pub fn LookupNamespaceURI(&self, _namespace: Option<DOMString>) -> Option<DOMString> {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1826) implement.
         None
     }
 
     // http://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
     pub fn IsDefaultNamespace(&self, _namespace: Option<DOMString>) -> bool {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1826) implement.
         false
     }
 
