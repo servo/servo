@@ -5262,7 +5262,7 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::codegen::*', #XXXjdm
                           'dom::bindings::codegen::UnionTypes::*', #XXXjdm
                           'dom::bindings::codegen::UnionConversions::*', #XXXjdm
-                          'script_task::{JSPageInfo, page_from_context}',
+                          'script_task::JSPageInfo',
                           'dom::bindings::proxyhandler',
                           'dom::bindings::proxyhandler::*',
                           'servo_util::str::DOMString',

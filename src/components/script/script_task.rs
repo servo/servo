@@ -35,8 +35,7 @@ use geom::size::Size2D;
 use js::JSVAL_NULL;
 use js::global::DEBUG_FNS;
 use js::glue::RUST_JSVAL_TO_OBJECT;
-use js::jsapi::{JSContext, JSObject, JS_InhibitGC, JS_AllowGC};
-use js::jsapi::{JS_CallFunctionValue, JS_GetContextPrivate};
+use js::jsapi::{JSObject, JS_InhibitGC, JS_AllowGC, JS_CallFunctionValue};
 use js::rust::{Compartment, Cx, CxUtils, RtUtils};
 use js;
 use servo_msg::compositor_msg::{FinishedLoading, Loading, PerformingLayout, ScriptListener};
@@ -420,15 +419,7 @@ impl Page {
               Err(()) => fail!("Failed to create a compartment"),
         };
 
-        // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
-        let page_ptr = {
-            let borrowed_page = &*self;
-            borrowed_page as *Page
-        };
-
         unsafe {
-            js_context.borrow().set_cx_private(page_ptr as *());
-
             JS_InhibitGC(js_context.borrow().ptr);
         }
 
@@ -487,13 +478,6 @@ pub struct ScriptTask {
     js_runtime: js::rust::rt,
 
     mouse_over_targets: RefCell<Option<~[JS<Node>]>>
-}
-
-/// Returns the relevant page from the associated JS Context.
-pub fn page_from_context(js_context: *JSContext) -> *Page {
-    unsafe {
-        JS_GetContextPrivate(js_context) as *Page
-    }
 }
 
 impl ScriptTask {
