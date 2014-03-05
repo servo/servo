@@ -840,6 +840,7 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#dom-node-baseuri
     pub fn GetBaseURI(&self) -> Option<DOMString> {
+        // FIXME (#1824) implement.
         None
     }
 
@@ -925,7 +926,7 @@ impl Node {
     // http://dom.spec.whatwg.org/#dom-node-nodevalue
     pub fn SetNodeValue(&mut self, _abstract_self: &JS<Node>, _val: Option<DOMString>)
                         -> ErrorResult {
-        // FIXME: Stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1825) implement.
         Ok(())
     }
 
@@ -1415,7 +1416,7 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#dom-node-normalize
     pub fn Normalize(&mut self) {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1823) implement.
     }
 
     // http://dom.spec.whatwg.org/#dom-node-clonenode
@@ -1500,7 +1501,7 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
     pub fn CompareDocumentPosition(&self, _other: &JS<Node>) -> u16 {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1794) implement.
         0
     }
 
@@ -1514,19 +1515,19 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#dom-node-lookupprefix
     pub fn LookupPrefix(&self, _prefix: Option<DOMString>) -> Option<DOMString> {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1826) implement.
         None
     }
 
     // http://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
     pub fn LookupNamespaceURI(&self, _namespace: Option<DOMString>) -> Option<DOMString> {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1826) implement.
         None
     }
 
     // http://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
     pub fn IsDefaultNamespace(&self, _namespace: Option<DOMString>) -> bool {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1655
+        // FIXME (#1826) implement.
         false
     }
 
