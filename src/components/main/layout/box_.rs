@@ -166,6 +166,10 @@ impl ImageBoxInfo {
         Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0,0)).width)
     }
 
+    // Return used value for width or height.
+    //
+    // `dom_length`: width or height as specified in the `img` tag.
+    // `style_length`: width as given in the CSS
     pub fn style_length(style_length: LengthOrPercentageOrAuto,
                         dom_length: Option<Au>,
                         container_width: Au) -> MaybeAuto {
@@ -1455,6 +1459,7 @@ impl Box {
 
     /// Assigns replaced width for this box only if it is replaced content.
     ///
+    /// This assigns only the width, not margin or anything else.
     /// CSS 2.1 § 10.3.2.
     pub fn assign_replaced_width_if_necessary(&self,container_width: Au) {
         match self.specific {
@@ -1502,8 +1507,10 @@ impl Box {
         }
     }
 
-    /// Assign height for image and scanned text boxes.
-    pub fn assign_height(&self) {
+    /// Assign height for this box if it is replaced content.
+    ///
+    /// Ideally, this should follow CSS 2.1 § 10.6.2
+    pub fn assign_replaced_height_if_necessary(&self) {
         match self.specific {
             GenericBox | IframeBox(_) => {
             }
