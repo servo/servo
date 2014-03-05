@@ -1437,10 +1437,9 @@ impl BlockFlow {
             self.build_display_list_float(builder, container_block_size, dirty, index, lists);
             return index;
         } else if self.is_absolutely_positioned() {
-            self.build_display_list_abs(builder, container_block_size,
+            return self.build_display_list_abs(builder, container_block_size,
                                         absolute_cb_abs_position,
                                         dirty, index, lists);
-            return index;
         }
 
         // FIXME: Shouldn't this be the abs_rect _after_ relative positioning?
@@ -1607,7 +1606,7 @@ impl BlockFlow {
                                  dirty: &Rect<Au>,
                                  mut index: uint,
                                  lists: &RefCell<DisplayListCollection<E>>)
-                                 -> bool {
+                                 -> uint {
         let flow_origin = if self.is_fixed() {
             // The viewport is initially at (0, 0).
             self.base.position.origin
@@ -1629,7 +1628,7 @@ impl BlockFlow {
         self.base.abs_position = flow_origin;
         let abs_rect = Rect(flow_origin, self.base.position.size);
         if !abs_rect.intersects(dirty) {
-            return true;
+            return index;
         }
 
         for box_ in self.box_.iter() {
@@ -1642,7 +1641,7 @@ impl BlockFlow {
             child_base.abs_position = flow_origin + child_base.position.origin;
         }
 
-        false
+        index
     }
 
     /// Return the top outer edge of the Hypothetical Box for an absolute flow.
