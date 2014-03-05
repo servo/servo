@@ -873,6 +873,20 @@ impl Node {
         self.first_child.is_some()
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-childnodes
+    pub fn ChildNodes(&mut self, abstract_self: &JS<Node>) -> JS<NodeList> {
+        match self.child_list {
+            None => {
+                let doc = self.owner_doc();
+                let doc = doc.get();
+                let list = NodeList::new_child_list(&doc.window, abstract_self);
+                self.child_list = Some(list.clone());
+                list
+            }
+            Some(ref list) => list.clone()
+        }
+    }
+
     // http://dom.spec.whatwg.org/#dom-node-firstchild
     pub fn GetFirstChild(&self) -> Option<JS<Node>> {
         self.first_child.clone()
@@ -939,20 +953,6 @@ impl Node {
             DocumentNodeTypeId => {
                 None
             }
-        }
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-childnodes
-    pub fn ChildNodes(&mut self, abstract_self: &JS<Node>) -> JS<NodeList> {
-        match self.child_list {
-            None => {
-                let doc = self.owner_doc();
-                let doc = doc.get();
-                let list = NodeList::new_child_list(&doc.window, abstract_self);
-                self.child_list = Some(list.clone());
-                list
-            }
-            Some(ref list) => list.clone()
         }
     }
 
