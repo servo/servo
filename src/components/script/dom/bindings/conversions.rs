@@ -11,7 +11,7 @@ use js::jsval::{NullValue, BooleanValue, Int32Value, UInt32Value};
 use js::glue::RUST_JS_NumberValue;
 
 pub trait ToJSValConvertible {
-    fn to_jsval(&self) -> JSVal;
+    fn to_jsval(&self, cx: *JSContext) -> JSVal;
 }
 
 pub trait FromJSValConvertible {
@@ -32,7 +32,7 @@ unsafe fn convert_from_jsval<T: Default>(
 
 
 impl ToJSValConvertible for bool {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
         BooleanValue(*self)
     }
 }
@@ -45,7 +45,7 @@ impl FromJSValConvertible for bool {
 }
 
 impl ToJSValConvertible for i8 {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
         Int32Value(*self as i32)
     }
 }
@@ -58,7 +58,7 @@ impl FromJSValConvertible for i8 {
 }
 
 impl ToJSValConvertible for u8 {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
         Int32Value(*self as i32)
     }
 }
@@ -71,7 +71,7 @@ impl FromJSValConvertible for u8 {
 }
 
 impl ToJSValConvertible for i16 {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
         Int32Value(*self as i32)
     }
 }
@@ -84,7 +84,7 @@ impl FromJSValConvertible for i16 {
 }
 
 impl ToJSValConvertible for u16 {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
         Int32Value(*self as i32)
     }
 }
@@ -96,7 +96,7 @@ impl FromJSValConvertible for u16 {
 }
 
 impl ToJSValConvertible for i32 {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
         Int32Value(*self)
     }
 }
@@ -108,7 +108,7 @@ impl FromJSValConvertible for i32 {
 }
 
 impl ToJSValConvertible for u32 {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
         UInt32Value(*self)
     }
 }
@@ -120,7 +120,7 @@ impl FromJSValConvertible for u32 {
 }
 
 impl ToJSValConvertible for i64 {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
         unsafe {
             RUST_JS_NumberValue(*self as f64)
         }
@@ -134,7 +134,7 @@ impl FromJSValConvertible for i64 {
 }
 
 impl ToJSValConvertible for u64 {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
         unsafe {
             RUST_JS_NumberValue(*self as f64)
         }
@@ -148,7 +148,7 @@ impl FromJSValConvertible for u64 {
 }
 
 impl ToJSValConvertible for f32 {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
         unsafe {
             RUST_JS_NumberValue(*self as f64)
         }
@@ -163,7 +163,7 @@ impl FromJSValConvertible for f32 {
 }
 
 impl ToJSValConvertible for f64 {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
         unsafe {
             RUST_JS_NumberValue(*self)
         }
@@ -177,9 +177,9 @@ impl FromJSValConvertible for f64 {
 }
 
 impl<T: ToJSValConvertible> ToJSValConvertible for Option<T> {
-    fn to_jsval(&self) -> JSVal {
+    fn to_jsval(&self, cx: *JSContext) -> JSVal {
         match self {
-            &Some(ref value) => value.to_jsval(),
+            &Some(ref value) => value.to_jsval(cx),
             &None => NullValue(),
         }
     }

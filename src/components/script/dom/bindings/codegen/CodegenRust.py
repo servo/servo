@@ -1582,7 +1582,7 @@ if %(resultStr)s.is_null() {
     if not type.isPrimitive():
         raise TypeError("Need to learn to wrap %s" % type)
 
-    return (setValue("(%s).to_jsval()" % result), True)
+    return (setValue("(%s).to_jsval(cx)" % result), True)
 
 
 def wrapForType(type, descriptorProvider, templateValues):
