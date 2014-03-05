@@ -687,6 +687,13 @@ impl<'a> FlowConstructor<'a> {
 }
 
 impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
+    // Construct Flow based on 'display', 'position', and 'float' values.
+    //
+    // CSS 2.1 Section 9.7
+    //
+    // TODO: This should actually consult the table in that section to get the
+    // final computed value for 'display'.
+    //
     // `#[inline(always)]` because this is always called from the traversal function and for some
     // reason LLVM's inlining heuristics go awry here.
     #[inline(always)]
@@ -718,6 +725,10 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                 }
             }
 
+            // Absolutely positioned elements will have computed value of
+            // `float` as 'none' and `display` as per the table.
+            // Currently, for original `display` value of 'inline', the new
+            // `display` value is 'block'.
             (_, _, position::absolute) | (_, _, position::fixed) => {
                 node.set_flow_construction_result(self.build_flow_for_block(node))
             }
