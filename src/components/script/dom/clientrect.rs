@@ -36,7 +36,7 @@ impl ClientRect {
                top: Au, bottom: Au,
                left: Au, right: Au) -> JS<ClientRect> {
         let rect = ClientRect::new_inherited(window.clone(), top, bottom, left, right);
-        reflect_dom_object(~rect, window.get(), ClientRectBinding::Wrap)
+        reflect_dom_object(~rect, window, ClientRectBinding::Wrap)
     }
 
 

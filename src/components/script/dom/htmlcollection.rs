@@ -32,7 +32,7 @@ impl HTMLCollection {
 
     pub fn new(window: &JS<Window>, elements: ~[JS<Element>]) -> JS<HTMLCollection> {
         reflect_dom_object(~HTMLCollection::new_inherited(window.clone(), elements),
-                           window.get(), HTMLCollectionBinding::Wrap)
+                           window, HTMLCollectionBinding::Wrap)
     }
     
     pub fn Length(&self) -> u32 {

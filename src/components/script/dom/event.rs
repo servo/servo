@@ -77,7 +77,7 @@ impl Event {
 
     pub fn new(window: &JS<Window>) -> JS<Event> {
         reflect_dom_object(~Event::new_inherited(HTMLEventTypeId),
-                           window.get(),
+                           window,
                            EventBinding::Wrap)
     }
 

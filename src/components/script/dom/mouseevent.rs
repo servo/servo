@@ -54,7 +54,7 @@ impl MouseEvent {
 
     pub fn new(window: &JS<Window>) -> JS<MouseEvent> {
         reflect_dom_object(~MouseEvent::new_inherited(),
-                           window.get(),
+                           window,
                            MouseEventBinding::Wrap)
     }
 

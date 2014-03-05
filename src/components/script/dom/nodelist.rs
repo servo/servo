@@ -31,18 +31,18 @@ impl NodeList {
         }
     }
 
-    pub fn new(window: JS<Window>,
+    pub fn new(window: &JS<Window>,
                list_type: NodeListType) -> JS<NodeList> {
         reflect_dom_object(~NodeList::new_inherited(window.clone(), list_type),
-                           window.get(), NodeListBinding::Wrap)
+                           window, NodeListBinding::Wrap)
     }
 
     pub fn new_simple_list(window: &JS<Window>, elements: ~[JS<Node>]) -> JS<NodeList> {
-        NodeList::new(window.clone(), Simple(elements))
+        NodeList::new(window, Simple(elements))
     }
 
     pub fn new_child_list(window: &JS<Window>, node: &JS<Node>) -> JS<NodeList> {
-        NodeList::new(window.clone(), Children(node.clone()))
+        NodeList::new(window, Children(node.clone()))
     }
 
     pub fn Length(&self) -> u32 {

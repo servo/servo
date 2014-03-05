@@ -38,7 +38,7 @@ impl FormData {
     }
 
     pub fn new(form: Option<JS<HTMLFormElement>>, window: &JS<Window>) -> JS<FormData> {
-        reflect_dom_object(~FormData::new_inherited(form, window.clone()), window.get(), FormDataBinding::Wrap)
+        reflect_dom_object(~FormData::new_inherited(form, window.clone()), window, FormDataBinding::Wrap)
     }
 
     pub fn Constructor(window: &JS<Window>, form: Option<JS<HTMLFormElement>>)
