@@ -956,6 +956,41 @@ impl Node {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-node-textcontent
+    pub fn SetTextContent(&mut self, abstract_self: &mut JS<Node>, value: Option<DOMString>)
+                          -> ErrorResult {
+        let value = null_str_as_empty(&value);
+        match self.type_id {
+            DocumentFragmentNodeTypeId |
+            ElementNodeTypeId(..) => {
+                // Step 1-2.
+                let node = if value.len() == 0 {
+                    None
+                } else {
+                    let document = self.owner_doc();
+                    Some(NodeCast::from(&document.get().CreateTextNode(&document, value)))
+                };
+                // Step 3.
+                Node::replace_all(node, abstract_self);
+            }
+            CommentNodeTypeId |
+            TextNodeTypeId |
+            ProcessingInstructionNodeTypeId => {
+                self.wait_until_safe_to_modify_dom();
+
+                let mut characterdata: JS<CharacterData> = CharacterDataCast::to(abstract_self);
+                characterdata.get_mut().data = value.clone();
+
+                // Notify the document that the content of this node is different
+                let document = self.owner_doc();
+                document.get().content_changed();
+            }
+            DoctypeNodeTypeId |
+            DocumentNodeTypeId => {}
+        }
+        Ok(())
+    }
+
     // http://dom.spec.whatwg.org/#concept-node-adopt
     fn adopt(node: &mut JS<Node>, document: &JS<Document>) {
         // Step 1.
@@ -1225,41 +1260,6 @@ impl Node {
             Suppressed => (),
             Unsuppressed => node.node_removed(),
         }
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-textcontent
-    pub fn SetTextContent(&mut self, abstract_self: &mut JS<Node>, value: Option<DOMString>)
-                          -> ErrorResult {
-        let value = null_str_as_empty(&value);
-        match self.type_id {
-            DocumentFragmentNodeTypeId |
-            ElementNodeTypeId(..) => {
-                // Step 1-2.
-                let node = if value.len() == 0 {
-                    None
-                } else {
-                    let document = self.owner_doc();
-                    Some(NodeCast::from(&document.get().CreateTextNode(&document, value)))
-                };
-                // Step 3.
-                Node::replace_all(node, abstract_self);
-            }
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId => {
-                self.wait_until_safe_to_modify_dom();
-
-                let mut characterdata: JS<CharacterData> = CharacterDataCast::to(abstract_self);
-                characterdata.get_mut().data = value.clone();
-
-                // Notify the document that the content of this node is different
-                let document = self.owner_doc();
-                document.get().content_changed();
-            }
-            DoctypeNodeTypeId |
-            DocumentNodeTypeId => {}
-        }
-        Ok(())
     }
 
     // http://dom.spec.whatwg.org/#dom-node-insertbefore
