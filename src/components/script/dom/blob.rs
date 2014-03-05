@@ -25,7 +25,7 @@ impl Blob {
 
     pub fn new(window: &JS<Window>) -> JS<Blob> {
         reflect_dom_object(~Blob::new_inherited(window.clone()),
-                           window.get(),
+                           window,
                            BlobBinding::Wrap)
     }
 }

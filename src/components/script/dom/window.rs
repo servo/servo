@@ -29,7 +29,6 @@ use std::comm::Select;
 use std::hashmap::HashSet;
 use std::io::timer::Timer;
 use std::num;
-use std::ptr;
 use std::rc::Rc;
 use std::to_bytes::Cb;
 
@@ -176,23 +175,23 @@ impl Window {
         None
     }
 
-    pub fn Location(&mut self) -> JS<Location> {
+    pub fn Location(&mut self, abstract_self: &JS<Window>) -> JS<Location> {
         if self.location.is_none() {
-            self.location = Some(Location::new(self, self.extra.page.clone()));
+            self.location = Some(Location::new(abstract_self, self.extra.page.clone()));
         }
         self.location.get_ref().clone()
     }
 
-    pub fn Console(&mut self) -> JS<Console> {
+    pub fn Console(&mut self, abstract_self: &JS<Window>) -> JS<Console> {
         if self.console.is_none() {
-            self.console = Some(Console::new(self));
+            self.console = Some(Console::new(abstract_self));
         }
         self.console.get_ref().clone()
     }
 
-    pub fn Navigator(&mut self) -> JS<Navigator> {
+    pub fn Navigator(&mut self, abstract_self: &JS<Window>) -> JS<Navigator> {
         if self.navigator.is_none() {
-            self.navigator = Some(Navigator::new(self));
+            self.navigator = Some(Navigator::new(abstract_self));
         }
         self.navigator.get_ref().clone()
     }
@@ -311,7 +310,7 @@ impl Window {
         };
 
         let raw: *mut Window = &mut *win;
-        let global = WindowBinding::Wrap(cx, ptr::null(), win);
+        let global = WindowBinding::Wrap(cx, win);
         assert!(global.is_not_null());
         unsafe {
             let fn_names = ["window","self"];

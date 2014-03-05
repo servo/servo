@@ -37,7 +37,7 @@ impl UIEvent {
 
     pub fn new(window: &JS<Window>) -> JS<UIEvent> {
         reflect_dom_object(~UIEvent::new_inherited(UIEventTypeId),
-                           window.get(),
+                           window,
                            UIEventBinding::Wrap)
     }
 

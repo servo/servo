@@ -28,7 +28,7 @@ impl ClientRectList {
     pub fn new(window: &JS<Window>,
                rects: ~[JS<ClientRect>]) -> JS<ClientRectList> {
         reflect_dom_object(~ClientRectList::new_inherited(window.clone(), rects),
-                           window.get(), ClientRectListBinding::Wrap)
+                           window, ClientRectListBinding::Wrap)
     }
 
     pub fn Length(&self) -> u32 {

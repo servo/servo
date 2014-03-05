@@ -43,18 +43,18 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &Window, local_name: DOMString, value: DOMString) -> JS<Attr> {
+    pub fn new(window: &JS<Window>, local_name: DOMString, value: DOMString) -> JS<Attr> {
         let name = local_name.clone();
         Attr::new_helper(window, local_name, value, name, Null, None)
     }
 
-    pub fn new_ns(window: &Window, local_name: DOMString, value: DOMString,
+    pub fn new_ns(window: &JS<Window>, local_name: DOMString, value: DOMString,
                   name: DOMString, namespace: Namespace,
                   prefix: Option<DOMString>) -> JS<Attr> {
         Attr::new_helper(window, local_name, value, name, namespace, prefix)
     }
 
-    fn new_helper(window: &Window, local_name: DOMString, value: DOMString,
+    fn new_helper(window: &JS<Window>, local_name: DOMString, value: DOMString,
                   name: DOMString, namespace: Namespace,
                   prefix: Option<DOMString>) -> JS<Attr> {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix);

@@ -754,10 +754,10 @@ impl Node {
     pub fn reflect_node<N: Reflectable+NodeBase>
             (node:      ~N,
              document:  &JS<Document>,
-             wrap_fn:   extern "Rust" fn(*JSContext, *JSObject, ~N) -> *JSObject)
+             wrap_fn:   extern "Rust" fn(*JSContext, &JS<Window>, ~N) -> *JSObject)
              -> JS<N> {
         assert!(node.reflector().get_jsobject().is_null());
-        let node = reflect_dom_object(node, document.get().window.get(), wrap_fn);
+        let node = reflect_dom_object(node, &document.get().window, wrap_fn);
         assert!(node.reflector().get_jsobject().is_not_null());
         node
     }

@@ -20,7 +20,7 @@ impl Console {
         }
     }
 
-    pub fn new(window: &Window) -> JS<Console> {
+    pub fn new(window: &JS<Window>) -> JS<Console> {
         reflect_dom_object(~Console::new_inherited(), window, ConsoleBinding::Wrap)
     }
 

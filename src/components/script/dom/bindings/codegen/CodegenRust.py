@@ -2569,8 +2569,7 @@ def CreateBindingJSObject(descriptor, parent=None):
     if descriptor.proxy:
         assert not descriptor.createGlobal
         handler = """
-  let page = page_from_context(aCx);
-  let mut js_info = (*page).js_info();
+  let js_info = aScope.get().page().js_info();
   let handler = js_info.get().get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
         create += handler + """  let obj = NewProxyObject(aCx, *handler,
@@ -2596,21 +2595,26 @@ def CreateBindingJSObject(descriptor, parent=None):
 """
     return create
 
-class CGWrapWithCacheMethod(CGAbstractMethod):
+class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
-        args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
-        CGAbstractMethod.__init__(self, descriptor, 'Wrap_', '*JSObject', args)
+        if not descriptor.createGlobal:
+            args = [Argument('*JSContext', 'aCx'), Argument('&JS<Window>', 'aScope'),
+                    Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
+        else:
+            args = [Argument('*JSContext', 'aCx'),
+                    Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
+        CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, pub=True)
 
     def definition_body(self):
         if not self.descriptor.createGlobal:
             return """
-  assert!(aScope.is_not_null());
-  assert!(((*JS_GetClass(aScope)).flags & JSCLASS_IS_GLOBAL) != 0);
+  let scope = aScope.reflector().get_jsobject();
+  assert!(scope.is_not_null());
+  assert!(((*JS_GetClass(scope)).flags & JSCLASS_IS_GLOBAL) != 0);
 
-  //JSAutoCompartment ac(aCx, aScope);
-  let proto = GetProtoObject(aCx, aScope, aScope);
+  //JSAutoCompartment ac(aCx, scope);
+  let proto = GetProtoObject(aCx, scope, scope);
   if proto.is_null() {
     return ptr::null();
   }
@@ -2619,27 +2623,14 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
 
   (*raw).mut_reflector().set_jsobject(obj);
 
-  return obj;""" % CreateBindingJSObject(self.descriptor, "aScope")
+  return obj;""" % CreateBindingJSObject(self.descriptor, "scope")
         else:
             return """
-  assert!(aScope.is_null());
-
 %s
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);
   (*raw).mut_reflector().set_jsobject(obj);
   return obj;""" % CreateBindingJSObject(self.descriptor)
-
-class CGWrapMethod(CGAbstractMethod):
-    def __init__(self, descriptor):
-        # XXX can we wrap if we don't have an interface prototype object?
-        assert descriptor.interface.hasInterfacePrototypeObject()
-        args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
-        CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, inline=True, pub=True)
-
-    def definition_body(self):
-        return "return Wrap_(aCx, aScope, aObject);"
 
 class CGAbstractExternMethod(CGAbstractMethod):
     """
@@ -4929,7 +4920,6 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGDOMJSClass(descriptor))
                 pass
 
-            cgThings.append(CGWrapWithCacheMethod(descriptor))
             cgThings.append(CGWrapMethod(descriptor))
 
         cgThings = CGList((CGIndenter(t, declareOnly=True) for t in cgThings), "\n")
