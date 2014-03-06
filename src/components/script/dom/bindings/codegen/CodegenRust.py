@@ -1249,39 +1249,36 @@ for (uint32_t i = 0; i < length; ++i) {
         "}" % (successVal, failureCode))
 
     if type.nullable():
-        if defaultValue is not None and isinstance(defaultValue, IDLNullValue):
+        declType = CGGeneric("Option<" + typeName + ">")
+    else:
+        declType = CGGeneric(typeName)
+
+    if defaultValue is not None:
+        if isinstance(defaultValue, IDLNullValue):
+            assert type.nullable()
             template = CGWrapper(CGIndenter(CGGeneric(template)),
                                  pre="if ${haveValue} {\n",
                                  post=("\n"
                                        "} else {\n"
                                        "  ${declName} = None;\n"
                                        "}")).define()
-
-        declType = CGGeneric("Option<" + typeName + ">")
-    else:
-        assert(defaultValue is None or
-               not isinstance(defaultValue, IDLNullValue))
-        declType = CGGeneric(typeName)
-
-    if (defaultValue is not None and
-        # We already handled IDLNullValue, so just deal with the other ones
-        not isinstance(defaultValue, IDLNullValue)):
-        tag = defaultValue.type.tag()
-        if tag in numericTags:
-            defaultStr = defaultValue.value
         else:
-            assert(tag == IDLType.Tags.bool)
-            defaultStr = toStringBool(defaultValue.value)
+            tag = defaultValue.type.tag()
+            if tag in numericTags:
+                defaultStr = defaultValue.value
+            else:
+                assert(tag == IDLType.Tags.bool)
+                defaultStr = toStringBool(defaultValue.value)
 
-        if type.nullable():
-            defaultStr = "Some(%s)" % defaultStr
+            if type.nullable():
+                defaultStr = "Some(%s)" % defaultStr
 
-        template = CGWrapper(CGIndenter(CGGeneric(template)),
-                             pre="if ${haveValue} {\n",
-                             post=("\n"
-                                   "} else {\n"
-                                   "  ${declName} = %s;\n"
-                                   "}" % defaultStr)).define()
+            template = CGWrapper(CGIndenter(CGGeneric(template)),
+                                 pre="if ${haveValue} {\n",
+                                 post=("\n"
+                                       "} else {\n"
+                                       "  ${declName} = %s;\n"
+                                       "}" % defaultStr)).define()
 
     initialVal = "false" if typeName == "bool" else ("0 as %s" % typeName)
     if type.nullable():
