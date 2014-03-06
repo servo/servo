@@ -1274,6 +1274,10 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             assert(tag == IDLType.Tags.bool)
             defaultStr = toStringBool(defaultValue.value)
+
+        if type.nullable():
+            defaultStr = "Some(%s)" % defaultStr
+
         template = CGWrapper(CGIndenter(CGGeneric(template)),
                              pre="if ${haveValue} {\n",
                              post=("\n"
