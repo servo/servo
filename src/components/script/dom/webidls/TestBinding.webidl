@@ -82,4 +82,17 @@ interface TestBinding {
   void passOptionalNullableUnsignedLongLongWithDefault(optional unsigned long long? arg = null);
   // void passOptionalNullableStringWithDefault(optional DOMString? arg = null);
   void passOptionalNullableInterfaceWithDefault(optional Blob? arg = null);
+
+  void passOptionalNullableBooleanWithNonNullDefault(optional boolean? arg = false);
+  void passOptionalNullableByteWithNonNullDefault(optional byte? arg = 7);
+  void passOptionalNullableOctetWithNonNullDefault(optional octet? arg = 7);
+  void passOptionalNullableShortWithNonNullDefault(optional short? arg = 7);
+  void passOptionalNullableUnsignedShortWithNonNullDefault(optional unsigned short? arg = 7);
+  void passOptionalNullableLongWithNonNullDefault(optional long? arg = 7);
+  void passOptionalNullableUnsignedLongWithNonNullDefault(optional unsigned long? arg = 7);
+  void passOptionalNullableLongLongWithNonNullDefault(optional long long? arg = 7);
+  void passOptionalNullableUnsignedLongLongWithNonNullDefault(optional unsigned long long? arg = 7);
+  // void passOptionalNullableFloatWithNonNullDefault(optional float? arg = 0.0);
+  // void passOptionalNullableDoubleWithNonNullDefault(optional double? arg = 0.0);
+  void passOptionalNullableStringWithNonNullDefault(optional DOMString? arg = "");
 };

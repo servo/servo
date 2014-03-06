@@ -122,6 +122,19 @@ impl TestBinding {
     pub fn PassOptionalNullableDoubleWithDefault(&self, _: Option<f64>) {}
     // pub fn PassOptionalNullableStringWithDefault(&self, _: Option<DOMString>) {}
     pub fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<JS<Blob>>) {}
+
+    pub fn PassOptionalNullableBooleanWithNonNullDefault(&self, _: Option<bool>) {}
+    pub fn PassOptionalNullableByteWithNonNullDefault(&self, _: Option<i8>) {}
+    pub fn PassOptionalNullableOctetWithNonNullDefault(&self, _: Option<u8>) {}
+    pub fn PassOptionalNullableShortWithNonNullDefault(&self, _: Option<i16>) {}
+    pub fn PassOptionalNullableUnsignedShortWithNonNullDefault(&self, _: Option<u16>) {}
+    pub fn PassOptionalNullableLongWithNonNullDefault(&self, _: Option<i32>) {}
+    pub fn PassOptionalNullableUnsignedLongWithNonNullDefault(&self, _: Option<u32>) {}
+    pub fn PassOptionalNullableLongLongWithNonNullDefault(&self, _: Option<i64>) {}
+    pub fn PassOptionalNullableUnsignedLongLongWithNonNullDefault(&self, _: Option<u64>) {}
+    // pub fn PassOptionalNullableFloatWithNonNullDefault(&self, _: Option<f32>) {}
+    // pub fn PassOptionalNullableDoubleWithNonNullDefault(&self, _: Option<f64>) {}
+    pub fn PassOptionalNullableStringWithNonNullDefault(&self, _: Option<DOMString>) {}
 }
 
 impl Reflectable for TestBinding {
