@@ -1238,17 +1238,17 @@ for (uint32_t i = 0; i < length; ++i) {
     if failureCode is None:
         failureCode = 'return 0'
 
-    if type.nullable():
-        successVal = "v"
-        if preSuccess or postSuccess:
-            successVal = preSuccess + successVal + postSuccess
-        #XXXjdm support conversionBehavior here
-        template = (
-            "match JSValConvertible::from_jsval(cx, ${val}) {\n"
-            "  Ok(v) => ${declName} = %s,\n"
-            "  Err(_) => %s\n"
-            "}" % (successVal, failureCode))
+    successVal = "v"
+    if preSuccess or postSuccess:
+        successVal = preSuccess + successVal + postSuccess
+    #XXXjdm support conversionBehavior here
+    template = (
+        "match JSValConvertible::from_jsval(cx, ${val}) {\n"
+        "  Ok(v) => ${declName} = %s,\n"
+        "  Err(_) => %s\n"
+        "}" % (successVal, failureCode))
 
+    if type.nullable():
         if defaultValue is not None and isinstance(defaultValue, IDLNullValue):
             template = CGWrapper(CGIndenter(CGGeneric(template)),
                                  pre="if ${haveValue} {\n",
@@ -1261,16 +1261,8 @@ for (uint32_t i = 0; i < length; ++i) {
     else:
         assert(defaultValue is None or
                not isinstance(defaultValue, IDLNullValue))
-        #XXXjdm conversionBehavior should be used
-        successVal = "v"
-        if preSuccess or postSuccess:
-            successVal = preSuccess + successVal + postSuccess
-        template = (
-            "match JSValConvertible::from_jsval(cx, ${val}) {\n"
-            "  Err(_) => %s,\n"
-            "  Ok(v) => ${declName} = %s\n"
-            "}" % (failureCode, successVal))
         declType = CGGeneric(typeName)
+
     if (defaultValue is not None and
         # We already handled IDLNullValue, so just deal with the other ones
         not isinstance(defaultValue, IDLNullValue)):
