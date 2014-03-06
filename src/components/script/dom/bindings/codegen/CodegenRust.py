@@ -1255,7 +1255,6 @@ for (uint32_t i = 0; i < length; ++i) {
     else:
         assert(defaultValue is None or
                not isinstance(defaultValue, IDLNullValue))
-        dataLoc = "${declName}"
         #XXXjdm conversionBehavior should be used
         successVal = "v"
         if preSuccess or postSuccess:
@@ -1263,8 +1262,8 @@ for (uint32_t i = 0; i < length; ++i) {
         template = (
             "match JSValConvertible::from_jsval(cx, ${val}) {\n"
             "  Err(_) => %s,\n"
-            "  Ok(v) => %s = %s\n"
-            "}" % (failureCode, dataLoc, successVal))
+            "  Ok(v) => ${declName} = %s\n"
+            "}" % (failureCode, successVal))
         declType = CGGeneric(typeName)
     if (defaultValue is not None and
         # We already handled IDLNullValue, so just deal with the other ones
@@ -1279,8 +1278,8 @@ for (uint32_t i = 0; i < length; ++i) {
                              pre="if ${haveValue} {\n",
                              post=("\n"
                                    "} else {\n"
-                                   "  %s = %s;\n"
-                                   "}" % (dataLoc, defaultStr))).define()
+                                   "  ${declName} = %s;\n"
+                                   "}" % defaultStr)).define()
 
     initialVal = "false" if typeName == "bool" else ("0 as %s" % typeName)
     if type.nullable():
