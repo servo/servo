@@ -43,6 +43,19 @@ interface TestBinding {
   // void passOptionalDouble(optional double arg);
   void passOptionalString(optional DOMString arg);
 
+  // void passOptionalNullableBoolean(optional boolean? arg);
+  // void passOptionalNullableByte(optional byte? arg);
+  // void passOptionalNullableOctet(optional octet? arg);
+  // void passOptionalNullableShort(optional short? arg);
+  // void passOptionalNullableUnsignedShort(optional unsigned short? arg);
+  // void passOptionalNullableLong(optional long? arg);
+  // void passOptionalNullableUnsignedLong(optional unsigned long? arg);
+  // void passOptionalNullableLongLong(optional long long? arg);
+  // void passOptionalNullableUnsignedLongLong(optional unsigned long long? arg);
+  // void passOptionalNullableFloat(optional float? arg);
+  // void passOptionalNullableDouble(optional double? arg);
+  void passOptionalNullableString(optional DOMString? arg);
+
   void passOptionalBooleanWithDefault(optional boolean arg = false);
   void passOptionalByteWithDefault(optional byte arg = 0);
   void passOptionalOctetWithDefault(optional octet arg = 19);

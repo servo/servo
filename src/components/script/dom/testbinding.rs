@@ -75,6 +75,19 @@ impl TestBinding {
     // pub fn PassOptionalDouble(&self, _: Option<f64>) {}
     pub fn PassOptionalString(&self, _: Option<DOMString>) {}
 
+    // pub fn PassOptionalNullableBoolean(&self, _: Option<Option<bool>>) {}
+    // pub fn PassOptionalNullableByte(&self, _: Option<Option<i8>>) {}
+    // pub fn PassOptionalNullableOctet(&self, _: Option<Option<u8>>) {}
+    // pub fn PassOptionalNullableShort(&self, _: Option<Option<i16>>) {}
+    // pub fn PassOptionalNullableUnsignedShort(&self, _: Option<Option<u16>>) {}
+    // pub fn PassOptionalNullableLong(&self, _: Option<Option<i32>>) {}
+    // pub fn PassOptionalNullableUnsignedLong(&self, _: Option<Option<u32>>) {}
+    // pub fn PassOptionalNullableLongLong(&self, _: Option<Option<i64>>) {}
+    // pub fn PassOptionalNullableUnsignedLongLong(&self, _: Option<Option<u64>>) {}
+    // pub fn PassOptionalNullableFloat(&self, _: Option<Option<f32>>) {}
+    // pub fn PassOptionalNullableDouble(&self, _: Option<Option<f64>>) {}
+    pub fn PassOptionalNullableString(&self, _: Option<Option<DOMString>>) {}
+
     pub fn PassOptionalBooleanWithDefault(&self, _: bool) {}
     pub fn PassOptionalByteWithDefault(&self, _: i8) {}
     pub fn PassOptionalOctetWithDefault(&self, _: u8) {}
