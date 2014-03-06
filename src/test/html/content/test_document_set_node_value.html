@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <script src="harness.js"></script>
+  <body>
+    <div id="div" class="div-class">A</div>
+    <p>P</p>
+    <script>
+      is(document.nodeValue, null);
+      var div = document.getElementById("div");
+      is(div.nodeValue, null);
+      is(div.firstChild.nodeValue, "A");
+      div.firstChild.nodeValue = "B";
+      is(div.firstChild.nodeValue, "B");
+      var commentNode = document.createComment("comment node");
+      is(commentNode.nodeValue, "comment node");
+      finish();
+    </script>
+  </body>
+</html>
