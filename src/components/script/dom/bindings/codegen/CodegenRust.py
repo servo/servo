@@ -1063,13 +1063,19 @@ for (uint32_t i = 0; i < length; ++i) {
                 assert(type.nullable())
                 return handleDefault(conversionCode,
                                      "%s.SetNull()" % varName)
-            return handleDefault(
-                conversionCode,
-                ("static data: [u8, ..%s] = [ %s ];\n"
-                 "%s = str::from_utf8(data).to_owned()" %
-                 (len(defaultValue.value) + 1,
-                  ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
-                  varName)))
+
+            value = "str::from_utf8(data).to_owned()"
+            if type.nullable():
+                value = "Some(%s)" % value
+
+            default = (
+                "static data: [u8, ..%s] = [ %s ];\n"
+                "%s = %s" %
+                (len(defaultValue.value) + 1,
+                 ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
+                 varName, value))
+
+            return handleDefault(conversionCode, default)
 
         if isMember:
             # We have to make a copy, because our jsval may well not

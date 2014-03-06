@@ -94,5 +94,5 @@ interface TestBinding {
   void passOptionalNullableUnsignedLongLongWithNonNullDefault(optional unsigned long long? arg = 7);
   // void passOptionalNullableFloatWithNonNullDefault(optional float? arg = 0.0);
   // void passOptionalNullableDoubleWithNonNullDefault(optional double? arg = 0.0);
-  // void passOptionalNullableStringWithNonNullDefault(optional DOMString? arg = "");
+  void passOptionalNullableStringWithNonNullDefault(optional DOMString? arg = "");
 };

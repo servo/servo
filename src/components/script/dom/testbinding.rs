@@ -134,7 +134,7 @@ impl TestBinding {
     pub fn PassOptionalNullableUnsignedLongLongWithNonNullDefault(&self, _: Option<u64>) {}
     // pub fn PassOptionalNullableFloatWithNonNullDefault(&self, _: Option<f32>) {}
     // pub fn PassOptionalNullableDoubleWithNonNullDefault(&self, _: Option<f64>) {}
-    // pub fn PassOptionalNullableStringWithNonNullDefault(&self, _: Option<DOMString>) {}
+    pub fn PassOptionalNullableStringWithNonNullDefault(&self, _: Option<DOMString>) {}
 }
 
 impl Reflectable for TestBinding {
