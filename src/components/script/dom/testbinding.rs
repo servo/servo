@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Reflector, Reflectable};
+use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct TestBinding {
@@ -32,6 +33,8 @@ impl TestBinding {
     pub fn SetFloatAttribute(&self, _: f32) {}
     pub fn DoubleAttribute(&self) -> f64 { 0. }
     pub fn SetDoubleAttribute(&self, _: f64) {}
+    pub fn StringAttribute(&self) -> DOMString { ~"" }
+    pub fn SetStringAttribute(&self, _: DOMString) {}
 
     pub fn GetBooleanAttributeNullable(&self) -> Option<bool> { Some(false) }
     pub fn SetBooleanAttributeNullable(&self, _: Option<bool>) {}
@@ -55,6 +58,8 @@ impl TestBinding {
     pub fn SetFloatAttributeNullable(&self, _: Option<f32>) {}
     pub fn GetDoubleAttributeNullable(&self) -> Option<f64> { Some(0.) }
     pub fn SetDoubleAttributeNullable(&self, _: Option<f64>) {}
+    pub fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some(~"") }
+    pub fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
 
     // FIXME (issue #1813) Doesn't currently compile.
     // pub fn PassOptionalBoolean(&self, _: Option<bool>) {}
@@ -68,6 +73,7 @@ impl TestBinding {
     // pub fn PassOptionalUnsignedLongLong(&self, _: Option<u64>) {}
     // pub fn PassOptionalFloat(&self, _: Option<f32>) {}
     // pub fn PassOptionalDouble(&self, _: Option<f64>) {}
+    pub fn PassOptionalString(&self, _: Option<DOMString>) {}
 
     pub fn PassOptionalBooleanWithDefault(&self, _: bool) {}
     pub fn PassOptionalByteWithDefault(&self, _: i8) {}
@@ -78,6 +84,7 @@ impl TestBinding {
     pub fn PassOptionalUnsignedLongWithDefault(&self, _: u32) {}
     pub fn PassOptionalLongLongWithDefault(&self, _: i64) {}
     pub fn PassOptionalUnsignedLongLongWithDefault(&self, _: u64) {}
+    pub fn PassOptionalStringWithDefault(&self, _: DOMString) {}
 
     pub fn PassOptionalNullableBooleanWithDefault(&self, _: Option<bool>) {}
     pub fn PassOptionalNullableByteWithDefault(&self, _: Option<i8>) {}
@@ -90,6 +97,7 @@ impl TestBinding {
     pub fn PassOptionalNullableUnsignedLongLongWithDefault(&self, _: Option<u64>) {}
     pub fn PassOptionalNullableFloatWithDefault(&self, _: Option<f32>) {}
     pub fn PassOptionalNullableDoubleWithDefault(&self, _: Option<f64>) {}
+    // pub fn PassOptionalNullableStringWithDefault(&self, _: Option<DOMString>) {}
 }
 
 impl Reflectable for TestBinding {

@@ -14,6 +14,7 @@ interface TestBinding {
            attribute unsigned long long unsignedLongLongAttribute;
            attribute float floatAttribute;
            attribute double doubleAttribute;
+           attribute DOMString stringAttribute;
 
            attribute boolean? booleanAttributeNullable;
            attribute byte? byteAttributeNullable;
@@ -26,6 +27,7 @@ interface TestBinding {
            attribute unsigned long long? unsignedLongLongAttributeNullable;
            attribute float? floatAttributeNullable;
            attribute double? doubleAttributeNullable;
+           attribute DOMString? stringAttributeNullable;
 
   // FIXME (issue #1813) Doesn't currently compile.
   // void passOptionalBoolean(optional boolean arg);
@@ -39,6 +41,7 @@ interface TestBinding {
   // void passOptionalUnsignedLongLong(optional unsigned long long arg);
   // void passOptionalFloat(optional float arg);
   // void passOptionalDouble(optional double arg);
+  void passOptionalString(optional DOMString arg);
 
   void passOptionalBooleanWithDefault(optional boolean arg = false);
   void passOptionalByteWithDefault(optional byte arg = 0);
@@ -49,6 +52,7 @@ interface TestBinding {
   void passOptionalUnsignedLongWithDefault(optional unsigned long arg = 6);
   void passOptionalLongLongWithDefault(optional long long arg = -12);
   void passOptionalUnsignedLongLongWithDefault(optional unsigned long long arg = 17);
+  void passOptionalStringWithDefault(optional DOMString arg = "");
 
   void passOptionalNullableBooleanWithDefault(optional boolean? arg = null);
   void passOptionalNullableByteWithDefault(optional byte? arg = null);
@@ -59,4 +63,5 @@ interface TestBinding {
   void passOptionalNullableUnsignedLongWithDefault(optional unsigned long? arg = null);
   void passOptionalNullableLongLongWithDefault(optional long long? arg = null);
   void passOptionalNullableUnsignedLongLongWithDefault(optional unsigned long long? arg = null);
+  // void passOptionalNullableStringWithDefault(optional DOMString? arg = null);
 };
