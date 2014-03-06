@@ -1063,13 +1063,19 @@ for (uint32_t i = 0; i < length; ++i) {
                 assert(type.nullable())
                 return handleDefault(conversionCode,
                                      "%s.SetNull()" % varName)
-            return handleDefault(
-                conversionCode,
-                ("static data: [u8, ..%s] = [ %s ];\n"
-                 "%s = str::from_utf8(data).to_owned()" %
-                 (len(defaultValue.value) + 1,
-                  ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
-                  varName)))
+
+            value = "str::from_utf8(data).to_owned()"
+            if type.nullable():
+                value = "Some(%s)" % value
+
+            default = (
+                "static data: [u8, ..%s] = [ %s ];\n"
+                "%s = %s" %
+                (len(defaultValue.value) + 1,
+                 ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
+                 varName, value))
+
+            return handleDefault(conversionCode, default)
 
         if isMember:
             # We have to make a copy, because our jsval may well not
@@ -1255,7 +1261,6 @@ for (uint32_t i = 0; i < length; ++i) {
     else:
         assert(defaultValue is None or
                not isinstance(defaultValue, IDLNullValue))
-        dataLoc = "${declName}"
         #XXXjdm conversionBehavior should be used
         successVal = "v"
         if preSuccess or postSuccess:
@@ -1263,8 +1268,8 @@ for (uint32_t i = 0; i < length; ++i) {
         template = (
             "match JSValConvertible::from_jsval(cx, ${val}) {\n"
             "  Err(_) => %s,\n"
-            "  Ok(v) => %s = %s\n"
-            "}" % (failureCode, dataLoc, successVal))
+            "  Ok(v) => ${declName} = %s\n"
+            "}" % (failureCode, successVal))
         declType = CGGeneric(typeName)
     if (defaultValue is not None and
         # We already handled IDLNullValue, so just deal with the other ones
@@ -1275,12 +1280,16 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             assert(tag == IDLType.Tags.bool)
             defaultStr = toStringBool(defaultValue.value)
+
+        if type.nullable():
+            defaultStr = "Some(%s)" % defaultStr
+
         template = CGWrapper(CGIndenter(CGGeneric(template)),
                              pre="if ${haveValue} {\n",
                              post=("\n"
                                    "} else {\n"
-                                   "  %s = %s;\n"
-                                   "}" % (dataLoc, defaultStr))).define()
+                                   "  ${declName} = %s;\n"
+                                   "}" % defaultStr)).define()
 
     initialVal = "false" if typeName == "bool" else ("0 as %s" % typeName)
     if type.nullable():
