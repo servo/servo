@@ -42,6 +42,7 @@ impl HTMLDataListElement {
 
 impl HTMLDataListElement {
     pub fn Options(&self) -> JS<HTMLCollection> {
+        // FIXME: stub
         let doc = self.htmlelement.element.node.owner_doc();
         let doc = doc.get();
         HTMLCollection::new(&doc.window, ~[])

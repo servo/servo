@@ -370,6 +370,11 @@ impl Element {
             _ => false
         }
     }
+
+    pub fn has_class(&self, name: &str) -> bool {
+        let classes = self.get_string_attribute("class");
+        classes.split(' ').any(|class| name == class)
+    }
 }
 
 // http://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
@@ -503,25 +508,35 @@ impl Element {
         self.GetAttributeNS(namespace, local_name).is_some()
     }
 
-    // http://dom.spec.whatwg.org/#dom-element-getelementsbytagname
-    pub fn GetElementsByTagName(&self, _localname: DOMString) -> JS<HTMLCollection> {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1660
+    pub fn GetElementsByTagName(&self, abstract_self: &JS<Element>, localname: DOMString) -> JS<HTMLCollection> {
         let doc = self.node.owner_doc();
-        HTMLCollection::new(&doc.get().window, ~[])
+        let doc = doc.get();
+        let tag_name = match self.html_element_in_html_document() {
+            true => localname.to_ascii_lower(),
+            false => localname
+        };
+        HTMLCollection::by_tag_name(&doc.window, &NodeCast::from(abstract_self), tag_name)
     }
 
-    // http://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
-    pub fn GetElementsByTagNameNS(&self, _namespace: Option<DOMString>, _localname: DOMString) -> Fallible<JS<HTMLCollection>> {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1660
+    pub fn GetElementsByTagNameNS(&self, abstract_self: &JS<Element>, maybe_ns: Option<DOMString>,
+                                  localname: DOMString) -> JS<HTMLCollection> {
         let doc = self.node.owner_doc();
-        Ok(HTMLCollection::new(&doc.get().window, ~[]))
+        let doc = doc.get();
+        let tag_name = match self.html_element_in_html_document() {
+            true => localname.to_ascii_lower(),
+            false => localname
+        };
+        let namespace = match maybe_ns {
+            Some(namespace) => Namespace::from_str(namespace),
+            None => Null
+        };
+        HTMLCollection::by_tag_name_ns(&doc.window, &NodeCast::from(abstract_self), tag_name, namespace)
     }
 
-    // http://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
-    pub fn GetElementsByClassName(&self, _names: DOMString) -> JS<HTMLCollection> {
-        // FIXME: stub - https://github.com/mozilla/servo/issues/1660
+    pub fn GetElementsByClassName(&self, abstract_self: &JS<Element>, classes: DOMString) -> JS<HTMLCollection> {
         let doc = self.node.owner_doc();
-        HTMLCollection::new(&doc.get().window, ~[])
+        let doc = doc.get();
+        HTMLCollection::by_class_name(&doc.window, &NodeCast::from(abstract_self), classes)
     }
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getclientrects
