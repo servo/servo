@@ -34,7 +34,7 @@
 //!     `html_element_in_html_document_for_layout()`.
 
 use extra::url::Url;
-use script::dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLIFrameElementDerived};
+use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
@@ -228,16 +228,13 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
-    fn with_element<R>(&self, f: |&LayoutElement<'ln>| -> R) -> R {
+    fn as_element(&self) -> LayoutElement<'ln> {
         unsafe {
-            if !self.node.is_element() {
-                fail!("not an element!")
-            }
             let elem: JS<Element> = self.node.transmute_copy();
             let element = elem.get();
-            f(&LayoutElement {
+            LayoutElement {
                 element: cast::transmute_region(element),
-            })
+            }
         }
     }
 
@@ -250,23 +247,22 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     }
 
     fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
-        self.with_element(|element| {
-            let name = unsafe {
-                if element.element.html_element_in_html_document_for_layout() {
-                    attr.lower_name.as_slice()
-                } else {
-                    attr.name.as_slice()
-                }
-            };
-            match attr.namespace {
-                SpecificNamespace(ref ns) => {
-                    element.get_attr(ns, name)
-                           .map_or(false, |attr| test(attr))
-                },
-                // FIXME: https://github.com/mozilla/servo/issues/1558
-                AnyNamespace => false,
+        let element = self.as_element();
+        let name = unsafe {
+            if element.element.html_element_in_html_document_for_layout() {
+                attr.lower_name.as_slice()
+            } else {
+                attr.name.as_slice()
             }
-        })
+        };
+        match attr.namespace {
+            SpecificNamespace(ref ns) => {
+                element.get_attr(ns, name)
+                        .map_or(false, |attr| test(attr))
+            },
+            // FIXME: https://github.com/mozilla/servo/issues/1558
+            AnyNamespace => false,
+        }
     }
 }
 
@@ -433,18 +429,15 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
-    pub fn with_element<R>(&self, f: |&ThreadSafeLayoutElement| -> R) -> R {
+    pub fn as_element(&self) -> ThreadSafeLayoutElement {
         unsafe {
-            if !self.node.is_element() {
-                fail!("not an element!")
-            }
             let elem: JS<Element> = self.node.transmute_copy();
             let element = elem.unsafe_get();
             // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
             // implementations.
-            f(&ThreadSafeLayoutElement {
+            ThreadSafeLayoutElement {
                 element: cast::transmute::<*mut Element,&mut Element>(element),
-            })
+            }
         }
     }
 
