@@ -1546,11 +1546,6 @@ impl Node {
         None
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-hasattributes
-    pub fn HasAttributes(&self) -> bool {
-        false
-    }
-
     //
     // Low-level pointer stitching
     //

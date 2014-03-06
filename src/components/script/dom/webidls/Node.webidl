@@ -88,6 +88,4 @@ interface Node : EventTarget {
   readonly attribute DOMString? prefix;
   [Constant]
   readonly attribute DOMString? localName;
-
-  boolean hasAttributes();
 };
