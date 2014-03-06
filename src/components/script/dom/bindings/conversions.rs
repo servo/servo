@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::utils::jsstring_to_str;
 use servo_util::str::DOMString;
 
 use js::jsapi::{JSBool, JSContext};
 use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
 use js::jsapi::{JS_ValueToECMAUint32, JS_ValueToECMAInt32};
 use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
-use js::jsapi::{JS_NewUCStringCopyN};
+use js::jsapi::{JS_NewUCStringCopyN, JS_ValueToString};
 use js::jsval::JSVal;
 use js::jsval::{NullValue, BooleanValue, Int32Value, UInt32Value, StringValue};
 use js::glue::RUST_JS_NumberValue;
@@ -189,6 +190,34 @@ impl ToJSValConvertible for DOMString {
                 fail!("JS_NewUCStringCopyN failed");
             }
             StringValue(&*jsstr)
+        }
+    }
+}
+
+#[deriving(Eq)]
+pub enum StringificationBehavior {
+    Default,
+    Empty,
+}
+
+impl Default for StringificationBehavior {
+    fn default() -> StringificationBehavior {
+        Default
+    }
+}
+
+impl FromJSValConvertible<StringificationBehavior> for DOMString {
+    fn from_jsval(cx: *JSContext, value: JSVal, nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
+        if nullBehavior == Empty && value.is_null() {
+            Ok(~"")
+        } else {
+            let jsstr = unsafe { JS_ValueToString(cx, value) };
+            if jsstr.is_null() {
+                debug!("JS_ValueToString failed");
+                Err(())
+            } else {
+                Ok(jsstring_to_str(cx, jsstr))
+            }
         }
     }
 }

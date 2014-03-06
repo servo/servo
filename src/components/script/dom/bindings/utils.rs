@@ -161,41 +161,6 @@ pub fn jsid_to_str(cx: *JSContext, id: jsid) -> DOMString {
     }
 }
 
-#[deriving(Eq)]
-pub enum StringificationBehavior {
-    Default,
-    Empty,
-}
-
-pub fn jsval_to_str(cx: *JSContext, v: JSVal,
-                    nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
-    if v.is_null() && nullBehavior == Empty {
-        Ok(~"")
-    } else {
-        let jsstr = unsafe { JS_ValueToString(cx, v) };
-        if jsstr.is_null() {
-            debug!("JS_ValueToString failed");
-            Err(())
-        } else {
-            Ok(jsstring_to_str(cx, jsstr))
-        }
-    }
-}
-
-pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<Option<DOMString>, ()> {
-    if v.is_null_or_undefined() {
-        Ok(None)
-    } else {
-        let jsstr = unsafe { JS_ValueToString(cx, v) };
-        if jsstr.is_null() {
-            debug!("JS_ValueToString failed");
-            Err(())
-        } else {
-            Ok(Some(jsstring_to_str(cx, jsstr)))
-        }
-    }
-}
-
 // We use slot 0 for holding the raw object.  This is safe for both
 // globals and non-globals.
 pub static DOM_OBJECT_SLOT: uint = 0;
