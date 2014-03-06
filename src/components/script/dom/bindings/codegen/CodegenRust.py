@@ -1256,12 +1256,7 @@ for (uint32_t i = 0; i < length; ++i) {
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
             assert type.nullable()
-            template = CGWrapper(CGIndenter(CGGeneric(template)),
-                                 pre="if ${haveValue} {\n",
-                                 post=("\n"
-                                       "} else {\n"
-                                       "  ${declName} = None;\n"
-                                       "}")).define()
+            defaultStr = "None"
         else:
             tag = defaultValue.type.tag()
             if tag in numericTags:
@@ -1273,12 +1268,12 @@ for (uint32_t i = 0; i < length; ++i) {
             if type.nullable():
                 defaultStr = "Some(%s)" % defaultStr
 
-            template = CGWrapper(CGIndenter(CGGeneric(template)),
-                                 pre="if ${haveValue} {\n",
-                                 post=("\n"
-                                       "} else {\n"
-                                       "  ${declName} = %s;\n"
-                                       "}" % defaultStr)).define()
+        template = CGWrapper(CGIndenter(CGGeneric(template)),
+                             pre="if ${haveValue} {\n",
+                             post=("\n"
+                                   "} else {\n"
+                                   "  ${declName} = %s;\n"
+                                   "}" % defaultStr)).define()
 
     initialVal = "false" if typeName == "bool" else ("0 as %s" % typeName)
     if type.nullable():
