@@ -15,6 +15,7 @@ interface TestBinding {
            attribute float floatAttribute;
            attribute double doubleAttribute;
            attribute DOMString stringAttribute;
+           attribute Blob interfaceAttribute;
 
            attribute boolean? booleanAttributeNullable;
            attribute byte? byteAttributeNullable;
@@ -28,6 +29,7 @@ interface TestBinding {
            attribute float? floatAttributeNullable;
            attribute double? doubleAttributeNullable;
            attribute DOMString? stringAttributeNullable;
+           attribute Blob? interfaceAttributeNullable;
 
   // FIXME (issue #1813) Doesn't currently compile.
   // void passOptionalBoolean(optional boolean arg);
@@ -42,6 +44,7 @@ interface TestBinding {
   // void passOptionalFloat(optional float arg);
   // void passOptionalDouble(optional double arg);
   void passOptionalString(optional DOMString arg);
+  void passOptionalInterface(optional Blob arg);
 
   // void passOptionalNullableBoolean(optional boolean? arg);
   // void passOptionalNullableByte(optional byte? arg);
@@ -55,6 +58,7 @@ interface TestBinding {
   // void passOptionalNullableFloat(optional float? arg);
   // void passOptionalNullableDouble(optional double? arg);
   void passOptionalNullableString(optional DOMString? arg);
+  // void passOptionalNullableInterface(optional Blob? arg);
 
   void passOptionalBooleanWithDefault(optional boolean arg = false);
   void passOptionalByteWithDefault(optional byte arg = 0);
@@ -77,4 +81,5 @@ interface TestBinding {
   void passOptionalNullableLongLongWithDefault(optional long long? arg = null);
   void passOptionalNullableUnsignedLongLongWithDefault(optional unsigned long long? arg = null);
   // void passOptionalNullableStringWithDefault(optional DOMString? arg = null);
+  void passOptionalNullableInterfaceWithDefault(optional Blob? arg = null);
 };
