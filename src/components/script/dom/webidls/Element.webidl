@@ -51,7 +51,6 @@ interface Element : Node {
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
 
   HTMLCollection getElementsByTagName(DOMString localName);
-  [Throws]
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
   HTMLCollection getElementsByClassName(DOMString classNames);
 };
