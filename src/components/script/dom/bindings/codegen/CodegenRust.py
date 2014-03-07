@@ -1238,51 +1238,35 @@ for (uint32_t i = 0; i < length; ++i) {
     if failureCode is None:
         failureCode = 'return 0'
 
+    successVal = "v"
+    if preSuccess or postSuccess:
+        successVal = preSuccess + successVal + postSuccess
+    #XXXjdm support conversionBehavior here
+    template = (
+        "match JSValConvertible::from_jsval(cx, ${val}) {\n"
+        "  Ok(v) => ${declName} = %s,\n"
+        "  Err(_) => %s\n"
+        "}" % (successVal, failureCode))
+
     if type.nullable():
-        successVal = "v"
-        if preSuccess or postSuccess:
-            successVal = preSuccess + successVal + postSuccess
-        #XXXjdm support conversionBehavior here
-        template = (
-            "match JSValConvertible::from_jsval(cx, ${val}) {\n"
-            "  Ok(v) => ${declName} = %s,\n"
-            "  Err(_) => %s\n"
-            "}" % (successVal, failureCode))
-
-        if defaultValue is not None and isinstance(defaultValue, IDLNullValue):
-            template = CGWrapper(CGIndenter(CGGeneric(template)),
-                                 pre="if ${haveValue} {\n",
-                                 post=("\n"
-                                       "} else {\n"
-                                       "  ${declName} = None;\n"
-                                       "}")).define()
-
         declType = CGGeneric("Option<" + typeName + ">")
     else:
-        assert(defaultValue is None or
-               not isinstance(defaultValue, IDLNullValue))
-        #XXXjdm conversionBehavior should be used
-        successVal = "v"
-        if preSuccess or postSuccess:
-            successVal = preSuccess + successVal + postSuccess
-        template = (
-            "match JSValConvertible::from_jsval(cx, ${val}) {\n"
-            "  Err(_) => %s,\n"
-            "  Ok(v) => ${declName} = %s\n"
-            "}" % (failureCode, successVal))
         declType = CGGeneric(typeName)
-    if (defaultValue is not None and
-        # We already handled IDLNullValue, so just deal with the other ones
-        not isinstance(defaultValue, IDLNullValue)):
-        tag = defaultValue.type.tag()
-        if tag in numericTags:
-            defaultStr = defaultValue.value
-        else:
-            assert(tag == IDLType.Tags.bool)
-            defaultStr = toStringBool(defaultValue.value)
 
-        if type.nullable():
-            defaultStr = "Some(%s)" % defaultStr
+    if defaultValue is not None:
+        if isinstance(defaultValue, IDLNullValue):
+            assert type.nullable()
+            defaultStr = "None"
+        else:
+            tag = defaultValue.type.tag()
+            if tag in numericTags:
+                defaultStr = defaultValue.value
+            else:
+                assert(tag == IDLType.Tags.bool)
+                defaultStr = toStringBool(defaultValue.value)
+
+            if type.nullable():
+                defaultStr = "Some(%s)" % defaultStr
 
         template = CGWrapper(CGIndenter(CGGeneric(template)),
                              pre="if ${haveValue} {\n",
