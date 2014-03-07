@@ -26,7 +26,7 @@ follow this format, even those from core contributors.
   it, you can @-reply a reviewer asking for a review in the pull request or a
   comment, or you can ask for a review in `#servo` on `irc.mozilla.org`.
 
-- When changing code related to the DOM, add a test to `src/test/html/content`,
+- When changing code related to the DOM, add a test to `src/test/content`,
   either by adding it to an existing test file or creating a new one.
 
 For specific git instructions, see [GitHub & Critic PR handling 101](https://github.com/mozilla/servo/wiki/Github-&-Critic-PR-handling-101).
