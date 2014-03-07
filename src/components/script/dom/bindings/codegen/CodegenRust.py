@@ -907,11 +907,6 @@ for (uint32_t i = 0; i < length; ++i) {
                                           failureCode)
             return (template, declType, None, isOptional, None)
 
-        # This is an interface that we implement as a concrete class
-        # or an XPCOM interface.
-
-        argIsPointer = type.nullable()
-
         # Sequences and callbacks have to hold a strong ref to the thing being
         # passed down.
         forceOwningType = descriptor.interface.isCallback() or isMember
@@ -930,14 +925,14 @@ for (uint32_t i = 0; i < length; ++i) {
                         "JSVAL_TO_OBJECT(${val})",
                         "${declName}",
                         failureCode,
-                        isOptional or argIsPointer or type.nullable(),
+                        isOptional or type.nullable(),
                         preUnwrapped=preSuccess, postUnwrapped=postSuccess))
             else:
                 templateBody += str(FailureFatalCastableObjectUnwrapper(
                         descriptor,
                         "JSVAL_TO_OBJECT(${val})",
                         "${declName}",
-                        isOptional or argIsPointer or type.nullable()))
+                        isOptional or type.nullable()))
         else:
             templateBody += (
                 "match unwrap_value::<" + typePtr + ">(&${val} as *JSVal, "
@@ -955,7 +950,7 @@ for (uint32_t i = 0; i < length; ++i) {
                                           failureCode)
 
         declType = CGGeneric(typePtr)
-        if argIsPointer or isOptional:
+        if type.nullable() or isOptional:
             declType = CGWrapper(declType, pre="Option<", post=">")
 
         return (templateBody, declType, None, isOptional, "None" if isOptional else None)
