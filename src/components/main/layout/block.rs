@@ -364,23 +364,25 @@ impl BlockFlow {
         }
     }
 
-    pub fn new_root(base: BaseFlow) -> BlockFlow {
-        BlockFlow {
-            base: base,
-            box_: None,
-            is_root: true,
-            static_y_offset: Au::new(0),
-            float: None
-        }
-    }
-
-    pub fn new_float(base: BaseFlow, float_kind: FloatKind) -> BlockFlow {
-        BlockFlow {
-            base: base,
-            box_: None,
-            is_root: false,
-            static_y_offset: Au::new(0),
-            float: Some(~FloatedBlockInfo::new(float_kind))
+    fn width_computer(&mut self) -> ~WidthAndMarginsComputer {
+        if self.is_absolutely_positioned() {
+            if self.is_replaced_content() {
+                ~AbsoluteReplaced as ~WidthAndMarginsComputer
+            } else {
+                ~AbsoluteNonReplaced as ~WidthAndMarginsComputer
+            }
+        } else if self.is_float() {
+            if self.is_replaced_content() {
+                ~FloatReplaced as ~WidthAndMarginsComputer
+            } else {
+                ~FloatNonReplaced as ~WidthAndMarginsComputer
+            }
+        } else {
+            if self.is_replaced_content() {
+                ~BlockReplaced as ~WidthAndMarginsComputer
+            } else {
+                ~BlockNonReplaced as ~WidthAndMarginsComputer
+            }
         }
     }
 
@@ -1282,28 +1284,7 @@ impl Flow for BlockFlow {
             self.base.flags_info.flags.set_inorder(false);
         }
 
-        let width_computer;
-        // TODO(pradeep): Extract this into a method.
-        width_computer = if self.is_absolutely_positioned() {
-            if self.is_replaced_content() {
-                &AbsoluteReplaced as &WidthAndMarginsComputer
-            } else {
-                &AbsoluteNonReplaced as &WidthAndMarginsComputer
-            }
-        } else if self.is_float() {
-            if self.is_replaced_content() {
-                &FloatReplaced as &WidthAndMarginsComputer
-            } else {
-                &FloatNonReplaced as &WidthAndMarginsComputer
-            }
-        } else {
-            if self.is_replaced_content() {
-                &BlockReplaced as &WidthAndMarginsComputer
-            } else {
-                &BlockNonReplaced as &WidthAndMarginsComputer
-            }
-        };
-
+        let width_computer = self.width_computer();
         width_computer.compute_used_width(self, ctx, containing_block_width);
 
         for box_ in self.box_.iter() {
@@ -1591,16 +1572,19 @@ impl WidthConstraintSolution {
     }
 }
 
+// Trait to encapsulate the Width and Margin calculation.
+//
+// CSS Section 10.3
 trait WidthAndMarginsComputer {
-    /// Any pre-computation to be done for widths.
+    /// Compute the inputs for the Width constraint equation.
     ///
-    /// Compute and return the necessary input values from the box's style.
-    /// This is called only once.
-    // TODO(pradeep): Rename this to compute_inputs
-    fn pre_computation(&self,
-                       block: &mut BlockFlow,
-                       parent_flow_width: Au,
-                       ctx: &mut LayoutContext)
+    /// This is called only once to compute the initial inputs. For
+    /// calculation involving min-width and max-width, we don't need to
+    /// recompute these.
+    fn compute_width_constraint_inputs(&self,
+                                       block: &mut BlockFlow,
+                                       parent_flow_width: Au,
+                                       ctx: &mut LayoutContext)
                        -> WidthConstraintInput {
         let containing_block_width = self.containing_block_width(block, parent_flow_width, ctx);
         let computed_width = self.initial_computed_width(block, parent_flow_width, ctx);
@@ -1694,40 +1678,33 @@ trait WidthAndMarginsComputer {
                           block: &mut BlockFlow,
                           ctx: &mut LayoutContext,
                           parent_flow_width: Au) {
-        // TODO(pradeep): First, get the constraint solutions. Then, do the
-        // min-width + max-width dance. THEN, set the width in the Box.
+        let mut input = self.compute_width_constraint_inputs(block, parent_flow_width, ctx);
 
-        let input = self.pre_computation(block, parent_flow_width, ctx);
+        let containing_block_width = self.containing_block_width(block, parent_flow_width, ctx);
 
-        let solution = self.solve_width_constraints(block, input);
+        let mut solution = self.solve_width_constraints(block, input);
+
+        // If the tentative used width is greater than 'max-width', width should be recalculated,
+        // but this time using the computed value of 'max-width' as the computed value for 'width'.
+        match specified_or_none(block.box_().style().Box.get().max_width, containing_block_width) {
+            Some(max_width) if max_width < solution.width => {
+                input.computed_width = Specified(max_width);
+                solution = self.solve_width_constraints(block, input);
+            }
+            _ => {}
+        }
+
+        // If the resulting width is smaller than 'min-width', width should be recalculated,
+        // but this time using the value of 'min-width' as the computed value for 'width'.
+        let computed_min_width = specified(block.box_().style().Box.get().min_width,
+                                           containing_block_width);
+        if computed_min_width > solution.width {
+            input.computed_width = Specified(computed_min_width);
+            solution = self.solve_width_constraints(block, input);
+        }
+
         self.set_width_constraint_solutions(block, solution);
         self.set_flow_x_coord_if_necessary(block, solution);
-
-        // // If the tentative used width is greater than 'max-width', width should be recalculated,
-        // // but this time using the computed value of 'max-width' as the computed value for 'width'.
-        // let (width, margin_left, margin_right) = {
-        //     match specified_or_none(style.Box.get().max_width, containing_block_width) {
-        //         Some(value) if value < width => block.compute_horiz(Specified(value),
-        //                                                            maybe_margin_left,
-        //                                                            maybe_margin_right,
-        //                                                            available_width),
-        //         _ => (width, margin_left, margin_right)
-        //     }
-        // };
-
-        // // If the resulting width is smaller than 'min-width', width should be recalculated,
-        // // but this time using the value of 'min-width' as the computed value for 'width'.
-        // let (width, margin_left, margin_right) = {
-        //     let computed_min_width = specified(style.Box.get().min_width, containing_block_width);
-        //     if computed_min_width > width {
-        //         block.compute_horiz(Specified(computed_min_width),
-        //                            maybe_margin_left,
-        //                            maybe_margin_right,
-        //                            available_width)
-        //     } else {
-        //         (width, margin_left, margin_right)
-        //     }
-        // };
     }
 
     /// Computes left and right margins and width.
@@ -1800,6 +1777,10 @@ trait WidthAndMarginsComputer {
     }
 }
 
+/// The different types of Blocks.
+///
+/// They mainly differ in the way width and heights and margins are calculated
+/// for them.
 struct AbsoluteNonReplaced;
 struct AbsoluteReplaced;
 struct BlockNonReplaced;
