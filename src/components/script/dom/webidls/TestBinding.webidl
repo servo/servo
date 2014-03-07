@@ -16,6 +16,7 @@ interface TestBinding {
            attribute double doubleAttribute;
            attribute DOMString stringAttribute;
            attribute Blob interfaceAttribute;
+           attribute any anyAttribute;
 
            attribute boolean? booleanAttributeNullable;
            attribute byte? byteAttributeNullable;
@@ -45,6 +46,7 @@ interface TestBinding {
   // void passOptionalDouble(optional double arg);
   void passOptionalString(optional DOMString arg);
   void passOptionalInterface(optional Blob arg);
+  void passOptionalAny(optional any arg);
 
   // void passOptionalNullableBoolean(optional boolean? arg);
   // void passOptionalNullableByte(optional byte? arg);
@@ -82,6 +84,7 @@ interface TestBinding {
   void passOptionalNullableUnsignedLongLongWithDefault(optional unsigned long long? arg = null);
   // void passOptionalNullableStringWithDefault(optional DOMString? arg = null);
   void passOptionalNullableInterfaceWithDefault(optional Blob? arg = null);
+  void passOptionalAnyWithDefault(optional any arg = null);
 
   void passOptionalNullableBooleanWithNonNullDefault(optional boolean? arg = false);
   void passOptionalNullableByteWithNonNullDefault(optional byte? arg = 7);

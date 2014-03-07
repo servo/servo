@@ -207,7 +207,7 @@ impl Window {
     pub fn Print(&self) {
     }
 
-    pub fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: JSVal) -> JSVal {
+    pub fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal {
         JSVAL_NULL
     }
 }

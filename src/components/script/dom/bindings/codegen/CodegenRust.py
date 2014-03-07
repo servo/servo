@@ -1162,10 +1162,18 @@ for (uint32_t i = 0; i < length; ++i) {
         if isMember:
             raise TypeError("Can't handle member 'any'; need to sort out "
                             "rooting issues")
-        templateBody = "${declName} = ${val};"
+
+        declType = CGGeneric("JSVal")
+        value = CGGeneric("${val}")
+        if isOptional:
+            declType = CGWrapper(declType, pre="Option<", post=">")
+            value = CGWrapper(value, pre="Some(", post=")")
+
+        templateBody = "${declName} = %s;" % value.define()
         templateBody = handleDefaultNull(templateBody,
                                          "${declName} = JSVAL_NULL")
-        return (templateBody, CGGeneric("JSVal"), None, isOptional, "JSVAL_NULL")
+
+        return (templateBody, declType, None, isOptional, "None" if isOptional else None)
 
     if type.isObject():
         assert not isEnforceRange and not isClamp
