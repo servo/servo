@@ -924,9 +924,16 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nodevalue
-    pub fn SetNodeValue(&mut self, _abstract_self: &JS<Node>, _val: Option<DOMString>)
+    pub fn SetNodeValue(&mut self, abstract_self: &mut JS<Node>, val: Option<DOMString>)
                         -> ErrorResult {
-        // FIXME (#1825) implement.
+        match self.type_id {
+            CommentNodeTypeId |
+            TextNodeTypeId |
+            ProcessingInstructionNodeTypeId => {
+                self.SetTextContent(abstract_self, val);
+            }
+            _ => {}
+        }
         Ok(())
     }
 
