@@ -8,6 +8,9 @@ use dom::blob::Blob;
 use dom::window::Window;
 use servo_util::str::DOMString;
 
+use js::JSVAL_NULL;
+use js::jsapi::{JSVal, JSContext};
+
 #[deriving(Encodable)]
 pub struct TestBinding {
     reflector: Reflector,
@@ -41,6 +44,8 @@ impl TestBinding {
     pub fn SetStringAttribute(&self, _: DOMString) {}
     pub fn InterfaceAttribute(&self) -> JS<Blob> { Blob::new(&self.window) }
     pub fn SetInterfaceAttribute(&self, _: &JS<Blob>) {}
+    pub fn AnyAttribute(&self, _: *JSContext) -> JSVal { JSVAL_NULL }
+    pub fn SetAnyAttribute(&self, _: *JSContext, _: JSVal) {}
 
     pub fn GetBooleanAttributeNullable(&self) -> Option<bool> { Some(false) }
     pub fn SetBooleanAttributeNullable(&self, _: Option<bool>) {}
@@ -83,6 +88,7 @@ impl TestBinding {
     // pub fn PassOptionalDouble(&self, _: Option<f64>) {}
     pub fn PassOptionalString(&self, _: Option<DOMString>) {}
     pub fn PassOptionalInterface(&self, _: Option<JS<Blob>>) {}
+    pub fn PassOptionalAny(&self, _: *JSContext, _: Option<JSVal>) {}
 
     // pub fn PassOptionalNullableBoolean(&self, _: Option<Option<bool>>) {}
     // pub fn PassOptionalNullableByte(&self, _: Option<Option<i8>>) {}
@@ -122,6 +128,7 @@ impl TestBinding {
     pub fn PassOptionalNullableDoubleWithDefault(&self, _: Option<f64>) {}
     // pub fn PassOptionalNullableStringWithDefault(&self, _: Option<DOMString>) {}
     pub fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<JS<Blob>>) {}
+    pub fn PassOptionalAnyWithDefault(&self, _: *JSContext, _: JSVal) {}
 
     pub fn PassOptionalNullableBooleanWithNonNullDefault(&self, _: Option<bool>) {}
     pub fn PassOptionalNullableByteWithNonNullDefault(&self, _: Option<i8>) {}
