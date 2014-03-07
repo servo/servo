@@ -89,7 +89,7 @@ check-ref: reftest
 .PHONY: check-content
 check-content: contenttest
 	@$(call E, check: contenttests)
-	$(Q)./contenttest --source-dir=$(S)src/test/html/content $(TESTNAME)
+	$(Q)./contenttest --source-dir=$(S)src/test/content $(TESTNAME)
 
 .PHONY: tidy
 tidy:
