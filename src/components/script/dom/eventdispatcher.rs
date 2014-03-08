@@ -17,10 +17,9 @@ pub fn dispatch_event(target: &JS<EventTarget>,
 
     {
         let event = event.get_mut();
-        event.target = match pseudo_target {
-            Some(pseudo_target) => Some(pseudo_target),
-            None => Some(target.clone())
-        };
+        event.target = pseudo_target.or_else(|| {
+            Some(target.clone())
+        });
         event.dispatching = true;
     }
 
