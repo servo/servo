@@ -369,7 +369,7 @@ pub fn parse_html(page: &Page,
                 ElementNodeTypeId(HTMLIFrameElementTypeId) => {
                     let iframe_chan = discovery_chan.clone();
                     let mut iframe_element: JS<HTMLIFrameElement> =
-                        HTMLIFrameElementCast::to(&element);
+                        HTMLIFrameElementCast::to(&element).unwrap();
                     let sandboxed = iframe_element.get().is_sandboxed();
                     let elem: JS<Element> = ElementCast::from(&iframe_element);
                     let src_opt = elem.get().get_attribute(Null, "src").map(|x| x.get().Value());
@@ -475,7 +475,7 @@ pub fn parse_html(page: &Page,
                         debug!("iterating over children {:?}", scriptnode.first_child());
                         for child in scriptnode.children() {
                             debug!("child = {:?}", child);
-                            let text: JS<Text> = TextCast::to(&child);
+                            let text: JS<Text> = TextCast::to(&child).unwrap();
                             data.push(text.get().characterdata.data.to_str());  // FIXME: Bad copy.
                         }
 
@@ -494,7 +494,7 @@ pub fn parse_html(page: &Page,
                 debug!("iterating over children {:?}", style.first_child());
                 for child in style.children() {
                     debug!("child = {:?}", child);
-                    let text: JS<Text> = TextCast::to(&child);
+                    let text: JS<Text> = TextCast::to(&child).unwrap();
                     data.push(text.get().characterdata.data.to_str());  // FIXME: Bad copy.
                 }
 

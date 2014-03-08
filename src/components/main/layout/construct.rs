@@ -795,7 +795,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         match self.type_id() {
             TextNodeTypeId => {
                 unsafe {
-                    let text: JS<Text> = TextCast::to(self.get_jsmanaged());
+                    let text: JS<Text> = TextCast::to(self.get_jsmanaged()).unwrap();
                     if !is_whitespace(text.get().characterdata.data) {
                         return false
                     }

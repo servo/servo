@@ -915,11 +915,11 @@ impl ScriptTask {
                 let doc_node: JS<Node> = NodeCast::from(&document);
                 let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
                 anchors.find(|node| {
-                    let elem: JS<Element> = ElementCast::to(node);
+                    let elem: JS<Element> = ElementCast::to(node).unwrap();
                     elem.get().get_attribute(Null, "name").map_or(false, |attr| {
                         attr.get().value_ref() == fragid
                     })
-                }).map(|node| ElementCast::to(&node))
+                }).map(|node| ElementCast::to(&node).unwrap())
             }
         }
     }
@@ -1027,7 +1027,7 @@ impl ScriptTask {
                         }
 
                         if node.is_element() {
-                            let element: JS<Element> = ElementCast::to(&node);
+                            let element: JS<Element> = ElementCast::to(&node).unwrap();
                             if "a" == element.get().tag_name {
                                 self.load_url_from_element(page, element.get())
                             }
