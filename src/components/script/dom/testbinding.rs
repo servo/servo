@@ -9,7 +9,8 @@ use dom::window::Window;
 use servo_util::str::DOMString;
 
 use js::JSVAL_NULL;
-use js::jsapi::{JSVal, JSContext};
+use js::jsapi::JSContext;
+use js::jsval::JSVal;
 
 #[deriving(Encodable)]
 pub struct TestBinding {

@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::Reflectable;
-use js::jsapi::{JSContext, JSObject, JS_WrapObject, JSVal, JS_ObjectIsCallable};
+use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable};
 use js::jsapi::{JS_GetProperty, JSTracer, JS_CallTracer};
+use js::jsval::JSVal;
 use js::{JSVAL_IS_OBJECT, JSVAL_TO_OBJECT, JSTRACE_OBJECT};
 
 use std::cast;

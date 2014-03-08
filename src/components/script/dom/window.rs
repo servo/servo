@@ -20,7 +20,8 @@ use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
 
 use js::glue::*;
-use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JSVal};
+use js::jsapi::{JSObject, JSContext, JS_DefineProperty};
+use js::jsval::JSVal;
 use js::{JSVAL_NULL, JSPROP_ENUMERATE};
 
 use std::cast;

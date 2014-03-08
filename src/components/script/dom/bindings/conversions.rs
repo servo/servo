@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use js::jsapi::{JSVal, JSBool, JSContext};
+use js::jsapi::{JSBool, JSContext};
 use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
 use js::jsapi::{JS_ValueToECMAUint32, JS_ValueToECMAInt32};
 use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
+use js::jsval::JSVal;
 use js::{JSVAL_FALSE, JSVAL_TRUE, JSVAL_NULL};
 use js::glue::{RUST_INT_TO_JSVAL, RUST_UINT_TO_JSVAL, RUST_JS_NumberValue};
 use js::glue::{RUST_JSVAL_IS_NULL, RUST_JSVAL_IS_VOID};

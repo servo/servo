@@ -30,11 +30,12 @@ use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
 use js::jsapi::{JS_NewUCStringCopyN, JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
-use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
+use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSPropertyDescriptor};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsapi::{JSString};
 use js::jsapi::{JS_AllowGC, JS_InhibitGC};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
+use js::jsval::JSVal;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
 use js::{JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
@@ -43,7 +44,7 @@ use js;
 
 mod jsval {
     use js::glue::{RUST_JSVAL_IS_NULL, RUST_JSVAL_IS_VOID};
-    use js::jsapi::JSVal;
+    use js::jsval::JSVal;
 
     pub fn is_null(v: JSVal) -> bool {
         unsafe { RUST_JSVAL_IS_NULL(v) == 1 }
