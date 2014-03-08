@@ -32,10 +32,10 @@ use layout_interface;
 use extra::url::Url;
 use geom::point::Point2D;
 use geom::size::Size2D;
-use js::JSVAL_NULL;
 use js::global::DEBUG_FNS;
 use js::glue::RUST_JSVAL_TO_OBJECT;
 use js::jsapi::{JSObject, JS_InhibitGC, JS_AllowGC, JS_CallFunctionValue};
+use js::jsval::NullValue;
 use js::rust::{Compartment, Cx, CxUtils, RtUtils};
 use js;
 use servo_msg::compositor_msg::{FinishedLoading, Loading, PerformingLayout, ScriptListener};
@@ -659,7 +659,7 @@ impl ScriptTask {
         };
 
         // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
-        let rval = JSVAL_NULL;
+        let rval = NullValue();
         let cx = js_info.get().get_ref().js_context.borrow().ptr;
         with_gc_enabled(cx, || {
             unsafe {

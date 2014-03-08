@@ -19,7 +19,6 @@ use std::str;
 use std::vec;
 use std::unstable::raw::Box;
 use js::glue::*;
-use js::glue::{RUST_OBJECT_TO_JSVAL};
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
@@ -36,9 +35,11 @@ use js::jsapi::{JSString};
 use js::jsapi::{JS_AllowGC, JS_InhibitGC};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::jsval::JSVal;
-use js::{JSPROP_ENUMERATE, JSVAL_NULL, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
+use js::jsval::{StringValue, PrivateValue, ObjectValue, NullValue, Int32Value};
+use js::jsval::{UInt32Value, DoubleValue, BooleanValue, UndefinedValue};
+use js::{JSPROP_ENUMERATE, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
-use js::{JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
+use js::JSPROP_SETTER;
 use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
 use js;
 
@@ -214,12 +215,12 @@ pub unsafe fn str_to_jsval(cx: *JSContext, string: DOMString) -> JSVal {
     if jsstr.is_null() {
         fail!("JS_NewUCStringCopyN failed");
     }
-    RUST_STRING_TO_JSVAL(jsstr)
+    StringValue(&*jsstr)
 }
 
 pub unsafe fn domstring_to_jsval(cx: *JSContext, string: Option<DOMString>) -> JSVal {
     match string {
-        None => JSVAL_NULL,
+        None => NullValue(),
         Some(s) => str_to_jsval(cx, s),
     }
 }
@@ -334,7 +335,7 @@ pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSO
 
         unsafe {
             JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
-                               RUST_PRIVATE_TO_JSVAL(domClass as *libc::c_void));
+                               PrivateValue(domClass as *libc::c_void));
         }
     }
 
@@ -393,7 +394,7 @@ fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
         }
 
         if alreadyDefined == 0 &&
-            JS_DefineProperty(cx, receiver, name, RUST_OBJECT_TO_JSVAL(constructor),
+            JS_DefineProperty(cx, receiver, name, ObjectValue(&*constructor),
                               None, None, 0) == 0 {
             return ptr::null();
         }
@@ -411,13 +412,12 @@ fn DefineConstants(cx: *JSContext, obj: *JSObject, constants: *ConstantSpec) -> 
                 return true;
             }
             let jsval = match spec.value {
-                NullVal => JSVAL_NULL,
-                IntVal(i) => RUST_INT_TO_JSVAL(i),
-                UintVal(u) => RUST_UINT_TO_JSVAL(u),
-                DoubleVal(d) => RUST_DOUBLE_TO_JSVAL(d),
-                BoolVal(b) if b => JSVAL_TRUE,
-                BoolVal(_) => JSVAL_FALSE,
-                VoidVal => JSVAL_VOID
+                NullVal => NullValue(),
+                IntVal(i) => Int32Value(i),
+                UintVal(u) => UInt32Value(u),
+                DoubleVal(d) => DoubleValue(d),
+                BoolVal(b) => BooleanValue(b),
+                VoidVal => UndefinedValue(),
             };
             if JS_DefineProperty(cx, obj, spec.name,
                                  jsval, None,
@@ -481,7 +481,7 @@ pub fn initialize_global(global: *JSObject) {
         let box_ = squirrel_away_unboxed(protoArray);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
-                           RUST_PRIVATE_TO_JSVAL(box_ as *libc::c_void));
+                           PrivateValue(box_ as *libc::c_void));
     }
 }
 
@@ -529,7 +529,7 @@ pub fn GetReflector(cx: *JSContext, reflector: &Reflector,
     let obj = reflector.get_jsobject();
     assert!(obj.is_not_null());
     unsafe {
-        *vp = RUST_OBJECT_TO_JSVAL(obj);
+        *vp = ObjectValue(&*obj);
         return JS_WrapValue(cx, cast::transmute(vp));
     }
 }

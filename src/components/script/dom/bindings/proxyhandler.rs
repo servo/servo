@@ -6,7 +6,8 @@ use dom::bindings::utils::is_dom_proxy;
 use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString, jschar};
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
 use js::jsapi::{JSBool, JS_DefinePropertyById, JS_NewObjectWithGivenProto};
-use js::glue::{RUST_JSVAL_IS_VOID, RUST_JSVAL_TO_OBJECT, GetProxyExtra, RUST_OBJECT_TO_JSVAL};
+use js::jsval::ObjectValue;
+use js::glue::{RUST_JSVAL_IS_VOID, RUST_JSVAL_TO_OBJECT, GetProxyExtra};
 use js::glue::{GetObjectProto, GetObjectParent, SetProxyExtra, GetProxyHandler};
 use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::crust::{JS_StrictPropertyStub};
@@ -116,7 +117,7 @@ pub fn EnsureExpandoObject(cx: *JSContext, obj: *JSObject) -> *JSObject {
                 return ptr::null();
             }
 
-            SetProxyExtra(obj, JSPROXYSLOT_EXPANDO, RUST_OBJECT_TO_JSVAL(expando));
+            SetProxyExtra(obj, JSPROXYSLOT_EXPANDO, ObjectValue(&*expando));
         }
         return expando;
     }
