@@ -290,7 +290,7 @@ class CGMethodCall(CGThing):
                 # also allow the unwrapping test to skip having to do codegen
                 # for the null-or-undefined case, which we already handled
                 # above.
-                caseBody.append(CGGeneric("if JSVAL_IS_OBJECT(%s) {" %
+                caseBody.append(CGGeneric("if (%s).is_object() {" %
                                           (distinguishingArg)))
                 for idx, sig in enumerate(interfacesSigs):
                     caseBody.append(CGIndenter(CGGeneric("loop {")));
@@ -570,11 +570,11 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             # Handle the non-object cases by wrapping up the whole
             # thing in an if cascade.
             templateBody = (
-                "if JSVAL_IS_OBJECT(${val}) {\n" +
+                "if (${val}).is_object() {\n" +
                 CGIndenter(CGGeneric(templateBody)).define() + "\n")
             if type.nullable():
                 templateBody += (
-                    "} else if RUST_JSVAL_IS_NULL(${val}) != 0 || RUST_JSVAL_IS_VOID(${val}) != 0 {\n"
+                    "} else if (${val}).is_null_or_undefined() {\n"
                     "  %s;\n" % codeToSetNull)
             templateBody += (
                 "} else {\n" +
@@ -799,7 +799,7 @@ for (uint32_t i = 0; i < length; ++i) {
             if any([arrayObject, dateObject, nonPlatformObject, object]):
                 templateBody.prepend(CGGeneric("JSObject& argObj = ${val}.toObject();"))
             templateBody = CGWrapper(CGIndenter(templateBody),
-                                     pre="if JSVAL_IS_OBJECT(${val}) {\n",
+                                     pre="if (${val}).is_object() {\n",
                                      post="\n}")
         else:
             templateBody = CGGeneric()
@@ -844,7 +844,7 @@ for (uint32_t i = 0; i < length; ++i) {
         nonConstDecl = "${declName}"
 
         def handleNull(templateBody, setToNullVar, extraConditionForNull=""):
-            null = CGGeneric("if %s(RUST_JSVAL_IS_NULL(${val}) != 0 || RUST_JSVAL_IS_VOID(${val}) != 0) {\n"
+            null = CGGeneric("if %s((${val}).is_null_or_undefined()) {\n"
                              "  %s = None;\n"
                              "}" % (extraConditionForNull, setToNullVar))
             templateBody = CGWrapper(CGIndenter(templateBody), pre="{\n", post="\n}")
@@ -900,7 +900,7 @@ for (uint32_t i = 0; i < length; ++i) {
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
             declType = CGGeneric("Option<%s>" % name);
-            conversion = ("  ${declName} = Some(%s::new(JSVAL_TO_OBJECT(${val})));\n" % name)
+            conversion = ("  ${declName} = Some(%s::new((${val}).to_object()));\n" % name)
 
             template = wrapObjectTemplate(conversion, type,
                                           "${declName} = None",
@@ -922,7 +922,7 @@ for (uint32_t i = 0; i < length; ++i) {
             if failureCode is not None:
                 templateBody += str(CastableObjectUnwrapper(
                         descriptor,
-                        "JSVAL_TO_OBJECT(${val})",
+                        "(${val}).to_object()",
                         "${declName}",
                         failureCode,
                         isOptional or type.nullable(),
@@ -930,7 +930,7 @@ for (uint32_t i = 0; i < length; ++i) {
             else:
                 templateBody += str(FailureFatalCastableObjectUnwrapper(
                         descriptor,
-                        "JSVAL_TO_OBJECT(${val})",
+                        "(${val}).to_object()",
                         "${declName}",
                         isOptional or type.nullable()))
         else:
@@ -4360,7 +4360,7 @@ class CGProxyUnwrap(CGAbstractMethod):
     obj = js::UnwrapObject(obj);
   }*/
   //MOZ_ASSERT(IsProxy(obj));
-  let box_: *Box<%s> = cast::transmute(RUST_JSVAL_TO_PRIVATE(GetProxyPrivate(obj)));
+  let box_: *Box<%s> = cast::transmute(GetProxyPrivate(obj).to_private());
   return ptr::to_unsafe_ptr(&(*box_).data);""" % (self.descriptor.concreteType)
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
@@ -4682,7 +4682,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
 def finalizeHook(descriptor, hookName, context):
     release = """let val = JS_GetReservedSlot(obj, dom_object_slot(obj));
-let _: %s %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
+let _: %s %s = cast::transmute(val.to_private());
 debug!("%s finalize: {:p}", this);
 """ % (DOMObjectPointerType(descriptor), descriptor.concreteType, descriptor.concreteType)
     return release
@@ -4719,7 +4719,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def generate_code(self):
         preamble = """
-  let global = global_object_for_js_object(RUST_JSVAL_TO_OBJECT(JS_CALLEE(cx, &*vp)));
+  let global = global_object_for_js_object(JS_CALLEE(cx, &*vp).to_object());
   let obj = global.reflector().get_jsobject();
 """
         nativeName = MakeNativeName(self._ctor.identifier.name)
@@ -5012,8 +5012,8 @@ class CGDictionary(CGThing):
             "${initParent}"
             "      let mut found: JSBool = 0;\n"
             "      let temp: JSVal = NullValue();\n"
-            "      let isNull = RUST_JSVAL_IS_NULL(val) != 0 || RUST_JSVAL_IS_VOID(val) != 0;\n"
-            "      if !isNull && RUST_JSVAL_IS_PRIMITIVE(val) != 0 {\n"
+            "      let isNull = val.is_null_or_undefined();\n"
+            "      if !isNull && val.is_primitive() {\n"
             "        return 0; //XXXjdm throw properly here\n"
             "        //return Throw(cx, NS_ERROR_XPC_BAD_CONVERT_JS);\n"
             "      }\n"
@@ -5073,15 +5073,15 @@ class CGDictionary(CGThing):
 
         if True: #XXXjdm hack until 'static mut' exists for global jsids
             propName = member.identifier.name
-            propCheck = ('"%s".to_c_str().with_ref(|s| { JS_HasProperty(cx, RUST_JSVAL_TO_OBJECT(val), s, ptr::to_unsafe_ptr(&found)) })' %
+            propCheck = ('"%s".to_c_str().with_ref(|s| { JS_HasProperty(cx, val.to_object(), s, ptr::to_unsafe_ptr(&found)) })' %
                          propName)
-            propGet = ('"%s".to_c_str().with_ref(|s| { JS_GetProperty(cx, RUST_JSVAL_TO_OBJECT(val), s, ptr::to_unsafe_ptr(&temp)) })' %
+            propGet = ('"%s".to_c_str().with_ref(|s| { JS_GetProperty(cx, val.to_object(), s, ptr::to_unsafe_ptr(&temp)) })' %
                        propName)
         else:
             propId = self.makeIdName(member.identifier.name);
-            propCheck = ("JS_HasPropertyById(cx, RUST_JSVAL_TO_OBJECT(val), %s, ptr::to_unsafe_ptr(&found))" %
+            propCheck = ("JS_HasPropertyById(cx, val.to_object(), %s, ptr::to_unsafe_ptr(&found))" %
                          propId)
-            propGet = ("JS_GetPropertyById(cx, RUST_JSVAL_TO_OBJECT(val), %s, ptr::to_unsafe_ptr(&temp))" %
+            propGet = ("JS_GetPropertyById(cx, val.to_object(), %s, ptr::to_unsafe_ptr(&temp))" %
                        propId)
 
         conversionReplacements = {
@@ -5236,7 +5236,6 @@ class CGBindingRoot(CGThing):
                           'js::{JSCLASS_RESERVED_SLOTS_MASK, JSID_VOID, JSJitInfo}',
                           'js::{JSPROP_ENUMERATE, JSPROP_NATIVE_ACCESSORS, JSPROP_SHARED}',
                           'js::{JSRESOLVE_ASSIGNING, JSRESOLVE_QUALIFIED}',
-                          'js::{JSVAL_IS_OBJECT, JSVAL_TO_OBJECT}',
                           'js::jsapi::{JS_CallFunctionValue, JS_GetClass, JS_GetGlobalForObject}',
                           'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
                           'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
@@ -5254,9 +5253,6 @@ class CGBindingRoot(CGThing):
                           'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
                           'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
                           'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
-                          'js::glue::{RUST_JSVAL_IS_NULL, RUST_JSVAL_IS_PRIMITIVE}',
-                          'js::glue::{RUST_JSVAL_IS_VOID, RUST_JSVAL_TO_OBJECT}',
-                          'js::glue::{RUST_JSVAL_TO_PRIVATE}',
                           'dom::types::*',
                           'dom::bindings::js::JS',
                           'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
@@ -6435,7 +6431,6 @@ class GlobalGenRoots():
                           'js::{JSCLASS_RESERVED_SLOTS_MASK, JSID_VOID, JSJitInfo}',
                           'js::{JSPROP_ENUMERATE, JSPROP_NATIVE_ACCESSORS, JSPROP_SHARED}',
                           'js::{JSRESOLVE_ASSIGNING, JSRESOLVE_QUALIFIED}',
-                          'js::{JSVAL_IS_OBJECT, JSVAL_TO_OBJECT}',
                           'js::jsapi::{JS_CallFunctionValue, JS_GetClass, JS_GetGlobalForObject}',
                           'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
                           'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
@@ -6451,10 +6446,7 @@ class GlobalGenRoots():
                           'js::glue::{CallJitMethodOp, CallJitPropertyOp, CreateProxyHandler}',
                           'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
                           'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
-                          'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
-                          'js::glue::{RUST_JSVAL_IS_NULL, RUST_JSVAL_IS_PRIMITIVE}',
-                          'js::glue::{RUST_JSVAL_IS_VOID, RUST_JSVAL_TO_OBJECT}',
-                          'js::glue::{RUST_JSVAL_TO_PRIVATE}',], [], curr)
+                          'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',], [], curr)
 
         # Add the auto-generated comment.
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)

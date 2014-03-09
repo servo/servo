@@ -33,7 +33,6 @@ use extra::url::Url;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use js::global::DEBUG_FNS;
-use js::glue::RUST_JSVAL_TO_OBJECT;
 use js::jsapi::{JSObject, JS_InhibitGC, JS_AllowGC, JS_CallFunctionValue};
 use js::jsval::NullValue;
 use js::rust::{Compartment, Cx, CxUtils, RtUtils};
@@ -651,9 +650,7 @@ impl ScriptTask {
         window.get_mut().active_timers.remove(&TimerHandle { handle: timer_data.handle, cancel_chan: None });
         let js_info = page.js_info();
         let this_value = if timer_data.args.len() > 0 {
-            unsafe {
-                RUST_JSVAL_TO_OBJECT(timer_data.args[0])
-            }
+            fail!("NYI")
         } else {
             js_info.get().get_ref().js_compartment.borrow().global_obj.borrow().ptr
         };

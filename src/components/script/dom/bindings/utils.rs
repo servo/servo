@@ -43,19 +43,6 @@ use js::JSPROP_SETTER;
 use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
 use js;
 
-mod jsval {
-    use js::glue::{RUST_JSVAL_IS_NULL, RUST_JSVAL_IS_VOID};
-    use js::jsval::JSVal;
-
-    pub fn is_null(v: JSVal) -> bool {
-        unsafe { RUST_JSVAL_IS_NULL(v) == 1 }
-    }
-
-    pub fn is_undefined(v: JSVal) -> bool {
-        unsafe { RUST_JSVAL_IS_VOID(v) == 1 }
-    }
-}
-
 pub struct GlobalStaticData {
     proxy_handlers: HashMap<uint, *libc::c_void>,
     attribute_ids: HashMap<uint, ~[jsid]>,
@@ -98,7 +85,7 @@ pub unsafe fn dom_object_slot(obj: *JSObject) -> u32 {
 pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
     let slot = dom_object_slot(obj);
     let val = JS_GetReservedSlot(obj, slot);
-    cast::transmute(RUST_JSVAL_TO_PRIVATE(val))
+    cast::transmute(val.to_private())
 }
 
 pub unsafe fn get_dom_class(obj: *JSObject) -> Result<DOMClass, ()> {
@@ -144,7 +131,7 @@ pub fn unwrap_jsmanaged<T: Reflectable>(obj: *JSObject,
 
 pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
     unsafe {
-        let obj = RUST_JSVAL_TO_OBJECT(*val);
+        let obj = (*val).to_object();
         unwrap_object(obj, proto_id, proto_depth)
     }
 }
@@ -182,7 +169,7 @@ pub enum StringificationBehavior {
 
 pub fn jsval_to_str(cx: *JSContext, v: JSVal,
                     nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
-    if jsval::is_null(v) && nullBehavior == Empty {
+    if v.is_null() && nullBehavior == Empty {
         Ok(~"")
     } else {
         let jsstr = unsafe { JS_ValueToString(cx, v) };
@@ -196,7 +183,7 @@ pub fn jsval_to_str(cx: *JSContext, v: JSVal,
 }
 
 pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<Option<DOMString>, ()> {
-    if jsval::is_null(v) || jsval::is_undefined(v) {
+    if v.is_null_or_undefined() {
         Ok(None)
     } else {
         let jsstr = unsafe { JS_ValueToString(cx, v) };
@@ -310,7 +297,7 @@ pub struct DOMJSClass {
 pub fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
     unsafe {
         /*assert ((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0;*/
-        cast::transmute(RUST_JSVAL_TO_PRIVATE(JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT)))
+        cast::transmute(JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private())
     }
 }
 

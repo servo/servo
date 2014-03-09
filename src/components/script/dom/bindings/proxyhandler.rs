@@ -7,7 +7,7 @@ use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString, jscha
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
 use js::jsapi::{JSBool, JS_DefinePropertyById, JS_NewObjectWithGivenProto};
 use js::jsval::ObjectValue;
-use js::glue::{RUST_JSVAL_IS_VOID, RUST_JSVAL_TO_OBJECT, GetProxyExtra};
+use js::glue::GetProxyExtra;
 use js::glue::{GetObjectProto, GetObjectParent, SetProxyExtra, GetProxyHandler};
 use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::crust::{JS_StrictPropertyStub};
@@ -98,10 +98,10 @@ pub fn GetExpandoObject(obj: *JSObject) -> *JSObject {
     unsafe {
         assert!(is_dom_proxy(obj));
         let val = GetProxyExtra(obj, JSPROXYSLOT_EXPANDO);
-        if RUST_JSVAL_IS_VOID(val) == 1 {
+        if val.is_undefined() {
             ptr::null()
         } else {
-            RUST_JSVAL_TO_OBJECT(val)
+            val.to_object()
         }
     }
 }

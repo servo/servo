@@ -9,7 +9,6 @@ use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
 use js::jsval::JSVal;
 use js::jsval::{NullValue, BooleanValue, Int32Value, UInt32Value};
 use js::glue::RUST_JS_NumberValue;
-use js::glue::{RUST_JSVAL_IS_NULL, RUST_JSVAL_IS_VOID};
 
 pub trait JSValConvertible {
     fn to_jsval(&self) -> JSVal;
@@ -161,7 +160,7 @@ impl<T: JSValConvertible> JSValConvertible for Option<T> {
     }
 
     fn from_jsval(cx: *JSContext, value: JSVal) -> Result<Option<T>, ()> {
-        if unsafe { RUST_JSVAL_IS_NULL(value) != 0 || RUST_JSVAL_IS_VOID(value) != 0 } {
+        if value.is_null_or_undefined() {
             Ok(None)
         } else {
             let result: Result<T, ()> = JSValConvertible::from_jsval(cx, value);
