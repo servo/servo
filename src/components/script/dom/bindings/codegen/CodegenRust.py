@@ -1301,21 +1301,6 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
         return ("${jsvalRef} = %s;\n" +
                 tail) % (value)
 
-    def wrapAndSetPtr(wrapCall, failureCode=None):
-        """
-        Returns the code to set the jsval by calling "wrapCall". "failureCode"
-        is the code to run if calling "wrapCall" fails 
-        """
-        if failureCode is None:
-            if not haveSuccessCode:
-                return wrapCall + ";\n" + "return if (*vp).v != 0 { 1 } else { 0 };"
-            failureCode = "return 0;"
-        str = ("if !(%s != 0) {\n" +
-               CGIndenter(CGGeneric(failureCode)).define() + "\n" +
-               "}\n" +
-               successCode) % (wrapCall)
-        return str
-    
     if type is None or type.isVoid():
         return (setValue("UndefinedValue()"), True)
 
@@ -1326,26 +1311,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
         raise TypeError("Can't handle sequence return values yet")
 
     if type.isGeckoInterface():
-        descriptor = descriptorProvider.getDescriptor(type.unroll().inner.identifier.name)
-        if type.nullable():
-            wrappingCode = ("if %s.is_none() {\n" % (result) +
-                            CGIndenter(CGGeneric(setValue("NullValue()"))).define() + "\n" +
-                            "}\n" +
-                            "let mut %s = %s.unwrap();\n" % (result, result))
-        else:
-            wrappingCode = ""
-        if not descriptor.interface.isCallback():
-            wrap = "GetReflector(cx, (%s).reflector(), ${jsvalPtr} as *mut JSVal)" % result
-            # Non-prefable bindings can only fail to wrap as a new-binding object
-            # if they already threw an exception.  Same thing for
-            # non-prefable bindings.
-            failed = ("assert!(unsafe { JS_IsExceptionPending(cx) != 0 });\n" +
-                      "%s" % exceptionCode)
-            wrappingCode += wrapAndSetPtr(wrap, failed)
-        else:
-            wrap = "GetReflector(cx, (%s).reflector(), ${jsvalPtr} as *mut JSVal)" % result
-            wrappingCode += wrapAndSetPtr(wrap)
-        return (wrappingCode, False)
+        return (setValue("(%s).to_jsval(cx)" % result), True)
 
     if type.isString():
         return (setValue("(%s).to_jsval(cx)" % result), True)
@@ -5045,7 +5011,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{DOMJSClass}',
             'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
             'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
-            'dom::bindings::utils::{GetReflector, HasPropertyOnPrototype, IntVal}',
+            'dom::bindings::utils::{HasPropertyOnPrototype, IntVal}',
             'dom::bindings::utils::{jsid_to_str}',
             'dom::bindings::utils::{NativePropertyHooks}',
             'dom::bindings::utils::global_object_for_js_object',
@@ -5730,7 +5696,7 @@ class CallbackMember(CGNativeMember):
             {
                 'result' : result,
                 'successCode' : "continue;" if arg.variadic else "break;",
-                'jsvalRef' : "argv.handleAt(%s)" % jsvalIndex,
+                'jsvalRef' : "argv[%s]" % jsvalIndex,
                 'jsvalHandle' : "argv.handleAt(%s)" % jsvalIndex,
                 'jsvalPtr': "&mut argv[%s]" % jsvalIndex,
                 # XXXbz we don't have anything better to use for 'obj',
