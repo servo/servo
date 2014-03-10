@@ -420,10 +420,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                   applicable_declarations: &mut ApplicableDeclarations,
                   shareable: &mut bool) {
         let style_attribute = self.with_element(|element| {
-            match *element.style_attribute() {
-                None => None,
-                Some(ref style_attribute) => Some(style_attribute)
-            }
+            element.style_attribute().as_ref()
         });
 
         applicable_declarations.normal_shareable =
