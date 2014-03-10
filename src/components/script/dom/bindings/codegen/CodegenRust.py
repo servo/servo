@@ -1232,7 +1232,7 @@ for (uint32_t i = 0; i < length; ++i) {
         successVal = preSuccess + successVal + postSuccess
     #XXXjdm support conversionBehavior here
     template = (
-        "match JSValConvertible::from_jsval(cx, ${val}) {\n"
+        "match FromJSValConvertible::from_jsval(cx, ${val}) {\n"
         "  Ok(v) => ${declName} = %s,\n"
         "  Err(_) => %s\n"
         "}" % (successVal, failureCode))
@@ -5274,7 +5274,7 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::callback::{CallbackContainer,CallbackInterface}',
                           'dom::bindings::callback::{CallSetup,ExceptionHandling}',
                           'dom::bindings::callback::{WrapCallThisObject}',
-                          'dom::bindings::conversions::JSValConvertible',
+                          'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
                           'dom::bindings::codegen::*',
                           'dom::bindings::codegen::UnionTypes::*',
                           'dom::bindings::codegen::UnionConversions::*',
@@ -6424,7 +6424,7 @@ class GlobalGenRoots():
                           'dom::bindings::utils::unwrap_jsmanaged',
                           'dom::bindings::codegen::UnionTypes::*',
                           'dom::bindings::codegen::PrototypeList',
-                          'dom::bindings::conversions::JSValConvertible',
+                          'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
                           'js::{crust, JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
                           'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS}',
                           'js::{JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_SHIFT}',
