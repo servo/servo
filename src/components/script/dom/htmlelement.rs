@@ -10,8 +10,8 @@ use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, ElementNodeTypeId};
-use js::jsapi::{JSContext, JSVal};
-use js::JSVAL_NULL;
+use js::jsapi::JSContext;
+use js::jsval::{JSVal, NullValue};
 use servo_util::namespace;
 use servo_util::str::DOMString;
 
@@ -66,7 +66,7 @@ impl HTMLElement {
     }
 
     pub fn GetItemValue(&self, _cx: *JSContext) -> Fallible<JSVal> {
-        Ok(JSVAL_NULL)
+        Ok(NullValue())
     }
 
     pub fn SetItemValue(&mut self, _cx: *JSContext, _val: JSVal) -> ErrorResult {

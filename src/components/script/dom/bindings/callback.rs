@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::Reflectable;
-use js::jsapi::{JSContext, JSObject, JS_WrapObject, JSVal, JS_ObjectIsCallable};
+use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable};
 use js::jsapi::{JS_GetProperty, JSTracer, JS_CallTracer};
-use js::{JSVAL_IS_OBJECT, JSVAL_TO_OBJECT, JSTRACE_OBJECT};
+use js::jsval::JSVal;
+use js::JSTRACE_OBJECT;
 
 use std::cast;
 use std::libc;
@@ -66,8 +67,8 @@ impl CallbackInterface {
                 return false;
             }
 
-            if !JSVAL_IS_OBJECT(*callable) ||
-               JS_ObjectIsCallable(cx, JSVAL_TO_OBJECT(*callable)) == 0 {
+            if !callable.is_object() ||
+               JS_ObjectIsCallable(cx, callable.to_object()) == 0 {
                 //ThrowErrorMessage(cx, MSG_NOT_CALLABLE, description.get());
                 return false;
             }
