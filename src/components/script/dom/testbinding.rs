@@ -8,8 +8,8 @@ use dom::blob::Blob;
 use dom::window::Window;
 use servo_util::str::DOMString;
 
-use js::JSVAL_NULL;
-use js::jsapi::{JSVal, JSContext};
+use js::jsapi::JSContext;
+use js::jsval::{JSVal, NullValue};
 
 #[deriving(Encodable)]
 pub struct TestBinding {
@@ -44,7 +44,7 @@ impl TestBinding {
     pub fn SetStringAttribute(&self, _: DOMString) {}
     pub fn InterfaceAttribute(&self) -> JS<Blob> { Blob::new(&self.window) }
     pub fn SetInterfaceAttribute(&self, _: &JS<Blob>) {}
-    pub fn AnyAttribute(&self, _: *JSContext) -> JSVal { JSVAL_NULL }
+    pub fn AnyAttribute(&self, _: *JSContext) -> JSVal { NullValue() }
     pub fn SetAnyAttribute(&self, _: *JSContext, _: JSVal) {}
 
     pub fn GetBooleanAttributeNullable(&self) -> Option<bool> { Some(false) }

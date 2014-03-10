@@ -19,7 +19,6 @@ use std::str;
 use std::vec;
 use std::unstable::raw::Box;
 use js::glue::*;
-use js::glue::{RUST_OBJECT_TO_JSVAL};
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
@@ -30,29 +29,19 @@ use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
 use js::jsapi::{JS_NewUCStringCopyN, JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
-use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
+use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSPropertyDescriptor};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsapi::{JSString};
 use js::jsapi::{JS_AllowGC, JS_InhibitGC};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
-use js::{JSPROP_ENUMERATE, JSVAL_NULL, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
+use js::jsval::JSVal;
+use js::jsval::{StringValue, PrivateValue, ObjectValue, NullValue, Int32Value};
+use js::jsval::{UInt32Value, DoubleValue, BooleanValue, UndefinedValue};
+use js::{JSPROP_ENUMERATE, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
-use js::{JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
+use js::JSPROP_SETTER;
 use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
 use js;
-
-mod jsval {
-    use js::glue::{RUST_JSVAL_IS_NULL, RUST_JSVAL_IS_VOID};
-    use js::jsapi::JSVal;
-
-    pub fn is_null(v: JSVal) -> bool {
-        unsafe { RUST_JSVAL_IS_NULL(v) == 1 }
-    }
-
-    pub fn is_undefined(v: JSVal) -> bool {
-        unsafe { RUST_JSVAL_IS_VOID(v) == 1 }
-    }
-}
 
 pub struct GlobalStaticData {
     proxy_handlers: HashMap<uint, *libc::c_void>,
@@ -96,7 +85,7 @@ pub unsafe fn dom_object_slot(obj: *JSObject) -> u32 {
 pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
     let slot = dom_object_slot(obj);
     let val = JS_GetReservedSlot(obj, slot);
-    cast::transmute(RUST_JSVAL_TO_PRIVATE(val))
+    cast::transmute(val.to_private())
 }
 
 pub unsafe fn get_dom_class(obj: *JSObject) -> Result<DOMClass, ()> {
@@ -142,7 +131,7 @@ pub fn unwrap_jsmanaged<T: Reflectable>(obj: *JSObject,
 
 pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
     unsafe {
-        let obj = RUST_JSVAL_TO_OBJECT(*val);
+        let obj = (*val).to_object();
         unwrap_object(obj, proto_id, proto_depth)
     }
 }
@@ -180,7 +169,7 @@ pub enum StringificationBehavior {
 
 pub fn jsval_to_str(cx: *JSContext, v: JSVal,
                     nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
-    if jsval::is_null(v) && nullBehavior == Empty {
+    if v.is_null() && nullBehavior == Empty {
         Ok(~"")
     } else {
         let jsstr = unsafe { JS_ValueToString(cx, v) };
@@ -194,7 +183,7 @@ pub fn jsval_to_str(cx: *JSContext, v: JSVal,
 }
 
 pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<Option<DOMString>, ()> {
-    if jsval::is_null(v) || jsval::is_undefined(v) {
+    if v.is_null_or_undefined() {
         Ok(None)
     } else {
         let jsstr = unsafe { JS_ValueToString(cx, v) };
@@ -213,12 +202,12 @@ pub unsafe fn str_to_jsval(cx: *JSContext, string: DOMString) -> JSVal {
     if jsstr.is_null() {
         fail!("JS_NewUCStringCopyN failed");
     }
-    RUST_STRING_TO_JSVAL(jsstr)
+    StringValue(&*jsstr)
 }
 
 pub unsafe fn domstring_to_jsval(cx: *JSContext, string: Option<DOMString>) -> JSVal {
     match string {
-        None => JSVAL_NULL,
+        None => NullValue(),
         Some(s) => str_to_jsval(cx, s),
     }
 }
@@ -308,7 +297,7 @@ pub struct DOMJSClass {
 pub fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
     unsafe {
         /*assert ((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0;*/
-        cast::transmute(RUST_JSVAL_TO_PRIVATE(JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT)))
+        cast::transmute(JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private())
     }
 }
 
@@ -333,7 +322,7 @@ pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSO
 
         unsafe {
             JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
-                               RUST_PRIVATE_TO_JSVAL(domClass as *libc::c_void));
+                               PrivateValue(domClass as *libc::c_void));
         }
     }
 
@@ -392,7 +381,7 @@ fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
         }
 
         if alreadyDefined == 0 &&
-            JS_DefineProperty(cx, receiver, name, RUST_OBJECT_TO_JSVAL(constructor),
+            JS_DefineProperty(cx, receiver, name, ObjectValue(&*constructor),
                               None, None, 0) == 0 {
             return ptr::null();
         }
@@ -410,13 +399,12 @@ fn DefineConstants(cx: *JSContext, obj: *JSObject, constants: *ConstantSpec) -> 
                 return true;
             }
             let jsval = match spec.value {
-                NullVal => JSVAL_NULL,
-                IntVal(i) => RUST_INT_TO_JSVAL(i),
-                UintVal(u) => RUST_UINT_TO_JSVAL(u),
-                DoubleVal(d) => RUST_DOUBLE_TO_JSVAL(d),
-                BoolVal(b) if b => JSVAL_TRUE,
-                BoolVal(_) => JSVAL_FALSE,
-                VoidVal => JSVAL_VOID
+                NullVal => NullValue(),
+                IntVal(i) => Int32Value(i),
+                UintVal(u) => UInt32Value(u),
+                DoubleVal(d) => DoubleValue(d),
+                BoolVal(b) => BooleanValue(b),
+                VoidVal => UndefinedValue(),
             };
             if JS_DefineProperty(cx, obj, spec.name,
                                  jsval, None,
@@ -480,7 +468,7 @@ pub fn initialize_global(global: *JSObject) {
         let box_ = squirrel_away_unboxed(protoArray);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
-                           RUST_PRIVATE_TO_JSVAL(box_ as *libc::c_void));
+                           PrivateValue(box_ as *libc::c_void));
     }
 }
 
@@ -528,7 +516,7 @@ pub fn GetReflector(cx: *JSContext, reflector: &Reflector,
     let obj = reflector.get_jsobject();
     assert!(obj.is_not_null());
     unsafe {
-        *vp = RUST_OBJECT_TO_JSVAL(obj);
+        *vp = ObjectValue(&*obj);
         return JS_WrapValue(cx, cast::transmute(vp));
     }
 }

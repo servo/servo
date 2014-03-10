@@ -20,8 +20,10 @@ use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
 
 use js::glue::*;
-use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JSVal};
-use js::{JSVAL_NULL, JSPROP_ENUMERATE};
+use js::jsapi::{JSObject, JSContext, JS_DefineProperty};
+use js::jsval::JSVal;
+use js::jsval::{NullValue, ObjectValue};
+use js::JSPROP_ENUMERATE;
 
 use std::cast;
 use std::comm::SharedChan;
@@ -208,7 +210,7 @@ impl Window {
     }
 
     pub fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal {
-        JSVAL_NULL
+        NullValue()
     }
 }
 
@@ -317,7 +319,7 @@ impl Window {
             for str in fn_names.iter() {
                 (*str).to_c_str().with_ref(|name| {
                     JS_DefineProperty(cx, global,  name,
-                                      RUST_OBJECT_TO_JSVAL(global),
+                                      ObjectValue(&*global),
                                       Some(cast::transmute(GetJSClassHookStubPointer(PROPERTY_STUB))),
                                       Some(cast::transmute(GetJSClassHookStubPointer(STRICT_PROPERTY_STUB))),
                                       JSPROP_ENUMERATE);
