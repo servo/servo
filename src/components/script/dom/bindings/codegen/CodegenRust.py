@@ -1232,7 +1232,7 @@ for (uint32_t i = 0; i < length; ++i) {
         successVal = preSuccess + successVal + postSuccess
     #XXXjdm support conversionBehavior here
     template = (
-        "match FromJSValConvertible::from_jsval(cx, ${val}) {\n"
+        "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
         "  Ok(v) => ${declName} = %s,\n"
         "  Err(_) => %s\n"
         "}" % (successVal, failureCode))

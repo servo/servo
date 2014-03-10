@@ -14,8 +14,8 @@ pub trait ToJSValConvertible {
     fn to_jsval(&self, cx: *JSContext) -> JSVal;
 }
 
-pub trait FromJSValConvertible {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<Self, ()>;
+pub trait FromJSValConvertible<T> {
+    fn from_jsval(cx: *JSContext, val: JSVal, option: T) -> Result<Self, ()>;
 }
 
 
@@ -37,8 +37,8 @@ impl ToJSValConvertible for bool {
     }
 }
 
-impl FromJSValConvertible for bool {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<bool, ()> {
+impl FromJSValConvertible<()> for bool {
+    fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<bool, ()> {
         let result = unsafe { convert_from_jsval(cx, val, JS_ValueToBoolean) };
         result.map(|b| b != 0)
     }
@@ -50,8 +50,8 @@ impl ToJSValConvertible for i8 {
     }
 }
 
-impl FromJSValConvertible for i8 {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<i8, ()> {
+impl FromJSValConvertible<()> for i8 {
+    fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<i8, ()> {
         let result = unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) };
         result.map(|v| v as i8)
     }
@@ -63,8 +63,8 @@ impl ToJSValConvertible for u8 {
     }
 }
 
-impl FromJSValConvertible for u8 {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<u8, ()> {
+impl FromJSValConvertible<()> for u8 {
+    fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<u8, ()> {
         let result = unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) };
         result.map(|v| v as u8)
     }
@@ -76,8 +76,8 @@ impl ToJSValConvertible for i16 {
     }
 }
 
-impl FromJSValConvertible for i16 {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<i16, ()> {
+impl FromJSValConvertible<()> for i16 {
+    fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<i16, ()> {
         let result = unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) };
         result.map(|v| v as i16)
     }
@@ -89,8 +89,8 @@ impl ToJSValConvertible for u16 {
     }
 }
 
-impl FromJSValConvertible for u16 {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<u16, ()> {
+impl FromJSValConvertible<()> for u16 {
+    fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<u16, ()> {
         unsafe { convert_from_jsval(cx, val, JS_ValueToUint16) }
     }
 }
@@ -101,8 +101,8 @@ impl ToJSValConvertible for i32 {
     }
 }
 
-impl FromJSValConvertible for i32 {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<i32, ()> {
+impl FromJSValConvertible<()> for i32 {
+    fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<i32, ()> {
         unsafe { convert_from_jsval(cx, val, JS_ValueToECMAInt32) }
     }
 }
@@ -113,8 +113,8 @@ impl ToJSValConvertible for u32 {
     }
 }
 
-impl FromJSValConvertible for u32 {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<u32, ()> {
+impl FromJSValConvertible<()> for u32 {
+    fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<u32, ()> {
         unsafe { convert_from_jsval(cx, val, JS_ValueToECMAUint32) }
     }
 }
@@ -127,8 +127,8 @@ impl ToJSValConvertible for i64 {
     }
 }
 
-impl FromJSValConvertible for i64 {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<i64, ()> {
+impl FromJSValConvertible<()> for i64 {
+    fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<i64, ()> {
         unsafe { convert_from_jsval(cx, val, JS_ValueToInt64) }
     }
 }
@@ -141,8 +141,8 @@ impl ToJSValConvertible for u64 {
     }
 }
 
-impl FromJSValConvertible for u64 {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<u64, ()> {
+impl FromJSValConvertible<()> for u64 {
+    fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<u64, ()> {
         unsafe { convert_from_jsval(cx, val, JS_ValueToUint64) }
     }
 }
@@ -155,8 +155,8 @@ impl ToJSValConvertible for f32 {
     }
 }
 
-impl FromJSValConvertible for f32 {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<f32, ()> {
+impl FromJSValConvertible<()> for f32 {
+    fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<f32, ()> {
         let result = unsafe { convert_from_jsval(cx, val, JS_ValueToNumber) };
         result.map(|f| f as f32)
     }
@@ -170,8 +170,8 @@ impl ToJSValConvertible for f64 {
     }
 }
 
-impl FromJSValConvertible for f64 {
-    fn from_jsval(cx: *JSContext, val: JSVal) -> Result<f64, ()> {
+impl FromJSValConvertible<()> for f64 {
+    fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<f64, ()> {
         unsafe { convert_from_jsval(cx, val, JS_ValueToNumber) }
     }
 }
@@ -185,13 +185,14 @@ impl<T: ToJSValConvertible> ToJSValConvertible for Option<T> {
     }
 }
 
-impl<T: FromJSValConvertible> FromJSValConvertible for Option<T> {
-    fn from_jsval(cx: *JSContext, value: JSVal) -> Result<Option<T>, ()> {
+impl<X: Default, T: FromJSValConvertible<X>> FromJSValConvertible<()> for Option<T> {
+    fn from_jsval(cx: *JSContext, value: JSVal, _: ()) -> Result<Option<T>, ()> {
         if value.is_null_or_undefined() {
             Ok(None)
         } else {
-            let result: Result<T, ()> = FromJSValConvertible::from_jsval(cx, value);
-            result.map(|v| Some(v))
+            let option: X = Default::default();
+            let result: Result<T, ()> = FromJSValConvertible::from_jsval(cx, value, option);
+            result.map(Some)
         }
     }
 }
