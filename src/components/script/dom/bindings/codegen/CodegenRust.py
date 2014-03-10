@@ -1535,10 +1535,7 @@ for (uint32_t i = 0; i < length; ++i) {
         return (wrappingCode, False)
 
     if type.isString():
-        if type.nullable():
-            return (wrapAndSetPtr("*${jsvalPtr} = domstring_to_jsval(cx, %s)" % result), False)
-        else:
-            return (wrapAndSetPtr("*${jsvalPtr} = str_to_jsval(cx, %s)" % result), False)
+        return (setValue("(%s).to_jsval(cx)" % result), True)
 
     if type.isEnum():
         if type.nullable():
@@ -5258,7 +5255,7 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
                           'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
                           'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
-                          'dom::bindings::utils::{DOMJSClass, domstring_to_jsval, Empty}',
+                          'dom::bindings::utils::{DOMJSClass, Empty}',
                           'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
                           'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
                           'dom::bindings::utils::{GetReflector, HasPropertyOnPrototype, IntVal}',
@@ -5266,7 +5263,7 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::utils::{NativePropertyHooks}',
                           'dom::bindings::utils::global_object_for_js_object',
                           'dom::bindings::utils::{Reflectable}',
-                          'dom::bindings::utils::{squirrel_away_unique, str_to_jsval}',
+                          'dom::bindings::utils::{squirrel_away_unique}',
                           'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
                           'dom::bindings::utils::{unwrap_object, VoidVal, with_gc_disabled}',
                           'dom::bindings::utils::{with_gc_enabled, XrayResolveProperty}',

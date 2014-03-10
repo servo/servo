@@ -2,13 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use servo_util::str::DOMString;
+
 use js::jsapi::{JSBool, JSContext};
 use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
 use js::jsapi::{JS_ValueToECMAUint32, JS_ValueToECMAInt32};
 use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
+use js::jsapi::{JS_NewUCStringCopyN};
 use js::jsval::JSVal;
-use js::jsval::{NullValue, BooleanValue, Int32Value, UInt32Value};
+use js::jsval::{NullValue, BooleanValue, Int32Value, UInt32Value, StringValue};
 use js::glue::RUST_JS_NumberValue;
+use std::libc;
 
 pub trait ToJSValConvertible {
     fn to_jsval(&self, cx: *JSContext) -> JSVal;
@@ -173,6 +177,19 @@ impl ToJSValConvertible for f64 {
 impl FromJSValConvertible<()> for f64 {
     fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<f64, ()> {
         unsafe { convert_from_jsval(cx, val, JS_ValueToNumber) }
+    }
+}
+
+impl ToJSValConvertible for DOMString {
+    fn to_jsval(&self, cx: *JSContext) -> JSVal {
+        unsafe {
+            let string_utf16 = self.to_utf16();
+            let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr(), string_utf16.len() as libc::size_t);
+            if jsstr.is_null() {
+                fail!("JS_NewUCStringCopyN failed");
+            }
+            StringValue(&*jsstr)
+        }
     }
 }
 
