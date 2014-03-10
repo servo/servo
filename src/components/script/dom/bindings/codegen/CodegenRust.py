@@ -593,89 +593,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         raise TypeError("Can't handle array arguments yet")
 
     if type.isSequence():
-        assert not isEnforceRange and not isClamp
-
-        if failureCode is not None:
-            raise TypeError("Can't handle sequences when failureCode is not None")
-        nullable = type.nullable();
-        # Be very careful not to change "type": we need it later
-        if nullable:
-            elementType = type.inner.inner
-        else:
-            elementType = type.inner
-
-        # We have to be careful with reallocation behavior for arrays.  In
-        # particular, if we have a sequence of elements which are themselves
-        # sequences (so nsAutoTArrays) or have sequences as members, we have a
-        # problem.  In that case, resizing the outermost nsAutoTarray to the
-        # right size will memmove its elements, but nsAutoTArrays are not
-        # memmovable and hence will end up with pointers to bogus memory, which
-        # is bad.  To deal with this, we disallow sequences, arrays,
-        # dictionaries, and unions which contain sequences as sequence item
-        # types.  If WebIDL ever adds another container type, we'd have to
-        # disallow it as well.
-        if typeIsSequenceOrHasSequenceMember(elementType):
-            raise TypeError("Can't handle a sequence containing another "
-                            "sequence as an element or member of an element.  "
-                            "See the big comment explaining why.\n%s" %
-                            str(type.location))
-
-        (elementTemplate, elementDeclType,
-         elementHolderType, dealWithOptional,
-         initialValue) = getJSToNativeConversionTemplate(
-            elementType, descriptorProvider, isMember=True)
-        if dealWithOptional:
-            raise TypeError("Shouldn't have optional things in sequences")
-        if elementHolderType is not None:
-            raise TypeError("Shouldn't need holders for sequences")
-
-        typeName = CGWrapper(elementDeclType, pre="Sequence< ", post=" >")
-        if nullable:
-            typeName = CGWrapper(typeName, pre="Nullable< ", post=" >")
-            arrayRef = "${declName}.Value()"
-        else:
-            arrayRef = "${declName}"
-        # If we're optional, the const will come from the Optional
-        mutableTypeName = typeName
-        if not isOptional:
-            typeName = CGWrapper(typeName, pre="const ")
-
-        templateBody = ("""JSObject* seq = &${val}.toObject();\n
-if (!IsArrayLike(cx, seq)) {
-  return Throw(cx, NS_ERROR_XPC_BAD_CONVERT_JS);
-}
-uint32_t length;
-// JS_GetArrayLength actually works on all objects
-if (!JS_GetArrayLength(cx, seq, &length)) {
-  return false;
-}
-Sequence< %s > &arr = const_cast< Sequence< %s >& >(%s);
-if (!arr.SetCapacity(length)) {
-  return Throw(cx, NS_ERROR_OUT_OF_MEMORY);
-}
-for (uint32_t i = 0; i < length; ++i) {
-  jsval temp;
-  if (!JS_GetElement(cx, seq, i, &temp)) {
-    return false;
-  }
-""" % (elementDeclType.define(),
-       elementDeclType.define(),
-       arrayRef))
-
-        templateBody += CGIndenter(CGGeneric(
-                string.Template(elementTemplate).substitute(
-                    {
-                        "val" : "temp",
-                        "valPtr": "&temp",
-                        "declName" : "(*arr.AppendElement())"
-                        }
-                    ))).define()
-
-        templateBody += "\n}"
-        templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
-                                          type,
-                                          "const_cast< %s & >(${declName}).SetNull()" % mutableTypeName.define())
-        return (templateBody, typeName, None, isOptional, None)
+        raise TypeError("Can't handle sequence arguments yet")
 
     if type.isUnion():
         if isMember:
@@ -956,60 +874,7 @@ for (uint32_t i = 0; i < length; ++i) {
         return (templateBody, declType, None, isOptional, "None" if isOptional else None)
 
     if type.isSpiderMonkeyInterface():
-        assert not isEnforceRange and not isClamp
-        if isMember:
-            raise TypeError("Can't handle member arraybuffers or "
-                            "arraybuffer views because making sure all the "
-                            "objects are properly rooted is hard")
-        name = type.name
-        # By default, we use a Maybe<> to hold our typed array.  And in the optional
-        # non-nullable case we want to pass Optional<TypedArray> to consumers, not
-        # Optional<NonNull<TypedArray> >, so jump though some hoops to do that.
-        holderType = "Maybe<%s>" % name
-        constructLoc = "${holderName}"
-        constructMethod = "construct"
-        constructInternal = "ref"
-        if type.nullable():
-            if isOptional:
-                declType = "const Optional<" + name + "*>"
-            else:
-                declType = name + "*"
-        else:
-            if isOptional:
-                declType = "const Optional<" + name + ">"
-                # We don't need a holder in this case
-                holderType = None
-                constructLoc = "(const_cast<Optional<" + name + ">& >(${declName}))"
-                constructMethod = "Construct"
-                constructInternal = "Value"
-            else:
-                declType = "NonNull<" + name + ">"
-        template = (
-            "%s.%s(cx, &${val}.toObject());\n"
-            "if (!%s.%s().inited()) {\n"
-            "%s" # No newline here because onFailureBadType() handles that
-            "}\n" %
-            (constructLoc, constructMethod, constructLoc, constructInternal,
-             CGIndenter(onFailureBadType(failureCode, type.name)).define()))
-        nullableTarget = ""
-        if type.nullable():
-            if isOptional:
-                mutableDecl = "(const_cast<Optional<" + name + "*>& >(${declName}))"
-                template += "%s.Construct();\n" % mutableDecl
-                nullableTarget = "%s.Value()" % mutableDecl
-            else:
-                nullableTarget = "${declName}"
-            template += "%s = ${holderName}.addr();" % nullableTarget
-        elif not isOptional:
-            template += "${declName} = ${holderName}.addr();"
-        template = wrapObjectTemplate(template, isDefinitelyObject, type,
-                                      "%s = NULL" % nullableTarget,
-                                      failureCode)
-
-        if holderType is not None:
-            holderType = CGGeneric(holderType)
-        # We handle all the optional stuff ourselves; no need for caller to do it.
-        return (template, CGGeneric(declType), holderType, False, None)
+        raise TypeError("Can't handle SpiderMonkey interface arguments yet")
 
     if type.isString():
         assert not isEnforceRange and not isClamp
@@ -1155,20 +1020,7 @@ for (uint32_t i = 0; i < length; ++i) {
         return (templateBody, declType, None, isOptional, "None" if isOptional else None)
 
     if type.isObject():
-        assert not isEnforceRange and not isClamp
-
-        if isMember:
-            raise TypeError("Can't handle member 'object'; need to sort out "
-                            "rooting issues")
-        template = wrapObjectTemplate("${declName} = &${val}.toObject();",
-                                      isDefinitelyObject, type,
-                                      "${declName} = NULL",
-                                      failureCode)
-        if type.nullable():
-            declType = CGGeneric("JSObject*")
-        else:
-            declType = CGGeneric("NonNull<JSObject>")
-        return (template, declType, None, isOptional, None)
+        raise TypeError("Can't handle object arguments yet")
 
     if type.isDictionary():
         if failureCode is not None:
@@ -1471,44 +1323,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
         raise TypeError("Can't handle array return values yet")
 
     if type.isSequence():
-        if type.nullable():
-            # Nullable sequences are Nullable< nsTArray<T> >
-            (recTemplate, recInfall) = getWrapTemplateForType(type.inner, descriptorProvider,
-                                                              "%s.Value()" % result, successCode,
-                                                              isCreator, exceptionCode)
-            return ("""
-if (%s.IsNull()) {
-%s
-}
-%s""" % (result, CGIndenter(CGGeneric(setValue("NullValue()"))).define(), recTemplate), recInfall)
-
-        # Now do non-nullable sequences.  We use setting the element
-        # in the array as our succcess code because when we succeed in
-        # wrapping that's what we should do.
-        innerTemplate = wrapForType(
-            type.inner, descriptorProvider,
-            {
-                'result' :  "%s[i]" % result,
-                'successCode': ("if (!JS_DefineElement(cx, returnArray, i, tmp,\n"
-                                "                      NULL, NULL, JSPROP_ENUMERATE)) {\n"
-                                "  return false;\n"
-                                "}"),
-                'jsvalRef': "tmp",
-                'jsvalPtr': "&tmp",
-                'isCreator': isCreator
-                }
-            )
-        innerTemplate = CGIndenter(CGGeneric(innerTemplate)).define()
-        return (("""
-uint32_t length = %s.Length();
-JSObject *returnArray = JS_NewArrayObject(cx, length, NULL);
-if (!returnArray) {
-  return false;
-}
-jsval tmp;
-for (uint32_t i = 0; i < length; ++i) {
-%s
-}\n""" % (result, innerTemplate)) + setValue("JS::ObjectValue(*returnArray)"), False)
+        raise TypeError("Can't handle sequence return values yet")
 
     if type.isGeckoInterface():
         descriptor = descriptorProvider.getDescriptor(type.unroll().inner.identifier.name)
@@ -1664,17 +1479,8 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
         return CGGeneric("*JSObject"), False
     if returnType.isSequence():
-        nullable = returnType.nullable()
-        if nullable:
-            returnType = returnType.inner
-        # If our result is already addrefed, use the right type in the
-        # sequence argument here.
-        (result, _) = getRetvalDeclarationForType(returnType.inner,
-                                                  descriptorProvider)
-        result = CGWrapper(result, pre="nsTArray< ", post=" >")
-        if nullable:
-            result = CGWrapper(result, pre="Nullable< ", post=" >")
-        return result, True
+        raise TypeError("We don't support sequence return values")
+
     raise TypeError("Don't know how to declare return value for %s" %
                     returnType)
 
