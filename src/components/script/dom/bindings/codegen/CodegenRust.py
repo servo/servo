@@ -1020,30 +1020,29 @@ for (uint32_t i = 0; i < length; ++i) {
         }
         if treatNullAs not in treatAs:
             raise TypeError("We don't support [TreatNullAs=%s]" % treatNullAs)
-        nullBehavior = treatAs[treatNullAs]
+        if type.nullable():
+            nullBehavior = "()"
+        else:
+            nullBehavior = treatAs[treatNullAs]
 
-        def getConversionCode(varName, isOptional=False):
+        def getConversionCode(isOptional=False):
             strval = "strval"
             if isOptional:
                 strval = "Some(%s)" % strval
-            if type.nullable():
-                call = "jsval_to_domstring(cx, ${val})"
-            else:
-                call = "jsval_to_str(cx, ${val}, %s)" % nullBehavior
+
             conversionCode = (
-                "let strval = %s;\n"
-                "if strval.is_err() {\n"
-                "  return 0;\n"
-                "}\n"
-                "let strval = strval.unwrap();\n"
-                "%s = %s;" % (call, varName, strval))
+                "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
+                "  Ok(strval) => ${declName} = %s,\n"
+                "  Err(_) => return 0,\n"
+                "}" % (nullBehavior, strval))
+
             if defaultValue is None:
                 return conversionCode
 
             if isinstance(defaultValue, IDLNullValue):
                 assert(type.nullable())
                 return handleDefault(conversionCode,
-                                     "%s.SetNull()" % varName)
+                                     "${declName}.SetNull()")
 
             value = "str::from_utf8(data).to_owned()"
             if type.nullable():
@@ -1051,10 +1050,10 @@ for (uint32_t i = 0; i < length; ++i) {
 
             default = (
                 "static data: [u8, ..%s] = [ %s ];\n"
-                "%s = %s" %
+                "${declName} = %s" %
                 (len(defaultValue.value) + 1,
                  ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
-                 varName, value))
+                 value))
 
             return handleDefault(conversionCode, default)
 
@@ -1062,7 +1061,7 @@ for (uint32_t i = 0; i < length; ++i) {
             # We have to make a copy, because our jsval may well not
             # live as long as our string needs to.
             declType = CGGeneric("DOMString")
-            return ("%s\n" % getConversionCode("${declName}"),
+            return ("%s\n" % getConversionCode(),
                     declType, None, isOptional, None)
 
         declType = "DOMString"
@@ -1076,8 +1075,7 @@ for (uint32_t i = 0; i < length; ++i) {
 
         return (
             "%s\n" %
-            #"const_cast<%s&>(${declName}) = &${holderName};" %
-            (getConversionCode("${declName}", isOptional)),
+            (getConversionCode(isOptional)),
             CGGeneric(declType), None, #CGGeneric("FakeDependentString"),
             False,
             initialValue)
@@ -1232,7 +1230,7 @@ for (uint32_t i = 0; i < length; ++i) {
         successVal = preSuccess + successVal + postSuccess
     #XXXjdm support conversionBehavior here
     template = (
-        "match FromJSValConvertible::from_jsval(cx, ${val}) {\n"
+        "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
         "  Ok(v) => ${declName} = %s,\n"
         "  Err(_) => %s\n"
         "}" % (successVal, failureCode))
@@ -1535,10 +1533,7 @@ for (uint32_t i = 0; i < length; ++i) {
         return (wrappingCode, False)
 
     if type.isString():
-        if type.nullable():
-            return (wrapAndSetPtr("*${jsvalPtr} = domstring_to_jsval(cx, %s)" % result), False)
-        else:
-            return (wrapAndSetPtr("*${jsvalPtr} = str_to_jsval(cx, %s)" % result), False)
+        return (setValue("(%s).to_jsval(cx)" % result), True)
 
     if type.isEnum():
         if type.nullable():
@@ -1582,7 +1577,7 @@ if %(resultStr)s.is_null() {
     if not type.isPrimitive():
         raise TypeError("Need to learn to wrap %s" % type)
 
-    return (setValue("(%s).to_jsval()" % result), True)
+    return (setValue("(%s).to_jsval(cx)" % result), True)
 
 
 def wrapForType(type, descriptorProvider, templateValues):
@@ -5258,15 +5253,15 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
                           'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
                           'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
-                          'dom::bindings::utils::{DOMJSClass, domstring_to_jsval, Empty}',
+                          'dom::bindings::utils::{DOMJSClass}',
                           'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
                           'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
                           'dom::bindings::utils::{GetReflector, HasPropertyOnPrototype, IntVal}',
-                          'dom::bindings::utils::{jsid_to_str, jsval_to_domstring, jsval_to_str}',
+                          'dom::bindings::utils::{jsid_to_str}',
                           'dom::bindings::utils::{NativePropertyHooks}',
                           'dom::bindings::utils::global_object_for_js_object',
                           'dom::bindings::utils::{Reflectable}',
-                          'dom::bindings::utils::{squirrel_away_unique, str_to_jsval}',
+                          'dom::bindings::utils::{squirrel_away_unique}',
                           'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
                           'dom::bindings::utils::{unwrap_object, VoidVal, with_gc_disabled}',
                           'dom::bindings::utils::{with_gc_enabled, XrayResolveProperty}',
@@ -5275,6 +5270,7 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::callback::{CallSetup,ExceptionHandling}',
                           'dom::bindings::callback::{WrapCallThisObject}',
                           'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
+                          'dom::bindings::conversions::{Default, Empty}',
                           'dom::bindings::codegen::*',
                           'dom::bindings::codegen::UnionTypes::*',
                           'dom::bindings::codegen::UnionConversions::*',

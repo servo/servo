@@ -26,7 +26,7 @@ use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAn
 use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate};
 use js::jsapi::{JS_InternString, JS_GetFunctionObject};
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
-use js::jsapi::{JS_NewUCStringCopyN, JS_DefineFunctions, JS_DefineProperty};
+use js::jsapi::{JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSPropertyDescriptor};
@@ -35,7 +35,7 @@ use js::jsapi::{JSString};
 use js::jsapi::{JS_AllowGC, JS_InhibitGC};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::jsval::JSVal;
-use js::jsval::{StringValue, PrivateValue, ObjectValue, NullValue, Int32Value};
+use js::jsval::{PrivateValue, ObjectValue, NullValue, Int32Value};
 use js::jsval::{UInt32Value, DoubleValue, BooleanValue, UndefinedValue};
 use js::{JSPROP_ENUMERATE, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
@@ -158,57 +158,6 @@ pub fn jsid_to_str(cx: *JSContext, id: jsid) -> DOMString {
     unsafe {
         assert!(RUST_JSID_IS_STRING(id) != 0);
         jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
-    }
-}
-
-#[deriving(Eq)]
-pub enum StringificationBehavior {
-    Default,
-    Empty,
-}
-
-pub fn jsval_to_str(cx: *JSContext, v: JSVal,
-                    nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
-    if v.is_null() && nullBehavior == Empty {
-        Ok(~"")
-    } else {
-        let jsstr = unsafe { JS_ValueToString(cx, v) };
-        if jsstr.is_null() {
-            debug!("JS_ValueToString failed");
-            Err(())
-        } else {
-            Ok(jsstring_to_str(cx, jsstr))
-        }
-    }
-}
-
-pub fn jsval_to_domstring(cx: *JSContext, v: JSVal) -> Result<Option<DOMString>, ()> {
-    if v.is_null_or_undefined() {
-        Ok(None)
-    } else {
-        let jsstr = unsafe { JS_ValueToString(cx, v) };
-        if jsstr.is_null() {
-            debug!("JS_ValueToString failed");
-            Err(())
-        } else {
-            Ok(Some(jsstring_to_str(cx, jsstr)))
-        }
-    }
-}
-
-pub unsafe fn str_to_jsval(cx: *JSContext, string: DOMString) -> JSVal {
-    let string_utf16 = string.to_utf16();
-    let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr(), string_utf16.len() as libc::size_t);
-    if jsstr.is_null() {
-        fail!("JS_NewUCStringCopyN failed");
-    }
-    StringValue(&*jsstr)
-}
-
-pub unsafe fn domstring_to_jsval(cx: *JSContext, string: Option<DOMString>) -> JSVal {
-    match string {
-        None => NullValue(),
-        Some(s) => str_to_jsval(cx, s),
     }
 }
 
