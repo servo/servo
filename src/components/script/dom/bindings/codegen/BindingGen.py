@@ -10,30 +10,6 @@ import cPickle
 import WebIDL
 from Configuration import *
 from CodegenRust import CGBindingRoot, replaceFileIfChanged
-# import Codegen in general, so we can set a variable on it
-import Codegen
-
-def generate_binding_header(config, outputprefix, webidlfile):
-    """
-    |config| Is the configuration object.
-    |outputprefix| is a prefix to use for the header guards and filename.
-    """
-
-    filename = outputprefix + ".h"
-    root = CGBindingRoot(config, outputprefix, webidlfile)
-    if replaceFileIfChanged(filename, root.declare()):
-        print "Generating binding header: %s" % (filename)
-
-def generate_binding_cpp(config, outputprefix, webidlfile):
-    """
-    |config| Is the configuration object.
-    |outputprefix| is a prefix to use for the header guards and filename.
-    """
-
-    filename = outputprefix + ".cpp"
-    root = CGBindingRoot(config, outputprefix, webidlfile)
-    if replaceFileIfChanged(filename, root.define()):
-        print "Generating binding implementation: %s" % (filename)
 
 def generate_binding_rs(config, outputprefix, webidlfile):
     """
@@ -45,25 +21,22 @@ def generate_binding_rs(config, outputprefix, webidlfile):
     root = CGBindingRoot(config, outputprefix, webidlfile)
     root2 = CGBindingRoot(config, outputprefix, webidlfile)
     if replaceFileIfChanged(filename, root.declare() + root2.define()):
-    #if replaceFileIfChanged(filename, root.declare()):
         print "Generating binding implementation: %s" % (filename)
 
 def main():
-
     # Parse arguments.
     from optparse import OptionParser
-    usagestring = "usage: %prog [header|cpp] configFile outputPrefix webIDLFile"
+    usagestring = "usage: %prog configFile outputPrefix webIDLFile"
     o = OptionParser(usage=usagestring)
     o.add_option("--verbose-errors", action='store_true', default=False,
                  help="When an error happens, display the Python traceback.")
     (options, args) = o.parse_args()
 
-    if len(args) != 4 or (args[0] != "header" and args[0] != "cpp" and args[0] != "rs"):
+    if len(args) != 3:
         o.error(usagestring)
-    buildTarget = args[0]
-    configFile = os.path.normpath(args[1])
-    outputPrefix = args[2]
-    webIDLFile = os.path.normpath(args[3])
+    configFile = os.path.normpath(args[0])
+    outputPrefix = args[1]
+    webIDLFile = os.path.normpath(args[2])
 
     # Load the parsing results
     f = open('ParserResults.pkl', 'rb')
@@ -74,14 +47,7 @@ def main():
     config = Configuration(configFile, parserData)
 
     # Generate the prototype classes.
-    if buildTarget == "header":
-        generate_binding_header(config, outputPrefix, webIDLFile);
-    elif buildTarget == "cpp":
-        generate_binding_cpp(config, outputPrefix, webIDLFile);
-    elif buildTarget == "rs":
-        generate_binding_rs(config, outputPrefix, webIDLFile);
-    else:
-        assert False # not reached
+    generate_binding_rs(config, outputPrefix, webIDLFile);
 
 if __name__ == '__main__':
     main()

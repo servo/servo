@@ -17,21 +17,13 @@ from CodegenRust import GlobalGenRoots, replaceFileIfChanged
 # import Codegen in general, so we can set a variable on it
 import Codegen
 
-def generate_file(config, name, action):
+def generate_file(config, name):
+    filename = name + '.rs'
 
     root = getattr(GlobalGenRoots, name)(config)
-    if action is 'declare':
-        filename = name + '.rs'
-        code = root.declare()
-    elif action == 'declare+define':
-        filename = name + '.rs'
-        code = root.declare()
-        root2 = getattr(GlobalGenRoots, name)(config)
-        code += root2.define()
-    else:
-        assert action is 'define'
-        filename = name + '.rs'
-        code = root.define()
+    code = root.declare()
+    root2 = getattr(GlobalGenRoots, name)(config)
+    code += root2.define()
 
     if replaceFileIfChanged(filename, code):
         print "Generating %s" % (filename)
@@ -75,22 +67,22 @@ def main():
     config = Configuration(configFile, parserResults)
 
     # Generate the prototype list.
-    generate_file(config, 'PrototypeList', 'declare+define')
+    generate_file(config, 'PrototypeList')
 
     # Generate the common code.
-    generate_file(config, 'RegisterBindings', 'declare+define')
+    generate_file(config, 'RegisterBindings')
 
     # Generate the type list.
-    generate_file(config, 'InterfaceTypes', 'declare+define')
+    generate_file(config, 'InterfaceTypes')
 
     # Generate the type list.
-    generate_file(config, 'InheritTypes', 'declare+define')
+    generate_file(config, 'InheritTypes')
 
     # Generate the module declarations.
-    generate_file(config, 'BindingDeclarations', 'declare+define')
+    generate_file(config, 'BindingDeclarations')
 
-    generate_file(config, 'UnionTypes', 'declare+define')
-    generate_file(config, 'UnionConversions', 'declare+define')
+    generate_file(config, 'UnionTypes')
+    generate_file(config, 'UnionConversions')
 
 if __name__ == '__main__':
     main()
