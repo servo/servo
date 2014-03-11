@@ -637,8 +637,8 @@ impl CompositorLayer {
                        self.epoch,
                        epoch,
                        self.pipeline.id);
-                self.pipeline.render_chan.try_send(UnusedBufferMsg(new_buffers.buffers));
-                return None;
+           //     self.pipeline.render_chan.try_send(UnusedBufferMsg(new_buffers.buffers));
+            //    return None;
             }
 
             {
