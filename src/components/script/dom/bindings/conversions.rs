@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::js::JS;
+use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::jsstring_to_str;
 use servo_util::str::DOMString;
 
@@ -10,8 +12,10 @@ use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
 use js::jsapi::{JS_ValueToECMAUint32, JS_ValueToECMAInt32};
 use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
 use js::jsapi::{JS_NewUCStringCopyN, JS_ValueToString};
+use js::jsapi::{JS_WrapValue};
 use js::jsval::JSVal;
 use js::jsval::{NullValue, BooleanValue, Int32Value, UInt32Value, StringValue};
+use js::jsval::ObjectValue;
 use js::glue::RUST_JS_NumberValue;
 use std::libc;
 
@@ -219,6 +223,18 @@ impl FromJSValConvertible<StringificationBehavior> for DOMString {
                 Ok(jsstring_to_str(cx, jsstr))
             }
         }
+    }
+}
+
+impl<T: Reflectable> ToJSValConvertible for JS<T> {
+    fn to_jsval(&self, cx: *JSContext) -> JSVal {
+        let obj = self.reflector().get_jsobject();
+        assert!(obj.is_not_null());
+        let mut value = ObjectValue(unsafe { &*obj });
+        if unsafe { JS_WrapValue(cx, &mut value as *mut JSVal as *JSVal) } == 0 {
+            fail!("JS_WrapValue failed.");
+        }
+        value
     }
 }
 

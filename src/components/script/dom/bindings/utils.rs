@@ -21,7 +21,7 @@ use std::unstable::raw::Box;
 use js::glue::*;
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
-use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
+use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
 use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate};
 use js::jsapi::{JS_InternString, JS_GetFunctionObject};
@@ -457,16 +457,6 @@ impl Reflector {
             object: ptr::null(),
             force_box_layout: @1,
         }
-    }
-}
-
-pub fn GetReflector(cx: *JSContext, reflector: &Reflector,
-                    vp: *mut JSVal) -> JSBool {
-    let obj = reflector.get_jsobject();
-    assert!(obj.is_not_null());
-    unsafe {
-        *vp = ObjectValue(&*obj);
-        return JS_WrapValue(cx, cast::transmute(vp));
     }
 }
 
