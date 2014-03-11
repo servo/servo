@@ -26,6 +26,7 @@ use servo_util::range::Range;
 use std::cast::transmute_region;
 use std::vec::VecIterator;
 use style::computed_values::border_style;
+use servo_msg::constellation_msg::DisplayListData;
 
 pub struct DisplayListCollection<E> {
     lists: ~[DisplayList<E>]
@@ -36,6 +37,19 @@ impl<E> DisplayListCollection<E> {
         DisplayListCollection {
             lists: ~[]
         }
+    }
+
+    pub fn get_collection_data(&self) -> ~[~DisplayListData] {
+        let mut collection_data: ~[~DisplayListData] = ~[];
+        for list in self.lists.iter() {
+            collection_data.push(~DisplayListData {
+                id: list.id,
+                parent: list.parent,
+                is_fixed: list.is_fixed,
+                bounds: list.get_bounds()
+            })
+        }
+        return collection_data;
     }
 
     pub fn iter<'a>(&'a self) -> DisplayListIterator<'a,E> {
@@ -65,7 +79,10 @@ impl<E> DisplayListCollection<E> {
 
 /// A list of rendering operations to be performed.
 pub struct DisplayList<E> {
-    list: ~[DisplayItem<E>]
+    list: ~[DisplayItem<E>],
+    id: uint,
+    parent: uint,
+    is_fixed: bool
 }
 
 pub enum DisplayListIterator<'a,E> {
@@ -85,16 +102,64 @@ impl<'a,E> Iterator<&'a DisplayList<E>> for DisplayListIterator<'a,E> {
 
 impl<E> DisplayList<E> {
     /// Creates a new display list.
-    pub fn new() -> DisplayList<E> {
+    pub fn new(id:uint, parent: uint) -> DisplayList<E> {
         DisplayList {
-            list: ~[]
+            list: ~[],
+            id: id,
+            is_fixed: false,
+            parent: 0,
+        }
+    }
+
+    pub fn new_fixed(id: uint, parent_index: uint) -> DisplayList<E> {
+         DisplayList {
+            list: ~[],
+            id: id,
+            is_fixed: true,
+            parent: parent_index,
         }
     }
 
     fn dump(&self) {
+        debug!("Dumping list {:?}:", self.id);
         for item in self.list.iter() {
             item.debug_with_level(0);
         }
+    }
+
+    pub fn get_list_position(&self) -> Point2D<Au> {
+        let mut point = Point2D(Au(0), Au(0));
+        for item in self.list.iter() {
+            match *item {
+                ClipDisplayItemClass(ref clip) => {
+                    let base = &clip.base;
+                    point = Point2D(base.bounds.origin.x,
+                                    base.bounds.origin.y);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        return point;
+    }
+
+    pub fn get_bounds(&self) -> Rect<f32> {
+        let mut rect = Rect(Point2D(0 as f32, 0 as f32), Size2D(0 as f32, 0 as f32));
+        for item in self.list.iter() {
+            match *item {
+                ClipDisplayItemClass(ref clip) => {
+                    let base = &clip.base;
+                    rect = Rect(Point2D(base.bounds.origin.x.to_nearest_px() as f32,
+                                        base.bounds.origin.y.to_nearest_px() as f32),
+                                Size2D(base.bounds.size.width.to_nearest_px() as f32,
+                                       base.bounds.size.height.to_nearest_px() as f32)
+                        );
+                    break;
+                }
+                _ => {}
+            }
+        }
+        rect
     }
 
     /// Appends the given item to the display list.
@@ -110,9 +175,10 @@ impl<E> DisplayList<E> {
         for item in self.list.iter() {
             // FIXME(Issue #150): crashes
             //debug!("drawing {}", *item);
-            item.draw_into_context(render_context)
+            item.draw_into_context(render_context, self.get_list_position())
         }
         debug!("Ending display list.");
+        debug!("{:?}", self.dump());
     }
 
     /// Returns a preorder iterator over the given display list.
@@ -241,18 +307,19 @@ impl<'a,E> Iterator<&'a DisplayItem<E>> for DisplayItemIterator<'a,E> {
 
 impl<E> DisplayItem<E> {
     /// Renders this display item into the given render context.
-    fn draw_into_context(&self, render_context: &mut RenderContext) {
+    fn draw_into_context(&self, render_context: &mut RenderContext, list_position: Point2D<Au>) {
         match *self {
             SolidColorDisplayItemClass(ref solid_color) => {
-                render_context.draw_solid_color(&solid_color.base.bounds, solid_color.color)
+                render_context.draw_solid_color(&Rect(solid_color.base.bounds.origin.sub(&list_position), solid_color.base.bounds.size),
+                solid_color.color)
             }
 
             ClipDisplayItemClass(ref clip) => {
                 if clip.need_clip {
-                    render_context.draw_push_clip(&clip.base.bounds);
+                    render_context.draw_push_clip(&Rect(clip.base.bounds.origin.sub(&list_position), clip.base.bounds.size));
                 }
                 for item in clip.child_list.iter() {
-                    (*item).draw_into_context(render_context);
+                    (*item).draw_into_context(render_context, list_position);
                 }
                 if clip.need_clip {
                     render_context.draw_pop_clip();
@@ -269,7 +336,7 @@ impl<E> DisplayItem<E> {
                 let font_metrics = font.borrow().with(|font| {
                     font.metrics.clone()
                 });
-                let origin = text.base.bounds.origin;
+                let origin = text.base.bounds.origin.sub(&list_position);
                 let baseline_origin = Point2D(origin.x, origin.y + font_metrics.ascent);
                 font.borrow().with_mut(|font| {
                     font.draw_text_into_context(render_context,
@@ -306,11 +373,11 @@ impl<E> DisplayItem<E> {
             ImageDisplayItemClass(ref image_item) => {
                 debug!("Drawing image at {:?}.", image_item.base.bounds);
 
-                render_context.draw_image(image_item.base.bounds, image_item.image.clone())
+                render_context.draw_image(Rect(image_item.base.bounds.origin.sub(&list_position),image_item.base.bounds.size), image_item.image.clone())
             }
 
             BorderDisplayItemClass(ref border) => {
-                render_context.draw_border(&border.base.bounds,
+                render_context.draw_border(&Rect(border.base.bounds.origin.sub(&list_position), border.base.bounds.size),
                                            border.border,
                                            border.color,
                                            border.style)

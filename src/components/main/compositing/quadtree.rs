@@ -288,6 +288,7 @@ impl<T: Tile> QuadtreeNode<T> {
 
         if x >= self.origin.x + self.size || x < self.origin.x
             || y >= self.origin.y + self.size || y < self.origin.y {
+            debug!("quadnode: {:?} ||| x: {:?}, y: {:?}", self, x, y);
             fail!("Quadtree: Tried to add tile to invalid region");
         }
         
@@ -300,7 +301,7 @@ impl<T: Tile> QuadtreeNode<T> {
             };
             for child in self.quadrants.mut_iter() {
                 match *child {
-                    Some(ref mut node) => {
+                    Some(ref mut node) => { 
                         unused_tiles.push_all_move(node.collect_tiles());
                     }
                     None => {} // Nothing to do

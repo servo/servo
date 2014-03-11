@@ -258,8 +258,10 @@ impl IOCompositor {
                     chan.send(Some(azure_hl::current_graphics_metadata()));
                 }
 
-                (Some(NewLayer(_id, new_size)), false) => {
-                    self.create_new_layer(_id, new_size);
+                (Some(NewLayers(_id, display_collection_data)), false) => {
+                    for list_data in display_collection_data.iter() {
+                        self.create_new_layer(_id, list_data.id, list_data.parent, list_data.bounds, list_data.is_fixed);
+                    }
                 }
 
                 (Some(SetLayerPageSize(id, new_size, epoch)), false) => {
@@ -274,8 +276,8 @@ impl IOCompositor {
                     self.delete_layer(id);
                 }
 
-                (Some(Paint(id, new_layer_buffer_set, epoch)), false) => {
-                    self.paint(id, new_layer_buffer_set, epoch);
+                (Some(Paint(id, new_layer_buffer_set, epoch, display_list_id)), false) => {
+                    self.paint(id, new_layer_buffer_set, epoch, display_list_id);
                 }
 
                 (Some(InvalidateRect(id, rect)), false) => {
@@ -355,35 +357,44 @@ impl IOCompositor {
         self.constellation_chan = new_constellation_chan;
     }
 
-    fn create_new_layer(&mut self, _id: PipelineId, new_size: Size2D<f32>) {
-        // FIXME: This should create an additional layer instead of replacing the current one.
-        // Once ResizeLayer messages are set up, we can switch to the new functionality.
-
+    fn create_new_layer(&mut self, _id: PipelineId, display_list_id: uint, parent_id: uint, bounds: Rect<f32>, is_fixed: bool) {
         let p = match self.compositor_layer {
-            Some(ref compositor_layer) => compositor_layer.pipeline.clone(),
+            Some(ref compositor_layer) => {
+                compositor_layer.pipeline.clone()
+            },
             None => fail!("Compositor: Received new layer without initialized pipeline"),
         };
-        let page_size = Size2D(new_size.width as f32, new_size.height as f32);
-        let new_layer = CompositorLayer::new(p,
-                                             Some(page_size),
+        let mut new_layer = ~CompositorLayer::new(p.clone(),
+                                             Some(bounds.size),
                                              self.opts.tile_size,
                                              Some(10000000u),
                                              self.opts.cpu_painting);
 
-        {
-            let current_child = self.root_layer.borrow().first_child.borrow();
-            // This assumes there is at most one child, which should be the case.
-            match *current_child.get() {
-                Some(ref old_layer) => ContainerLayer::remove_child(self.root_layer.clone(),
-                                                                     old_layer.clone()),
-                None => {}
+        if is_fixed {
+            new_layer.mark_as_fixed();
+        }
+
+        new_layer.display_list_id = display_list_id;
+
+        let container = new_layer.root_layer.clone();
+        match self.compositor_layer {
+            None => {}
+            Some(ref mut layer) => {
+                //TODO(ibnc) make new_layer a child of the specified parent instead of just root's.
+                layer.add_child(new_layer, container); 
+                layer.set_clipping_rect(p.id, bounds, display_list_id);
             }
         }
-        ContainerLayer::add_child_start(self.root_layer.clone(),
-                                        ContainerLayerKind(new_layer.root_layer.clone()));
-        self.compositor_layer = Some(new_layer);
 
-        self.ask_for_tiles();
+        let container = ContainerLayer();
+        container.scissor.set(Some(bounds));
+        container.common.with_mut(|common|
+                                  common.set_transform(identity().translate(bounds.origin.x,
+                                                                            bounds.origin.y,
+                                                                            0.0))
+                                   );
+
+        ContainerLayer::add_child_end(self.root_layer.clone(), ContainerLayerKind(Rc::new(container)));
     }
 
     fn set_layer_page_size(&mut self,
@@ -413,7 +424,8 @@ impl IOCompositor {
     fn set_layer_clip_rect(&mut self, id: PipelineId, new_rect: Rect<f32>) {
         let ask: bool = match self.compositor_layer {
             Some(ref mut layer) => {
-                assert!(layer.set_clipping_rect(id, new_rect));
+                //TODO(ibnc) actually make this a param, i.e. the display_list_id
+                assert!(layer.set_clipping_rect(id, new_rect, 0u));
                 true
             }
             None => {
@@ -445,7 +457,8 @@ impl IOCompositor {
     fn paint(&mut self,
              id: PipelineId,
              new_layer_buffer_set: ~LayerBufferSet,
-             epoch: Epoch) {
+             epoch: Epoch,
+             display_list_id: uint) {
         debug!("osmain: received new frame");
 
         // From now on, if we destroy the buffers, they will leak.
@@ -457,7 +470,8 @@ impl IOCompositor {
                 assert!(layer.add_buffers(&self.graphics_context,
                                           id,
                                           new_layer_buffer_set,
-                                          epoch).is_none());
+                                          epoch,
+                                          display_list_id).is_none());
                 self.recomposite = true;
             }
             None => {
