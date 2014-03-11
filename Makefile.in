@@ -301,7 +301,7 @@ $(AUTOGEN_SRC_script): $(BINDINGS_SRC)/%Binding.rs: $(bindinggen_dependencies) \
 	$(Q) $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
-	  $(BINDINGS_SRC)/BindingGen.py rs \
+	  $(BINDINGS_SRC)/BindingGen.py \
 	  $(BINDINGS_SRC)/Bindings.conf $*Binding $(addprefix $(WEBIDLS_SRC)/, $*.webidl)
 	$(Q)touch $@
 
