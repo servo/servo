@@ -4627,7 +4627,7 @@ class CGDescriptor(CGThing):
 
             cgThings.append(CGWrapMethod(descriptor))
 
-        cgThings = CGList((CGIndenter(t, declareOnly=True) for t in cgThings), "\n")
+        cgThings = CGList(cgThings, "\n")
         cgThings = CGWrapper(cgThings, pre='\n', post='\n')
         #self.cgRoot = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
         #                                    cgThings),
