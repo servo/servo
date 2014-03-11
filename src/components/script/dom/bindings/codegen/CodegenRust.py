@@ -1880,25 +1880,29 @@ class CGImports(CGWrapper):
     """
     Generates the appropriate import/use statements.
     """
-    def __init__(self, descriptors, dictionaries, declareImports, defineImports, child):
+    def __init__(self, child, imports):
         """
-        Builds a set of imports to cover |descriptors|.
-
-        Also includes the files in |declareIncludes| in the header
-        file and the files in |defineIncludes| in the .cpp.
+        Adds a set of imports.
         """
+        ignored_warnings = [
+            # Allow unreachable_code because we use 'break' in a way that
+            # sometimes produces two 'break's in a row. See for example
+            # CallbackMember.getArgConversions.
+            'unreachable_code',
+            'non_uppercase_statics',
+            'unused_imports',
+            'unused_variable',
+            'unused_unsafe',
+            'unused_mut',
+            'dead_assignment',
+            'dead_code',
+        ]
 
-        # TODO imports to cover descriptors, etc.
+        statements = ['#[allow(%s)];' % ','.join(ignored_warnings)]
+        statements.extend('use %s;' % i for i in sorted(imports))
 
-        def _useString(imports):
-            # Allow unreachable_code because we use 'break' in a way that sometimes produces
-            # two 'break's in a row. See for example CallbackMember.getArgConversions.
-            return '\n'.join([
-                '#[allow(unreachable_code,non_uppercase_statics,unused_imports,unused_variable,unused_unsafe,unused_mut,dead_assignment,dead_code)];',
-                ''.join('use %s;\n' % i for i in imports),
-                ''])
         CGWrapper.__init__(self, child,
-                           declarePre=_useString(sorted(declareImports)))
+                           declarePre='\n'.join(statements) + '\n\n')
 
     @staticmethod
     def getDeclarationFilename(decl):
@@ -5008,78 +5012,75 @@ class CGBindingRoot(CGThing):
         # Add imports
         #XXXjdm This should only import the namespace for the current binding,
         #       not every binding ever.
-        curr = CGImports(descriptors,
-                         dictionaries,
-                         ['js::{crust, JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
-                          'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS}',
-                          'js::{JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_SHIFT}',
-                          'js::{JSCLASS_RESERVED_SLOTS_MASK, JSID_VOID, JSJitInfo}',
-                          'js::{JSPROP_ENUMERATE, JSPROP_NATIVE_ACCESSORS, JSPROP_SHARED}',
-                          'js::{JSRESOLVE_ASSIGNING, JSRESOLVE_QUALIFIED}',
-                          'js::jsapi::{JS_CallFunctionValue, JS_GetClass, JS_GetGlobalForObject}',
-                          'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
-                          'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
-                          'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_IsExceptionPending}',
-                          'js::jsapi::{JS_NewObject, JS_ObjectIsCallable, JS_SetPrototype}',
-                          'js::jsapi::{JS_SetReservedSlot, JS_WrapValue, JSBool, JSContext}',
-                          'js::jsapi::{JSClass, JSFreeOp, JSFunctionSpec, JSHandleObject, jsid}',
-                          'js::jsapi::{JSNativeWrapper, JSObject, JSPropertyDescriptor}',
-                          'js::jsapi::{JSPropertyOpWrapper, JSPropertySpec}',
-                          'js::jsapi::{JSStrictPropertyOpWrapper, JSString, JSTracer}',
-                          'js::jsval::JSVal',
-                          'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
-                          'js::jsval::{NullValue, UndefinedValue}',
-                          'js::glue::{CallJitMethodOp, CallJitPropertyOp, CreateProxyHandler}',
-                          'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
-                          'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
-                          'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
-                          'dom::types::*',
-                          'dom::bindings::js::JS',
-                          'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
-                          'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
-                          'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
-                          'dom::bindings::utils::{DOMJSClass}',
-                          'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
-                          'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
-                          'dom::bindings::utils::{GetReflector, HasPropertyOnPrototype, IntVal}',
-                          'dom::bindings::utils::{jsid_to_str}',
-                          'dom::bindings::utils::{NativePropertyHooks}',
-                          'dom::bindings::utils::global_object_for_js_object',
-                          'dom::bindings::utils::{Reflectable}',
-                          'dom::bindings::utils::{squirrel_away_unique}',
-                          'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
-                          'dom::bindings::utils::{unwrap_object, VoidVal, with_gc_disabled}',
-                          'dom::bindings::utils::{with_gc_enabled, XrayResolveProperty}',
-                          'dom::bindings::trace::Traceable',
-                          'dom::bindings::callback::{CallbackContainer,CallbackInterface}',
-                          'dom::bindings::callback::{CallSetup,ExceptionHandling}',
-                          'dom::bindings::callback::{WrapCallThisObject}',
-                          'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
-                          'dom::bindings::conversions::{Default, Empty}',
-                          'dom::bindings::codegen::*',
-                          'dom::bindings::codegen::UnionTypes::*',
-                          'dom::bindings::codegen::UnionConversions::*',
-                          'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult}',
-                          'dom::bindings::error::{throw_method_failed_with_details}',
-                          'dom::bindings::error::{throw_not_in_union}',
-                          'script_task::JSPageInfo',
-                          'dom::bindings::proxyhandler',
-                          'dom::bindings::proxyhandler::{_obj_toString, defineProperty}',
-                          'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
-                          'dom::bindings::proxyhandler::{getPropertyDescriptor}',
-                          'servo_util::str::DOMString',
-                          'servo_util::vec::zip_copies',
-                          'std::cast',
-                          'std::libc',
-                          'std::ptr',
-                          'std::vec',
-                          'std::str',
-                          'std::num',
-                          'std::unstable::intrinsics::uninit',
-                          'std::unstable::raw::Box',
-                         ], 
-                         [],
-                         curr)
+        curr = CGImports(curr, [
+            'js::{crust, JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
+            'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS}',
+            'js::{JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_SHIFT}',
+            'js::{JSCLASS_RESERVED_SLOTS_MASK, JSID_VOID, JSJitInfo}',
+            'js::{JSPROP_ENUMERATE, JSPROP_NATIVE_ACCESSORS, JSPROP_SHARED}',
+            'js::{JSRESOLVE_ASSIGNING, JSRESOLVE_QUALIFIED}',
+            'js::jsapi::{JS_CallFunctionValue, JS_GetClass, JS_GetGlobalForObject}',
+            'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
+            'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
+            'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_IsExceptionPending}',
+            'js::jsapi::{JS_NewObject, JS_ObjectIsCallable, JS_SetPrototype}',
+            'js::jsapi::{JS_SetReservedSlot, JS_WrapValue, JSBool, JSContext}',
+            'js::jsapi::{JSClass, JSFreeOp, JSFunctionSpec, JSHandleObject, jsid}',
+            'js::jsapi::{JSNativeWrapper, JSObject, JSPropertyDescriptor}',
+            'js::jsapi::{JSPropertyOpWrapper, JSPropertySpec}',
+            'js::jsapi::{JSStrictPropertyOpWrapper, JSString, JSTracer}',
+            'js::jsval::JSVal',
+            'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
+            'js::jsval::{NullValue, UndefinedValue}',
+            'js::glue::{CallJitMethodOp, CallJitPropertyOp, CreateProxyHandler}',
+            'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
+            'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
+            'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
+            'dom::types::*',
+            'dom::bindings::js::JS',
+            'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
+            'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
+            'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
+            'dom::bindings::utils::{DOMJSClass}',
+            'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
+            'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
+            'dom::bindings::utils::{GetReflector, HasPropertyOnPrototype, IntVal}',
+            'dom::bindings::utils::{jsid_to_str}',
+            'dom::bindings::utils::{NativePropertyHooks}',
+            'dom::bindings::utils::global_object_for_js_object',
+            'dom::bindings::utils::{Reflectable}',
+            'dom::bindings::utils::{squirrel_away_unique}',
+            'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
+            'dom::bindings::utils::{unwrap_object, VoidVal, with_gc_disabled}',
+            'dom::bindings::utils::{with_gc_enabled, XrayResolveProperty}',
+            'dom::bindings::trace::Traceable',
+            'dom::bindings::callback::{CallbackContainer,CallbackInterface}',
+            'dom::bindings::callback::{CallSetup,ExceptionHandling}',
+            'dom::bindings::callback::{WrapCallThisObject}',
+            'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
+            'dom::bindings::conversions::{Default, Empty}',
+            'dom::bindings::codegen::*',
+            'dom::bindings::codegen::UnionTypes::*',
+            'dom::bindings::codegen::UnionConversions::*',
+            'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult}',
+            'dom::bindings::error::{throw_method_failed_with_details}',
+            'dom::bindings::error::{throw_not_in_union}',
+            'script_task::JSPageInfo',
+            'dom::bindings::proxyhandler',
+            'dom::bindings::proxyhandler::{_obj_toString, defineProperty}',
+            'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
+            'dom::bindings::proxyhandler::{getPropertyDescriptor}',
+            'servo_util::str::DOMString',
+            'servo_util::vec::zip_copies',
+            'std::cast',
+            'std::libc',
+            'std::ptr',
+            'std::vec',
+            'std::str',
+            'std::num',
+            'std::unstable::intrinsics::uninit',
+            'std::unstable::raw::Box',
+        ])
 
         # Add the auto-generated comment.
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
@@ -5988,24 +5989,11 @@ class GlobalGenRoots():
 
     @staticmethod
     def RegisterBindings(config):
-
         # TODO - Generate the methods we want
-        curr = CGRegisterProtos(config)
-
-        # Wrap all of that in our namespaces.
-        #curr = CGNamespace.build(['mozilla', 'dom'],
-        #                         CGWrapper(curr, post='\n'))
-        #curr = CGWrapper(curr, post='\n')
-
-        # Add the includes
-        defineIncludes = [CGImports.getDeclarationFilename(desc.interface)
-                          for desc in config.getDescriptors(hasInterfaceObject=True,
-                                                            register=True)]
-        curr = CGImports([], [], ['dom::bindings::codegen',
-                                  'script_task::JSPageInfo'], defineIncludes, curr)
-
-        # Done.
-        return curr
+        return CGImports(CGRegisterProtos(config), [
+            'dom::bindings::codegen',
+            'script_task::JSPageInfo',
+        ])
 
     @staticmethod
     def InterfaceTypes(config):
@@ -6138,8 +6126,10 @@ class GlobalGenRoots():
         # Add include guards.
         #curr = CGIncludeGuard('UnionTypes', curr)
 
-        curr = CGImports([], [], ['dom::bindings::js::JS',
-                                  'dom::types::*'], [], curr)
+        curr = CGImports(curr, [
+            'dom::bindings::js::JS',
+            'dom::types::*',
+        ])
 
         # Add the auto-generated comment.
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
@@ -6163,33 +6153,34 @@ class GlobalGenRoots():
         # Add include guards.
         #curr = CGIncludeGuard('UnionConversions', curr)
 
-        curr = CGImports([], [], [
-                          'dom::bindings::utils::unwrap_jsmanaged',
-                          'dom::bindings::codegen::UnionTypes::*',
-                          'dom::bindings::codegen::PrototypeList',
-                          'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
-                          'js::{crust, JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
-                          'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS}',
-                          'js::{JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_SHIFT}',
-                          'js::{JSCLASS_RESERVED_SLOTS_MASK, JSID_VOID, JSJitInfo}',
-                          'js::{JSPROP_ENUMERATE, JSPROP_NATIVE_ACCESSORS, JSPROP_SHARED}',
-                          'js::{JSRESOLVE_ASSIGNING, JSRESOLVE_QUALIFIED}',
-                          'js::jsapi::{JS_CallFunctionValue, JS_GetClass, JS_GetGlobalForObject}',
-                          'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
-                          'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
-                          'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_IsExceptionPending}',
-                          'js::jsapi::{JS_NewObject, JS_ObjectIsCallable, JS_SetPrototype}',
-                          'js::jsapi::{JS_SetReservedSlot, JS_WrapValue, JSBool, JSContext}',
-                          'js::jsapi::{JSClass, JSFreeOp, JSFunctionSpec, JSHandleObject, jsid}',
-                          'js::jsapi::{JSNativeWrapper, JSObject, JSPropertyDescriptor}',
-                          'js::jsapi::{JSPropertyOpWrapper, JSPropertySpec}',
-                          'js::jsapi::{JSStrictPropertyOpWrapper, JSString, JSTracer}',
-                          'js::jsval::JSVal',
-                          'js::jsval::PrivateValue',
-                          'js::glue::{CallJitMethodOp, CallJitPropertyOp, CreateProxyHandler}',
-                          'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
-                          'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
-                          'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',], [], curr)
+        curr = CGImports(curr, [
+            'dom::bindings::utils::unwrap_jsmanaged',
+            'dom::bindings::codegen::UnionTypes::*',
+            'dom::bindings::codegen::PrototypeList',
+            'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
+            'js::{crust, JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
+            'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS}',
+            'js::{JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_SHIFT}',
+            'js::{JSCLASS_RESERVED_SLOTS_MASK, JSID_VOID, JSJitInfo}',
+            'js::{JSPROP_ENUMERATE, JSPROP_NATIVE_ACCESSORS, JSPROP_SHARED}',
+            'js::{JSRESOLVE_ASSIGNING, JSRESOLVE_QUALIFIED}',
+            'js::jsapi::{JS_CallFunctionValue, JS_GetClass, JS_GetGlobalForObject}',
+            'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
+            'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
+            'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_IsExceptionPending}',
+            'js::jsapi::{JS_NewObject, JS_ObjectIsCallable, JS_SetPrototype}',
+            'js::jsapi::{JS_SetReservedSlot, JS_WrapValue, JSBool, JSContext}',
+            'js::jsapi::{JSClass, JSFreeOp, JSFunctionSpec, JSHandleObject, jsid}',
+            'js::jsapi::{JSNativeWrapper, JSObject, JSPropertyDescriptor}',
+            'js::jsapi::{JSPropertyOpWrapper, JSPropertySpec}',
+            'js::jsapi::{JSStrictPropertyOpWrapper, JSString, JSTracer}',
+            'js::jsval::JSVal',
+            'js::jsval::PrivateValue',
+            'js::glue::{CallJitMethodOp, CallJitPropertyOp, CreateProxyHandler}',
+            'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
+            'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
+            'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
+        ])
 
         # Add the auto-generated comment.
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
