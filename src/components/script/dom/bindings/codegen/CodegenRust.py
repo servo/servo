@@ -2534,7 +2534,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aGlobal'),
                 Argument('*JSObject', 'aReceiver')]
         CGAbstractMethod.__init__(self, descriptor, name,
-                                  '*JSObject', args, inline=True, pub=pub)
+                                  '*JSObject', args, pub=pub)
         self.id = idPrefix + "id::" + self.descriptor.name
     def definition_body(self):
         return """
@@ -4544,6 +4544,11 @@ class CGDescriptor(CGThing):
 
         cgThings = []
         if descriptor.interface.hasInterfacePrototypeObject():
+            cgThings.append(CGGetProtoObjectMethod(descriptor))
+        else:
+            cgThings.append(CGGetConstructorObjectMethod(descriptor))
+
+        if descriptor.interface.hasInterfacePrototypeObject():
             (hasMethod, hasGetter, hasLenientGetter,
              hasSetter, hasLenientSetter) = False, False, False, False, False
             for m in descriptor.interface.members:
@@ -4586,10 +4591,6 @@ class CGDescriptor(CGThing):
         properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(define=str(properties)))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
-        if descriptor.interface.hasInterfacePrototypeObject():
-            cgThings.append(CGGetProtoObjectMethod(descriptor))
-        else:
-            cgThings.append(CGGetConstructorObjectMethod(descriptor))
 
         # Set up our Xray callbacks as needed.
         if descriptor.interface.hasInterfacePrototypeObject():
