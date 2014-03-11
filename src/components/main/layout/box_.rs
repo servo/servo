@@ -1279,6 +1279,7 @@ impl Box {
     }
 
 
+    /// TODO: What exactly does this function return? Why is it Au(0) for GenericBox?
     pub fn content_width(&self) -> Au {
         match self.specific {
             GenericBox | IframeBox(_) => Au(0),
@@ -1310,6 +1311,13 @@ impl Box {
             }
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
         }
+    }
+
+    /// Return the size of the content box.
+    pub fn content_box_size(&self) -> Size2D<Au> {
+        let border_box_size = self.border_box.get().size;
+        Size2D(border_box_size.width - self.noncontent_width(),
+               border_box_size.height - self.noncontent_height())
     }
 
     /// Split box which includes new-line character
