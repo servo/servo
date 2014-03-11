@@ -21,9 +21,7 @@ def generate_file(config, name):
     filename = name + '.rs'
 
     root = getattr(GlobalGenRoots, name)(config)
-    code = root.declare()
-    root2 = getattr(GlobalGenRoots, name)(config)
-    code += root2.define()
+    code = root.define()
 
     if replaceFileIfChanged(filename, code):
         print "Generating %s" % (filename)

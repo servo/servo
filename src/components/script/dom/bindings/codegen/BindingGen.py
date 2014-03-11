@@ -19,8 +19,7 @@ def generate_binding_rs(config, outputprefix, webidlfile):
 
     filename = outputprefix + ".rs"
     root = CGBindingRoot(config, outputprefix, webidlfile)
-    root2 = CGBindingRoot(config, outputprefix, webidlfile)
-    if replaceFileIfChanged(filename, root.declare() + root2.define()):
+    if replaceFileIfChanged(filename, root.define()):
         print "Generating binding implementation: %s" % (filename)
 
 def main():

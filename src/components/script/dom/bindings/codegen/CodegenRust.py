@@ -141,11 +141,9 @@ class CGThing():
     """
     def __init__(self):
         pass # Nothing for now
-    def declare(self):
-        """Produce code for a header file."""
-        assert(False)  # Override me!
+
     def define(self):
-        """Produce code for a cpp file."""
+        """Produce code for a Rust file."""
         assert(False) # Override me!
 
 class CGMethodCall(CGThing):
@@ -1575,9 +1573,7 @@ class CGNativePropertyHooks(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
         self.descriptor = descriptor
-    def declare(self):
-        #return "extern const NativePropertyHooks NativeHooks;\n"
-        return ""
+
     def define(self):
         if self.descriptor.concrete and self.descriptor.proxy:
             resolveOwnProperty = "ResolveOwnProperty"
@@ -1600,20 +1596,14 @@ class CGIndenter(CGThing):
     A class that takes another CGThing and generates code that indents that
     CGThing by some number of spaces.  The default indent is two spaces.
     """
-    def __init__(self, child, indentLevel=2, declareOnly=False):
+    def __init__(self, child, indentLevel=2):
         CGThing.__init__(self)
         self.child = child
         self.indent = " " * indentLevel
-        self.declareOnly = declareOnly
-    def declare(self):
-        decl = self.child.declare()
-        if decl is not "":
-            return re.sub(lineStartDetector, self.indent, decl)
-        else:
-            return ""
+
     def define(self):
         defn = self.child.define()
-        if defn is not "" and not self.declareOnly:
+        if defn is not "":
             return re.sub(lineStartDetector, self.indent, defn)
         else:
             return defn
@@ -1622,38 +1612,21 @@ class CGWrapper(CGThing):
     """
     Generic CGThing that wraps other CGThings with pre and post text.
     """
-    def __init__(self, child, pre="", post="", declarePre=None,
-                 declarePost=None, definePre=None, definePost=None,
-                 declareOnly=False, defineOnly=False, reindent=False):
+    def __init__(self, child, pre="", post="", reindent=False):
         CGThing.__init__(self)
         self.child = child
-        self.declarePre = declarePre or pre
-        self.declarePost = declarePost or post
-        self.definePre = definePre or pre
-        self.definePost = definePost or post
-        self.declareOnly = declareOnly
-        self.defineOnly = defineOnly
+        self.pre = pre
+        self.post = post
         self.reindent = reindent
-    def declare(self):
-        if self.defineOnly:
-            return ''
-        decl = self.child.declare()
-        if self.reindent:
-            # We don't use lineStartDetector because we don't want to
-            # insert whitespace at the beginning of our _first_ line.
-            decl = stripTrailingWhitespace(
-                decl.replace("\n", "\n" + (" " * len(self.declarePre))))
-        return self.declarePre + decl + self.declarePost
+
     def define(self):
-        if self.declareOnly:
-            return ''
         defn = self.child.define()
         if self.reindent:
             # We don't use lineStartDetector because we don't want to
             # insert whitespace at the beginning of our _first_ line.
             defn = stripTrailingWhitespace(
-                defn.replace("\n", "\n" + (" " * len(self.definePre))))
-        return self.definePre + defn + self.definePost
+                defn.replace("\n", "\n" + (" " * len(self.pre))))
+        return self.pre + defn + self.post
 
 class CGImports(CGWrapper):
     """
@@ -1681,7 +1654,7 @@ class CGImports(CGWrapper):
         statements.extend('use %s;' % i for i in sorted(imports))
 
         CGWrapper.__init__(self, child,
-                           declarePre='\n'.join(statements) + '\n\n')
+                           pre='\n'.join(statements) + '\n\n')
 
     @staticmethod
     def getDeclarationFilename(decl):
@@ -1698,23 +1671,20 @@ class CGIfWrapper(CGWrapper):
                            post="\n}")
 
 class CGNamespace(CGWrapper):
-    def __init__(self, namespace, child, declareOnly=False, public=False):
+    def __init__(self, namespace, child, public=False):
         pre = "%smod %s {\n" % ("pub " if public else "", namespace)
         post = "} // mod %s\n" % namespace
-        CGWrapper.__init__(self, child, pre=pre, post=post,
-                           declareOnly=declareOnly)
+        CGWrapper.__init__(self, child, pre=pre, post=post)
+
     @staticmethod
-    def build(namespaces, child, declareOnly=False, public=False):
+    def build(namespaces, child, public=False):
         """
         Static helper method to build multiple wrapped namespaces.
         """
         if not namespaces:
-            return CGWrapper(child, declareOnly=declareOnly)
-        inner = CGNamespace.build(namespaces[1:], child, declareOnly=declareOnly, public=public)
-        return CGNamespace(namespaces[0], inner, declareOnly=declareOnly, public=public)
-
-    def declare(self):
-        return ""
+            return child
+        inner = CGNamespace.build(namespaces[1:], child, public=public)
+        return CGNamespace(namespaces[0], inner, public=public)
 
 def DOMClass(descriptor):
         protoList = ['PrototypeList::id::' + proto for proto in descriptor.prototypeChain]
@@ -1737,9 +1707,7 @@ class CGDOMJSClass(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
         self.descriptor = descriptor
-    def declare(self):
-        #return "extern DOMJSClass Class;\n"
-        return ""
+
     def define(self):
         traceHook = "Some(%s)" % TRACE_HOOK_NAME
         if self.descriptor.createGlobal:
@@ -1791,9 +1759,7 @@ class CGPrototypeJSClass(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
         self.descriptor = descriptor
-    def declare(self):
-        # We're purely for internal consumption
-        return ""
+
     def define(self):
         return """
 static PrototypeClassName__: [u8, ..%s] = %s;
@@ -1829,9 +1795,7 @@ class CGInterfaceObjectJSClass(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
         self.descriptor = descriptor
-    def declare(self):
-        # We're purely for internal consumption
-        return ""
+
     def define(self):
         if True:
             return ""
@@ -1872,8 +1836,7 @@ class CGList(CGThing):
         self.children.insert(0, child)
     def join(self, generator):
         return self.joiner.join(filter(lambda s: len(s) > 0, (child for child in generator)))
-    def declare(self):
-        return self.join(child.declare() for child in self.children if child is not None)
+
     def define(self):
         return self.join(child.define() for child in self.children if child is not None)
 
@@ -1890,13 +1853,11 @@ class CGGeneric(CGThing):
     A class that spits out a fixed string into the codegen.  Can spit out a
     separate string for the declaration too.
     """
-    def __init__(self, define="", declare=""):
-        self.declareText = declare
-        self.defineText = define
-    def declare(self):
-        return self.declareText
+    def __init__(self, text):
+        self.text = text
+
     def define(self):
-        return self.defineText
+        return self.text
 
 def getTypes(descriptor):
     """
@@ -2045,7 +2006,6 @@ class CGAbstractMethod(CGThing):
         self.name = name
         self.returnType = returnType
         self.args = args
-        self.inline = inline
         self.alwaysInline = alwaysInline
         self.extern = extern
         self.templateArgs = templateArgs
@@ -2079,17 +2039,10 @@ class CGAbstractMethod(CGThing):
         return "\n  unsafe {" if self.unsafe else ""
     def _unsafe_close(self):
         return "\n  }\n" if self.unsafe else ""
-    def declare(self):
-        if self.inline:
-            return self._define()
-        #return "%sfn %s%s(%s)%s;\n" % (self._decorators(), self.name, self._template(),
-        #                               self._argstring(), self._returnType())
-        return ""
 
-    def _define(self, fromDeclare=False):
+    def define(self, fromDeclare=False):
         return self.definition_prologue(fromDeclare) + "\n" + self.definition_body() + self.definition_epilogue()
-    def define(self):
-        return "" if self.inline else self._define()
+
     def definition_prologue(self, fromDeclare):
         return "%sfn %s%s(%s)%s {%s" % (self._decorators(), self.name, self._template(),
                                         self._argstring(fromDeclare), self._returnType(), self._unsafe_open())
@@ -2180,9 +2133,6 @@ class CGAbstractExternMethod(CGAbstractMethod):
     def __init__(self, descriptor, name, returnType, args):
         CGAbstractMethod.__init__(self, descriptor, name, returnType, args,
                                   inline=False, extern=True)
-    def declare(self):
-        # We only have implementation
-        return ""
 
 class PropertyArrays():
     def __init__(self, descriptor):
@@ -2379,10 +2329,6 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         args = [Argument('&mut JSPageInfo', 'js_info')]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'bool', args, pub=True)
-
-    def declare(self):
-        #return CGAbstractMethod.declare(self)
-        return ""
 
     def define(self):
         return CGAbstractMethod.define(self)
@@ -2945,9 +2891,6 @@ class CGMemberJITInfo(CGThing):
         self.member = member
         self.descriptor = descriptor
 
-    def declare(self):
-        return ""
-
     def defineJitInfo(self, infoName, opName, infallible):
         protoID =  "PrototypeList::id::%s as u32" % self.descriptor.name
         depth = self.descriptor.interface.inheritanceDepth()
@@ -3020,9 +2963,6 @@ class CGEnum(CGThing):
     def __init__(self, enum):
         CGThing.__init__(self)
         self.enum = enum
-
-    def declare(self):
-        return ""
 
     def define(self):
         return """
@@ -3176,7 +3116,7 @@ class CGUnionStruct(CGThing):
         self.type = type
         self.descriptorProvider = descriptorProvider
 
-    def declare(self):
+    def define(self):
         templateVars = map(lambda t: getUnionTypeTemplateVars(t, self.descriptorProvider),
                            self.type.flatMemberTypes)
         enumValues = [
@@ -3186,8 +3126,6 @@ class CGUnionStruct(CGThing):
                 "%s\n"
                 "}\n") % (self.type, "\n".join(enumValues))
 
-    def define(self):
-        return ""
 
 class CGUnionConversionStruct(CGThing):
     def __init__(self, type, descriptorProvider):
@@ -3307,7 +3245,7 @@ class CGUnionConversionStruct(CGThing):
             pre="pub fn TryConvertTo%s(cx: *JSContext, value: JSVal) -> %s {\n" % (t.name, returnType),
             post="\n}")
 
-    def declare(self):
+    def define(self):
         methods = [self.from_value_method()]
         methods.extend(self.try_method(t) for t in self.type.flatMemberTypes)
         return """
@@ -3315,8 +3253,6 @@ impl %s {
 %s
 }""" % (self.type, CGIndenter(CGList(methods, "\n\n")).define())
 
-    def define(self):
-        return ""
 
 class ClassItem:
     """ Use with CGClass """
@@ -3699,7 +3635,7 @@ class CGClass(CGThing):
                                     in self.templateSpecialization])
         return className
 
-    def declare(self):
+    def define(self):
         result = ''
         if self.templateArgs:
             templateArgs = [a.declare() for a in self.templateArgs]
@@ -3775,8 +3711,6 @@ class CGClass(CGThing):
         result += "}"
         return result
 
-    def define(self):
-        return ''
 
 class CGXrayHelper(CGAbstractExternMethod):
     def __init__(self, descriptor, name, args, properties):
@@ -3930,8 +3864,7 @@ class CGProxyUnwrap(CGAbstractMethod):
     def __init__(self, descriptor):
         args = [Argument('*JSObject', 'obj')]
         CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy", '*' + descriptor.concreteType, args, alwaysInline=True)
-    def declare(self):
-        return ""
+
     def definition_body(self):
         return """  /*if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
     obj = js::UnwrapObject(obj);
@@ -4320,9 +4253,7 @@ class CGDOMJSProxyHandlerDOMClass(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
         self.descriptor = descriptor
-    def declare(self):
-        #return "extern const DOMClass Class;\n"
-        return ""
+
     def define(self):
         return """
 static Class: DOMClass = """ + DOMClass(self.descriptor) + """;
@@ -4382,7 +4313,7 @@ class CGDescriptor(CGThing):
             cgThings.append(CGPrototypeJSClass(descriptor))
 
         properties = PropertyArrays(descriptor)
-        cgThings.append(CGGeneric(define=str(properties)))
+        cgThings.append(CGGeneric(str(properties)))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
 
         # Set up our Xray callbacks as needed.
@@ -4432,8 +4363,6 @@ class CGDescriptor(CGThing):
         #                        post='\n')
         self.cgRoot = cgThings
 
-    def declare(self):
-        return self.cgRoot.declare()
     def define(self):
         return self.cgRoot.define()
 
@@ -4477,8 +4406,6 @@ class CGNamespacedEnum(CGThing):
         # Save the result.
         self.node = curr
 
-    def declare(self):
-        return self.node.declare()
     def define(self):
         return self.node.define()
 
@@ -4501,9 +4428,12 @@ class CGDictionary(CGThing):
                                              defaultValue=member.defaultValue))
             for member in dictionary.members ]
 
-    def declare(self):
+    def define(self):
         if not self.generatable:
             return ""
+        return self.struct() + "\n" + self.impl()
+
+    def struct(self):
         d = self.dictionary
         if d.parent:
             inheritance = "  parent: %s::%s,\n" % (self.makeModuleName(d.parent),
@@ -4524,9 +4454,7 @@ class CGDictionary(CGThing):
                 "}").substitute( { "selfName": self.makeClassName(d),
                                     "inheritance": inheritance }))
 
-    def define(self):
-        if not self.generatable:
-            return ""
+    def impl(self):
         d = self.dictionary
         if d.parent:
             initParent = ("// Per spec, we init the parent's members first\n"
@@ -4755,8 +4683,8 @@ class CGBindingRoot(CGThing):
                                      CGList([CGGeneric("  use dom::bindings::utils::EnumEntry;"),
                                              CGEnum(e)]), public=True)
         def makeEnumTypedef(e):
-            return CGGeneric(declare=("pub type %s = self::%sValues::valuelist;\n" %
-                                      (e.identifier.name, e.identifier.name)))
+            return CGGeneric("pub type %s = self::%sValues::valuelist;\n" %
+                                      (e.identifier.name, e.identifier.name))
         cgthings = [ fun(e) for e in config.getEnums(webIDLFile)
                      for fun in [makeEnum, makeEnumTypedef] ]
 
@@ -4878,8 +4806,7 @@ class CGBindingRoot(CGThing):
 
         # Store the final result.
         self.root = curr
-    def declare(self):
-        return stripTrailingWhitespace(self.root.declare())
+
     def define(self):
         return stripTrailingWhitespace(self.root.define())
 
@@ -5795,7 +5722,7 @@ class GlobalGenRoots():
             return "dom::%s" % descriptor.name.lower()
 
         descriptors = [d.name for d in config.getDescriptors(register=True, hasInterfaceObject=True)]
-        curr = CGList([CGGeneric(declare="pub use dom::%s::%s;\n" % (name.lower(), name)) for name in descriptors])
+        curr = CGList([CGGeneric("pub use dom::%s::%s;\n" % (name.lower(), name)) for name in descriptors])
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
 
@@ -5803,7 +5730,7 @@ class GlobalGenRoots():
     def BindingDeclarations(config):
 
         descriptors = [d.name for d in config.getDescriptors(register=True)]
-        curr = CGList([CGGeneric(declare="pub mod %sBinding;\n" % name) for name in descriptors])
+        curr = CGList([CGGeneric("pub mod %sBinding;\n" % name) for name in descriptors])
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
 
@@ -5811,19 +5738,19 @@ class GlobalGenRoots():
     def InheritTypes(config):
 
         descriptors = config.getDescriptors(register=True, hasInterfaceObject=True)
-        allprotos = [CGGeneric(declare="#[allow(unused_imports)];\n"),
-                     CGGeneric(declare="use dom::types::*;\n"),
-                     CGGeneric(declare="use dom::bindings::js::JS;\n"),
-                     CGGeneric(declare="use dom::bindings::trace::Traceable;\n"),
-                     CGGeneric(declare="use extra::serialize::{Encodable, Encoder};\n"),
-                     CGGeneric(declare="use js::jsapi::JSTracer;\n\n")]
+        allprotos = [CGGeneric("#[allow(unused_imports)];\n"),
+                     CGGeneric("use dom::types::*;\n"),
+                     CGGeneric("use dom::bindings::js::JS;\n"),
+                     CGGeneric("use dom::bindings::trace::Traceable;\n"),
+                     CGGeneric("use extra::serialize::{Encodable, Encoder};\n"),
+                     CGGeneric("use js::jsapi::JSTracer;\n\n")]
         for descriptor in descriptors:
             name = descriptor.name
-            protos = [CGGeneric(declare='pub trait %s {}\n' % (name + 'Base'))]
+            protos = [CGGeneric('pub trait %s {}\n' % (name + 'Base'))]
             for proto in descriptor.prototypeChain:
-                protos += [CGGeneric(declare='impl %s for %s {}\n' % (proto + 'Base',
+                protos += [CGGeneric('impl %s for %s {}\n' % (proto + 'Base',
                                                                       descriptor.concreteType))]
-            derived = [CGGeneric(declare='pub trait %s { fn %s(&self) -> bool; }\n' %
+            derived = [CGGeneric('pub trait %s { fn %s(&self) -> bool; }\n' %
                                  (name + 'Derived', 'is_' + name.lower()))]
             for protoName in descriptor.prototypeChain[1:-1]:
                 protoDescriptor = config.getDescriptor(protoName)
@@ -5836,10 +5763,10 @@ class GlobalGenRoots():
                  'selfName': name + 'Derived',
                  'baseName': protoDescriptor.concreteType,
                  'parentName': protoDescriptor.prototypeChain[-2].lower()})
-                derived += [CGGeneric(declare=delegate)]
-            derived += [CGGeneric(declare='\n')]
+                derived += [CGGeneric(delegate)]
+            derived += [CGGeneric('\n')]
 
-            cast = [CGGeneric(declare=string.Template('''pub trait ${castTraitName} {
+            cast = [CGGeneric(string.Template('''pub trait ${castTraitName} {
   fn from<T: ${fromBound}>(derived: &JS<T>) -> JS<Self> {
     unsafe { derived.clone().transmute() }
   }
@@ -5853,9 +5780,9 @@ class GlobalGenRoots():
                  'castTraitName': name + 'Cast',
                  'fromBound': name + 'Base',
                  'toBound': name + 'Derived'})),
-                    CGGeneric(declare="impl %s for %s {}\n\n" % (name + 'Cast', name))]
+                    CGGeneric("impl %s for %s {}\n\n" % (name + 'Cast', name))]
 
-            trace = [CGGeneric(declare=string.Template('''impl Traceable for ${name} {
+            trace = [CGGeneric(string.Template('''impl Traceable for ${name} {
     fn trace(&self, tracer: *mut JSTracer) {
         unsafe {
             self.encode(&mut *tracer);
