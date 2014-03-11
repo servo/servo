@@ -34,10 +34,16 @@
 # == simple_iframe.html simple_iframe_ref.html -- disabled due to iframe crashiness
 == object_element_a.html object_element_b.html
 == height_compute_reset.html height_compute.html
+== width_nonreplaced_block_simple_a.html width_nonreplaced_block_simple_b.html
+== max_width_float_simple_a.html max_width_float_simple_b.html
+== max_width_simple_a.html max_width_simple_b.html
+== min_width_float_simple_a.html min_width_float_simple_b.html
+== min_width_simple_a.html min_width_simple_b.html
 # Positioning tests
 == position_abs_cb_with_non_cb_kid_a.html position_abs_cb_with_non_cb_kid_b.html
 == position_abs_height_width_a.html position_abs_height_width_b.html
 == position_abs_left_a.html position_abs_left_b.html
+== position_abs_margin_top_percentage_a.html position_abs_margin_top_percentage_b.html
 == position_abs_nested_a.html position_abs_nested_b.html
 == position_abs_replaced_simple_a.html position_abs_replaced_simple_b.html
 == position_abs_static_y_a.html position_abs_static_y_b.html

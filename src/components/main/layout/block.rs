@@ -9,6 +9,8 @@
 //! elements with position = 'absolute' or 'fixed'.
 //! The term 'positioned element' refers to elements with position =
 //! 'relative', 'absolute', or 'fixed'.
+//!
+//! CB: Containing Block of the current flow.
 
 use layout::box_::{Box, ImageBox, ScannedTextBox};
 use layout::construct::FlowConstructor;
@@ -23,7 +25,7 @@ use layout::wrapper::ThreadSafeLayoutNode;
 use style::computed_values::{position};
 
 use std::cell::RefCell;
-use geom::{Point2D, Rect, SideOffsets2D, Size2D};
+use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{DisplayListCollection, DisplayList};
 use servo_util::geometry::Au;
 use servo_util::geometry;
@@ -55,116 +57,6 @@ impl FloatedBlockInfo {
             floated_children: 0,
             float_kind: float_kind,
         }
-    }
-}
-
-/// The solutions for the widths-and-margins constraint equation.
-struct WidthConstraintSolution {
-    left: Au,
-    right: Au,
-    width: Au,
-    margin_left: Au,
-    margin_right: Au
-}
-
-impl WidthConstraintSolution {
-    fn new(left: Au, right: Au, width: Au, margin_left: Au, margin_right: Au)
-           -> WidthConstraintSolution {
-        WidthConstraintSolution {
-            left: left,
-            right: right,
-            width: width,
-            margin_left: margin_left,
-            margin_right: margin_right,
-        }
-    }
-
-    /// Solve the horizontal constraint equation for absolute replaced elements.
-    ///
-    /// `static_x_offset`: total offset of current flow's hypothetical
-    /// position (static position) from its actual Containing Block.
-    ///
-    /// Assumption: The used value for width has already been calculated.
-    ///
-    /// CSS Section 10.3.8
-    /// Constraint equation:
-    /// left + right + width + margin-left + margin-right
-    /// = absolute containing block width - (horizontal padding and border)
-    /// [aka available_width]
-    ///
-    /// Return the solution for the equation.
-    fn solve_horiz_constraints_abs_replaced(width: Au,
-                                            left_margin: MaybeAuto,
-                                            right_margin: MaybeAuto,
-                                            left: MaybeAuto,
-                                            right: MaybeAuto,
-                                            available_width: Au,
-                                            static_x_offset: Au)
-                                            -> WidthConstraintSolution {
-        // TODO: Check for direction of static-position Containing Block (aka
-        // parent flow, _not_ the actual Containing Block) when right-to-left
-        // is implemented
-        // Assume direction is 'ltr' for now
-        // TODO: Handle all the cases for 'rtl' direction.
-
-        // Distance from the left edge of the Absolute Containing Block to the
-        // left margin edge of a hypothetical box that would have been the
-        // first box of the element.
-        let static_position_left = static_x_offset;
-
-        let (left, right, width, margin_left, margin_right) = match (left, right) {
-            (Auto, Auto) => {
-                let left = static_position_left;
-                let margin_l = left_margin.specified_or_zero();
-                let margin_r = right_margin.specified_or_zero();
-                let sum = left + width + margin_l + margin_r;
-                (left, available_width - sum, width, margin_l, margin_r)
-            }
-            // If only one is Auto, solve for it
-            (Auto, Specified(right)) => {
-                let margin_l = left_margin.specified_or_zero();
-                let margin_r = right_margin.specified_or_zero();
-                let sum = right + width + margin_l + margin_r;
-                (available_width - sum, right, width, margin_l, margin_r)
-            }
-            (Specified(left), Auto) => {
-                let margin_l = left_margin.specified_or_zero();
-                let margin_r = right_margin.specified_or_zero();
-                let sum = left + width + margin_l + margin_r;
-                (left, available_width - sum, width, margin_l, margin_r)
-            }
-            (Specified(left), Specified(right)) => {
-                match (left_margin, right_margin) {
-                    (Auto, Auto) => {
-                        let total_margin_val = (available_width - left - right - width);
-                        if total_margin_val < Au(0) {
-                            // margin-left becomes 0 because direction is 'ltr'.
-                            (left, right, width, Au(0), total_margin_val)
-                        } else {
-                            // Equal margins
-                            (left, right, width,
-                             total_margin_val.scale_by(0.5),
-                             total_margin_val.scale_by(0.5))
-                        }
-                    }
-                    (Specified(margin_l), Auto) => {
-                        let sum = left + right + width + margin_l;
-                        (left, right, width, margin_l, available_width - sum)
-                    }
-                    (Auto, Specified(margin_r)) => {
-                        let sum = left + right + width + margin_r;
-                        (left, right, width, available_width - sum, margin_r)
-                    }
-                    (Specified(margin_l), Specified(margin_r)) => {
-                        // Values are over-constrained.
-                        // Ignore value for 'right' cos direction is 'ltr'.
-                        let sum = left + width + margin_l + margin_r;
-                        (left, available_width - sum, width, margin_l, margin_r)
-                    }
-                }
-            }
-        };
-        WidthConstraintSolution::new(left, right, width, margin_left, margin_right)
     }
 }
 
@@ -472,29 +364,38 @@ impl BlockFlow {
         }
     }
 
-    pub fn new_root(base: BaseFlow) -> BlockFlow {
-        BlockFlow {
-            base: base,
-            box_: None,
-            is_root: true,
-            static_y_offset: Au::new(0),
-            float: None
+    fn width_computer(&mut self) -> ~WidthAndMarginsComputer {
+        if self.is_absolutely_positioned() {
+            if self.is_replaced_content() {
+                ~AbsoluteReplaced as ~WidthAndMarginsComputer
+            } else {
+                ~AbsoluteNonReplaced as ~WidthAndMarginsComputer
+            }
+        } else if self.is_float() {
+            if self.is_replaced_content() {
+                ~FloatReplaced as ~WidthAndMarginsComputer
+            } else {
+                ~FloatNonReplaced as ~WidthAndMarginsComputer
+            }
+        } else {
+            if self.is_replaced_content() {
+                ~BlockReplaced as ~WidthAndMarginsComputer
+            } else {
+                ~BlockNonReplaced as ~WidthAndMarginsComputer
+            }
         }
     }
 
-    pub fn new_float(base: BaseFlow, float_kind: FloatKind) -> BlockFlow {
-        BlockFlow {
-            base: base,
-            box_: None,
-            is_root: false,
-            static_y_offset: Au::new(0),
-            float: Some(~FloatedBlockInfo::new(float_kind))
+    /// Return this flow's box.
+    fn box_<'a>(&'a mut self) -> &'a mut Box {
+        match self.box_ {
+            Some(ref mut box_) => box_,
+            None => fail!("BlockFlow: no principal box found")
         }
     }
 
     /// Return the static x offset from the appropriate Containing Block for this flow.
     pub fn static_x_offset(&self) -> Au {
-        assert!(self.is_absolutely_positioned());
         if self.is_fixed() {
             self.base.fixed_static_x_offset
         } else {
@@ -610,366 +511,6 @@ impl BlockFlow {
         self.float = None;
     }
 
-    /// Computes left and right margins and width based on CSS 2.1 section 10.3.3.
-    /// Requires borders and padding to already be computed.
-    fn compute_horiz(&self,
-                     width: MaybeAuto,
-                     left_margin: MaybeAuto,
-                     right_margin: MaybeAuto,
-                     available_width: Au)
-                     -> (Au, Au, Au) {
-        // If width is not 'auto', and width + margins > available_width, all
-        // 'auto' margins are treated as 0.
-        let (left_margin, right_margin) = match width {
-            Auto => (left_margin, right_margin),
-            Specified(width) => {
-                let left = left_margin.specified_or_zero();
-                let right = right_margin.specified_or_zero();
-
-                if((left + right + width) > available_width) {
-                    (Specified(left), Specified(right))
-                } else {
-                    (left_margin, right_margin)
-                }
-            }
-        };
-
-        // Invariant: left_margin_Au + width_Au + right_margin_Au == available_width
-        let (left_margin_Au, width_Au, right_margin_Au) = match (left_margin, width, right_margin) {
-            // If all have a computed value other than 'auto', the system is
-            // over-constrained and we need to discard a margin.
-            // If direction is ltr, ignore the specified right margin and
-            // solve for it.
-            // If it is rtl, ignore the specified left margin.
-            // FIXME(eatkinson): this assumes the direction is ltr
-            (Specified(margin_l), Specified(width), Specified(_margin_r)) =>
-                (margin_l, width, available_width - (margin_l + width )),
-
-            // If exactly one value is 'auto', solve for it
-            (Auto, Specified(width), Specified(margin_r)) =>
-                (available_width - (width + margin_r), width, margin_r),
-            (Specified(margin_l), Auto, Specified(margin_r)) =>
-                (margin_l, available_width - (margin_l + margin_r), margin_r),
-            (Specified(margin_l), Specified(width), Auto) =>
-                (margin_l, width, available_width - (margin_l + width)),
-
-            // If width is set to 'auto', any other 'auto' value becomes '0',
-            // and width is solved for
-            (Auto, Auto, Specified(margin_r)) =>
-                (Au::new(0), available_width - margin_r, margin_r),
-            (Specified(margin_l), Auto, Auto) =>
-                (margin_l, available_width - margin_l, Au::new(0)),
-            (Auto, Auto, Auto) =>
-                (Au::new(0), available_width, Au::new(0)),
-
-            // If left and right margins are auto, they become equal
-            (Auto, Specified(width), Auto) => {
-                let margin = (available_width - width).scale_by(0.5);
-                (margin, width, margin)
-            }
-
-        };
-        // Return values in same order as params.
-        (width_Au, left_margin_Au, right_margin_Au)
-    }
-
-    /// Calculate and set the width, offsets, etc. for an Absolute Flow.
-    ///
-    /// Calculate:
-    /// + left margin, right margin, and content width for the flow's box
-    /// + x-coordinate of the flow's box
-    /// + x-coordinate of the absolute flow itself (wrt to its Containing Block)
-    fn calculate_abs_widths_and_margins(&mut self, ctx: &mut LayoutContext) {
-        let containing_block_width = self.containing_block_size(ctx.screen_size).width;
-        let static_x_offset = self.static_x_offset();
-        for box_ in self.box_.iter() {
-            let style = box_.style();
-
-            // The text alignment of a block flow is the text alignment of its box's style.
-            self.base.flags_info.flags.set_text_align(style.InheritedText.get().text_align);
-
-            box_.compute_padding(style, containing_block_width);
-
-            let (width, margin_left, margin_right) =
-                (MaybeAuto::from_style(style.Box.get().width, containing_block_width),
-                 MaybeAuto::from_style(style.Margin.get().margin_left, containing_block_width),
-                 MaybeAuto::from_style(style.Margin.get().margin_right, containing_block_width));
-
-            let (left, right) =
-                (MaybeAuto::from_style(style.PositionOffsets.get().left, containing_block_width),
-                 MaybeAuto::from_style(style.PositionOffsets.get().right, containing_block_width));
-            let available_width = containing_block_width - box_.border_and_padding_horiz();
-
-            let solution = if self.is_replaced_content() {
-                // Calculate used value of width just like we do for inline replaced elements.
-                box_.assign_replaced_width_if_necessary(containing_block_width);
-                let width = box_.border_box.get().size.width;
-                WidthConstraintSolution::solve_horiz_constraints_abs_replaced(width,
-                                                                              margin_left,
-                                                                              margin_right,
-                                                                              left,
-                                                                              right,
-                                                                              available_width,
-                                                                              static_x_offset)
-            } else {
-                // TODO: Extract this later into a SolveConstraints trait or something
-                self.solve_horiz_constraints_abs_nonreplaced(width,
-                                                             margin_left,
-                                                             margin_right,
-                                                             left,
-                                                             right,
-                                                             available_width,
-                                                             static_x_offset)
-            };
-
-            let mut margin = box_.margin.get();
-            margin.left = solution.margin_left;
-            margin.right = solution.margin_right;
-            box_.margin.set(margin);
-
-            // The associated box is the border box of this flow.
-            let mut position_ref = box_.border_box.borrow_mut();
-            // Left border edge.
-            position_ref.get().origin.x = box_.margin.get().left;
-
-            // Border box width
-            position_ref.get().size.width = solution.width + box_.border_and_padding_horiz();
-
-            // Set the x-coordinate of the absolute flow wrt to its containing block.
-            self.base.position.origin.x = solution.left;
-        }
-    }
-
-    /// Calculate and set the width and horizontal margins for this BlockFlow's box.
-    ///
-    /// Also, set the x-coordinate for box_.
-    fn calculate_widths_and_margins(&mut self,
-                                    containing_block_width: Au,
-                                    ctx: &mut LayoutContext) {
-        if self.is_absolutely_positioned() {
-            self.calculate_abs_widths_and_margins(ctx);
-            return;
-        }
-        for box_ in self.box_.iter() {
-            let style = box_.style();
-
-            // The text alignment of a block flow is the text alignment of its box's style.
-            self.base.flags_info.flags.set_text_align(style.InheritedText.get().text_align);
-
-            // Calculate used value of width for replaced element.
-            // After that, margin calculation is the same as for non-replaced content.
-            box_.assign_replaced_width_if_necessary(containing_block_width);
-
-            // Can compute padding here since we know containing block width.
-            box_.compute_padding(style, containing_block_width);
-
-            // Margins are 0 right now so base.noncontent_width() is just borders + padding.
-            let available_width = containing_block_width - box_.noncontent_width();
-
-            // Top and bottom margins for blocks are 0 if auto.
-            // FIXME: This is wrong. We shouldn't even be touching margin-top
-            // and margin-bottom here.
-            let margin_top = MaybeAuto::from_style(style.Margin.get().margin_top,
-                                                   containing_block_width).specified_or_zero();
-            let margin_bottom = MaybeAuto::from_style(style.Margin.get().margin_bottom,
-                                                      containing_block_width).specified_or_zero();
-
-            let (width, margin_left, margin_right) = if self.is_float() {
-                self.compute_float_margins(box_, containing_block_width)
-            } else {
-                self.compute_block_margins(box_, containing_block_width, available_width)
-            };
-
-            box_.margin.set(SideOffsets2D::new(margin_top,
-                                               margin_right,
-                                               margin_bottom,
-                                               margin_left));
-
-            // The associated box is the border box of this flow.
-            let mut position_ref = box_.border_box.borrow_mut();
-            position_ref.get().origin.x = box_.margin.get().left;
-            let padding_and_borders = box_.padding.get().left + box_.padding.get().right +
-                box_.border.get().left + box_.border.get().right;
-            position_ref.get().size.width = width + padding_and_borders;
-        }
-    }
-
-    /// Solve the horizontal constraint equation for absolute non-replaced elements.
-    ///
-    /// `static_x_offset`: total offset of current flow's hypothetical
-    /// position (static position) from its actual Containing Block.
-    ///
-    /// CSS Section 10.3.7
-    /// Constraint equation:
-    /// left + right + width + margin-left + margin-right
-    /// = absolute containing block width - (horizontal padding and border)
-    /// [aka available_width]
-    ///
-    /// Return the solution for the equation.
-    fn solve_horiz_constraints_abs_nonreplaced(&self,
-                                               width: MaybeAuto,
-                                               left_margin: MaybeAuto,
-                                               right_margin: MaybeAuto,
-                                               left: MaybeAuto,
-                                               right: MaybeAuto,
-                                               available_width: Au,
-                                               static_x_offset: Au)
-                                               -> WidthConstraintSolution {
-        // TODO: Check for direction of static-position Containing Block (aka
-        // parent flow, _not_ the actual Containing Block) when right-to-left
-        // is implemented
-        // Assume direction is 'ltr' for now
-
-        // Distance from the left edge of the Absolute Containing Block to the
-        // left margin edge of a hypothetical box that would have been the
-        // first box of the element.
-        let static_position_left = static_x_offset;
-
-        let (left, right, width, margin_left, margin_right) = match (left, right, width) {
-            (Auto, Auto, Auto) => {
-                let margin_l = left_margin.specified_or_zero();
-                let margin_r = right_margin.specified_or_zero();
-                let left = static_position_left;
-                // Now it is the same situation as left Specified and right
-                // and width Auto.
-
-                // Set right to zero to calculate width
-                let width = self.get_shrink_to_fit_width(available_width - (left + margin_l + margin_r));
-                let sum = left + width + margin_l + margin_r;
-                (left, available_width - sum, width, margin_l, margin_r)
-            }
-            (Specified(left), Specified(right), Specified(width)) => {
-                match (left_margin, right_margin) {
-                    (Auto, Auto) => {
-                        let total_margin_val = (available_width - left - right - width);
-                        if total_margin_val < Au(0) {
-                            // margin-left becomes 0 because direction is 'ltr'.
-                            // TODO: Handle 'rtl' when it is implemented.
-                            (left, right, width, Au(0), total_margin_val)
-                        } else {
-                            // Equal margins
-                            (left, right, width,
-                             total_margin_val.scale_by(0.5),
-                             total_margin_val.scale_by(0.5))
-                        }
-                    }
-                    (Specified(margin_l), Auto) => {
-                        let sum = left + right + width + margin_l;
-                        (left, right, width, margin_l, available_width - sum)
-                    }
-                    (Auto, Specified(margin_r)) => {
-                        let sum = left + right + width + margin_r;
-                        (left, right, width, available_width - sum, margin_r)
-                    }
-                    (Specified(margin_l), Specified(margin_r)) => {
-                        // Values are over-constrained.
-                        // Ignore value for 'right' cos direction is 'ltr'.
-                        // TODO: Handle 'rtl' when it is implemented.
-                        let sum = left + width + margin_l + margin_r;
-                        (left, available_width - sum, width, margin_l, margin_r)
-                    }
-                }
-            }
-            // For the rest of the cases, auto values for margin are set to 0
-
-            // If only one is Auto, solve for it
-            (Auto, Specified(right), Specified(width)) => {
-                let margin_l = left_margin.specified_or_zero();
-                let margin_r = right_margin.specified_or_zero();
-                let sum = right + width + margin_l + margin_r;
-                (available_width - sum, right, width, margin_l, margin_r)
-            }
-            (Specified(left), Auto, Specified(width)) => {
-                let margin_l = left_margin.specified_or_zero();
-                let margin_r = right_margin.specified_or_zero();
-                let sum = left + width + margin_l + margin_r;
-                (left, available_width - sum, width, margin_l, margin_r)
-            }
-            (Specified(left), Specified(right), Auto) => {
-                let margin_l = left_margin.specified_or_zero();
-                let margin_r = right_margin.specified_or_zero();
-                let sum = left + right + margin_l + margin_r;
-                (left, right, available_width - sum, margin_l, margin_r)
-            }
-
-            // If width is auto, then width is shrink-to-fit. Solve for the
-            // non-auto value.
-            (Specified(left), Auto, Auto) => {
-                let margin_l = left_margin.specified_or_zero();
-                let margin_r = right_margin.specified_or_zero();
-                // Set right to zero to calculate width
-                let width = self.get_shrink_to_fit_width(
-                    available_width - (left + margin_l + margin_r));
-                let sum = left + width + margin_l + margin_r;
-                (left, available_width - sum, width, margin_l, margin_r)
-            }
-            (Auto, Specified(right), Auto) => {
-                let margin_l = left_margin.specified_or_zero();
-                let margin_r = right_margin.specified_or_zero();
-                // Set left to zero to calculate width
-                let width = self.get_shrink_to_fit_width(
-                    available_width - (right + margin_l + margin_r));
-                let sum = right + width + margin_l + margin_r;
-                (available_width - sum, right, width, margin_l, margin_r)
-            }
-
-            (Auto, Auto, Specified(width)) => {
-                let margin_l = left_margin.specified_or_zero();
-                let margin_r = right_margin.specified_or_zero();
-                // Setting 'left' to static position because direction is 'ltr'.
-                // TODO: Handle 'rtl' when it is implemented.
-                let left = static_position_left;
-                let sum = left + width + margin_l + margin_r;
-                (left, available_width - sum, width, margin_l, margin_r)
-            }
-        };
-        WidthConstraintSolution::new(left, right, width, margin_left, margin_right)
-    }
-
-    fn compute_block_margins(&self, box_: &Box, remaining_width: Au, available_width: Au)
-                             -> (Au, Au, Au) {
-        let style = box_.style();
-
-        let (width, maybe_margin_left, maybe_margin_right) =
-            (MaybeAuto::from_style(style.Box.get().width, remaining_width),
-             MaybeAuto::from_style(style.Margin.get().margin_left, remaining_width),
-             MaybeAuto::from_style(style.Margin.get().margin_right, remaining_width));
-
-        let (width, margin_left, margin_right) = self.compute_horiz(width,
-                                                                    maybe_margin_left,
-                                                                    maybe_margin_right,
-                                                                    available_width);
-
-        // CSS Section 10.4: Minimum and Maximum widths
-        // If the tentative used width is greater than 'max-width', width should be recalculated,
-        // but this time using the computed value of 'max-width' as the computed value for 'width'.
-        let (width, margin_left, margin_right) = {
-            match specified_or_none(style.Box.get().max_width, remaining_width) {
-                Some(value) if value < width => self.compute_horiz(Specified(value),
-                                                                   maybe_margin_left,
-                                                                   maybe_margin_right,
-                                                                   available_width),
-                _ => (width, margin_left, margin_right)
-            }
-        };
-
-        // If the resulting width is smaller than 'min-width', width should be recalculated,
-        // but this time using the value of 'min-width' as the computed value for 'width'.
-        let (width, margin_left, margin_right) = {
-            let computed_min_width = specified(style.Box.get().min_width, remaining_width);
-            if computed_min_width > width {
-                self.compute_horiz(Specified(computed_min_width),
-                                   maybe_margin_left,
-                                   maybe_margin_right,
-                                   available_width)
-            } else {
-                (width, margin_left, margin_right)
-            }
-        };
-
-        return (width, margin_left, margin_right);
-    }
-
     /// Return shrink-to-fit width.
     ///
     /// This is where we use the preferred widths and minimum widths
@@ -978,22 +519,6 @@ impl BlockFlow {
         geometry::min(self.base.pref_width,
                       geometry::max(self.base.min_width, available_width))
     }
-
-    // CSS Section 10.3.5
-    // TODO: This has to handle min-width and max-width.
-    fn compute_float_margins(&self, box_: &Box, remaining_width: Au) -> (Au, Au, Au) {
-        let style = box_.style();
-        let margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
-                                                remaining_width).specified_or_zero();
-        let margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
-                                                 remaining_width).specified_or_zero();
-        let shrink_to_fit = self.get_shrink_to_fit_width(remaining_width);
-        let width = MaybeAuto::from_style(style.Box.get().width,
-                                          remaining_width).specified_or_default(shrink_to_fit);
-        debug!("assign_widths_float -- width: {}", width);
-        return (width, margin_left, margin_right);
-    }
-
 
     /// Collect and update static y-offsets bubbled up by kids.
     ///
@@ -1540,15 +1065,24 @@ impl BlockFlow {
 
             let style = box_.style();
 
-            let (height_used_val, margin_top, margin_bottom) =
-                (MaybeAuto::from_style(style.Box.get().height, containing_block_height),
-                 MaybeAuto::from_style(style.Margin.get().margin_top, containing_block_height),
-                 MaybeAuto::from_style(style.Margin.get().margin_right, containing_block_height));
+            let height_used_val = MaybeAuto::from_style(style.Box.get().height, containing_block_height);
+
+            // Non-auto margin-top and margin-bottom values have already been
+            // calculated during assign-width.
+            let margin = box_.margin.get();
+            let margin_top = match MaybeAuto::from_style(style.Margin.get().margin_top, Au(0)) {
+                Auto => Auto,
+                _ => Specified(margin.top)
+            };
+            let margin_bottom = match MaybeAuto::from_style(style.Margin.get().margin_bottom, Au(0)) {
+                Auto => Auto,
+                _ => Specified(margin.bottom)
+            };
 
             let (top, bottom) =
                 (MaybeAuto::from_style(style.PositionOffsets.get().top, containing_block_height),
                  MaybeAuto::from_style(style.PositionOffsets.get().bottom, containing_block_height));
-            let available_height = containing_block_height - box_.border_and_padding_vert();
+            let available_height = containing_block_height - box_.noncontent_height();
 
             let solution = if self.is_replaced_content() {
                 // Calculate used value of height just like we do for inline replaced elements.
@@ -1587,7 +1121,7 @@ impl BlockFlow {
             let mut position = box_.border_box.get();
             position.origin.y = box_.margin.get().top;
             // Border box height
-            let border_and_padding = box_.border_and_padding_vert();
+            let border_and_padding = box_.noncontent_height();
             position.size.height = solution.height + border_and_padding;
             box_.border_box.set(position);
 
@@ -1750,7 +1284,8 @@ impl Flow for BlockFlow {
             self.base.flags_info.flags.set_inorder(false);
         }
 
-        self.calculate_widths_and_margins(containing_block_width, ctx);
+        let width_computer = self.width_computer();
+        width_computer.compute_used_width(self, ctx, containing_block_width);
 
         for box_ in self.box_.iter() {
             // Move in from the left border edge
@@ -1966,5 +1501,655 @@ impl Flow for BlockFlow {
             Some(ref rb) => rb.debug_str(),
             None => ~"",
         })
+    }
+}
+
+/// The inputs for the widths-and-margins constraint equation.
+struct WidthConstraintInput {
+    computed_width: MaybeAuto,
+    left_margin: MaybeAuto,
+    right_margin: MaybeAuto,
+    left: MaybeAuto,
+    right: MaybeAuto,
+    available_width: Au,
+    static_x_offset: Au,
+}
+
+impl WidthConstraintInput {
+    fn new(computed_width: MaybeAuto,
+           left_margin: MaybeAuto,
+           right_margin: MaybeAuto,
+           left: MaybeAuto,
+           right: MaybeAuto,
+           available_width: Au,
+           static_x_offset: Au)
+           -> WidthConstraintInput {
+        WidthConstraintInput {
+            computed_width: computed_width,
+            left_margin: left_margin,
+            right_margin: right_margin,
+            left: left,
+            right: right,
+            available_width: available_width,
+            static_x_offset: static_x_offset,
+        }
+    }
+}
+
+/// The solutions for the widths-and-margins constraint equation.
+struct WidthConstraintSolution {
+    left: Au,
+    right: Au,
+    width: Au,
+    margin_left: Au,
+    margin_right: Au
+}
+
+impl WidthConstraintSolution {
+    fn new(width: Au, margin_left: Au, margin_right: Au) -> WidthConstraintSolution {
+        WidthConstraintSolution {
+            left: Au(0),
+            right: Au(0),
+            width: width,
+            margin_left: margin_left,
+            margin_right: margin_right,
+        }
+    }
+
+    fn for_absolute_flow(left: Au,
+                         right: Au,
+                         width: Au,
+                         margin_left: Au,
+                         margin_right: Au)
+                         -> WidthConstraintSolution {
+        WidthConstraintSolution {
+            left: left,
+            right: right,
+            width: width,
+            margin_left: margin_left,
+            margin_right: margin_right,
+        }
+    }
+}
+
+// Trait to encapsulate the Width and Margin calculation.
+//
+// CSS Section 10.3
+trait WidthAndMarginsComputer {
+    /// Compute the inputs for the Width constraint equation.
+    ///
+    /// This is called only once to compute the initial inputs. For
+    /// calculation involving min-width and max-width, we don't need to
+    /// recompute these.
+    fn compute_width_constraint_inputs(&self,
+                                       block: &mut BlockFlow,
+                                       parent_flow_width: Au,
+                                       ctx: &mut LayoutContext)
+                       -> WidthConstraintInput {
+        let containing_block_width = self.containing_block_width(block, parent_flow_width, ctx);
+        let computed_width = self.initial_computed_width(block, parent_flow_width, ctx);
+        for box_ in block.box_.iter() {
+            let style = box_.style();
+
+            // The text alignment of a block flow is the text alignment of its box's style.
+            block.base.flags_info.flags.set_text_align(style.InheritedText.get().text_align);
+
+            box_.compute_padding(style, containing_block_width);
+
+            // We calculate and set margin-top and margin-bottom here
+            // because CSS 2.1 defines % on this wrt CB *width*.
+            box_.compute_margin_top_bottom(containing_block_width);
+
+            let (margin_left, margin_right) =
+                (MaybeAuto::from_style(style.Margin.get().margin_left, containing_block_width),
+                 MaybeAuto::from_style(style.Margin.get().margin_right, containing_block_width));
+
+            let (left, right) =
+                (MaybeAuto::from_style(style.PositionOffsets.get().left, containing_block_width),
+                 MaybeAuto::from_style(style.PositionOffsets.get().right, containing_block_width));
+            let available_width = containing_block_width - box_.noncontent_width();
+            return WidthConstraintInput::new(computed_width,
+                                             margin_left,
+                                             margin_right,
+                                             left,
+                                             right,
+                                             available_width,
+                                             block.static_x_offset());
+        }
+        fail!("Block doesn't have a principal box")
+    }
+
+    /// Set the used values for width and margins got from the relevant constraint equation.
+    ///
+    /// This is called only once.
+    ///
+    /// Set:
+    /// + used values for content width, left margin, and right margin for this flow's box.
+    /// + x-coordinate of this flow's box.
+    /// + x-coordinate of the flow wrt its Containing Block (if this is an absolute flow).
+    fn set_width_constraint_solutions(&self,
+                                      block: &mut BlockFlow,
+                                      solution: WidthConstraintSolution) {
+        let box_ = block.box_();
+        let mut margin = box_.margin.get();
+        margin.left = solution.margin_left;
+        margin.right = solution.margin_right;
+        box_.margin.set(margin);
+
+        // The associated box is the border box of this flow.
+        let mut position_ref = box_.border_box.borrow_mut();
+        // Left border edge.
+        position_ref.get().origin.x = box_.margin.get().left;
+
+        // Border box width
+        position_ref.get().size.width = solution.width + box_.noncontent_width();
+    }
+
+    /// Set the x coordinate of the given flow if it is absolutely positioned.
+    fn set_flow_x_coord_if_necessary(&self, _: &mut BlockFlow, _: WidthConstraintSolution) {}
+
+    /// Solve the width and margins constraints for this block flow.
+    fn solve_width_constraints(&self,
+                               block: &mut BlockFlow,
+                               input: WidthConstraintInput)
+                               -> WidthConstraintSolution;
+
+    fn initial_computed_width(&self,
+                              block: &mut BlockFlow,
+                              parent_flow_width: Au,
+                              ctx: &mut LayoutContext)
+                              -> MaybeAuto {
+        MaybeAuto::from_style(block.box_().style().Box.get().width,
+                              self.containing_block_width(block, parent_flow_width, ctx))
+    }
+
+    fn containing_block_width(&self,
+                              _: &mut BlockFlow,
+                              parent_flow_width: Au,
+                              _: &mut LayoutContext)
+                              -> Au {
+        parent_flow_width
+    }
+
+    /// Compute the used value of width, taking care of min-width and max-width.
+    ///
+    /// CSS Section 10.4: Minimum and Maximum widths
+    fn compute_used_width(&self,
+                          block: &mut BlockFlow,
+                          ctx: &mut LayoutContext,
+                          parent_flow_width: Au) {
+        let mut input = self.compute_width_constraint_inputs(block, parent_flow_width, ctx);
+
+        let containing_block_width = self.containing_block_width(block, parent_flow_width, ctx);
+
+        let mut solution = self.solve_width_constraints(block, input);
+
+        // If the tentative used width is greater than 'max-width', width should be recalculated,
+        // but this time using the computed value of 'max-width' as the computed value for 'width'.
+        match specified_or_none(block.box_().style().Box.get().max_width, containing_block_width) {
+            Some(max_width) if max_width < solution.width => {
+                input.computed_width = Specified(max_width);
+                solution = self.solve_width_constraints(block, input);
+            }
+            _ => {}
+        }
+
+        // If the resulting width is smaller than 'min-width', width should be recalculated,
+        // but this time using the value of 'min-width' as the computed value for 'width'.
+        let computed_min_width = specified(block.box_().style().Box.get().min_width,
+                                           containing_block_width);
+        if computed_min_width > solution.width {
+            input.computed_width = Specified(computed_min_width);
+            solution = self.solve_width_constraints(block, input);
+        }
+
+        self.set_width_constraint_solutions(block, solution);
+        self.set_flow_x_coord_if_necessary(block, solution);
+    }
+
+    /// Computes left and right margins and width.
+    ///
+    /// This is used by both replaced and non-replaced Blocks.
+    ///
+    /// CSS 2.1 Section 10.3.3.
+    /// Constraint Equation: margin-left + margin-right + width = available_width
+    /// where available_width = CB width - (horizontal border + padding)
+    fn solve_block_width_constraints(&self,
+                                     _: &mut BlockFlow,
+                                     input: WidthConstraintInput)
+                                     -> WidthConstraintSolution {
+        let (computed_width, left_margin, right_margin, available_width) = (input.computed_width,
+                                                                            input.left_margin,
+                                                                            input.right_margin,
+                                                                            input.available_width);
+
+        // If width is not 'auto', and width + margins > available_width, all
+        // 'auto' margins are treated as 0.
+        let (left_margin, right_margin) = match computed_width {
+            Auto => (left_margin, right_margin),
+            Specified(width) => {
+                let left = left_margin.specified_or_zero();
+                let right = right_margin.specified_or_zero();
+
+                if((left + right + width) > available_width) {
+                    (Specified(left), Specified(right))
+                } else {
+                    (left_margin, right_margin)
+                }
+            }
+        };
+
+        // Invariant: left_margin + width + right_margin == available_width
+        let (left_margin, width, right_margin) = match (left_margin, computed_width, right_margin) {
+            // If all have a computed value other than 'auto', the system is
+            // over-constrained and we need to discard a margin.
+            // If direction is ltr, ignore the specified right margin and
+            // solve for it.
+            // If it is rtl, ignore the specified left margin.
+            // FIXME(eatkinson): this assumes the direction is ltr
+            (Specified(margin_l), Specified(width), Specified(_margin_r)) =>
+                (margin_l, width, available_width - (margin_l + width )),
+
+            // If exactly one value is 'auto', solve for it
+            (Auto, Specified(width), Specified(margin_r)) =>
+                (available_width - (width + margin_r), width, margin_r),
+            (Specified(margin_l), Auto, Specified(margin_r)) =>
+                (margin_l, available_width - (margin_l + margin_r), margin_r),
+            (Specified(margin_l), Specified(width), Auto) =>
+                (margin_l, width, available_width - (margin_l + width)),
+
+            // If width is set to 'auto', any other 'auto' value becomes '0',
+            // and width is solved for
+            (Auto, Auto, Specified(margin_r)) =>
+                (Au::new(0), available_width - margin_r, margin_r),
+            (Specified(margin_l), Auto, Auto) =>
+                (margin_l, available_width - margin_l, Au::new(0)),
+            (Auto, Auto, Auto) =>
+                (Au::new(0), available_width, Au::new(0)),
+
+            // If left and right margins are auto, they become equal
+            (Auto, Specified(width), Auto) => {
+                let margin = (available_width - width).scale_by(0.5);
+                (margin, width, margin)
+            }
+        };
+        WidthConstraintSolution::new(width, left_margin, right_margin)
+    }
+}
+
+/// The different types of Blocks.
+///
+/// They mainly differ in the way width and heights and margins are calculated
+/// for them.
+struct AbsoluteNonReplaced;
+struct AbsoluteReplaced;
+struct BlockNonReplaced;
+struct BlockReplaced;
+struct FloatNonReplaced;
+struct FloatReplaced;
+
+impl WidthAndMarginsComputer for AbsoluteNonReplaced {
+    /// Solve the horizontal constraint equation for absolute non-replaced elements.
+    ///
+    /// CSS Section 10.3.7
+    /// Constraint equation:
+    /// left + right + width + margin-left + margin-right
+    /// = absolute containing block width - (horizontal padding and border)
+    /// [aka available_width]
+    ///
+    /// Return the solution for the equation.
+    fn solve_width_constraints(&self,
+                               block: &mut BlockFlow,
+                               input: WidthConstraintInput)
+                               -> WidthConstraintSolution {
+        let WidthConstraintInput {
+            computed_width,
+            left_margin,
+            right_margin,
+            left,
+            right,
+            available_width,
+            static_x_offset,
+        } = input;
+
+        // TODO: Check for direction of parent flow (NOT Containing Block)
+        // when right-to-left is implemented.
+        // Assume direction is 'ltr' for now
+
+        // Distance from the left edge of the Absolute Containing Block to the
+        // left margin edge of a hypothetical box that would have been the
+        // first box of the element.
+        let static_position_left = static_x_offset;
+
+        let (left, right, width, margin_left, margin_right) = match (left, right, computed_width) {
+            (Auto, Auto, Auto) => {
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                let left = static_position_left;
+                // Now it is the same situation as left Specified and right
+                // and width Auto.
+
+                // Set right to zero to calculate width
+                let width = block.get_shrink_to_fit_width(
+                    available_width - (left + margin_l + margin_r));
+                let sum = left + width + margin_l + margin_r;
+                (left, available_width - sum, width, margin_l, margin_r)
+            }
+            (Specified(left), Specified(right), Specified(width)) => {
+                match (left_margin, right_margin) {
+                    (Auto, Auto) => {
+                        let total_margin_val = (available_width - left - right - width);
+                        if total_margin_val < Au(0) {
+                            // margin-left becomes 0 because direction is 'ltr'.
+                            // TODO: Handle 'rtl' when it is implemented.
+                            (left, right, width, Au(0), total_margin_val)
+                        } else {
+                            // Equal margins
+                            (left, right, width,
+                             total_margin_val.scale_by(0.5),
+                             total_margin_val.scale_by(0.5))
+                        }
+                    }
+                    (Specified(margin_l), Auto) => {
+                        let sum = left + right + width + margin_l;
+                        (left, right, width, margin_l, available_width - sum)
+                    }
+                    (Auto, Specified(margin_r)) => {
+                        let sum = left + right + width + margin_r;
+                        (left, right, width, available_width - sum, margin_r)
+                    }
+                    (Specified(margin_l), Specified(margin_r)) => {
+                        // Values are over-constrained.
+                        // Ignore value for 'right' cos direction is 'ltr'.
+                        // TODO: Handle 'rtl' when it is implemented.
+                        let sum = left + width + margin_l + margin_r;
+                        (left, available_width - sum, width, margin_l, margin_r)
+                    }
+                }
+            }
+            // For the rest of the cases, auto values for margin are set to 0
+
+            // If only one is Auto, solve for it
+            (Auto, Specified(right), Specified(width)) => {
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                let sum = right + width + margin_l + margin_r;
+                (available_width - sum, right, width, margin_l, margin_r)
+            }
+            (Specified(left), Auto, Specified(width)) => {
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                let sum = left + width + margin_l + margin_r;
+                (left, available_width - sum, width, margin_l, margin_r)
+            }
+            (Specified(left), Specified(right), Auto) => {
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                let sum = left + right + margin_l + margin_r;
+                (left, right, available_width - sum, margin_l, margin_r)
+            }
+
+            // If width is auto, then width is shrink-to-fit. Solve for the
+            // non-auto value.
+            (Specified(left), Auto, Auto) => {
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                // Set right to zero to calculate width
+                let width = block.get_shrink_to_fit_width(
+                    available_width - (left + margin_l + margin_r));
+                let sum = left + width + margin_l + margin_r;
+                (left, available_width - sum, width, margin_l, margin_r)
+            }
+            (Auto, Specified(right), Auto) => {
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                // Set left to zero to calculate width
+                let width = block.get_shrink_to_fit_width(
+                    available_width - (right + margin_l + margin_r));
+                let sum = right + width + margin_l + margin_r;
+                (available_width - sum, right, width, margin_l, margin_r)
+            }
+
+            (Auto, Auto, Specified(width)) => {
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                // Setting 'left' to static position because direction is 'ltr'.
+                // TODO: Handle 'rtl' when it is implemented.
+                let left = static_position_left;
+                let sum = left + width + margin_l + margin_r;
+                (left, available_width - sum, width, margin_l, margin_r)
+            }
+        };
+        WidthConstraintSolution::for_absolute_flow(left, right, width, margin_left, margin_right)
+    }
+
+    fn containing_block_width(&self, block: &mut BlockFlow, _: Au, ctx: &mut LayoutContext) -> Au {
+        block.containing_block_size(ctx.screen_size).width
+    }
+
+    fn set_flow_x_coord_if_necessary(&self, block: &mut BlockFlow, solution: WidthConstraintSolution) {
+        // Set the x-coordinate of the absolute flow wrt to its containing block.
+        block.base.position.origin.x = solution.left;
+    }
+}
+
+impl WidthAndMarginsComputer for AbsoluteReplaced {
+    /// Solve the horizontal constraint equation for absolute replaced elements.
+    ///
+    /// `static_x_offset`: total offset of current flow's hypothetical
+    /// position (static position) from its actual Containing Block.
+    ///
+    /// CSS Section 10.3.8
+    /// Constraint equation:
+    /// left + right + width + margin-left + margin-right
+    /// = absolute containing block width - (horizontal padding and border)
+    /// [aka available_width]
+    ///
+    /// Return the solution for the equation.
+    fn solve_width_constraints(&self,
+                               _: &mut BlockFlow,
+                               input: WidthConstraintInput)
+                               -> WidthConstraintSolution {
+        let WidthConstraintInput {
+            computed_width,
+            left_margin,
+            right_margin,
+            left,
+            right,
+            available_width,
+            static_x_offset,
+        } = input;
+        // TODO: Check for direction of static-position Containing Block (aka
+        // parent flow, _not_ the actual Containing Block) when right-to-left
+        // is implemented
+        // Assume direction is 'ltr' for now
+        // TODO: Handle all the cases for 'rtl' direction.
+
+        let width = match computed_width {
+            Specified(w) => w,
+            _ => fail!("{} {}",
+                       "The used value for width for absolute replaced flow",
+                       "should have already been calculated by now.")
+        };
+
+        // Distance from the left edge of the Absolute Containing Block to the
+        // left margin edge of a hypothetical box that would have been the
+        // first box of the element.
+        let static_position_left = static_x_offset;
+
+        let (left, right, width, margin_left, margin_right) = match (left, right) {
+            (Auto, Auto) => {
+                let left = static_position_left;
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                let sum = left + width + margin_l + margin_r;
+                (left, available_width - sum, width, margin_l, margin_r)
+            }
+            // If only one is Auto, solve for it
+            (Auto, Specified(right)) => {
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                let sum = right + width + margin_l + margin_r;
+                (available_width - sum, right, width, margin_l, margin_r)
+            }
+            (Specified(left), Auto) => {
+                let margin_l = left_margin.specified_or_zero();
+                let margin_r = right_margin.specified_or_zero();
+                let sum = left + width + margin_l + margin_r;
+                (left, available_width - sum, width, margin_l, margin_r)
+            }
+            (Specified(left), Specified(right)) => {
+                match (left_margin, right_margin) {
+                    (Auto, Auto) => {
+                        let total_margin_val = (available_width - left - right - width);
+                        if total_margin_val < Au(0) {
+                            // margin-left becomes 0 because direction is 'ltr'.
+                            (left, right, width, Au(0), total_margin_val)
+                        } else {
+                            // Equal margins
+                            (left, right, width,
+                             total_margin_val.scale_by(0.5),
+                             total_margin_val.scale_by(0.5))
+                        }
+                    }
+                    (Specified(margin_l), Auto) => {
+                        let sum = left + right + width + margin_l;
+                        (left, right, width, margin_l, available_width - sum)
+                    }
+                    (Auto, Specified(margin_r)) => {
+                        let sum = left + right + width + margin_r;
+                        (left, right, width, available_width - sum, margin_r)
+                    }
+                    (Specified(margin_l), Specified(margin_r)) => {
+                        // Values are over-constrained.
+                        // Ignore value for 'right' cos direction is 'ltr'.
+                        let sum = left + width + margin_l + margin_r;
+                        (left, available_width - sum, width, margin_l, margin_r)
+                    }
+                }
+            }
+        };
+        WidthConstraintSolution::for_absolute_flow(left, right, width, margin_left, margin_right)
+    }
+
+    /// Calculate used value of width just like we do for inline replaced elements.
+    fn initial_computed_width(&self,
+                              block: &mut BlockFlow,
+                              _: Au,
+                              ctx: &mut LayoutContext)
+                              -> MaybeAuto {
+        let containing_block_width = block.containing_block_size(ctx.screen_size).width;
+        let box_ = block.box_();
+        box_.assign_replaced_width_if_necessary(containing_block_width);
+        // For replaced absolute flow, the rest of the constraint solving will
+        // take width to be specified as the value computed here.
+        Specified(box_.content_width())
+    }
+
+    fn containing_block_width(&self, block: &mut BlockFlow, _: Au, ctx: &mut LayoutContext) -> Au {
+        block.containing_block_size(ctx.screen_size).width
+    }
+
+    fn set_flow_x_coord_if_necessary(&self, block: &mut BlockFlow, solution: WidthConstraintSolution) {
+        // Set the x-coordinate of the absolute flow wrt to its containing block.
+        block.base.position.origin.x = solution.left;
+    }
+}
+
+impl WidthAndMarginsComputer for BlockNonReplaced {
+    /// Compute left and right margins and width.
+    fn solve_width_constraints(&self,
+                               block: &mut BlockFlow,
+                               input: WidthConstraintInput)
+                               -> WidthConstraintSolution {
+        self.solve_block_width_constraints(block, input)
+    }
+}
+
+impl WidthAndMarginsComputer for BlockReplaced {
+    /// Compute left and right margins and width.
+    ///
+    /// Width has already been calculated. We now calculate the margins just
+    /// like for non-replaced blocks.
+    fn solve_width_constraints(&self,
+                               block: &mut BlockFlow,
+                               input: WidthConstraintInput)
+                               -> WidthConstraintSolution {
+        match input.computed_width {
+            Specified(_) => {},
+            Auto => fail!("BlockReplaced: width should have been computed by now")
+        };
+        self.solve_block_width_constraints(block, input)
+    }
+
+    /// Calculate used value of width just like we do for inline replaced elements.
+    fn initial_computed_width(&self,
+                              block: &mut BlockFlow,
+                              parent_flow_width: Au,
+                              _: &mut LayoutContext)
+                              -> MaybeAuto {
+        let box_ = block.box_();
+        box_.assign_replaced_width_if_necessary(parent_flow_width);
+        // For replaced block flow, the rest of the constraint solving will
+        // take width to be specified as the value computed here.
+        Specified(box_.content_width())
+    }
+
+}
+
+impl WidthAndMarginsComputer for FloatNonReplaced {
+    /// CSS Section 10.3.5
+    ///
+    /// If width is computed as 'auto', the used value is the 'shrink-to-fit' width.
+    fn solve_width_constraints(&self,
+                               block: &mut BlockFlow,
+                               input: WidthConstraintInput)
+                               -> WidthConstraintSolution {
+        let (computed_width, left_margin, right_margin, available_width) = (input.computed_width,
+                                                                            input.left_margin,
+                                                                            input.right_margin,
+                                                                            input.available_width);
+        let margin_left = left_margin.specified_or_zero();
+        let margin_right = right_margin.specified_or_zero();
+        let available_width_float = available_width - margin_left - margin_right;
+        let shrink_to_fit = block.get_shrink_to_fit_width(available_width_float);
+        let width = computed_width.specified_or_default(shrink_to_fit);
+        debug!("assign_widths_float -- width: {}", width);
+        WidthConstraintSolution::new(width, margin_left, margin_right)
+    }
+}
+
+impl WidthAndMarginsComputer for FloatReplaced {
+    /// CSS Section 10.3.5
+    ///
+    /// If width is computed as 'auto', the used value is the 'shrink-to-fit' width.
+    fn solve_width_constraints(&self,
+                               _: &mut BlockFlow,
+                               input: WidthConstraintInput)
+                               -> WidthConstraintSolution {
+        let (computed_width, left_margin, right_margin) = (input.computed_width,
+                                                           input.left_margin,
+                                                           input.right_margin);
+        let margin_left = left_margin.specified_or_zero();
+        let margin_right = right_margin.specified_or_zero();
+        let width = match computed_width {
+            Specified(w) => w,
+            Auto => fail!("FloatReplaced: width should have been computed by now")
+        };
+        debug!("assign_widths_float -- width: {}", width);
+        WidthConstraintSolution::new(width, margin_left, margin_right)
+    }
+
+    /// Calculate used value of width just like we do for inline replaced elements.
+    fn initial_computed_width(&self,
+                              block: &mut BlockFlow,
+                              parent_flow_width: Au,
+                              _: &mut LayoutContext)
+                              -> MaybeAuto {
+        let box_ = block.box_();
+        box_.assign_replaced_width_if_necessary(parent_flow_width);
+        // For replaced block flow, the rest of the constraint solving will
+        // take width to be specified as the value computed here.
+        Specified(box_.content_width())
     }
 }
