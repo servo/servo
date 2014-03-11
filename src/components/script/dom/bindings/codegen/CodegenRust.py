@@ -2244,14 +2244,11 @@ class CGAbstractMethod(CGThing):
     alwaysInline should be True to generate an inline method annotated with
     MOZ_ALWAYS_INLINE.
 
-    static should be True to generate a static method, which only has
-    a definition.
-
     If templateArgs is not None it should be a list of strings containing
     template arguments, and the function will be templatized using those
     arguments.
     """
-    def __init__(self, descriptor, name, returnType, args, inline=False, alwaysInline=False, static=False, extern=False, pub=False, templateArgs=None, unsafe=True):
+    def __init__(self, descriptor, name, returnType, args, inline=False, alwaysInline=False, extern=False, pub=False, templateArgs=None, unsafe=True):
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.name = name
@@ -2259,7 +2256,6 @@ class CGAbstractMethod(CGThing):
         self.args = args
         self.inline = inline
         self.alwaysInline = alwaysInline
-        self.static = static
         self.extern = extern
         self.templateArgs = templateArgs
         self.pub = pub;
@@ -2280,9 +2276,6 @@ class CGAbstractMethod(CGThing):
         if self.extern:
             decorators.append('extern')
         if not self.extern:
-            pass
-        if self.static:
-            #decorators.append('static')
             pass
         if self.pub:
             decorators.append('pub')
@@ -2988,18 +2981,6 @@ class CGGenericMethod(CGAbstractBindingMethod):
         return CGIndenter(CGGeneric(
             "let _info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, &*vp));\n"
             "return CallJitMethodOp(_info, cx, obj, this as *libc::c_void, argc, &*vp);"))
-
-class CGAbstractStaticMethod(CGAbstractMethod):
-    """
-    Abstract base class for codegen of implementation-only (no
-    declaration) static methods.
-    """
-    def __init__(self, descriptor, name, returnType, args):
-        CGAbstractMethod.__init__(self, descriptor, name, returnType, args,
-                                  inline=False, static=True)
-    def declare(self):
-        # We only have implementation
-        return ""
 
 class CGSpecializedMethod(CGAbstractExternMethod):
     """
