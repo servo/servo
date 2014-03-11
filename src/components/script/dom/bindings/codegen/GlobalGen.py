@@ -82,7 +82,6 @@ def main():
     generate_file(config, 'BindingDeclarations')
 
     generate_file(config, 'UnionTypes')
-    generate_file(config, 'UnionConversions')
 
 if __name__ == '__main__':
     main()
