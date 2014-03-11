@@ -2266,24 +2266,22 @@ class CGAbstractMethod(CGThing):
         if self.templateArgs is None:
             return ''
         return '<%s>\n' % ', '.join(self.templateArgs)
+
     def _decorators(self):
         decorators = []
         if self.alwaysInline:
             decorators.append('#[inline(always)]')
-        elif self.inline:
-            #decorators.append('inline')
-            pass
+
         if self.extern:
             decorators.append('extern')
-        if not self.extern:
-            pass
+
         if self.pub:
             decorators.append('pub')
+
         if not decorators:
             return ''
-        #maybeNewline = " " if self.inline else "\n"
-        maybeNewline = " "
-        return ' '.join(decorators) + maybeNewline
+        return ' '.join(decorators) + ' '
+
     def _returnType(self):
         return (" -> %s" % self.returnType) if self.returnType != "void" else ""
     def _unsafe_open(self):
