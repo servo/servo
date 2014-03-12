@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+                {
+                        var elem = document.createElement("div");
+                        var other = document.createElement("div");
+                        is(elem.compareDocumentPosition(elem),0);
+
+                        var nonTree = elem.compareDocumentPosition(other);
+                        var prefix = Node.DOCUMENT_POSITION_DISCONNECTED + Node.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+                        is(nonTree == prefix + Node.DOCUMENT_POSITION_FOLLOWING || nonTree == prefix + Node.DOCUMENT_POSITION_PRECEDING,
+                           true);
+
+                        elem.appendChild(other);
+                        is(elem.compareDocumentPosition(other), Node.DOCUMENT_POSITION_CONTAINED_BY + Node.DOCUMENT_POSITION_FOLLOWING);
+                        is(other.compareDocumentPosition(elem), Node.DOCUMENT_POSITION_CONTAINS + Node.DOCUMENT_POSITION_PRECEDING);
+
+                        var another = document.createElement("div");
+                        other.appendChild(another);
+                        is(elem.compareDocumentPosition(another), Node.DOCUMENT_POSITION_CONTAINED_BY + Node.DOCUMENT_POSITION_FOLLOWING);
+                        is(another.compareDocumentPosition(elem), Node.DOCUMENT_POSITION_CONTAINS + Node.DOCUMENT_POSITION_PRECEDING);
+
+                        var follower = document.createElement("div");
+                        elem.appendChild(follower);
+                        var preceder = document.createElement("div");
+                        another.appendChild(preceder);
+                        is(another.compareDocumentPosition(follower), Node.DOCUMENT_POSITION_FOLLOWING);
+                        is(follower.compareDocumentPosition(another), Node.DOCUMENT_POSITION_PRECEDING);
+                        is(follower.compareDocumentPosition(preceder), Node.DOCUMENT_POSITION_PRECEDING);
+                        finish();
+                }
+        </script>
+    </head>
+</html>
