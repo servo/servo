@@ -73,7 +73,7 @@ impl HTMLObjectElement {
 
     pub fn AfterSetAttr(&mut self, name: DOMString, _value: DOMString) {
         if "data" == name {
-            let document = self.htmlelement.element.node.owner_doc();
+            let document = self.htmlelement.element.node.owner_doc().clone();
             let window = document.get().window.clone();
             let url = Some(window.get().get_url());
             self.process_data_url(window.get().image_cache_task.clone(), url);

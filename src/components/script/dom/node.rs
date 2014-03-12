@@ -729,8 +729,8 @@ impl Node {
         }
     }
 
-    pub fn owner_doc(&self) -> JS<Document> {
-        self.owner_doc.clone().unwrap()
+    pub fn owner_doc<'a>(&'a self) -> &'a JS<Document> {
+        self.owner_doc.get_ref()
     }
 
     pub fn set_owner_doc(&mut self, document: &JS<Document>) {
@@ -853,7 +853,7 @@ impl Node {
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId |
             DoctypeNodeTypeId |
-            DocumentFragmentNodeTypeId => Some(self.owner_doc()),
+            DocumentFragmentNodeTypeId => Some(self.owner_doc().clone()),
             DocumentNodeTypeId => None
         }
     }
@@ -879,7 +879,7 @@ impl Node {
     pub fn ChildNodes(&mut self, abstract_self: &JS<Node>) -> JS<NodeList> {
         match self.child_list {
             None => {
-                let doc = self.owner_doc();
+                let doc = self.owner_doc().clone();
                 let doc = doc.get();
                 let list = NodeList::new_child_list(&doc.window, abstract_self);
                 self.child_list = Some(list.clone());
@@ -977,7 +977,7 @@ impl Node {
                     None
                 } else {
                     let document = self.owner_doc();
-                    Some(NodeCast::from(&document.get().CreateTextNode(&document, value)))
+                    Some(NodeCast::from(&document.get().CreateTextNode(document, value)))
                 };
                 // Step 3.
                 Node::replace_all(node, abstract_self);
@@ -1599,31 +1599,31 @@ impl Node {
     //
 
     pub fn set_parent_node(&mut self, new_parent_node: Option<JS<Node>>) {
-        let doc = self.owner_doc();
+        let doc = self.owner_doc().clone();
         doc.get().wait_until_safe_to_modify_dom();
         self.parent_node = new_parent_node
     }
 
     pub fn set_first_child(&mut self, new_first_child: Option<JS<Node>>) {
-        let doc = self.owner_doc();
+        let doc = self.owner_doc().clone();
         doc.get().wait_until_safe_to_modify_dom();
         self.first_child = new_first_child
     }
 
     pub fn set_last_child(&mut self, new_last_child: Option<JS<Node>>) {
-        let doc = self.owner_doc();
+        let doc = self.owner_doc().clone();
         doc.get().wait_until_safe_to_modify_dom();
         self.last_child = new_last_child
     }
 
     pub fn set_prev_sibling(&mut self, new_prev_sibling: Option<JS<Node>>) {
-        let doc = self.owner_doc();
+        let doc = self.owner_doc().clone();
         doc.get().wait_until_safe_to_modify_dom();
         self.prev_sibling = new_prev_sibling
     }
 
     pub fn set_next_sibling(&mut self, new_next_sibling: Option<JS<Node>>) {
-        let doc = self.owner_doc();
+        let doc = self.owner_doc().clone();
         doc.get().wait_until_safe_to_modify_dom();
         self.next_sibling = new_next_sibling
     }
@@ -1659,6 +1659,11 @@ impl Node {
     #[inline]
     pub fn next_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
         self.next_sibling.as_ref()
+    }
+
+    pub unsafe fn get_hover_state_for_layout(&self) -> bool {
+        let unsafe_this: *Node = cast::transmute::<&Node,*Node>(self);
+        (*unsafe_this).flags.get_in_hover_state()
     }
 }
 
