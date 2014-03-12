@@ -32,33 +32,32 @@ interface TestBinding {
            attribute DOMString? stringAttributeNullable;
            attribute Blob? interfaceAttributeNullable;
 
-  // FIXME (issue #1813) Doesn't currently compile.
-  // void passOptionalBoolean(optional boolean arg);
-  // void passOptionalByte(optional byte arg);
-  // void passOptionalOctet(optional octet arg);
-  // void passOptionalShort(optional short arg);
-  // void passOptionalUnsignedShort(optional unsigned short arg);
-  // void passOptionalLong(optional long arg);
-  // void passOptionalUnsignedLong(optional unsigned long arg);
-  // void passOptionalLongLong(optional long long arg);
-  // void passOptionalUnsignedLongLong(optional unsigned long long arg);
-  // void passOptionalFloat(optional float arg);
-  // void passOptionalDouble(optional double arg);
+  void passOptionalBoolean(optional boolean arg);
+  void passOptionalByte(optional byte arg);
+  void passOptionalOctet(optional octet arg);
+  void passOptionalShort(optional short arg);
+  void passOptionalUnsignedShort(optional unsigned short arg);
+  void passOptionalLong(optional long arg);
+  void passOptionalUnsignedLong(optional unsigned long arg);
+  void passOptionalLongLong(optional long long arg);
+  void passOptionalUnsignedLongLong(optional unsigned long long arg);
+  void passOptionalFloat(optional float arg);
+  void passOptionalDouble(optional double arg);
   void passOptionalString(optional DOMString arg);
   void passOptionalInterface(optional Blob arg);
   void passOptionalAny(optional any arg);
 
-  // void passOptionalNullableBoolean(optional boolean? arg);
-  // void passOptionalNullableByte(optional byte? arg);
-  // void passOptionalNullableOctet(optional octet? arg);
-  // void passOptionalNullableShort(optional short? arg);
-  // void passOptionalNullableUnsignedShort(optional unsigned short? arg);
-  // void passOptionalNullableLong(optional long? arg);
-  // void passOptionalNullableUnsignedLong(optional unsigned long? arg);
-  // void passOptionalNullableLongLong(optional long long? arg);
-  // void passOptionalNullableUnsignedLongLong(optional unsigned long long? arg);
-  // void passOptionalNullableFloat(optional float? arg);
-  // void passOptionalNullableDouble(optional double? arg);
+  void passOptionalNullableBoolean(optional boolean? arg);
+  void passOptionalNullableByte(optional byte? arg);
+  void passOptionalNullableOctet(optional octet? arg);
+  void passOptionalNullableShort(optional short? arg);
+  void passOptionalNullableUnsignedShort(optional unsigned short? arg);
+  void passOptionalNullableLong(optional long? arg);
+  void passOptionalNullableUnsignedLong(optional unsigned long? arg);
+  void passOptionalNullableLongLong(optional long long? arg);
+  void passOptionalNullableUnsignedLongLong(optional unsigned long long? arg);
+  void passOptionalNullableFloat(optional float? arg);
+  void passOptionalNullableDouble(optional double? arg);
   void passOptionalNullableString(optional DOMString? arg);
   // void passOptionalNullableInterface(optional Blob? arg);
 
