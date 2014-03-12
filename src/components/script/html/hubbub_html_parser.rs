@@ -357,7 +357,7 @@ pub fn parse_html(page: &Page,
                     let src_opt = elem.get().get_attribute(Null, "src").map(|x| x.get().Value());
                     for src in src_opt.iter() {
                         let iframe_url = parse_url(*src, Some(url2.clone()));
-                        iframe_element.get_mut().extra.frame = Some(iframe_url.clone());
+                        iframe_element.get_mut().set_frame(iframe_url.clone());
 
                         // Subpage Id
                         let subpage_id = next_subpage_id.get();

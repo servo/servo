@@ -81,7 +81,7 @@ pub struct Window {
     image_cache_task: ImageCacheTask,
     active_timers: ~HashSet<TimerHandle>,
     next_timer_handle: i32,
-    extra: Untraceable
+    priv extra: Untraceable
 }
 
 struct Untraceable {

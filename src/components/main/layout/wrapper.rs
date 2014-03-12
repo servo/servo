@@ -82,7 +82,7 @@ pub trait TLayoutNode {
                 fail!("not an image!")
             }
             let image_element: JS<HTMLImageElement> = self.get_jsmanaged().transmute_copy();
-            (*image_element.unsafe_get()).extra.image.as_ref().map(|url| (*url).clone())
+            (*image_element.unsafe_get()).image().as_ref().map(|url| (*url).clone())
         }
     }
 
