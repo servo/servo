@@ -17,9 +17,21 @@
 //!
 //! When implementing wrapper functions, be careful that you do not touch the borrow flags, or you
 //! will race and cause spurious task failure. (Note that I do not believe these races are
-//! exploitable, but they'll result in brokenness nonetheless.) In general, you must not use the
-//! `Cast` functions; use explicit checks and `transmute_copy` instead. You must also not use
-//! `.get()`; instead, use `.unsafe_get()`.
+//! exploitable, but they'll result in brokenness nonetheless.)
+//!
+//! Rules of the road for this file:
+//!
+//! * In general, you must not use the `Cast` functions; use explicit checks and `transmute_copy`
+//!   instead.
+//!
+//! * You must also not use `.get()`; instead, use `.unsafe_get()`.
+//!
+//! * Do not call any methods on DOM nodes without checking to see whether they use borrow flags.
+//!   
+//!   o Instead of `get_attr()`, use `.get_attr_val_for_layout()`.
+//!
+//!   o Instead of `html_element_in_html_document()`, use
+//!     `html_element_in_html_document_for_layout()`.
 
 use extra::url::Url;
 use script::dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLIFrameElementDerived};
@@ -222,10 +234,12 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
 
     fn match_attr(&self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
         self.with_element(|element| {
-            let name = if element.element.html_element_in_html_document() {
-                attr.lower_name.as_slice()
-            } else {
-                attr.name.as_slice()
+            let name = unsafe {
+                if element.element.html_element_in_html_document_for_layout() {
+                    attr.lower_name.as_slice()
+                } else {
+                    attr.name.as_slice()
+                }
             };
             match attr.namespace {
                 SpecificNamespace(ref ns) => {
@@ -338,7 +352,9 @@ impl<'le> TElement for LayoutElement<'le> {
     }
 
     fn get_hover_state(&self) -> bool {
-        self.element.node.get_hover_state()
+        unsafe {
+            self.element.node.get_hover_state_for_layout()
+        }
     }
 }
 
