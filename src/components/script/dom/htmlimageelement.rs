@@ -24,7 +24,7 @@ use extra::serialize::{Encoder, Encodable};
 #[deriving(Encodable)]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
-    extra: Untraceable,
+    priv extra: Untraceable,
 }
 
 struct Untraceable {
@@ -62,6 +62,10 @@ impl HTMLImageElement {
 }
 
 impl HTMLImageElement {
+    pub fn image<'a>(&'a self) -> &'a Option<Url> {
+        &self.extra.image
+    }
+
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(&mut self, value: Option<DOMString>, url: Option<Url>) {
