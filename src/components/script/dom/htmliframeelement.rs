@@ -32,7 +32,7 @@ enum SandboxAllowance {
 #[deriving(Encodable)]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
-    extra: Untraceable,
+    priv extra: Untraceable,
     size: Option<IFrameSize>,
     sandbox: Option<u8>
 }
@@ -64,6 +64,10 @@ pub struct IFrameSize {
 impl HTMLIFrameElement {
     pub fn is_sandboxed(&self) -> bool {
         self.sandbox.is_some()
+    }
+
+    pub fn set_frame(&mut self, frame: Url) {
+        self.extra.frame = Some(frame);
     }
 }
 

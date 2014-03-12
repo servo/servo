@@ -61,7 +61,7 @@ pub struct Document {
     content_type: DOMString,
     encoding_name: DOMString,
     is_html_document: bool,
-    extra: Untraceable,
+    priv extra: Untraceable,
 }
 
 struct Untraceable {
@@ -139,6 +139,12 @@ impl Document {
 }
 
 impl Document {
+    pub fn url<'a>(&'a self) -> &'a Url {
+        &self.extra.url
+    }
+}
+
+impl Document {
     // http://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(owner: &JS<Window>) -> Fallible<JS<Document>> {
         Ok(Document::new(owner, None, NonHTMLDocument, None))
@@ -166,7 +172,7 @@ impl Document {
 
     // http://dom.spec.whatwg.org/#dom-document-url
     pub fn URL(&self) -> DOMString {
-        self.extra.url.to_str()
+        self.url().to_str()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-documenturi

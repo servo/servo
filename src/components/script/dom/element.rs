@@ -241,7 +241,7 @@ impl Element {
         match local_name.as_slice() {
             "style" => {
                 let doc = self.node.owner_doc();
-                let base_url = doc.get().extra.url.clone();
+                let base_url = doc.get().url().clone();
                 self.style_attribute = Some(style::parse_style_attribute(value, &base_url))
             }
             "id" => {
