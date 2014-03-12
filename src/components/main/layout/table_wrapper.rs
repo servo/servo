@@ -238,7 +238,7 @@ impl Flow for TableWrapperFlow {
 
     fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
         if self.is_float() {
-            debug!("assign_height_inorder_float: assigning height for float {}", self.block_flow.base.id);
+            debug!("assign_height_inorder_float: assigning height for floated table_wrapper {}", self.block_flow.base.id);
             self.block_flow.assign_height_float_inorder();
         } else {
             debug!("assign_height_inorder: assigning height for table_wrapper {}", self.block_flow.base.id);
@@ -247,8 +247,13 @@ impl Flow for TableWrapperFlow {
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
+        //assign height for box
+        for box_ in self.block_flow.box_.iter() {
+            box_.assign_height();
+        }
+
         if self.is_float() {
-            debug!("assign_height_float: assigning height for float {}", self.block_flow.base.id);
+            debug!("assign_height_float: assigning height for floated table_wrapper {}", self.block_flow.base.id);
             self.block_flow.assign_height_float(ctx);
         } else {
             debug!("assign_height: assigning height for table_wrapper {}", self.block_flow.base.id);

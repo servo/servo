@@ -241,6 +241,11 @@ impl Flow for TableFlow {
     }
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
+        //assign height for box
+        for box_ in self.block_flow.box_.iter() {
+            box_.assign_height();
+        }
+
         debug!("assign_height: assigning height for table {}", self.block_flow.base.id);
         self.assign_height_table_base(ctx, false);
     }
