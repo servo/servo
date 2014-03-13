@@ -67,13 +67,13 @@ partial interface Window {
 
 [NoInterfaceObject]
 interface WindowTimers {
-  //long setTimeout(Function handler, optional long timeout, any... arguments);
+  //long setTimeout(Function handler, optional long timeout = 0, any... arguments);
   //XXXjdm No support for Function or variadic arguments yet
-  long setTimeout(any handler, optional long timeout/*, any... arguments*/);
-  void clearTimeout(long handle);
-  /*long setTimeout(DOMString handler, optional long timeout, any... arguments);
-  long setInterval(Function handler, optional long timeout, any... arguments);
-  long setInterval(DOMString handler, optional long timeout, any... arguments);
-  void clearInterval(long handle);*/
+  long setTimeout(any handler, optional long timeout = 0/*, any... arguments*/);
+  void clearTimeout(optional long handle = 0);
+  /*long setTimeout(DOMString handler, optional long timeout = 0, any... arguments);
+  long setInterval(Function handler, optional long timeout = 0, any... arguments);
+  long setInterval(DOMString handler, optional long timeout = 0, any... arguments);
+  void clearInterval(optional long handle = 0);*/
 };
 Window implements WindowTimers;
