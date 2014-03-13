@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            function check_copy(orig, copy, type) {
+                is_not(orig, copy);
+                is_a(orig, type);
+                is_a(copy, type);
+            }
+
+            function create_element_and_check(localName, type) {
+                var element = document.createElement(localName);
+                var copy = element.cloneNode();
+                check_copy(element, copy, type);
+            }
+
+            // test1: createElement
+            {
+                create_element_and_check("a",         HTMLAnchorElement);
+                create_element_and_check("applet",    HTMLAppletElement);
+                create_element_and_check("area",      HTMLAreaElement);
+                create_element_and_check("aside",     HTMLElement);
+                create_element_and_check("audio",     HTMLAudioElement);
+                create_element_and_check("b",         HTMLElement);
+                create_element_and_check("base",      HTMLBaseElement);
+                create_element_and_check("body",      HTMLBodyElement);
+                create_element_and_check("br",        HTMLBRElement);
+                create_element_and_check("button",    HTMLButtonElement);
+                create_element_and_check("canvas",    HTMLCanvasElement);
+                create_element_and_check("caption",   HTMLTableCaptionElement);
+                create_element_and_check("col",       HTMLTableColElement);
+                create_element_and_check("colgroup",  HTMLTableColElement);
+                create_element_and_check("data",      HTMLDataElement);
+                create_element_and_check("datalist",  HTMLDataListElement);
+                create_element_and_check("del",       HTMLModElement);
+                create_element_and_check("dir",       HTMLDirectoryElement);
+                create_element_and_check("div",       HTMLDivElement);
+                create_element_and_check("dl",        HTMLDListElement);
+                create_element_and_check("embed",     HTMLEmbedElement);
+                create_element_and_check("fieldset",  HTMLFieldSetElement);
+                create_element_and_check("font",      HTMLFontElement);
+                create_element_and_check("form",      HTMLFormElement);
+                create_element_and_check("frame",     HTMLFrameElement);
+                create_element_and_check("frameset",  HTMLFrameSetElement);
+                create_element_and_check("h1",        HTMLHeadingElement);
+                create_element_and_check("h2",        HTMLHeadingElement);
+                create_element_and_check("h3",        HTMLHeadingElement);
+                create_element_and_check("h4",        HTMLHeadingElement);
+                create_element_and_check("h5",        HTMLHeadingElement);
+                create_element_and_check("h6",        HTMLHeadingElement);
+                create_element_and_check("head",      HTMLHeadElement);
+                create_element_and_check("hr",        HTMLHRElement);
+                create_element_and_check("html",      HTMLHtmlElement);
+                create_element_and_check("i",         HTMLElement);
+                create_element_and_check("iframe",    HTMLIFrameElement);
+                create_element_and_check("img",       HTMLImageElement);
+                create_element_and_check("input",     HTMLInputElement);
+                create_element_and_check("ins",       HTMLModElement);
+                create_element_and_check("label",     HTMLLabelElement);
+                create_element_and_check("legend",    HTMLLegendElement);
+                create_element_and_check("li",        HTMLLIElement);
+                create_element_and_check("link",      HTMLLinkElement);
+                create_element_and_check("main",      HTMLMainElement);
+                create_element_and_check("map",       HTMLMapElement);
+                create_element_and_check("meta",      HTMLMetaElement);
+                create_element_and_check("meter",     HTMLMeterElement);
+                create_element_and_check("object",    HTMLObjectElement);
+                create_element_and_check("ol",        HTMLOListElement);
+                create_element_and_check("optgroup",  HTMLOptGroupElement);
+                create_element_and_check("option",    HTMLOptionElement);
+                create_element_and_check("output",    HTMLOutputElement);
+                create_element_and_check("p",         HTMLParagraphElement);
+                create_element_and_check("param",     HTMLParamElement);
+                create_element_and_check("pre",       HTMLPreElement);
+                create_element_and_check("progress",  HTMLProgressElement);
+                create_element_and_check("q",         HTMLQuoteElement);
+                create_element_and_check("script",    HTMLScriptElement);
+                create_element_and_check("section",   HTMLElement);
+                create_element_and_check("select",    HTMLSelectElement);
+                create_element_and_check("small",     HTMLElement);
+                create_element_and_check("source",    HTMLSourceElement);
+                create_element_and_check("span",      HTMLSpanElement);
+                create_element_and_check("style",     HTMLStyleElement);
+                create_element_and_check("table",     HTMLTableElement);
+                create_element_and_check("tbody",     HTMLTableSectionElement);
+                create_element_and_check("td",        HTMLTableDataCellElement);
+                create_element_and_check("template",  HTMLTemplateElement);
+                create_element_and_check("textarea",  HTMLTextAreaElement);
+                create_element_and_check("th",        HTMLTableHeaderCellElement);
+                create_element_and_check("time",      HTMLTimeElement);
+                create_element_and_check("title",     HTMLTitleElement);
+                create_element_and_check("tr",        HTMLTableRowElement);
+                create_element_and_check("track",     HTMLTrackElement);
+                create_element_and_check("ul",        HTMLUListElement);
+                create_element_and_check("video",     HTMLVideoElement);
+                create_element_and_check("unknown",   HTMLUnknownElement);
+            }
+
+            // test2: createDocumentFragment
+            {
+                var fragment = document.createDocumentFragment();
+                var copy = fragment.cloneNode();
+                check_copy(fragment, copy, DocumentFragment);
+            }
+
+            // test3: createTextNode
+            {
+                var text = document.createTextNode("hello world");
+                var copy = text.cloneNode();
+                check_copy(text, copy, Text);
+                is(text.data, copy.data);
+                is(text.wholeText, copy.wholeText);
+            }
+
+            // test4: createComment
+            {
+                var comment = document.createComment("a comment");
+                var copy = comment.cloneNode();
+                check_copy(comment, copy, Comment);
+                is(comment.data, copy.data);
+            }
+
+            // test5: createProcessingInstruction
+            {
+                var pi = document.createProcessingInstruction("target", "data");
+                var copy = pi.cloneNode();
+                check_copy(pi, copy, ProcessingInstruction);
+                is(pi.data, copy.data);
+                is(pi.target, pi.target);
+            }
+
+            // test6: implementation.createDocumentType
+            {
+                var doctype = document.implementation.createDocumentType("html", "public", "system");
+                var copy = doctype.cloneNode();
+                check_copy(doctype, copy, DocumentType);
+                is(doctype.name, copy.name);
+                is(doctype.publicId, copy.publicId);
+                is(doctype.systemId, copy.systemId);
+            }
+
+            // test7: implementation.createDocument
+            {
+                // FIXME: https://github.com/mozilla/servo/issues/1509
+            }
+
+            // test8: implementation.createHTMLDocument
+            {
+                var html = document.implementation.createHTMLDocument("title");
+                var copy = html.cloneNode();
+                check_copy(html, copy, Document);
+                // FIXME: https://github.com/mozilla/servo/issues/1640
+                //is(html.title, copy.title);
+            }
+
+            // test9: node with children
+            {
+                var parent = document.createElement("div");
+                var child1 = document.createElement("div");
+                var child2 = document.createElement("div");
+                var grandChild = document.createElement("div");
+
+                child2.appendChild(grandChild);
+                parent.appendChild(child1);
+                parent.appendChild(child2);
+
+                var deep = true;
+                var copy = parent.cloneNode(deep);
+
+                check_copy(parent, copy, HTMLDivElement);
+                is(copy.childNodes.length, 2);
+
+                check_copy(child1, copy.childNodes[0], HTMLDivElement);
+                is(copy.childNodes[0].childNodes.length, 0);
+
+                check_copy(child2, copy.childNodes[1], HTMLDivElement);
+                is(copy.childNodes[1].childNodes.length, 1);
+                check_copy(grandChild, copy.childNodes[1].childNodes[0], HTMLDivElement);
+
+                deep = false;
+                copy = parent.cloneNode(deep);
+
+                check_copy(parent, copy, HTMLDivElement);
+                is(copy.childNodes.length, 0);
+            }
+
+            finish();
+        </script>
+    </head>
+</html>

@@ -11,12 +11,12 @@
     // test1: on static page
     {
       let foo = document.getElementById("foo");
-      isnot(foo, null, "test-1-0, on static page");
+      is_not(foo, null, "test-1-0, on static page");
       is(foo && foo.tagName, "HEAD", "test1-1, on static page");
       is_a(foo, HTMLHeadElement, "test1-2, on static page");
 
       let bar = document.getElementById("bar");
-      isnot(bar, null, "test1-3, on static page");
+      is_not(bar, null, "test1-3, on static page");
       is(bar && bar.tagName, "DIV", "test1-4, on static page");
       is_a(bar, HTMLDivElement, "test1-5, on static page");
     }
@@ -30,7 +30,7 @@
 
       // test: appended element
       let appended = document.getElementById(TEST_ID);
-      isnot(appended, null, "test2-0, appended element");
+      is_not(appended, null, "test2-0, appended element");
       is(appended && appended.tagName, "DIV", "test2-1, appended element");
       is_a(appended, HTMLDivElement, "test2-2, appended element");
 
