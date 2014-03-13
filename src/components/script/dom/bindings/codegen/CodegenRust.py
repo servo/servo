@@ -1225,36 +1225,36 @@ def memberIsCreator(member):
 def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType is None or returnType.isVoid():
         # Nothing to declare
-        return None, False
+        return None
     if returnType.isPrimitive() and returnType.tag() in builtinNames:
         result = CGGeneric(builtinNames[returnType.tag()])
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
-        return result, False
+        return result
     if returnType.isString():
         result = CGGeneric("DOMString")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
-        return result, False
+        return result
     if returnType.isEnum():
         if returnType.nullable():
             raise TypeError("We don't support nullable enum return values")
-        return CGGeneric(returnType.inner.identifier.name), False
+        return CGGeneric(returnType.inner.identifier.name)
     if returnType.isGeckoInterface():
         descriptor = descriptorProvider.getDescriptor(
             returnType.unroll().inner.identifier.name)
         result = CGGeneric(descriptor.nativeType)
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
-        return result, False
+        return result
     if returnType.isCallback():
         # XXXbz we're going to assume that callback types are always
         # nullable for now.
-        return CGGeneric("*JSObject"), False
+        return CGGeneric("*JSObject")
     if returnType.isAny():
-        return CGGeneric("JSVal"), False
+        return CGGeneric("JSVal")
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
-        return CGGeneric("*JSObject"), False
+        return CGGeneric("*JSObject")
     if returnType.isSequence():
         raise TypeError("We don't support sequence return values")
 
@@ -2420,8 +2420,7 @@ class CGCallGenerator(CGThing):
 
         isFallible = errorReport is not None
 
-        (result, resultOutParam) = getRetvalDeclarationForType(returnType,
-                                                               descriptorProvider)
+        result = getRetvalDeclarationForType(returnType, descriptorProvider)
 
         args = CGList([CGGeneric(arg) for arg in argsPre], ", ")
         for (a, name) in arguments:
@@ -2436,10 +2435,6 @@ class CGCallGenerator(CGThing):
             elif a.type.isDictionary():
                 name = "&" + name
             args.append(CGGeneric(name))
-
-        # Return values that go in outparams go here
-        if resultOutParam:
-            args.append(CGGeneric("result"))
 
         needsCx = (typeNeedsCx(returnType, True) or
                    any(typeNeedsCx(a.type) for (a, _) in arguments))
@@ -2467,7 +2462,7 @@ class CGCallGenerator(CGThing):
 
         if isFallible:
             call = CGWrapper(call, pre="result_fallible = ")
-        elif result is not None and not resultOutParam:
+        elif result is not None:
             call = CGWrapper(call, pre="result = ")
 
         call = CGWrapper(call)
@@ -2477,7 +2472,7 @@ class CGCallGenerator(CGThing):
             self.cgRoot.append(CGGeneric("if (result_fallible.is_err()) {"))
             self.cgRoot.append(CGIndenter(errorReport))
             self.cgRoot.append(CGGeneric("}"))
-            if result is not None and not resultOutParam:
+            if result is not None:
                 self.cgRoot.append(CGGeneric("result = result_fallible.unwrap();"))
 
     def define(self):
@@ -2790,8 +2785,6 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         nativeName = MakeNativeName(name)
         extraPre = ''
         argsPre = []
-        (_, resultOutParam) = getRetvalDeclarationForType(self.attr.type,
-                                                          self.descriptor)
         infallible = ('infallible' in
                       self.descriptor.getExtendedAttributes(self.attr,
                                                             getter=True))
@@ -2799,7 +2792,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
             abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
             extraPre = '  let mut abstract_this = %s::from_box(this);\n' % abstractName
             argsPre = ['&mut abstract_this']
-        if resultOutParam or self.attr.type.nullable() or not infallible:
+        if self.attr.type.nullable() or not infallible:
             nativeName = "Get" + nativeName
         return CGWrapper(CGIndenter(CGGetterCall(argsPre, self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
