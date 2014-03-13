@@ -46,7 +46,7 @@ impl TableCellFlow {
     // methods
     #[inline(always)]
     fn assign_height_table_cell_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
-        let (_, top_offset, bottom_offset, left_offset) = self.block_flow.initialize_offset(true);
+        let (_, top_offset, bottom_offset, left_offset) = self.block_flow.initialize_offsets(true);
 
         let mut float_ctx = self.block_flow.handle_children_floats_if_inorder(ctx,
                                                                    Point2D(-left_offset, -top_offset),
@@ -57,8 +57,8 @@ impl TableCellFlow {
         // the last child's bottom margin do not collapse.
         self.block_flow.compute_margin_collapse(&mut cur_y,
                                                 &mut top_offset,
-                                                Au(0),
-                                                Au(0),
+                                                &mut Au(0),
+                                                &mut Au(0),
                                                 false,
                                                 false);
 
@@ -123,7 +123,7 @@ impl Flow for TableCellFlow {
 
             // The text alignment of a table_cell flow is the text alignment of its box's style.
             self.block_flow.base.flags_info.flags.set_text_align(style.Text.text_align);
-            self.block_flow.initial_box_setting(box_, style, remaining_width, true, false);
+            self.block_flow.compute_padding_and_margin_if_exists(box_, style, remaining_width, true, false);
             self.block_flow.set_box_x_and_width(box_, Au(0), remaining_width);
 
             x_offset = box_.offset();
@@ -132,7 +132,7 @@ impl Flow for TableCellFlow {
             remaining_width = remaining_width - padding_and_borders;
         }
 
-        self.block_flow.propagate_assigned_width_to_children(x_offset, remaining_width);
+        self.block_flow.propagate_assigned_width_to_children(x_offset, remaining_width, None);
     }
 
     fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {

@@ -63,7 +63,7 @@ impl TableFlow {
     #[inline(always)]
     fn assign_height_table_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
 
-        let (_, top_offset, bottom_offset, left_offset) = self.block_flow.initialize_offset(true);
+        let (_, top_offset, bottom_offset, left_offset) = self.block_flow.initialize_offsets(true);
 
         let mut float_ctx = self.block_flow.handle_children_floats_if_inorder(ctx,
                                                                               Point2D(-left_offset, -top_offset),
@@ -176,12 +176,12 @@ impl Flow for TableFlow {
         let mut x_offset = Au::new(0);
 
         let mut num_unspecified_widths = 0;
-        let mut total_columns_widths = Au::new(0);
+        let mut total_column_width = Au::new(0);
         for col_width in self.col_widths.iter() {
             if *col_width == Au::new(0) {
                 num_unspecified_widths += 1;
             } else {
-                total_columns_widths = total_columns_widths.add(col_width);
+                total_column_width = total_column_width.add(col_width);
             }
         }
 
@@ -190,7 +190,7 @@ impl Flow for TableFlow {
 
             // The text alignment of a table_wrapper flow is the text alignment of its box's style.
             self.block_flow.base.flags_info.flags.set_text_align(style.Text.text_align);
-            self.block_flow.initial_box_setting(box_, style, remaining_width, true, false);
+            self.block_flow.compute_padding_and_margin_if_exists(box_, style, remaining_width, true, false);
             self.block_flow.set_box_x_and_width(box_, Au(0), remaining_width);
 
             x_offset = box_.padding.get().left + box_.border.get().left;
@@ -201,38 +201,21 @@ impl Flow for TableFlow {
 
         // In fixed table layout, we distribute extra space among the unspecified columns if there are
         // any, or among all the columns if all are specified.
-        let extra_column_width = if (total_columns_widths < remaining_width) &&
-                                    (num_unspecified_widths == 0) {
-            let ratio = remaining_width.to_f64().unwrap() / total_columns_widths.to_f64().unwrap();
+        if (total_column_width < remaining_width) && (num_unspecified_widths == 0) {
+            let ratio = remaining_width.to_f64().unwrap() / total_column_width.to_f64().unwrap();
             for col_width in self.col_widths.mut_iter() {
                 *col_width = (*col_width).scale_by(ratio);
             }
-            Au(0)
         } else if num_unspecified_widths != 0 {
-            (remaining_width - total_columns_widths) / Au::new(num_unspecified_widths)
-        } else {
-            Au(0)
-        };
-
-        self.block_flow.propagate_assigned_width_to_children(x_offset, remaining_width);
-        for kid in self.block_flow.base.child_iter() {
-            assert!(kid.is_proper_table_child());
-            if kid.is_table_colgroup() {
-                continue;
-            }
-            let final_col_widths = self.col_widths.map(|width| {
-                if *width == Au(0) {
-                    extra_column_width
-                } else {
-                    *width
+            let extra_column_width = (remaining_width - total_column_width) / Au::new(num_unspecified_widths);
+            for col_width in self.col_widths.mut_iter() {
+                if *col_width == Au(0) {
+                    *col_width = extra_column_width;
                 }
-            });
-            if kid.is_table_rowgroup() {
-                kid.as_table_rowgroup().col_widths = final_col_widths;
-            } else if kid.is_table_row() {
-                kid.as_table_row().col_widths = final_col_widths;
             }
         }
+
+        self.block_flow.propagate_assigned_width_to_children(x_offset, remaining_width, Some(self.col_widths.clone()));
     }
 
     fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {

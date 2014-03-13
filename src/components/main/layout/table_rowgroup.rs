@@ -48,7 +48,7 @@ impl TableRowGroupFlow {
         &self.block_flow.box_
     }
 
-    fn initialize_offset(&mut self) -> (Au, Au, Au) {
+    fn initialize_offsets(&mut self) -> (Au, Au, Au) {
         // TODO: If border-collapse: collapse, top_offset, bottom_offset, and left_offset
         // should be updated. Currently, they are set as Au(0).
         (Au(0), Au(0), Au(0))
@@ -58,7 +58,7 @@ impl TableRowGroupFlow {
     // methods
     #[inline(always)]
     fn assign_height_table_rowgroup_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
-        let (top_offset, bottom_offset, left_offset) = self.initialize_offset();
+        let (top_offset, bottom_offset, left_offset) = self.initialize_offsets();
 
         let mut float_ctx = self.block_flow.handle_children_floats_if_inorder(ctx, Point2D(-left_offset, -top_offset), inorder);
         let mut cur_y = top_offset;
@@ -142,15 +142,11 @@ impl Flow for TableRowGroupFlow {
 
             // The text alignment of a table_rowgroup flow is the text alignment of its box's style.
             self.block_flow.base.flags_info.flags.set_text_align(style.Text.text_align);
-            self.block_flow.initial_box_setting(box_, style, remaining_width, false, false);
+            self.block_flow.compute_padding_and_margin_if_exists(box_, style, remaining_width, false, false);
             self.block_flow.set_box_x_and_width(box_, Au(0), remaining_width);
         }
 
-        self.block_flow.propagate_assigned_width_to_children(Au(0), remaining_width);
-        for kid in self.block_flow.base.child_iter() {
-            assert!(kid.is_table_row());
-            kid.as_table_row().col_widths = self.col_widths.clone();
-        }
+        self.block_flow.propagate_assigned_width_to_children(Au(0), remaining_width, Some(self.col_widths.clone()));
     }
 
     fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {

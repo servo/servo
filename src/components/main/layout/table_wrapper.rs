@@ -92,7 +92,7 @@ impl TableWrapperFlow {
     // methods
     #[inline(always)]
     fn assign_height_table_wrapper_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
-        let (clearance, top_offset, bottom_offset, left_offset) = self.block_flow.initialize_offset(false);
+        let (clearance, top_offset, bottom_offset, left_offset) = self.block_flow.initialize_offsets(false);
 
         let mut float_ctx = self.block_flow.handle_children_floats_if_inorder(ctx,
                                                                               Point2D(-left_offset, -top_offset),
@@ -201,7 +201,7 @@ impl Flow for TableWrapperFlow {
 
             // The text alignment of a table_wrapper flow is the text alignment of its box's style.
             self.block_flow.base.flags_info.flags.set_text_align(style.Text.text_align);
-            let width = self.block_flow.initial_box_setting(box_, style, remaining_width, false, true);
+            let width = self.block_flow.compute_padding_and_margin_if_exists(box_, style, remaining_width, false, true);
 
             let screen_size = ctx.screen_size;
             let (x, w) = box_.get_x_coord_and_new_width_if_fixed(screen_size.width,
@@ -211,12 +211,15 @@ impl Flow for TableWrapperFlow {
                                                                  self.block_flow.is_fixed);
             x_offset = x;
 
-            // Get left and right paddings, borders for table
+            // Get left and right paddings, borders for table.
+            // We get these values because table_wrapper doesn't have border and padding.
             let padding_left = specified(style.Padding.padding_left, remaining_width);
             let padding_right = specified(style.Padding.padding_right, remaining_width);
             let border_left = style.Border.border_left_width;
             let border_right = style.Border.border_right_width;
             let padding_and_borders = padding_left + padding_right + border_left + border_right;
+            // Get border-edge width. Because fixed_cells_width indicates content-width,
+            // padding and border values are added to fixed_cells_width.
             remaining_width = geometry::max(fixed_cells_width + padding_and_borders, w);
 
             let border_x = if self.block_flow.is_fixed {
@@ -233,7 +236,7 @@ impl Flow for TableWrapperFlow {
             _ => {}
         }
 
-        self.block_flow.propagate_assigned_width_to_children(x_offset, remaining_width);
+        self.block_flow.propagate_assigned_width_to_children(x_offset, remaining_width, None);
     }
 
     fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
