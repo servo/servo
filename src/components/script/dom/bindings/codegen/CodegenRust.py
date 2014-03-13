@@ -2337,14 +2337,14 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
         unwrapThis = str(CastableObjectUnwrapper(
                         FakeCastableDescriptor(self.descriptor),
                         "obj", self.unwrapFailureCode))
-        unwrapThis = CGIndenter(
-            CGGeneric("let obj: *mut JSObject = JS_THIS_OBJECT(cx, vp as *mut JSVal);\n"
-                      "if obj.is_null() {\n"
-                      "  return false as JSBool;\n"
-                      "}\n"
-                      "\n"
-                      "let this: JS<%s> = %s;\n" % (self.descriptor.concreteType, unwrapThis)))
-        return CGList([ unwrapThis, self.generate_code() ], "\n").define()
+        unwrapThis = CGGeneric(
+            "let obj: *mut JSObject = JS_THIS_OBJECT(cx, vp as *mut JSVal);\n"
+            "if obj.is_null() {\n"
+            "  return false as JSBool;\n"
+            "}\n"
+            "\n"
+            "let this: JS<%s> = %s;\n" % (self.descriptor.concreteType, unwrapThis))
+        return CGIndenter(CGList([ unwrapThis, self.generate_code() ], "\n")).define()
 
     def generate_code(self):
         assert(False) # Override me
@@ -2359,9 +2359,9 @@ class CGGenericMethod(CGAbstractBindingMethod):
         CGAbstractBindingMethod.__init__(self, descriptor, 'genericMethod', args)
 
     def generate_code(self):
-        return CGIndenter(CGGeneric(
+        return CGGeneric(
             "let _info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitMethodOp(_info, cx, obj, this.unsafe_get() as *libc::c_void, argc, vp);"))
+            "return CallJitMethodOp(_info, cx, obj, this.unsafe_get() as *libc::c_void, argc, vp);")
 
 class CGSpecializedMethod(CGAbstractExternMethod):
     """
@@ -2403,9 +2403,9 @@ class CGGenericGetter(CGAbstractBindingMethod):
                                          unwrapFailureCode)
 
     def generate_code(self):
-        return CGIndenter(CGGeneric(
+        return CGGeneric(
             "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitPropertyOp(info, cx, obj, this.unsafe_get() as *libc::c_void, vp);\n"))
+            "return CallJitPropertyOp(info, cx, obj, this.unsafe_get() as *libc::c_void, vp);\n")
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -2453,7 +2453,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
                                          unwrapFailureCode)
 
     def generate_code(self):
-        return CGIndenter(CGGeneric(
+        return CGGeneric(
                 "let mut undef = UndefinedValue();\n"
                 "let argv: *mut JSVal = if argc != 0 { JS_ARGV(cx, vp) } else { &mut undef as *mut JSVal };\n"
                 "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
@@ -2461,7 +2461,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
                 "  return 0;\n"
                 "}\n"
                 "*vp = UndefinedValue();\n"
-                "return 1;"))
+                "return 1;")
 
 class CGSpecializedSetter(CGAbstractExternMethod):
     """
