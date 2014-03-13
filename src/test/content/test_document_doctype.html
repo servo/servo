@@ -6,8 +6,8 @@
         <script>
             // test1: document with doctype
             {
-                isnot(document.doctype, document.firstChild, "test1-0, document with doctype");
-                isnot(document.doctype, null, "test1-1, document with doctype");
+                is_not(document.doctype, document.firstChild, "test1-0, document with doctype");
+                is_not(document.doctype, null, "test1-1, document with doctype");
                 is_a(document.doctype, DocumentType, "test1-2, document with doctype");
             }
 

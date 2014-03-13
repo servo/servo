@@ -4,7 +4,7 @@
         <script>
             // test1: basic test
             {
-                isnot(document.implementation, null, "test1-0, basic test");
+                is_not(document.implementation, null, "test1-0, basic test");
                 is_a(document.implementation, DOMImplementation, "test1-1, basic test");
 
                 var implementation = document.implementation;
@@ -25,7 +25,7 @@
             // test3: createHTMLDocument
             {
                 var htmldoc = document.implementation.createHTMLDocument("example title");
-                isnot(htmldoc, null, "test3-0, createHTMLDocument");
+                is_not(htmldoc, null, "test3-0, createHTMLDocument");
                 is_a(htmldoc, Document, "test3-1, createHTMLDocument");
                 is(htmldoc.childNodes.length, 2, "test3-3, createHTMLDocument");
 

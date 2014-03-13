@@ -16,7 +16,7 @@ function check_collection(obj, num, classes, name) {
     classes = [Element, HTMLElement].concat(classes);
 
     for (var i=0; i<obj.length; i++) {
-        isnot(obj[i], null);
+        is_not(obj[i], null);
         is(obj[i].tagName, name);
         for (var j=0; j<classes.length; j++) {
             is_a(obj[i], classes[j]);
