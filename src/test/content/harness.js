@@ -21,12 +21,12 @@ function _printer(opstr, op) {
 }
 
 var is          = _printer("==",           function (a,b) { return a == b; });
+var is_not      = _printer("!=",           function (a,b) { return a != b; });
 var is_a        = _printer("is a",         function (a,b) { return a instanceof b; });
 var is_not_a    = _printer("is not a",     function (a,b) { return !(a instanceof b); });
 var is_in       = _printer("is in",        function (a,b) { return a in b; });
 var is_not_in   = _printer("is not in",    function (a,b) { return !(a in b); });
 var as_str_is   = _printer("as string is", function (a,b) { return String(a) == b; });
-var isnot       = _printer("!=",           function (a,b) { return a != b; });
 var lt          = _printer("<",            function (a,b) { return a <  b; });
 var gt          = _printer(">",            function (a,b) { return a >  b; });
 var leq         = _printer("<=",           function (a,b) { return a <= b; });

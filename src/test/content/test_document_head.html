@@ -6,7 +6,7 @@
         <script>
             // test1: existing document's head
             {
-                isnot(document.head, null, "test1-0, existing document's head");
+                is_not(document.head, null, "test1-0, existing document's head");
                 is_a(document.head, HTMLHeadElement, "test1-1, exising document's head");
                 is(document.head && document.head.tagName, "HEAD", "test1-2, existing document's head");
             }
@@ -17,7 +17,7 @@
                 new_document.appendChild(new_document.createElement("html"));
                 let new_head = new_document.createElement("head");
 
-                isnot(new_head, null, "test2-0, append head to a new document");
+                is_not(new_head, null, "test2-0, append head to a new document");
                 is_a(new_head, HTMLHeadElement, "test2-1, append head to a new document");
                 is(new_head && new_head.tagName, "HEAD", "test2-2, append head to a new document");
 

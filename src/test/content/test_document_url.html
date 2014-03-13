@@ -6,8 +6,8 @@
         <script>
             // test1: URL & documentURI
             {
-                isnot(document.URL, null, "test1-0, URL & documentURI");
-                isnot(document.documentURI, null, "test1-1, URL & documentURI");
+                is_not(document.URL, null, "test1-0, URL & documentURI");
+                is_not(document.documentURI, null, "test1-1, URL & documentURI");
                 is(document.URL, document.documentURI, "test1-2, URL & documentURI");
             }
 
