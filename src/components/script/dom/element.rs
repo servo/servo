@@ -156,6 +156,17 @@ impl Element {
         self.node.owner_doc().get().is_html_document
     }
 
+    pub unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
+        if self.namespace != namespace::HTML {
+            return false
+        }
+        let owner_doc: *JS<Document> = self.node.owner_doc();
+        let owner_doc: **Document = cast::transmute::<*JS<Document>,
+                                                      **Document>(
+                                                      owner_doc);
+        (**owner_doc).is_html_document
+    }
+
     pub fn get_attribute(&self,
                          namespace: Namespace,
                          name: &str) -> Option<JS<Attr>> {
@@ -249,7 +260,7 @@ impl Element {
                 if self_node.is_in_doc() {
                     // XXX: this dual declaration are workaround to avoid the compile error:
                     // "borrowed value does not live long enough"
-                    let mut doc = self.node.owner_doc();
+                    let mut doc = self.node.owner_doc().clone();
                     let doc = doc.get_mut();
                     doc.register_named_element(abstract_self, value.clone());
                 }
@@ -318,7 +329,7 @@ impl Element {
                 if self_node.is_in_doc() {
                     // XXX: this dual declaration are workaround to avoid the compile error:
                     // "borrowed value does not live long enough"
-                    let mut doc = self.node.owner_doc();
+                    let mut doc = self.node.owner_doc().clone();
                     let doc = doc.get_mut();
                     doc.unregister_named_element(old_value);
                 }

@@ -93,7 +93,7 @@ impl HTMLImageElement {
 
     pub fn AfterSetAttr(&mut self, name: DOMString, value: DOMString) {
         if "src" == name {
-            let document = self.htmlelement.element.node.owner_doc();
+            let document = self.htmlelement.element.node.owner_doc().clone();
             let window = document.get().window.get();
             let url = Some(window.get_url());
             self.update_image(Some(value), url);
