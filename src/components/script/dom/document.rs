@@ -56,7 +56,7 @@ pub struct Document {
     node: Node,
     reflector_: Reflector,
     window: JS<Window>,
-    idmap: HashMap<DOMString, JS<Element>>,
+    idmap: HashMap<DOMString, ~[JS<Element>]>,
     implementation: Option<JS<DOMImplementation>>,
     content_type: DOMString,
     encoding_name: DOMString,
@@ -242,7 +242,7 @@ impl Document {
         // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
         match self.idmap.find_equiv(&id) {
             None => None,
-            Some(node) => Some(node.clone()),
+            Some(node) => Some(node.clone()[0]),
         }
     }
 
@@ -540,11 +540,11 @@ impl Document {
         // TODO: support the case if multiple elements
         // which haves same id are in the same document.
         self.idmap.mangle(id, element,
-                          |_, new_element: &JS<Element>| -> JS<Element> {
-                              new_element.clone()
+                          |_, new_element: &JS<Element>| -> ~[JS<Element>] {
+                              ~[new_element.clone()]
                           },
-                          |_, old_element: &mut JS<Element>, new_element: &JS<Element>| {
-                              *old_element = new_element.clone();
+                          |_, old_element: &mut ~[JS<Element>], new_element: &JS<Element>| {
+                              old_element.push(new_element.clone());
                           });
     }
 }
