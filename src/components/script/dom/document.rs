@@ -188,6 +188,10 @@ impl Document {
         }
     }
 
+    pub fn quirks_mode(&self) -> QuirksMode {
+        self.extra.quirks_mode
+    }
+
     pub fn set_quirks_mode(&mut self, mode: QuirksMode) {
         self.extra.quirks_mode = mode;
     }
