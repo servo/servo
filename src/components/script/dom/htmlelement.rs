@@ -140,13 +140,6 @@ impl HTMLElement {
         Ok(())
     }
 
-    pub fn ClassName(&self) -> DOMString {
-        ~""
-    }
-
-    pub fn SetClassName(&self, _class: DOMString) {
-    }
-
     pub fn GetOffsetParent(&self) -> Option<JS<Element>> {
         None
     }

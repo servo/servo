@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            let foo1 = document.getElementById("foo-1");
+            let foo2 = document.getElementById("foo-2");
+
+            foo1.className += " bar";
+            is(foo1.className, "foo bar");
+
+            let foo3 = document.createElement("div");
+            foo3.id = "foo-3";
+            foo3.className = "foo";
+            document.body.appendChild(foo3);
+            is(foo3, document.getElementById("foo-3"));
+
+            let collection = document.getElementsByClassName("foo");
+            is(collection.length, 2);
+            is(collection[0].id, foo1.id);
+            is(collection[1].id, foo3.id);
+
+            collection = document.getElementsByClassName("bar");
+            is(collection.length, 1);
+            is(collection[0].id, foo1.id);
+
+            collection = document.getElementsByClassName("baz");
+            is(collection.length, 1);
+            is(collection[0].id, foo2.id);
+
+            finish();
+        </script>
+    </head>
+    <body>
+        <div id="foo-1" class="foo"></div>
+        <div id="foo-2" class="baz"></div>
+    </body>
+</html>
