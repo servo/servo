@@ -921,7 +921,7 @@ impl BlockFlow {
             cur_y = cur_y + child_base.position.size.height;
         }
 
-        let mut height = cur_y - top_offset;
+        let mut content_height = cur_y - top_offset;
 
         let mut noncontent_height;
         let box_ = self.box_.as_ref().unwrap();
@@ -933,14 +933,15 @@ impl BlockFlow {
         noncontent_height = box_.padding.get().top + box_.padding.get().bottom +
             box_.border.get().top + box_.border.get().bottom;
 
-        //TODO(eatkinson): compute heights properly using the 'height' property.
-        let height_prop = MaybeAuto::from_style(box_.style().Box.get().height,
-                                                Au::new(0)).specified_or_zero();
+        let content_height = match MaybeAuto::from_style(box_.style().Box.get().height,
+                                                         content_height) {
+            Auto => content_height,
+            Specified(value) => value,
+        };
 
-        height = geometry::max(height, height_prop) + noncontent_height;
-        debug!("assign_height_float -- height: {}", height);
+        debug!("assign_height_float -- height: {}", content_height + noncontent_height);
 
-        position.size.height = height;
+        position.size.height = content_height + noncontent_height;
         box_.border_box.set(position);
     }
 
