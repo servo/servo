@@ -39,7 +39,7 @@ use servo_util::namespace::{Namespace, Null};
 use servo_util::str::DOMString;
 
 use extra::url::{Url, from_str};
-use js::jsapi::{JSObject, JSContext};
+use js::jsapi::JSContext;
 use std::ascii::StrAsciiExt;
 use std::hashmap::HashMap;
 
@@ -87,7 +87,7 @@ impl Document {
     pub fn reflect_document<D: Reflectable+DocumentBase>
             (document:  ~D,
              window:    &JS<Window>,
-             wrap_fn:   extern "Rust" fn(*JSContext, &JS<Window>, ~D) -> *JSObject)
+             wrap_fn:   extern "Rust" fn(*JSContext, &JS<Window>, ~D) -> JS<D>)
              -> JS<D> {
         assert!(document.reflector().get_jsobject().is_null());
         let raw_doc = reflect_dom_object(document, window, wrap_fn);

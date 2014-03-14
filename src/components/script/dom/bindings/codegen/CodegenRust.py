@@ -2058,7 +2058,7 @@ def DOMObjectPointerArg(descriptor):
     return DOMObjectPointerType(descriptor) + descriptor.concreteType
 
 def CreateBindingJSObject(descriptor, parent=None):
-    create = "  let raw: *mut %s = &mut *aObject;\n" % descriptor.concreteType;
+    create = "  let mut raw: JS<%s> = JS::from_raw(&mut *aObject);\n" % descriptor.concreteType
     if descriptor.proxy:
         assert not descriptor.createGlobal
         handler = """
@@ -2069,9 +2069,7 @@ def CreateBindingJSObject(descriptor, parent=None):
                            ptr::to_unsafe_ptr(&PrivateValue(squirrel_away_unique(aObject) as *libc::c_void)),
                            proto, %s,
                            ptr::null(), ptr::null());
-  if obj.is_null() {
-    return ptr::null();
-  }
+  assert!(obj.is_not_null());
 
 """ % (parent)
     else:
@@ -2079,9 +2077,7 @@ def CreateBindingJSObject(descriptor, parent=None):
             create += "  let obj = CreateDOMGlobal(aCx, &Class.base);\n"
         else:
             create += "  let obj = JS_NewObject(aCx, &Class.base, proto, %s);\n" % parent
-        create += """  if obj.is_null() {
-    return ptr::null();
-  }
+        create += """  assert!(obj.is_not_null());
 
   JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
                      PrivateValue(squirrel_away_unique(aObject) as *libc::c_void));
@@ -2097,7 +2093,8 @@ class CGWrapMethod(CGAbstractMethod):
         else:
             args = [Argument('*JSContext', 'aCx'),
                     Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
-        CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, pub=True)
+        retval = 'JS<%s>' % descriptor.concreteType
+        CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args, pub=True)
 
     def definition_body(self):
         if not self.descriptor.createGlobal:
@@ -2108,22 +2105,20 @@ class CGWrapMethod(CGAbstractMethod):
 
   //JSAutoCompartment ac(aCx, scope);
   let proto = GetProtoObject(aCx, scope, scope);
-  if proto.is_null() {
-    return ptr::null();
-  }
+  assert!(proto.is_not_null());
 
 %s
 
-  (*raw).mut_reflector().set_jsobject(obj);
+  raw.mut_reflector().set_jsobject(obj);
 
-  return obj;""" % CreateBindingJSObject(self.descriptor, "scope")
+  return raw;""" % CreateBindingJSObject(self.descriptor, "scope")
         else:
             return """
 %s
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);
-  (*raw).mut_reflector().set_jsobject(obj);
-  return obj;""" % CreateBindingJSObject(self.descriptor)
+  raw.mut_reflector().set_jsobject(obj);
+  return raw;""" % CreateBindingJSObject(self.descriptor)
 
 class CGAbstractExternMethod(CGAbstractMethod):
     """
