@@ -561,8 +561,8 @@ impl NodeHelpers for JS<Node> {
             if object.is_null() {
                 fail!("Attempted to create a `JS<Node>` from an invalid pointer!")
             }
-            let boxed_node: *mut Box<Node> = utils::unwrap(object);
-            JS::from_box(boxed_node)
+            let boxed_node: *mut Node = utils::unwrap(object);
+            JS::from_raw(boxed_node)
         }
     }
 

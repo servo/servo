@@ -13,8 +13,9 @@ static READ_SIZE: uint = 1024;
 fn read_all(reader: &mut io::Stream, progress_chan: &Chan<ProgressMsg>)
         -> Result<(), ()> {
     loop {
-        match (reader.read_bytes(READ_SIZE)) {
-            Ok(data) => progress_chan.send(Payload(data)),
+        let mut buf = ~[];
+        match (reader.push_bytes(&mut buf, READ_SIZE)) {
+            Ok(_) => progress_chan.send(Payload(buf)),
             Err(e) => match e.kind {
                 io::EndOfFile => return Ok(()),
                 _ => return Err(()),

@@ -655,7 +655,7 @@ impl ScriptTask {
         let this_value = if timer_data.args.len() > 0 {
             fail!("NYI")
         } else {
-            js_info.get().get_ref().js_compartment.borrow().global_obj.borrow().ptr
+            js_info.get().get_ref().js_compartment.borrow().global_obj
         };
 
         // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
@@ -880,7 +880,7 @@ impl ScriptTask {
                 let (cx, global_obj) = {
                     let js_info = page.js_info();
                     (js_info.get().get_ref().js_context.clone(),
-                     js_info.get().get_ref().js_compartment.borrow().global_obj.clone())
+                     js_info.get().get_ref().js_compartment.borrow().global_obj)
                 };
                 cx.borrow().evaluate_script(global_obj,
                                             file.data.clone(),

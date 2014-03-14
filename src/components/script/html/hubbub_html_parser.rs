@@ -521,6 +521,7 @@ pub fn parse_html(page: &Page,
         }
     }
 
+    debug!("finished parsing");
     css_chan.send(CSSTaskExit);
     js_chan.send(JSTaskExit);
 

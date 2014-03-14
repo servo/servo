@@ -389,7 +389,7 @@ class CGMethodCall(CGThing):
 class FakeCastableDescriptor():
     def __init__(self, descriptor):
         self.castable = True
-        self.nativeType = "*Box<%s>" % descriptor.concreteType
+        self.nativeType = "*%s" % descriptor.concreteType
         self.name = descriptor.name
         class FakeInterface:
             def inheritanceDepth(self):
@@ -2066,7 +2066,7 @@ def CreateBindingJSObject(descriptor, parent=None):
   let handler = js_info.get().get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
         create += handler + """  let obj = NewProxyObject(aCx, *handler,
-                           &PrivateValue(squirrel_away_unique(aObject) as *libc::c_void),
+                           &PrivateValue(squirrel_away_unboxed(aObject) as *libc::c_void),
                            proto, %s,
                            ptr::null(), ptr::null());
   if obj.is_null() {
@@ -2084,7 +2084,7 @@ def CreateBindingJSObject(descriptor, parent=None):
   }
 
   JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                     PrivateValue(squirrel_away_unique(aObject) as *libc::c_void));
+                     PrivateValue(squirrel_away_unboxed(aObject) as *libc::c_void));
 """
     return create
 
@@ -2388,7 +2388,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
             body = "" #XXXjdm xray stuff isn't necessary yet
 
         return (body + """  let cx = js_info.js_context.borrow().ptr;
-  let receiver = js_info.js_compartment.borrow().global_obj.borrow().ptr;
+  let receiver = js_info.js_compartment.borrow().global_obj;
   let global: *JSObject = JS_GetGlobalForObject(cx, receiver);
   return %s(cx, global, receiver).is_not_null();""" % (getter))
 
@@ -2693,7 +2693,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let this: *Box<%s>;" % self.descriptor.concreteType))
+                      "let this: *%s;" % self.descriptor.concreteType))
 
     def generate_code(self):
         assert(False) # Override me
@@ -2721,7 +2721,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         self.method = method
         name = method.identifier.name
         args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', 'obj'),
-                Argument('*mut Box<%s>' % descriptor.concreteType, 'this'),
+                Argument('*mut %s' % descriptor.concreteType, 'this'),
                 Argument('libc::c_uint', 'argc'), Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'JSBool', args)
 
@@ -2732,13 +2732,13 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         argsPre = []
         if name in self.descriptor.needsAbstract:
             abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = '  let mut abstract_this = %s::from_box(this);\n' % abstractName
+            extraPre = '  let mut abstract_this = %s::from_raw(this);\n' % abstractName
             argsPre = ['&mut abstract_this']
         return CGWrapper(CGMethodCall(argsPre, nativeName, self.method.isStatic(),
                                       self.descriptor, self.method),
                          pre=extraPre +
                              "  let obj = (*obj.unnamed);\n" +
-                             "  let this = &mut (*this).data;\n").define()
+                             "  let this = &mut *this;\n").define()
 
 class CGGenericGetter(CGAbstractBindingMethod):
     """
@@ -2776,7 +2776,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         name = 'get_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*mut Box<%s>' % descriptor.concreteType, 'this'),
+                 Argument('*mut %s' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -2790,7 +2790,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
                                                             getter=True))
         if name in self.descriptor.needsAbstract:
             abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = '  let mut abstract_this = %s::from_box(this);\n' % abstractName
+            extraPre = '  let mut abstract_this = %s::from_raw(this);\n' % abstractName
             argsPre = ['&mut abstract_this']
         if self.attr.type.nullable() or not infallible:
             nativeName = "Get" + nativeName
@@ -2798,7 +2798,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
                              "  let obj = (*obj.unnamed);\n" +
-                             "  let this = &mut (*this).data;\n").define()
+                             "  let this = &mut *this;\n").define()
 
 class CGGenericSetter(CGAbstractBindingMethod):
     """
@@ -2842,7 +2842,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         name = 'set_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*mut Box<%s>' % descriptor.concreteType, 'this'),
+                 Argument('*mut %s' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'argv')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -2853,13 +2853,13 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         extraPre = ''
         if name in self.descriptor.needsAbstract:
             abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = '  let mut abstract_this = %s::from_box(this);\n' % abstractName
+            extraPre = '  let mut abstract_this = %s::from_raw(this);\n' % abstractName
             argsPre = ['&mut abstract_this']
         return CGWrapper(CGIndenter(CGSetterCall(argsPre, self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
                              "  let obj = (*obj.unnamed);\n" +
-                             "  let this = &mut (*this).data;\n").define()
+                             "  let this = &mut *this;\n").define()
 
 def infallibleForMember(member, type, descriptorProvider):
     """
@@ -3891,8 +3891,8 @@ class CGProxyUnwrap(CGAbstractMethod):
     obj = js::UnwrapObject(obj);
   }*/
   //MOZ_ASSERT(IsProxy(obj));
-  let box_: *Box<%s> = cast::transmute(GetProxyPrivate(obj).to_private());
-  return cast::transmute(&(*box_).data);""" % (self.descriptor.concreteType)
+  let box_: *%s = cast::transmute(GetProxyPrivate(obj).to_private());
+  return cast::transmute(&*box_);""" % (self.descriptor.concreteType)
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
@@ -4201,7 +4201,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
     def definition_body_prologue(self):
         return """
-  let this: *%s = &(*unwrap::<*Box<%s>>(obj)).data;
+  let this: *%s = &*unwrap::<*%s>(obj);
 """ % (self.descriptor.concreteType, self.descriptor.concreteType)
 
     def definition_body(self):
@@ -4796,7 +4796,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{NativePropertyHooks}',
             'dom::bindings::utils::global_object_for_js_object',
             'dom::bindings::utils::{Reflectable}',
-            'dom::bindings::utils::{squirrel_away_unique}',
+            'dom::bindings::utils::{squirrel_away_unboxed}',
             'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
             'dom::bindings::utils::{unwrap_object, VoidVal, with_gc_disabled}',
             'dom::bindings::utils::{with_gc_enabled, XrayResolveProperty}',
@@ -4825,7 +4825,6 @@ class CGBindingRoot(CGThing):
             'std::str',
             'std::num',
             'std::intrinsics::uninit',
-            'std::raw::Box',
         ])
 
         # Add the auto-generated comment.
