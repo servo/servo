@@ -338,9 +338,11 @@ pub fn parse_html(page: &Page,
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
                 let elem = element.clone();
-                element.get_mut().set_attr(&elem,
-                                             attr.name.clone(),
-                                             attr.value.clone());
+                //FIXME: this should have proper error handling or explicitly drop
+                //       exceptions on the ground
+                assert!(element.get_mut().set_attr(&elem,
+                                                   attr.name.clone(),
+                                                   attr.value.clone()).is_ok());
             }
 
             // Spawn additional parsing, network loads, etc. from tag and attrs
@@ -409,7 +411,7 @@ pub fn parse_html(page: &Page,
                 debug!("append child {:x} {:x}", parent, child);
                 let mut parent: JS<Node> = NodeWrapping::from_hubbub_node(parent);
                 let mut child: JS<Node> = NodeWrapping::from_hubbub_node(child);
-                parent.AppendChild(&mut child);
+                assert!(parent.AppendChild(&mut child).is_ok());
             }
             child
         },
@@ -448,14 +450,14 @@ pub fn parse_html(page: &Page,
             debug!("set quirks mode");
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let mut tmp_borrow = doc_cell.borrow_mut();
-            let mut tmp = tmp_borrow.get();
+            let tmp = tmp_borrow.get();
             tmp.get_mut().set_quirks_mode(mode);
         },
         encoding_change: |encname| {
             debug!("encoding change");
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let mut tmp_borrow = doc_cell.borrow_mut();
-            let mut tmp = tmp_borrow.get();
+            let tmp = tmp_borrow.get();
             tmp.get_mut().set_encoding_name(encname);
         },
         complete_script: |script| {

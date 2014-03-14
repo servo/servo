@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use servo_util::task::spawn_named;
+//use servo_util::task::spawn_named;
 /*
 pub fn spawn_listener<'a, A: Send, S: IntoMaybeOwned<'a>>(name: S, f: proc(Port<A>)) -> Chan<A> {
     let (setup_po, setup_ch) = Chan::new();

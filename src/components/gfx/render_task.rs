@@ -22,7 +22,7 @@ use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::send_on_failure;
 
-use std::comm::{Chan, Port, Chan};
+use std::comm::{Chan, Port};
 use std::task;
 use sync::Arc;
 

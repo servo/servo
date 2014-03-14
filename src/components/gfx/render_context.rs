@@ -273,16 +273,6 @@ impl<'a> RenderContext<'a>  {
     }
 }
 
-trait to_float {
-    fn to_float(&self) -> f64;
-}
-
-impl to_float for u8 {
-    fn to_float(&self) -> f64 {
-        (*self as f64) / 255f64
-    }
-}
-
 trait ToAzureRect {
     fn to_azure_rect(&self) -> Rect<AzFloat>;
 }

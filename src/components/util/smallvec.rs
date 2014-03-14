@@ -9,7 +9,6 @@ use i = std::mem::init;
 use std::cast;
 use std::cmp;
 use std::intrinsics;
-use std::libc::c_char;
 use std::mem;
 use std::ptr;
 use std::rt::global_heap;

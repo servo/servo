@@ -407,7 +407,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: c_uint, _vp: *mut JSVa
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = ~([0 as *JSObject, ..PrototypeList::id::_ID_Count as uint]);
+    let protoArray = ~([0 as *JSObject, ..PrototypeList::id::IDCount as uint]);
     unsafe {
         let box_ = squirrel_away_unboxed(protoArray);
         JS_SetReservedSlot(global,

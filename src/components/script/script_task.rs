@@ -164,7 +164,7 @@ pub struct PageTreeIterator<'a> {
 impl PageTree {
     fn new(id: PipelineId, layout_chan: LayoutChan, window_size: Size2D<uint>) -> PageTree {
         PageTree {
-            page: unsafe { Rc::new(Page {
+            page: Rc::new(Page {
                 id: id,
                 frame: RefCell::new(None),
                 layout_chan: layout_chan,
@@ -177,7 +177,7 @@ impl PageTree {
                 resize_event: RefCell::new(None),
                 fragment_node: RefCell::new(None),
                 last_reflow_id: RefCell::new(0)
-            }) },
+            }),
             inner: ~[],
         }
     }
@@ -237,7 +237,7 @@ impl PageTree {
 impl<'a> Iterator<Rc<Page>> for PageTreeIterator<'a> {
     fn next(&mut self) -> Option<Rc<Page>> {
         if !self.stack.is_empty() {
-            let mut next = self.stack.pop().unwrap();
+            let next = self.stack.pop().unwrap();
             for child in next.inner.mut_iter() {
                 self.stack.push(child);
             }
@@ -496,8 +496,7 @@ impl ScriptTask {
                -> Rc<ScriptTask> {
         let js_runtime = js::rust::rt();
 
-        unsafe {
-          Rc::new(ScriptTask {
+        Rc::new(ScriptTask {
             page_tree: RefCell::new(PageTree::new(id, layout_chan, window_size)),
 
             image_cache_task: img_cache_task,
@@ -510,8 +509,7 @@ impl ScriptTask {
 
             js_runtime: js_runtime,
             mouse_over_targets: RefCell::new(None)
-          })
-        }
+        })
     }
 
     /// Starts the script task. After calling this method, the script task will loop receiving
@@ -869,7 +867,7 @@ impl ScriptTask {
             let js_info = page.js_info();
             let js_info = js_info.get().get_ref();
             let compartment = js_info.js_compartment.borrow();
-            compartment.define_functions(DEBUG_FNS);
+            assert!(compartment.define_functions(DEBUG_FNS).is_ok());
 
             js_info.js_context.borrow().ptr
         };
@@ -882,10 +880,12 @@ impl ScriptTask {
                     (js_info.get().get_ref().js_context.clone(),
                      js_info.get().get_ref().js_compartment.borrow().global_obj)
                 };
-                cx.borrow().evaluate_script(global_obj,
-                                            file.data.clone(),
-                                            file.url.to_str(),
-                                            1);
+                //FIXME: this should have some kind of error handling, or explicitly
+                //       drop an exception on the floor.
+                assert!(cx.borrow().evaluate_script(global_obj,
+                                                    file.data.clone(),
+                                                    file.url.to_str(),
+                                                    1).is_ok());
             });
         }
 
@@ -893,11 +893,11 @@ impl ScriptTask {
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
         let mut event = Event::new(&window);
-        event.get_mut().InitEvent(~"load", false, false);
+        let _ = event.get_mut().InitEvent(~"load", false, false);
         let doctarget = EventTargetCast::from(&document);
         let mut wintarget: JS<EventTarget> = EventTargetCast::from(&window);
         let winclone = wintarget.clone();
-        wintarget.get_mut().dispatch_event_with_target(&winclone, Some(doctarget), &mut event);
+        let _ = wintarget.get_mut().dispatch_event_with_target(&winclone, Some(doctarget), &mut event);
 
         let mut fragment_node = page.fragment_node.borrow_mut();
         *fragment_node.get() = fragment.map_or(None, |fragid| self.find_fragment_node(page, fragid));
@@ -981,7 +981,7 @@ impl ScriptTask {
                         // FIXME: this event should be dispatch on WindowProxy. See #1715
                         let mut wintarget: JS<EventTarget> = EventTargetCast::from(&frame.window);
                         let winclone = wintarget.clone();
-                        wintarget.get_mut().dispatch_event_with_target(&winclone, None, event);
+                        let _ = wintarget.get_mut().dispatch_event_with_target(&winclone, None, event);
                     }
                     None =>()
                 }

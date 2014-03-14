@@ -9,7 +9,6 @@ use http_loader;
 use data_loader;
 
 use std::comm::{Chan, Port};
-use std::cast;
 use std::task;
 use extra::url::Url;
 use http::headers::content_type::MediaType;
@@ -137,7 +136,7 @@ pub fn ResourceTask() -> ResourceTask {
 
 fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
     let (setup_port, setup_chan) = Chan::new();
-    let mut builder = task::task().named("ResourceManager");
+    let builder = task::task().named("ResourceManager");
     builder.spawn(proc() {
         let (port, chan) = Chan::new();
         setup_chan.send(chan);

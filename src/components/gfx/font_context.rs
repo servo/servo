@@ -148,7 +148,7 @@ impl FontContext {
                 Some(ref result) => {
                     found = true;
                     let instance = self.get_font_by_descriptor(result);
-                    instance.map(|font| fonts.push(font.clone()));
+                    let _ = instance.map(|font| fonts.push(font.clone()));
                 },
                 _ => {}
             }
@@ -186,7 +186,7 @@ impl FontContext {
                 match font_desc {
                     Some(ref fd) => {
                         let instance = self.get_font_by_descriptor(fd);
-                        instance.map(|font| fonts.push(font.clone()));
+                        let _ = instance.map(|font| fonts.push(font.clone()));
                     },
                     None => { }
                 };

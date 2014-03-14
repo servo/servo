@@ -428,8 +428,8 @@ impl Constellation {
             // It's quite difficult to make Servo exit cleanly if some tasks have failed.
             // Hard fail exists for test runners so we crash and that's good enough.
             let mut stderr = io::stderr();
-            stderr.write_str("Pipeline failed in hard-fail mode.  Crashing!\n");
-            stderr.flush();
+            stderr.write_str("Pipeline failed in hard-fail mode.  Crashing!\n").unwrap();
+            stderr.flush().unwrap();
             unsafe { libc::exit(1); }
         }
 

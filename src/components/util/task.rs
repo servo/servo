@@ -8,7 +8,7 @@ use std::comm::Chan;
 use std::task::TaskBuilder;
 
 pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc()) {
-    let mut builder = task::task().named(name);
+    let builder = task::task().named(name);
     builder.spawn(f);
 }
 

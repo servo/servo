@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::comm::{Chan, Port};
-use servo_util::task::spawn_named;
+/*use std::comm::{Chan, Port};
+use servo_util::task::spawn_named;*/
 
 
     // FIXME: code cloned from spawn_listener due to:

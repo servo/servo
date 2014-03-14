@@ -232,7 +232,7 @@ pub fn profile<T>(category: ProfilerCategory,
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
-    let ms = ((end_time - start_time) as f64 / 1000000f64);
+    let ms = (end_time - start_time) as f64 / 1000000f64;
     profiler_chan.send(TimeMsg(category, ms));
     return val;
 }
@@ -241,7 +241,7 @@ pub fn time<T>(msg: &str, callback: || -> T) -> T{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
-    let ms = ((end_time - start_time) as f64 / 1000000f64);
+    let ms = (end_time - start_time) as f64 / 1000000f64;
     if ms >= 5f64 {
         debug!("{:s} took {} ms", msg, ms);
     }

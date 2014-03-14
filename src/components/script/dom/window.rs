@@ -38,9 +38,9 @@ use serialize::{Encoder, Encodable};
 use extra::url::{Url};
 
 pub enum TimerControlMsg {
-    TimerMessage_Fire(~TimerData),
-    TimerMessage_Close,
-    TimerMessage_TriggerExit //XXXjdm this is just a quick hack to talk to the script task
+    TimerMessageFire(~TimerData),
+    TimerMessageClose,
+    TimerMessageTriggerExit //XXXjdm this is just a quick hack to talk to the script task
 }
 
 pub struct TimerHandle {
@@ -115,7 +115,7 @@ impl Window {
 #[unsafe_destructor]
 impl Drop for Window {
     fn drop(&mut self) {
-        self.extra.timer_chan.send(TimerMessage_Close);
+        self.extra.timer_chan.send(TimerMessageClose);
         for handle in self.active_timers.iter() {
             handle.cancel();
         }
@@ -138,7 +138,7 @@ impl Window {
     }
 
     pub fn Close(&self) {
-        self.extra.timer_chan.send(TimerMessage_TriggerExit);
+        self.extra.timer_chan.send(TimerMessageTriggerExit);
     }
 
     pub fn Document(&self) -> JS<Document> {
@@ -237,17 +237,17 @@ impl Window {
         let chan = self.extra.timer_chan.clone();
         spawn_named("Window:SetTimeout", proc() {
             let mut tm = tm;
-            let mut timeout_port = tm.oneshot(timeout);
-            let mut cancel_port = cancel_port;
+            let timeout_port = tm.oneshot(timeout);
+            let cancel_port = cancel_port;
 
             let select = Select::new();
             let mut timeout_handle = select.handle(&timeout_port);
             unsafe { timeout_handle.add() };
-            let mut _cancel_handle = select.handle(&cancel_port);
-            unsafe { _cancel_handle.add() };
+            let mut cancel_handle = select.handle(&cancel_port);
+            unsafe { cancel_handle.add() };
             let id = select.wait();
             if id == timeout_handle.id() {
-                chan.send(TimerMessage_Fire(~TimerData {
+                chan.send(TimerMessageFire(~TimerData {
                     handle: handle,
                     funval: callback,
                     args: ~[],
@@ -298,9 +298,9 @@ impl Window {
                         let ScriptChan(script_chan) = script_chan;
                         loop {
                             match timer_port.recv() {
-                                TimerMessage_Close => break,
-                                TimerMessage_Fire(td) => script_chan.send(FireTimerMsg(id, td)),
-                                TimerMessage_TriggerExit => script_chan.send(ExitWindowMsg(id)),
+                                TimerMessageClose => break,
+                                TimerMessageFire(td) => script_chan.send(FireTimerMsg(id, td)),
+                                TimerMessageTriggerExit => script_chan.send(ExitWindowMsg(id)),
                             }
                         }
                     });

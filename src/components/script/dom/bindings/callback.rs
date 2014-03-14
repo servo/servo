@@ -16,13 +16,13 @@ use serialize::{Encodable, Encoder};
 
 pub enum ExceptionHandling {
     // Report any exception and don't throw it to the caller code.
-    eReportExceptions,
+    ReportExceptions,
     // Throw an exception to the caller code if the thrown exception is a
     // binding object for a DOMError from the caller's scope, otherwise report
     // it.
-    eRethrowContentExceptions,
+    RethrowContentExceptions,
     // Throw any exception to the caller code.
-    eRethrowExceptions
+    RethrowExceptions
 }
 
 #[deriving(Clone,Eq)]

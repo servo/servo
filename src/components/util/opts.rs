@@ -62,7 +62,7 @@ fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
 }
 
 fn args_fail(msg: &str) {
-    io::stderr().write_line(msg);
+    io::stderr().write_line(msg).unwrap();
     os::set_exit_status(1);
 }
 

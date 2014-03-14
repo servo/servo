@@ -23,7 +23,6 @@ interface MouseEvent : UIEvent {
   readonly attribute unsigned short buttons;
   readonly attribute EventTarget?   relatedTarget;
   // Deprecated in DOM Level 3:
-  [Throws]
   void                              initMouseEvent(DOMString typeArg, 
                                                    boolean canBubbleArg, 
                                                    boolean cancelableArg, 

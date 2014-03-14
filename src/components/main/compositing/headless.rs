@@ -40,14 +40,13 @@ impl NullCompositor {
 
         // Drain compositor port, sometimes messages contain channels that are blocking
         // another task from finishing (i.e. SetIds)
-        while true {
+        loop {
             match compositor.port.try_recv() {
                 Empty | Disconnected => break,
                 Data(_) => {},
             }
         }
 
-        let ProfilerChan(ref chan) = profiler_chan;
         profiler_chan.send(time::ExitMsg);
     }
 

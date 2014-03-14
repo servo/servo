@@ -177,7 +177,7 @@ impl IOCompositor {
             // Check for new messages coming from the rendering task.
             self.handle_message();
 
-            if (self.done) {
+            if self.done {
                 // We have exited the compositor and passing window
                 // messages to script may crash.
                 debug!("Exiting the compositor due to a request from script.");
@@ -212,7 +212,7 @@ impl IOCompositor {
 
         // Drain compositor port, sometimes messages contain channels that are blocking
         // another task from finishing (i.e. SetIds)
-        while true {
+        loop {
             match self.port.try_recv() {
                 Empty | Disconnected => break,
                 Data(_) => {},

@@ -341,17 +341,17 @@ impl Document {
                 match title_node {
                     Some(ref mut title_node) => {
                         for mut title_child in title_node.children() {
-                            title_node.RemoveChild(&mut title_child);
+                            assert!(title_node.RemoveChild(&mut title_child).is_ok());
                         }
                         let new_text = self.CreateTextNode(abstract_self, title.clone());
-                        title_node.AppendChild(&mut NodeCast::from(&new_text));
+                        assert!(title_node.AppendChild(&mut NodeCast::from(&new_text)).is_ok());
                     },
                     None => {
                         let mut new_title: JS<Node> =
                             NodeCast::from(&HTMLTitleElement::new(~"title", abstract_self));
                         let new_text = self.CreateTextNode(abstract_self, title.clone());
-                        new_title.AppendChild(&mut NodeCast::from(&new_text));
-                        head.AppendChild(&mut new_title);
+                        assert!(new_title.AppendChild(&mut NodeCast::from(&new_text)).is_ok());
+                        assert!(head.AppendChild(&mut new_title).is_ok());
                     },
                 }
             });
@@ -418,9 +418,9 @@ impl Document {
                 match old_body {
                     Some(child) => {
                         let mut child: JS<Node> = NodeCast::from(&child);
-                        root.ReplaceChild(&mut new_body, &mut child)
+                        assert!(root.ReplaceChild(&mut new_body, &mut child).is_ok())
                     }
-                    None => root.AppendChild(&mut new_body)
+                    None => assert!(root.AppendChild(&mut new_body).is_ok())
                 };
             }
         }

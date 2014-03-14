@@ -4,7 +4,8 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
-use std::ascii;
+#[allow(non_camel_case_types)];
+
 use std::ascii::StrAsciiExt;
 pub use servo_util::url::parse_url;
 use sync::Arc;
@@ -1062,7 +1063,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
     let mut normal = ~[];
     for item in ErrorLoggerIterator(parse_declaration_list(input)) {
         match item {
-            Decl_AtRule(rule) => log_css_error(
+            DeclAtRule(rule) => log_css_error(
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name)),
             Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.

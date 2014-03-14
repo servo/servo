@@ -42,7 +42,6 @@ use std::char;
 use std::cmp;
 use std::libc::{c_uint, c_int, c_void, c_char};
 use std::ptr::null;
-use std::ptr;
 use std::vec;
 
 static NO_GLYPH: i32 = -1;

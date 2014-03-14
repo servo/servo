@@ -57,7 +57,7 @@ fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
         info!("requesting {:s}", url.to_str());
 
         let request = RequestWriter::<TcpStream>::new(Get, url.clone());
-        let mut writer = match request {
+        let writer = match request {
             Ok(w) => ~w,
             Err(_) => {
                 send_error(url, start_chan);

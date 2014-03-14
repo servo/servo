@@ -11,14 +11,13 @@ pub struct ErrorLoggerIterator<I>(I);
 impl<T, I: Iterator<Result<T, SyntaxError>>> Iterator<T> for ErrorLoggerIterator<I> {
     fn next(&mut self) -> Option<T> {
         let ErrorLoggerIterator(ref mut this) = *self;
-        while true {
+        loop {
             match this.next() {
                 Some(Ok(v)) => return Some(v),
                 Some(Err(error)) => log_css_error(error.location, format!("{:?}", error.reason)),
                 None => return None,
             }
         }
-        None
    }
 }
 

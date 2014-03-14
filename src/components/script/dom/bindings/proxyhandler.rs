@@ -19,12 +19,10 @@ use std::ptr;
 use std::str;
 use std::mem::size_of;
 
-type c_bool = libc::c_int;
-
 static JSPROXYSLOT_EXPANDO: u32 = 0;
 
 pub extern fn getPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
-                                set: c_bool, desc: *mut JSPropertyDescriptor) -> c_bool {
+                                set: libc::c_int, desc: *mut JSPropertyDescriptor) -> libc::c_int {
   unsafe {
     let handler = GetProxyHandler(proxy);
     if InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, set, desc) == 0 {

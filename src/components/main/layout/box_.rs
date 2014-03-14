@@ -28,7 +28,6 @@ use servo_util::str::is_whitespace;
 
 use std::cast;
 use std::cell::RefCell;
-use std::cmp::ApproxEq;
 use std::num::Zero;
 use style::{ComputedValues, TElement, TNode};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto, overflow, LPA_Auto};

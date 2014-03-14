@@ -49,12 +49,12 @@ impl<'a> Hash for LowercaseAsciiString<'a> {
             // `Ascii` type's invariants by using `to_ascii_nocheck`, but it's OK as we simply
             // convert to a byte afterward.
             unsafe {
-                state.write_u8(b.to_ascii_nocheck().to_lower().to_byte())
+                state.write_u8(b.to_ascii_nocheck().to_lower().to_byte()).unwrap()
             };
         }
         // Terminate the string with a non-UTF-8 character, to match what the built-in string
         // `ToBytes` implementation does. (See `libstd/to_bytes.rs`.)
-        state.write_u8(0xff);
+        state.write_u8(0xff).unwrap();
     }
 }
 

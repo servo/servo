@@ -10,7 +10,6 @@ use servo_util::geometry;
 use std::cmp::{Ord, Eq};
 use std::num::NumCast;
 use std::mem;
-use std::u16;
 use std::uint;
 use std::vec;
 use std::iter;

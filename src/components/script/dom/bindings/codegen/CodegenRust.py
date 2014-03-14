@@ -184,7 +184,7 @@ class CGMethodCall(CGThing):
 
             if requiredArgs > 0:
                 code = (
-                    "if (argc < %d) {\n"
+                    "if argc < %d {\n"
                     "  return 0; //XXXjdm throw exception\n"
                     "  //return ThrowErrorMessage(cx, MSG_MISSING_ARGUMENTS, %s);\n"
                     "}" % (requiredArgs, methodName))
@@ -993,7 +993,7 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
 
         conversion = CGList(
             [CGGeneric(
-                    string.Template("if (${index} < ${argc}) {").substitute(
+                    string.Template("if ${index} < ${argc} {").substitute(
                         argcAndIndex
                         )),
              declConstruct,
@@ -1641,7 +1641,9 @@ class CGImports(CGWrapper):
             # sometimes produces two 'break's in a row. See for example
             # CallbackMember.getArgConversions.
             'unreachable_code',
+            'non_camel_case_types',
             'non_uppercase_statics',
+            'unnecessary_parens',
             'unused_imports',
             'unused_variable',
             'unused_unsafe',
@@ -1688,11 +1690,11 @@ class CGNamespace(CGWrapper):
 
 def DOMClass(descriptor):
         protoList = ['PrototypeList::id::' + proto for proto in descriptor.prototypeChain]
-        # Pad out the list to the right length with _ID_Count so we
-        # guarantee that all the lists are the same length.  _ID_Count
+        # Pad out the list to the right length with IDCount so we
+        # guarantee that all the lists are the same length.  IDCount
         # is never the ID of any prototype, so it's safe to use as
         # padding.
-        protoList.extend(['PrototypeList::id::_ID_Count'] * (descriptor.config.maxProtoChainLength - len(protoList)))
+        protoList.extend(['PrototypeList::id::IDCount'] * (descriptor.config.maxProtoChainLength - len(protoList)))
         prototypeChainString = ', '.join(protoList)
         return """DOMClass {
   interface_chain: [ %s ],
@@ -2469,7 +2471,7 @@ class CGCallGenerator(CGThing):
         self.cgRoot.append(call)
 
         if isFallible:
-            self.cgRoot.append(CGGeneric("if (result_fallible.is_err()) {"))
+            self.cgRoot.append(CGGeneric("if result_fallible.is_err() {"))
             self.cgRoot.append(CGIndenter(errorReport))
             self.cgRoot.append(CGGeneric("}"))
             if result is not None:
@@ -2737,7 +2739,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         return CGWrapper(CGMethodCall(argsPre, nativeName, self.method.isStatic(),
                                       self.descriptor, self.method),
                          pre=extraPre +
-                             "  let obj = (*obj.unnamed);\n" +
+                             "  let obj = *obj.unnamed;\n" +
                              "  let this = &mut *this;\n").define()
 
 class CGGenericGetter(CGAbstractBindingMethod):
@@ -2797,7 +2799,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         return CGWrapper(CGIndenter(CGGetterCall(argsPre, self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
-                             "  let obj = (*obj.unnamed);\n" +
+                             "  let obj = *obj.unnamed;\n" +
                              "  let this = &mut *this;\n").define()
 
 class CGGenericSetter(CGAbstractBindingMethod):
@@ -2858,7 +2860,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         return CGWrapper(CGIndenter(CGSetterCall(argsPre, self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
-                             "  let obj = (*obj.unnamed);\n" +
+                             "  let obj = *obj.unnamed;\n" +
                              "  let this = &mut *this;\n").define()
 
 def infallibleForMember(member, type, descriptorProvider):
@@ -4407,7 +4409,7 @@ class CGNamespacedEnum(CGThing):
             entries.append(entry)
 
         # Append a Count.
-        entries.append('_' + enumName + '_Count = ' + str(len(entries)))
+        entries.append(enumName + 'Count = ' + str(len(entries)))
 
         # Indent.
         entries = ['  ' + e for e in entries]
@@ -4537,7 +4539,7 @@ class CGDictionary(CGThing):
             "\n"
             "  pub fn Init(&mut self, cx: *JSContext, val: JSVal) -> JSBool {\n"
             "    unsafe {\n"
-            "      if (!initedIds && !self.InitIds(cx)) {\n"
+            "      if !initedIds && !self.InitIds(cx) {\n"
             "        return 0;\n"
             "      }\n"
             "${initParent}"
@@ -5224,7 +5226,7 @@ class CGCallback(CGClass):
         # method, insert our optional argument for deciding whether the
         # CallSetup should re-throw exceptions on aRv.
         args.append(Argument("ExceptionHandling", "aExceptionHandling",
-                             "eReportExceptions"))
+                             "ReportExceptions"))
 
         args[0] = Argument('&' + args[0].argType, args[0].name, args[0].default)
         method.args[2] = args[0]
@@ -5516,7 +5518,7 @@ class CallbackMember(CGNativeMember):
                 args.append(Argument("JSCompartment*", "aCompartment", "nullptr"))
             else:
                 args.append(Argument("ExceptionHandling", "aExceptionHandling",
-                                     "eReportExceptions"))
+                                     "ReportExceptions"))
             return args
         # We want to allow the caller to pass in a "this" object, as
         # well as a JSContext.
@@ -5531,7 +5533,7 @@ class CallbackMember(CGNativeMember):
         if self.rethrowContentException:
             # getArgs doesn't add the aExceptionHandling argument but does add
             # aCompartment for us.
-            callSetup += ", eRethrowContentExceptions, aCompartment"
+            callSetup += ", RethrowContentExceptions, aCompartment"
         else:
             callSetup += ", aExceptionHandling"
         callSetup += ");"
