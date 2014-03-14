@@ -192,8 +192,10 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
 
                 // Destroy all the buffers.
                 {
-                    let ctx = render_task.native_graphics_context.as_ref().unwrap();
-                    render_task.buffer_map.clear(ctx);
+                    match render_task.native_graphics_context.as_ref() {
+                        Some(ctx) => render_task.buffer_map.clear(ctx),
+                        None => (),
+                    }
                 }
             }
 
