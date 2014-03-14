@@ -481,6 +481,18 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
 }
 
 
+pub fn spawn_listener<A: Send>(f: proc(Port<A>)) -> Chan<A> {
+    let (setup_port, setup_chan) = Chan::new();
+
+    spawn(proc() {
+        let (port, chan) = Chan::new();
+        setup_chan.send(chan);
+        f(port);
+    });
+    setup_port.recv()
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -488,11 +500,11 @@ mod tests {
     use resource_task;
     use resource_task::{ResourceTask, Metadata, start_sending};
     use image::base::test_image_bin;
-    use util::spawn_listener;
     use servo_util::url::parse_url;
+    use std::comm::{Empty, Data, Disconnected};
 
     fn mock_resource_task(on_load: proc(resource: Chan<resource_task::ProgressMsg>)) -> ResourceTask {
-        spawn_listener("mock_resource_task", proc(port: Port<resource_task::ControlMsg>) {
+        spawn_listener(proc(port: Port<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
@@ -564,7 +576,10 @@ mod tests {
         url_requested.recv();
         image_cache_task.exit();
         mock_resource_task.send(resource_task::Exit);
-        assert!(url_requested.try_recv().is_none())
+        match url_requested.try_recv() {
+            Empty | Disconnected => (),
+            Data(_) => assert!(false),
+        };
     }
 
     #[test]
@@ -658,7 +673,7 @@ mod tests {
 
         let (resource_task_exited, resource_task_exited_chan) = Chan::new();
 
-        let mock_resource_task = spawn_listener("should_not...already_available", proc(port: Port<resource_task::ControlMsg>) {
+        let mock_resource_task = spawn_listener(proc(port: Port<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
@@ -692,7 +707,10 @@ mod tests {
 
         // Our resource task should not have received another request for the image
         // because it's already cached
-        assert!(image_bin_sent.try_recv().is_none());
+        match image_bin_sent.try_recv() {
+            Empty | Disconnected => (),
+            Data(_) => assert!(false),
+        }
     }
 
     #[test]
@@ -701,7 +719,7 @@ mod tests {
 
         let (resource_task_exited, resource_task_exited_chan) = Chan::new();
 
-        let mock_resource_task = spawn_listener("should_not...already_failed", proc(port: Port<resource_task::ControlMsg>) {
+        let mock_resource_task = spawn_listener(proc(port: Port<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
@@ -737,7 +755,10 @@ mod tests {
 
         // Our resource task should not have received another request for the image
         // because it's already cached
-        assert!(image_bin_sent.try_recv().is_none());
+        match image_bin_sent.try_recv() {
+            Empty | Disconnected => (),
+            Data(_) => assert!(false),
+        }
     }
 
     #[test]

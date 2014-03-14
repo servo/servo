@@ -577,7 +577,7 @@ fn skip_whitespace(iter: &mut Iter) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use extra::arc::Arc;
+    use sync::Arc;
     use cssparser;
     use servo_util::namespace;
     use namespaces::NamespaceMap;

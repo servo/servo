@@ -147,7 +147,7 @@ impl WindowMethods<Application> for Window {
         if !self.event_queue.with_mut(|queue| queue.is_empty()) {
             return self.event_queue.with_mut(|queue| queue.shift().unwrap())
         }
-        
+
         glfw::poll_events();
         for (_, event) in self.glfw_window.flush_events() {
             self.handle_window_event(&self.glfw_window, event);

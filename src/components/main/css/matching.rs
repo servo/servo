@@ -122,7 +122,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
         for declaration in self.declarations.iter() {
             let ptr: uint = unsafe {
                 cast::transmute_copy(declaration)
-                                   };
+            };
             ptr.hash(state);
         }
     }

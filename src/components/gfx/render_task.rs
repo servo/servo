@@ -191,11 +191,9 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                 render_task.start();
 
                 // Destroy all the buffers.
-                {
-                    match render_task.native_graphics_context.as_ref() {
-                        Some(ctx) => render_task.buffer_map.clear(ctx),
-                        None => (),
-                    }
+                match render_task.native_graphics_context.as_ref() {
+                    Some(ctx) => render_task.buffer_map.clear(ctx),
+                    None => (),
                 }
             }
 

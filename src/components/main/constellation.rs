@@ -540,8 +540,7 @@ impl Constellation {
                     already_sent.insert(pipeline.id);
                 }
             };
-            
-            
+
             // If the subframe is in the current frame tree, the compositor needs the new size
             for current_frame in self.current_frame().iter() {
                 debug!("Constellation: Sending size for frame in current frame tree.");

@@ -34,13 +34,13 @@ impl Eq for Au {
     fn eq(&self, other: &Au) -> bool {
         let Au(s) = *self;
         let Au(o) = *other;
-        s==o
+        s == o
     }
     #[inline]
     fn ne(&self, other: &Au) -> bool {
         let Au(s) = *self;
         let Au(o) = *other;
-        s!=o
+        s != o
     }
 }
 
@@ -49,7 +49,7 @@ impl Add<Au,Au> for Au {
     fn add(&self, other: &Au) -> Au {
         let Au(s) = *self;
         let Au(o) = *other;
-        Au(s+o)
+        Au(s + o)
     }
 }
 
@@ -58,7 +58,7 @@ impl Sub<Au,Au> for Au {
     fn sub(&self, other: &Au) -> Au {
         let Au(s) = *self;
         let Au(o) = *other;
-        Au(s-o)
+        Au(s - o)
     }
 
 }
@@ -68,7 +68,7 @@ impl Mul<Au,Au> for Au {
     fn mul(&self, other: &Au) -> Au {
         let Au(s) = *self;
         let Au(o) = *other;
-        Au(s*o)
+        Au(s * o)
     }
 }
 
@@ -77,7 +77,7 @@ impl Div<Au,Au> for Au {
     fn div(&self, other: &Au) -> Au {
         let Au(s) = *self;
         let Au(o) = *other;
-        Au(s/o)
+        Au(s / o)
     }
 }
 
@@ -86,7 +86,7 @@ impl Rem<Au,Au> for Au {
     fn rem(&self, other: &Au) -> Au {
         let Au(s) = *self;
         let Au(o) = *other;
-        Au(s%o)
+        Au(s % o)
     }
 }
 
@@ -103,25 +103,25 @@ impl Ord for Au {
     fn lt(&self, other: &Au) -> bool {
         let Au(s) = *self;
         let Au(o) = *other;
-        s<o
+        s < o
     }
     #[inline]
     fn le(&self, other: &Au) -> bool {
         let Au(s) = *self;
         let Au(o) = *other;
-        s<=o
+        s <= o
     }
     #[inline]
     fn ge(&self, other: &Au) -> bool {
         let Au(s) = *self;
         let Au(o) = *other;
-        s>=o
+        s >= o
     }
     #[inline]
     fn gt(&self, other: &Au) -> bool {
         let Au(s) = *self;
         let Au(o) = *other;
-        s>o
+        s > o
     }
 }
 
@@ -136,7 +136,7 @@ impl Zero for Au {
     #[inline]
     fn is_zero(&self) -> bool {
         let Au(s) = *self;
-        s==0
+        s == 0
     }
 }
 
@@ -239,7 +239,7 @@ impl Au {
         let Au(yi) = y;
         if xi < yi { x } else { y }
     }
-    
+
     #[inline]
     pub fn max(x: Au, y: Au) -> Au {
         let Au(xi) = x;

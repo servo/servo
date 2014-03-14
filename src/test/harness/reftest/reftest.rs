@@ -69,13 +69,13 @@ fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> ~[TestDescAndFn] {
     let mut next_id = 0;
     for file in filenames.iter() {
         let file_path = Path::new(file.clone());
-        let contents = match File::open_mode(&file_path, io::Open, io::Read) {
-            Ok(mut f) => str::from_utf8_owned(match f.read_to_end() {
-                Ok(s) => s,
+        let contents = match File::open_mode(&file_path, io::Open, io::Read)
+            .and_then(|mut f| {
+                f.read_to_end()
+            }) {
+                Ok(s) => str::from_utf8_owned(s),
                 _ => fail!("Could not read file"),
-            }),
-            _ => fail!("Could not convert file")
-        };
+            };
 
         for line in contents.unwrap().lines() {
             // ignore comments
@@ -149,7 +149,7 @@ fn check_reftest(reftest: Reftest) {
     let right = capture(&reftest, 1);
 
     let pixels: ~[u8] = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
-            if (a as i8 - b as i8 == 0) {
+            if a as i8 - b as i8 == 0 {
                 // White for correct
                 0xFF 
             } else {

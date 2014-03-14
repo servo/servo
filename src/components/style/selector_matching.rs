@@ -869,7 +869,7 @@ fn matches_last_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use extra::arc::Arc;
+    use sync::Arc;
     use super::{MatchedProperty, Rule, SelectorMap};
 
     /// Helper method to get some Rules from selector strings.

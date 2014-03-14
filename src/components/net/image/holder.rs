@@ -74,7 +74,7 @@ impl ImageHolder {
         // If this is the first time we've called this function, load
         // the image and store it for the future
         if self.image.is_none() {
-            let port = 
+            let port =
                 self.local_image_cache.access(|local_image_cache| {
                     local_image_cache.get_image(&self.url)
                 });

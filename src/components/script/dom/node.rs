@@ -732,6 +732,8 @@ enum CloneChildrenFlag {
     DoNotCloneChildren
 }
 
+fn as_uintptr<T>(t: &T) -> uintptr_t { t as *T as uintptr_t }
+
 impl Node {
     pub fn ancestors(&self) -> AncestorIterator {
         AncestorIterator {
@@ -1564,7 +1566,7 @@ impl Node {
                     match prev_text {
                         Some(ref text_node) => {
                             let mut prev_characterdata: JS<CharacterData> = CharacterDataCast::to(text_node);
-                            prev_characterdata.get_mut().AppendData(characterdata.get().Data());
+                            let _ = prev_characterdata.get_mut().AppendData(characterdata.get().Data());
                             abstract_self.remove_child(&mut child);
                         },
                         None => prev_text = Some(child)
@@ -1685,20 +1687,18 @@ impl Node {
             }
 
             if lastself != lastother {
-                unsafe {
-                    let abstract_uint: uintptr_t = cast::transmute(abstract_self.get());
-                    let other_uint: uintptr_t = cast::transmute(other.get());
-                    
-                    let random = if abstract_uint < other_uint {
-                        NodeConstants::DOCUMENT_POSITION_FOLLOWING
-                    } else {
-                        NodeConstants::DOCUMENT_POSITION_PRECEDING
-                    };
-                    // step 3.
-                    return random +
-                           NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                           NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
-                }
+                let abstract_uint: uintptr_t = as_uintptr(&abstract_self.get());
+                let other_uint: uintptr_t = as_uintptr(&other.get());
+
+                let random = if abstract_uint < other_uint {
+                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                } else {
+                    NodeConstants::DOCUMENT_POSITION_PRECEDING
+                };
+                // step 3.
+                return random +
+                    NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
+                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
             }
 
             for child in lastself.traverse_preorder() {

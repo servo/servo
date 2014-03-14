@@ -370,7 +370,7 @@ class CGMethodCall(CGThing):
 
         overloadCGThings = []
         overloadCGThings.append(
-            CGGeneric("let argcount = cmp::min(argc,%d);" %
+            CGGeneric("let argcount = cmp::min(argc, %d);" %
                       maxArgCount))
         overloadCGThings.append(
             CGSwitch("argcount",
@@ -3894,7 +3894,7 @@ class CGProxyUnwrap(CGAbstractMethod):
   }*/
   //MOZ_ASSERT(IsProxy(obj));
   let box_: *%s = cast::transmute(GetProxyPrivate(obj).to_private());
-  return cast::transmute(&*box_);""" % (self.descriptor.concreteType)
+  return box_;""" % (self.descriptor.concreteType)
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
@@ -4203,7 +4203,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
     def definition_body_prologue(self):
         return """
-  let this: *%s = &*unwrap::<*%s>(obj);
+  let this: *%s = unwrap::<*%s>(obj);
 """ % (self.descriptor.concreteType, self.descriptor.concreteType)
 
     def definition_body(self):

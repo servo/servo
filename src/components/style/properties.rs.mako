@@ -6,7 +6,6 @@
 
 #[allow(non_camel_case_types)];
 
-use std::ascii::StrAsciiExt;
 pub use servo_util::url::parse_url;
 use sync::Arc;
 pub use extra::url::Url;
@@ -340,7 +339,7 @@ pub mod longhands {
                 &Dimension(ref value, ref unit) if value.value >= 0.
                 => specified::Length::parse_dimension(value.value, unit.as_slice())
                     .map(SpecifiedLength),
-                &Ident(ref value) if unsafe { value.to_ascii_nocheck().to_lower().eq_ignore_case("normal".to_ascii_nocheck())}
+                &Ident(ref value) if unsafe { value.to_ascii_nocheck().eq_ignore_case("normal".to_ascii_nocheck())}
                 => Some(SpecifiedNormal),
                 _ => None,
             }
@@ -472,7 +471,7 @@ pub mod longhands {
 
                                 "normal" => return Some(normal),
                                 "none" => return Some(none),
-                            _ => ()
+                                _ => ()
                             }
                         }
                     },
@@ -514,7 +513,7 @@ pub mod longhands {
                         let image_url = parse_url(url.as_slice(), Some(base_url.clone()));
                         Some(Some(image_url))
                     },
-                    &ast::Ident(ref value) if "none" == value.to_ascii_lower() => Some(None),
+                    &ast::Ident(ref value) if unsafe {value.to_ascii_nocheck()}.eq_ignore_case(unsafe {"none".to_ascii_nocheck()})  => Some(None),
                     _ => None,
                 }
             }
@@ -978,7 +977,7 @@ pub mod shorthands {
             // font-style, font-weight and font-variant.
             // Leaves the values to None, 'normal' is the initial value for each of them.
             if get_ident_lower(component_value).filtered(
-                    |v| unsafe { v.to_ascii_nocheck() }.to_lower().eq_ignore_case(unsafe {"normal".to_ascii_nocheck()})).is_some() {
+                    |v| unsafe { v.to_ascii_nocheck() }.eq_ignore_case(unsafe {"normal".to_ascii_nocheck()})).is_some() {
                 nb_normals += 1;
                 continue;
             }
@@ -1131,7 +1130,8 @@ impl PropertyDeclaration {
                  result_list: &mut ~[PropertyDeclaration],
                  base_url: &Url) -> PropertyDeclarationParseResult {
         // FIXME: local variable to work around Rust #10683
-        let name_lower = name.to_ascii_lower();
+        let tmp_for_lifetime = unsafe {name.to_ascii_nocheck()}.to_lower();
+        let name_lower = tmp_for_lifetime.as_str_ascii();
         match name_lower.as_slice() {
             % for property in LONGHANDS:
                 "${property.name}" => result_list.push(${property.ident}_declaration(

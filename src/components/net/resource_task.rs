@@ -143,18 +143,6 @@ fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> R
         ResourceManager(port, loaders).start();
     });
     setup_port.recv()
-
-    // FIXME: code cloned from spawn_listener due to:
-    //  error: internal compiler error: cannot relate bound region: ReLateBound(6270, BrNamed(syntax::ast::DefId{krate: 0u32, node: 6294u32}, a)) <= ReInfer(1)
-    //This message reflects a bug in the Rust compiler. 
-
-/*
-    let chan = spawn_listener("ResourceManager", proc(from_client) {
-        // TODO: change copy to move once we can move out of closures
-        ResourceManager(from_client, loaders).start()
-    });
-    chan
-*/
 }
 
 pub struct ResourceManager {

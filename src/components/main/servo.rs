@@ -113,9 +113,6 @@ pub mod windowing;
 #[path="platform/mod.rs"]
 pub mod platform;
 
-#[path = "util/mod.rs"]
-pub mod util;
-
 #[cfg(not(test), target_os="linux")]
 #[cfg(not(test), target_os="macos")]
 #[start]

@@ -103,7 +103,7 @@ impl FontHandleMethods for FontHandle {
                  let face_index = 0 as FT_Long;
                  let result = FT_New_Memory_Face(lib, cbuf, cbuflen as FT_Long,
                                                  face_index, &mut face);
-                 
+
                  if !result.succeeded() || face.is_null() {
                      return Err(());
                  }

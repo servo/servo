@@ -228,7 +228,7 @@ impl IOCompositor {
         loop {
             match (self.port.try_recv(), self.shutting_down) {
                 (Empty, _) => break,
-                
+
                 (Disconnected, _) => break,
 
                 (Data(Exit(chan)), _) => {

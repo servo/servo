@@ -893,7 +893,7 @@ impl ScriptTask {
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
         let mut event = Event::new(&window);
-        let _ = event.get_mut().InitEvent(~"load", false, false);
+        event.get_mut().InitEvent(~"load", false, false);
         let doctarget = EventTargetCast::from(&document);
         let mut wintarget: JS<EventTarget> = EventTargetCast::from(&window);
         let winclone = wintarget.clone();
@@ -1131,7 +1131,7 @@ impl ScriptTask {
             } else {
                 let ConstellationChan(ref chan) = self.constellation_chan;
                 chan.send(LoadUrlMsg(page.id, url));
-            } 
+            }
         }
     }
 }

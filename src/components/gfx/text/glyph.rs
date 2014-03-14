@@ -10,7 +10,7 @@ use servo_util::geometry;
 use std::cmp::{Ord, Eq};
 use std::num::NumCast;
 use std::mem;
-use std::uint;
+use std::u16;
 use std::vec;
 use std::iter;
 use geom::point::Point2D;
@@ -54,7 +54,7 @@ impl GlyphEntry {
     // Create a GlyphEntry for uncommon case; should be accompanied by
     // initialization of the actual DetailedGlyph data in DetailedGlyphStore
     fn complex(starts_cluster: bool, starts_ligature: bool, glyph_count: uint) -> GlyphEntry {
-        assert!(glyph_count <= uint::MAX);
+        assert!(glyph_count <= u16::MAX as uint);
 
         debug!("creating complex glyph entry: starts_cluster={}, starts_ligature={}, \
                 glyph_count={}",
@@ -78,7 +78,7 @@ impl GlyphEntry {
     /// Create a GlyphEntry for the case where glyphs couldn't be found for the specified
     /// character.
     fn missing(glyph_count: uint) -> GlyphEntry {
-        assert!(glyph_count <= uint::MAX);
+        assert!(glyph_count <= u16::MAX as uint);
 
         GlyphEntry::new((glyph_count as u32) << GLYPH_COUNT_SHIFT)
     }
