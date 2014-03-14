@@ -430,6 +430,16 @@ impl Element {
         self.set_string_attribute(abstract_self, "id", id);
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-classname
+    pub fn ClassName(&self, _abstract_self: &JS<Element>) -> DOMString {
+        self.get_string_attribute("class")
+    }
+
+    // http://dom.spec.whatwg.org/#dom-element-classname
+    pub fn SetClassName(&mut self, abstract_self: &JS<Element>, class: DOMString) {
+        self.set_string_attribute(abstract_self, "class", class);
+    }
+
     // http://dom.spec.whatwg.org/#dom-element-attributes
     pub fn Attributes(&mut self, abstract_self: &JS<Element>) -> JS<AttrList> {
         match self.attr_list {
