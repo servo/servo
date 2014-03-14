@@ -102,11 +102,13 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn Alt(&self) -> DOMString {
+    pub fn Alt(&self, _abstract_self: &JS<HTMLImageElement>) -> DOMString {
         ~""
     }
 
-    pub fn SetAlt(&mut self, _alt: DOMString) -> ErrorResult {
+    pub fn SetAlt(&mut self, abstract_self: &JS<HTMLImageElement>, alt: DOMString) -> ErrorResult {
+        let node = &mut self.htmlelement.element;
+        node.set_attr(&ElementCast::from(abstract_self), ~"alt", alt.clone());
         Ok(())
     }
 
@@ -128,19 +130,24 @@ impl HTMLImageElement {
         Ok(())
     }
 
-    pub fn UseMap(&self) -> DOMString {
+    pub fn UseMap(&self, _abstract_self: &JS<HTMLImageElement>) -> DOMString {
         ~""
     }
 
-    pub fn SetUseMap(&mut self, _use_map: DOMString) -> ErrorResult {
+    pub fn SetUseMap(&mut self, abstract_self: &JS<HTMLImageElement>, use_map: DOMString) -> ErrorResult {
+        let node = &mut self.htmlelement.element;
+        node.set_attr(&ElementCast::from(abstract_self), ~"useMap", use_map.clone());
         Ok(())
     }
 
-    pub fn IsMap(&self) -> bool {
+    pub fn IsMap(&self, _abstract_self: &JS<HTMLImageElement>) -> bool {
         false
     }
 
-    pub fn SetIsMap(&self, _is_map: bool) -> ErrorResult {
+    pub fn SetIsMap(&self, abstract_self: &JS<HTMLImageElement>, is_map: bool) -> ErrorResult {
+        let mut elem: JS<Element> = ElementCast::from(abstract_self);
+        let mut elem_clone = elem.clone();
+        elem.get_mut().set_attr(&mut elem_clone, ~"isMap", is_map.to_str());
         Ok(())
     }
 
@@ -196,51 +203,63 @@ impl HTMLImageElement {
         false
     }
 
-    pub fn Name(&self) -> DOMString {
+    pub fn Name(&self, _abstract_self: &JS<HTMLImageElement>) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    pub fn SetName(&mut self, abstract_self: &JS<HTMLImageElement>, name: DOMString) -> ErrorResult {
+        let node = &mut self.htmlelement.element;
+        node.set_attr(&ElementCast::from(abstract_self), ~"name", name.clone());
         Ok(())
     }
 
-    pub fn Align(&self) -> DOMString {
+    pub fn Align(&self, _abstract_self: &JS<HTMLImageElement>) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    pub fn SetAlign(&mut self, abstract_self: &JS<HTMLImageElement>, align: DOMString) -> ErrorResult {
+        let node = &mut self.htmlelement.element;
+        node.set_attr(&ElementCast::from(abstract_self), ~"align", align.clone());
         Ok(())
     }
 
-    pub fn Hspace(&self) -> u32 {
+    pub fn Hspace(&self, _abstract_self: &JS<HTMLImageElement>) -> u32 {
         0
     }
 
-    pub fn SetHspace(&mut self, _hspace: u32) -> ErrorResult {
+    pub fn SetHspace(&mut self, abstract_self: &JS<HTMLImageElement>, hspace: u32) -> ErrorResult {
+        let node = &mut self.htmlelement.element;
+        node.set_attr(&ElementCast::from(abstract_self), ~"hspace", hspace.to_str());
         Ok(())
     }
 
-    pub fn Vspace(&self) -> u32 {
+    pub fn Vspace(&self, _abstract_self: &JS<HTMLImageElement>) -> u32 {
         0
     }
 
-    pub fn SetVspace(&mut self, _vspace: u32) -> ErrorResult {
+    pub fn SetVspace(&mut self, abstract_self: &JS<HTMLImageElement>, vspace: u32) -> ErrorResult {
+        let node = &mut self.htmlelement.element;
+        node.set_attr(&ElementCast::from(abstract_self), ~"vspace", vspace.to_str());
         Ok(())
     }
 
-    pub fn LongDesc(&self) -> DOMString {
+    pub fn LongDesc(&self, _abstract_self: &JS<HTMLImageElement>) -> DOMString {
         ~""
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
+    pub fn SetLongDesc(&mut self, abstract_self: &JS<HTMLImageElement>, longdesc: DOMString) -> ErrorResult {
+        let node = &mut self.htmlelement.element;
+        node.set_attr(&ElementCast::from(abstract_self), ~"longdesc", longdesc.clone());
         Ok(())
     }
 
-    pub fn Border(&self) -> DOMString {
+    pub fn Border(&self, _abstract_self: &JS<HTMLImageElement>) -> DOMString {
         ~""
     }
 
-    pub fn SetBorder(&mut self, _border: DOMString) -> ErrorResult {
+    pub fn SetBorder(&mut self, abstract_self: &JS<HTMLImageElement>, border: DOMString) -> ErrorResult {
+        let node = &mut self.htmlelement.element;
+        node.set_attr(&ElementCast::from(abstract_self), ~"border", border.clone());
         Ok(())
     }
 }
