@@ -22,9 +22,10 @@ use hubbub::hubbub;
 use servo_msg::constellation_msg::SubpageId;
 use servo_net::resource_task::{Load, Payload, Done, ResourceTask, load_whole_resource};
 use servo_util::namespace::Null;
-use servo_util::str::DOMString;
+use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use servo_util::task::spawn_named;
 use servo_util::url::parse_url;
+use std::ascii::StrAsciiExt;
 use std::cast;
 use std::cell::RefCell;
 use std::comm::{Port, SharedChan};
@@ -337,12 +338,16 @@ pub fn parse_html(page: &Page,
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
                     match (element.get().get_attribute(Null, "rel"),
                            element.get().get_attribute(Null, "href")) {
-                        (Some(rel), Some(href)) => {
-                            if "stylesheet" == rel.get().value_ref() {
-                                debug!("found CSS stylesheet: {:s}", href.get().value_ref());
-                                let url = parse_url(href.get().value_ref(), Some(url2.clone()));
-                                css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
-                            }
+                        (Some(ref rel), Some(ref href)) if rel.get()
+                                                              .value_ref()
+                                                              .split(HTML_SPACE_CHARACTERS.
+                                                                     as_slice())
+                                                              .any(|s| {
+                                    s.eq_ignore_ascii_case("stylesheet")
+                                }) => {
+                            debug!("found CSS stylesheet: {:s}", href.get().value_ref());
+                            let url = parse_url(href.get().value_ref(), Some(url2.clone()));
+                            css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
                         }
                         _ => {}
                     }
