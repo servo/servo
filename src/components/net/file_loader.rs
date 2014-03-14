@@ -8,7 +8,8 @@ use std::io;
 use std::io::File;
 use servo_util::task::spawn_named;
 
-static READ_SIZE: uint = 1024;
+//FIXME: https://github.com/mozilla/rust/issues/12892
+static READ_SIZE: uint = 1;
 
 fn read_all(reader: &mut io::Stream, progress_chan: &Chan<ProgressMsg>)
         -> Result<(), ()> {
