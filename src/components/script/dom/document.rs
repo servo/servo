@@ -15,7 +15,7 @@ use dom::comment::Comment;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{Element};
+use dom::element::{Element, AttributeHandlers};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::Event;
@@ -435,7 +435,7 @@ impl Document {
             }
 
             let element: JS<Element> = ElementCast::to(node).unwrap();
-            element.get().get_attribute(Null, "name").map_or(false, |attr| {
+            element.get_attribute(Null, "name").map_or(false, |attr| {
                 attr.get().value_ref() == name
             })
         })
@@ -460,7 +460,7 @@ impl Document {
         // FIXME: https://github.com/mozilla/servo/issues/1847
         HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), |elem| {
             ("a" == elem.get().tag_name || "area" == elem.get().tag_name) &&
-            elem.get().get_attribute(Null, "href").is_some()
+            elem.get_attribute(Null, "href").is_some()
         })
     }
 
@@ -477,7 +477,7 @@ impl Document {
     pub fn Anchors(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
         HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), |elem| {
-            "a" == elem.get().tag_name && elem.get().get_attribute(Null, "name").is_some()
+            "a" == elem.get().tag_name && elem.get_attribute(Null, "name").is_some()
         })
     }
 

@@ -7,7 +7,7 @@ use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::js::JS;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
-use dom::element::{HTMLLinkElementTypeId, HTMLIFrameElementTypeId};
+use dom::element::{AttributeHandlers, HTMLLinkElementTypeId, HTMLIFrameElementTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmliframeelement::IFrameSize;
@@ -337,20 +337,18 @@ pub fn parse_html(page: &Page,
 
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
-                let elem = element.clone();
                 //FIXME: this should have proper error handling or explicitly drop
                 //       exceptions on the ground
-                assert!(element.get_mut().set_attr(&elem,
-                                                   attr.name.clone(),
-                                                   attr.value.clone()).is_ok());
+                assert!(element.set_attr(attr.name.clone(),
+                                         attr.value.clone()).is_ok());
             }
 
             // Spawn additional parsing, network loads, etc. from tag and attrs
             match element.get().node.type_id {
                 // Handle CSS style sheets from <link> elements
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                    match (element.get().get_attribute(Null, "rel"),
-                           element.get().get_attribute(Null, "href")) {
+                    match (element.get_attribute(Null, "rel"),
+                           element.get_attribute(Null, "href")) {
                         (Some(ref rel), Some(ref href)) if rel.get()
                                                               .value_ref()
                                                               .split(HTML_SPACE_CHARACTERS.
@@ -372,7 +370,7 @@ pub fn parse_html(page: &Page,
                         HTMLIFrameElementCast::to(&element).unwrap();
                     let sandboxed = iframe_element.get().is_sandboxed();
                     let elem: JS<Element> = ElementCast::from(&iframe_element);
-                    let src_opt = elem.get().get_attribute(Null, "src").map(|x| x.get().Value());
+                    let src_opt = elem.get_attribute(Null, "src").map(|x| x.get().Value());
                     for src in src_opt.iter() {
                         let iframe_url = parse_url(*src, Some(url2.clone()));
                         iframe_element.get_mut().set_frame(iframe_url.clone());
@@ -463,7 +461,7 @@ pub fn parse_html(page: &Page,
         complete_script: |script| {
             unsafe {
                 let script: JS<Element> = NodeWrapping::from_hubbub_node(script);
-                match script.get().get_attribute(Null, "src") {
+                match script.get_attribute(Null, "src") {
                     Some(src) => {
                         debug!("found script: {:s}", src.get().Value());
                         let new_url = parse_url(src.get().value_ref(), Some(url3.clone()));

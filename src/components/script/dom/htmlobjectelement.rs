@@ -4,14 +4,16 @@
 
 use dom::bindings::codegen::HTMLObjectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
+use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
-use dom::element::HTMLObjectElementTypeId;
+use dom::element::{Element, HTMLObjectElementTypeId};
+use dom::element::{AttributeHandlers, AfterSetAttrListener};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::HTMLFormElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
@@ -50,12 +52,15 @@ impl HTMLObjectElement {
     }
 }
 
-impl HTMLObjectElement {
+trait ProcessDataURL {
+    fn process_data_url(&mut self, image_cache: ImageCacheTask, url: Option<Url>);
+}
 
+impl ProcessDataURL for JS<HTMLObjectElement> {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
-    pub fn process_data_url(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
-        let elem = &mut self.htmlelement.element;
+    fn process_data_url(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
+        let elem: JS<Element> = ElementCast::from(self);
 
         // TODO: support other values
         match (elem.get_attribute(Null, "type").map(|x| x.get().Value()),
@@ -70,16 +75,9 @@ impl HTMLObjectElement {
             _ => { }
         }
     }
+}
 
-    pub fn AfterSetAttr(&mut self, name: DOMString, _value: DOMString) {
-        if "data" == name {
-            let document = self.htmlelement.element.node.owner_doc().clone();
-            let window = document.get().window.clone();
-            let url = Some(window.get().get_url());
-            self.process_data_url(window.get().image_cache_task.clone(), url);
-        }
-    }
-
+impl HTMLObjectElement {
     pub fn Data(&self) -> DOMString {
         ~""
     }
@@ -243,5 +241,15 @@ impl HTMLObjectElement {
 
     pub fn GetSVGDocument(&self) -> Option<JS<Document>> {
         None
+    }
+}
+
+impl AfterSetAttrListener for JS<HTMLObjectElement> {
+    fn AfterSetAttr(&mut self, name: DOMString, _value: DOMString) {
+        if "data" == name {
+            let window = window_from_node(self);
+            let url = Some(window.get().get_url());
+            self.process_data_url(window.get().image_cache_task.clone(), url);
+        }
     }
 }
