@@ -2970,6 +2970,34 @@ class CGEnum(CGThing):
 """ % (",\n    ".join(map(getEnumValueName, self.enum.values())),
        ",\n    ".join(['EnumEntry {value: &"' + val + '", length: ' + str(len(val)) + '}' for val in self.enum.values()]))
 
+
+def convertConstIDLValueToRust(value):
+    tag = value.type.tag()
+    if tag in [IDLType.Tags.int8, IDLType.Tags.uint8,
+               IDLType.Tags.int16, IDLType.Tags.uint16,
+               IDLType.Tags.int32, IDLType.Tags.uint32,
+               IDLType.Tags.int64, IDLType.Tags.uint64,
+               IDLType.Tags.float, IDLType.Tags.double]:
+        return str(value.value)
+
+    if tag == IDLType.Tags.bool:
+        return toStringBool(value.value)
+
+    raise TypeError("Const value of unhandled type: " + value.type)
+
+class CGConstant(CGThing):
+    def __init__(self, constants):
+        CGThing.__init__(self)
+        self.constants = constants
+
+    def define(self):
+        def stringDecl(const):
+            name = const.identifier.name
+            value = convertConstIDLValueToRust(const.value)
+            return CGGeneric("static %s: %s = %s;\n" % (name, builtinNames[const.value.type.tag()], value))
+
+        return CGIndenter(CGList(stringDecl(m) for m in self.constants)).define()
+
 def getUnionAccessorSignatureType(type, descriptorProvider):
     """
     Returns the types that are used in the getter and setter signatures for
@@ -4308,6 +4336,10 @@ class CGDescriptor(CGThing):
         properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(str(properties)))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
+
+        cgThings.append(CGNamespace.build([descriptor.name + "Constants"],
+                                          CGConstant(m for m in descriptor.interface.members if m.isConst()),
+                                          public=True))
 
         # Set up our Xray callbacks as needed.
         if descriptor.interface.hasInterfacePrototypeObject():
