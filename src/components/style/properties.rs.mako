@@ -499,6 +499,7 @@ pub mod longhands {
                         let image_url = parse_url(url.as_slice(), Some(base_url.clone()));
                         Some(Some(image_url))
                     },
+                    &ast::Ident(ref value) if "none" == value.to_ascii_lower() => Some(None),
                     _ => None,
                 }
             }

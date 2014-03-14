@@ -25,3 +25,16 @@ pub fn is_whitespace(s: &str) -> bool {
         _ => false
     })
 }
+
+/// A "space character" according to:
+///
+///     http://www.whatwg.org/specs/web-apps/current-work/multipage/common-microsyntaxes.html#
+///     space-character
+pub static HTML_SPACE_CHARACTERS: [char, ..5] = [
+    '\u0020',
+    '\u0009',
+    '\u000a',
+    '\u000c',
+    '\u000d',
+];
+
