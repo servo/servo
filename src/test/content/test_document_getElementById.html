@@ -66,21 +66,32 @@
       is(e2, null, "test3-2, the method should return null when the passed id is none in document.");
     }
 
+    // test 4
     {
       // Ensure that the id attribute only affects elements present in a document
       let e = document.createElement('div');
       e.id = "should-not-exist";
-      is(document.getElementById("should-not-exist"), null);
+      is(document.getElementById("should-not-exist"), null, "test 4-0");
       document.body.appendChild(e);
-      is(document.getElementById("should-not-exist"), e);
+      is(document.getElementById("should-not-exist"), e, "test 4-1");
     }
 
     // TODO:
-    // test4: "in tree order, within the context object's tree"
+    // test5: "in tree order, within the context object's tree"
     // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
 
     // TODO:
-    // test5: innerHTML
+    // test6: innerHTML
+
+    // test 7
+    {
+      // Test that we only cache elements by ID if they're in a document (see #1874).
+      let s = document.createElement("div");
+      s.setAttribute("id", "x");
+      document.createElement("div").appendChild(s);
+      is(document.getElementById("x"), null, "test 7-0");
+    }
+
     finish();
   </script>
 </body>
