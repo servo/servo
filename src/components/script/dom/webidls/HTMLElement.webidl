@@ -43,10 +43,6 @@ interface HTMLElement : Element {
   readonly attribute boolean isContentEditable;
   [SetterThrows, Pure]
            attribute boolean spellcheck;
-
-  // Mozilla specific stuff
-  // FIXME Bug 810677 Move className from HTMLElement to Element
-           attribute DOMString className;
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-htmlelement-interface

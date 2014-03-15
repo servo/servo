@@ -28,10 +28,8 @@ interface Element : Node {
 
   [Pure]
            attribute DOMString id;
-/*
-  FIXME Bug 810677 Move className from HTMLElement to Element
+  [Pure]
            attribute DOMString className;
-*/
   /*[Constant]
     readonly attribute DOMTokenList? classList;*/
 
