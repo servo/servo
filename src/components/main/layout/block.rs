@@ -22,7 +22,8 @@ use layout::flow::{mut_base, PreorderFlowTraversal, PostorderFlowTraversal, Muta
 use layout::flow;
 use layout::model::{MaybeAuto, Specified, Auto, specified_or_none, specified};
 use layout::wrapper::ThreadSafeLayoutNode;
-use style::computed_values::{position};
+use style::ComputedValues;
+use style::computed_values::position;
 
 use std::cell::RefCell;
 use geom::{Point2D, Rect, Size2D};
@@ -263,6 +264,76 @@ impl HeightConstraintSolution {
         };
         HeightConstraintSolution::new(top, bottom, height, margin_top, margin_bottom)
     }
+}
+
+/// Performs height calculations potentially multiple times, taking `height`, `min-height`, and
+/// `max-height` into account. After each call to `next()`, the caller must call `.try()` with the
+/// current calculated value of `height`.
+///
+/// See CSS 2.1 § 10.7.
+struct CandidateHeightIterator {
+    height: MaybeAuto,
+    max_height: Option<Au>,
+    min_height: Au,
+    candidate_value: Au,
+    status: CandidateHeightIteratorStatus,
+}
+
+impl CandidateHeightIterator {
+    pub fn new(style: &ComputedValues, auto_value: Au) -> CandidateHeightIterator {
+        CandidateHeightIterator {
+            height: MaybeAuto::from_style(style.Box.get().height, auto_value),
+            max_height: specified_or_none(style.Box.get().max_height, auto_value),
+            min_height: specified(style.Box.get().min_height, auto_value),
+            candidate_value: Au(0),
+            status: InitialCandidateHeightStatus,
+        }
+    }
+
+    pub fn next<'a>(&'a mut self) -> Option<(MaybeAuto, &'a mut Au)> {
+        self.status = match self.status {
+            InitialCandidateHeightStatus => TryingHeightCandidateHeightStatus,
+            TryingHeightCandidateHeightStatus => {
+                match self.max_height {
+                    Some(max_height) if self.candidate_value > max_height => {
+                        TryingMaxCandidateHeightStatus
+                    }
+                    _ if self.candidate_value < self.min_height => TryingMinCandidateHeightStatus,
+                    _ => FoundCandidateHeightStatus,
+                }
+            }
+            TryingMaxCandidateHeightStatus => {
+                if self.candidate_value < self.min_height {
+                    TryingMinCandidateHeightStatus
+                } else {
+                    FoundCandidateHeightStatus
+                }
+            }
+            TryingMinCandidateHeightStatus | FoundCandidateHeightStatus => {
+                FoundCandidateHeightStatus
+            }
+        };
+
+        match self.status {
+            TryingHeightCandidateHeightStatus => Some((self.height, &mut self.candidate_value)),
+            TryingMaxCandidateHeightStatus => {
+                Some((Specified(self.max_height.unwrap()), &mut self.candidate_value))
+            }
+            TryingMinCandidateHeightStatus => {
+                Some((Specified(self.min_height), &mut self.candidate_value))
+            }
+            FoundCandidateHeightStatus => None,
+            InitialCandidateHeightStatus => fail!(),
+        }
+    }
+}
+
+enum CandidateHeightIteratorStatus {
+    InitialCandidateHeightStatus,
+    TryingHeightCandidateHeightStatus,
+    TryingMaxCandidateHeightStatus,
+    TryingMinCandidateHeightStatus,
+    FoundCandidateHeightStatus,
 }
 
 /// The real assign-heights traversal for flows with position 'absolute'.
@@ -750,13 +821,20 @@ impl BlockFlow {
         for box_ in self.box_.iter() {
             let style = box_.style();
 
-            // At this point, `height` is the height of the containing block, so passing `height`
-            // as the second argument here effectively makes percentages relative to the containing
-            // block per CSS 2.1 § 10.5.
-            height = match MaybeAuto::from_style(style.Box.get().height, height) {
-                Auto => height,
-                Specified(value) => value
-            };
+            // At this point, `height` is the height of the containing block, so this makes
+            // percentages relative to the containing block per CSS 2.1 § 10.5.
+            let containing_block_height = height;
+
+            let mut candidate_height_iterator =
+                CandidateHeightIterator::new(style, containing_block_height);
+            for (candidate_height, new_candidate_height) in candidate_height_iterator {
+                *new_candidate_height = match candidate_height {
+                    Auto => height,
+                    Specified(value) => value
+                }
+            }
+
+            height = candidate_height_iterator.candidate_value
         }
 
         // Here, height is content height of box_
@@ -921,7 +999,7 @@ impl BlockFlow {
             cur_y = cur_y + child_base.position.size.height;
         }
 
-        let mut content_height = cur_y - top_offset;
+        let content_height = cur_y - top_offset;
 
         let mut noncontent_height;
         let box_ = self.box_.as_ref().unwrap();
@@ -933,11 +1011,18 @@ impl BlockFlow {
         noncontent_height = box_.padding.get().top + box_.padding.get().bottom +
             box_.border.get().top + box_.border.get().bottom;
 
-        let content_height = match MaybeAuto::from_style(box_.style().Box.get().height,
-                                                         content_height) {
-            Auto => content_height,
-            Specified(value) => value,
-        };
+        // Calculate content height, taking `min-height` and `max-height` into account.
+
+        let mut candidate_height_iterator = CandidateHeightIterator::new(box_.style(),
+                                                                         content_height);
+        for (candidate_height, new_candidate_height) in candidate_height_iterator {
+            *new_candidate_height = match candidate_height {
+                Auto => content_height,
+                Specified(value) => value,
+            }
+        }
+
+        let content_height = candidate_height_iterator.candidate_value;
 
         debug!("assign_height_float -- height: {}", content_height + noncontent_height);
 
@@ -1066,8 +1151,6 @@ impl BlockFlow {
 
             let style = box_.style();
 
-            let height_used_val = MaybeAuto::from_style(style.Box.get().height, containing_block_height);
-
             // Non-auto margin-top and margin-bottom values have already been
             // calculated during assign-width.
             let margin = box_.margin.get();
@@ -1085,7 +1168,8 @@ impl BlockFlow {
                  MaybeAuto::from_style(style.PositionOffsets.get().bottom, containing_block_height));
             let available_height = containing_block_height - box_.noncontent_height();
 
-            let solution = if self.is_replaced_content() {
+            let mut solution = None;
+            if self.is_replaced_content() {
                 // Calculate used value of height just like we do for inline replaced elements.
                 // TODO: Pass in the containing block height when Box's
                 // assign-height can handle it correctly.
@@ -1094,25 +1178,36 @@ impl BlockFlow {
                 // margin because of erroneous height calculation in Box_.
                 // Check this when that has been fixed.
                 let height_used_val = box_.border_box.get().size.height;
-                HeightConstraintSolution::solve_vertical_constraints_abs_replaced(height_used_val,
-                                                                                  margin_top,
-                                                                                  margin_bottom,
-                                                                                  top,
-                                                                                  bottom,
-                                                                                  content_height,
-                                                                                  available_height,
-                                                                                  static_y_offset)
+                solution = Some(HeightConstraintSolution::solve_vertical_constraints_abs_replaced(
+                        height_used_val,
+                        margin_top,
+                        margin_bottom,
+                        top,
+                        bottom,
+                        content_height,
+                        available_height,
+                        static_y_offset));
             } else {
-                HeightConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
-                    height_used_val,
-                    margin_top,
-                    margin_bottom,
-                    top,
-                    bottom,
-                    content_height,
-                    available_height,
-                    static_y_offset)
-            };
+                let mut candidate_height_iterator =
+                    CandidateHeightIterator::new(style, containing_block_height);
+
+                for (height_used_val, new_candidate_height) in candidate_height_iterator {
+                    solution =
+                        Some(HeightConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
+                            height_used_val,
+                            margin_top,
+                            margin_bottom,
+                            top,
+                            bottom,
+                            content_height,
+                            available_height,
+                            static_y_offset));
+
+                    *new_candidate_height = solution.unwrap().height
+                }
+            }
+
+            let solution = solution.unwrap();
 
             let mut margin = box_.margin.get();
             margin.top = solution.margin_top;

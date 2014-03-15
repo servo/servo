@@ -314,6 +314,13 @@ pub mod longhands {
                       "computed::LPN_None",
                       "parse_non_negative")}
 
+    ${predefined_type("min-height", "LengthOrPercentage",
+                      "computed::LP_Length(Au(0))",
+                      "parse_non_negative")}
+    ${predefined_type("max-height", "LengthOrPercentageOrNone",
+                      "computed::LPN_None",
+                      "parse_non_negative")}
+
     ${new_style_struct("InheritedBox", is_inherited=True)}
 
     <%self:single_component_value name="line-height">
