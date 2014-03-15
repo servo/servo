@@ -112,8 +112,8 @@ pub trait Flow {
                         _first_in_flow: &mut bool,
                         _margin_top: &mut Au,
                         _top_offset: &mut Au,
-                        _collapsing: &mut Au,
-                        _collapsible: &mut Au) {
+                        _collapsible: &mut Au)
+                        -> Au {
         fail!("collapse_margins not yet implemented")
     }
 

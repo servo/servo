@@ -886,13 +886,14 @@ impl Flow for InlineFlow {
                         _: &mut bool,
                         _: &mut Au,
                         _: &mut Au,
-                        collapsing: &mut Au,
-                        collapsible: &mut Au) {
-        *collapsing = Au::new(0);
+                        collapsible: &mut Au)
+                        -> Au {
         // Non-empty inline flows prevent collapsing between the previous margion and the next.
         if self.base.position.size.height > Au::new(0) {
             *collapsible = Au::new(0);
         }
+
+        Au(0)
     }
 
     fn debug_str(&self) -> ~str {
