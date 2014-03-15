@@ -12,7 +12,7 @@
 //!
 //! CB: Containing Block of the current flow.
 
-use layout::box_::{Box, ImageBox, ScannedTextBox};
+use layout::box_::{Box, ImageBox, MainBoxKind, ScannedTextBox};
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
@@ -344,7 +344,7 @@ impl BlockFlow {
                      -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Some(Box::new(constructor, node)),
+            box_: Some(Box::new(constructor, node, MainBoxKind)),
             is_root: false,
             static_y_offset: Au::new(0),
             float: None
@@ -357,7 +357,7 @@ impl BlockFlow {
                            -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Some(Box::new(constructor, node)),
+            box_: Some(Box::new(constructor, node, MainBoxKind)),
             is_root: false,
             static_y_offset: Au::new(0),
             float: Some(~FloatedBlockInfo::new(float_kind))

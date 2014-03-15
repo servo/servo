@@ -60,6 +60,8 @@ use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 /// A `GenericBox` is an empty box that contributes only borders, margins, padding, and
 /// backgrounds. It is analogous to a CSS nonreplaced content box.
 ///
+/// A `SpacerBox` is a box that represents space for borders and padding in an inline flow.
+///
 /// A box's type influences how its styles are interpreted during layout. For example, replaced
 /// content such as images are resized differently from tables, text, or other content. Different
 /// types of boxes may also contain custom data; for example, text boxes contain text.
@@ -108,6 +110,7 @@ pub enum SpecificBoxInfo {
     ImageBox(ImageBoxInfo),
     IframeBox(IframeBoxInfo),
     ScannedTextBox(ScannedTextBoxInfo),
+    SpacerBox(Au),
     UnscannedTextBox(UnscannedTextBoxInfo),
 }
 
@@ -386,9 +389,33 @@ def_noncontent!(bottom, noncontent_bottom, noncontent_inline_bottom)
 def_noncontent_horiz!(left,  merge_noncontent_inline_left,  clear_noncontent_inline_left)
 def_noncontent_horiz!(right, merge_noncontent_inline_right, clear_noncontent_inline_right)
 
+/// Some DOM nodes can contribute more than one type of box. We call these boxes "sub-boxes". For
+/// these nodes, this enum is used to determine which sub-box to construct for that node.
+pub enum SubBoxKind {
+    /// The main box for this node. All DOM nodes that are rendered at all have at least a main
+    /// box.
+    MainBoxKind,
+
+    /// A spacer box. This box represents the space for border and padding of inline nodes. The
+    /// parameter specifies the size.
+    SpacerBoxKind(Au),
+}
+
 impl Box {
-    /// Constructs a new `Box` instance.
-    pub fn new(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> Box {
+    /// Constructs a new `Box` instance for the given node.
+    ///
+    /// Arguments:
+    ///
+    ///   * `constructor`: The flow constructor.
+    ///
+    ///   * `node`: The node to create a box for.
+    ///
+    ///   * `sub_box_kind`: The kind of box to create for the node, in case this node can
+    ///     contribute more than one type of box. See the definition of `SubBoxKind`.
+    pub fn new(constructor: &mut FlowConstructor,
+               node: &ThreadSafeLayoutNode,
+               sub_box_kind: SubBoxKind)
+               -> Box {
         Box {
             node: OpaqueNode::from_thread_safe_layout_node(node),
             style: node.style().clone(),
@@ -396,7 +423,7 @@ impl Box {
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
-            specific: constructor.build_specific_box_info_for_node(node),
+            specific: constructor.build_specific_box_info_for_node(node, sub_box_kind),
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: RefCell::new(None),
             new_line_pos: ~[],
@@ -524,6 +551,7 @@ impl Box {
     fn guess_width(&self) -> Au {
         match self.specific {
             GenericBox | IframeBox(_) | ImageBox(_) => {}
+            SpacerBox(width) => return width,
             ScannedTextBox(_) | UnscannedTextBox(_) => return Au(0),
         }
 
@@ -777,15 +805,6 @@ impl Box {
     /// Returns the sum of margin, border, and padding on the left.
     pub fn offset(&self) -> Au {
         self.margin.get().left + self.border.get().left + self.padding.get().left
-    }
-
-    /// Returns true if this element is replaced content. This is true for images, form elements,
-    /// and so on.
-    pub fn is_replaced(&self) -> bool {
-        match self.specific {
-            ImageBox(..) => true,
-            _ => false,
-        }
     }
 
     /// Returns true if this element can be split. This is true for text boxes.
@@ -1142,7 +1161,7 @@ impl Box {
                     });
                 });
             },
-            GenericBox | IframeBox(..) => {
+            GenericBox | IframeBox(..) | SpacerBox(..) => {
                 lists.with_mut(|lists| {
                     let item = ~ClipDisplayItem {
                         base: BaseDisplayItem {
@@ -1247,7 +1266,7 @@ impl Box {
             IframeBox(ref iframe_box) => {
                 self.finalize_position_and_size_of_iframe(iframe_box, flow_origin, builder.ctx)
             }
-            GenericBox | ImageBox(_) | ScannedTextBox(_) | UnscannedTextBox(_) => {}
+            GenericBox | SpacerBox(_) | ImageBox(_) | ScannedTextBox(_) | UnscannedTextBox(_) => {}
         }
 
     }
@@ -1256,7 +1275,7 @@ impl Box {
     pub fn minimum_and_preferred_widths(&self) -> (Au, Au) {
         let guessed_width = self.guess_width();
         let (additional_minimum, additional_preferred) = match self.specific {
-            GenericBox | IframeBox(_) => (Au(0), Au(0)),
+            GenericBox | IframeBox(_) | SpacerBox(_) => (Au(0), Au(0)),
             ImageBox(ref image_box_info) => {
                 let image_width = image_box_info.image_width();
                 (image_width, image_width)
@@ -1286,6 +1305,7 @@ impl Box {
             ImageBox(ref image_box_info) => {
                 image_box_info.computed_width()
             }
+            SpacerBox(width) => width,
             ScannedTextBox(ref text_box_info) => {
                 let (range, run) = (&text_box_info.range, &text_box_info.run);
                 let text_bounds = run.get().metrics_for_range(range).bounding_box;
@@ -1298,7 +1318,7 @@ impl Box {
     ///
     pub fn content_height(&self) -> Au {
         match self.specific {
-            GenericBox | IframeBox(_) => Au(0),
+            GenericBox | IframeBox(_) | SpacerBox(_) => Au(0),
             ImageBox(ref image_box_info) => {
                 image_box_info.computed_height()
             }
@@ -1323,7 +1343,7 @@ impl Box {
     /// Split box which includes new-line character
     pub fn split_by_new_line(&self) -> SplitBoxResult {
         match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) => CannotSplit,
+            GenericBox | IframeBox(_) | ImageBox(_) | SpacerBox(_) => CannotSplit,
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
                 let mut new_line_pos = self.new_line_pos.clone();
@@ -1360,7 +1380,7 @@ impl Box {
     /// Attempts to split this box so that its width is no more than `max_width`.
     pub fn split_to_width(&self, max_width: Au, starts_line: bool) -> SplitBoxResult {
         match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) => CannotSplit,
+            GenericBox | IframeBox(_) | ImageBox(_) | SpacerBox(_) => CannotSplit,
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
                 let mut pieces_processed_count: uint = 0;
@@ -1477,10 +1497,9 @@ impl Box {
     ///
     /// This assigns only the width, not margin or anything else.
     /// CSS 2.1 § 10.3.2.
-    pub fn assign_replaced_width_if_necessary(&self,container_width: Au) {
+    pub fn assign_replaced_width_if_necessary(&self, container_width: Au) {
         match self.specific {
-            GenericBox | IframeBox(_) => {
-            }
+            GenericBox | IframeBox(_) => {}
             ImageBox(ref image_box_info) => {
                 // TODO(ksh8281): compute border,margin,padding
                 let width = ImageBoxInfo::style_length(self.style().Box.get().width,
@@ -1512,6 +1531,9 @@ impl Box {
                     self.noncontent_inline_left() + self.noncontent_inline_right();
                 image_box_info.computed_width.set(Some(width));
             }
+            SpacerBox(width) => {
+                self.border_box.borrow_mut().get().size.width = width
+            }
             ScannedTextBox(_) => {
                 // Scanned text boxes will have already had their
                 // content_widths assigned by this point.
@@ -1528,7 +1550,7 @@ impl Box {
     /// Ideally, this should follow CSS 2.1 § 10.6.2
     pub fn assign_replaced_height_if_necessary(&self) {
         match self.specific {
-            GenericBox | IframeBox(_) => {
+            GenericBox | IframeBox(_) | SpacerBox(_) => {
             }
             ImageBox(ref image_box_info) => {
                 // TODO(ksh8281): compute border,margin,padding
@@ -1601,6 +1623,7 @@ impl Box {
             GenericBox => "GenericBox",
             IframeBox(_) => "IframeBox",
             ImageBox(_) => "ImageBox",
+            SpacerBox(_) => "SpacerBox",
             ScannedTextBox(_) => "ScannedTextBox",
             UnscannedTextBox(_) => "UnscannedTextBox",
         };

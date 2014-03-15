@@ -23,14 +23,15 @@
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
 use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo};
-use layout::box_::{InlineInfo, InlineParentInfo, SpecificBoxInfo, UnscannedTextBox};
-use layout::box_::{UnscannedTextBoxInfo};
+use layout::box_::{InlineInfo, InlineParentInfo, MainBoxKind, SpacerBox, SpacerBoxKind};
+use layout::box_::{SpecificBoxInfo, SubBoxKind, UnscannedTextBox, UnscannedTextBoxInfo};
 use layout::context::LayoutContext;
 use layout::floats::FloatKind;
 use layout::flow::{Flow, MutableOwnedFlowUtils};
 use layout::flow::{Descendants, AbsDescendants, FixedDescendants};
 use layout::flow_list::{Rawlink};
 use layout::inline::InlineFlow;
+use layout::model;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
 use layout::wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
@@ -38,13 +39,15 @@ use layout::wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNo
 use gfx::font_context::FontContext;
 use script::dom::bindings::codegen::InheritTypes::TextCast;
 use script::dom::bindings::js::JS;
-use script::dom::element::{HTMLIFrameElementTypeId, HTMLImageElementTypeId, HTMLObjectElementTypeId};
+use script::dom::element::{HTMLIFrameElementTypeId, HTMLImageElementTypeId};
+use script::dom::element::{HTMLObjectElementTypeId};
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
 use script::dom::node::{TextNodeTypeId};
 use script::dom::text::Text;
 use style::computed_values::{display, position, float, white_space};
 use style::ComputedValues;
+use servo_util::geometry::Au;
 use servo_util::namespace;
 use servo_util::url::parse_url;
 use servo_util::url::is_image_data;
@@ -224,6 +227,12 @@ impl<T> OptVector<T> for Option<~[T]> {
     }
 }
 
+/// The padding or border side: left or right.
+enum InlineSide {
+    LeftSide,
+    RightSide,
+}
+
 /// An object that knows how to create flows.
 pub struct FlowConstructor<'a> {
     /// The layout context.
@@ -279,17 +288,24 @@ impl<'a> FlowConstructor<'a> {
     }
 
     /// Builds specific `Box` info for the given node.
-    pub fn build_specific_box_info_for_node(&mut self, node: &ThreadSafeLayoutNode)
+    pub fn build_specific_box_info_for_node(&mut self,
+                                            node: &ThreadSafeLayoutNode,
+                                            sub_box_kind: SubBoxKind)
                                             -> SpecificBoxInfo {
-        match node.type_id() {
-            ElementNodeTypeId(HTMLImageElementTypeId) => self.build_box_info_for_image(node, node.image_url()),
-            ElementNodeTypeId(HTMLIFrameElementTypeId) => IframeBox(IframeBoxInfo::new(node)),
-            ElementNodeTypeId(HTMLObjectElementTypeId) => {
+        match (node.type_id(), sub_box_kind) {
+            (_, SpacerBoxKind(size)) => SpacerBox(size),
+            (ElementNodeTypeId(HTMLImageElementTypeId), MainBoxKind) => {
+                self.build_box_info_for_image(node, node.image_url())
+            }
+            (ElementNodeTypeId(HTMLIFrameElementTypeId), MainBoxKind) => {
+                IframeBox(IframeBoxInfo::new(node))
+            }
+            (ElementNodeTypeId(HTMLObjectElementTypeId), MainBoxKind) => {
                 let data = node.get_object_data(&self.layout_context.url);
                 self.build_box_info_for_image(node, data)
             }
-            TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(node)),
-            _ => GenericBox,
+            (TextNodeTypeId, MainBoxKind) => UnscannedTextBox(UnscannedTextBoxInfo::new(node)),
+            (_, MainBoxKind) => GenericBox,
         }
     }
 
@@ -467,6 +483,28 @@ impl<'a> FlowConstructor<'a> {
         self.build_block_flow_using_children(flow, node)
     }
 
+    /// Creates a box that represents the space that borders and/or padding for inline boxes take
+    /// up.
+    ///
+    /// TODO(pcwalton): Support percentage padding. This will probably need to be done by moving
+    /// the calculations for padding out of flow construction and into layout.
+    ///
+    /// TODO(pcwalton): Support borders.
+    fn create_inline_spacer_box_if_necessary(&mut self,
+                                             opt_box_accumulator: &mut Option<~[Box]>,
+                                             node: &ThreadSafeLayoutNode,
+                                             side: InlineSide) {
+        let value = match side {
+            LeftSide => node.style().get().Padding.get().padding_left,
+            RightSide => node.style().get().Padding.get().padding_right,
+        };
+        let length = model::specified(value, Au(0));
+        if length == Au(0) {
+            return
+        }
+
+        opt_box_accumulator.push(Box::new(self, node, SpacerBoxKind(length)))
+    }
 
     /// Concatenates the boxes of kids, adding in our own borders/padding/margins if necessary.
     /// Returns the `InlineBoxesConstructionResult`, if any. There will be no
@@ -477,6 +515,9 @@ impl<'a> FlowConstructor<'a> {
         let mut opt_box_accumulator = None;
         let mut abs_descendants = Descendants::new();
         let mut fixed_descendants = Descendants::new();
+
+        // First, create a border/padding spacer box on the left side if necessary.
+        self.create_inline_spacer_box_if_necessary(&mut opt_box_accumulator, node, LeftSide);
 
         // Concatenate all the boxes of our kids, creating {ib} splits as necessary.
         for kid in node.children() {
@@ -539,6 +580,9 @@ impl<'a> FlowConstructor<'a> {
             }
         }
 
+        // Next, create a border/padding spacer box on the right side if necessary.
+        self.create_inline_spacer_box_if_necessary(&mut opt_box_accumulator, node, RightSide);
+
         // fill inline info
         match opt_inline_block_splits {
             Some(ref splits) => {
@@ -598,10 +642,11 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
+    // FIXME(pcwalton): Why does this function create a box only to throw it away???
     fn set_inline_info_for_inline_child(&mut self,
                                         boxes: &~[&Box],
                                         parent_node: &ThreadSafeLayoutNode) {
-        let parent_box = Box::new(self, parent_node);
+        let parent_box = Box::new(self, parent_node, MainBoxKind);
         let font_style = parent_box.font_style();
         let font_group = self.font_context().get_resolved_font_for_style(&font_style);
         let (font_ascent,font_descent) = font_group.borrow().with_mut( |fg| {
@@ -654,6 +699,8 @@ impl<'a> FlowConstructor<'a> {
         }
 
         // If this node is ignorable whitespace, bail out now.
+        //
+        // FIXME(pcwalton): Don't do this if there's padding or borders.
         if node.is_ignorable_whitespace() {
             let opaque_node = OpaqueNode::from_thread_safe_layout_node(node);
             return ConstructionItemConstructionResult(WhitespaceConstructionItem(
@@ -661,11 +708,14 @@ impl<'a> FlowConstructor<'a> {
                 node.style().clone()))
         }
 
+        let mut opt_box_accumulator = None;
+        self.create_inline_spacer_box_if_necessary(&mut opt_box_accumulator, node, LeftSide);
+        opt_box_accumulator.push(Box::new(self, node, MainBoxKind));
+        self.create_inline_spacer_box_if_necessary(&mut opt_box_accumulator, node, RightSide);
+
         let construction_item = InlineBoxesConstructionItem(InlineBoxesConstructionResult {
             splits: None,
-            boxes: ~[
-                Box::new(self, node)
-            ],
+            boxes: opt_box_accumulator.to_vec(),
             abs_descendants: Descendants::new(),
             fixed_descendants: Descendants::new(),
         });
