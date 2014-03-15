@@ -1552,8 +1552,28 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-normalize
-    pub fn Normalize(&mut self) {
-        // FIXME (#1823) implement.
+    pub fn Normalize(&mut self, abstract_self: &mut JS<Node>) {
+        let mut prev_text = None;
+        for mut child in self.children() {
+            if child.is_text() {
+                let characterdata: JS<CharacterData> = CharacterDataCast::to(&child);
+                if characterdata.get().Length() == 0 {
+                    abstract_self.remove_child(&mut child);
+                } else {
+                    match prev_text {
+                        Some(ref text_node) => {
+                            let mut prev_characterdata: JS<CharacterData> = CharacterDataCast::to(text_node);
+                            prev_characterdata.get_mut().AppendData(characterdata.get().Data());
+                            abstract_self.remove_child(&mut child);
+                        },
+                        None => prev_text = Some(child)
+                    }
+                }
+            } else {
+                prev_text = None;
+            }
+
+        }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-clonenode
