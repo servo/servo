@@ -9,6 +9,7 @@ use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTy
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
+use dom::bindings::codegen::NodeBinding::NodeConstants;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest};
@@ -817,13 +818,13 @@ impl Node {
     // http://dom.spec.whatwg.org/#dom-node-nodetype
     pub fn NodeType(&self) -> u16 {
         match self.type_id {
-            ElementNodeTypeId(_)            => 1,
-            TextNodeTypeId                  => 3,
-            ProcessingInstructionNodeTypeId => 7,
-            CommentNodeTypeId               => 8,
-            DocumentNodeTypeId              => 9,
-            DoctypeNodeTypeId               => 10,
-            DocumentFragmentNodeTypeId      => 11,
+            ElementNodeTypeId(_)            => NodeConstants::ELEMENT_NODE,
+            TextNodeTypeId                  => NodeConstants::TEXT_NODE,
+            ProcessingInstructionNodeTypeId => NodeConstants::PROCESSING_INSTRUCTION_NODE,
+            CommentNodeTypeId               => NodeConstants::COMMENT_NODE,
+            DocumentNodeTypeId              => NodeConstants::DOCUMENT_NODE,
+            DoctypeNodeTypeId               => NodeConstants::DOCUMENT_TYPE_NODE,
+            DocumentFragmentNodeTypeId      => NodeConstants::DOCUMENT_FRAGMENT_NODE,
         }
     }
 
@@ -1659,45 +1660,50 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
-
     pub fn CompareDocumentPosition(&self, abstract_self: &JS<Node>, other: &JS<Node>) -> u16 {
-        static DOCUMENT_POSITION_DISCONNECTED: u16 = 0x01u16;
-        static DOCUMENT_POSITION_PRECEDING: u16 = 0x02u16;
-        static DOCUMENT_POSITION_FOLLOWING: u16 = 0x04u16;
-        static DOCUMENT_POSITION_CONTAINS: u16 = 0x08u16;
-        static DOCUMENT_POSITION_CONTAINED_BY: u16 = 0x10u16;
-        static DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC: u16 = 0x20u16;
         if abstract_self == other {
+            // step 2.
             0
         } else {
             let mut lastself = abstract_self.clone();
             let mut lastother = other.clone();
             for ancestor in abstract_self.ancestors() {
                 if &ancestor == other {
-                    return DOCUMENT_POSITION_CONTAINS + DOCUMENT_POSITION_PRECEDING;
+                    // step 4.
+                    return NodeConstants::DOCUMENT_POSITION_CONTAINS +
+                           NodeConstants::DOCUMENT_POSITION_PRECEDING;
                 }
                 lastself = ancestor;
             }
             for ancestor in other.ancestors() {
                 if &ancestor == abstract_self {
-                    return DOCUMENT_POSITION_CONTAINED_BY + DOCUMENT_POSITION_FOLLOWING;
+                    // step 5.
+                    return NodeConstants::DOCUMENT_POSITION_CONTAINED_BY +
+                           NodeConstants::DOCUMENT_POSITION_FOLLOWING;
                 }
                 lastother = ancestor;
             }
+
             if lastself != lastother {
                 let random = if ptr::to_unsafe_ptr(abstract_self.get()) < ptr::to_unsafe_ptr(other.get()) {
-                    DOCUMENT_POSITION_FOLLOWING
+                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
                 } else {
-                    DOCUMENT_POSITION_PRECEDING
+                    NodeConstants::DOCUMENT_POSITION_PRECEDING
                 };
-                return random + DOCUMENT_POSITION_DISCONNECTED + DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+                // step 3.
+                return random +
+                       NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
+                       NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
             }
+
             for child in lastself.traverse_preorder() {
                 if &child == other {
-                    return DOCUMENT_POSITION_PRECEDING;
+                    // step 6.
+                    return NodeConstants::DOCUMENT_POSITION_PRECEDING;
                 }
                 if &child == abstract_self {
-                    return DOCUMENT_POSITION_FOLLOWING;
+                    // step 7.
+                    return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
                 }
             }
             unreachable!()

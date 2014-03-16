@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::EventBinding;
+use dom::bindings::codegen::EventBinding::EventConstants;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{Fallible, ErrorResult};
@@ -23,10 +24,10 @@ pub enum Event_ {
 
 #[deriving(Encodable)]
 pub enum EventPhase {
-    Phase_None = 0,
-    Phase_Capturing,
-    Phase_At_Target,
-    Phase_Bubbling
+    Phase_None      = EventConstants::NONE,
+    Phase_Capturing = EventConstants::CAPTURING_PHASE,
+    Phase_At_Target = EventConstants::AT_TARGET,
+    Phase_Bubbling  = EventConstants::BUBBLING_PHASE,
 }
 
 #[deriving(Eq, Encodable)]
