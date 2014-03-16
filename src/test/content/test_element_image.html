@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <script src="harness.js"></script>
+    </head>
+    <body>
+
+<img src="http://example.com/fake.png" id=image1>
+        <script>
+	    // Test getters and setters for src attribute
+            {
+		img1=document.getElementById('image1');
+		is(img1.src,"http://example.com/fake.png");
+		img1.src="http://example.com/fake2.png"
+		is(img1.getAttribute('src'),"http://example.com/fake2.png")
+		img1.setAttribute('src',"http://example.com/fake3.png")
+		is(img1.src,"http://example.com/fake3.png");
+            }
+            finish();
+        </script>
+    </body>
+</html>

@@ -18,6 +18,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
 use servo_util::url::parse_url;
 use servo_util::str::DOMString;
+use servo_util::namespace;
 
 use extra::serialize::{Encoder, Encodable};
 
@@ -115,7 +116,11 @@ impl HTMLImageElement {
     }
 
     pub fn Src(&self, _abstract_self: &JS<HTMLImageElement>) -> DOMString {
-        ~""
+        let element = &self.htmlelement.element;
+        match element.get_attribute(namespace::Null, "src") {
+            Some(src) => src.get().Value(),
+            None => ~ ""
+        }
     }
 
     pub fn SetSrc(&mut self, abstract_self: &JS<HTMLImageElement>, src: DOMString) -> ErrorResult {
