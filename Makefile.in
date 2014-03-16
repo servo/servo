@@ -35,7 +35,7 @@ ifdef CFG_DISABLE_OPTIMIZE
   $(info cfg: disabling rustc optimization (CFG_DISABLE_OPTIMIZE))
   CFG_RUSTC_FLAGS +=
 else
-  CFG_RUSTC_FLAGS += -O -Z no-debug-borrows
+  CFG_RUSTC_FLAGS += -O
 endif
 
 CFG_RUSTC_FLAGS += -g
@@ -326,7 +326,7 @@ servo:	$(DEPS_servo)
 else
 servo:  $(DEPS_servo)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_servo) -Z gen-crate-map -o $@ $< --crate-type lib
+	$(Q)$(RUSTC) $(RFLAGS_servo) -C gen-crate-map -o $@ $< --crate-type lib
 endif
 
 # Darwin app packaging

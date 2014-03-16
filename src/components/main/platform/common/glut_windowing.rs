@@ -132,7 +132,7 @@ impl WindowMethods<Application> for Window {
         }
         glut::mouse_func(~MouseCallbackState);
 
-        let wrapped_window = Rc::from_send(window);
+        let wrapped_window = Rc::new(window);
 
         install_local_window(wrapped_window.clone());
 
@@ -151,11 +151,11 @@ impl WindowMethods<Application> for Window {
     
     fn recv(&self) -> WindowEvent {
         if !self.event_queue.with_mut(|queue| queue.is_empty()) {
-            return self.event_queue.with_mut(|queue| queue.shift())
+            return self.event_queue.with_mut(|queue| queue.shift().unwrap())
         }
         glut::check_loop();
         if !self.event_queue.with_mut(|queue| queue.is_empty()) {
-            self.event_queue.with_mut(|queue| queue.shift())
+            self.event_queue.with_mut(|queue| queue.shift().unwrap())
         } else {
             IdleWindowEvent
         }

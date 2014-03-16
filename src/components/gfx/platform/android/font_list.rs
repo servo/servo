@@ -25,7 +25,7 @@ use font_list::{FontEntry, FontFamily, FontFamilyMap};
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 
-use std::hashmap::HashMap;
+use collections::hashmap::HashMap;
 use std::libc;
 use std::libc::{c_int, c_char};
 use std::ptr;
@@ -68,7 +68,7 @@ impl FontListHandle {
         unsafe {
             let config = FcConfigGetCurrent();
             let font_set = FcConfigGetFonts(config, FcSetSystem);
-            let font_set_array_ptr = ptr::to_unsafe_ptr(&font_set);
+            let font_set_array_ptr = &font_set;
             let pattern = FcPatternCreate();
             assert!(pattern.is_not_null());
             "family".to_c_str().with_ref(|FC_FAMILY| {
