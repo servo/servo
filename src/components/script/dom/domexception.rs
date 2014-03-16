@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DOMExceptionBinding;
+use dom::bindings::codegen::DOMExceptionBinding::DOMExceptionConstants;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
@@ -11,26 +12,26 @@ use servo_util::str::DOMString;
 #[repr(uint)]
 #[deriving(ToStr, Encodable)]
 enum DOMErrorName {
-    IndexSizeError = 1,
-    HierarchyRequestError = 3,
-    WrongDocumentError = 4,
-    InvalidCharacterError = 5,
-    NoModificationAllowedError = 7,
-    NotFoundError = 8,
-    NotSupportedError = 9,
-    InvalidStateError = 11,
-    SyntaxError = 12,
-    InvalidModificationError = 13,
-    NamespaceError = 14,
-    InvalidAccessError = 15,
-    SecurityError = 18,
-    NetworkError = 19,
-    AbortError = 20,
-    URLMismatchError = 21,
-    QuotaExceededError = 22,
-    TimeoutError = 23,
-    InvalidNodeTypeError = 24,
-    DataCloneError = 25,
+    IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,
+    HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR,
+    WrongDocumentError = DOMExceptionConstants::WRONG_DOCUMENT_ERR,
+    InvalidCharacterError = DOMExceptionConstants::INVALID_CHARACTER_ERR,
+    NoModificationAllowedError = DOMExceptionConstants::NO_MODIFICATION_ALLOWED_ERR,
+    NotFoundError = DOMExceptionConstants::NOT_FOUND_ERR,
+    NotSupportedError = DOMExceptionConstants::NOT_SUPPORTED_ERR,
+    InvalidStateError = DOMExceptionConstants::INVALID_STATE_ERR,
+    SyntaxError = DOMExceptionConstants::SYNTAX_ERR,
+    InvalidModificationError = DOMExceptionConstants::INVALID_MODIFICATION_ERR,
+    NamespaceError = DOMExceptionConstants::NAMESPACE_ERR,
+    InvalidAccessError = DOMExceptionConstants::INVALID_ACCESS_ERR,
+    SecurityError = DOMExceptionConstants::SECURITY_ERR,
+    NetworkError = DOMExceptionConstants::NETWORK_ERR,
+    AbortError = DOMExceptionConstants::ABORT_ERR,
+    URLMismatchError = DOMExceptionConstants::URL_MISMATCH_ERR,
+    QuotaExceededError = DOMExceptionConstants::QUOTA_EXCEEDED_ERR,
+    TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
+    InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
+    DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
     EncodingError
 }
 

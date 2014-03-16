@@ -2994,7 +2994,7 @@ class CGConstant(CGThing):
         def stringDecl(const):
             name = const.identifier.name
             value = convertConstIDLValueToRust(const.value)
-            return CGGeneric("static %s: %s = %s;\n" % (name, builtinNames[const.value.type.tag()], value))
+            return CGGeneric("pub static %s: %s = %s;\n" % (name, builtinNames[const.value.type.tag()], value))
 
         return CGIndenter(CGList(stringDecl(m) for m in self.constants)).define()
 
