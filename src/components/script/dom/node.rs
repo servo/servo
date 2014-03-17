@@ -728,7 +728,7 @@ fn gather_abstract_nodes(cur: &JS<Node>, refs: &mut ~[JS<Node>], postorder: bool
 }
 
 /// Specifies whether children must be recursively cloned or not.
-enum CloneChildrenFlag {
+pub enum CloneChildrenFlag {
     CloneChildren,
     DoNotCloneChildren
 }
@@ -1287,8 +1287,8 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-clone
-    fn clone(node: &JS<Node>, maybe_doc: Option<&JS<Document>>, clone_children: CloneChildrenFlag)
-             -> JS<Node> {
+    pub fn clone(node: &JS<Node>, maybe_doc: Option<&JS<Document>>,
+                 clone_children: CloneChildrenFlag) -> JS<Node> {
         fn clone_recursively(node: &JS<Node>, copy: &mut JS<Node>, doc: &JS<Document>) {
             for ref child in node.get().children() {
                 let mut cloned = Node::clone(child, Some(doc), DoNotCloneChildren);

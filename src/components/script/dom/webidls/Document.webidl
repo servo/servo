@@ -36,6 +36,9 @@ interface Document : Node {
   [Creator, Throws]
   ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);
 
+  [Throws]
+  Node importNode(Node node, optional boolean deep = false);
+
   [Creator, Throws]
   Event createEvent(DOMString interface_);
 };
