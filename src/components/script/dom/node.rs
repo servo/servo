@@ -1016,7 +1016,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-adopt
-    fn adopt(node: &mut JS<Node>, document: &JS<Document>) {
+    pub fn adopt(node: &mut JS<Node>, document: &JS<Document>) {
         // Step 1.
         match node.parent_node() {
             Some(ref mut parent) => Node::remove(node, parent, Unsuppressed),

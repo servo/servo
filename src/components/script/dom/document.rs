@@ -311,6 +311,21 @@ impl Document {
         Ok(Node::clone(node, Some(abstract_self), clone_children))
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-adoptnode
+    pub fn AdoptNode(&self, abstract_self: &JS<Document>, node: &JS<Node>) -> Fallible<JS<Node>> {
+        // Step 1.
+        if node.is_document() {
+            return Err(NotSupported);
+        }
+
+        // Step 2.
+        let mut adoptee = node.clone();
+        Node::adopt(&mut adoptee, abstract_self);
+
+        // Step 3.
+        Ok(adoptee)
+    }
+
     // http://dom.spec.whatwg.org/#dom-document-createevent
     pub fn CreateEvent(&self, interface: DOMString) -> Fallible<JS<Event>> {
         match interface.as_slice() {

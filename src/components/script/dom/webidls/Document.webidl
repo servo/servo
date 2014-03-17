@@ -38,6 +38,8 @@ interface Document : Node {
 
   [Throws]
   Node importNode(Node node, optional boolean deep = false);
+  [Throws]
+  Node adoptNode(Node node);
 
   [Creator, Throws]
   Event createEvent(DOMString interface_);
