@@ -728,6 +728,7 @@ fn gather_abstract_nodes(cur: &JS<Node>, refs: &mut ~[JS<Node>], postorder: bool
 }
 
 /// Specifies whether children must be recursively cloned or not.
+#[deriving(Eq)]
 pub enum CloneChildrenFlag {
     CloneChildren,
     DoNotCloneChildren
@@ -1289,16 +1290,6 @@ impl Node {
     // http://dom.spec.whatwg.org/#concept-node-clone
     pub fn clone(node: &JS<Node>, maybe_doc: Option<&JS<Document>>,
                  clone_children: CloneChildrenFlag) -> JS<Node> {
-        fn clone_recursively(node: &JS<Node>, copy: &mut JS<Node>, doc: &JS<Document>) {
-            for ref child in node.get().children() {
-                let mut cloned = Node::clone(child, Some(doc), DoNotCloneChildren);
-                match Node::pre_insert(&mut cloned, copy, None) {
-                    Ok(ref mut appended) => clone_recursively(child, appended, doc),
-                    Err(..) => fail!("an error occurred while appending children")
-                }
-            }
-        }
-
         // Step 1.
         let mut document = match maybe_doc {
             Some(doc) => doc.clone(),
@@ -1395,9 +1386,11 @@ impl Node {
         // Step 5: cloning steps.
 
         // Step 6.
-        match clone_children {
-            CloneChildren => clone_recursively(node, &mut copy, &document),
-            DoNotCloneChildren => ()
+        if clone_children == CloneChildren {
+            for ref child in node.get().children() {
+                let mut child_copy = Node::clone(child, Some(&document), clone_children);
+                let _inserted_node = Node::pre_insert(&mut child_copy, &mut copy, None);
+            }
         }
 
         // Step 7.
