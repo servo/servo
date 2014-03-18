@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            let foo = document.getElementById("foo");
+            let doc = document.implementation.createHTMLDocument("title");
+
+            is(foo.ownerDocument, document);
+
+            let adopted_foo = doc.adoptNode(foo);
+            is(document.getElementById("foo"), null);
+
+            is(foo, adopted_foo);
+            is(foo.ownerDocument, doc);
+            is(foo.parentNode, null);
+            is(foo.childNodes.length, 1);
+
+            finish();
+        </script>
+    </head>
+    <body>
+        <div id="foo"><div id="bar"></div></div>
+    </body>
+</html>
