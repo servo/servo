@@ -288,7 +288,7 @@ impl BlockFlow {
                                    margin_top: &mut Au,
                                    margin_bottom: &mut Au,
                                    top_margin_collapsible: bool,
-                                   bottom_margin_collapsible: bool) {
+                                   bottom_margin_collapsible: bool) -> Au {
         let mut first_in_flow = true;
         let mut collapsing = Au::new(0);
         let mut collapsible = if top_margin_collapsible {
@@ -321,7 +321,7 @@ impl BlockFlow {
             Au::new(0)
         };
 
-        *cur_y = *cur_y - collapsing;
+        collapsing
     }
 
     /// In case of inorder assign_height traversal, 'assign_height's of all children are visited.
@@ -436,12 +436,12 @@ impl BlockFlow {
 
         let mut cur_y = top_offset;
         let mut top_offset = top_offset;
-        self.compute_margin_collapse(&mut cur_y,
-                                     &mut top_offset,
-                                     &mut margin_top,
-                                     &mut margin_bottom,
-                                     top_margin_collapsible,
-                                     bottom_margin_collapsible);
+        let collapsing = self.compute_margin_collapse(&mut cur_y,
+                                                      &mut top_offset,
+                                                      &mut margin_top,
+                                                      &mut margin_bottom,
+                                                      top_margin_collapsible,
+                                                      bottom_margin_collapsible);
 
         // TODO: A box's own margins collapse if the 'min-height' property is zero, and it has neither
         // top or bottom borders nor top or bottom padding, and it has a 'height' of either 0 or 'auto',
@@ -456,7 +456,7 @@ impl BlockFlow {
             // infrastructure to make it scrollable.
             Au::max(screen_height, cur_y)
         } else {
-            cur_y - top_offset
+            cur_y - top_offset - collapsing
         };
 
         let mut border_and_padding = Au::new(0);

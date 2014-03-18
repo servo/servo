@@ -212,7 +212,7 @@ impl Flow for TableWrapperFlow {
             x_offset = x;
 
             // Get left and right paddings, borders for table.
-            // We get these values because table_wrapper doesn't have border and padding.
+            // We get these values from the box's style since table_wrapper doesn't have it's own border or padding.
             let padding_left = specified(style.Padding.padding_left, remaining_width);
             let padding_right = specified(style.Padding.padding_right, remaining_width);
             let border_left = style.Border.border_left_width;
