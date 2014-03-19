@@ -4,7 +4,7 @@
 
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::window::Window;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSContext;
 use layout_interface::TrustedNodeAddress;
 
 use std::cast;
@@ -29,17 +29,10 @@ impl <T> Clone for JS<T> {
 }
 
 impl<T: Reflectable> JS<T> {
-    pub fn new(mut obj: ~T,
+    pub fn new(obj: ~T,
                window:  &JS<Window>,
-               wrap_fn: extern "Rust" fn(*JSContext, &JS<Window>, ~T) -> *JSObject) -> JS<T> {
-        let cx = window.get().get_cx();
-        let raw: *mut T = &mut *obj;
-        if wrap_fn(cx, window, obj).is_null() {
-            fail!("Could not eagerly wrap object");
-        }
-        JS {
-            ptr: RefCell::new(raw)
-        }
+               wrap_fn: extern "Rust" fn(*JSContext, &JS<Window>, ~T) -> JS<T>) -> JS<T> {
+        wrap_fn(window.get().get_cx(), window, obj)
     }
 
     pub unsafe fn from_raw(raw: *mut T) -> JS<T> {
