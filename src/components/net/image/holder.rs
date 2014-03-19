@@ -6,10 +6,10 @@ use image::base::Image;
 use image_cache_task::{ImageReady, ImageNotReady, ImageFailed};
 use local_image_cache::LocalImageCache;
 
-use extra::arc::{Arc, MutexArc};
+use sync::{Arc, MutexArc};
 use extra::url::Url;
 use geom::size::Size2D;
-use std::util;
+use std::mem;
 
 // FIXME: Nasty coupling here This will be a problem if we want to factor out image handling from
 // the network stack. This should probably be factored out into an interface and use dependency
@@ -40,12 +40,10 @@ impl ImageHolder {
         // but they are intended to be spread out in time. Ideally prefetch
         // should be done as early as possible and decode only once we
         // are sure that the image will be used.
-        unsafe {
-            holder.local_image_cache.unsafe_access(|local_image_cache| {
-                local_image_cache.prefetch(&holder.url);
-                local_image_cache.decode(&holder.url);
-            });
-        }
+        holder.local_image_cache.access(|local_image_cache| {
+            local_image_cache.prefetch(&holder.url);
+            local_image_cache.decode(&holder.url);
+        });
 
         holder
     }
@@ -76,11 +74,10 @@ impl ImageHolder {
         // If this is the first time we've called this function, load
         // the image and store it for the future
         if self.image.is_none() {
-            let port = unsafe {
-                self.local_image_cache.unsafe_access(|local_image_cache| {
+            let port =
+                self.local_image_cache.access(|local_image_cache| {
                     local_image_cache.get_image(&self.url)
-                })
-            };
+                });
             match port.recv() {
                 ImageReady(image) => {
                     self.image = Some(image);
@@ -95,9 +92,9 @@ impl ImageHolder {
         }
 
         // Clone isn't pure so we have to swap out the mutable image option
-        let image = util::replace(&mut self.image, None);
+        let image = mem::replace(&mut self.image, None);
         let result = image.clone();
-        util::replace(&mut self.image, image);
+        mem::replace(&mut self.image, image);
 
         return result;
     }

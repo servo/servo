@@ -10,7 +10,7 @@ use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[repr(uint)]
-#[deriving(ToStr, Encodable)]
+#[deriving(Show, Encodable)]
 enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,
     HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR,

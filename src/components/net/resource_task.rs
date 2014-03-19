@@ -8,9 +8,9 @@ use file_loader;
 use http_loader;
 use data_loader;
 
-use std::comm::{Chan, Port, SharedChan};
+use std::comm::{Chan, Port};
+use std::task;
 use extra::url::Url;
-use util::spawn_listener;
 use http::headers::content_type::MediaType;
 
 #[cfg(test)]
@@ -85,8 +85,8 @@ pub enum ProgressMsg {
 
 /// For use by loaders in responding to a Load message.
 pub fn start_sending(start_chan: Chan<LoadResponse>,
-                     metadata:   Metadata) -> SharedChan<ProgressMsg> {
-    let (progress_port, progress_chan) = SharedChan::new();
+                     metadata:   Metadata) -> Chan<ProgressMsg> {
+    let (progress_port, progress_chan) = Chan::new();
     start_chan.send(LoadResponse {
         metadata:      metadata,
         progress_port: progress_port,
@@ -112,7 +112,7 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 }
 
 /// Handle to a resource task
-pub type ResourceTask = SharedChan<ControlMsg>;
+pub type ResourceTask = Chan<ControlMsg>;
 
 pub type LoaderTask = proc(url: Url, Chan<LoadResponse>);
 
@@ -135,11 +135,14 @@ pub fn ResourceTask() -> ResourceTask {
 }
 
 fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
-    let chan = spawn_listener("ResourceManager", proc(from_client) {
-        // TODO: change copy to move once we can move out of closures
-        ResourceManager(from_client, loaders).start()
+    let (setup_port, setup_chan) = Chan::new();
+    let builder = task::task().named("ResourceManager");
+    builder.spawn(proc() {
+        let (port, chan) = Chan::new();
+        setup_chan.send(chan);
+        ResourceManager(port, loaders).start();
     });
-    chan
+    setup_port.recv()
 }
 
 pub struct ResourceManager {

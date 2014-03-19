@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern mod harfbuzz;
+extern crate harfbuzz;
 
 use font::{Font, FontHandleMethods, FontTableMethods, FontTableTag};
 use platform::font::FontTable;
@@ -39,10 +39,9 @@ use servo_util::geometry::Au;
 use servo_util::range::Range;
 use std::cast::transmute;
 use std::char;
+use std::cmp;
 use std::libc::{c_uint, c_int, c_void, c_char};
-use std::num;
 use std::ptr::null;
-use std::ptr;
 use std::vec;
 
 static NO_GLYPH: i32 = -1;
@@ -86,7 +85,7 @@ impl ShapedGlyphData {
         assert!(i < self.count);
 
         unsafe {
-            let glyph_info_i = ptr::offset(self.glyph_infos, i as int);
+            let glyph_info_i = self.glyph_infos.offset(i as int);
             (*glyph_info_i).cluster as uint
         }
     }
@@ -100,8 +99,8 @@ impl ShapedGlyphData {
         assert!(i < self.count);
 
         unsafe {
-            let glyph_info_i = ptr::offset(self.glyph_infos, i as int);
-            let pos_info_i = ptr::offset(self.pos_infos, i as int);
+            let glyph_info_i = self.glyph_infos.offset(i as int);
+            let pos_info_i = self.pos_infos.offset(i as int);
             let x_offset = Shaper::fixed_to_float((*pos_info_i).x_offset);
             let y_offset = Shaper::fixed_to_float((*pos_info_i).y_offset);
             let x_advance = Shaper::fixed_to_float((*pos_info_i).x_advance);
@@ -318,7 +317,7 @@ impl Shaper {
                 let mut max_glyph_idx = glyph_span.end();
                 for i in char_byte_span.eachi() {
                     if byteToGlyph[i] > NO_GLYPH {
-                        max_glyph_idx = num::max(byteToGlyph[i] as uint + 1, max_glyph_idx);
+                        max_glyph_idx = cmp::max(byteToGlyph[i] as uint + 1, max_glyph_idx);
                     }
                 }
 
@@ -393,7 +392,7 @@ impl Shaper {
 
             // clamp to end of text. (I don't think this will be necessary, but..)
             let end = covered_byte_span.end(); // FIXME: borrow checker workaround
-            covered_byte_span.extend_to(num::min(end, byte_max));
+            covered_byte_span.extend_to(cmp::min(end, byte_max));
 
             // fast path: 1-to-1 mapping of single char and single glyph.
             if glyph_span.length() == 1 {

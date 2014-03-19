@@ -20,9 +20,7 @@ use servo_net::resource_task::ResourceTask;
 use servo_util::opts::Opts;
 use servo_util::time::ProfilerChan;
 use std::cell::RefCell;
-//FIXME: switch to std::rc when we upgrade Rust
-use layers::temp_rc::Rc;
-//use std::rc::Rc;
+use std::rc::Rc;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and render task. 
 pub struct Pipeline {
@@ -94,7 +92,8 @@ impl Pipeline {
             layout_chan: layout_chan.clone(),
         };
 
-        script_pipeline.borrow().script_chan.send(AttachLayoutMsg(new_layout_info));
+        let ScriptChan(ref chan) = script_pipeline.borrow().script_chan;
+        chan.send(AttachLayoutMsg(new_layout_info));
 
         Pipeline::new(id,
                       subpage_id,
@@ -190,16 +189,17 @@ impl Pipeline {
 
     pub fn load(&self, url: Url) {
         self.url.set(Some(url.clone()));
-        self.script_chan.send(LoadMsg(self.id, url));
+        let ScriptChan(ref chan) = self.script_chan;
+        chan.send(LoadMsg(self.id, url));
     }
 
     pub fn grant_paint_permission(&self) {
-        self.render_chan.try_send(PaintPermissionGranted);
+        self.render_chan.chan.try_send(PaintPermissionGranted);
     }
 
     pub fn revoke_paint_permission(&self) {
         debug!("pipeline revoking render channel paint permission");
-        self.render_chan.try_send(PaintPermissionRevoked);
+        self.render_chan.chan.try_send(PaintPermissionRevoked);
     }
 
     pub fn reload(&self) {
@@ -211,7 +211,8 @@ impl Pipeline {
     pub fn exit(&self) {
         // Script task handles shutting down layout, and layout handles shutting down the renderer.
         // For now, if the script task has failed, we give up on clean shutdown.
-        if self.script_chan.try_send(script_task::ExitPipelineMsg(self.id)) {
+        let ScriptChan(ref chan) = self.script_chan;
+        if chan.try_send(script_task::ExitPipelineMsg(self.id)) {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
             self.render_shutdown_port.recv_opt();

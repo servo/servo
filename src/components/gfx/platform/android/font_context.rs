@@ -14,7 +14,7 @@ use std::ptr;
 use std::rc::Rc;
 
 #[deriving(Clone)]
-struct FreeTypeLibraryHandle {
+pub struct FreeTypeLibraryHandle {
     ctx: FT_Library,
 }
 

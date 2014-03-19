@@ -6,7 +6,7 @@ use dom::bindings::codegen::EventBinding;
 use dom::bindings::codegen::EventBinding::EventConstants;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::error::{Fallible, ErrorResult};
+use dom::bindings::error::Fallible;
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use servo_util::str::DOMString;
@@ -24,10 +24,10 @@ pub enum Event_ {
 
 #[deriving(Encodable)]
 pub enum EventPhase {
-    Phase_None      = EventConstants::NONE,
-    Phase_Capturing = EventConstants::CAPTURING_PHASE,
-    Phase_At_Target = EventConstants::AT_TARGET,
-    Phase_Bubbling  = EventConstants::BUBBLING_PHASE,
+    PhaseNone      = EventConstants::NONE,
+    PhaseCapturing = EventConstants::CAPTURING_PHASE,
+    PhaseAtTarget  = EventConstants::AT_TARGET,
+    PhaseBubbling  = EventConstants::BUBBLING_PHASE,
 }
 
 #[deriving(Eq, Encodable)]
@@ -63,7 +63,7 @@ impl Event {
             reflector_: Reflector::new(),
             current_target: None,
             target: None,
-            phase: Phase_None,
+            phase: PhaseNone,
             type_: ~"",
             default_prevented: false,
             cancelable: true,
@@ -132,12 +132,11 @@ impl Event {
     pub fn InitEvent(&mut self,
                      type_: DOMString,
                      bubbles: bool,
-                     cancelable: bool) -> ErrorResult {
+                     cancelable: bool) {
         self.type_ = type_;
         self.cancelable = cancelable;
         self.bubbles = bubbles;
         self.initialized = true;
-        Ok(())
     }
 
     pub fn IsTrusted(&self) -> bool {

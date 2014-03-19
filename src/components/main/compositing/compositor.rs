@@ -18,7 +18,6 @@ use windowing::{WindowEvent, WindowMethods,
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
 use azure::azure_hl;
-use extra::time::precise_time_s;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -36,19 +35,16 @@ use servo_msg::constellation_msg;
 use servo_util::opts::Opts;
 use servo_util::time::{profile, ProfilerChan, Timer};
 use servo_util::{time, url};
-use std::comm::Port;
-use std::num::Orderable;
+use std::cmp;
+use std::comm::{Empty, Disconnected, Data, Port};
 use std::path::Path;
+use std::rc::Rc;
+use time::precise_time_s;
 
-//FIXME: switch to std::rc when we upgrade Rust
-use layers::temp_rc::Rc;
-//use std::rc::Rc;
-
-use std::rc;
 
 pub struct IOCompositor {
     /// The application window.
-    window: rc::Rc<Window>,
+    window: Rc<Window>,
 
     /// The port on which we receive messages.
     port: Port<Msg>,
@@ -120,7 +116,7 @@ impl IOCompositor {
                port: Port<Msg>,
                constellation_chan: ConstellationChan,
                profiler_chan: ProfilerChan) -> IOCompositor {
-        let window: rc::Rc<Window> = WindowMethods::new(app);
+        let window: Rc<Window> = WindowMethods::new(app);
 
         // Create an initial layer tree.
         //
@@ -171,14 +167,17 @@ impl IOCompositor {
 
     fn run (&mut self) {
         // Tell the constellation about the initial window size.
-        self.constellation_chan.send(ResizedWindowMsg(self.window_size));
+        {
+            let ConstellationChan(ref chan) = self.constellation_chan;
+            chan.send(ResizedWindowMsg(self.window_size));
+        }
 
         // Enter the main event loop.
         while !self.done {
             // Check for new messages coming from the rendering task.
             self.handle_message();
 
-            if (self.done) {
+            if self.done {
                 // We have exited the compositor and passing window
                 // messages to script may crash.
                 debug!("Exiting the compositor due to a request from script.");
@@ -213,80 +212,89 @@ impl IOCompositor {
 
         // Drain compositor port, sometimes messages contain channels that are blocking
         // another task from finishing (i.e. SetIds)
-        while self.port.try_recv().is_some() {}
+        loop {
+            match self.port.try_recv() {
+                Empty | Disconnected => break,
+                Data(_) => {},
+            }
+        }
 
         // Tell the profiler to shut down.
-        self.profiler_chan.send(time::ExitMsg);
+        let ProfilerChan(ref chan) = self.profiler_chan;
+        chan.send(time::ExitMsg);
     }
 
     fn handle_message(&mut self) {
         loop {
             match (self.port.try_recv(), self.shutting_down) {
-                (None, _) => break,
+                (Empty, _) => break,
 
-                (Some(Exit(chan)), _) => {
+                (Disconnected, _) => break,
+
+                (Data(Exit(chan)), _) => {
                     debug!("shutting down the constellation");
-                    self.constellation_chan.send(ExitMsg);
+                    let ConstellationChan(ref con_chan) = self.constellation_chan;
+                    con_chan.send(ExitMsg);
                     chan.send(());
                     self.shutting_down = true;
                 }
 
-                (Some(ShutdownComplete), _) => {
+                (Data(ShutdownComplete), _) => {
                     debug!("constellation completed shutdown");
                     self.done = true;
                 }
 
-                (Some(ChangeReadyState(ready_state)), false) => {
+                (Data(ChangeReadyState(ready_state)), false) => {
                     self.window.borrow().set_ready_state(ready_state);
                     self.ready_state = ready_state;
                 }
 
-                (Some(ChangeRenderState(render_state)), false) => {
+                (Data(ChangeRenderState(render_state)), false) => {
                     self.change_render_state(render_state);
                 }
 
-                (Some(SetUnRenderedColor(_id, color)), false) => {
+                (Data(SetUnRenderedColor(_id, color)), false) => {
                     self.set_unrendered_color(_id, color);
                 }
 
 
-                (Some(SetIds(frame_tree, response_chan, new_constellation_chan)), _) => {
+                (Data(SetIds(frame_tree, response_chan, new_constellation_chan)), _) => {
                     self.set_ids(frame_tree, response_chan, new_constellation_chan);
                 }
 
-                (Some(GetGraphicsMetadata(chan)), false) => {
+                (Data(GetGraphicsMetadata(chan)), false) => {
                     chan.send(Some(azure_hl::current_graphics_metadata()));
                 }
 
-                (Some(NewLayer(_id, new_size)), false) => {
+                (Data(NewLayer(_id, new_size)), false) => {
                     self.create_new_layer(_id, new_size);
                 }
 
-                (Some(SetLayerPageSize(id, new_size, epoch)), false) => {
+                (Data(SetLayerPageSize(id, new_size, epoch)), false) => {
                     self.set_layer_page_size(id, new_size, epoch);
                 }
 
-                (Some(SetLayerClipRect(id, new_rect)), false) => {
+                (Data(SetLayerClipRect(id, new_rect)), false) => {
                     self.set_layer_clip_rect(id, new_rect);
                 }
 
-                (Some(DeleteLayer(id)), _) => {
+                (Data(DeleteLayer(id)), _) => {
                     self.delete_layer(id);
                 }
 
-                (Some(Paint(id, new_layer_buffer_set, epoch)), false) => {
+                (Data(Paint(id, new_layer_buffer_set, epoch)), false) => {
                     self.paint(id, new_layer_buffer_set, epoch);
                 }
 
-                (Some(InvalidateRect(id, rect)), false) => {
+                (Data(InvalidateRect(id, rect)), false) => {
                     self.invalidate_rect(id, rect);
                 }
 
-                (Some(ScrollFragmentPoint(id, point)), false) => {
+                (Data(ScrollFragmentPoint(id, point)), false) => {
                     self.scroll_fragment_to_point(id, point);
                 }
 
-                (Some(LoadComplete(..)), false) => {
+                (Data(LoadComplete(..)), false) => {
                     self.load_complete = true;
                 }
 
@@ -350,7 +358,10 @@ impl IOCompositor {
         let window_size = self.window.borrow().size();
         let window_size = Size2D(window_size.width as uint,
                                  window_size.height as uint);
-        new_constellation_chan.send(ResizedWindowMsg(window_size));
+        {
+            let ConstellationChan(ref chan) = new_constellation_chan;
+            chan.send(ResizedWindowMsg(window_size));
+        }
 
         self.constellation_chan = new_constellation_chan;
     }
@@ -397,7 +408,7 @@ impl IOCompositor {
                 let page_window = Size2D(window_size.width as f32 / world_zoom,
                                          window_size.height as f32 / world_zoom);
                 layer.resize(id, new_size, page_window, epoch);
-                let move = self.fragment_point.take().map_default(false, |point| layer.move(point, page_window));
+                let move = self.fragment_point.take().map_or(false, |point| layer.move(point, page_window));
 
                 (true, move)
             }
@@ -551,14 +562,16 @@ impl IOCompositor {
                 let exit = self.opts.exit_after_load;
                 if exit {
                     debug!("shutting down the constellation for FinishedWindowEvent");
-                    self.constellation_chan.send(ExitMsg);
+                    let ConstellationChan(ref chan) = self.constellation_chan;
+                    chan.send(ExitMsg);
                     self.shutting_down = true;
                 }
             }
 
             QuitWindowEvent => {
                 debug!("shutting down the constellation for QuitWindowEvent");
-                self.constellation_chan.send(ExitMsg);
+                let ConstellationChan(ref chan) = self.constellation_chan;
+                chan.send(ExitMsg);
                 self.shutting_down = true;
             }
         }
@@ -569,7 +582,8 @@ impl IOCompositor {
         if self.window_size != new_size {
             debug!("osmain: window resized to {:u}x{:u}", width, height);
             self.window_size = new_size;
-            self.constellation_chan.send(ResizedWindowMsg(new_size))
+            let ConstellationChan(ref chan) = self.constellation_chan;
+            chan.send(ResizedWindowMsg(new_size))
         } else {
             debug!("osmain: dropping window resize since size is still {:u}x{:u}", width, height);
         }
@@ -584,7 +598,8 @@ impl IOCompositor {
         };
 
         let msg = LoadUrlMsg(root_pipeline_id, url::parse_url(url_string, None));
-        self.constellation_chan.send(msg);
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(msg);
     }
 
     fn on_mouse_window_event_class(&self, mouse_window_event: MouseWindowEvent) {
@@ -628,7 +643,7 @@ impl IOCompositor {
         let window_size = &self.window_size;
 
         // Determine zoom amount
-        self.world_zoom = (self.world_zoom * magnification).max(&1.0);
+        self.world_zoom = cmp::max(self.world_zoom * magnification, 1.0);
         let world_zoom = self.world_zoom;
 
         self.root_layer.borrow().common.with_mut(|common| common.set_transform(identity().scale(world_zoom, world_zoom, 1f32)));
@@ -652,7 +667,8 @@ impl IOCompositor {
             windowing::Forward => constellation_msg::Forward,
             windowing::Back => constellation_msg::Back,
         };
-        self.constellation_chan.send(NavigateMsg(direction))
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(NavigateMsg(direction))
     }
 
     /// Get BufferRequests from each layer.
@@ -721,7 +737,8 @@ impl IOCompositor {
             assert!(res.is_ok());
 
             debug!("shutting down the constellation after generating an output file");
-            self.constellation_chan.send(ExitMsg);
+            let ConstellationChan(ref chan) = self.constellation_chan;
+            chan.send(ExitMsg);
             self.shutting_down = true;
         }
 
@@ -730,7 +747,8 @@ impl IOCompositor {
         let exit = self.opts.exit_after_load;
         if exit {
             debug!("shutting down the constellation for exit_after_load");
-            self.constellation_chan.send(ExitMsg);
+            let ConstellationChan(ref chan) = self.constellation_chan;
+            chan.send(ExitMsg);
         }
     }
 

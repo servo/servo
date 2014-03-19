@@ -8,43 +8,47 @@
 
 #[feature(globs, macro_rules, managed_boxes, thread_local)];
 
-extern mod alert;
-extern mod azure;
-extern mod geom;
-extern mod gfx;
+extern crate alert;
+extern crate azure;
+extern crate geom;
+extern crate gfx;
 #[cfg(not(target_os="android"))]
-extern mod glfw;
+extern crate glfw = "glfw-rs";
 #[cfg(target_os="android")]
-extern mod glut;
-extern mod js;
-extern mod layers;
-extern mod opengles;
-extern mod png;
+extern crate glut;
+extern crate js;
+extern crate layers;
+extern crate opengles;
+extern crate png;
 #[cfg(target_os="android")]
-extern mod rustuv;
-extern mod script;
-extern mod servo_net = "net";
-extern mod servo_msg = "msg";
-extern mod servo_util = "util";
-extern mod style;
-extern mod sharegl;
-extern mod stb_image;
+extern crate rustuv;
+extern crate script;
+extern crate servo_net = "net";
+extern crate servo_msg = "msg";
+extern crate servo_util = "util";
+extern crate style;
+extern crate sharegl;
+extern crate stb_image;
 
-extern mod extra;
-extern mod green;
-extern mod native;
+extern crate collections;
+extern crate extra;
+extern crate green;
+extern crate native;
+extern crate serialize;
+extern crate sync;
+extern crate time;
 
 #[cfg(target_os="macos")]
-extern mod core_graphics;
+extern crate core_graphics;
 #[cfg(target_os="macos")]
-extern mod core_text;
+extern crate core_text;
 
 #[cfg(not(test))]
 use compositing::{CompositorChan, CompositorTask};
 #[cfg(not(test))]
 use constellation::Constellation;
 #[cfg(not(test))]
-use servo_msg::constellation_msg::InitLoadUrlMsg;
+use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
 
 #[cfg(not(test))]
 use servo_net::image_cache_task::{ImageCacheTask, SyncImageCacheTask};
@@ -109,9 +113,6 @@ pub mod windowing;
 #[path="platform/mod.rs"]
 pub mod platform;
 
-#[path = "util/mod.rs"]
-pub mod util;
-
 #[cfg(not(test), target_os="linux")]
 #[cfg(not(test), target_os="macos")]
 #[start]
@@ -175,7 +176,8 @@ fn run(opts: opts::Opts) {
                 parse_url(*filename, None)
             };
 
-            constellation_chan.send(InitLoadUrlMsg(url));
+            let ConstellationChan(ref chan) = constellation_chan;
+            chan.send(InitLoadUrlMsg(url));
         }
 
         // Send the constallation Chan as the result

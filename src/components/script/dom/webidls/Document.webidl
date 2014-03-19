@@ -44,6 +44,7 @@ interface Document : Node {
 partial interface Document {
            [SetterThrows]
            attribute DOMString title;
+           [SetterThrows]
            attribute HTMLElement? body;
   readonly attribute HTMLHeadElement? head;
   NodeList getElementsByName(DOMString elementName);

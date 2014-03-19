@@ -19,7 +19,7 @@ use servo_net::image_cache_task;
 use servo_util::url::parse_url;
 use servo_util::str::DOMString;
 
-use extra::serialize::{Encoder, Encodable};
+use serialize::{Encoder, Encodable};
 
 #[deriving(Encodable)]
 pub struct HTMLImageElement {
@@ -120,8 +120,7 @@ impl HTMLImageElement {
 
     pub fn SetSrc(&mut self, abstract_self: &JS<HTMLImageElement>, src: DOMString) -> ErrorResult {
         let node = &mut self.htmlelement.element;
-        node.set_attr(&ElementCast::from(abstract_self), ~"src", src.clone());
-        Ok(())
+        node.set_attr(&ElementCast::from(abstract_self), ~"src", src.clone())
     }
 
     pub fn CrossOrigin(&self) -> DOMString {
@@ -164,8 +163,7 @@ impl HTMLImageElement {
     pub fn SetWidth(&mut self, abstract_self: &JS<HTMLImageElement>, width: u32) -> ErrorResult {
         let mut elem: JS<Element> = ElementCast::from(abstract_self);
         let mut elem_clone = elem.clone();
-        elem.get_mut().set_attr(&mut elem_clone, ~"width", width.to_str());
-        Ok(())
+        elem.get_mut().set_attr(&mut elem_clone, ~"width", width.to_str())
     }
 
     pub fn Height(&self, abstract_self: &JS<HTMLImageElement>) -> u32 {
@@ -184,8 +182,7 @@ impl HTMLImageElement {
 
     pub fn SetHeight(&mut self, abstract_self: &JS<HTMLImageElement>, height: u32) -> ErrorResult {
         let node = &mut self.htmlelement.element;
-        node.set_attr(&ElementCast::from(abstract_self), ~"height", height.to_str());
-        Ok(())
+        node.set_attr(&ElementCast::from(abstract_self), ~"height", height.to_str())
     }
 
     pub fn NaturalWidth(&self) -> u32 {

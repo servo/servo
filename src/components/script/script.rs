@@ -10,16 +10,18 @@
 
 #[feature(globs, macro_rules, struct_variant, managed_boxes)];
 
-extern mod geom;
-extern mod hubbub;
-extern mod encoding;
-extern mod js;
-extern mod servo_net = "net";
-extern mod servo_util = "util";
-extern mod style;
-extern mod servo_msg = "msg";
-extern mod extra;
-extern mod native;
+extern crate collections;
+extern crate geom;
+extern crate hubbub;
+extern crate encoding;
+extern crate js;
+extern crate serialize;
+extern crate servo_net = "net";
+extern crate servo_util = "util";
+extern crate style;
+extern crate servo_msg = "msg";
+extern crate extra;
+extern crate native;
 
 // Macros
 mod macros;

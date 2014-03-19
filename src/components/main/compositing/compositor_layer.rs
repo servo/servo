@@ -19,12 +19,11 @@ use layers::texturegl::{Texture, TextureTarget};
 #[cfg(target_os="macos")] use layers::texturegl::TextureTargetRectangle;
 use pipeline::CompositionPipeline;
 use script::dom::event::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
-use script::script_task::SendEventMsg;
+use script::script_task::{ScriptChan, SendEventMsg};
 use servo_msg::compositor_msg::{LayerBuffer, LayerBufferSet, Epoch, Tile};
 use servo_msg::constellation_msg::PipelineId;
-//FIXME: switch to std::rc when we upgrade Rust
-use layers::temp_rc::Rc;
-//use std::rc::Rc;
+use std::cmp;
+use std::rc::Rc;
 use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use windowing::{MouseWindowMouseUpEvent};
 use azure::azure_hl::Color;
@@ -104,6 +103,25 @@ enum ScrollBehavior {
     /// passed on to child layers.
     FixedPosition,
 }
+
+trait Clampable {
+    fn clamp(&self, mn: &Self, mx: &Self) -> Self;
+}
+
+impl Clampable for f32 {
+    /// Returns the number constrained within the range `mn <= self <= mx`.
+    /// If any of the numbers are `NAN` then `NAN` is returned.
+    #[inline]
+    fn clamp(&self, mn: &f32, mx: &f32) -> f32 {
+        match () {
+            _ if self.is_nan()   => *self,
+            _ if !(*self <= *mx) => *mx,
+            _ if !(*self >= *mn) => *mn,
+            _                    => *self,
+        }
+    }
+}
+
 
 impl CompositorLayer {
     /// Creates a new CompositorLayer with an optional page size. If no page size is given,
@@ -207,9 +225,9 @@ impl CompositorLayer {
                     Some(size) => size,
                     None => fail!("CompositorLayer: tried to scroll with no page size set"),
                 };
-                let min_x = (window_size.width - page_size.width).min(&0.0);
+                let min_x = cmp::min(window_size.width - page_size.width, 0.0);
                 self.scroll_offset.x = self.scroll_offset.x.clamp(&min_x, &0.0);
-                let min_y = (window_size.height - page_size.height).min(&0.0);
+                let min_y = cmp::min(window_size.height - page_size.height, 0.0);
                 self.scroll_offset.y = self.scroll_offset.y.clamp(&min_y, &0.0);
 
                 // check to see if we scrolled
@@ -253,13 +271,15 @@ impl CompositorLayer {
             MouseWindowClickEvent(button, _) => ClickEvent(button, cursor),
             MouseWindowMouseDownEvent(button, _) => MouseDownEvent(button, cursor),
             MouseWindowMouseUpEvent(button, _) => MouseUpEvent(button, cursor),
-        }; 
-        self.pipeline.script_chan.try_send(SendEventMsg(self.pipeline.id.clone(), message));
+        };
+        let ScriptChan(ref chan) = self.pipeline.script_chan;
+        chan.try_send(SendEventMsg(self.pipeline.id.clone(), message));
     }
 
     pub fn send_mouse_move_event(&self, cursor: Point2D<f32>) {
         let message = MouseMoveEvent(cursor);
-        self.pipeline.script_chan.try_send(SendEventMsg(self.pipeline.id.clone(), message));
+        let ScriptChan(ref chan) = self.pipeline.script_chan;
+        chan.try_send(SendEventMsg(self.pipeline.id.clone(), message));
     }
 
     // Given the current window size, determine which tiles need to be (re)rendered
@@ -410,9 +430,9 @@ impl CompositorLayer {
                     Some(size) => size,
                     None => fail!("CompositorLayer: tried to scroll with no page size set"),
                 };
-                let min_x = (window_size.width - page_size.width).min(&0.0);
+                let min_x = cmp::min(window_size.width - page_size.width, 0.0);
                 self.scroll_offset.x = self.scroll_offset.x.clamp(&min_x, &0.0);
-                let min_y = (window_size.height - page_size.height).min(&0.0);
+                let min_y = cmp::min(window_size.height - page_size.height, 0.0);
                 self.scroll_offset.y = self.scroll_offset.y.clamp(&min_y, &0.0);
 
                 // check to see if we scrolled
@@ -674,7 +694,7 @@ impl CompositorLayer {
                     NoTree(..) => {} // Nothing to do
                     Tree(ref mut quadtree) => {
                         // NOTE: work around borrowchk
-                        let tmp = child.container.borrow().scissor.borrow();
+                        let tmp = child.get_ref().container.borrow().scissor.borrow();
                         match *tmp.get() {
                             Some(rect) => {
                                 quadtree.set_status_page(rect, Normal, false); // Unhide this rect
@@ -685,7 +705,7 @@ impl CompositorLayer {
                 }
 
                 // Send back all tiles to renderer.
-                child.child.clear();
+                child.get_mut_ref().child.clear();
 
                 self.build_layer_tree(graphics_context);
                 true

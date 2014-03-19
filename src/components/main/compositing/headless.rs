@@ -6,7 +6,7 @@ use compositing::*;
 
 use geom::size::Size2D;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, ResizedWindowMsg};
-use std::comm::Port;
+use std::comm::{Empty, Disconnected, Data, Port};
 use servo_util::time::ProfilerChan;
 use servo_util::time;
 
@@ -32,12 +32,20 @@ impl NullCompositor {
         let compositor = NullCompositor::new(port);
 
         // Tell the constellation about the initial fake size.
-        constellation_chan.send(ResizedWindowMsg(Size2D(640u, 480u)));
+        {
+            let ConstellationChan(ref chan) = constellation_chan;
+            chan.send(ResizedWindowMsg(Size2D(640u, 480u)));
+        }
         compositor.handle_message(constellation_chan);
 
         // Drain compositor port, sometimes messages contain channels that are blocking
         // another task from finishing (i.e. SetIds)
-        while compositor.port.try_recv().is_some() {}
+        loop {
+            match compositor.port.try_recv() {
+                Empty | Disconnected => break,
+                Data(_) => {},
+            }
+        }
 
         profiler_chan.send(time::ExitMsg);
     }
@@ -47,7 +55,8 @@ impl NullCompositor {
             match self.port.recv() {
                 Exit(chan) => {
                     debug!("shutting down the constellation");
-                    constellation_chan.send(ExitMsg);
+                    let ConstellationChan(ref con_chan) = constellation_chan;
+                    con_chan.send(ExitMsg);
                     chan.send(());
                 }
 

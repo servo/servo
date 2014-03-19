@@ -33,7 +33,6 @@ interface Event {
   readonly attribute boolean isTrusted;
   readonly attribute DOMTimeStamp timeStamp;
 
-  [Throws]
   void initEvent(DOMString type, boolean bubbles, boolean cancelable);
 };
 

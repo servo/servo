@@ -14,12 +14,11 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use servo_msg::compositor_msg::{Epoch, RenderListener, LayerBufferSet, RenderState, ReadyState};
-use servo_msg::compositor_msg::{ScriptListener, Tile};
+use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_util::opts::Opts;
 use servo_util::time::ProfilerChan;
-use std::comm::{Chan, SharedChan, Port};
-use std::num::Orderable;
+use std::comm::{Chan, Port};
 
 use extra::url::Url;
 
@@ -36,7 +35,7 @@ mod headless;
 #[deriving(Clone)]
 pub struct CompositorChan {
     /// A channel on which messages can be sent to the compositor.
-    chan: SharedChan<Msg>,
+    chan: Chan<Msg>,
 }
 
 /// Implementation of the abstract `ScriptListener` interface.
@@ -106,7 +105,7 @@ impl RenderListener for CompositorChan {
 
 impl CompositorChan {
     pub fn new() -> (Port<Msg>, CompositorChan) {
-        let (port, chan) = SharedChan::new();
+        let (port, chan) = Chan::new();
         let compositor_chan = CompositorChan {
             chan: chan,
         };

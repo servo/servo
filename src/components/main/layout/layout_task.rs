@@ -22,7 +22,6 @@ use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use extra::url::Url;
-use extra::arc::{Arc, MutexArc};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -55,11 +54,12 @@ use std::cast::transmute;
 use std::cast;
 use std::cell::RefCell;
 use std::comm::Port;
+use std::mem;
 use std::ptr;
 use std::task;
-use std::util;
 use style::{AuthorOrigin, ComputedValues, Stylesheet, Stylist};
 use style;
+use sync::{Arc, MutexArc};
 
 /// Information needed by the layout task.
 pub struct LayoutTask {
@@ -236,7 +236,8 @@ impl ImageResponder for LayoutImageResponder {
         let id = self.id.clone();
         let script_chan = self.script_chan.clone();
         let f: proc(ImageResponseMsg) = proc(_) {
-            drop(script_chan.try_send(SendEventMsg(id.clone(), ReflowEvent)))
+            let ScriptChan(chan) = script_chan;
+            drop(chan.try_send(SendEventMsg(id.clone(), ReflowEvent)))
         };
         f
     }
@@ -255,9 +256,9 @@ impl LayoutTask {
                   opts: Opts,
                   profiler_chan: ProfilerChan,
                   shutdown_chan: Chan<()>) {
-        let mut builder = task::task();
-        send_on_failure(&mut builder, FailureMsg(failure_msg), (*constellation_chan).clone());
-        builder.name("LayoutTask");
+        let mut builder = task::task().named("LayoutTask");
+        let ConstellationChan(con_chan) = constellation_chan.clone();
+        send_on_failure(&mut builder, FailureMsg(failure_msg), con_chan);
         builder.spawn(proc() {
             { // Ensures layout task is destroyed before we send shutdown message
                 let mut layout = LayoutTask::new(id,
@@ -426,7 +427,7 @@ impl LayoutTask {
         let mut layout_data_ref = node.mutate_layout_data();
         let result = match *layout_data_ref.get() {
             Some(ref mut layout_data) => {
-                util::replace(&mut layout_data.data.flow_construction_result, NoConstructionResult)
+                mem::replace(&mut layout_data.data.flow_construction_result, NoConstructionResult)
             }
             None => fail!("no layout data for root node"),
         };
@@ -539,11 +540,9 @@ impl LayoutTask {
         debug!("{:?}", node.dump());
 
         // Reset the image cache.
-        unsafe {
-            self.local_image_cache.unsafe_access(|local_image_cache| {
-                local_image_cache.next_round(self.make_on_image_available_cb())
-            });
-        }
+        self.local_image_cache.access(|local_image_cache| {
+            local_image_cache.next_round(self.make_on_image_available_cb())
+        });
 
         // true => Do the reflow with full style damage, because content
         // changed or the window was resized.
@@ -691,7 +690,8 @@ impl LayoutTask {
         // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
         // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(());
-        data.script_chan.send(ReflowCompleteMsg(self.id, data.id));
+        let ScriptChan(ref chan) = data.script_chan;
+        chan.send(ReflowCompleteMsg(self.id, data.id));
     }
 
     /// Handles a query from the script task. This is the main routine that DOM functions like
@@ -857,6 +857,6 @@ impl LayoutTask {
     unsafe fn handle_reap_layout_data(&self, layout_data: LayoutDataRef) {
         let mut layout_data_ref = layout_data.borrow_mut();
         let _: Option<LayoutDataWrapper> = cast::transmute(
-            util::replace(layout_data_ref.get(), None));
+            mem::replace(layout_data_ref.get(), None));
     }
 }

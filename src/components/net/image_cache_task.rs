@@ -7,14 +7,14 @@ use resource_task;
 use resource_task::ResourceTask;
 use servo_util::url::{UrlMap, url_map};
 
-use std::comm::{Chan, Port, SharedChan};
+use std::comm::{Chan, Port};
+use std::mem::replace;
 use std::task::spawn;
 use std::to_str::ToStr;
-use std::util::replace;
 use std::result;
-use extra::arc::{Arc,MutexArc};
+use sync::{Arc,MutexArc};
 use extra::url::Url;
-use extra::serialize::{Encoder, Encodable};
+use serialize::{Encoder, Encodable};
 
 pub enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
@@ -78,7 +78,7 @@ impl Eq for ImageResponseMsg {
 
 #[deriving(Clone)]
 pub struct ImageCacheTask {
-    chan: SharedChan<Msg>,
+    chan: Chan<Msg>,
 }
 
 impl<S: Encoder> Encodable<S> for ImageCacheTask {
@@ -89,7 +89,7 @@ impl<S: Encoder> Encodable<S> for ImageCacheTask {
 type DecoderFactory = fn() -> proc(&[u8]) -> Option<Image>;
 
 pub fn ImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
-    let (port, chan) = SharedChan::new();
+    let (port, chan) = Chan::new();
     let chan_clone = chan.clone();
 
     spawn(proc() {
@@ -111,7 +111,7 @@ pub fn ImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
 
 // FIXME: make this priv after visibility rules change
 pub fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
-    let (port, chan) = SharedChan::new();
+    let (port, chan) = Chan::new();
 
     spawn(proc() {
         let inner_cache = ImageCacheTask(resource_task.clone());
@@ -143,7 +143,7 @@ struct ImageCache {
     /// The port on which we'll receive client requests
     port: Port<Msg>,
     /// A copy of the shared chan to give to child tasks
-    chan: SharedChan<Msg>,
+    chan: Chan<Msg>,
     /// The state of processsing an image for a URL
     state_map: UrlMap<ImageState>,
     /// List of clients waiting on a WaitForImage response
@@ -375,13 +375,11 @@ impl ImageCache {
     fn purge_waiters(&mut self, url: Url, f: || -> ImageResponseMsg) {
         match self.wait_map.pop(&url) {
             Some(waiters) => {
-                unsafe {
-                    waiters.unsafe_access(|waiters| {
-                        for response in waiters.iter() {
-                            response.send(f());
-                        }
-                    });
-                }
+                waiters.access(|waiters| {
+                    for response in waiters.iter() {
+                        response.send(f());
+                    }
+                });
             }
             None => ()
         }
@@ -409,9 +407,7 @@ impl ImageCache {
                 if self.wait_map.contains_key(&url) {
                     let waiters = self.wait_map.find_mut(&url).unwrap();
                     let mut response = Some(response);
-                    unsafe {
-                        waiters.unsafe_access(|waiters| waiters.push(response.take().unwrap()))
-                    }
+                    waiters.access(|waiters| waiters.push(response.take().unwrap()));
                 } else {
                     self.wait_map.insert(url, MutexArc::new(~[response]));
                 }
@@ -430,7 +426,7 @@ impl ImageCache {
 }
 
 
-trait ImageCacheTaskClient {
+pub trait ImageCacheTaskClient {
     fn exit(&self);
 }
 
@@ -485,6 +481,18 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
 }
 
 
+pub fn spawn_listener<A: Send>(f: proc(Port<A>)) -> Chan<A> {
+    let (setup_port, setup_chan) = Chan::new();
+
+    spawn(proc() {
+        let (port, chan) = Chan::new();
+        setup_chan.send(chan);
+        f(port);
+    });
+    setup_port.recv()
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -492,11 +500,11 @@ mod tests {
     use resource_task;
     use resource_task::{ResourceTask, Metadata, start_sending};
     use image::base::test_image_bin;
-    use util::spawn_listener;
     use servo_util::url::parse_url;
+    use std::comm::{Empty, Data, Disconnected};
 
-    fn mock_resource_task(on_load: proc(resource: SharedChan<resource_task::ProgressMsg>)) -> ResourceTask {
-        spawn_listener("mock_resource_task", proc(port: Port<resource_task::ControlMsg>) {
+    fn mock_resource_task(on_load: proc(resource: Chan<resource_task::ProgressMsg>)) -> ResourceTask {
+        spawn_listener(proc(port: Port<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
@@ -568,7 +576,10 @@ mod tests {
         url_requested.recv();
         image_cache_task.exit();
         mock_resource_task.send(resource_task::Exit);
-        assert!(url_requested.try_recv().is_none())
+        match url_requested.try_recv() {
+            Empty | Disconnected => (),
+            Data(_) => assert!(false),
+        };
     }
 
     #[test]
@@ -662,7 +673,7 @@ mod tests {
 
         let (resource_task_exited, resource_task_exited_chan) = Chan::new();
 
-        let mock_resource_task = spawn_listener("should_not...already_available", proc(port: Port<resource_task::ControlMsg>) {
+        let mock_resource_task = spawn_listener(proc(port: Port<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
@@ -696,7 +707,10 @@ mod tests {
 
         // Our resource task should not have received another request for the image
         // because it's already cached
-        assert!(image_bin_sent.try_recv().is_none());
+        match image_bin_sent.try_recv() {
+            Empty | Disconnected => (),
+            Data(_) => assert!(false),
+        }
     }
 
     #[test]
@@ -705,7 +719,7 @@ mod tests {
 
         let (resource_task_exited, resource_task_exited_chan) = Chan::new();
 
-        let mock_resource_task = spawn_listener("should_not...already_failed", proc(port: Port<resource_task::ControlMsg>) {
+        let mock_resource_task = spawn_listener(proc(port: Port<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
                     resource_task::Load(_, response) => {
@@ -741,7 +755,10 @@ mod tests {
 
         // Our resource task should not have received another request for the image
         // because it's already cached
-        assert!(image_bin_sent.try_recv().is_none());
+        match image_bin_sent.try_recv() {
+            Empty | Disconnected => (),
+            Data(_) => assert!(false),
+        }
     }
 
     #[test]

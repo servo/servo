@@ -50,13 +50,13 @@ use servo_util::task::send_on_failure;
 use servo_util::namespace::Null;
 use std::cast;
 use std::cell::{RefCell, Ref, RefMut};
-use std::comm::{Port, SharedChan};
+use std::comm::{Port, Chan, Empty, Disconnected, Data};
+use std::mem::replace;
 use std::ptr;
 use std::rc::Rc;
 use std::task;
-use std::util::replace;
 
-use extra::serialize::{Encoder, Encodable};
+use serialize::{Encoder, Encodable};
 
 /// Messages used to control the script task.
 pub enum ScriptMsg {
@@ -90,7 +90,7 @@ pub struct NewLayoutInfo {
 
 /// Encapsulates external communication with the script task.
 #[deriving(Clone)]
-pub struct ScriptChan(SharedChan<ScriptMsg>);
+pub struct ScriptChan(Chan<ScriptMsg>);
 
 impl<S: Encoder> Encodable<S> for ScriptChan {
     fn encode(&self, _s: &mut S) {
@@ -100,7 +100,7 @@ impl<S: Encoder> Encodable<S> for ScriptChan {
 impl ScriptChan {
     /// Creates a new script chan.
     pub fn new() -> (Port<ScriptMsg>, ScriptChan) {
-        let (port, chan) = SharedChan::new();
+        let (port, chan) = Chan::new();
         (port, ScriptChan(chan))
     }
 }
@@ -164,7 +164,7 @@ pub struct PageTreeIterator<'a> {
 impl PageTree {
     fn new(id: PipelineId, layout_chan: LayoutChan, window_size: Size2D<uint>) -> PageTree {
         PageTree {
-            page: unsafe { Rc::new_unchecked(Page {
+            page: Rc::new(Page {
                 id: id,
                 frame: RefCell::new(None),
                 layout_chan: layout_chan,
@@ -177,7 +177,7 @@ impl PageTree {
                 resize_event: RefCell::new(None),
                 fragment_node: RefCell::new(None),
                 last_reflow_id: RefCell::new(0)
-            }) },
+            }),
             inner: ~[],
         }
     }
@@ -220,7 +220,7 @@ impl PageTree {
                 .map(|(idx, _)| idx)
         };
         match remove_idx {
-            Some(idx) => return Some(self.inner.remove(idx)),
+            Some(idx) => return Some(self.inner.remove(idx).unwrap()),
             None => {
                 for page_tree in self.inner.mut_iter() {
                     match page_tree.remove(id) {
@@ -237,11 +237,9 @@ impl PageTree {
 impl<'a> Iterator<Rc<Page>> for PageTreeIterator<'a> {
     fn next(&mut self) -> Option<Rc<Page>> {
         if !self.stack.is_empty() {
-            let next = self.stack.pop();
-            {
-                for child in next.inner.mut_iter() {
-                    self.stack.push(child);
-                }
+            let next = self.stack.pop().unwrap();
+            for child in next.inner.mut_iter() {
+                self.stack.push(child);
             }
             Some(next.page.clone())
         } else {
@@ -307,7 +305,7 @@ impl Page {
 
     pub fn get_url(&self) -> Url {
         let url = self.url();
-        url.get().get_ref().first().clone()
+        url.get().get_ref().ref0().clone()
     }
 
     /// Sends a ping to layout and waits for the response. The response will arrive when the
@@ -319,11 +317,14 @@ impl Page {
             match join_port {
                 Some(ref join_port) => {
                     match join_port.try_recv() {
-                        None => {
+                        Empty => {
                             info!("script: waiting on layout");
                             join_port.recv();
                         }
-                        Some(_) => {}
+                        Data(_) => {}
+                        Disconnected => {
+                            fail!("Layout task failed while script was waiting for a result.");
+                        }
                     }
 
                     debug!("script: layout joined")
@@ -339,7 +340,8 @@ impl Page {
                                  response_port: Port<T>)
                                  -> T {
         self.join_layout();
-        self.layout_chan.send(QueryMsg(query));
+        let LayoutChan(ref chan) = self.layout_chan;
+        chan.send(QueryMsg(query));
         response_port.recv()
     }
 
@@ -397,7 +399,8 @@ impl Page {
                     id: *last_reflow_id.get(),
                 };
 
-                self.layout_chan.send(ReflowMsg(reflow));
+                let LayoutChan(ref chan) = self.layout_chan;
+                chan.send(ReflowMsg(reflow));
 
                 debug!("script: layout forked")
             }
@@ -493,8 +496,7 @@ impl ScriptTask {
                -> Rc<ScriptTask> {
         let js_runtime = js::rust::rt();
 
-        unsafe {
-          Rc::new_unchecked(ScriptTask {
+        Rc::new(ScriptTask {
             page_tree: RefCell::new(PageTree::new(id, layout_chan, window_size)),
 
             image_cache_task: img_cache_task,
@@ -507,8 +509,7 @@ impl ScriptTask {
 
             js_runtime: js_runtime,
             mouse_over_targets: RefCell::new(None)
-          })
-        }
+        })
     }
 
     /// Starts the script task. After calling this method, the script task will loop receiving
@@ -530,9 +531,9 @@ impl ScriptTask {
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
                   window_size: Size2D<uint>) {
-        let mut builder = task::task();
-        send_on_failure(&mut builder, FailureMsg(failure_msg), (*constellation_chan).clone());
-        builder.name("ScriptTask");
+        let mut builder = task::task().named("ScriptTask");
+        let ConstellationChan(const_chan) = constellation_chan.clone();
+        send_on_failure(&mut builder, FailureMsg(failure_msg), const_chan);
         builder.spawn(proc() {
             let script_task = ScriptTask::new(id,
                                               compositor as ~ScriptListener,
@@ -593,8 +594,8 @@ impl ScriptTask {
             }
 
             match self.port.try_recv() {
-                None => break,
-                Some(ev) => event = ev,
+                Empty | Disconnected => break,
+                Data(ev) => event = ev,
             }
         }
 
@@ -652,7 +653,7 @@ impl ScriptTask {
         let this_value = if timer_data.args.len() > 0 {
             fail!("NYI")
         } else {
-            js_info.get().get_ref().js_compartment.borrow().global_obj.borrow().ptr
+            js_info.get().get_ref().js_compartment.borrow().global_obj
         };
 
         // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
@@ -683,7 +684,8 @@ impl ScriptTask {
     /// Handles a navigate forward or backward message.
     /// TODO(tkuehn): is it ever possible to navigate only on a subframe?
     fn handle_navigate_msg(&self, direction: NavigationDirection) {
-        self.constellation_chan.send(constellation_msg::NavigateMsg(direction));
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(constellation_msg::NavigateMsg(direction));
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
@@ -696,7 +698,7 @@ impl ScriptTask {
         let mut page_url = page.mut_url();
         let last_loaded_url = replace(page_url.get(), None);
         for url in last_loaded_url.iter() {
-            *page_url.get() = Some((url.first(), true));
+            *page_url.get() = Some((url.ref0().clone(), true));
         }
     }
 
@@ -823,19 +825,22 @@ impl ScriptTask {
                     js_scripts = Some(scripts);
                 }
                 Some(HtmlDiscoveredStyle(sheet)) => {
-                    page.layout_chan.send(AddStylesheetMsg(sheet));
+                    let LayoutChan(ref chan) = page.layout_chan;
+                    chan.send(AddStylesheetMsg(sheet));
                 }
                 Some(HtmlDiscoveredIFrame((iframe_url, subpage_id, sandboxed))) => {
-                    page.next_subpage_id.set(SubpageId(*subpage_id + 1));
+                    let SubpageId(num) = subpage_id;
+                    page.next_subpage_id.set(SubpageId(num + 1));
                     let sandboxed = if sandboxed {
                         IFrameSandboxed
                     } else {
                         IFrameUnsandboxed
                     };
-                    self.constellation_chan.send(LoadIframeUrlMsg(iframe_url,
-                                                                  pipeline_id,
-                                                                  subpage_id,
-                                                                  sandboxed));
+                    let ConstellationChan(ref chan) = self.constellation_chan;
+                    chan.send(LoadIframeUrlMsg(iframe_url,
+                                               pipeline_id,
+                                               subpage_id,
+                                               sandboxed));
                 }
                 None => break
             }
@@ -862,7 +867,7 @@ impl ScriptTask {
             let js_info = page.js_info();
             let js_info = js_info.get().get_ref();
             let compartment = js_info.js_compartment.borrow();
-            compartment.define_functions(DEBUG_FNS);
+            assert!(compartment.define_functions(DEBUG_FNS).is_ok());
 
             js_info.js_context.borrow().ptr
         };
@@ -873,12 +878,14 @@ impl ScriptTask {
                 let (cx, global_obj) = {
                     let js_info = page.js_info();
                     (js_info.get().get_ref().js_context.clone(),
-                     js_info.get().get_ref().js_compartment.borrow().global_obj.clone())
+                     js_info.get().get_ref().js_compartment.borrow().global_obj)
                 };
-                cx.borrow().evaluate_script(global_obj,
-                                            file.data.clone(),
-                                            file.url.to_str(),
-                                            1);
+                //FIXME: this should have some kind of error handling, or explicitly
+                //       drop an exception on the floor.
+                assert!(cx.borrow().evaluate_script(global_obj,
+                                                    file.data.clone(),
+                                                    file.url.to_str(),
+                                                    1).is_ok());
             });
         }
 
@@ -890,12 +897,13 @@ impl ScriptTask {
         let doctarget = EventTargetCast::from(&document);
         let mut wintarget: JS<EventTarget> = EventTargetCast::from(&window);
         let winclone = wintarget.clone();
-        wintarget.get_mut().dispatch_event_with_target(&winclone, Some(doctarget), &mut event);
+        let _ = wintarget.get_mut().dispatch_event_with_target(&winclone, Some(doctarget), &mut event);
 
         let mut fragment_node = page.fragment_node.borrow_mut();
-        *fragment_node.get() = fragment.map_default(None, |fragid| self.find_fragment_node(page, fragid));
+        *fragment_node.get() = fragment.map_or(None, |fragid| self.find_fragment_node(page, fragid));
 
-        self.constellation_chan.send(LoadCompleteMsg(page.id, url));
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(LoadCompleteMsg(page.id, url));
     }
 
     fn find_fragment_node(&self, page: &Page, fragid: ~str) -> Option<JS<Element>> {
@@ -908,7 +916,7 @@ impl ScriptTask {
                 let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
                 anchors.find(|node| {
                     let elem: JS<Element> = ElementCast::to(node);
-                    elem.get().get_attribute(Null, "name").map_default(false, |attr| {
+                    elem.get().get_attribute(Null, "name").map_or(false, |attr| {
                         attr.get().value_ref() == fragid
                     })
                 }).map(|node| ElementCast::to(&node))
@@ -973,7 +981,7 @@ impl ScriptTask {
                         // FIXME: this event should be dispatch on WindowProxy. See #1715
                         let mut wintarget: JS<EventTarget> = EventTargetCast::from(&frame.window);
                         let winclone = wintarget.clone();
-                        wintarget.get_mut().dispatch_event_with_target(&winclone, None, event);
+                        let _ = wintarget.get_mut().dispatch_event_with_target(&winclone, None, event);
                     }
                     None =>()
                 }
@@ -1121,8 +1129,9 @@ impl ScriptTask {
                     None => {}
                 }
             } else {
-                self.constellation_chan.send(LoadUrlMsg(page.id, url));
-            } 
+                let ConstellationChan(ref chan) = self.constellation_chan;
+                chan.send(LoadUrlMsg(page.id, url));
+            }
         }
     }
 }
@@ -1133,7 +1142,8 @@ fn shut_down_layout(page: &Page) {
 
     // Tell the layout task to begin shutting down.
     let (response_port, response_chan) = Chan::new();
-    page.layout_chan.send(layout_interface::PrepareToExitMsg(response_chan));
+    let LayoutChan(ref chan) = page.layout_chan;
+    chan.send(layout_interface::PrepareToExitMsg(response_chan));
     response_port.recv();
 
     // Destroy all nodes. Setting frame and js_info to None will trigger our
@@ -1149,5 +1159,5 @@ fn shut_down_layout(page: &Page) {
     *js_info.get() = None;
 
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
-    page.layout_chan.send(layout_interface::ExitNowMsg);
+    chan.send(layout_interface::ExitNowMsg);
 }

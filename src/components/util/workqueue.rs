@@ -9,11 +9,12 @@
 
 use native;
 use std::cast;
+use std::comm;
+use std::mem;
 use std::rand::{Rng, XorShiftRng};
 use std::rand;
 use std::sync::atomics::{AtomicUint, SeqCst};
 use std::sync::deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
-use std::unstable::intrinsics;
 
 /// A unit of work.
 ///
@@ -64,7 +65,7 @@ struct WorkerThread<QUD,WUD> {
     /// The communication port from the supervisor.
     port: Port<WorkerMsg<QUD,WUD>>,
     /// The communication channel on which messages are sent to the supervisor.
-    chan: SharedChan<SupervisorMsg<QUD,WUD>>,
+    chan: Chan<SupervisorMsg<QUD,WUD>>,
     /// The thief end of the work-stealing deque for all other workers.
     other_deques: ~[Stealer<WorkUnit<QUD,WUD>>],
     /// The random number generator for this worker.
@@ -92,7 +93,7 @@ impl<QUD:Send,WUD:Send> WorkerThread<QUD,WUD> {
                 // FIXME(pcwalton): Nasty workaround for the lack of labeled break/continue
                 // cross-crate.
                 let mut work_unit = unsafe {
-                    intrinsics::uninit()
+                    mem::uninit()
                 };
                 match deque.pop() {
                     Some(work) => work_unit = work,
@@ -114,13 +115,13 @@ impl<QUD:Send,WUD:Send> WorkerThread<QUD,WUD> {
 
                             if i == SPIN_COUNT {
                                 match self.port.try_recv() {
-                                    Some(StopMsg) => {
+                                    comm::Data(StopMsg) => {
                                         should_continue = false;
                                         break
                                     }
-                                    Some(ExitMsg) => return,
-                                    Some(_) => fail!("unexpected message"),
-                                    None => {}
+                                    comm::Data(ExitMsg) => return,
+                                    comm::Data(_) => fail!("unexpected message"),
+                                    _ => {}
                                 }
 
                                 i = 0
@@ -201,7 +202,7 @@ impl<QUD:Send,WUD:Send> WorkQueue<QUD,WUD> {
     /// it.
     pub fn new(thread_count: uint, user_data: QUD) -> WorkQueue<QUD,WUD> {
         // Set up data structures.
-        let (supervisor_port, supervisor_chan) = SharedChan::new();
+        let (supervisor_port, supervisor_chan) = Chan::new();
         let (mut infos, mut threads) = (~[], ~[]);
         for i in range(0, thread_count) {
             let (worker_port, worker_chan) = Chan::new();

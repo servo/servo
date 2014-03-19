@@ -11,16 +11,16 @@ use layout::extra::LayoutAuxMethods;
 use layout::util::{LayoutDataAccess, LayoutDataWrapper};
 use layout::wrapper::{LayoutElement, LayoutNode, PostorderNodeMutTraversal, ThreadSafeLayoutNode};
 
-use extra::arc::Arc;
 use gfx::font_context::FontContext;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::namespace::Null;
 use servo_util::smallvec::{SmallVec, SmallVec0, SmallVec16};
 use servo_util::str::DOMString;
 use std::cast;
-use std::to_bytes;
-use std::vec::VecIterator;
+use std::hash::{Hash, sip};
+use std::vec::Items;
 use style::{After, Before, ComputedValues, MatchedProperty, Stylist, TElement, TNode, cascade};
+use sync::Arc;
 
 pub struct ApplicableDeclarations {
     normal: SmallVec16<MatchedProperty>,
@@ -73,9 +73,10 @@ impl Eq for ApplicableDeclarationsCacheEntry {
     }
 }
 
-impl IterBytes for ApplicableDeclarationsCacheEntry {
-    fn iter_bytes(&self, lsb0: bool, f: to_bytes::Cb) -> bool {
-        ApplicableDeclarationsCacheQuery::new(self.declarations.as_slice()).iter_bytes(lsb0, f)
+impl Hash for ApplicableDeclarationsCacheEntry {
+    fn hash(&self, state: &mut sip::SipState) {
+        let tmp = ApplicableDeclarationsCacheQuery::new(self.declarations.as_slice());
+        tmp.hash(state);
     }
 }
 
@@ -115,16 +116,15 @@ impl<'a> Equiv<ApplicableDeclarationsCacheEntry> for ApplicableDeclarationsCache
     }
 }
 
-impl<'a> IterBytes for ApplicableDeclarationsCacheQuery<'a> {
-    fn iter_bytes(&self, lsb0: bool, f: to_bytes::Cb) -> bool {
-        let mut result = true;
+
+impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
+    fn hash(&self, state: &mut sip::SipState) {
         for declaration in self.declarations.iter() {
             let ptr: uint = unsafe {
                 cast::transmute_copy(declaration)
             };
-            result = ptr.iter_bytes(lsb0, |x| f(x));
+            ptr.hash(state);
         }
-        result
     }
 }
 
@@ -160,13 +160,13 @@ pub struct StyleSharingCandidateCache {
 
 #[deriving(Clone)]
 struct StyleSharingCandidate {
-    priv style: Arc<ComputedValues>,
-    priv parent_style: Arc<ComputedValues>,
+    style: Arc<ComputedValues>,
+    parent_style: Arc<ComputedValues>,
 
     // TODO(pcwalton): Intern.
-    priv local_name: DOMString,
+    local_name: DOMString,
 
-    priv class: Option<DOMString>,
+    class: Option<DOMString>,
 }
 
 impl Eq for StyleSharingCandidate {
@@ -255,7 +255,7 @@ impl StyleSharingCandidateCache {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> VecIterator<'a,(StyleSharingCandidate,())> {
+    pub fn iter<'a>(&'a self) -> Items<'a,(StyleSharingCandidate,())> {
         self.cache.iter()
     }
 

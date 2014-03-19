@@ -11,7 +11,7 @@ use layers::platform::surface::{NativeSurface, NativeSurfaceMethods};
 
 use constellation_msg::PipelineId;
 
-use extra::serialize::{Encoder, Encodable};
+use serialize::{Encoder, Encodable};
 
 pub struct LayerBuffer {
     /// The native surface which can be shared between threads or processes. On Mac this is an
@@ -71,7 +71,8 @@ pub struct Epoch(uint);
 
 impl Epoch {
     pub fn next(&mut self) {
-        **self += 1;
+        let Epoch(ref mut u) = *self;
+        *u += 1;
     }
 }
 
@@ -97,7 +98,7 @@ pub trait ScriptListener : Clone {
     fn dup(&self) -> ~ScriptListener;
 }
 
-impl<S: Encoder> Encodable<S> for @ScriptListener {
+impl<S: Encoder> Encodable<S> for ~ScriptListener {
     fn encode(&self, _s: &mut S) {
     }
 }
@@ -125,7 +126,7 @@ impl Tile for ~LayerBuffer {
         self.screen_pos.size.width * self.screen_pos.size.height
     }
     fn is_valid(&self, scale: f32) -> bool {
-        self.resolution.approx_eq(&scale)
+        (self.resolution - scale).abs() < 1.0e-6
     }
     fn get_size_2d(&self) -> Size2D<uint> {
         self.screen_pos.size

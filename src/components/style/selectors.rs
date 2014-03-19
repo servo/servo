@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::{vec, iter};
+use std::{cmp, vec, iter};
 use std::ascii::StrAsciiExt;
-use extra::arc::Arc;
+use sync::Arc;
 
 use cssparser::ast::*;
 use cssparser::parse_nth;
@@ -103,7 +103,7 @@ pub enum NamespaceConstraint {
 }
 
 
-type Iter = iter::Peekable<ComponentValue, vec::MoveIterator<ComponentValue>>;
+type Iter = iter::Peekable<ComponentValue, vec::MoveItems<ComponentValue>>;
 
 
 /// Parse a comma-separated list of Selectors.
@@ -231,9 +231,9 @@ fn compute_specificity(mut selector: &CompoundSelector,
     }
 
     static MAX_10BIT: u32 = (1u32 << 10) - 1;
-    specificity.id_selectors.min(&MAX_10BIT) << 20
-    | specificity.class_like_selectors.min(&MAX_10BIT) << 10
-    | specificity.element_selectors.min(&MAX_10BIT)
+    cmp::min(specificity.id_selectors, MAX_10BIT) << 20
+    | cmp::min(specificity.class_like_selectors, MAX_10BIT) << 10
+    | cmp::min(specificity.element_selectors, MAX_10BIT)
 }
 
 
@@ -577,7 +577,7 @@ fn skip_whitespace(iter: &mut Iter) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use extra::arc::Arc;
+    use sync::Arc;
     use cssparser;
     use servo_util::namespace;
     use namespaces::NamespaceMap;

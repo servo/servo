@@ -139,7 +139,6 @@ pub trait TLayoutNode {
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `JS`.
-#[deriving(Clone, Eq)]
 pub struct LayoutNode<'a> {
     /// The wrapped node.
     priv node: JS<Node>,
@@ -147,6 +146,24 @@ pub struct LayoutNode<'a> {
     /// Being chained to a value prevents `LayoutNode`s from escaping.
     priv chain: &'a (),
 }
+
+impl<'ln> Clone for LayoutNode<'ln> {
+    fn clone(&self) -> LayoutNode<'ln> {
+        LayoutNode {
+            node: self.node.clone(),
+            chain: self.chain,
+        }
+    }
+}
+
+impl<'a> Eq for LayoutNode<'a> {
+    #[inline]
+    fn eq(&self, other: &LayoutNode) -> bool {
+        self.node == other.node &&
+        self.chain == other.chain
+    }
+}
+
 
 impl<'ln> TLayoutNode for LayoutNode<'ln> {
     unsafe fn new_with_this_lifetime(&self, node: &JS<Node>) -> LayoutNode<'ln> {
@@ -244,7 +261,7 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
             match attr.namespace {
                 SpecificNamespace(ref ns) => {
                     element.get_attr(ns, name)
-                           .map_default(false, |attr| test(attr))
+                           .map_or(false, |attr| test(attr))
                 },
                 // FIXME: https://github.com/mozilla/servo/issues/1558
                 AnyNamespace => false,

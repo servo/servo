@@ -5,12 +5,13 @@
 use resource_task::{Metadata, Payload, Done, LoadResponse, LoaderTask, start_sending};
 
 use std::vec;
-use std::hashmap::HashSet;
+use collections::hashmap::HashSet;
 use extra::url::Url;
 use http::client::RequestWriter;
 use http::method::Get;
 use http::headers::HeaderEnum;
 use std::io::Reader;
+use std::io::net::tcp::TcpStream;
 use servo_util::task::spawn_named;
 
 pub fn factory() -> LoaderTask {
@@ -55,8 +56,15 @@ fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
 
         info!("requesting {:s}", url.to_str());
 
-        let request = ~RequestWriter::new(Get, url.clone());
-        let mut response = match request.read_response() {
+        let request = RequestWriter::<TcpStream>::new(Get, url.clone());
+        let writer = match request {
+            Ok(w) => ~w,
+            Err(_) => {
+                send_error(url, start_chan);
+                return;
+            }
+        };
+        let mut response = match writer.read_response() {
             Ok(r) => r,
             Err(_) => {
                 send_error(url, start_chan);
@@ -91,11 +99,11 @@ fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
 
             unsafe { buf.set_len(1024); }
             match response.read(buf) {
-                Some(len) => {
+                Ok(len) => {
                     unsafe { buf.set_len(len); }
                     progress_chan.send(Payload(buf));
                 }
-                None => {
+                Err(_) => {
                     progress_chan.send(Done(Ok(())));
                     break;
                 }

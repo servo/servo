@@ -4,9 +4,9 @@
 
 /// Implementation of Quartz (CoreGraphics) fonts.
 
-extern mod core_foundation;
-extern mod core_graphics;
-extern mod core_text;
+extern crate core_foundation;
+extern crate core_graphics;
+extern crate core_text;
 
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::FontTableTag;
@@ -130,8 +130,8 @@ impl FontHandleMethods for FontHandle {
         let glyphs: [CGGlyph, ..1] = [0 as CGGlyph];
         let count: CFIndex = 1;
 
-        let result = self.ctfont.get_glyphs_for_characters(ptr::to_unsafe_ptr(&characters[0]),
-                                                           ptr::to_unsafe_ptr(&glyphs[0]),
+        let result = self.ctfont.get_glyphs_for_characters(&characters[0],
+                                                           &glyphs[0],
                                                            count);
 
         if !result {

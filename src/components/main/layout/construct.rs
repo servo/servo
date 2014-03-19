@@ -51,8 +51,8 @@ use servo_util::url::is_image_data;
 use servo_util::str::is_whitespace;
 
 use extra::url::Url;
-use extra::arc::Arc;
-use std::util;
+use sync::Arc;
+use std::mem;
 use std::num::Zero;
 
 /// The results of flow construction for a DOM node.
@@ -319,7 +319,7 @@ impl<'a> FlowConstructor<'a> {
                                                opt_boxes: &mut Option<~[Box]>,
                                                flow: &mut ~Flow,
                                                node: &ThreadSafeLayoutNode) {
-        let opt_boxes = util::replace(opt_boxes, None);
+        let opt_boxes = mem::replace(opt_boxes, None);
         if opt_boxes.len() > 0 {
             self.flush_inline_boxes_to_flow(opt_boxes.to_vec(), flow, node)
         }
@@ -357,7 +357,7 @@ impl<'a> FlowConstructor<'a> {
                     // {ib} splits.
                     debug!("flushing {} inline box(es) to flow A",
                            opt_boxes_for_inline_flow.as_ref()
-                                                    .map_default(0, |boxes| boxes.len()));
+                                                    .map_or(0, |boxes| boxes.len()));
                     self.flush_inline_boxes_to_flow_if_necessary(&mut opt_boxes_for_inline_flow,
                                                                  &mut flow,
                                                                  node);
@@ -397,8 +397,8 @@ impl<'a> FlowConstructor<'a> {
                                 // Flush any inline boxes that we were gathering up.
                                 debug!("flushing {} inline box(es) to flow A",
                                        opt_boxes_for_inline_flow.as_ref()
-                                                                .map_default(0,
-                                                                             |boxes| boxes.len()));
+                                                                .map_or(0,
+                                                                        |boxes| boxes.len()));
                                 self.flush_inline_boxes_to_flow_if_necessary(
                                         &mut opt_boxes_for_inline_flow,
                                         &mut flow,
@@ -486,7 +486,7 @@ impl<'a> FlowConstructor<'a> {
                     // {ib} split. Flush the accumulator to our new split and make a new
                     // accumulator to hold any subsequent boxes we come across.
                     let split = InlineBlockSplit {
-                        predecessor_boxes: util::replace(&mut opt_box_accumulator, None).to_vec(),
+                        predecessor_boxes: mem::replace(&mut opt_box_accumulator, None).to_vec(),
                         flow: flow,
                     };
                     opt_inline_block_splits.push(split);
@@ -513,7 +513,7 @@ impl<'a> FlowConstructor<'a> {
                                 opt_box_accumulator.push_all_move(boxes);
 
                                 let split = InlineBlockSplit {
-                                    predecessor_boxes: util::replace(&mut opt_box_accumulator,
+                                    predecessor_boxes: mem::replace(&mut opt_box_accumulator,
                                                                      None).to_vec(),
                                     flow: kid_flow,
                                 };
@@ -830,7 +830,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         match *layout_data_ref.get() {
             Some(ref mut layout_data) => {
-                util::replace(&mut layout_data.data.flow_construction_result, NoConstructionResult)
+                mem::replace(&mut layout_data.data.flow_construction_result, NoConstructionResult)
             }
             None => fail!("no layout data"),
         }
@@ -872,7 +872,7 @@ impl<'ln> ObjectElement for ThreadSafeLayoutNode<'ln> {
 
 /// Strips ignorable whitespace from the start of a list of boxes.
 fn strip_ignorable_whitespace_from_start(opt_boxes: &mut Option<~[Box]>) {
-    match util::replace(opt_boxes, None) {
+    match mem::replace(opt_boxes, None) {
         None => return,
         Some(boxes) => {
             // FIXME(pcwalton): This is slow because vector shift is broken. :(
@@ -907,9 +907,9 @@ fn strip_ignorable_whitespace_from_end(opt_boxes: &mut Option<~[Box]>) {
     match *opt_boxes {
         None => {}
         Some(ref mut boxes) => {
-            while boxes.len() > 0 && boxes.last().is_whitespace_only() {
+            while boxes.len() > 0 && boxes.last().get_ref().is_whitespace_only() {
                 debug!("stripping ignorable whitespace from end");
-                let box_ = boxes.pop();
+                let box_ = boxes.pop().unwrap();
                 if boxes.len() > 0 {
                     boxes[boxes.len() - 1].merge_noncontent_inline_right(&box_);
                 }

@@ -4,7 +4,7 @@
 
 use extra::url;
 use extra::url::Url;
-use std::hashmap::HashMap;
+use collections::HashMap;
 use std::os;
 
 /**

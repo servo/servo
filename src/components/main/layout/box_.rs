@@ -5,8 +5,9 @@
 //! The `Box` type, which represents the leaves of the layout tree.
 
 use extra::url::Url;
-use extra::arc::{MutexArc, Arc};
+use sync::{MutexArc, Arc};
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
+use geom::approxeq::ApproxEq;
 use gfx::color::rgb;
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
 use gfx::display_list::{LineDisplayItem, LineDisplayItemClass};
@@ -16,7 +17,7 @@ use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags, ClipDisplayI
 use gfx::display_list::{ClipDisplayItemClass, DisplayListCollection};
 use gfx::font::FontStyle;
 use gfx::text::text_run::TextRun;
-use servo_msg::constellation_msg::{FrameRectMsg, PipelineId, SubpageId};
+use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
@@ -27,7 +28,6 @@ use servo_util::str::is_whitespace;
 
 use std::cast;
 use std::cell::RefCell;
-use std::cmp::ApproxEq;
 use std::num::Zero;
 use style::{ComputedValues, TElement, TNode};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto, overflow, LPA_Auto};
@@ -1327,7 +1327,7 @@ impl Box {
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
                 let mut new_line_pos = self.new_line_pos.clone();
-                let cur_new_line_pos = new_line_pos.shift();
+                let cur_new_line_pos = new_line_pos.shift().unwrap();
 
                 let left_range = Range::new(text_box_info.range.begin(), cur_new_line_pos);
                 let right_range = Range::new(text_box_info.range.begin() + cur_new_line_pos + 1, text_box_info.range.length() - (cur_new_line_pos + 1));
@@ -1442,7 +1442,7 @@ impl Box {
                     None
                 };
 
-                let right_box = right_range.map_default(None, |range: Range| {
+                let right_box = right_range.map_or(None, |range: Range| {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), range);
                     let mut new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
                     new_metrics.bounding_box.size.height = self.border_box.get().size.height;
@@ -1621,10 +1621,10 @@ impl Box {
         }
         format!(" {}{},{},{},{}",
                 name,
-                *value.top,
-                *value.right,
-                *value.bottom,
-                *value.left)
+                value.top,
+                value.right,
+                value.bottom,
+                value.left)
     }
 
     /// Sends the size and position of this iframe box to the constellation. This is out of line to
@@ -1648,6 +1648,7 @@ impl Box {
                iframe_box.pipeline_id,
                iframe_box.subpage_id);
         let msg = FrameRectMsg(iframe_box.pipeline_id, iframe_box.subpage_id, rect);
-        layout_context.constellation_chan.send(msg)
+        let ConstellationChan(ref chan) = layout_context.constellation_chan;
+        chan.send(msg)
     }
 }

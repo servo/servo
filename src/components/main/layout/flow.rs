@@ -39,7 +39,7 @@ use layout::parallel;
 use layout::wrapper::ThreadSafeLayoutNode;
 use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
 
-use extra::container::Deque;
+use collections::Deque;
 use geom::point::Point2D;
 use geom::Size2D;
 use geom::rect::Rect;
@@ -51,7 +51,7 @@ use servo_util::geometry::Au;
 use std::cast;
 use std::cell::RefCell;
 use std::sync::atomics::Relaxed;
-use std::vec::VecMutIterator;
+use std::vec::MutItems;
 use std::iter::Zip;
 use style::ComputedValues;
 use style::computed_values::{text_align, position};
@@ -531,27 +531,34 @@ bitfield!(FlowFlags, override_line_through, set_override_line_through, 0b0000_10
 impl FlowFlags {
     #[inline]
     pub fn text_align(self) -> text_align::T {
-        FromPrimitive::from_u8((*self & TEXT_ALIGN_BITMASK) >> TEXT_ALIGN_SHIFT).unwrap()
+        let FlowFlags(ff) = self;
+        FromPrimitive::from_u8((ff & TEXT_ALIGN_BITMASK) >> TEXT_ALIGN_SHIFT).unwrap()
     }
 
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
-        *self = FlowFlags((**self & !TEXT_ALIGN_BITMASK) | ((value as u8) << TEXT_ALIGN_SHIFT))
+        let FlowFlags(ff) = *self;
+        *self = FlowFlags((ff & !TEXT_ALIGN_BITMASK) | ((value as u8) << TEXT_ALIGN_SHIFT))
     }
 
     #[inline]
     pub fn set_text_align_override(&mut self, parent: FlowFlags) {
-        *self = FlowFlags(**self | (*parent & TEXT_ALIGN_BITMASK))
+        let FlowFlags(ff) = *self;
+        let FlowFlags(pff) = parent;
+        *self = FlowFlags(ff | (pff & TEXT_ALIGN_BITMASK))
     }
 
     #[inline]
     pub fn set_text_decoration_override(&mut self, parent: FlowFlags) {
-        *self = FlowFlags(**self | (*parent & TEXT_DECORATION_OVERRIDE_BITMASK));
+        let FlowFlags(ff) = *self;
+        let FlowFlags(pff) = parent;
+        *self = FlowFlags(ff | (pff & TEXT_DECORATION_OVERRIDE_BITMASK));
     }
 
     #[inline]
     pub fn is_text_decoration_enabled(&self) -> bool {
-        (**self & TEXT_DECORATION_OVERRIDE_BITMASK) != 0
+        let FlowFlags(ref ff) = *self;
+        (*ff & TEXT_DECORATION_OVERRIDE_BITMASK) != 0
     }
 }
 
@@ -606,9 +613,9 @@ impl Descendants {
 pub type AbsDescendants = Descendants;
 pub type FixedDescendants = Descendants;
 
-type DescendantIter<'a> = VecMutIterator<'a, Rawlink>;
+type DescendantIter<'a> = MutItems<'a, Rawlink>;
 
-type DescendantOffsetIter<'a> = Zip<VecMutIterator<'a, Rawlink>, VecMutIterator<'a, Au>>;
+type DescendantOffsetIter<'a> = Zip<MutItems<'a, Rawlink>, MutItems<'a, Au>>;
 
 /// Data common to all flows.
 pub struct BaseFlow {
@@ -1020,7 +1027,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
                 let result = lists.lists[index].list.mut_rev_iter().position(|item| {
                     match *item {
                         ClipDisplayItemClass(ref mut item) => {
-                            item.child_list.push_all_move(child_lists.lists.shift().list);
+                            item.child_list.push_all_move(child_lists.lists.shift().unwrap().list);
                             true
                         },
                         _ => false,
