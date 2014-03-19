@@ -8,14 +8,14 @@
 use extra::url::Url;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use std::comm::SharedChan;
+use std::comm::Chan;
 
 #[deriving(Clone)]
-pub struct ConstellationChan(SharedChan<Msg>);
+pub struct ConstellationChan(Chan<Msg>);
 
 impl ConstellationChan {
     pub fn new() -> (Port<Msg>, ConstellationChan) {
-        let (port, chan) = SharedChan::new();
+        let (port, chan) = Chan::new();
         (port, ConstellationChan(chan))
     }
 }
@@ -48,20 +48,20 @@ pub enum Msg {
 }
 
 /// Represents the two different ways to which a page can be navigated
-#[deriving(Clone, Eq, IterBytes)]
+#[deriving(Clone, Eq, Hash)]
 pub enum NavigationType {
     Load,               // entered or clicked on a url
     Navigate,           // browser forward/back buttons
 }
 
-#[deriving(Clone, Eq, IterBytes)]
+#[deriving(Clone, Eq, Hash)]
 pub enum NavigationDirection {
     Forward,
     Back,
 }
 
-#[deriving(Clone, Eq, IterBytes, Encodable)]
+#[deriving(Clone, Eq, Hash, Encodable)]
 pub struct PipelineId(uint);
 
-#[deriving(Clone, Eq, IterBytes, Encodable)]
+#[deriving(Clone, Eq, Hash, Encodable)]
 pub struct SubpageId(uint);

@@ -4,9 +4,10 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
-use std::ascii::StrAsciiExt;
+#[allow(non_camel_case_types)];
+
 pub use servo_util::url::parse_url;
-pub use extra::arc::Arc;
+use sync::Arc;
 pub use extra::url::Url;
 use servo_util::cowarc::CowArc;
 
@@ -18,7 +19,7 @@ pub use parsing_utils::*;
 pub use self::common_types::*;
 use selector_matching::MatchedProperty;
 
-use extra::serialize::{Encodable, Encoder};
+use serialize::{Encodable, Encoder};
 
 pub mod common_types;
 
@@ -218,12 +219,15 @@ pub mod longhands {
         match component_value {
             &Ident(ref value) => {
                 // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                let value_lower = value.to_ascii_lower();
-                match value_lower.as_slice() {
-                    "thin" => Some(specified::Length::from_px(1.)),
-                    "medium" => Some(specified::Length::from_px(3.)),
-                    "thick" => Some(specified::Length::from_px(5.)),
-                    _ => None
+                unsafe {
+                    let tmp_for_lifetime = value.to_ascii_nocheck().to_lower();
+                    let value_lower = tmp_for_lifetime.as_str_ascii();
+                    match value_lower.as_slice() {
+                        "thin" => Some(specified::Length::from_px(1.)),
+                        "medium" => Some(specified::Length::from_px(3.)),
+                        "thick" => Some(specified::Length::from_px(5.)),
+                        _ => None
+                    }
                 }
             },
             _ => specified::Length::parse_non_negative(component_value)
@@ -335,7 +339,7 @@ pub mod longhands {
                 &Dimension(ref value, ref unit) if value.value >= 0.
                 => specified::Length::parse_dimension(value.value, unit.as_slice())
                     .map(SpecifiedLength),
-                &Ident(ref value) if value.eq_ignore_ascii_case("normal")
+                &Ident(ref value) if unsafe { value.to_ascii_nocheck().eq_ignore_case("normal".to_ascii_nocheck())}
                 => Some(SpecifiedNormal),
                 _ => None,
             }
@@ -381,12 +385,15 @@ pub mod longhands {
             match input {
                 &Ident(ref value) => {
                     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                    let value_lower = value.to_ascii_lower();
-                    match value_lower.as_slice() {
-                        % for keyword in vertical_align_keywords:
-                        "${keyword}" => Some(Specified_${to_rust_ident(keyword)}),
-                        % endfor
-                        _ => None,
+                    unsafe {
+                        let tmp_for_lifetime = value.to_ascii_nocheck().to_lower();
+                        let value_lower = tmp_for_lifetime.as_str_ascii();
+                        match value_lower.as_slice() {
+                            % for keyword in vertical_align_keywords:
+                            "${keyword}" => Some(Specified_${to_rust_ident(keyword)}),
+                            % endfor
+                            _ => None,
+                        }
                     }
                 },
                 _ => specified::LengthOrPercentage::parse_non_negative(input)
@@ -456,10 +463,17 @@ pub mod longhands {
             // TODO: <uri>, <counter>, attr(<identifier>), open-quote, close-quote, no-open-quote, no-close-quote
             pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Option<SpecifiedValue> {
                 match one_component_value(input) {
-                    Some(&Ident(ref keyword)) => match keyword.to_ascii_lower().as_slice() {
-                        "normal" => return Some(normal),
-                        "none" => return Some(none),
-                        _ => ()
+                    Some(&Ident(ref keyword)) => {
+                        unsafe {
+                            let tmp_for_lifetime = keyword.to_ascii_nocheck().to_lower();
+                            let keyword_lower = tmp_for_lifetime.as_str_ascii();
+                            match keyword_lower.as_slice() {
+
+                                "normal" => return Some(normal),
+                                "none" => return Some(none),
+                                _ => ()
+                            }
+                        }
                     },
                     _ => ()
                 }
@@ -499,7 +513,7 @@ pub mod longhands {
                         let image_url = parse_url(url.as_slice(), Some(base_url.clone()));
                         Some(Some(image_url))
                     },
-                    &ast::Ident(ref value) if "none" == value.to_ascii_lower() => Some(None),
+                    &ast::Ident(ref value) if unsafe {value.to_ascii_nocheck()}.eq_ignore_case(unsafe {"none".to_ascii_nocheck()})  => Some(None),
                     _ => None,
                 }
             }
@@ -557,12 +571,12 @@ pub mod longhands {
         pub fn from_iter<'a>(mut iter: SkipWhitespaceIterator<'a>) -> Option<SpecifiedValue> {
             let mut result = ~[];
             macro_rules! add(
-                ($value: expr) => {
+                ($value: expr, $b: expr) => {
                     {
                         result.push($value);
                         match iter.next() {
                             Some(&Comma) => (),
-                            None => break 'outer,
+                            None => $b,
                             _ => return None,
                         }
                     }
@@ -571,17 +585,19 @@ pub mod longhands {
             'outer: loop {
                 match iter.next() {
                     // TODO: avoid copying strings?
-                    Some(&String(ref value)) => add!(FamilyName(value.to_owned())),
+                    Some(&String(ref value)) => add!(FamilyName(value.to_owned()), break 'outer),
                     Some(&Ident(ref value)) => {
                         // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
                         let value = value.as_slice();
-                        let value_lower = value.to_ascii_lower();
+                        unsafe {
+                        let tmp_for_lifetime = value.to_ascii_nocheck().to_lower();
+                        let value_lower = tmp_for_lifetime.as_str_ascii();
                         match value_lower.as_slice() {
-//                            "serif" => add!(Serif),
-//                            "sans-serif" => add!(SansSerif),
-//                            "cursive" => add!(Cursive),
-//                            "fantasy" => add!(Fantasy),
-//                            "monospace" => add!(Monospace),
+//                            "serif" => add!(Serif, break 'outer),
+//                            "sans-serif" => add!(SansSerif, break 'outer),
+//                            "cursive" => add!(Cursive, break 'outer),
+//                            "fantasy" => add!(Fantasy, break 'outer),
+//                            "monospace" => add!(Monospace, break 'outer),
                             _ => {
                                 let mut idents = ~[value];
                                 loop {
@@ -599,7 +615,7 @@ pub mod longhands {
                                     }
                                 }
                             }
-                        }
+                        }}
                     }
                     _ => return None,
                 }
@@ -627,13 +643,16 @@ pub mod longhands {
             match input {
                 &Ident(ref value) => {
                     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                    let value_lower = value.to_ascii_lower();
-                    match value_lower.as_slice() {
-                        "bold" => Some(SpecifiedWeight700),
-                        "normal" => Some(SpecifiedWeight400),
-                        "bolder" => Some(Bolder),
-                        "lighter" => Some(Lighter),
-                        _ => None,
+                    unsafe {
+                        let tmp_for_lifetime = value.to_ascii_nocheck().to_lower();
+                        let value_lower = tmp_for_lifetime.as_str_ascii();
+                        match value_lower.as_slice() {
+                            "bold" => Some(SpecifiedWeight700),
+                            "normal" => Some(SpecifiedWeight400),
+                            "bolder" => Some(Bolder),
+                            "lighter" => Some(Lighter),
+                            _ => None,
+                        }
                     }
                 },
                 &Number(ref value) => match value.int_value {
@@ -805,7 +824,7 @@ pub mod shorthands {
     %>
         pub mod ${shorthand.ident} {
             use super::*;
-            struct Longhands {
+            pub struct Longhands {
                 % for sub_property in shorthand.sub_properties:
                     ${sub_property.ident}: Option<${sub_property.ident}::SpecifiedValue>,
                 % endfor
@@ -958,7 +977,7 @@ pub mod shorthands {
             // font-style, font-weight and font-variant.
             // Leaves the values to None, 'normal' is the initial value for each of them.
             if get_ident_lower(component_value).filtered(
-                    |v| v.eq_ignore_ascii_case("normal")).is_some() {
+                    |v| unsafe { v.to_ascii_nocheck() }.eq_ignore_case(unsafe {"normal".to_ascii_nocheck()})).is_some() {
                 nb_normals += 1;
                 continue;
             }
@@ -1043,7 +1062,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
     let mut normal = ~[];
     for item in ErrorLoggerIterator(parse_declaration_list(input)) {
         match item {
-            Decl_AtRule(rule) => log_css_error(
+            DeclAtRule(rule) => log_css_error(
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name)),
             Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
@@ -1111,7 +1130,8 @@ impl PropertyDeclaration {
                  result_list: &mut ~[PropertyDeclaration],
                  base_url: &Url) -> PropertyDeclarationParseResult {
         // FIXME: local variable to work around Rust #10683
-        let name_lower = name.to_ascii_lower();
+        let tmp_for_lifetime = unsafe {name.to_ascii_nocheck()}.to_lower();
+        let name_lower = tmp_for_lifetime.as_str_ascii();
         match name_lower.as_slice() {
             % for property in LONGHANDS:
                 "${property.name}" => result_list.push(${property.ident}_declaration(

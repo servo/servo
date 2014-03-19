@@ -9,9 +9,9 @@ use servo_util::geometry;
 
 use std::cmp::{Ord, Eq};
 use std::num::NumCast;
+use std::mem;
 use std::u16;
 use std::vec;
-use std::util;
 use std::iter;
 use geom::point::Point2D;
 
@@ -45,7 +45,8 @@ impl GlyphEntry {
         assert!(is_simple_advance(advance));
 
         let index_mask = index as u32;
-        let advance_mask = (*advance as u32) << GLYPH_ADVANCE_SHIFT;
+        let Au(advance) = advance;
+        let advance_mask = (advance as u32) << GLYPH_ADVANCE_SHIFT;
 
         GlyphEntry::new(index_mask | advance_mask | FLAG_IS_SIMPLE_GLYPH)
     }
@@ -53,7 +54,7 @@ impl GlyphEntry {
     // Create a GlyphEntry for uncommon case; should be accompanied by
     // initialization of the actual DetailedGlyph data in DetailedGlyphStore
     fn complex(starts_cluster: bool, starts_ligature: bool, glyph_count: uint) -> GlyphEntry {
-        assert!(glyph_count <= u16::max_value as uint);
+        assert!(glyph_count <= u16::MAX as uint);
 
         debug!("creating complex glyph entry: starts_cluster={}, starts_ligature={}, \
                 glyph_count={}",
@@ -77,7 +78,7 @@ impl GlyphEntry {
     /// Create a GlyphEntry for the case where glyphs couldn't be found for the specified
     /// character.
     fn missing(glyph_count: uint) -> GlyphEntry {
-        assert!(glyph_count <= u16::max_value as uint);
+        assert!(glyph_count <= u16::MAX as uint);
 
         GlyphEntry::new((glyph_count as u32) << GLYPH_COUNT_SHIFT)
     }
@@ -404,7 +405,7 @@ impl<'a> DetailedGlyphStore {
 
         // Thar be dragons here. You have been warned. (Tips accepted.)
         let mut unsorted_records: ~[DetailedGlyphRecord] = ~[];
-        util::swap(&mut self.detail_lookup, &mut unsorted_records);
+        mem::swap(&mut self.detail_lookup, &mut unsorted_records);
         let mut mut_records : ~[DetailedGlyphRecord] = unsorted_records;
         mut_records.sort_by(|a, b| {
             if a < b {
@@ -414,7 +415,7 @@ impl<'a> DetailedGlyphStore {
             }
         });
         let mut sorted_records = mut_records;
-        util::swap(&mut self.detail_lookup, &mut sorted_records);
+        mem::swap(&mut self.detail_lookup, &mut sorted_records);
 
         self.lookup_is_sorted = true;
     }

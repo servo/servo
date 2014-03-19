@@ -22,9 +22,9 @@ use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::send_on_failure;
 
-use std::comm::{Chan, Port, SharedChan};
+use std::comm::{Chan, Port};
 use std::task;
-use extra::arc::Arc;
+use sync::Arc;
 
 use buffer_map::BufferMap;
 use display_list::DisplayListCollection;
@@ -66,7 +66,7 @@ pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferReq
 // FIXME(rust#9155): this should be a newtype struct, but
 // generic newtypes ICE when compiled cross-crate
 pub struct RenderChan<T> {
-    chan: SharedChan<Msg<T>>,
+    chan: Chan<Msg<T>>,
 }
 
 impl<T: Send> Clone for RenderChan<T> {
@@ -79,7 +79,7 @@ impl<T: Send> Clone for RenderChan<T> {
 
 impl<T: Send> RenderChan<T> {
     pub fn new() -> (Port<Msg<T>>, RenderChan<T>) {
-        let (port, chan) = SharedChan::new();
+        let (port, chan) = Chan::new();
         let render_chan = RenderChan {
             chan: chan,
         };
@@ -149,9 +149,9 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                   opts: Opts,
                   profiler_chan: ProfilerChan,
                   shutdown_chan: Chan<()>) {
-        let mut builder = task::task();
-        send_on_failure(&mut builder, FailureMsg(failure_msg), (*constellation_chan).clone());
-        builder.name("RenderTask");
+        let mut builder = task::task().named("RenderTask");
+        let ConstellationChan(c) = constellation_chan.clone();
+        send_on_failure(&mut builder, FailureMsg(failure_msg), c);
         builder.spawn(proc() {
 
             { // Ensures RenderTask and graphics context are destroyed before shutdown msg
@@ -191,8 +191,10 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                 render_task.start();
 
                 // Destroy all the buffers.
-                render_task.native_graphics_context.as_ref().map(
-                    |ctx| render_task.buffer_map.clear(ctx));
+                match render_task.native_graphics_context.as_ref() {
+                    Some(ctx) => render_task.buffer_map.clear(ctx),
+                    None => (),
+                }
             }
 
             debug!("render_task: shutdown_chan send");
@@ -211,7 +213,8 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                         self.compositor.set_layer_page_size_and_color(self.id, render_layer.size, self.epoch, render_layer.color);
                     } else {
                         debug!("render_task: render ready msg");
-                        self.constellation_chan.send(RendererReadyMsg(self.id));
+                        let ConstellationChan(ref mut c) = self.constellation_chan;
+                        c.send(RendererReadyMsg(self.id));
                     }
                     self.render_layer = Some(render_layer);
                 }
@@ -251,12 +254,8 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
     }
 
     fn render(&mut self, tiles: ~[BufferRequest], scale: f32) {
-        let render_layer;
-        match self.render_layer {
-            Some(ref r_layer) => {
-                render_layer = r_layer;
-            }
-            _ => return, // nothing to do
+        if self.render_layer.is_none() {
+            return
         }
 
         self.compositor.set_render_state(RenderingRenderState);
@@ -311,6 +310,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                         
                         // Draw the display list.
                         profile(time::RenderingDrawingCategory, self.profiler_chan.clone(), || {
+                            let render_layer = self.render_layer.as_ref().unwrap();
                             render_layer.display_list_collection.get().draw_lists_into_context(&mut ctx);
                             ctx.draw_target.flush();
                         });
@@ -395,7 +395,8 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                 self.compositor.paint(self.id, layer_buffer_set, self.epoch);
             } else {
                 debug!("render_task: RendererReadyMsg send");
-                self.constellation_chan.send(RendererReadyMsg(self.id));
+                let ConstellationChan(ref mut c) = self.constellation_chan;
+                c.send(RendererReadyMsg(self.id));
             }
             self.compositor.set_render_state(IdleRenderState);
         })

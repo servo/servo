@@ -8,16 +8,15 @@ use dom::bindings::js::JS;
 use dom::window;
 use servo_util::str::DOMString;
 
+use collections::hashmap::HashMap;
 use std::libc::c_uint;
 use std::cast;
 use std::cmp::Eq;
-use std::hashmap::HashMap;
 use std::libc;
 use std::ptr;
 use std::ptr::null;
 use std::str;
 use std::vec;
-use std::unstable::raw::Box;
 use js::glue::*;
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
@@ -121,10 +120,10 @@ pub fn unwrap_object<T>(obj: *JSObject, proto_id: PrototypeList::id::ID, proto_d
 pub fn unwrap_jsmanaged<T: Reflectable>(obj: *JSObject,
                                         proto_id: PrototypeList::id::ID,
                                         proto_depth: uint) -> Result<JS<T>, ()> {
-    let result: Result<*mut Box<T>, ()> = unwrap_object(obj, proto_id, proto_depth);
+    let result: Result<*mut T, ()> = unwrap_object(obj, proto_id, proto_depth);
     result.map(|unwrapped| {
         unsafe {
-            JS::from_box(unwrapped)
+            JS::from_raw(unwrapped)
         }
     })
 }
@@ -136,10 +135,6 @@ pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth
     }
 }
 
-pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *Box<T> {
-    cast::transmute(x)
-}
-
 pub unsafe fn squirrel_away_unboxed<T>(x: ~T) -> *T {
     cast::transmute(x)
 }
@@ -149,7 +144,7 @@ pub fn jsstring_to_str(cx: *JSContext, s: *JSString) -> DOMString {
         let length = 0;
         let chars = JS_GetStringCharsAndLength(cx, s, &length);
         vec::raw::buf_as_slice(chars, length as uint, |char_vec| {
-            str::from_utf16(char_vec)
+            str::from_utf16(char_vec).unwrap()
         })
     }
 }
@@ -412,7 +407,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: c_uint, _vp: *mut JSVa
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = ~([0 as *JSObject, ..PrototypeList::id::_ID_Count as uint]);
+    let protoArray = ~([0 as *JSObject, ..PrototypeList::id::IDCount as uint]);
     unsafe {
         let box_ = squirrel_away_unboxed(protoArray);
         JS_SetReservedSlot(global,
@@ -437,7 +432,6 @@ pub fn reflect_dom_object<T: Reflectable>
 #[deriving(Eq)]
 pub struct Reflector {
     object: *JSObject,
-    force_box_layout: @int,
 }
 
 impl Reflector {
@@ -455,7 +449,6 @@ impl Reflector {
     pub fn new() -> Reflector {
         Reflector {
             object: ptr::null(),
-            force_box_layout: @1,
         }
     }
 }
@@ -470,7 +463,7 @@ pub fn GetPropertyOnPrototype(cx: *JSContext, proxy: *JSObject, id: jsid, found:
           return true;
       }
       let hasProp = 0;
-      if JS_HasPropertyById(cx, proto, id, ptr::to_unsafe_ptr(&hasProp)) == 0 {
+      if JS_HasPropertyById(cx, proto, id, &hasProp) == 0 {
           return false;
       }
       *found = hasProp != 0;
@@ -651,8 +644,8 @@ pub fn global_object_for_js_object(obj: *JSObject) -> JS<window::Window> {
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
         // FIXME(jdm): Either don't hardcode or sanity assert prototype stuff.
-        match unwrap_object::<*mut Box<window::Window>>(global, PrototypeList::id::Window, 1) {
-            Ok(win) => JS::from_box(win),
+        match unwrap_object::<*mut window::Window>(global, PrototypeList::id::Window, 1) {
+            Ok(win) => JS::from_raw(win),
             Err(_) => fail!("found DOM global that doesn't unwrap to Window"),
         }
     }

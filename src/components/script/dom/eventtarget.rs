@@ -11,7 +11,7 @@ use dom::eventdispatcher::dispatch_event;
 use dom::node::NodeTypeId;
 use servo_util::str::DOMString;
 
-use std::hashmap::HashMap;
+use collections::hashmap::HashMap;
 
 #[deriving(Eq,Encodable)]
 pub enum ListenerPhase {

@@ -7,29 +7,31 @@
 
 #[feature(globs, managed_boxes, macro_rules)];
 
-extern mod azure;
-extern mod extra;
-extern mod geom;
-extern mod layers;
-extern mod stb_image;
-extern mod png;
-extern mod servo_net = "net";
-extern mod servo_util = "util";
-extern mod style;
-extern mod servo_msg = "msg";
+extern crate azure;
+extern crate collections;
+extern crate extra;
+extern crate geom;
+extern crate layers;
+extern crate stb_image;
+extern crate png;
+extern crate servo_net = "net";
+extern crate servo_util = "util";
+extern crate servo_msg = "msg";
+extern crate style;
+extern crate sync;
 
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, this is a hard dependency.
-extern mod harfbuzz;
+extern crate harfbuzz;
 
 // Linux and Android-specific library dependencies
-#[cfg(target_os="linux")] #[cfg(target_os="android")] extern mod fontconfig;
-#[cfg(target_os="linux")] #[cfg(target_os="android")] extern mod freetype;
+#[cfg(target_os="linux")] #[cfg(target_os="android")] extern crate fontconfig;
+#[cfg(target_os="linux")] #[cfg(target_os="android")] extern crate freetype;
 
 // Mac OS-specific library dependencies
-#[cfg(target_os="macos")] extern mod core_foundation;
-#[cfg(target_os="macos")] extern mod core_graphics;
-#[cfg(target_os="macos")] extern mod core_text;
+#[cfg(target_os="macos")] extern crate core_foundation;
+#[cfg(target_os="macos")] extern crate core_graphics;
+#[cfg(target_os="macos")] extern crate core_text;
 
 pub use gfx_font = font;
 pub use gfx_font_context = font_context;

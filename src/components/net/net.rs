@@ -7,12 +7,15 @@
 
 #[feature(globs, managed_boxes)];
 
-extern mod geom;
-extern mod http;
-extern mod servo_util = "util";
-extern mod stb_image;
-extern mod extra;
-extern mod png;
+extern crate collections;
+extern crate geom;
+extern crate http;
+extern crate servo_util = "util";
+extern crate stb_image;
+extern crate extra;
+extern crate png;
+extern crate serialize;
+extern crate sync;
 
 /// Image handling.
 ///
@@ -30,5 +33,4 @@ pub mod data_loader;
 pub mod image_cache_task;
 pub mod local_image_cache;
 pub mod resource_task;
-pub mod util;
 

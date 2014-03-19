@@ -35,18 +35,13 @@ ifdef CFG_DISABLE_OPTIMIZE
   $(info cfg: disabling rustc optimization (CFG_DISABLE_OPTIMIZE))
   CFG_RUSTC_FLAGS +=
 else
-  CFG_RUSTC_FLAGS += -O -Z no-debug-borrows
+  CFG_RUSTC_FLAGS += -O
 endif
 
+CFG_RUSTC_FLAGS += -g
 ifdef CFG_ENABLE_DEBUG
-  $(info cfg: enabling more debugging (CFG_ENABLE_DEBUG))
-  CFG_RUSTC_FLAGS += -Z extra-debug-info
-  CFG_RUSTC_SELF_FLAGS += -Z extra-debug-info
-else
-  # Enable debug!() etc even without configure --enable-debug
-  # The evaluation of these prints & their arguments is controlled
-  # at runtime by the environment variable RUST_LOG.
-  CFG_RUSTC_FLAGS += -Z debug-info
+  $(info cfg: enabling more debugging in RUSTC (CFG_ENABLE_DEBUG))
+  CFG_RUSTC_SELF_FLAGS += -g
 endif
 
 export CFG_RUSTC
@@ -135,8 +130,6 @@ endif
 # their name already, while others don't.
 DONE_$(1) = $$(B)src/$$(PATH_$(1))/lib*.dummy
 DEPS_SUBMODULES += $$(PATH_$(1))
-DEPS_SUBMODULES += $$(PATH_$(1))/.libs
-DEPS_SUBMODULES += $$(PATH_$(1))/src/.libs
 endef
 
 # these will get populated.
@@ -163,7 +156,7 @@ endef
 define DEF_SUBMODULE_RULES
 
 ENV_RLDFLAGS_$(1) = -L $$(CFG_BUILD_HOME)workspace/lib/$$(CFG_TARGET_TRIPLES)
-ENV_RLDFLAGS_$(1) += $$(foreach dep,$$(DEPS_$(1)),-L $$(B)src/$$(PATH_$$(dep)) -L $$(B)src/$$(PATH_$$(dep))/.libs -L $$(B)src/$$(PATH_$$(dep))/src/.libs)
+ENV_RLDFLAGS_$(1) += $$(foreach dep,$$(DEPS_$(1)),-L $$(B)src/$$(PATH_$$(dep)))
 
 # variables that depend on dependency definitions from sub.mk!
 ENV_CFLAGS_$(1) = CFLAGS="$$(CFLAGS_$(1))"
@@ -329,11 +322,11 @@ $(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) \
 ifneq ($(CFG_OSTYPE),linux-androideabi)
 servo:	$(DEPS_servo)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_servo) -o $@ $< --bin
+	$(Q)$(RUSTC) $(RFLAGS_servo) -o $@ $<
 else
 servo:  $(DEPS_servo)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_servo) -Z gen-crate-map -o $@ $< --lib
+	$(Q)$(RUSTC) $(RFLAGS_servo) -C gen-crate-map -o $@ $< --crate-type lib
 endif
 
 # Darwin app packaging

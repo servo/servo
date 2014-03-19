@@ -3,22 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use resource_task::{ProgressMsg, Metadata, Payload, Done, LoaderTask, start_sending};
-use servo_util::io::result;
 
 use std::io;
 use std::io::File;
 use servo_util::task::spawn_named;
 
-static READ_SIZE: uint = 1024;
+//FIXME: https://github.com/mozilla/rust/issues/12892
+static READ_SIZE: uint = 1;
 
-fn read_all(reader: &mut io::Stream, progress_chan: &SharedChan<ProgressMsg>)
+fn read_all(reader: &mut io::Stream, progress_chan: &Chan<ProgressMsg>)
         -> Result<(), ()> {
     loop {
-        match (result(|| {
-            let data = reader.read_bytes(READ_SIZE);
-            progress_chan.send(Payload(data));
-        })) {
-            Ok(()) => (),
+        let mut buf = ~[];
+        match reader.push_bytes(&mut buf, READ_SIZE) {
+            Ok(_) => progress_chan.send(Payload(buf)),
             Err(e) => match e.kind {
                 io::EndOfFile => return Ok(()),
                 _ => return Err(()),
@@ -32,14 +30,12 @@ pub fn factory() -> LoaderTask {
         assert!("file" == url.scheme);
         let progress_chan = start_sending(start_chan, Metadata::default(url.clone()));
         spawn_named("file_loader", proc() {
-            // ignore_io_error causes us to get None instead of a task failure.
-            let _guard = io::ignore_io_error();
             match File::open_mode(&Path::new(url.path), io::Open, io::Read) {
-                Some(ref mut reader) => {
+                Ok(ref mut reader) => {
                     let res = read_all(reader as &mut io::Stream, &progress_chan);
                     progress_chan.send(Done(res));
                 }
-                None => {
+                Err(_) => {
                     progress_chan.send(Done(Err(())));
                 }
             };

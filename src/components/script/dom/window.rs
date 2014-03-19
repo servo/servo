@@ -25,22 +25,22 @@ use js::jsval::JSVal;
 use js::jsval::{NullValue, ObjectValue};
 use js::JSPROP_ENUMERATE;
 
+use collections::hashmap::HashSet;
 use std::cast;
-use std::comm::SharedChan;
+use std::cmp;
+use std::comm::Chan;
 use std::comm::Select;
-use std::hashmap::HashSet;
+use std::hash::{Hash, sip};
 use std::io::timer::Timer;
-use std::num;
 use std::rc::Rc;
-use std::to_bytes::Cb;
 
-use extra::serialize::{Encoder, Encodable};
+use serialize::{Encoder, Encodable};
 use extra::url::{Url};
 
 pub enum TimerControlMsg {
-    TimerMessage_Fire(~TimerData),
-    TimerMessage_Close,
-    TimerMessage_TriggerExit //XXXjdm this is just a quick hack to talk to the script task
+    TimerMessageFire(~TimerData),
+    TimerMessageClose,
+    TimerMessageTriggerExit //XXXjdm this is just a quick hack to talk to the script task
 }
 
 pub struct TimerHandle {
@@ -53,9 +53,9 @@ impl<S: Encoder> Encodable<S> for TimerHandle {
     }
 }
 
-impl IterBytes for TimerHandle {
-    fn iter_bytes(&self, lsb0: bool, f: Cb) -> bool {
-        self.handle.iter_bytes(lsb0, f)
+impl Hash for TimerHandle {
+    fn hash(&self, state: &mut sip::SipState) {
+        self.handle.hash(state);
     }
 }
 
@@ -87,7 +87,7 @@ pub struct Window {
 struct Untraceable {
     page: Rc<Page>,
     compositor: ~ScriptListener,
-    timer_chan: SharedChan<TimerControlMsg>,
+    timer_chan: Chan<TimerControlMsg>,
 }
 
 impl<S: Encoder> Encodable<S> for Untraceable {
@@ -115,7 +115,7 @@ impl Window {
 #[unsafe_destructor]
 impl Drop for Window {
     fn drop(&mut self) {
-        self.extra.timer_chan.send(TimerMessage_Close);
+        self.extra.timer_chan.send(TimerMessageClose);
         for handle in self.active_timers.iter() {
             handle.cancel();
         }
@@ -134,11 +134,11 @@ pub struct TimerData {
 impl Window {
     pub fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
-        println(format!("ALERT: {:s}", s));
+        println!("ALERT: {:s}", s);
     }
 
     pub fn Close(&self) {
-        self.extra.timer_chan.send(TimerMessage_TriggerExit);
+        self.extra.timer_chan.send(TimerMessageTriggerExit);
     }
 
     pub fn Document(&self) -> JS<Document> {
@@ -226,7 +226,7 @@ impl Reflectable for Window {
 
 impl Window {
     pub fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
-        let timeout = num::max(0, timeout) as u64;
+        let timeout = cmp::max(0, timeout) as u64;
         let handle = self.next_timer_handle;
         self.next_timer_handle += 1;
 
@@ -237,15 +237,17 @@ impl Window {
         let chan = self.extra.timer_chan.clone();
         spawn_named("Window:SetTimeout", proc() {
             let mut tm = tm;
-            let mut timeout_port = tm.oneshot(timeout);
-            let mut cancel_port = cancel_port;
+            let timeout_port = tm.oneshot(timeout);
+            let cancel_port = cancel_port;
 
             let select = Select::new();
-            let timeout_handle = select.add(&mut timeout_port);
-            let _cancel_handle = select.add(&mut cancel_port);
+            let mut timeout_handle = select.handle(&timeout_port);
+            unsafe { timeout_handle.add() };
+            let mut cancel_handle = select.handle(&cancel_port);
+            unsafe { cancel_handle.add() };
             let id = select.wait();
-            if id == timeout_handle.id {
-                chan.send(TimerMessage_Fire(~TimerData {
+            if id == timeout_handle.id() {
+                chan.send(TimerMessageFire(~TimerData {
                     handle: handle,
                     funval: callback,
                     args: ~[],
@@ -290,14 +292,15 @@ impl Window {
                 compositor: compositor,
                 page: page.clone(),
                 timer_chan: {
-                    let (timer_port, timer_chan): (Port<TimerControlMsg>, SharedChan<TimerControlMsg>) = SharedChan::new();
+                    let (timer_port, timer_chan): (Port<TimerControlMsg>, Chan<TimerControlMsg>) = Chan::new();
                     let id = page.borrow().id.clone();
                     spawn_named("timer controller", proc() {
+                        let ScriptChan(script_chan) = script_chan;
                         loop {
                             match timer_port.recv() {
-                                TimerMessage_Close => break,
-                                TimerMessage_Fire(td) => script_chan.send(FireTimerMsg(id, td)),
-                                TimerMessage_TriggerExit => script_chan.send(ExitWindowMsg(id)),
+                                TimerMessageClose => break,
+                                TimerMessageFire(td) => script_chan.send(FireTimerMsg(id, td)),
+                                TimerMessageTriggerExit => script_chan.send(ExitWindowMsg(id)),
                             }
                         }
                     });

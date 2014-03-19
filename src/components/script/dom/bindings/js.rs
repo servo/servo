@@ -9,7 +9,6 @@ use layout_interface::TrustedNodeAddress;
 
 use std::cast;
 use std::cell::RefCell;
-use std::unstable::raw::Box;
 
 pub struct JS<T> {
     priv ptr: RefCell<*mut T>
@@ -49,13 +48,6 @@ impl<T: Reflectable> JS<T> {
         }
     }
 
-
-    pub unsafe fn from_box(box_: *mut Box<T>) -> JS<T> {
-        let raw: *mut T = &mut (*box_).data;
-        JS {
-            ptr: RefCell::new(raw)
-        }
-    }
 
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<T> {
         JS {

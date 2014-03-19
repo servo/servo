@@ -18,14 +18,14 @@ use color::Color;
 use render_context::RenderContext;
 use text::TextRun;
 
-use extra::arc::Arc;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use servo_net::image::base::Image;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use std::cast::transmute_region;
-use std::vec::VecIterator;
+use std::vec::Items;
 use style::computed_values::border_style;
+use sync::Arc;
 
 pub struct DisplayListCollection<E> {
     lists: ~[DisplayList<E>]
@@ -70,7 +70,7 @@ pub struct DisplayList<E> {
 
 pub enum DisplayListIterator<'a,E> {
     EmptyDisplayListIterator,
-    ParentDisplayListIterator(VecIterator<'a,DisplayList<E>>),
+    ParentDisplayListIterator(Items<'a,DisplayList<E>>),
 }
 
 impl<'a,E> Iterator<&'a DisplayList<E>> for DisplayListIterator<'a,E> {
@@ -226,7 +226,7 @@ pub struct ClipDisplayItem<E> {
 
 pub enum DisplayItemIterator<'a,E> {
     EmptyDisplayItemIterator,
-    ParentDisplayItemIterator(VecIterator<'a,DisplayItem<E>>),
+    ParentDisplayItemIterator(Items<'a,DisplayItem<E>>),
 }
 
 impl<'a,E> Iterator<&'a DisplayItem<E>> for DisplayItemIterator<'a,E> {

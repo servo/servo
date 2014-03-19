@@ -8,8 +8,8 @@ use css::node_util::NodeUtil;
 use layout::incremental::RestyleDamage;
 use layout::wrapper::ThreadSafeLayoutNode;
 
-use extra::arc::Arc;
 use style::ComputedValues;
+use sync::Arc;
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {

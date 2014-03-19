@@ -12,7 +12,7 @@ use servo_util::str::DOMString;
 use script_task::{Page};
 use std::rc::Rc;
 
-use extra::serialize::{Encoder, Encodable};
+use serialize::{Encoder, Encodable};
 
 
 #[deriving(Encodable)]

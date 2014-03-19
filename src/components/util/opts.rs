@@ -7,8 +7,8 @@
 
 use azure::azure_hl::{BackendType, CairoBackend, CoreGraphicsBackend};
 use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBackend};
-use extra::getopts::groups;
-use std::num;
+use getopts;
+use std::cmp;
 use std::rt;
 use std::io;
 use std::os;
@@ -56,13 +56,13 @@ pub struct Opts {
     bubble_widths_separately: bool,
 }
 
-fn print_usage(app: &str, opts: &[groups::OptGroup]) {
+fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
     let message = format!("Usage: {} [ options ... ] [URL]\n\twhere options include", app);
-    println(groups::usage(message, opts));
+    println!("{}", getopts::usage(message, opts));
 }
 
 fn args_fail(msg: &str) {
-    io::stderr().write_line(msg);
+    io::stderr().write_line(msg).unwrap();
     os::set_exit_status(1);
 }
 
@@ -71,21 +71,21 @@ pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
     let args = args.tail();
 
     let opts = ~[
-        groups::optflag("c", "cpu", "CPU rendering"),
-        groups::optopt("o", "output", "Output file", "output.png"),
-        groups::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
-        groups::optopt("s", "size", "Size of tiles", "512"),
-        groups::optopt("t", "threads", "Number of render threads", "1"),
-        groups::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
-        groups::optflag("x", "exit", "Exit after load flag"),
-        groups::optopt("y", "layout-threads", "Number of threads to use for layout", "1"),
-        groups::optflag("z", "headless", "Headless mode"),
-        groups::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
-        groups::optflag("b", "bubble-widths", "Bubble intrinsic widths separately like other engines"),
-        groups::optflag("h", "help", "Print this message")
+        getopts::optflag("c", "cpu", "CPU rendering"),
+        getopts::optopt("o", "output", "Output file", "output.png"),
+        getopts::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
+        getopts::optopt("s", "size", "Size of tiles", "512"),
+        getopts::optopt("t", "threads", "Number of render threads", "1"),
+        getopts::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
+        getopts::optflag("x", "exit", "Exit after load flag"),
+        getopts::optopt("y", "layout-threads", "Number of threads to use for layout", "1"),
+        getopts::optflag("z", "headless", "Headless mode"),
+        getopts::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
+        getopts::optflag("b", "bubble-widths", "Bubble intrinsic widths separately like other engines"),
+        getopts::optflag("h", "help", "Print this message")
     ];
 
-    let opt_match = match groups::getopts(args, opts) {
+    let opt_match = match getopts::getopts(args, opts) {
         Ok(m) => m,
         Err(f) => {
             args_fail(f.to_err_msg());
@@ -144,7 +144,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Option<Opts> {
 
     let layout_threads: uint = match opt_match.opt_str("y") {
         Some(layout_threads_str) => from_str(layout_threads_str).unwrap(),
-        None => num::max(rt::default_sched_threads() * 3 / 4, 1),
+        None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
     };
 
     Some(Opts {

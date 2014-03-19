@@ -15,9 +15,9 @@ use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
 use extra::url::Url;
+use serialize::{Encoder, Encodable};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use std::ascii::StrAsciiExt;
-use extra::serialize::{Encoder, Encodable};
 
 enum SandboxAllowance {
     AllowNothing = 0x00,

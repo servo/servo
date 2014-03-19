@@ -9,12 +9,14 @@ macro_rules! bitfield(
         impl $bitfieldname {
             #[inline]
             pub fn $getter(self) -> bool {
-                (*self & $value) != 0
+                let $bitfieldname(this) = self;
+                (this & $value) != 0
             }
 
             #[inline]
             pub fn $setter(&mut self, value: bool) {
-                *self = $bitfieldname((**self & !$value) | (if value { $value } else { 0 }))
+                let $bitfieldname(this) = *self;
+                *self = $bitfieldname((this & !$value) | (if value { $value } else { 0 }))
             }
         }
     )

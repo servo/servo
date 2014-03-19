@@ -5,7 +5,7 @@
 use dom::bindings::codegen::MouseEventBinding;
 use dom::bindings::codegen::InheritTypes::MouseEventDerived;
 use dom::bindings::js::JS;
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, MouseEventTypeId};
 use dom::eventtarget::EventTarget;
@@ -135,7 +135,7 @@ impl MouseEvent {
                           shiftKeyArg: bool,
                           metaKeyArg: bool,
                           buttonArg: u16,
-                          relatedTargetArg: Option<JS<EventTarget>>) -> ErrorResult {
+                          relatedTargetArg: Option<JS<EventTarget>>) {
         self.mouseevent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x = screenXArg;
         self.screen_y = screenYArg;
@@ -147,7 +147,6 @@ impl MouseEvent {
         self.meta_key = metaKeyArg;
         self.button = buttonArg;
         self.related_target = relatedTargetArg;
-        Ok(())
     }
 }
 

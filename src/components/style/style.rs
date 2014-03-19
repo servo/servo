@@ -10,10 +10,14 @@
 
 #[feature(globs, macro_rules, managed_boxes)];
 
-extern mod extra;
-extern mod cssparser;
-extern mod encoding;
-extern mod servo_util = "util";
+extern crate cssparser;
+extern crate collections;
+extern crate encoding;
+extern crate extra;
+extern crate num;
+extern crate serialize;
+extern crate servo_util = "util";
+extern crate sync;
 
 
 // Public API

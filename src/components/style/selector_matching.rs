@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use extra::arc::Arc;
+use collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
-use std::hashmap::HashMap;
-use std::to_bytes;
+use std::hash::Hash;
+use std::hash::sip::SipState;
+use num::div_rem;
+use sync::Arc;
 
 use servo_util::namespace;
 use servo_util::smallvec::SmallVec;
@@ -38,22 +40,21 @@ impl<'a> Equiv<DOMString> for LowercaseAsciiString<'a> {
     }
 }
 
-impl<'a> IterBytes for LowercaseAsciiString<'a> {
+impl<'a> Hash for LowercaseAsciiString<'a> {
     #[inline]
-    fn iter_bytes(&self, _: bool, f: to_bytes::Cb) -> bool {
-        for b in self.bytes() {
+    fn hash(&self, state: &mut SipState) {
+        let LowercaseAsciiString(this) = *self;
+        for b in this.bytes() {
             // FIXME(pcwalton): This is a nasty hack for performance. We temporarily violate the
             // `Ascii` type's invariants by using `to_ascii_nocheck`, but it's OK as we simply
             // convert to a byte afterward.
             unsafe {
-                if !f([ b.to_ascii_nocheck().to_lower().to_byte() ]) {
-                    return false
-                }
-            }
+                state.write_u8(b.to_ascii_nocheck().to_lower().to_byte()).unwrap()
+            };
         }
         // Terminate the string with a non-UTF-8 character, to match what the built-in string
         // `ToBytes` implementation does. (See `libstd/to_bytes.rs`.)
-        f([ 0xff ])
+        state.write_u8(0xff).unwrap();
     }
 }
 
@@ -338,6 +339,7 @@ impl Stylist {
                 &mut self.after_map.user,
             ),
         };
+        let mut rules_source_order = self.rules_source_order;
 
         // Take apart the StyleRule into individual Rules and insert
         // them into the SelectorMap of that priority.
@@ -355,7 +357,7 @@ impl Stylist {
                                 property: MatchedProperty {
                                     specificity: selector.specificity,
                                     declarations: style_rule.declarations.$priority.clone(),
-                                    source_order: self.rules_source_order,
+                                    source_order: rules_source_order,
                                 },
                         });
                     }
@@ -367,8 +369,9 @@ impl Stylist {
         iter_style_rules(stylesheet.rules.as_slice(), device, |style_rule| {
             append!(normal);
             append!(important);
-            self.rules_source_order += 1;
+            rules_source_order += 1;
         });
+        self.rules_source_order = rules_source_order;
     }
 
     /// Returns the applicable CSS declarations for the given element. This corresponds to
@@ -596,7 +599,7 @@ fn matches_simple_selector<E:TElement,
             *shareable = false;
             element.with_element(|element: &E| {
                 element.get_attr(&namespace::Null, "id")
-                       .map_default(false, |attr| {
+                       .map_or(false, |attr| {
                     attr == *id
                 })
             })
@@ -605,7 +608,7 @@ fn matches_simple_selector<E:TElement,
         ClassSelector(ref class) => {
             element.with_element(|element: &E| {
                 element.get_attr(&namespace::Null, "class")
-                       .map_default(false, |attr| {
+                       .map_or(false, |attr| {
                     // TODO: case-sensitivity depends on the document type and quirks mode
                     attr.split(SELECTOR_WHITESPACE).any(|c| c == class.as_slice())
                 })
@@ -807,7 +810,7 @@ fn matches_generic_nth_child<'a,
         return b == index;
     }
 
-    let (n, r) = (index - b).div_rem(&a);
+    let (n, r) = div_rem(index - b, a);
     n >= 0 && r == 0
 }
 
@@ -866,7 +869,7 @@ fn matches_last_child<E:TElement,N:TNode<E>>(element: &N) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use extra::arc::Arc;
+    use sync::Arc;
     use super::{MatchedProperty, Rule, SelectorMap};
 
     /// Helper method to get some Rules from selector strings.

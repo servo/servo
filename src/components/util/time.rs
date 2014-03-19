@@ -4,9 +4,9 @@
 
 //! Timing functions.
 
-use extra::time::precise_time_ns;
-use extra::treemap::TreeMap;
-use std::comm::{Port, SharedChan};
+use std_time::precise_time_ns;
+use collections::treemap::TreeMap;
+use std::comm::{Port, Chan};
 use std::iter::AdditiveIterator;
 use task::{spawn_named};
 
@@ -28,11 +28,12 @@ impl Timer {
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
-pub struct ProfilerChan(SharedChan<ProfilerMsg>);
+pub struct ProfilerChan(Chan<ProfilerMsg>);
 
 impl ProfilerChan {
     pub fn send(&self, msg: ProfilerMsg) {
-        (**self).send(msg);
+        let ProfilerChan(ref c) = *self;
+        c.send(msg);
     }
 }
 
@@ -123,7 +124,7 @@ pub struct Profiler {
 
 impl Profiler {
     pub fn create(period: Option<f64>) -> ProfilerChan {
-        let (port, chan) = SharedChan::new();
+        let (port, chan) = Chan::new();
         match period {
             Some(period) => {
                 let period = (period * 1000f64) as u64;
@@ -195,9 +196,9 @@ impl Profiler {
     }
 
     fn print_buckets(&mut self) {
-        println(format!("{:39s} {:15s} {:15s} {:15s} {:15s} {:15s}",
-                         "_category_", "_mean (ms)_", "_median (ms)_",
-                         "_min (ms)_", "_max (ms)_", "_bucket size_"));
+        println!("{:39s} {:15s} {:15s} {:15s} {:15s} {:15s}",
+                 "_category_", "_mean (ms)_", "_median (ms)_",
+                 "_min (ms)_", "_max (ms)_", "_bucket size_");
         for (category, data) in self.buckets.iter() {
             // FIXME(XXX): TreeMap currently lacks mut_iter()
             let mut data = data.clone();
@@ -215,11 +216,11 @@ impl Profiler {
                      data[data_len / 2],
                      data.iter().min().unwrap(),
                      data.iter().max().unwrap());
-                println(format!("{:-35s}: {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
-                             category.format(), mean, median, min, max, data_len));
+                println!("{:-35s}: {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
+                         category.format(), mean, median, min, max, data_len);
             }
         }
-        println("");
+        println!("");
     }
 }
 
@@ -231,7 +232,7 @@ pub fn profile<T>(category: ProfilerCategory,
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
-    let ms = ((end_time - start_time) as f64 / 1000000f64);
+    let ms = (end_time - start_time) as f64 / 1000000f64;
     profiler_chan.send(TimeMsg(category, ms));
     return val;
 }
@@ -240,7 +241,7 @@ pub fn time<T>(msg: &str, callback: || -> T) -> T{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
-    let ms = ((end_time - start_time) as f64 / 1000000f64);
+    let ms = (end_time - start_time) as f64 / 1000000f64;
     if ms >= 5f64 {
         debug!("{:s} took {} ms", msg, ms);
     }

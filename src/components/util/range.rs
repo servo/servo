@@ -22,9 +22,9 @@ pub struct Range {
     priv len: uint
 }
 
-impl fmt::Default for Range {
-    fn fmt(obj: &Range, f: &mut fmt::Formatter) {
-        write!(f.buf, "[{} .. {})", obj.begin(), obj.end());
+impl fmt::Show for Range {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f.buf, "[{} .. {})", self.begin(), self.end())
     }
 }
 

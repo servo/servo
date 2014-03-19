@@ -22,14 +22,14 @@ impl<'a, T: Ord + Eq> BinarySearchMethods<'a, T> for &'a [T] {
         let mut low : int = 0;
         let mut high : int = (self.len() as int) - 1;
 
-        while (low <= high) {
+        while low <= high {
             // http://googleresearch.blogspot.com/2006/06/extra-extra-read-all-about-it-nearly.html
             let mid : int = (((low as uint) + (high as uint)) >> 1) as int;
             let midv = &self[mid];
 
-            if (midv < key) {
+            if midv < key {
                 low = mid + 1;
-            } else if (midv > key) {
+            } else if midv > key {
                 high = mid - 1;
             } else {
                 return Some(mid as uint);

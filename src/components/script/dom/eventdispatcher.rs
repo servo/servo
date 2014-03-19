@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::callback::eReportExceptions;
+use dom::bindings::callback::ReportExceptions;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
 use dom::bindings::js::JS;
 use dom::eventtarget::{Capturing, Bubbling, EventTarget};
-use dom::event::{Event, Phase_At_Target, Phase_None, Phase_Bubbling, Phase_Capturing};
+use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing};
 use dom::node::{Node, NodeHelpers};
 
 // See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
@@ -35,7 +35,7 @@ pub fn dispatch_event(target: &JS<EventTarget>,
         }
     }
 
-    event.get_mut().phase = Phase_Capturing;
+    event.get_mut().phase = PhaseCapturing;
 
     //FIXME: The "callback this value" should be currentTarget
 
@@ -45,7 +45,9 @@ pub fn dispatch_event(target: &JS<EventTarget>,
             Some(listeners) => {
                 event.get_mut().current_target = Some(cur_target.clone());
                 for listener in listeners.iter() {
-                    listener.HandleEvent__(event, eReportExceptions);
+                    //FIXME: this should have proper error handling, or explicitly
+                    //       drop the exception on the floor
+                    assert!(listener.HandleEvent__(event, ReportExceptions).is_ok());
 
                     if event.get().stop_immediate {
                         break;
@@ -66,14 +68,16 @@ pub fn dispatch_event(target: &JS<EventTarget>,
     if !event.get().stop_propagation {
         {
             let event = event.get_mut();
-            event.phase = Phase_At_Target;
+            event.phase = PhaseAtTarget;
             event.current_target = Some(target.clone());
         }
 
         let opt_listeners = target.get().get_listeners(type_);
         for listeners in opt_listeners.iter() {
             for listener in listeners.iter() {
-                listener.HandleEvent__(event, eReportExceptions);
+                //FIXME: this should have proper error handling, or explicitly drop the
+                //       exception on the floor.
+                assert!(listener.HandleEvent__(event, ReportExceptions).is_ok());
                 if event.get().stop_immediate {
                     break;
                 }
@@ -83,14 +87,16 @@ pub fn dispatch_event(target: &JS<EventTarget>,
 
     /* bubbling */
     if event.get().bubbles && !event.get().stop_propagation {
-        event.get_mut().phase = Phase_Bubbling;
+        event.get_mut().phase = PhaseBubbling;
 
         for cur_target in chain.iter() {
             let stopped = match cur_target.get().get_listeners_for(type_, Bubbling) {
                 Some(listeners) => {
                     event.get_mut().current_target = Some(cur_target.clone());
                     for listener in listeners.iter() {
-                        listener.HandleEvent__(event, eReportExceptions);
+                        //FIXME: this should have proper error handling or explicitly
+                        //       drop exceptions on the floor.
+                        assert!(listener.HandleEvent__(event, ReportExceptions).is_ok());
 
                         if event.get().stop_immediate {
                             break;
@@ -109,7 +115,7 @@ pub fn dispatch_event(target: &JS<EventTarget>,
 
     let event = event.get_mut();
     event.dispatching = false;
-    event.phase = Phase_None;
+    event.phase = PhaseNone;
     event.current_target = None;
 
     !event.DefaultPrevented()

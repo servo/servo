@@ -119,7 +119,7 @@ impl HeightConstraintSolution {
             (Specified(top), Specified(bottom), Specified(height)) => {
                 match (top_margin, bottom_margin) {
                     (Auto, Auto) => {
-                        let total_margin_val = (available_height - top - bottom - height);
+                        let total_margin_val = available_height - top - bottom - height;
                         (top, bottom, height,
                          total_margin_val.scale_by(0.5),
                          total_margin_val.scale_by(0.5))
@@ -226,7 +226,7 @@ impl HeightConstraintSolution {
             (Specified(top), Specified(bottom)) => {
                 match (top_margin, bottom_margin) {
                     (Auto, Auto) => {
-                        let total_margin_val = (available_height - top - bottom - height);
+                        let total_margin_val = available_height - top - bottom - height;
                         (top, bottom, height,
                          total_margin_val.scale_by(0.5),
                          total_margin_val.scale_by(0.5))
@@ -291,7 +291,9 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignHeightsTraversal<'a> {
             return true;
         }
 
-        block_flow.calculate_abs_height_and_margins(**self);
+
+        let AbsoluteAssignHeightsTraversal(ref ctx) = *self;
+        block_flow.calculate_abs_height_and_margins(*ctx);
         true
     }
 }
@@ -1731,7 +1733,7 @@ trait WidthAndMarginsComputer {
                 let left = left_margin.specified_or_zero();
                 let right = right_margin.specified_or_zero();
 
-                if((left + right + width) > available_width) {
+                if (left + right + width) > available_width {
                     (Specified(left), Specified(right))
                 } else {
                     (left_margin, right_margin)
@@ -1838,7 +1840,7 @@ impl WidthAndMarginsComputer for AbsoluteNonReplaced {
             (Specified(left), Specified(right), Specified(width)) => {
                 match (left_margin, right_margin) {
                     (Auto, Auto) => {
-                        let total_margin_val = (available_width - left - right - width);
+                        let total_margin_val = available_width - left - right - width;
                         if total_margin_val < Au(0) {
                             // margin-left becomes 0 because direction is 'ltr'.
                             // TODO: Handle 'rtl' when it is implemented.
@@ -2001,7 +2003,7 @@ impl WidthAndMarginsComputer for AbsoluteReplaced {
             (Specified(left), Specified(right)) => {
                 match (left_margin, right_margin) {
                     (Auto, Auto) => {
-                        let total_margin_val = (available_width - left - right - width);
+                        let total_margin_val = available_width - left - right - width;
                         if total_margin_val < Au(0) {
                             // margin-left becomes 0 because direction is 'ltr'.
                             (left, right, width, Au(0), total_margin_val)

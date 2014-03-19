@@ -203,9 +203,9 @@ impl Element {
         let (prefix, local_name) = get_attribute_parts(name.clone());
         match prefix {
             Some(ref prefix_str) => {
-                if (namespace == namespace::Null ||
-                    ("xml" == prefix_str.as_slice() && namespace != namespace::XML) ||
-                    ("xmlns" == prefix_str.as_slice() && namespace != namespace::XMLNS)) {
+                if namespace == namespace::Null ||
+                   ("xml" == prefix_str.as_slice() && namespace != namespace::XML) ||
+                   ("xmlns" == prefix_str.as_slice() && namespace != namespace::XMLNS) {
                     return Err(NamespaceError);
                 }
             },
@@ -410,7 +410,7 @@ impl Element {
     pub fn set_string_attribute(&mut self, abstract_self: &JS<Element>,
                                 name: &str, value: DOMString) {
         assert!(name == name.to_ascii_lower());
-        self.set_attribute(abstract_self, Null, name.to_owned(), value);
+        assert!(self.set_attribute(abstract_self, Null, name.to_owned(), value).is_ok());
     }
 }
 

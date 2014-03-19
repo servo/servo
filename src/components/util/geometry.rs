@@ -18,67 +18,111 @@ pub struct Au(i32);
 impl Clone for Au {
     #[inline]
     fn clone(&self) -> Au {
-        Au(**self)
+        let Au(i) = *self;
+        Au(i)
     }
 }
 
-impl fmt::Default for Au {
-    fn fmt(obj: &Au, f: &mut fmt::Formatter) {
-        let Au(n) = *obj;
-        write!(f.buf, "Au({})", n);
-    }
-}
+impl fmt::Show for Au {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let Au(n) = *self;
+        write!(f.buf, "Au({})", n)
+    }}
 
 impl Eq for Au {
     #[inline]
     fn eq(&self, other: &Au) -> bool {
-        **self == **other
+        let Au(s) = *self;
+        let Au(o) = *other;
+        s == o
     }
     #[inline]
     fn ne(&self, other: &Au) -> bool {
-        **self != **other
+        let Au(s) = *self;
+        let Au(o) = *other;
+        s != o
     }
 }
 
 impl Add<Au,Au> for Au {
     #[inline]
-    fn add(&self, other: &Au) -> Au { Au(**self + **other) }
+    fn add(&self, other: &Au) -> Au {
+        let Au(s) = *self;
+        let Au(o) = *other;
+        Au(s + o)
+    }
 }
 
 impl Sub<Au,Au> for Au {
     #[inline]
-    fn sub(&self, other: &Au) -> Au { Au(**self - **other) }
+    fn sub(&self, other: &Au) -> Au {
+        let Au(s) = *self;
+        let Au(o) = *other;
+        Au(s - o)
+    }
+
 }
 
 impl Mul<Au,Au> for Au {
     #[inline]
-    fn mul(&self, other: &Au) -> Au { Au(**self * **other) }
+    fn mul(&self, other: &Au) -> Au {
+        let Au(s) = *self;
+        let Au(o) = *other;
+        Au(s * o)
+    }
 }
 
 impl Div<Au,Au> for Au {
     #[inline]
-    fn div(&self, other: &Au) -> Au { Au(**self / **other) }
+    fn div(&self, other: &Au) -> Au {
+        let Au(s) = *self;
+        let Au(o) = *other;
+        Au(s / o)
+    }
 }
 
 impl Rem<Au,Au> for Au {
     #[inline]
-    fn rem(&self, other: &Au) -> Au { Au(**self % **other) }
+    fn rem(&self, other: &Au) -> Au {
+        let Au(s) = *self;
+        let Au(o) = *other;
+        Au(s % o)
+    }
 }
 
 impl Neg<Au> for Au {
     #[inline]
-    fn neg(&self) -> Au { Au(-**self) }
+    fn neg(&self) -> Au {
+        let Au(s) = *self;
+        Au(-s)
+    }
 }
 
 impl Ord for Au {
     #[inline]
-    fn lt(&self, other: &Au) -> bool { **self <  **other }
+    fn lt(&self, other: &Au) -> bool {
+        let Au(s) = *self;
+        let Au(o) = *other;
+        s < o
+    }
     #[inline]
-    fn le(&self, other: &Au) -> bool { **self <= **other }
+    fn le(&self, other: &Au) -> bool {
+        let Au(s) = *self;
+        let Au(o) = *other;
+        s <= o
+    }
     #[inline]
-    fn ge(&self, other: &Au) -> bool { **self >= **other }
+    fn ge(&self, other: &Au) -> bool {
+        let Au(s) = *self;
+        let Au(o) = *other;
+        s >= o
+    }
     #[inline]
-    fn gt(&self, other: &Au) -> bool { **self >  **other }
+    fn gt(&self, other: &Au) -> bool {
+        let Au(s) = *self;
+        let Au(o) = *other;
+        s > o
+    }
 }
 
 impl One for Au {
@@ -90,7 +134,10 @@ impl Zero for Au {
     #[inline]
     fn zero() -> Au { Au(0) }
     #[inline]
-    fn is_zero(&self) -> bool { **self == 0 }
+    fn is_zero(&self) -> bool {
+        let Au(s) = *self;
+        s == 0
+    }
 }
 
 impl Num for Au {}
@@ -110,22 +157,26 @@ impl NumCast for Au {
 impl ToPrimitive for Au {
     #[inline]
     fn to_i64(&self) -> Option<i64> {
-        Some(**self as i64)
+        let Au(s) = *self;
+        Some(s as i64)
     }
 
     #[inline]
     fn to_u64(&self) -> Option<u64> {
-        Some(**self as u64)
+        let Au(s) = *self;
+        Some(s as u64)
     }
 
     #[inline]
     fn to_f32(&self) -> Option<f32> {
-        (**self).to_f32()
+        let Au(s) = *self;
+        s.to_f32()
     }
 
     #[inline]
     fn to_f64(&self) -> Option<f64> {
-        (**self).to_f64()
+        let Au(s) = *self;
+        s.to_f64()
     }
 }
 
@@ -138,7 +189,8 @@ impl Au {
 
     #[inline]
     pub fn scale_by(self, factor: f64) -> Au {
-        Au(((*self as f64) * factor) as i32)
+        let Au(s) = self;
+        Au(((s as f64) * factor) as i32)
     }
 
     #[inline]
@@ -148,14 +200,16 @@ impl Au {
 
     #[inline]
     pub fn to_nearest_px(&self) -> int {
-        ((**self as f64) / 60f64).round() as int
+        let Au(s) = *self;
+        ((s as f64) / 60f64).round() as int
     }
 
     #[inline]
     pub fn to_snapped(&self) -> Au {
-        let res = **self % 60i32;
-        return if res >= 30i32 { return Au(**self - res + 60i32) }
-                       else { return Au(**self - res) };
+        let Au(s) = *self;
+        let res = s % 60i32;
+        return if res >= 30i32 { return Au(s - res + 60i32) }
+                       else { return Au(s - res) };
     }
 
     #[inline]
@@ -180,9 +234,18 @@ impl Au {
     }
 
     #[inline]
-    pub fn min(x: Au, y: Au) -> Au { if *x < *y { x } else { y } }
+    pub fn min(x: Au, y: Au) -> Au {
+        let Au(xi) = x;
+        let Au(yi) = y;
+        if xi < yi { x } else { y }
+    }
+
     #[inline]
-    pub fn max(x: Au, y: Au) -> Au { if *x > *y { x } else { y } }
+    pub fn max(x: Au, y: Au) -> Au {
+        let Au(xi) = x;
+        let Au(yi) = y;
+        if xi > yi { x } else { y }
+    }
 }
 
 // assumes 72 points per inch, and 96 px per inch
@@ -217,11 +280,13 @@ pub fn from_px(px: int) -> Au {
 }
 
 pub fn to_px(au: Au) -> int {
-    (*au / 60) as int
+    let Au(a) = au;
+    (a / 60) as int
 }
 
 pub fn to_frac_px(au: Au) -> f64 {
-    (*au as f64) / 60f64
+    let Au(a) = au;
+    (a as f64) / 60f64
 }
 
 // assumes 72 points per inch, and 96 px per inch
@@ -231,6 +296,7 @@ pub fn from_pt(pt: f64) -> Au {
 
 // assumes 72 points per inch, and 96 px per inch
 pub fn to_pt(au: Au) -> f64 {
-    (*au as f64) / 60f64 * 72f64 / 96f64
+    let Au(a) = au;
+    (a as f64) / 60f64 * 72f64 / 96f64
 }
 

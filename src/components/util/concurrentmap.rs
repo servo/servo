@@ -5,12 +5,13 @@
 //! A Doug Lea-style concurrent hash map using striped locks.
 
 use std::cast;
+use std::hash::{Hash, sip};
 use std::ptr;
 use std::rand::Rng;
 use std::rand;
 use std::sync::atomics::{AtomicUint, Relaxed, SeqCst};
-use std::unstable::mutex::Mutex;
-use std::util;
+use std::unstable::mutex::StaticNativeMutex;
+use std::mem;
 use std::vec;
 
 /// When the size exceeds (number of buckets * LOAD_NUMERATOR/LOAD_DENOMINATOR), the hash table
@@ -37,7 +38,7 @@ pub struct ConcurrentHashMap<K,V> {
     /// The number of elements in this hash table.
     priv size: AtomicUint,
     /// The striped locks.
-    priv locks: ~[Mutex],
+    priv locks: ~[StaticNativeMutex],
     /// The buckets.
     priv buckets: ~[Option<Bucket<K,V>>],
 }
@@ -58,7 +59,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
             size: AtomicUint::new(0),
             locks: vec::from_fn(lock_count, |_| {
                 unsafe {
-                    Mutex::new()
+                    StaticNativeMutex::new()
                 }
             }),
             buckets: vec::from_fn(lock_count * buckets_per_lock, |_| None),
@@ -74,7 +75,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
             loop {
                 let (bucket_index, lock_index) = self.bucket_and_lock_indices(&key);
                 if this.overloaded() {
-                    this.locks[lock_index].unlock();
+                    this.locks[lock_index].unlock_noguard();
                     this.try_resize(self.buckets_per_lock() * 2);
 
                     // Have to retry because the bucket and lock indices will have shifted.
@@ -82,7 +83,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
                 }
 
                 this.insert_unlocked(key, value, Some(bucket_index));
-                this.locks[lock_index].unlock();
+                this.locks[lock_index].unlock_noguard();
                 break
             }
         }
@@ -118,7 +119,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
                     match (*bucket).next {
                         None => {}
                         Some(ref mut next_bucket) => {
-                            bucket = ptr::to_mut_unsafe_ptr(&mut **next_bucket);
+                            bucket = &mut **next_bucket as *mut Bucket<K,V>;
                             continue
                         }
                     }
@@ -150,7 +151,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
             Some(ref mut bucket) if bucket.key == *key => {
                 // Common case (assuming a sparse table): If the key is the first one in the
                 // chain, just copy the next fields over.
-                let next_opt = util::replace(&mut bucket.next, None);
+                let next_opt = mem::replace(&mut bucket.next, None);
                 match next_opt {
                     None => nuke_bucket = true,
                     Some(~next) => *bucket = next,
@@ -168,7 +169,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
                             Some(ref mut bucket) => {
                                 // Continue the search.
                                 if bucket.key != *key {
-                                    prev = ptr::to_mut_unsafe_ptr(&mut **bucket);
+                                    prev = &mut **bucket as *mut Bucket<K,V>;
                                     continue
                                 }
                             }
@@ -191,7 +192,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
         }
 
         unsafe {
-            this.locks[lock_index].unlock()
+            this.locks[lock_index].unlock_noguard()
         }
     }
 
@@ -235,7 +236,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
         }
 
         unsafe {
-            this.locks[lock_index].unlock()
+            this.locks[lock_index].unlock_noguard()
         }
 
         result
@@ -255,7 +256,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
             stripe_index += 1;
             if stripe_index == buckets_per_lock {
                 unsafe {
-                    this.locks[lock_index].unlock();
+                    this.locks[lock_index].unlock_noguard();
                 }
 
                 stripe_index = 0;
@@ -263,7 +264,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
             }
             if stripe_index == 0 {
                 unsafe {
-                    this.locks[lock_index].lock()
+                    this.locks[lock_index].lock_noguard()
                 }
             }
 
@@ -284,7 +285,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
         // Take a lock on all buckets.
         for lock in this.locks.mut_iter() {
             unsafe {
-                lock.lock()
+                lock.lock_noguard()
             }
         }
 
@@ -295,7 +296,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
         if new_bucket_count > this.buckets.len() {
             // Create a new set of buckets.
             let mut buckets = vec::from_fn(new_bucket_count, |_| None);
-            util::swap(&mut this.buckets, &mut buckets);
+            mem::swap(&mut this.buckets, &mut buckets);
             this.size.store(0, Relaxed);
 
             // Go through all the old buckets and insert the new data.
@@ -335,7 +336,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
         // Release all our locks.
         for lock in this.locks.mut_iter() {
             unsafe {
-                lock.unlock()
+                lock.unlock_noguard()
             }
         }
     }
@@ -346,10 +347,10 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
     #[inline]
     fn bucket_and_lock_indices(&self, key: &K) -> (uint, uint) {
         let this: &mut ConcurrentHashMap<K,V> = unsafe {
-            cast::transmute_mut(self)
+            cast::transmute_mut(cast::transmute_region(self))
         };
 
-        let hash = key.hash_keyed(self.k0, self.k1);
+        let hash = sip::hash_with_keys(self.k0, self.k1, key);
         let lock_count = this.locks.len();
         let mut bucket_index;
         let mut lock_index;
@@ -359,7 +360,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
             bucket_index = hash as uint % bucket_count;
             lock_index = bucket_index / buckets_per_lock;
             unsafe {
-                this.locks[lock_index].lock();
+                this.locks[lock_index].lock_noguard();
             }
             let new_bucket_count = this.buckets.len();
             if bucket_count == new_bucket_count {
@@ -368,7 +369,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
 
             // If we got here, the hash table resized from under us: try again.
             unsafe {
-                this.locks[lock_index].unlock()
+                this.locks[lock_index].unlock_noguard()
             }
         }
 
@@ -379,7 +380,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
     /// function!
     #[inline]
     unsafe fn bucket_index_unlocked(&self, key: &K) -> uint {
-        let hash = key.hash_keyed(self.k0, self.k1);
+        let hash = sip::hash_with_keys(self.k0, self.k1, key);
         hash as uint % self.buckets.len()
     }
 
@@ -446,12 +447,12 @@ impl<'a,K,V> Iterator<(&'a K, &'a V)> for ConcurrentHashMapIterator<'a,K,V> {
                 // necessary and acquire the new one, if necessary.
                 if bucket_index != -1 {
                     unsafe {
-                        map.locks[lock_index].unlock()
+                        map.locks[lock_index].unlock_noguard()
                     }
                 }
                 if bucket_index != (bucket_count as int) - 1 {
                     unsafe {
-                        map.locks[lock_index + 1].lock()
+                        map.locks[lock_index + 1].lock_noguard()
                     }
                 }
             }
@@ -481,7 +482,7 @@ impl<'a,K,V> Iterator<(&'a K, &'a V)> for ConcurrentHashMapIterator<'a,K,V> {
 
 #[cfg(test)]
 pub mod test {
-    use extra::arc::Arc;
+    use sync::Arc;
     use native;
 
     use concurrentmap::ConcurrentHashMap;
@@ -489,7 +490,7 @@ pub mod test {
     #[test]
     pub fn smoke() {
         let m = Arc::new(ConcurrentHashMap::new());
-        let (port, chan) = SharedChan::new();
+        let (port, chan) = Chan::new();
 
         // Big enough to make it resize once.
         for i in range(0, 5) {

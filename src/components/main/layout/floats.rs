@@ -147,7 +147,7 @@ impl Floats {
         match self.list.get() {
             None => None,
             Some(list) => {
-                match list.floats.last_opt() {
+                match list.floats.last() {
                     None => None,
                     Some(float) => Some(float.bounds.origin + self.offset),
                 }
@@ -299,11 +299,11 @@ impl Floats {
             match info.kind {
                 FloatLeft => {
                     return Rect(Point2D(Au(0), info.ceiling),
-                                Size2D(info.max_width, Au(i32::max_value)))
+                                Size2D(info.max_width, Au(i32::MAX)))
                 }
                 FloatRight => {
                     return Rect(Point2D(info.max_width - info.size.width, info.ceiling),
-                                Size2D(info.max_width, Au(i32::max_value)))
+                                Size2D(info.max_width, Au(i32::MAX)))
                 }
             }
         }
@@ -320,11 +320,11 @@ impl Floats {
                     return match info.kind { 
                         FloatLeft => {
                             Rect(Point2D(Au(0), float_y),
-                                 Size2D(info.max_width, Au(i32::max_value)))
+                                 Size2D(info.max_width, Au(i32::MAX)))
                         }
                         FloatRight => {
                             Rect(Point2D(info.max_width - info.size.width, float_y), 
-                                         Size2D(info.max_width, Au(i32::max_value)))
+                                         Size2D(info.max_width, Au(i32::MAX)))
                         }
                     }
                 }
@@ -337,7 +337,7 @@ impl Floats {
                         let height = self.max_height_for_bounds(rect.origin.x, 
                                                                 rect.origin.y, 
                                                                 rect.size.width);
-                        let height = height.unwrap_or(Au(i32::max_value));
+                        let height = height.unwrap_or(Au(i32::MAX));
                         return match info.kind {
                             FloatLeft => {
                                 Rect(Point2D(rect.origin.x, float_y),

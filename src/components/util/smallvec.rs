@@ -5,17 +5,15 @@
 //! Small vectors in various sizes. These store a certain number of elements inline and fall back
 //! to the heap for larger allocations.
 
-use i = std::unstable::intrinsics::init;
+use i = std::mem::init;
 use std::cast;
-use std::libc::c_char;
+use std::cmp;
+use std::intrinsics;
 use std::mem;
-use std::num;
 use std::ptr;
 use std::rt::global_heap;
 use std::rt::local_heap;
-use std::unstable::intrinsics;
-use std::unstable::raw::Slice;
-use std::util;
+use std::raw::Slice;
 
 // Generic code for all small vectors
 
@@ -86,11 +84,11 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
     fn push(&mut self, value: T) {
         let cap = self.cap();
         if self.len() == cap {
-            self.grow(num::max(cap * 2, 1))
+            self.grow(cmp::max(cap * 2, 1))
         }
         unsafe {
             let end: &mut T = cast::transmute(self.end());
-            intrinsics::move_val_init(end, value);
+            mem::move_val_init(end, value);
             let len = self.len();
             self.set_len(len + 1)
         }
@@ -104,9 +102,9 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
 
             if self.spilled() {
                 if intrinsics::owns_managed::<T>() {
-                    local_heap::local_free(self.ptr() as *u8 as *c_char)
+                    local_heap::local_free(self.ptr() as *u8)
                 } else {
-                    global_heap::exchange_free(self.ptr() as *u8 as *c_char)
+                    global_heap::exchange_free(self.ptr() as *u8)
                 }
             } else {
                 let mut_begin: *mut T = cast::transmute(self.begin());
@@ -211,7 +209,7 @@ impl<'a,T> Iterator<T> for SmallVecMoveIterator<'a,T> {
                 Some(reference) => {
                     // Zero out the values as we go so they don't get double-freed.
                     let reference: &mut T = cast::transmute(reference);
-                    Some(util::replace(reference, intrinsics::init()))
+                    Some(mem::replace(reference, mem::init()))
                 }
             }
         }
@@ -229,9 +227,9 @@ impl<'a,T> Drop for SmallVecMoveIterator<'a,T> {
             Some(allocation) => {
                 unsafe {
                     if intrinsics::owns_managed::<T>() {
-                        local_heap::local_free(allocation as *u8 as *c_char)
+                        local_heap::local_free(allocation as *u8)
                     } else {
-                        global_heap::exchange_free(allocation as *u8 as *c_char)
+                        global_heap::exchange_free(allocation as *u8)
                     }
                 }
             }
@@ -310,13 +308,13 @@ macro_rules! def_small_vector_drop_impl(
                 unsafe {
                     let ptr = self.mut_ptr();
                     for i in range(0, self.len()) {
-                        *ptr.offset(i as int) = intrinsics::uninit();
+                        *ptr.offset(i as int) = mem::uninit();
                     }
 
                     if intrinsics::owns_managed::<T>() {
-                        local_heap::local_free(self.ptr() as *u8 as *c_char)
+                        local_heap::local_free(self.ptr() as *u8)
                     } else {
-                        global_heap::exchange_free(self.ptr() as *u8 as *c_char)
+                        global_heap::exchange_free(self.ptr() as *u8)
                     }
                 }
             }
@@ -348,7 +346,7 @@ macro_rules! def_small_vector_impl(
                         len: 0,
                         cap: $size,
                         ptr: ptr::null(),
-                        data: intrinsics::init(),
+                        data: mem::init(),
                     }
                 }
             }

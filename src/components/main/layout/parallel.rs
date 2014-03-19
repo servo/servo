@@ -29,7 +29,7 @@ use style::{Stylist, TNode};
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeLayoutNode) {
     unsafe {
-        let _: PaddedUnsafeFlow = ::std::unstable::intrinsics::transmute(node);
+        let _: PaddedUnsafeFlow = ::std::intrinsics::transmute(node);
     }
 }
 
@@ -235,7 +235,7 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
         let layout_context: &mut LayoutContext = cast::transmute(*proxy.user_data());
 
         // Get a real layout node.
-        let node: LayoutNode = ::std::unstable::intrinsics::transmute(unsafe_layout_node);
+        let node: LayoutNode = ::std::intrinsics::transmute(unsafe_layout_node);
 
         // Initialize layout data.
         //

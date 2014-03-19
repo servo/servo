@@ -28,7 +28,7 @@ use servo_util::url::parse_url;
 use std::ascii::StrAsciiExt;
 use std::cast;
 use std::cell::RefCell;
-use std::comm::{Port, SharedChan};
+use std::comm::{Port, Chan};
 use std::str;
 use style::Stylesheet;
 
@@ -103,7 +103,7 @@ spawned, collates them, and sends them to the given result channel.
 * `from_parent` - A port on which to receive new links.
 
 */
-fn css_link_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
+fn css_link_listener(to_parent: Chan<HtmlDiscoveryMessage>,
                      from_parent: Port<CSSMessage>,
                      resource_task: ResourceTask) {
     let mut result_vec = ~[];
@@ -126,7 +126,7 @@ fn css_link_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
     }
 }
 
-fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
+fn js_script_listener(to_parent: Chan<HtmlDiscoveryMessage>,
                       from_parent: Port<JSMessage>,
                       resource_task: ResourceTask) {
     let mut result_vec = ~[];
@@ -140,7 +140,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
                     }
                     Ok((metadata, bytes)) => {
                         result_vec.push(JSFile {
-                            data: str::from_utf8(bytes).to_owned(),
+                            data: str::from_utf8(bytes).unwrap().to_owned(),
                             url: metadata.final_url,
                         });
                     }
@@ -256,9 +256,9 @@ pub fn parse_html(page: &Page,
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
 
-    let (discovery_port, discovery_chan) = SharedChan::new();
+    let (discovery_port, discovery_chan) = Chan::new();
     let stylesheet_chan = discovery_chan.clone();
-    let (css_msg_port, css_chan) = SharedChan::new();
+    let (css_msg_port, css_chan) = Chan::new();
     spawn_named("parse_html:css", proc() {
         css_link_listener(stylesheet_chan, css_msg_port, resource_task2.clone());
     });
@@ -266,7 +266,7 @@ pub fn parse_html(page: &Page,
     // Spawn a JS parser to receive JavaScript.
     let resource_task2 = resource_task.clone();
     let js_result_chan = discovery_chan.clone();
-    let (js_msg_port, js_chan) = SharedChan::new();
+    let (js_msg_port, js_chan) = Chan::new();
     spawn_named("parse_html:js", proc() {
         js_script_listener(js_result_chan, js_msg_port, resource_task2.clone());
     });
@@ -303,11 +303,16 @@ pub fn parse_html(page: &Page,
 
     let next_subpage_id = RefCell::new(next_subpage_id);
 
+    let doc_cell = RefCell::new(document);
+
     let tree_handler = hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
-            let comment: JS<Node> = NodeCast::from(&Comment::new(data, document));
-            unsafe { comment.to_hubbub_node() }
+            // NOTE: tmp vars are workaround for lifetime issues. Both required.
+            let tmp_borrow = doc_cell.borrow();
+            let tmp = tmp_borrow.get();
+            let comment: JS<Node> = NodeCast::from(&Comment::new(data, *tmp));
+                unsafe { comment.to_hubbub_node() }
         },
         create_doctype: |doctype: ~hubbub::Doctype| {
             debug!("create doctype");
@@ -315,21 +320,29 @@ pub fn parse_html(page: &Page,
                                 public_id: public_id,
                                 system_id: system_id,
                                 force_quirks: _ } = doctype;
-            let doctype_node = DocumentType::new(name, public_id, system_id, document);
+            // NOTE: tmp vars are workaround for lifetime issues. Both required.
+            let tmp_borrow = doc_cell.borrow();
+            let tmp = tmp_borrow.get();
+            let doctype_node = DocumentType::new(name, public_id, system_id, *tmp);
             unsafe {
                 doctype_node.to_hubbub_node()
             }
         },
         create_element: |tag: ~hubbub::Tag| {
             debug!("create element");
-            let mut element = build_element_from_tag(tag.name.clone(), document);
+            // NOTE: tmp vars are workaround for lifetime issues. Both required.
+            let tmp_borrow = doc_cell.borrow();
+            let tmp = tmp_borrow.get();
+            let mut element = build_element_from_tag(tag.name.clone(), *tmp);
 
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
                 let elem = element.clone();
-                element.get_mut().set_attr(&elem,
-                                             attr.name.clone(),
-                                             attr.value.clone());
+                //FIXME: this should have proper error handling or explicitly drop
+                //       exceptions on the ground
+                assert!(element.get_mut().set_attr(&elem,
+                                                   attr.name.clone(),
+                                                   attr.value.clone()).is_ok());
             }
 
             // Spawn additional parsing, network loads, etc. from tag and attrs
@@ -366,7 +379,8 @@ pub fn parse_html(page: &Page,
 
                         // Subpage Id
                         let subpage_id = next_subpage_id.get();
-                        next_subpage_id.set(SubpageId(*subpage_id + 1));
+                        let SubpageId(id_num) = subpage_id;
+                        next_subpage_id.set(SubpageId(id_num + 1));
 
                         iframe_element.get_mut().size = Some(IFrameSize {
                             pipeline_id: pipeline_id,
@@ -384,7 +398,10 @@ pub fn parse_html(page: &Page,
         },
         create_text: |data: ~str| {
             debug!("create text");
-            let text = Text::new(data, document);
+            // NOTE: tmp vars are workaround for lifetime issues. Both required.
+            let tmp_borrow = doc_cell.borrow();
+            let tmp = tmp_borrow.get();
+            let text = Text::new(data, *tmp);
             unsafe { text.to_hubbub_node() }
         },
         ref_node: |_| {},
@@ -394,7 +411,7 @@ pub fn parse_html(page: &Page,
                 debug!("append child {:x} {:x}", parent, child);
                 let mut parent: JS<Node> = NodeWrapping::from_hubbub_node(parent);
                 let mut child: JS<Node> = NodeWrapping::from_hubbub_node(child);
-                parent.AppendChild(&mut child);
+                assert!(parent.AppendChild(&mut child).is_ok());
             }
             child
         },
@@ -431,11 +448,17 @@ pub fn parse_html(page: &Page,
         },
         set_quirks_mode: |mode| {
             debug!("set quirks mode");
-            document.get_mut().set_quirks_mode(mode);
+            // NOTE: tmp vars are workaround for lifetime issues. Both required.
+            let mut tmp_borrow = doc_cell.borrow_mut();
+            let tmp = tmp_borrow.get();
+            tmp.get_mut().set_quirks_mode(mode);
         },
         encoding_change: |encname| {
             debug!("encoding change");
-            document.get_mut().set_encoding_name(encname);
+            // NOTE: tmp vars are workaround for lifetime issues. Both required.
+            let mut tmp_borrow = doc_cell.borrow_mut();
+            let tmp = tmp_borrow.get();
+            tmp.get_mut().set_encoding_name(encname);
         },
         complete_script: |script| {
             unsafe {
@@ -500,6 +523,7 @@ pub fn parse_html(page: &Page,
         }
     }
 
+    debug!("finished parsing");
     css_chan.send(CSSTaskExit);
     js_chan.send(JSTaskExit);
 

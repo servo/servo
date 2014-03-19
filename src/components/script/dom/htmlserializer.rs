@@ -25,7 +25,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
 
     for node in *iterator {
         while open_elements.len() > iterator.depth {
-            html.push_str(~"</" + open_elements.pop() + ">");
+            html.push_str(~"</" + open_elements.pop().unwrap().as_slice() + ">");
         }
         html.push_str(
             match node.type_id() {
@@ -59,7 +59,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
         );
     }
     while open_elements.len() > 0 {
-        html.push_str(~"</" + open_elements.pop() + ">");
+        html.push_str(~"</" + open_elements.pop().unwrap().as_slice() + ">");
     }
     html
 }

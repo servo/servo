@@ -37,11 +37,9 @@ use std::cast;
 use std::cell::{RefCell, Ref, RefMut};
 use std::iter::{Map, Filter};
 use std::libc::uintptr_t;
-use std::ptr;
-use std::unstable::raw::Box;
-use std::util;
+use std::mem;
 
-use extra::serialize::{Encoder, Encodable};
+use serialize::{Encoder, Encodable};
 
 //
 // The basic Node structure
@@ -562,8 +560,8 @@ impl NodeHelpers for JS<Node> {
             if object.is_null() {
                 fail!("Attempted to create a `JS<Node>` from an invalid pointer!")
             }
-            let boxed_node: *mut Box<Node> = utils::unwrap(object);
-            JS::from_box(boxed_node)
+            let boxed_node: *mut Node = utils::unwrap(object);
+            JS::from_raw(boxed_node)
         }
     }
 
@@ -734,6 +732,8 @@ enum CloneChildrenFlag {
     DoNotCloneChildren
 }
 
+fn as_uintptr<T>(t: &T) -> uintptr_t { t as *T as uintptr_t }
+
 impl Node {
     pub fn ancestors(&self) -> AncestorIterator {
         AncestorIterator {
@@ -806,11 +806,14 @@ impl Node {
     /// Sends layout data, if any, back to the script task to be destroyed.
     pub unsafe fn reap_layout_data(&mut self) {
         if self.layout_data.is_present() {
-            let layout_data = util::replace(&mut self.layout_data, LayoutDataRef::new());
+            let layout_data = mem::replace(&mut self.layout_data, LayoutDataRef::new());
             let layout_chan = layout_data.take_chan();
             match layout_chan {
                 None => {}
-                Some(chan) => chan.send(ReapLayoutDataMsg(layout_data)),
+                Some(chan) => {
+                    let LayoutChan(chan) = chan;
+                    chan.send(ReapLayoutDataMsg(layout_data))
+                },
             }
         }
     }
@@ -943,11 +946,10 @@ impl Node {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
-                self.SetTextContent(abstract_self, val);
+                self.SetTextContent(abstract_self, val)
             }
-            _ => {}
+            _ => Ok(())
         }
-        Ok(())
     }
 
     // http://dom.spec.whatwg.org/#dom-node-textcontent
@@ -1268,7 +1270,7 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: &mut JS<Node>, parent: &mut JS<Node>, suppress_observers: SuppressObserver) {
-        assert!(node.parent_node().map_default(false, |ref node_parent| node_parent == parent));
+        assert!(node.parent_node().map_or(false, |ref node_parent| node_parent == parent));
 
         // Step 1-5: ranges.
         // Step 6-7: mutation observers.
@@ -1564,7 +1566,7 @@ impl Node {
                     match prev_text {
                         Some(ref text_node) => {
                             let mut prev_characterdata: JS<CharacterData> = CharacterDataCast::to(text_node);
-                            prev_characterdata.get_mut().AppendData(characterdata.get().Data());
+                            let _ = prev_characterdata.get_mut().AppendData(characterdata.get().Data());
                             abstract_self.remove_child(&mut child);
                         },
                         None => prev_text = Some(child)
@@ -1685,15 +1687,18 @@ impl Node {
             }
 
             if lastself != lastother {
-                let random = if ptr::to_unsafe_ptr(abstract_self.get()) < ptr::to_unsafe_ptr(other.get()) {
+                let abstract_uint: uintptr_t = as_uintptr(&abstract_self.get());
+                let other_uint: uintptr_t = as_uintptr(&other.get());
+
+                let random = if abstract_uint < other_uint {
                     NodeConstants::DOCUMENT_POSITION_FOLLOWING
                 } else {
                     NodeConstants::DOCUMENT_POSITION_PRECEDING
                 };
                 // step 3.
                 return random +
-                       NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                       NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+                    NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
+                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
             }
 
             for child in lastself.traverse_preorder() {

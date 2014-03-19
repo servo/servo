@@ -7,13 +7,13 @@
 use layout::box_::{Box, ScannedTextBox, ScannedTextBoxInfo, UnscannedTextBox};
 use layout::flow::Flow;
 
-use extra::arc::Arc;
 use gfx::font_context::FontContext;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{CompressWhitespaceNewline, transform_text, CompressNone};
 use servo_util::range::Range;
 use std::vec;
 use style::computed_values::white_space;
+use sync::Arc;
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
 pub struct TextRunScanner {

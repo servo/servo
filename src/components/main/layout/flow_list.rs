@@ -6,8 +6,8 @@
 //! indirection.
 
 use std::cast;
+use std::mem;
 use std::ptr;
-use std::util;
 
 use layout::flow::{Flow, base, mut_base};
 
@@ -30,7 +30,6 @@ pub struct FlowList {
 }
 
 /// Double-ended FlowList iterator
-#[deriving(Clone)]
 pub struct FlowListIterator<'a> {
     priv head: &'a Link,
     priv tail: Rawlink,
@@ -156,7 +155,7 @@ impl FlowList {
             Some(ref mut head) => {
                 mut_base(new_head).prev_sibling = Rawlink::none();
                 mut_base(*head).prev_sibling = Rawlink::some(new_head);
-                util::swap(head, &mut new_head);
+                mem::swap(head, &mut new_head);
                 mut_base(*head).next_sibling = Some(new_head);
             }
         }

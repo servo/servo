@@ -35,7 +35,9 @@
 
                 is_not(new_div, null, "test4-0, append an invalid element to a new document");
 
-                new_document.body = new_div;
+                should_throw(function() {
+                    new_document.body = new_div;
+                });
                 is(new_document.body, null, "test4-1, append an invalid element to a new document");
             }
 
