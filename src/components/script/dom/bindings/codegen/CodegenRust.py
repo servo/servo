@@ -2013,7 +2013,7 @@ class CGAbstractMethod(CGThing):
         self.templateArgs = templateArgs
         self.pub = pub;
         self.unsafe = unsafe
-    def _argstring(self, declare):
+    def _argstring(self):
         return ', '.join([a.declare() for a in self.args])
     def _template(self):
         if self.templateArgs is None:
@@ -2042,12 +2042,12 @@ class CGAbstractMethod(CGThing):
     def _unsafe_close(self):
         return "\n  }\n" if self.unsafe else ""
 
-    def define(self, fromDeclare=False):
-        return self.definition_prologue(fromDeclare) + "\n" + self.definition_body() + self.definition_epilogue()
+    def define(self):
+        return self.definition_prologue() + "\n" + self.definition_body() + self.definition_epilogue()
 
-    def definition_prologue(self, fromDeclare):
+    def definition_prologue(self):
         return "%sfn %s%s(%s)%s {%s" % (self._decorators(), self.name, self._template(),
-                                        self._argstring(fromDeclare), self._returnType(), self._unsafe_open())
+                                        self._argstring(), self._returnType(), self._unsafe_open())
     def definition_epilogue(self):
         return "%s}\n" % self._unsafe_close()
     def definition_body(self):
