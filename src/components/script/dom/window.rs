@@ -284,7 +284,7 @@ impl Window {
                compositor: ~ScriptListener,
                image_cache_task: ImageCacheTask)
                -> JS<Window> {
-        let mut win = ~Window {
+        let win = ~Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
             script_chan: script_chan.clone(),
             console: None,
@@ -314,23 +314,22 @@ impl Window {
             next_timer_handle: 0
         };
 
-        let raw: *mut Window = &mut *win;
         let global = WindowBinding::Wrap(cx, win);
-        assert!(global.is_not_null());
-        unsafe {
-            let fn_names = ["window","self"];
-            for str in fn_names.iter() {
-                (*str).to_c_str().with_ref(|name| {
-                    JS_DefineProperty(cx, global,  name,
-                                      ObjectValue(&*global),
+        let fn_names = ["window", "self"];
+        for str in fn_names.iter() {
+            (*str).to_c_str().with_ref(|name| {
+                let object = global.reflector().get_jsobject();
+                assert!(object.is_not_null());
+                unsafe {
+                    JS_DefineProperty(cx, object, name,
+                                      ObjectValue(&*object),
                                       Some(cast::transmute(GetJSClassHookStubPointer(PROPERTY_STUB))),
                                       Some(cast::transmute(GetJSClassHookStubPointer(STRICT_PROPERTY_STUB))),
                                       JSPROP_ENUMERATE);
-                })
+                }
+            })
 
-            }
-
-            JS::from_raw(raw)
         }
+        global
     }
 }
