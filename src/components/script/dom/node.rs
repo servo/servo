@@ -404,10 +404,12 @@ impl NodeHelpers for JS<Node> {
         assert!(self.parent_node().is_some());
         let document = document_from_node(self);
 
-        for node in self.traverse_preorder() {
-            if node.is_element() {
-                let element: JS<Element> = ElementCast::to(&node);
-                element.bind_to_tree_impl();
+        if self.is_in_doc() {
+            for node in self.traverse_preorder() {
+                if node.is_element() {
+                    let element: JS<Element> = ElementCast::to(&node);
+                    element.bind_to_tree_impl();
+                }
             }
         }
 
