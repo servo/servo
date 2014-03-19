@@ -3,16 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLFieldSetElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLFieldSetElementDerived;
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
-use dom::element::HTMLFieldSetElementTypeId;
+use dom::element::{Element, HTMLFieldSetElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use servo_util::str::DOMString;
 
@@ -68,11 +68,12 @@ impl HTMLFieldSetElement {
         ~""
     }
 
-    pub fn Elements(&self) -> JS<HTMLCollection> {
-        // FIXME: https://github.com/mozilla/servo/issues/1843
-        let doc = self.htmlelement.element.node.owner_doc();
-        let doc = doc.get();
-        HTMLCollection::new(&doc.window, ~[])
+    pub fn Elements(&self, abstract_self: &JS<HTMLFieldSetElement>) -> JS<HTMLCollection> {
+        let node: JS<Node> = NodeCast::from(abstract_self);
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        let window = &window_from_node(&node);
+        let listed_elements = ["button", "fieldset", "input", "keygen", "object", "output", "select", "textarea"];
+        HTMLCollection::create(window, &node, |elem| *elem != element && listed_elements.iter().any(|&tag_name| tag_name == elem.get().tag_name))
     }
 
     pub fn WillValidate(&self) -> bool {
