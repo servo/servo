@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLDataListElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLDataListElementDerived;
+use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, NodeCast};
 use dom::bindings::js::JS;
 use dom::document::Document;
 use dom::element::HTMLDataListElementTypeId;
@@ -41,10 +41,10 @@ impl HTMLDataListElement {
 }
 
 impl HTMLDataListElement {
-    pub fn Options(&self) -> JS<HTMLCollection> {
-        // FIXME: https://github.com/mozilla/servo/issues/1842
-        let doc = self.htmlelement.element.node.owner_doc();
-        let doc = doc.get();
-        HTMLCollection::new(&doc.window, ~[])
+    pub fn Options(&self, abstract_self: &JS<HTMLDataListElement>) -> JS<HTMLCollection> {
+        let node: JS<Node> = NodeCast::from(abstract_self);
+        let doc = &self.htmlelement.element.node.owner_doc();
+        let window = &doc.get().window;
+        HTMLCollection::by_tag_name(window, &node, ~"option")
     }
 }
