@@ -556,7 +556,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     # A helper function for wrapping up the template body for
     # possibly-nullable objecty stuff
     def wrapObjectTemplate(templateBody, isDefinitelyObject, type,
-                           codeToSetNull, failureCode=None):
+                           failureCode=None):
         if not isDefinitelyObject:
             # Handle the non-object cases by wrapping up the whole
             # thing in an if cascade.
@@ -566,13 +566,13 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             if type.nullable():
                 templateBody += (
                     "} else if (${val}).is_null_or_undefined() {\n"
-                    "  %s;\n" % codeToSetNull)
+                    "  ${declName} = None;\n")
             templateBody += (
                 "} else {\n" +
                 CGIndenter(onFailureNotAnObject(failureCode)).define() +
                 "}")
             if type.nullable():
-                templateBody = handleDefaultNull(templateBody, codeToSetNull)
+                templateBody = handleDefaultNull(templateBody, "${declName} = None")
             else:
                 assert(defaultValue is None)
 
@@ -625,7 +625,6 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             conversion = ("${declName} = Some(%s::new((${val}).to_object()));" % name)
 
             template = wrapObjectTemplate(conversion, isDefinitelyObject, type,
-                                          "${declName} = None",
                                           failureCode)
             return (template, declType, None, isOptional, None)
 
@@ -667,8 +666,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                 "}\n")
 
         templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
-                                          type, "${declName} = None",
-                                          failureCode)
+                                          type, failureCode)
 
         declType = CGGeneric(typePtr)
         if type.nullable() or isOptional:
