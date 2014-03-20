@@ -629,9 +629,9 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
             declType = CGGeneric("Option<%s>" % name);
-            conversion = ("  ${declName} = Some(%s::new((${val}).to_object()));\n" % name)
+            conversion = ("${declName} = Some(%s::new((${val}).to_object()));" % name)
 
-            template = wrapObjectTemplate(conversion, type,
+            template = wrapObjectTemplate(conversion, isDefinitelyObject, type,
                                           "${declName} = None",
                                           failureCode)
             return (template, declType, None, isOptional, None)
