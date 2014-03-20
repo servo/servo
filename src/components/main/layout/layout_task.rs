@@ -290,7 +290,7 @@ impl LayoutTask {
         let local_image_cache = MutexArc::new(LocalImageCache(image_cache_task.clone()));
         let screen_size = Size2D(Au(0), Au(0));
         let parallel_traversal = if opts.layout_threads != 1 {
-            Some(WorkQueue::new(opts.layout_threads, ptr::mut_null()))
+            Some(WorkQueue::new("LayoutWorker", opts.layout_threads, ptr::mut_null()))
         } else {
             None
         };
