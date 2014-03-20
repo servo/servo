@@ -51,6 +51,10 @@ impl HTMLCollection {
 }
 
 impl HTMLCollection {
+    pub fn create_live(window: &JS<Window>, root: &JS<Node>, filter: ~CollectionFilter) -> JS<HTMLCollection> {
+        HTMLCollection::new(window, Live(root.clone(), filter))
+    }
+
     pub fn create(window: &JS<Window>, root: &JS<Node>, predicate: |elem: &JS<Element>| -> bool) -> JS<HTMLCollection> {
         let mut elements = ~[];
         for child in root.traverse_preorder() {
@@ -64,18 +68,54 @@ impl HTMLCollection {
         HTMLCollection::new(window, Static(elements))
     }
 
-    pub fn by_tag_name(window: &JS<Window>, root: &JS<Node>, tag_name: DOMString) -> JS<HTMLCollection> {
-        HTMLCollection::create(window, root, |elem| elem.get().tag_name == tag_name)
+    pub fn by_tag_name(window: &JS<Window>, root: &JS<Node>, tag: DOMString)
+                       -> JS<HTMLCollection> {
+        struct TagNameFilter {
+            tag: DOMString
+        }
+        impl CollectionFilter for TagNameFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == self.tag
+            }
+        }
+        let filter = TagNameFilter {
+            tag: tag
+        };
+        HTMLCollection::create_live(window, root, ~filter)
     }
 
-    pub fn by_tag_name_ns(window: &JS<Window>, root: &JS<Node>, tag_name: DOMString, namespace: Namespace) -> JS<HTMLCollection> {
-        HTMLCollection::create(window, root, |elem| elem.get().namespace == namespace && elem.get().tag_name == tag_name)
+    pub fn by_tag_name_ns(window: &JS<Window>, root: &JS<Node>, tag: DOMString,
+                          namespace: Namespace) -> JS<HTMLCollection> {
+        struct TagNameNSFilter {
+            tag: DOMString,
+            namespace: Namespace
+        }
+        impl CollectionFilter for TagNameNSFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().namespace == self.namespace && elem.get().tag_name == self.tag
+            }
+        }
+        let filter = TagNameNSFilter {
+            tag: tag,
+            namespace: namespace
+        };
+        HTMLCollection::create_live(window, root, ~filter)
     }
 
-    pub fn by_class_name(window: &JS<Window>, root: &JS<Node>, classes: DOMString) -> JS<HTMLCollection> {
-        // FIXME: https://github.com/mozilla/servo/issues/1840
-        let classes: ~[&str] = classes.split(' ').collect();
-        HTMLCollection::create(window, root, |elem| classes.iter().all(|class| elem.has_class(*class)))
+    pub fn by_class_name(window: &JS<Window>, root: &JS<Node>, classes: DOMString)
+                         -> JS<HTMLCollection> {
+        struct ClassNameFilter {
+            classes: ~[DOMString]
+        }
+        impl CollectionFilter for ClassNameFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                self.classes.iter().all(|class| elem.has_class(*class))
+            }
+        }
+        let filter = ClassNameFilter {
+            classes: classes.split(' ').map(|class| class.into_owned()).to_owned_vec()
+        };
+        HTMLCollection::create_live(window, root, ~filter)
     }
 }
 
