@@ -2648,7 +2648,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let this: *%s;" % self.descriptor.concreteType))
+                      "let this: *mut %s;" % self.descriptor.concreteType))
 
     def generate_code(self):
         assert(False) # Override me
@@ -4156,7 +4156,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
     def definition_body_prologue(self):
         return """
-  let this: *%s = unwrap::<*%s>(obj);
+  let this: *mut %s = unwrap::<%s>(obj);
 """ % (self.descriptor.concreteType, self.descriptor.concreteType)
 
     def definition_body(self):
