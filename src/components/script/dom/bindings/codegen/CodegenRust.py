@@ -536,14 +536,9 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     def handleDefault(template, setDefault):
         if defaultValue is None:
             return template
-        return CGWrapper(
-            CGIndenter(CGGeneric(template)),
-            pre="if ${haveValue} {\n",
-            post=("\n"
-                  "} else {\n"
-                  "%s;\n"
-                  "}" %
-                  CGIndenter(CGGeneric(setDefault)).define())).define()
+        return CGIfElseWrapper("${haveValue}",
+                               CGGeneric(template),
+                               CGGeneric(setDefault)).define()
 
     # A helper function for handling null default values.  Much like
     # handleDefault, but checks that the default value, if it exists, is null.
@@ -572,7 +567,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                 CGIndenter(onFailureNotAnObject(failureCode)).define() +
                 "}")
             if type.nullable():
-                templateBody = handleDefaultNull(templateBody, "${declName} = None")
+                templateBody = handleDefaultNull(templateBody, "${declName} = None;")
             else:
                 assert(defaultValue is None)
 
@@ -609,7 +604,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                 templateBody)
 
         templateBody = handleDefaultNull(templateBody.define(),
-                                         "${declName} = None")
+                                         "${declName} = None;")
 
         return (templateBody, declType, None, isOptional, "None" if isOptional else None)
 
@@ -708,7 +703,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             if isinstance(defaultValue, IDLNullValue):
                 assert(type.nullable())
                 return handleDefault(conversionCode,
-                                     "${declName}.SetNull()")
+                                     "${declName}.SetNull();")
 
             value = "str::from_utf8(data).unwrap().to_owned()"
             if type.nullable():
@@ -716,7 +711,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
             default = (
                 "static data: [u8, ..%s] = [ %s ];\n"
-                "${declName} = %s" %
+                "${declName} = %s;" %
                 (len(defaultValue.value) + 1,
                  ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
                  value))
@@ -776,7 +771,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             assert(defaultValue.type.tag() == IDLType.Tags.domstring)
             template = "" #XXXjdm unfinished
             #template = handleDefault(template,
-            #                         ("${declName} = %sValues::%s" %
+            #                         ("${declName} = %sValues::%s;" %
             #                          (enum,
             #                           getEnumValueName(defaultValue.value))))
         return (template, CGGeneric(enum), None, isOptional, None)
@@ -816,7 +811,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
         templateBody = "${declName} = %s;" % value.define()
         templateBody = handleDefaultNull(templateBody,
-                                         "${declName} = NullValue()")
+                                         "${declName} = NullValue();")
 
         return (templateBody, declType, None, isOptional, "None" if isOptional else None)
 
@@ -905,12 +900,9 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             if type.nullable():
                 defaultStr = "Some(%s)" % defaultStr
 
-        template = CGWrapper(CGIndenter(CGGeneric(template)),
-                             pre="if ${haveValue} {\n",
-                             post=("\n"
-                                   "} else {\n"
-                                   "  ${declName} = %s;\n"
-                                   "}" % defaultStr)).define()
+        template = CGIfElseWrapper("${haveValue}",
+                                   CGGeneric(template),
+                                   CGGeneric("${declName} = %s;" % defaultStr)).define()
 
     return (template, declType, None, isOptional, "None" if isOptional else None)
 
