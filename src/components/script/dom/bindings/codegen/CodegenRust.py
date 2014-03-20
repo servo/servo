@@ -2427,10 +2427,10 @@ class CGCallGenerator(CGThing):
 
         if isFallible:
             self.cgRoot.prepend(CGWrapper(result if result is not None else CGGeneric("()"),
-                pre="let mut result_fallible: Result<", post=",Error>;"))
+                pre="let result_fallible: Result<", post=",Error>;"))
 
         if result is not None:
-            result = CGWrapper(result, pre="let mut result: ", post=";")
+            result = CGWrapper(result, pre="let result: ", post=";")
             self.cgRoot.prepend(result)
 
         if isFallible:
