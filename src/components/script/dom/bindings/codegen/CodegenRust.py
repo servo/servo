@@ -92,13 +92,8 @@ class CastableObjectUnwrapper():
 
     codeOnFailure is the code to run if unwrapping fails.
     """
-    def __init__(self, descriptor, source, target, codeOnFailure, isOptional=False,
-                 preUnwrapped=None, postUnwrapped=None):
+    def __init__(self, descriptor, source, target, codeOnFailure, isOptional=False):
         assert descriptor.castable
-
-        unwrappedVal = "val"
-        if preUnwrapped or postUnwrapped:
-            unwrappedVal = preUnwrapped + unwrappedVal + postUnwrapped
         self.substitution = { "type" : descriptor.nativeType,
                               "depth": descriptor.interface.inheritanceDepth(),
                               "prototype": "PrototypeList::id::" + descriptor.name,
@@ -106,7 +101,7 @@ class CastableObjectUnwrapper():
                               "source" : source,
                               "target" : target,
                               "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define(),
-                              "unwrapped_val" : ("Some(%s)" % unwrappedVal) if isOptional else unwrappedVal,
+                              "unwrapped_val" : "Some(val)" if isOptional else "val",
                               "unwrapFn": "unwrap_jsmanaged" if 'JS' in descriptor.nativeType else "unwrap_object"}
 
     def __str__(self):
@@ -428,9 +423,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isClamp=False,
                                     exceptionCode=None,
                                     isCallbackReturnValue=False,
-                                    sourceDescription="value",
-                                    preSuccess=None,
-                                    postSuccess=None):
+                                    sourceDescription="value"):
     """
     Get a template for converting a JS value to a native object based on the
     given type and descriptor.  If failureCode is given, then we're actually
@@ -654,8 +647,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                         "(${val}).to_object()",
                         "${declName}",
                         failureCode,
-                        isOptional or type.nullable(),
-                        preUnwrapped=preSuccess, postUnwrapped=postSuccess))
+                        isOptional or type.nullable()))
             else:
                 templateBody += str(FailureFatalCastableObjectUnwrapper(
                         descriptor,
@@ -886,15 +878,12 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if failureCode is None:
         failureCode = 'return 0'
 
-    successVal = "v"
-    if preSuccess or postSuccess:
-        successVal = preSuccess + successVal + postSuccess
     #XXXjdm support conversionBehavior here
     template = (
         "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
-        "  Ok(v) => ${declName} = %s,\n"
+        "  Ok(v) => ${declName} = v,\n"
         "  Err(_) => { %s }\n"
-        "}" % (successVal, exceptionCode))
+        "}" % exceptionCode)
 
     declType = CGGeneric(builtinNames[type.tag()])
     if type.nullable():
