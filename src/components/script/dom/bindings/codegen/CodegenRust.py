@@ -4820,7 +4820,6 @@ class CGBindingRoot(CGThing):
             'std::vec',
             'std::str',
             'std::num',
-            'std::intrinsics::uninit',
         ])
 
         # Add the auto-generated comment.
