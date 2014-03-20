@@ -43,7 +43,7 @@ impl Blob {
         ~""
     }
 
-    pub fn Slice(&self, _start: i64, _end: i64, _contentType: Option<DOMString>) -> JS<Blob> {
+    pub fn Slice(&self, _start: Option<i64>, _end: Option<i64>, _contentType: Option<DOMString>) -> JS<Blob> {
         Blob::new(&self.window)
     }
 
