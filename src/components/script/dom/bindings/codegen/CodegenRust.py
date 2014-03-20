@@ -5793,9 +5793,16 @@ class GlobalGenRoots():
     unsafe { derived.clone().transmute() }
   }
 
-  fn to<T: ${toBound}>(base: &JS<T>) -> JS<Self> {
+  fn to<T: ${toBound}>(base: &JS<T>) -> Option<JS<Self>> {
+    match base.get().${checkFn}() {
+        true => unsafe { Some(base.clone().transmute()) },
+        false => None
+    }
+  }
+
+  unsafe fn to_unchecked<T: ${toBound}>(base: &JS<T>) -> JS<Self> {
     assert!(base.get().${checkFn}());
-    unsafe { base.clone().transmute() }
+    base.clone().transmute()
   }
 }
 ''').substitute({'checkFn': 'is_' + name.lower(),

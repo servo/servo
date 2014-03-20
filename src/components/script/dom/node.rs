@@ -407,7 +407,7 @@ impl NodeHelpers for JS<Node> {
         if self.is_in_doc() {
             for node in self.traverse_preorder() {
                 if node.is_element() {
-                    let element: JS<Element> = ElementCast::to(&node);
+                    let element: JS<Element> = ElementCast::to(&node).unwrap();
                     element.bind_to_tree_impl();
                 }
             }
@@ -423,7 +423,7 @@ impl NodeHelpers for JS<Node> {
 
         for node in self.traverse_preorder() {
             if node.is_element() {
-                let element: JS<Element> = ElementCast::to(&node);
+                let element: JS<Element> = ElementCast::to(&node).unwrap();
                 element.unbind_from_tree_impl();
             }
         }
@@ -660,7 +660,7 @@ impl NodeIterator {
 
     fn next_child(&self, node: &JS<Node>) -> Option<JS<Node>> {
         if !self.include_descendants_of_void && node.is_element() {
-            let elem: JS<Element> = ElementCast::to(node);
+            let elem: JS<Element> = ElementCast::to(node).unwrap();
             if elem.get().is_void() {
                 None
             } else {
@@ -761,7 +761,7 @@ impl Node {
         self.children()
             .filter(|node| node.is_element())
             .map(|node| {
-                let elem: JS<Element> = ElementCast::to(&node);
+                let elem: JS<Element> = ElementCast::to(&node).unwrap();
                 elem
             })
     }
@@ -837,18 +837,18 @@ impl Node {
     pub fn NodeName(&self, abstract_self: &JS<Node>) -> DOMString {
         match self.type_id {
             ElementNodeTypeId(..) => {
-                let elem: JS<Element> = ElementCast::to(abstract_self);
+                let elem: JS<Element> = ElementCast::to(abstract_self).unwrap();
                 elem.get().TagName()
             }
             TextNodeTypeId => ~"#text",
             ProcessingInstructionNodeTypeId => {
                 let processing_instruction: JS<ProcessingInstruction> =
-                    ProcessingInstructionCast::to(abstract_self);
+                    ProcessingInstructionCast::to(abstract_self).unwrap();
                 processing_instruction.get().Target()
             }
             CommentNodeTypeId => ~"#comment",
             DoctypeNodeTypeId => {
-                let doctype: JS<DocumentType> = DocumentTypeCast::to(abstract_self);
+                let doctype: JS<DocumentType> = DocumentTypeCast::to(abstract_self).unwrap();
                 doctype.get().name.clone()
             },
             DocumentFragmentNodeTypeId => ~"#document-fragment",
@@ -884,7 +884,7 @@ impl Node {
     pub fn GetParentElement(&self) -> Option<JS<Element>> {
         self.parent_node.clone()
                         .filtered(|parent| parent.is_element())
-                        .map(|node| ElementCast::to(&node))
+                        .map(|node| ElementCast::to(&node).unwrap())
     }
 
     // http://dom.spec.whatwg.org/#dom-node-haschildnodes
@@ -932,7 +932,7 @@ impl Node {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
-                let chardata: JS<CharacterData> = CharacterDataCast::to(abstract_self);
+                let chardata: JS<CharacterData> = CharacterDataCast::to(abstract_self).unwrap();
                 Some(chardata.get().Data())
             }
             _ => {
@@ -962,7 +962,7 @@ impl Node {
                 let mut content = ~"";
                 for node in abstract_self.traverse_preorder() {
                     if node.is_text() {
-                        let text: JS<Text> = TextCast::to(&node);
+                        let text: JS<Text> = TextCast::to(&node).unwrap();
                         content.push_str(text.get().characterdata.data.as_slice());
                     }
                 }
@@ -971,7 +971,7 @@ impl Node {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
-                let characterdata: JS<CharacterData> = CharacterDataCast::to(abstract_self);
+                let characterdata: JS<CharacterData> = CharacterDataCast::to(abstract_self).unwrap();
                 Some(characterdata.get().Data())
             }
             DoctypeNodeTypeId |
@@ -1003,7 +1003,7 @@ impl Node {
             ProcessingInstructionNodeTypeId => {
                 self.wait_until_safe_to_modify_dom();
 
-                let mut characterdata: JS<CharacterData> = CharacterDataCast::to(abstract_self);
+                let mut characterdata: JS<CharacterData> = CharacterDataCast::to(abstract_self).unwrap();
                 characterdata.get_mut().data = value.clone();
 
                 // Notify the document that the content of this node is different
@@ -1310,7 +1310,7 @@ impl Node {
         // XXXabinader: clone() for each node as trait?
         let mut copy: JS<Node> = match node.type_id() {
             DoctypeNodeTypeId => {
-                let doctype: JS<DocumentType> = DocumentTypeCast::to(node);
+                let doctype: JS<DocumentType> = DocumentTypeCast::to(node).unwrap();
                 let doctype = doctype.get();
                 let doctype = DocumentType::new(doctype.name.clone(),
                                                 Some(doctype.public_id.clone()),
@@ -1322,13 +1322,13 @@ impl Node {
                 NodeCast::from(&doc_fragment)
             },
             CommentNodeTypeId => {
-                let comment: JS<Comment> = CommentCast::to(node);
+                let comment: JS<Comment> = CommentCast::to(node).unwrap();
                 let comment = comment.get();
                 let comment = Comment::new(comment.characterdata.data.clone(), &document);
                 NodeCast::from(&comment)
             },
             DocumentNodeTypeId => {
-                let document: JS<Document> = DocumentCast::to(node);
+                let document: JS<Document> = DocumentCast::to(node).unwrap();
                 let document = document.get();
                 let is_html_doc = match document.is_html_document {
                     true => HTMLDocument,
@@ -1339,19 +1339,19 @@ impl Node {
                 NodeCast::from(&document)
             },
             ElementNodeTypeId(..) => {
-                let element: JS<Element> = ElementCast::to(node);
+                let element: JS<Element> = ElementCast::to(node).unwrap();
                 let element = element.get();
                 let element = build_element_from_tag(element.tag_name.clone(), &document);
                 NodeCast::from(&element)
             },
             TextNodeTypeId => {
-                let text: JS<Text> = TextCast::to(node);
+                let text: JS<Text> = TextCast::to(node).unwrap();
                 let text = text.get();
                 let text = Text::new(text.characterdata.data.clone(), &document);
                 NodeCast::from(&text)
             },
             ProcessingInstructionNodeTypeId => {
-                let pi: JS<ProcessingInstruction> = ProcessingInstructionCast::to(node);
+                let pi: JS<ProcessingInstruction> = ProcessingInstructionCast::to(node).unwrap();
                 let pi = pi.get();
                 let pi = ProcessingInstruction::new(pi.target.clone(),
                                                     pi.characterdata.data.clone(), &document);
@@ -1361,24 +1361,24 @@ impl Node {
 
         // Step 3.
         if copy.is_document() {
-            document = DocumentCast::to(&copy);
+            document = DocumentCast::to(&copy).unwrap();
         }
         assert_eq!(copy.get().owner_doc(), &document);
 
         // Step 4 (some data already copied in step 2).
         match node.type_id() {
             DocumentNodeTypeId => {
-                let node_doc: JS<Document> = DocumentCast::to(node);
+                let node_doc: JS<Document> = DocumentCast::to(node).unwrap();
                 let node_doc = node_doc.get();
-                let mut copy_doc: JS<Document> = DocumentCast::to(&copy);
+                let mut copy_doc: JS<Document> = DocumentCast::to(&copy).unwrap();
                 let copy_doc = copy_doc.get_mut();
                 copy_doc.set_encoding_name(node_doc.encoding_name.clone());
                 copy_doc.set_quirks_mode(node_doc.quirks_mode());
             },
             ElementNodeTypeId(..) => {
-                let node_elem: JS<Element> = ElementCast::to(node);
+                let node_elem: JS<Element> = ElementCast::to(node).unwrap();
                 let node_elem = node_elem.get();
-                let mut copy_elem: JS<Element> = ElementCast::to(&copy);
+                let mut copy_elem: JS<Element> = ElementCast::to(&copy).unwrap();
                 let copy_elem = copy_elem.get_mut();
                 // FIXME: https://github.com/mozilla/servo/issues/1737
                 copy_elem.namespace = node_elem.namespace.clone();
@@ -1561,13 +1561,13 @@ impl Node {
         let mut prev_text = None;
         for mut child in self.children() {
             if child.is_text() {
-                let characterdata: JS<CharacterData> = CharacterDataCast::to(&child);
+                let characterdata: JS<CharacterData> = CharacterDataCast::to(&child).unwrap();
                 if characterdata.get().Length() == 0 {
                     abstract_self.remove_child(&mut child);
                 } else {
                     match prev_text {
                         Some(ref text_node) => {
-                            let mut prev_characterdata: JS<CharacterData> = CharacterDataCast::to(text_node);
+                            let mut prev_characterdata: JS<CharacterData> = CharacterDataCast::to(text_node).unwrap();
                             let _ = prev_characterdata.get_mut().AppendData(characterdata.get().Data());
                             abstract_self.remove_child(&mut child);
                         },
@@ -1592,34 +1592,34 @@ impl Node {
     // http://dom.spec.whatwg.org/#dom-node-isequalnode
     pub fn IsEqualNode(&self, abstract_self: &JS<Node>, maybe_node: Option<JS<Node>>) -> bool {
         fn is_equal_doctype(node: &JS<Node>, other: &JS<Node>) -> bool {
-            let doctype: JS<DocumentType> = DocumentTypeCast::to(node);
-            let other_doctype: JS<DocumentType> = DocumentTypeCast::to(other);
+            let doctype: JS<DocumentType> = DocumentTypeCast::to(node).unwrap();
+            let other_doctype: JS<DocumentType> = DocumentTypeCast::to(other).unwrap();
             (doctype.get().name == other_doctype.get().name) &&
             (doctype.get().public_id == other_doctype.get().public_id) &&
             (doctype.get().system_id == other_doctype.get().system_id)
         }
         fn is_equal_element(node: &JS<Node>, other: &JS<Node>) -> bool {
-            let element: JS<Element> = ElementCast::to(node);
-            let other_element: JS<Element> = ElementCast::to(other);
+            let element: JS<Element> = ElementCast::to(node).unwrap();
+            let other_element: JS<Element> = ElementCast::to(other).unwrap();
             // FIXME: namespace prefix
             (element.get().namespace == other_element.get().namespace) &&
             (element.get().tag_name == other_element.get().tag_name) &&
             (element.get().attrs.len() == other_element.get().attrs.len())
         }
         fn is_equal_processinginstruction(node: &JS<Node>, other: &JS<Node>) -> bool {
-            let pi: JS<ProcessingInstruction> = ProcessingInstructionCast::to(node);
-            let other_pi: JS<ProcessingInstruction> = ProcessingInstructionCast::to(other);
+            let pi: JS<ProcessingInstruction> = ProcessingInstructionCast::to(node).unwrap();
+            let other_pi: JS<ProcessingInstruction> = ProcessingInstructionCast::to(other).unwrap();
             (pi.get().target == other_pi.get().target) &&
             (pi.get().characterdata.data == other_pi.get().characterdata.data)
         }
         fn is_equal_characterdata(node: &JS<Node>, other: &JS<Node>) -> bool {
-            let characterdata: JS<CharacterData> = CharacterDataCast::to(node);
-            let other_characterdata: JS<CharacterData> = CharacterDataCast::to(other);
+            let characterdata: JS<CharacterData> = CharacterDataCast::to(node).unwrap();
+            let other_characterdata: JS<CharacterData> = CharacterDataCast::to(other).unwrap();
             characterdata.get().data == other_characterdata.get().data
         }
         fn is_equal_element_attrs(node: &JS<Node>, other: &JS<Node>) -> bool {
-            let element: JS<Element> = ElementCast::to(node);
-            let other_element: JS<Element> = ElementCast::to(other);
+            let element: JS<Element> = ElementCast::to(node).unwrap();
+            let other_element: JS<Element> = ElementCast::to(other).unwrap();
             assert!(element.get().attrs.len() == other_element.get().attrs.len());
             element.get().attrs.iter().all(|attr| {
                 other_element.get().attrs.iter().any(|other_attr| {

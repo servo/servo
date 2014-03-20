@@ -30,23 +30,23 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
         html.push_str(
             match node.type_id() {
                 ElementNodeTypeId(..) => {
-                    let elem: JS<Element> = ElementCast::to(&node);
+                    let elem: JS<Element> = ElementCast::to(&node).unwrap();
                     serialize_elem(&elem, &mut open_elements)
                 }
                 CommentNodeTypeId => {
-                    let comment: JS<Comment> = CommentCast::to(&node);
+                    let comment: JS<Comment> = CommentCast::to(&node).unwrap();
                     serialize_comment(&comment)
                 }
                 TextNodeTypeId => {
-                    let text: JS<Text> = TextCast::to(&node);
+                    let text: JS<Text> = TextCast::to(&node).unwrap();
                     serialize_text(&text)
                 }
                 DoctypeNodeTypeId => {
-                    let doctype: JS<DocumentType> = DocumentTypeCast::to(&node);
+                    let doctype: JS<DocumentType> = DocumentTypeCast::to(&node).unwrap();
                     serialize_doctype(&doctype)
                 }
                 ProcessingInstructionNodeTypeId => {
-                    let processing_instruction: JS<ProcessingInstruction> = ProcessingInstructionCast::to(&node);
+                    let processing_instruction: JS<ProcessingInstruction> = ProcessingInstructionCast::to(&node).unwrap();
                     serialize_processing_instruction(&processing_instruction)
                 }
                 DocumentFragmentNodeTypeId => {
@@ -71,7 +71,7 @@ fn serialize_comment(comment: &JS<Comment>) -> ~str {
 fn serialize_text(text: &JS<Text>) -> ~str {
     match text.get().characterdata.node.parent_node {
         Some(ref parent) if parent.is_element() => {
-            let elem: JS<Element> = ElementCast::to(parent);
+            let elem: JS<Element> = ElementCast::to(parent).unwrap();
             match elem.get().tag_name.as_slice() {
                 "style" | "script" | "xmp" | "iframe" |
                 "noembed" | "noframes" | "plaintext" |
@@ -103,7 +103,7 @@ fn serialize_elem(elem: &JS<Element>, open_elements: &mut ~[~str]) -> ~str {
         "pre" | "listing" | "textarea" if elem.get().namespace == namespace::HTML => {
             match elem.get().node.first_child {
                 Some(ref child) if child.is_text() => {
-                    let text: JS<CharacterData> = CharacterDataCast::to(child);
+                    let text: JS<CharacterData> = CharacterDataCast::to(child).unwrap();
                     if text.get().data.len() > 0 && text.get().data[0] == 0x0A as u8 {
                         rv.push_str("\x0A");
                     }
