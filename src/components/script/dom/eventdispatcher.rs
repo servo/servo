@@ -28,7 +28,7 @@ pub fn dispatch_event(target: &JS<EventTarget>,
 
     //TODO: no chain if not participating in a tree
     if target.get().is_node() {
-        let target_node: JS<Node> = NodeCast::to(target);
+        let target_node: JS<Node> = NodeCast::to(target).unwrap();
         for ancestor in target_node.ancestors() {
             let ancestor_target: JS<EventTarget> = EventTargetCast::from(&ancestor);
             chain.push(ancestor_target);

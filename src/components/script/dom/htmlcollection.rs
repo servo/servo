@@ -39,7 +39,7 @@ impl HTMLCollection {
         let mut elements = ~[];
         for child in root.traverse_preorder() {
             if child.is_element() {
-                let elem: JS<Element> = ElementCast::to(&child);
+                let elem: JS<Element> = ElementCast::to(&child).unwrap();
                 if predicate(&elem) {
                     elements.push(elem);
                 }

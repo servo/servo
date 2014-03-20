@@ -213,7 +213,7 @@ impl Document {
     // http://dom.spec.whatwg.org/#dom-document-doctype
     pub fn GetDoctype(&self) -> Option<JS<DocumentType>> {
         self.node.children().find(|child| child.is_doctype())
-                            .map(|node| DocumentTypeCast::to(&node))
+                            .map(|node| DocumentTypeCast::to(&node).unwrap())
     }
 
     // http://dom.spec.whatwg.org/#dom-document-documentelement
@@ -314,7 +314,7 @@ impl Document {
                 .map(|title_elem| {
                     for child in title_elem.children() {
                         if child.is_text() {
-                            let text: JS<Text> = TextCast::to(&child);
+                            let text: JS<Text> = TextCast::to(&child).unwrap();
                             title.push_str(text.get().characterdata.data.as_slice());
                         }
                     }
@@ -362,7 +362,7 @@ impl Document {
     fn get_html_element(&self) -> Option<JS<HTMLHtmlElement>> {
         self.GetDocumentElement().filtered(|root| {
             root.get().node.type_id == ElementNodeTypeId(HTMLHtmlElementTypeId)
-        }).map(|elem| HTMLHtmlElementCast::to(&elem))
+        }).map(|elem| HTMLHtmlElementCast::to(&elem).unwrap())
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-head
@@ -371,7 +371,7 @@ impl Document {
             let node: JS<Node> = NodeCast::from(&root);
             node.children().find(|child| {
                 child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
-            }).map(|node| HTMLHeadElementCast::to(&node))
+            }).map(|node| HTMLHeadElementCast::to(&node).unwrap())
         })
     }
 
@@ -385,7 +385,7 @@ impl Document {
                     ElementNodeTypeId(HTMLFrameSetElementTypeId) => true,
                     _ => false
                 }
-            }).map(|node| HTMLElementCast::to(&node))
+            }).map(|node| HTMLElementCast::to(&node).unwrap())
         })
     }
 
@@ -434,7 +434,7 @@ impl Document {
                 return false;
             }
 
-            let element: JS<Element> = ElementCast::to(node);
+            let element: JS<Element> = ElementCast::to(node).unwrap();
             element.get().get_attribute(Null, "name").map_or(false, |attr| {
                 attr.get().value_ref() == name
             })

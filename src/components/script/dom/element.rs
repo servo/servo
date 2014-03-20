@@ -272,15 +272,15 @@ impl Element {
         //       This hardcoding is awful.
         match abstract_self.get().node.type_id {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
-                let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self);
+                let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self).unwrap();
                 elem.get_mut().AfterSetAttr(local_name.clone(), value.clone());
             }
             ElementNodeTypeId(HTMLIFrameElementTypeId) => {
-                let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self);
+                let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self).unwrap();
                 elem.get_mut().AfterSetAttr(local_name.clone(), value.clone());
             }
             ElementNodeTypeId(HTMLObjectElementTypeId) => {
-                let mut elem: JS<HTMLObjectElement> = HTMLObjectElementCast::to(abstract_self);
+                let mut elem: JS<HTMLObjectElement> = HTMLObjectElementCast::to(abstract_self).unwrap();
                 elem.get_mut().AfterSetAttr(local_name.clone(), value.clone());
             }
             _ => ()
@@ -341,11 +341,11 @@ impl Element {
         //       This hardcoding is awful.
         match abstract_self.get().node.type_id {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
-                let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self);
+                let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(abstract_self).unwrap();
                 elem.get_mut().BeforeRemoveAttr(local_name.clone());
             }
             ElementNodeTypeId(HTMLIFrameElementTypeId) => {
-                let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self);
+                let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(abstract_self).unwrap();
                 elem.get_mut().BeforeRemoveAttr(local_name.clone());
             }
             _ => ()
