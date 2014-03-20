@@ -2065,7 +2065,7 @@ def CreateBindingJSObject(descriptor, parent=None):
   let handler = js_info.get().get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
         create += handler + """  let obj = NewProxyObject(aCx, *handler,
-                           &PrivateValue(squirrel_away_unboxed(aObject) as *libc::c_void),
+                           &PrivateValue(squirrel_away_unique(aObject) as *libc::c_void),
                            proto, %s,
                            ptr::null(), ptr::null());
   assert!(obj.is_not_null());
@@ -2079,7 +2079,7 @@ def CreateBindingJSObject(descriptor, parent=None):
         create += """  assert!(obj.is_not_null());
 
   JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                     PrivateValue(squirrel_away_unboxed(aObject) as *libc::c_void));
+                     PrivateValue(squirrel_away_unique(aObject) as *libc::c_void));
 """
     return create
 
@@ -4790,7 +4790,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{NativePropertyHooks}',
             'dom::bindings::utils::global_object_for_js_object',
             'dom::bindings::utils::{Reflectable}',
-            'dom::bindings::utils::{squirrel_away_unboxed}',
+            'dom::bindings::utils::{squirrel_away_unique}',
             'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
             'dom::bindings::utils::{unwrap_object, VoidVal, with_gc_disabled}',
             'dom::bindings::utils::{with_gc_enabled, XrayResolveProperty}',

@@ -135,7 +135,7 @@ pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth
     }
 }
 
-pub unsafe fn squirrel_away_unboxed<T>(x: ~T) -> *T {
+pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *T {
     cast::transmute(x)
 }
 
@@ -409,7 +409,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: c_uint, _vp: *mut JSVa
 pub fn initialize_global(global: *JSObject) {
     let protoArray = ~([0 as *JSObject, ..PrototypeList::id::IDCount as uint]);
     unsafe {
-        let box_ = squirrel_away_unboxed(protoArray);
+        let box_ = squirrel_away_unique(protoArray);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
                            PrivateValue(box_ as *libc::c_void));
