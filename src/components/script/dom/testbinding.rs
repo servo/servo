@@ -125,7 +125,7 @@ impl TestBinding {
     pub fn PassOptionalNullableUnsignedLongLongWithDefault(&self, _: Option<u64>) {}
     pub fn PassOptionalNullableFloatWithDefault(&self, _: Option<f32>) {}
     pub fn PassOptionalNullableDoubleWithDefault(&self, _: Option<f64>) {}
-    // pub fn PassOptionalNullableStringWithDefault(&self, _: Option<DOMString>) {}
+    pub fn PassOptionalNullableStringWithDefault(&self, _: Option<DOMString>) {}
     pub fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<JS<Blob>>) {}
     pub fn PassOptionalAnyWithDefault(&self, _: *JSContext, _: JSVal) {}
 
