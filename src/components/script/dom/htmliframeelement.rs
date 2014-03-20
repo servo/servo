@@ -7,7 +7,8 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived
 use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
-use dom::element::HTMLIFrameElementTypeId;
+use dom::element::{HTMLIFrameElementTypeId, Element};
+use dom::element::{AttributeHandlers, AfterSetAttrListener, BeforeRemoveAttrListener};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId};
@@ -114,40 +115,14 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn Sandbox(&self, _abstract_self: &JS<HTMLIFrameElement>) -> DOMString {
-        self.htmlelement.element.get_string_attribute("sandbox")
+    pub fn Sandbox(&self, abstract_self: &JS<HTMLIFrameElement>) -> DOMString {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        element.get_string_attribute("sandbox")
     }
 
-    pub fn SetSandbox(&mut self, abstract_self: &JS<HTMLIFrameElement>, sandbox: DOMString) {
-        self.htmlelement.element.set_string_attribute(&ElementCast::from(abstract_self),
-                                                      "sandbox",
-                                                      sandbox);
-    }
-
-    pub fn AfterSetAttr(&mut self, name: DOMString, value: DOMString) {
-        if "sandbox" == name {
-            let mut modes = AllowNothing as u8;
-            for word in value.split(' ') {
-                // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                let word_lower = word.to_ascii_lower();
-                modes |= match word_lower.as_slice() {
-                    "allow-same-origin" => AllowSameOrigin,
-                    "allow-forms" => AllowForms,
-                    "allow-pointer-lock" => AllowPointerLock,
-                    "allow-popups" => AllowPopups,
-                    "allow-scripts" => AllowScripts,
-                    "allow-top-navigation" => AllowTopNavigation,
-                    _ => AllowNothing
-                } as u8;
-            }
-            self.sandbox = Some(modes);
-        }
-    }
-
-    pub fn BeforeRemoveAttr(&mut self, name: DOMString) {
-        if "sandbox" == name {
-            self.sandbox = None;
-        }
+    pub fn SetSandbox(&mut self, abstract_self: &mut JS<HTMLIFrameElement>, sandbox: DOMString) {
+        let mut element: JS<Element> = ElementCast::from(abstract_self);
+        element.set_string_attribute("sandbox", sandbox);
     }
 
     pub fn AllowFullscreen(&self) -> bool {
@@ -232,5 +207,35 @@ impl HTMLIFrameElement {
 
     pub fn GetSVGDocument(&self) -> Option<JS<Document>> {
         None
+    }
+}
+
+impl AfterSetAttrListener for JS<HTMLIFrameElement> {
+    fn AfterSetAttr(&mut self, name: DOMString, value: DOMString) {
+        if "sandbox" == name {
+            let mut modes = AllowNothing as u8;
+            for word in value.split(' ') {
+                // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
+                let word_lower = word.to_ascii_lower();
+                modes |= match word_lower.as_slice() {
+                    "allow-same-origin" => AllowSameOrigin,
+                    "allow-forms" => AllowForms,
+                    "allow-pointer-lock" => AllowPointerLock,
+                    "allow-popups" => AllowPopups,
+                    "allow-scripts" => AllowScripts,
+                    "allow-top-navigation" => AllowTopNavigation,
+                    _ => AllowNothing
+                } as u8;
+            }
+            self.get_mut().sandbox = Some(modes);
+        }
+    }
+}
+
+impl BeforeRemoveAttrListener for JS<HTMLIFrameElement> {
+    fn BeforeRemoveAttr(&mut self, name: DOMString) {
+        if "sandbox" == name {
+            self.get_mut().sandbox = None;
+        }
     }
 }

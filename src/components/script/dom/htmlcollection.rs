@@ -6,7 +6,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast};
 use dom::bindings::codegen::HTMLCollectionBinding;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::element::Element;
+use dom::element::{Element, AttributeHandlers};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 use servo_util::namespace::Namespace;
@@ -59,7 +59,7 @@ impl HTMLCollection {
     pub fn by_class_name(window: &JS<Window>, root: &JS<Node>, classes: DOMString) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1840
         let classes: ~[&str] = classes.split(' ').collect();
-        HTMLCollection::create(window, root, |elem| classes.iter().all(|class| elem.get().has_class(*class)))
+        HTMLCollection::create(window, root, |elem| classes.iter().all(|class| elem.has_class(*class)))
     }
 }
 
@@ -87,7 +87,6 @@ impl HTMLCollection {
 
         // Step 2.
         self.elements.iter().find(|elem| {
-            let elem = elem.get();
             elem.get_string_attribute("name") == key || elem.get_string_attribute("id") == key
         }).map(|maybe_elem| maybe_elem.clone())
     }

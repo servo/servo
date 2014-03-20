@@ -9,6 +9,7 @@ use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLImageElementTypeId};
+use dom::element::{AttributeHandlers, AfterSetAttrListener, BeforeRemoveAttrListener};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
@@ -91,21 +92,6 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn AfterSetAttr(&mut self, name: DOMString, value: DOMString) {
-        if "src" == name {
-            let document = self.htmlelement.element.node.owner_doc().clone();
-            let window = document.get().window.get();
-            let url = Some(window.get_url());
-            self.update_image(Some(value), url);
-        }
-    }
-
-    pub fn BeforeRemoveAttr(&mut self, name: DOMString) {
-        if "src" == name {
-            self.update_image(None, None);
-        }
-    }
-
     pub fn Alt(&self) -> DOMString {
         ~""
     }
@@ -118,9 +104,10 @@ impl HTMLImageElement {
         ~""
     }
 
-    pub fn SetSrc(&mut self, abstract_self: &JS<HTMLImageElement>, src: DOMString) -> ErrorResult {
-        let node = &mut self.htmlelement.element;
-        node.set_attr(&ElementCast::from(abstract_self), ~"src", src.clone())
+    pub fn SetSrc(&mut self, abstract_self: &mut JS<HTMLImageElement>, src: DOMString) -> ErrorResult {
+        let mut element: JS<Element> = ElementCast::from(abstract_self);
+        element.set_url_attribute("src", src);
+        Ok(())
     }
 
     pub fn CrossOrigin(&self) -> DOMString {
@@ -162,8 +149,7 @@ impl HTMLImageElement {
 
     pub fn SetWidth(&mut self, abstract_self: &JS<HTMLImageElement>, width: u32) -> ErrorResult {
         let mut elem: JS<Element> = ElementCast::from(abstract_self);
-        let mut elem_clone = elem.clone();
-        elem.get_mut().set_attr(&mut elem_clone, ~"width", width.to_str())
+        elem.set_attr(~"width", width.to_str())
     }
 
     pub fn Height(&self, abstract_self: &JS<HTMLImageElement>) -> u32 {
@@ -181,8 +167,8 @@ impl HTMLImageElement {
     }
 
     pub fn SetHeight(&mut self, abstract_self: &JS<HTMLImageElement>, height: u32) -> ErrorResult {
-        let node = &mut self.htmlelement.element;
-        node.set_attr(&ElementCast::from(abstract_self), ~"height", height.to_str())
+        let mut elem: JS<Element> = ElementCast::from(abstract_self);
+        elem.set_attr(~"height", height.to_str())
     }
 
     pub fn NaturalWidth(&self) -> u32 {
@@ -243,5 +229,23 @@ impl HTMLImageElement {
 
     pub fn SetBorder(&mut self, _border: DOMString) -> ErrorResult {
         Ok(())
+    }
+}
+
+impl AfterSetAttrListener for JS<HTMLImageElement> {
+    fn AfterSetAttr(&mut self, name: DOMString, value: DOMString) {
+        if "src" == name {
+            let window = window_from_node(self);
+            let url = Some(window.get().get_url());
+            self.get_mut().update_image(Some(value), url);
+        }
+    }
+}
+
+impl BeforeRemoveAttrListener for JS<HTMLImageElement> {
+    fn BeforeRemoveAttr(&mut self, name: DOMString) {
+        if "src" == name {
+            self.get_mut().update_image(None, None);
+        }
     }
 }

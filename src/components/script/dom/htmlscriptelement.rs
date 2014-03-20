@@ -4,10 +4,11 @@
 
 use dom::bindings::codegen::HTMLScriptElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLScriptElementDerived;
+use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
-use dom::element::HTMLScriptElementTypeId;
+use dom::element::{HTMLScriptElementTypeId, Element, AttributeHandlers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId};
@@ -41,11 +42,12 @@ impl HTMLScriptElement {
 }
 
 impl HTMLScriptElement {
-    pub fn Src(&self) -> DOMString {
-        self.htmlelement.element.get_url_attribute("src")
+    pub fn Src(&self, abstract_self: &JS<HTMLScriptElement>) -> DOMString {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        element.get_url_attribute("src")
     }
 
-    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _abstract_self: &JS<HTMLScriptElement>, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
