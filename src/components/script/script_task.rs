@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCas
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, GlobalStaticData, with_gc_enabled};
 use dom::document::{Document, HTMLDocument};
-use dom::element::Element;
+use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use dom::event::Event;
 use dom::uievent::UIEvent;
@@ -916,7 +916,7 @@ impl ScriptTask {
                 let mut anchors = doc_node.traverse_preorder().filter(|node| node.is_anchor_element());
                 anchors.find(|node| {
                     let elem: JS<Element> = ElementCast::to(node).unwrap();
-                    elem.get().get_attribute(Null, "name").map_or(false, |attr| {
+                    elem.get_attribute(Null, "name").map_or(false, |attr| {
                         attr.get().value_ref() == fragid
                     })
                 }).map(|node| ElementCast::to(&node).unwrap())
@@ -1029,7 +1029,7 @@ impl ScriptTask {
                         if node.is_element() {
                             let element: JS<Element> = ElementCast::to(&node).unwrap();
                             if "a" == element.get().tag_name {
-                                self.load_url_from_element(page, element.get())
+                                self.load_url_from_element(page, &element)
                             }
                         }
                     },
@@ -1113,7 +1113,7 @@ impl ScriptTask {
         }
     }
 
-    fn load_url_from_element(&self, page: &Page, element: &Element) {
+    fn load_url_from_element(&self, page: &Page, element: &JS<Element>) {
         // if the node's element is "a," load url from href attr
         let attr = element.get_attribute(Null, "href");
         for href in attr.iter() {
