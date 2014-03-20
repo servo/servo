@@ -650,7 +650,7 @@ impl BlockFlow {
         // will be at the bottom margin edge of the previous sibling, we have
         // to move up by 12px to get to our top margin edge. So, `collapsing`
         // will be set to 12px
-        let mut collapsing = Au::new(0);
+        let mut collapsing;
         let mut margin_top = Au::new(0);
         let mut margin_bottom = Au::new(0);
         let mut top_margin_collapsible = false;
@@ -687,12 +687,12 @@ impl BlockFlow {
                 // Skip the collapsing for absolute flow kids and continue
                 // with the next flow.
             } else {
-                kid.collapse_margins(top_margin_collapsible,
-                                     &mut first_in_flow,
-                                     &mut margin_top,
-                                     &mut top_offset,
-                                     &mut collapsing,
-                                     &mut collapsible);
+                collapsing = kid.collapse_margins(top_margin_collapsible,
+                                                  &mut first_in_flow,
+                                                  &mut margin_top,
+                                                  &mut top_offset,
+                                                  &mut collapsible);
+
                 let child_node = flow::mut_base(kid);
                 cur_y = cur_y - collapsing;
                 // At this point, after moving up by `collapsing`, cur_y is at the
@@ -1392,45 +1392,68 @@ impl Flow for BlockFlow {
         }
     }
 
-    // CSS Section 8.3.1 - Collapsing Margins
-    // `self`: the Flow whose margins we want to collapse.
-    // `collapsing`: value to be set by this function. This tells us how much
-    // of the top margin has collapsed with a previous margin.
-    // `collapsible`: Potential collapsible margin at the bottom of this flow's box.
+    // Handles collapsing margins per CSS 2.1 § 8.3.1. The return value specifies how much to move
+    // up: i.e. the difference between the amount of space the two margins would have taken up had
+    // they not collapsed and the total size of the collapsed margin.
+    //
+    // Arguments:
+    //
+    // * `self`: the flow whose kids' margins we want to collapse.
+    //
+    // * `collapsing`: A value to be set by this function. This tells us how much of the top margin
+    //   has collapsed with a previous margin.
+    //
+    // * `collapsible`: On entry, the potential collapsible margin at the bottom of the previous
+    //   box. On exit, the potential collapsible margin at the bottom of this box.
     fn collapse_margins(&mut self,
                         top_margin_collapsible: bool,
                         first_in_flow: &mut bool,
                         margin_top: &mut Au,
                         top_offset: &mut Au,
-                        collapsing: &mut Au,
-                        collapsible: &mut Au) {
+                        collapsible: &mut Au)
+                        -> Au {
         if self.is_float() {
             // Margins between a floated box and any other box do not collapse.
-            *collapsing = Au::new(0);
-            return;
+            return Au(0)
         }
 
         for box_ in self.box_.iter() {
+            let this_margin = box_.margin.get().top;
+
             // The top margin collapses with its first in-flow block-level child's
             // top margin if the parent has no top border, no top padding.
             if *first_in_flow && top_margin_collapsible {
                 // If top-margin of parent is less than top-margin of its first child,
                 // the parent box goes down until its top is aligned with the child.
-                if *margin_top < box_.margin.get().top {
+                if *margin_top < this_margin {
                     // TODO: The position of child floats should be updated and this
                     // would influence clearance as well. See #725
-                    let extra_margin = box_.margin.get().top - *margin_top;
+                    let extra_margin = this_margin - *margin_top;
                     *top_offset = *top_offset + extra_margin;
-                    *margin_top = box_.margin.get().top;
+                    *margin_top = this_margin;
                 }
             }
-            // The bottom margin of an in-flow block-level element collapses
-            // with the top margin of its next in-flow block-level sibling.
-            *collapsing = geometry::min(box_.margin.get().top, *collapsible);
+
+            *first_in_flow = false;
+
+            // Determine the total size of the margin we want to leave between the two boxes.
+            let margin_size = if *collapsible > Au(0) && this_margin > Au(0) {
+                geometry::max(*collapsible, this_margin)
+            } else {
+                // The complicated handling for negative margins given in CSS 2.1 § 8.3.1 simply
+                // reduces to this closed form formula, as near as I can tell.
+                *collapsible + this_margin
+            };
+
+            // The difference between the margin we would have created if we hadn't collapsed
+            // (`*collapsible + this_margin`) and the margin we want to create (`margin_size`)
+            // is the amount we need to move up.
+            let result = *collapsible + this_margin - margin_size;
             *collapsible = box_.margin.get().bottom;
+            return result
         }
 
-        *first_in_flow = false;
+        fail!("no box for collapsed margins?!")
     }
 
     fn mark_as_root(&mut self) {
