@@ -284,11 +284,11 @@ pub mod longhands {
 //            }
             if context.positioned || context.floated || context.is_root_element {
                 match value {
-//                    inline_table => table,
+                    inline_table => table,
                     inline | inline_block
-//                    | table_row_group | table_column | table_column_group
-//                    | table_header_group | table_footer_group | table_row
-//                    | table_cell | table_caption
+                    | table_row_group | table_column | table_column_group
+                    | table_header_group | table_footer_group | table_row
+                    | table_cell | table_caption
                     => block,
                     _ => value,
                 }
@@ -808,6 +808,9 @@ pub mod longhands {
     ${single_keyword("white-space", "normal pre")}
 
     // CSS 2.1, Section 17 - Tables
+    ${new_style_struct("Table", is_inherited=False)}
+
+    ${single_keyword("table-layout", "auto fixed")}
 
     // CSS 2.1, Section 18 - User interface
 }

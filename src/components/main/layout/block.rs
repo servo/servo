@@ -362,6 +362,18 @@ impl BlockFlow {
         }
     }
 
+    pub fn from_node_and_box(node: &ThreadSafeLayoutNode,
+                             box_: Box)
+                             -> BlockFlow {
+        BlockFlow {
+            base: BaseFlow::new((*node).clone()),
+            box_: Some(box_),
+            is_root: false,
+            static_y_offset: Au::new(0),
+            float: None
+        }
+    }
+
     pub fn float_from_node(constructor: &mut FlowConstructor,
                            node: &ThreadSafeLayoutNode,
                            float_kind: FloatKind)
@@ -433,7 +445,7 @@ impl BlockFlow {
     }
 
     /// Return this flow's box.
-    fn box_<'a>(&'a mut self) -> &'a mut Box {
+    pub fn box_<'a>(&'a mut self) -> &'a mut Box {
         match self.box_ {
             Some(ref mut box_) => box_,
             None => fail!("BlockFlow: no principal box found")
@@ -636,12 +648,10 @@ impl BlockFlow {
                     _ => Au::new(0)
                 };
 
-                // Offset to content edge of box_
-                let top_offset = clearance + box_.margin.get().top + box_.border.get().top +
-                    box_.padding.get().top;
-                let bottom_offset = box_.margin.get().bottom + box_.border.get().bottom +
-                    box_.padding.get().bottom;
-                let left_offset = box_.offset();
+                // Offsets to content edge of box_
+                let top_offset = clearance + box_.top_offset();
+                let bottom_offset = box_.bottom_offset();
+                let left_offset = box_.left_offset();
 
                 (clearance, top_offset, bottom_offset, left_offset)
             }
@@ -975,7 +985,7 @@ impl BlockFlow {
     /// This function is called on a kid flow by a parent.
     /// Therefore, assign_height_float was already called on this kid flow by
     /// the traversal function. So, the values used are well-defined.
-    fn assign_height_float_inorder(&mut self) {
+    pub fn assign_height_float_inorder(&mut self) {
         let mut height = Au(0);
         let mut clearance = Au(0);
         let mut full_noncontent_width = Au(0);
@@ -1019,7 +1029,7 @@ impl BlockFlow {
     /// should be calculated using CSS Section 10.6.7
     ///
     /// It does not calculate the height of the flow itself.
-    fn assign_height_float(&mut self, ctx: &mut LayoutContext) {
+    pub fn assign_height_float(&mut self, ctx: &mut LayoutContext) {
         // Now that we've determined our height, propagate that out.
         let has_inorder_children = self.base.num_floats > 0;
         if has_inorder_children {
@@ -1085,7 +1095,8 @@ impl BlockFlow {
 
     /// Assign the computed left_content_edge and content_width to children.
     pub fn propagate_assigned_width_to_children(&mut self, left_content_edge: Au,
-                                                content_width: Au) {
+                                                content_width: Au,
+                                                opt_col_widths: Option<~[Au]>) {
         let has_inorder_children = if self.is_float() {
             self.base.num_floats > 0
         } else {
@@ -1113,8 +1124,34 @@ impl BlockFlow {
 
         // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
-        for kid in self.base.child_iter() {
-            assert!(kid.is_block_flow() || kid.is_inline_flow());
+
+        // Left margin edge of kid flow is at our left content edge
+        let mut kid_left_margin_edge = left_content_edge;
+        // Width of kid flow is our content width
+        let mut kid_width = content_width;
+        for (i, kid) in self.base.child_iter().enumerate() {
+            assert!(kid.is_block_flow() || kid.is_inline_flow() || kid.is_table_kind());
+            match opt_col_widths {
+                Some(ref col_widths) => {
+                    // If kid is table_rowgroup or table_row, the column widths info should be
+                    // copied from its parent.
+                    if kid.is_table_rowgroup() {
+                        kid.as_table_rowgroup().col_widths = col_widths.clone()
+                    } else if kid.is_table_row() {
+                        kid.as_table_row().col_widths = col_widths.clone()
+                    } else if kid.is_table_cell() {
+                        // If kid is table_cell, the x offset and width for each cell should be
+                        // calculated from parent's column widths info.
+                        kid_left_margin_edge = if i == 0 {
+                            Au(0)
+                        } else {
+                            kid_left_margin_edge + col_widths[i-1]
+                        };
+                        kid_width = col_widths[i]
+                    }
+                }
+                None => {}
+            }
 
             if kid.is_block_flow() {
                 let kid_block = kid.as_block();
@@ -1122,10 +1159,8 @@ impl BlockFlow {
                 kid_block.base.fixed_static_x_offset = kid_fixed_cb_x_offset;
             }
             let child_base = flow::mut_base(kid);
-            // Left margin edge of kid flow is at our left content edge
-            child_base.position.origin.x = left_content_edge;
-            // Width of kid flow is our content width
-            child_base.position.size.width = content_width;
+            child_base.position.origin.x = kid_left_margin_edge;
+            child_base.position.size.width = kid_width;
             child_base.flags_info.flags.set_inorder(has_inorder_children);
 
             if !child_base.flags_info.flags.inorder() {
@@ -1415,7 +1450,7 @@ impl Flow for BlockFlow {
 
         /* find max width from child block contexts */
         for child_ctx in self.base.child_iter() {
-            assert!(child_ctx.is_block_flow() || child_ctx.is_inline_flow());
+            assert!(child_ctx.is_block_flow() || child_ctx.is_inline_flow() || child_ctx.is_table_kind());
 
             let child_base = flow::mut_base(child_ctx);
             min_width = geometry::max(min_width, child_base.min_width);
@@ -1491,7 +1526,7 @@ impl Flow for BlockFlow {
             self.base.position.size.width = content_width;
         }
 
-        self.propagate_assigned_width_to_children(left_content_edge, content_width);
+        self.propagate_assigned_width_to_children(left_content_edge, content_width, None);
     }
 
     /// This is called on kid flows by a parent.
@@ -1644,7 +1679,7 @@ impl Flow for BlockFlow {
 }
 
 /// The inputs for the widths-and-margins constraint equation.
-struct WidthConstraintInput {
+pub struct WidthConstraintInput {
     computed_width: MaybeAuto,
     left_margin: MaybeAuto,
     right_margin: MaybeAuto,
@@ -1655,13 +1690,13 @@ struct WidthConstraintInput {
 }
 
 impl WidthConstraintInput {
-    fn new(computed_width: MaybeAuto,
-           left_margin: MaybeAuto,
-           right_margin: MaybeAuto,
-           left: MaybeAuto,
-           right: MaybeAuto,
-           available_width: Au,
-           static_x_offset: Au)
+    pub fn new(computed_width: MaybeAuto,
+               left_margin: MaybeAuto,
+               right_margin: MaybeAuto,
+               left: MaybeAuto,
+               right: MaybeAuto,
+               available_width: Au,
+               static_x_offset: Au)
            -> WidthConstraintInput {
         WidthConstraintInput {
             computed_width: computed_width,
@@ -1676,7 +1711,7 @@ impl WidthConstraintInput {
 }
 
 /// The solutions for the widths-and-margins constraint equation.
-struct WidthConstraintSolution {
+pub struct WidthConstraintSolution {
     left: Au,
     right: Au,
     width: Au,
@@ -1685,7 +1720,7 @@ struct WidthConstraintSolution {
 }
 
 impl WidthConstraintSolution {
-    fn new(width: Au, margin_left: Au, margin_right: Au) -> WidthConstraintSolution {
+    pub fn new(width: Au, margin_left: Au, margin_right: Au) -> WidthConstraintSolution {
         WidthConstraintSolution {
             left: Au(0),
             right: Au(0),
@@ -1714,7 +1749,7 @@ impl WidthConstraintSolution {
 // Trait to encapsulate the Width and Margin calculation.
 //
 // CSS Section 10.3
-trait WidthAndMarginsComputer {
+pub trait WidthAndMarginsComputer {
     /// Compute the inputs for the Width constraint equation.
     ///
     /// This is called only once to compute the initial inputs. For
