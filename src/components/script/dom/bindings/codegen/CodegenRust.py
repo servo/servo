@@ -877,8 +877,6 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if not type.isPrimitive():
         raise TypeError("Need conversion for argument type '%s'" % str(type))
 
-    typeName = builtinNames[type.tag()]
-
     conversionBehavior = "eDefault"
     if isEnforceRange:
         conversionBehavior = "eEnforceRange"
@@ -898,10 +896,12 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         "  Err(_) => { %s }\n"
         "}" % (successVal, exceptionCode))
 
+    declType = CGGeneric(builtinNames[type.tag()])
     if type.nullable():
-        declType = CGGeneric("Option<" + typeName + ">")
-    else:
-        declType = CGGeneric(typeName)
+        declType = CGWrapper(declType, pre="Option<", post=">")
+
+    if isOptional:
+        declType = CGWrapper(declType, pre="Option<", post=">")
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
@@ -925,10 +925,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                    "  ${declName} = %s;\n"
                                    "}" % defaultStr)).define()
 
-    initialVal = "false" if typeName == "bool" else ("0 as %s" % typeName)
-    if type.nullable():
-        initialVal = "Some(%s)" % initialVal
-    return (template, declType, None, isOptional, initialVal)
+    return (template, declType, None, isOptional, "None" if isOptional else None)
 
 def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                                             argcAndIndex=None):

@@ -74,33 +74,32 @@ impl TestBinding {
     pub fn GetInterfaceAttributeNullable(&self) -> Option<JS<Blob>> { Some(Blob::new(&self.window)) }
     pub fn SetInterfaceAttributeNullable(&self, _: Option<JS<Blob>>) {}
 
-    // FIXME (issue #1813) Doesn't currently compile.
-    // pub fn PassOptionalBoolean(&self, _: Option<bool>) {}
-    // pub fn PassOptionalByte(&self, _: Option<i8>) {}
-    // pub fn PassOptionalOctet(&self, _: Option<u8>) {}
-    // pub fn PassOptionalShort(&self, _: Option<i16>) {}
-    // pub fn PassOptionalUnsignedShort(&self, _: Option<u16>) {}
-    // pub fn PassOptionalLong(&self, _: Option<i32>) {}
-    // pub fn PassOptionalUnsignedLong(&self, _: Option<u32>) {}
-    // pub fn PassOptionalLongLong(&self, _: Option<i64>) {}
-    // pub fn PassOptionalUnsignedLongLong(&self, _: Option<u64>) {}
-    // pub fn PassOptionalFloat(&self, _: Option<f32>) {}
-    // pub fn PassOptionalDouble(&self, _: Option<f64>) {}
+    pub fn PassOptionalBoolean(&self, _: Option<bool>) {}
+    pub fn PassOptionalByte(&self, _: Option<i8>) {}
+    pub fn PassOptionalOctet(&self, _: Option<u8>) {}
+    pub fn PassOptionalShort(&self, _: Option<i16>) {}
+    pub fn PassOptionalUnsignedShort(&self, _: Option<u16>) {}
+    pub fn PassOptionalLong(&self, _: Option<i32>) {}
+    pub fn PassOptionalUnsignedLong(&self, _: Option<u32>) {}
+    pub fn PassOptionalLongLong(&self, _: Option<i64>) {}
+    pub fn PassOptionalUnsignedLongLong(&self, _: Option<u64>) {}
+    pub fn PassOptionalFloat(&self, _: Option<f32>) {}
+    pub fn PassOptionalDouble(&self, _: Option<f64>) {}
     pub fn PassOptionalString(&self, _: Option<DOMString>) {}
     pub fn PassOptionalInterface(&self, _: Option<JS<Blob>>) {}
     pub fn PassOptionalAny(&self, _: *JSContext, _: Option<JSVal>) {}
 
-    // pub fn PassOptionalNullableBoolean(&self, _: Option<Option<bool>>) {}
-    // pub fn PassOptionalNullableByte(&self, _: Option<Option<i8>>) {}
-    // pub fn PassOptionalNullableOctet(&self, _: Option<Option<u8>>) {}
-    // pub fn PassOptionalNullableShort(&self, _: Option<Option<i16>>) {}
-    // pub fn PassOptionalNullableUnsignedShort(&self, _: Option<Option<u16>>) {}
-    // pub fn PassOptionalNullableLong(&self, _: Option<Option<i32>>) {}
-    // pub fn PassOptionalNullableUnsignedLong(&self, _: Option<Option<u32>>) {}
-    // pub fn PassOptionalNullableLongLong(&self, _: Option<Option<i64>>) {}
-    // pub fn PassOptionalNullableUnsignedLongLong(&self, _: Option<Option<u64>>) {}
-    // pub fn PassOptionalNullableFloat(&self, _: Option<Option<f32>>) {}
-    // pub fn PassOptionalNullableDouble(&self, _: Option<Option<f64>>) {}
+    pub fn PassOptionalNullableBoolean(&self, _: Option<Option<bool>>) {}
+    pub fn PassOptionalNullableByte(&self, _: Option<Option<i8>>) {}
+    pub fn PassOptionalNullableOctet(&self, _: Option<Option<u8>>) {}
+    pub fn PassOptionalNullableShort(&self, _: Option<Option<i16>>) {}
+    pub fn PassOptionalNullableUnsignedShort(&self, _: Option<Option<u16>>) {}
+    pub fn PassOptionalNullableLong(&self, _: Option<Option<i32>>) {}
+    pub fn PassOptionalNullableUnsignedLong(&self, _: Option<Option<u32>>) {}
+    pub fn PassOptionalNullableLongLong(&self, _: Option<Option<i64>>) {}
+    pub fn PassOptionalNullableUnsignedLongLong(&self, _: Option<Option<u64>>) {}
+    pub fn PassOptionalNullableFloat(&self, _: Option<Option<f32>>) {}
+    pub fn PassOptionalNullableDouble(&self, _: Option<Option<f64>>) {}
     pub fn PassOptionalNullableString(&self, _: Option<Option<DOMString>>) {}
     // pub fn PassOptionalNullableInterface(&self, _: Option<Option<JS<Blob>>>) {}
 
