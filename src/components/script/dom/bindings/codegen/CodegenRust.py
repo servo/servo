@@ -2458,6 +2458,8 @@ class CGCallGenerator(CGThing):
             call = CGWrapper(call, pre="result_fallible = ")
         elif result is not None:
             call = CGWrapper(call, pre="result = ")
+        else:
+            call = CGWrapper(call, pre="let _: () = ")
 
         call = CGWrapper(call)
         self.cgRoot.append(call)
