@@ -128,13 +128,6 @@ pub fn unwrap_jsmanaged<T: Reflectable>(obj: *JSObject,
     })
 }
 
-pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
-    unsafe {
-        let obj = (*val).to_object();
-        unwrap_object(obj, proto_id, proto_depth)
-    }
-}
-
 pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *T {
     cast::transmute(x)
 }
