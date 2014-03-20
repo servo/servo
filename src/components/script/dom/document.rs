@@ -450,7 +450,7 @@ impl Document {
             }
         }
         let filter = ~ImagesFilter;
-        HTMLCollection::create_live(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Embeds(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
@@ -462,7 +462,7 @@ impl Document {
             }
         }
         let filter = ~EmbedsFilter;
-        HTMLCollection::create_live(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Plugins(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
@@ -480,7 +480,7 @@ impl Document {
             }
         }
         let filter = ~LinksFilter;
-        HTMLCollection::create_live(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Forms(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
@@ -492,7 +492,7 @@ impl Document {
             }
         }
         let filter = ~FormsFilter;
-        HTMLCollection::create_live(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Scripts(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
@@ -504,7 +504,7 @@ impl Document {
             }
         }
         let filter = ~ScriptsFilter;
-        HTMLCollection::create_live(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Anchors(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
@@ -516,7 +516,7 @@ impl Document {
             }
         }
         let filter = ~AnchorsFilter;
-        HTMLCollection::create_live(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Applets(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
@@ -528,7 +528,7 @@ impl Document {
             }
         }
         let filter = ~AppletsFilter;
-        HTMLCollection::create_live(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn create_collection<T>(&self, callback: |elem: &JS<Node>| -> Option<JS<T>>) -> ~[JS<T>] {

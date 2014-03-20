@@ -51,21 +51,8 @@ impl HTMLCollection {
 }
 
 impl HTMLCollection {
-    pub fn create_live(window: &JS<Window>, root: &JS<Node>, filter: ~CollectionFilter) -> JS<HTMLCollection> {
+    pub fn create(window: &JS<Window>, root: &JS<Node>, filter: ~CollectionFilter) -> JS<HTMLCollection> {
         HTMLCollection::new(window, Live(root.clone(), filter))
-    }
-
-    pub fn create(window: &JS<Window>, root: &JS<Node>, predicate: |elem: &JS<Element>| -> bool) -> JS<HTMLCollection> {
-        let mut elements = ~[];
-        for child in root.traverse_preorder() {
-            if child.is_element() {
-                let elem: JS<Element> = ElementCast::to(&child).unwrap();
-                if predicate(&elem) {
-                    elements.push(elem);
-                }
-            }
-        }
-        HTMLCollection::new(window, Static(elements))
     }
 
     pub fn by_tag_name(window: &JS<Window>, root: &JS<Node>, tag: DOMString)
@@ -81,7 +68,7 @@ impl HTMLCollection {
         let filter = TagNameFilter {
             tag: tag
         };
-        HTMLCollection::create_live(window, root, ~filter)
+        HTMLCollection::create(window, root, ~filter)
     }
 
     pub fn by_tag_name_ns(window: &JS<Window>, root: &JS<Node>, tag: DOMString,
@@ -99,7 +86,7 @@ impl HTMLCollection {
             tag: tag,
             namespace: namespace
         };
-        HTMLCollection::create_live(window, root, ~filter)
+        HTMLCollection::create(window, root, ~filter)
     }
 
     pub fn by_class_name(window: &JS<Window>, root: &JS<Node>, classes: DOMString)
@@ -115,7 +102,7 @@ impl HTMLCollection {
         let filter = ClassNameFilter {
             classes: classes.split(' ').map(|class| class.into_owned()).to_owned_vec()
         };
-        HTMLCollection::create_live(window, root, ~filter)
+        HTMLCollection::create(window, root, ~filter)
     }
 }
 

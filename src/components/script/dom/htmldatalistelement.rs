@@ -50,6 +50,6 @@ impl HTMLDataListElement {
         }
         let node: JS<Node> = NodeCast::from(abstract_self);
         let filter = ~HTMLDataListOptionsFilter;
-        HTMLCollection::create_live(&window_from_node(&node), &node, filter)
+        HTMLCollection::create(&window_from_node(&node), &node, filter)
     }
 }
