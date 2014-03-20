@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 pub type DOMString = ~str;
+pub type StaticStringVec = &'static [&'static str];
 
 pub fn null_str_as_empty(s: &Option<DOMString>) -> DOMString {
     // We don't use map_default because it would allocate ~"" even for Some.
