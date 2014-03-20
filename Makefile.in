@@ -30,6 +30,7 @@ B := $(CFG_BUILD_DIR)
 MKFILE_DEPS := config.stamp $(call rwildcard,$(S)mk/,*)
 
 CFG_GCCISH_CFLAGS += -DRUST_DEBUG
+CFG_RUSTC_FLAGS = -D unused-imports
 
 ifdef CFG_DISABLE_OPTIMIZE
   $(info cfg: disabling rustc optimization (CFG_DISABLE_OPTIMIZE))
