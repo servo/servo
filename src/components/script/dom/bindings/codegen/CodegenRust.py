@@ -1195,13 +1195,11 @@ def typeNeedsCx(type, retVal=False):
 def memberIsCreator(member):
     return member.getExtendedAttribute("Creator") is not None
 
-# Returns a tuple consisting of a CGThing containing the type of the return
-# value, or None if there is no need for a return value, and a boolean signaling
-# whether the return value is passed in an out parameter.
+# Returns a CGThing containing the type of the return value.
 def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType is None or returnType.isVoid():
         # Nothing to declare
-        return None
+        return CGGeneric("()")
     if returnType.isPrimitive() and returnType.tag() in builtinNames:
         result = CGGeneric(builtinNames[returnType.tag()])
         if returnType.nullable():
@@ -2426,19 +2424,16 @@ class CGCallGenerator(CGThing):
         call = CGList([call, CGWrapper(args, pre="(", post=");")])
 
         if isFallible:
-            self.cgRoot.prepend(CGWrapper(result if result is not None else CGGeneric("()"),
+            self.cgRoot.prepend(CGWrapper(result,
                 pre="let result_fallible: Result<", post=",Error>;"))
 
-        if result is not None:
-            result = CGWrapper(result, pre="let result: ", post=";")
-            self.cgRoot.prepend(result)
+        result = CGWrapper(result, pre="let result: ", post=";")
+        self.cgRoot.prepend(result)
 
         if isFallible:
             call = CGWrapper(call, pre="result_fallible = ")
-        elif result is not None:
-            call = CGWrapper(call, pre="result = ")
         else:
-            call = CGWrapper(call, pre="let _: () = ")
+            call = CGWrapper(call, pre="result = ")
 
         call = CGWrapper(call)
         self.cgRoot.append(call)
@@ -2447,8 +2442,7 @@ class CGCallGenerator(CGThing):
             self.cgRoot.append(CGGeneric("if result_fallible.is_err() {"))
             self.cgRoot.append(CGIndenter(errorReport))
             self.cgRoot.append(CGGeneric("}"))
-            if result is not None:
-                self.cgRoot.append(CGGeneric("result = result_fallible.unwrap();"))
+            self.cgRoot.append(CGGeneric("result = result_fallible.unwrap();"))
 
     def define(self):
         return self.cgRoot.define()
