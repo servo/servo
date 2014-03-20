@@ -851,8 +851,8 @@ trait ObjectElement {
 
 impl<'ln> ObjectElement for ThreadSafeLayoutNode<'ln> {
     fn get_type_and_data(&self) -> (Option<&'static str>, Option<&'static str>) {
-        (self.with_element(|e| { e.get_attr(&namespace::Null, "type") } ),
-        self.with_element(|e| { e.get_attr(&namespace::Null, "data") } ))
+        let elem = self.as_element();
+        (elem.get_attr(&namespace::Null, "type"), elem.get_attr(&namespace::Null, "data"))
     }
 
     fn has_object_data(&self) -> bool {

@@ -132,12 +132,11 @@ impl ImageBoxInfo {
                local_image_cache: MutexArc<LocalImageCache>)
                -> ImageBoxInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &str) -> Option<Au> {
-            node.with_element(|element| {
-                element.get_attr(&namespace::Null, name).and_then(|string| {
-                    let n: Option<int> = FromStr::from_str(string);
-                    n
-                }).and_then(|pixels| Some(Au::from_px(pixels)))
-            })
+            let element = node.as_element();
+            element.get_attr(&namespace::Null, name).and_then(|string| {
+                let n: Option<int> = FromStr::from_str(string);
+                n
+            }).and_then(|pixels| Some(Au::from_px(pixels)))
         }
 
         ImageBoxInfo {
