@@ -2386,7 +2386,7 @@ class CGCallGenerator(CGThing):
     """
     def __init__(self, errorReport, arguments, argsPre, returnType,
                  extendedAttributes, descriptorProvider, nativeMethodName,
-                 static, object="this", declareResult=True):
+                 static, object="this"):
         CGThing.__init__(self)
 
         assert errorReport is None or isinstance(errorReport, CGThing)
@@ -2429,7 +2429,7 @@ class CGCallGenerator(CGThing):
             self.cgRoot.prepend(CGWrapper(result if result is not None else CGGeneric("()"),
                 pre="let mut result_fallible: Result<", post=",Error>;"))
 
-        if result is not None and declareResult:
+        if result is not None:
             result = CGWrapper(result, pre="let mut result: ", post=";")
             self.cgRoot.prepend(result)
 
