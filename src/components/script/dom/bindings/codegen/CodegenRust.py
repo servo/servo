@@ -93,7 +93,6 @@ class CastableObjectUnwrapper():
     codeOnFailure is the code to run if unwrapping fails.
     """
     def __init__(self, descriptor, source, target, codeOnFailure, isOptional=False):
-        assert descriptor.castable
         self.substitution = { "type" : descriptor.nativeType,
                               "depth": descriptor.interface.inheritanceDepth(),
                               "prototype": "PrototypeList::id::" + descriptor.name,
@@ -383,7 +382,6 @@ class CGMethodCall(CGThing):
 
 class FakeCastableDescriptor():
     def __init__(self, descriptor):
-        self.castable = True
         self.nativeType = "*%s" % descriptor.concreteType
         self.name = descriptor.name
         class FakeInterface:
@@ -630,35 +628,23 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         typePtr = descriptor.nativeType
 
         templateBody = ""
-        if descriptor.castable:
-            if descriptor.interface.isConsequential():
-                raise TypeError("Consequential interface %s being used as an "
-                                "argument but flagged as castable" %
-                                descriptor.interface.identifier.name)
-            if failureCode is not None:
-                templateBody += str(CastableObjectUnwrapper(
-                        descriptor,
-                        "(${val}).to_object()",
-                        "${declName}",
-                        failureCode,
-                        isOptional or type.nullable()))
-            else:
-                templateBody += str(FailureFatalCastableObjectUnwrapper(
-                        descriptor,
-                        "(${val}).to_object()",
-                        "${declName}",
-                        isOptional or type.nullable()))
+        if descriptor.interface.isConsequential():
+            raise TypeError("Consequential interface %s being used as an "
+                            "argument" % descriptor.interface.identifier.name)
+
+        if failureCode is not None:
+            templateBody += str(CastableObjectUnwrapper(
+                    descriptor,
+                    "(${val}).to_object()",
+                    "${declName}",
+                    failureCode,
+                    isOptional or type.nullable()))
         else:
-            templateBody += (
-                "match unwrap_value::<" + typePtr + ">(&${val} as *JSVal, "
-                "PrototypeList::id::%s, %d) {\n" % (descriptor.name, descriptor.interface.inheritanceDepth() if descriptor.concrete else 0) +
-                "  Err(()) => {")
-            templateBody += CGIndenter(onFailureBadType(failureCode,
-                                                        descriptor.interface.identifier.name)).define()
-            templateBody += (
-                "  }\n"
-                "  Ok(unwrapped) => ${declName} = Some(unwrapped)\n"
-                "}\n")
+            templateBody += str(FailureFatalCastableObjectUnwrapper(
+                    descriptor,
+                    "(${val}).to_object()",
+                    "${declName}",
+                    isOptional or type.nullable()))
 
         templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
                                           type, failureCode)
@@ -2662,7 +2648,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let this: *%s;" % self.descriptor.concreteType))
+                      "let this: *mut %s;" % self.descriptor.concreteType))
 
     def generate_code(self):
         assert(False) # Override me
@@ -4170,7 +4156,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
     def definition_body_prologue(self):
         return """
-  let this: *%s = unwrap::<*%s>(obj);
+  let this: *mut %s = unwrap::<%s>(obj);
 """ % (self.descriptor.concreteType, self.descriptor.concreteType)
 
     def definition_body(self):
