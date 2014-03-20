@@ -24,11 +24,11 @@ use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
 use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate};
 use js::jsapi::{JS_InternString, JS_GetFunctionObject};
-use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
+use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
 use js::jsapi::{JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
-use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSPropertyDescriptor};
+use js::jsapi::{JSFunctionSpec, JSPropertySpec};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsapi::{JSString};
 use js::jsapi::{JS_AllowGC, JS_InhibitGC};
@@ -37,8 +37,7 @@ use js::jsval::JSVal;
 use js::jsval::{PrivateValue, ObjectValue, NullValue, Int32Value};
 use js::jsval::{UInt32Value, DoubleValue, BooleanValue, UndefinedValue};
 use js::{JSPROP_ENUMERATE, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
-use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
-use js::JSPROP_SETTER;
+use js::JSPROP_PERMANENT;
 use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
 use js;
 
@@ -195,17 +194,8 @@ pub struct NativeProperties {
     constantSpecs: *ConstantSpec
 }
 
-pub struct NativePropertyHooks {
-    resolve_own_property: *u8,
-    resolve_property: extern "C" fn(*JSContext, *JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool,
-    enumerate_own_properties: *u8,
-    enumerate_properties: *u8,
-    proto_hooks: *NativePropertyHooks
-}
-
 pub struct JSNativeHolder {
-    native: js::jsapi::JSNative,
-    propertyHooks: *NativePropertyHooks
+    native: js::jsapi::JSNative
 }
 
 #[deriving(Clone)]
@@ -229,8 +219,7 @@ pub struct DOMClass {
     // derivedness.
     interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH],
 
-    unused: bool, // DOMObjectIsISupports (always false)
-    native_hooks: *NativePropertyHooks
+    unused: bool // DOMObjectIsISupports (always false)
 }
 
 pub struct DOMJSClass {
@@ -497,55 +486,6 @@ pub fn GetArrayIndexFromId(_cx: *JSContext, id: jsid) -> Option<u32> {
     } else {
         IdToInt32(cx, id);
     }*/
-}
-
-pub fn XrayResolveProperty(cx: *JSContext,
-                           wrapper: *JSObject,
-                           id: jsid,
-                           desc: *mut JSPropertyDescriptor,
-                           _methods: Option<~[(JSFunctionSpec, jsid)]>,
-                           attributes: Option<~[(JSPropertySpec, jsid)]>,
-                           _constants: Option<~[(ConstantSpec, jsid)]>) -> bool
-{
-  unsafe {
-    match attributes {
-        Some(attrs) => {
-            for &elem in attrs.iter() {
-                let (attr, attr_id) = elem;
-                if attr_id == JSID_VOID || attr_id != id {
-                    continue;
-                }
-
-                (*desc).attrs = (attr.flags & !(JSPROP_NATIVE_ACCESSORS as u8)) as u32;
-                let global = JS_GetGlobalForObject(cx, wrapper);
-                let fun = JS_NewFunction(cx, attr.getter.op, 0, 0, global, ptr::null());
-                if fun.is_null() {
-                    return false;
-                }
-
-                RUST_SET_JITINFO(fun, attr.getter.info);
-                let funobj = JS_GetFunctionObject(fun);
-                (*desc).getter = Some(cast::transmute(funobj));
-                (*desc).attrs |= JSPROP_GETTER;
-                if attr.setter.op.is_some() {
-                    let fun = JS_NewFunction(cx, attr.setter.op, 1, 0, global, ptr::null());
-                    if fun.is_null() {
-                        return false
-                    }
-
-                    RUST_SET_JITINFO(fun, attr.setter.info);
-                    let funobj = JS_GetFunctionObject(fun);
-                    (*desc).setter = Some(cast::transmute(funobj));
-                    (*desc).attrs |= JSPROP_SETTER;
-                } else {
-                    (*desc).setter = None;
-                }
-            }
-        }
-        None => ()
-    }
-    return true;
-  }
 }
 
 fn InternJSString(cx: *JSContext, chars: *libc::c_char) -> Option<jsid> {
