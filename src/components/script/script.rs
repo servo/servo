@@ -8,7 +8,7 @@
 #[comment = "The Servo Parallel Browser Project"];
 #[license = "MPL"];
 
-#[feature(globs, macro_rules, struct_variant, managed_boxes)];
+#[feature(globs, macro_rules, struct_variant, managed_boxes, phase)];
 
 extern crate collections;
 extern crate geom;
@@ -16,15 +16,14 @@ extern crate hubbub;
 extern crate encoding;
 extern crate js;
 extern crate serialize;
+#[phase(syntax)]
+extern crate servo_macros = "macros";
 extern crate servo_net = "net";
 extern crate servo_util = "util";
 extern crate style;
 extern crate servo_msg = "msg";
 extern crate extra;
 extern crate native;
-
-// Macros
-mod macros;
 
 pub mod dom {
     pub mod bindings {

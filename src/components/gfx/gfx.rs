@@ -5,7 +5,7 @@
 #[crate_id = "github.com/mozilla/servo#gfx:0.1"];
 #[crate_type = "lib"];
 
-#[feature(globs, managed_boxes, macro_rules)];
+#[feature(globs, managed_boxes, macro_rules, phase)];
 
 extern crate azure;
 extern crate collections;
@@ -14,6 +14,8 @@ extern crate geom;
 extern crate layers;
 extern crate stb_image;
 extern crate png;
+#[phase(syntax)]
+extern crate servo_macros = "macros";
 extern crate servo_net = "net";
 extern crate servo_util = "util";
 extern crate servo_msg = "msg";
@@ -38,9 +40,6 @@ pub use gfx_font_context = font_context;
 pub use gfx_font_list = font_list;
 pub use servo_gfx_font = font;
 pub use servo_gfx_font_list = font_list;
-
-// Macros
-mod macros;
 
 // Private rendering modules
 mod render_context;
