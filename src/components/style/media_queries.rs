@@ -9,7 +9,7 @@ use cssparser::ast::*;
 use errors::{ErrorLoggerIterator, log_css_error};
 use stylesheets::{CSSRule, CSSMediaRule, parse_style_rule, parse_nested_at_rule};
 use namespaces::NamespaceMap;
-use extra::url::Url;
+use url::Url;
 
 
 pub struct MediaRule {

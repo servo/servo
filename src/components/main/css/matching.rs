@@ -18,7 +18,7 @@ use servo_util::smallvec::{SmallVec, SmallVec0, SmallVec16};
 use servo_util::str::DOMString;
 use std::cast;
 use std::hash::{Hash, sip};
-use std::vec::Items;
+use std::slice::Items;
 use style::{After, Before, ComputedValues, MatchedProperty, Stylist, TElement, TNode, cascade};
 use sync::Arc;
 
@@ -458,13 +458,8 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                 Some(shared_style) => {
                     // Yay, cache hit. Share the style.
                     let mut layout_data_ref = self.mutate_layout_data();
-                    match *layout_data_ref.get() {
-                        None => fail!(),
-                        Some(ref mut layout_data_ref) => {
-                            layout_data_ref.data.style = Some(shared_style);
-                            return StyleWasShared(i)
-                        }
-                    }
+                    layout_data_ref.get_mut_ref().data.style = Some(shared_style);
+                    return StyleWasShared(i)
                 }
                 None => {}
             }
@@ -558,9 +553,9 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         };
 
         let mut layout_data_ref = self.mutate_layout_data();
-        match *layout_data_ref.get() {
-            None => fail!("no layout data"),
-            Some(ref mut layout_data) => {
+        match &mut *layout_data_ref {
+            &None => fail!("no layout data"),
+            &Some(ref mut layout_data) => {
                 self.cascade_node_pseudo_element(parent_style,
                                                  applicable_declarations.normal.as_slice(),
                                                  &mut layout_data.data.style,

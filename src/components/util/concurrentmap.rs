@@ -4,15 +4,15 @@
 
 //! A Doug Lea-style concurrent hash map using striped locks.
 
+use rand;
+use rand::Rng;
 use std::cast;
 use std::hash::{Hash, sip};
 use std::ptr;
-use std::rand::Rng;
-use std::rand;
 use std::sync::atomics::{AtomicUint, Relaxed, SeqCst};
 use std::unstable::mutex::StaticNativeMutex;
 use std::mem;
-use std::vec;
+use std::slice;
 
 /// When the size exceeds (number of buckets * LOAD_NUMERATOR/LOAD_DENOMINATOR), the hash table
 /// grows.
@@ -57,12 +57,12 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
             k0: rand.gen(),
             k1: rand.gen(),
             size: AtomicUint::new(0),
-            locks: vec::from_fn(lock_count, |_| {
+            locks: slice::from_fn(lock_count, |_| {
                 unsafe {
                     StaticNativeMutex::new()
                 }
             }),
-            buckets: vec::from_fn(lock_count * buckets_per_lock, |_| None),
+            buckets: slice::from_fn(lock_count * buckets_per_lock, |_| None),
         }
     }
 
@@ -295,7 +295,7 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
         let new_bucket_count = lock_count * new_buckets_per_lock;
         if new_bucket_count > this.buckets.len() {
             // Create a new set of buckets.
-            let mut buckets = vec::from_fn(new_bucket_count, |_| None);
+            let mut buckets = slice::from_fn(new_bucket_count, |_| None);
             mem::swap(&mut this.buckets, &mut buckets);
             this.size.store(0, Relaxed);
 

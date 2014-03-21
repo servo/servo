@@ -10,14 +10,17 @@
 
 #[feature(globs, macro_rules, managed_boxes)];
 
+#[feature(phase)];
+#[phase(syntax, link)] extern crate log;
+
 extern crate cssparser;
 extern crate collections;
 extern crate encoding;
-extern crate extra;
 extern crate num;
 extern crate serialize;
 extern crate servo_util = "util";
 extern crate sync;
+extern crate url;
 
 
 // Public API

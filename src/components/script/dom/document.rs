@@ -40,9 +40,9 @@ use servo_util::namespace::{Namespace, Null};
 use servo_util::str::DOMString;
 
 use collections::hashmap::HashMap;
-use extra::url::{Url, from_str};
 use js::jsapi::JSContext;
 use std::ascii::StrAsciiExt;
+use url::{Url, from_str};
 
 use serialize::{Encoder, Encodable};
 
@@ -610,12 +610,14 @@ impl Document {
 
         // TODO: support the case if multiple elements
         // which haves same id are in the same document.
-        self.idmap.mangle(id, element,
-                          |_, new_element: &JS<Element>| -> JS<Element> {
-                              new_element.clone()
-                          },
-                          |_, old_element: &mut JS<Element>, new_element: &JS<Element>| {
-                              *old_element = new_element.clone();
-                          });
+        // This would use mangle(), but some dumbass removed it.
+        match self.idmap.find_mut(&id) {
+            Some(v) => {
+                *v = element.clone();
+                return;
+            },
+            None => (),
+        }
+        self.idmap.insert(id, element.clone());
     }
 }

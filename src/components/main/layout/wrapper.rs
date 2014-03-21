@@ -33,7 +33,6 @@
 //!   o Instead of `html_element_in_html_document()`, use
 //!     `html_element_in_html_document_for_layout()`.
 
-use extra::url::Url;
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};
 use script::dom::bindings::js::JS;
@@ -52,6 +51,7 @@ use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector, SpecificNam
 use style::{AnyNamespace};
 use style::computed_values::{content, display};
 use layout::util::LayoutDataWrapper;
+use url::Url;
 
 /// Allows some convenience methods on generic layout nodes.
 pub trait TLayoutNode {

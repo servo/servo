@@ -57,9 +57,16 @@ use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
 use servo_util::smallvec::{SmallVec, SmallVec0};
 use std::cast;
+<<<<<<< HEAD
 use std::iter::Zip;
 use std::sync::atomics::Relaxed;
 use std::vec::MutItems;
+=======
+use std::cell::RefCell;
+use std::iter::Zip;
+use std::slice::MutItems;
+use std::sync::atomics::Relaxed;
+>>>>>>> 32d5792... Upgrade rust.
 use style::ComputedValues;
 use style::computed_values::{clear, position, text_align};
 
@@ -1167,6 +1174,27 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
             TableColGroupFlowClass => {
                 // Nothing to do here, as column groups don't render.
             }
+
+            let mut child_lists = Some(child_lists.unwrap());
+            // Find parent ClipDisplayItemClass and push all child display items
+            // under it
+            let mut child_lists = child_lists.take_unwrap();
+            let mut lists = lists.borrow_mut();
+            let result = lists.lists[index].list.mut_rev_iter().position(|item| {
+                match *item {
+                    ClipDisplayItemClass(ref mut item) => {
+                        item.child_list.push_all_move(child_lists.lists.shift().unwrap().list);
+                        true
+                    },
+                    _ => false,
+                }
+            });
+
+            if result.is_none() {
+                fail!("fail to find parent item");
+            }
+
+            lists.lists.push_all_move(child_lists.lists);
         }
     }
 

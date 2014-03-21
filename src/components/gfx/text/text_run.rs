@@ -5,7 +5,7 @@
 use font::{Font, FontDescriptor, RunMetrics, FontStyle, FontMetrics};
 use servo_util::geometry::Au;
 use servo_util::range::Range;
-use std::vec::Items;
+use std::slice::Items;
 use style::computed_values::text_decoration;
 use sync::Arc;
 use text::glyph::GlyphStore;

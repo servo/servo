@@ -27,7 +27,7 @@ struct Untraceable {
 
 impl<S: Encoder> Encodable<S> for Untraceable {
     fn encode(&self, s: &mut S) {
-        self.page.borrow().encode(s);
+        self.page.encode(s);
     }
 }
 
@@ -60,7 +60,7 @@ impl Location {
     }
 
     pub fn Href(&self) -> DOMString {
-        self.extra.page.borrow().get_url().to_str()
+        self.extra.page.get_url().to_str()
     }
 
     pub fn SetHref(&self, _href: DOMString) -> Fallible<()> {

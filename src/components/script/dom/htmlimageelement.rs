@@ -13,12 +13,12 @@ use dom::element::{AttributeHandlers, AfterSetAttrListener, BeforeRemoveAttrList
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
-use extra::url::Url;
 use servo_util::geometry::to_px;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
 use servo_util::url::parse_url;
 use servo_util::str::DOMString;
+use url::Url;
 
 use serialize::{Encoder, Encodable};
 
@@ -138,7 +138,7 @@ impl HTMLImageElement {
         let node: JS<Node> = NodeCast::from(abstract_self);
         let window = window_from_node(&node);
         let page = window.get().page();
-        let (port, chan) = Chan::new();
+        let (chan, port) = channel();
         let addr = node.to_trusted_node_address();
         let ContentBoxResponse(rect) = page.query_layout(ContentBoxQuery(addr, chan), port);
         to_px(rect.size.width) as u32
@@ -153,7 +153,7 @@ impl HTMLImageElement {
         let node = &self.htmlelement.element.node;
         let doc = node.owner_doc();
         let page = doc.get().window.get().page();
-        let (port, chan) = Chan::new();
+        let (chan, port) = channel();
         let this_node: JS<Node> = NodeCast::from(abstract_self);
         let addr = this_node.to_trusted_node_address();
         let ContentBoxResponse(rect) = page.query_layout(ContentBoxQuery(addr, chan), port);

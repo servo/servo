@@ -7,9 +7,9 @@ use image_cache_task::{ImageReady, ImageNotReady, ImageFailed};
 use local_image_cache::LocalImageCache;
 
 use sync::{Arc, MutexArc};
-use extra::url::Url;
 use geom::size::Size2D;
 use std::mem;
+use url::Url;
 
 // FIXME: Nasty coupling here This will be a problem if we want to factor out image handling from
 // the network stack. This should probably be factored out into an interface and use dependency

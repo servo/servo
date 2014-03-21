@@ -289,11 +289,11 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
         }
         if child_count != 0 {
             let mut layout_data_ref = node.mutate_layout_data();
-            match *layout_data_ref.get() {
-                Some(ref mut layout_data) => {
+            match &mut *layout_data_ref {
+                &Some(ref mut layout_data) => {
                     layout_data.data.parallel.children_count.store(child_count as int, Relaxed)
                 }
-                None => fail!("no layout data"),
+                &None => fail!("no layout data"),
             }
 
             // Enqueue kids.
@@ -338,11 +338,11 @@ fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
         }
         {
             let mut layout_data_ref = node.mutate_layout_data();
-            match *layout_data_ref.get() {
-                Some(ref mut layout_data) => {
+            match &mut *layout_data_ref {
+                &Some(ref mut layout_data) => {
                     layout_data.data.parallel.children_count.store(child_count as int, Relaxed)
                 }
-                None => fail!("no layout data"),
+                &None => fail!("no layout data"),
             }
         }
 

@@ -6,7 +6,7 @@ use compositing::*;
 
 use geom::size::Size2D;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, ResizedWindowMsg};
-use std::comm::{Empty, Disconnected, Data, Port};
+use std::comm::{Empty, Disconnected, Data, Receiver};
 use servo_util::time::ProfilerChan;
 use servo_util::time;
 
@@ -16,17 +16,17 @@ use servo_util::time;
 /// It's intended for headless testing.
 pub struct NullCompositor {
     /// The port on which we receive messages.
-    port: Port<Msg>,
+    port: Receiver<Msg>,
 }
 
 impl NullCompositor {
-    fn new(port: Port<Msg>) -> NullCompositor {
+    fn new(port: Receiver<Msg>) -> NullCompositor {
         NullCompositor {
             port: port,
         }
     }
 
-    pub fn create(port: Port<Msg>,
+    pub fn create(port: Receiver<Msg>,
                   constellation_chan: ConstellationChan,
                   profiler_chan: ProfilerChan) {
         let compositor = NullCompositor::new(port);

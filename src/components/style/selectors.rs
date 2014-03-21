@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::{cmp, vec, iter};
+use std::{cmp, iter};
 use std::ascii::StrAsciiExt;
+use std::slice;
 use sync::Arc;
 
 use cssparser::ast::*;
@@ -103,7 +104,7 @@ pub enum NamespaceConstraint {
 }
 
 
-type Iter = iter::Peekable<ComponentValue, vec::MoveItems<ComponentValue>>;
+type Iter = iter::Peekable<ComponentValue, slice::MoveItems<ComponentValue>>;
 
 
 /// Parse a comma-separated list of Selectors.

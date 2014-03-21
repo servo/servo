@@ -6,7 +6,8 @@
 
 use std_time::precise_time_ns;
 use collections::treemap::TreeMap;
-use std::comm::{Port, Chan};
+use std::comm::{Sender, channel, Receiver};
+use std::f64;
 use std::iter::AdditiveIterator;
 use task::{spawn_named};
 
@@ -28,7 +29,7 @@ impl Timer {
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
-pub struct ProfilerChan(Chan<ProfilerMsg>);
+pub struct ProfilerChan(Sender<ProfilerMsg>);
 
 impl ProfilerChan {
     pub fn send(&self, msg: ProfilerMsg) {
@@ -46,7 +47,8 @@ pub enum ProfilerMsg {
     ExitMsg,
 }
 
-#[deriving(Eq, Clone, TotalEq, TotalOrd)]
+#[repr(u32)]
+#[deriving(Eq, Clone, Ord, TotalEq, TotalOrd)]
 pub enum ProfilerCategory {
     CompositingCategory,
     LayoutQueryCategory,
@@ -117,14 +119,14 @@ type ProfilerBuckets = TreeMap<ProfilerCategory, ~[f64]>;
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
-    port: Port<ProfilerMsg>,
+    port: Receiver<ProfilerMsg>,
     buckets: ProfilerBuckets,
     last_msg: Option<ProfilerMsg>,
 }
 
 impl Profiler {
     pub fn create(period: Option<f64>) -> ProfilerChan {
-        let (port, chan) = Chan::new();
+        let (chan, port) = channel();
         match period {
             Some(period) => {
                 let period = (period * 1000f64) as u64;
@@ -159,7 +161,7 @@ impl Profiler {
         ProfilerChan(chan)
     }
 
-    pub fn new(port: Port<ProfilerMsg>) -> Profiler {
+    pub fn new(port: Receiver<ProfilerMsg>) -> Profiler {
         Profiler {
             port: port,
             buckets: ProfilerCategory::empty_buckets(),
@@ -211,11 +213,11 @@ impl Profiler {
             });
             let data_len = data.len();
             if data_len > 0 {
-                let (mean, median, &min, &max) =
+                let (mean, median, min, max) =
                     (data.iter().map(|&x|x).sum() / (data_len as f64),
                      data[data_len / 2],
-                     data.iter().min().unwrap(),
-                     data.iter().max().unwrap());
+                     data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
+                     data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
                 println!("{:-35s}: {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
                          category.format(), mean, median, min, max, data_len);
             }

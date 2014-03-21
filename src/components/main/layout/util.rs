@@ -17,7 +17,7 @@ use std::cast;
 use std::cell::{Ref, RefMut};
 use std::iter::Enumerate;
 use std::libc::uintptr_t;
-use std::vec::Items;
+use std::slice::Items;
 use style::ComputedValues;
 use sync::Arc;
 

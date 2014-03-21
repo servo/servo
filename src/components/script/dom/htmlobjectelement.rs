@@ -18,12 +18,12 @@ use dom::validitystate::ValidityState;
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
-use extra::url::Url;
 use servo_net::image_cache_task;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::url::parse_url;
 use servo_util::namespace::Null;
 use servo_util::url::is_image_data;
+use url::Url;
 
 #[deriving(Encodable)]
 pub struct HTMLObjectElement {
