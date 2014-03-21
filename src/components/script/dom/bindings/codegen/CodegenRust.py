@@ -688,8 +688,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
             if isinstance(defaultValue, IDLNullValue):
                 assert(type.nullable())
-                return handleDefault(conversionCode,
-                                     "${declName}.SetNull();")
+                return handleDefault(conversionCode, "${declName} = None;")
 
             value = "str::from_utf8(data).unwrap().to_owned()"
             if type.nullable():
