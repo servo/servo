@@ -81,10 +81,10 @@ pub unsafe fn dom_object_slot(obj: *JSObject) -> u32 {
     }
 }
 
-pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
+pub unsafe fn unwrap<T>(obj: *JSObject) -> *mut T {
     let slot = dom_object_slot(obj);
     let val = JS_GetReservedSlot(obj, slot);
-    cast::transmute(val.to_private())
+    val.to_private() as *mut T
 }
 
 pub unsafe fn get_dom_class(obj: *JSObject) -> Result<DOMClass, ()> {
@@ -103,7 +103,7 @@ pub unsafe fn get_dom_class(obj: *JSObject) -> Result<DOMClass, ()> {
     return Err(());
 }
 
-pub fn unwrap_object<T>(obj: *JSObject, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
+pub fn unwrap_object<T>(obj: *JSObject, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<*mut T, ()> {
     unsafe {
         get_dom_class(obj).and_then(|dom_class| {
             if dom_class.interface_chain[proto_depth] == proto_id {
@@ -126,13 +126,6 @@ pub fn unwrap_jsmanaged<T: Reflectable>(obj: *JSObject,
             JS::from_raw(unwrapped)
         }
     })
-}
-
-pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
-    unsafe {
-        let obj = (*val).to_object();
-        unwrap_object(obj, proto_id, proto_depth)
-    }
 }
 
 pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *T {
@@ -644,7 +637,7 @@ pub fn global_object_for_js_object(obj: *JSObject) -> JS<window::Window> {
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
         // FIXME(jdm): Either don't hardcode or sanity assert prototype stuff.
-        match unwrap_object::<*mut window::Window>(global, PrototypeList::id::Window, 1) {
+        match unwrap_object(global, PrototypeList::id::Window, 1) {
             Ok(win) => JS::from_raw(win),
             Err(_) => fail!("found DOM global that doesn't unwrap to Window"),
         }

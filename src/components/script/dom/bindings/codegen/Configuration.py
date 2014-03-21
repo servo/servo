@@ -137,15 +137,6 @@ class Descriptor(DescriptorProvider):
         self.concreteType = desc.get('concreteType', ifaceName)
         self.needsAbstract = desc.get('needsAbstract', [])
         self.createGlobal = desc.get('createGlobal', False)
-
-        if self.interface.isCallback():
-            if 'castable' in desc:
-                raise TypeError("%s is callback but has a castable "
-                                "setting" % self.interface.identifier.name)
-            self.castable = False
-        else:
-            self.castable = desc.get('castable', True)
-
         self.register = desc.get('register', True)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
