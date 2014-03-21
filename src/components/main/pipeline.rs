@@ -5,7 +5,6 @@
 use compositing::CompositorChan;
 use layout::layout_task::LayoutTask;
 
-use extra::url::Url;
 use geom::size::Size2D;
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::render_task::{RenderChan, RenderTask};
@@ -20,6 +19,7 @@ use servo_util::opts::Opts;
 use servo_util::time::ProfilerChan;
 use std::cell::RefCell;
 use std::rc::Rc;
+use url::Url;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and render task. 
 pub struct Pipeline {
@@ -28,8 +28,8 @@ pub struct Pipeline {
     script_chan: ScriptChan,
     layout_chan: LayoutChan,
     render_chan: RenderChan,
-    layout_shutdown_port: Port<()>,
-    render_shutdown_port: Port<()>,
+    layout_shutdown_port: Receiver<()>,
+    render_shutdown_port: Receiver<()>,
     /// The most recently loaded url
     url: RefCell<Option<Url>>,
 }
@@ -56,8 +56,8 @@ impl Pipeline {
                        -> Pipeline {
         let (layout_port, layout_chan) = LayoutChan::new();
         let (render_port, render_chan) = RenderChan::new();
-        let (render_shutdown_port, render_shutdown_chan) = Chan::new();
-        let (layout_shutdown_port, layout_shutdown_chan) = Chan::new();
+        let (render_shutdown_chan, render_shutdown_port) = channel();
+        let (layout_shutdown_chan, layout_shutdown_port) = channel();
 
         let failure = Failure {
             pipeline_id: id,
@@ -78,7 +78,7 @@ impl Pipeline {
                            layout_chan.clone(),
                            constellation_chan,
                            failure,
-                           script_pipeline.borrow().script_chan.clone(),
+                           script_pipeline.script_chan.clone(),
                            render_chan.clone(),
                            image_cache_task.clone(),
                            opts.clone(),
@@ -86,17 +86,17 @@ impl Pipeline {
                            layout_shutdown_chan);
 
         let new_layout_info = NewLayoutInfo {
-            old_id: script_pipeline.borrow().id.clone(),
+            old_id: script_pipeline.id.clone(),
             new_id: id,
             layout_chan: layout_chan.clone(),
         };
 
-        let ScriptChan(ref chan) = script_pipeline.borrow().script_chan;
+        let ScriptChan(ref chan) = script_pipeline.script_chan;
         chan.send(AttachLayoutMsg(new_layout_info));
 
         Pipeline::new(id,
                       subpage_id,
-                      script_pipeline.borrow().script_chan.clone(),
+                      script_pipeline.script_chan.clone(),
                       layout_chan,
                       render_chan,
                       layout_shutdown_port,
@@ -116,8 +116,8 @@ impl Pipeline {
         let (script_port, script_chan) = ScriptChan::new();
         let (layout_port, layout_chan) = LayoutChan::new();
         let (render_port, render_chan) = RenderChan::new();
-        let (render_shutdown_port, render_shutdown_chan) = Chan::new();
-        let (layout_shutdown_port, layout_shutdown_chan) = Chan::new();
+        let (render_shutdown_chan, render_shutdown_port) = channel();
+        let (layout_shutdown_chan, layout_shutdown_port) = channel();
         let pipeline = Pipeline::new(id,
                                      subpage_id,
                                      script_chan.clone(),
@@ -171,8 +171,8 @@ impl Pipeline {
                script_chan: ScriptChan,
                layout_chan: LayoutChan,
                render_chan: RenderChan,
-               layout_shutdown_port: Port<()>,
-               render_shutdown_port: Port<()>)
+               layout_shutdown_port: Receiver<()>,
+               render_shutdown_port: Receiver<()>)
                -> Pipeline {
         Pipeline {
             id: id,

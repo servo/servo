@@ -28,14 +28,14 @@ use js::JSPROP_ENUMERATE;
 use collections::hashmap::HashMap;
 use std::cast;
 use std::cmp;
-use std::comm::Chan;
+use std::comm::{channel, Sender, Receiver};
 use std::comm::Select;
 use std::hash::{Hash, sip};
 use std::io::timer::Timer;
 use std::rc::Rc;
 
 use serialize::{Encoder, Encodable};
-use extra::url::{Url};
+use url::Url;
 
 pub enum TimerControlMsg {
     TimerMessageFire(~TimerData),
@@ -45,7 +45,7 @@ pub enum TimerControlMsg {
 
 pub struct TimerHandle {
     handle: i32,
-    cancel_chan: Option<Chan<()>>,
+    cancel_chan: Option<Sender<()>>,
 }
 
 impl<S: Encoder> Encodable<S> for TimerHandle {
@@ -62,6 +62,12 @@ impl Hash for TimerHandle {
 impl Eq for TimerHandle {
     fn eq(&self, other: &TimerHandle) -> bool {
         self.handle == other.handle
+    }
+}
+
+impl TotalEq for TimerHandle {
+    fn equals(&self, other: &TimerHandle) -> bool {
+        self.eq(other)
     }
 }
 
@@ -87,25 +93,23 @@ pub struct Window {
 struct Untraceable {
     page: Rc<Page>,
     compositor: ~ScriptListener,
-    timer_chan: Chan<TimerControlMsg>,
+    timer_chan: Sender<TimerControlMsg>,
 }
 
 impl<S: Encoder> Encodable<S> for Untraceable {
     fn encode(&self, s: &mut S) {
-        let page = self.page.borrow();
-        page.encode(s);
+        self.page.encode(s);
     }
 }
 
 impl Window {
     pub fn get_cx(&self) -> *JSObject {
         let js_info = self.page().js_info();
-        (*js_info.get()).get_ref().js_compartment.borrow().cx.borrow().ptr
+        js_info.get_ref().js_compartment.cx.deref().ptr
     }
 
     pub fn page<'a>(&'a self) -> &'a Page {
-        let page = &self.extra.page;
-        page.borrow()
+        &*self.extra.page
     }
     pub fn get_url(&self) -> Url {
         self.page().get_url()
@@ -143,7 +147,7 @@ impl Window {
 
     pub fn Document(&self) -> JS<Document> {
         let frame = self.page().frame();
-        (*frame.get()).get_ref().document.clone()
+        frame.get_ref().document.clone()
     }
 
     pub fn Name(&self) -> DOMString {
@@ -233,7 +237,7 @@ impl Window {
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant script handler that will deal with it.
         let tm = Timer::new().unwrap();
-        let (cancel_port, cancel_chan) = Chan::new();
+        let (cancel_chan, cancel_port) = channel();
         let chan = self.extra.timer_chan.clone();
         spawn_named("Window:SetTimeout", proc() {
             let mut tm = tm;
@@ -294,8 +298,8 @@ impl Window {
                 compositor: compositor,
                 page: page.clone(),
                 timer_chan: {
-                    let (timer_port, timer_chan): (Port<TimerControlMsg>, Chan<TimerControlMsg>) = Chan::new();
-                    let id = page.borrow().id.clone();
+                    let (timer_chan, timer_port): (Sender<TimerControlMsg>, Receiver<TimerControlMsg>) = channel();
+                    let id = page.id.clone();
                     spawn_named("timer controller", proc() {
                         let ScriptChan(script_chan) = script_chan;
                         loop {

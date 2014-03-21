@@ -5,17 +5,17 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps reduce
 /// coupling between these two components
 
-use extra::url::Url;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use std::comm::Chan;
+use std::comm::{channel, Sender, Receiver};
+use url::Url;
 
 #[deriving(Clone)]
-pub struct ConstellationChan(Chan<Msg>);
+pub struct ConstellationChan(Sender<Msg>);
 
 impl ConstellationChan {
-    pub fn new() -> (Port<Msg>, ConstellationChan) {
-        let (port, chan) = Chan::new();
+    pub fn new() -> (Receiver<Msg>, ConstellationChan) {
+        let (chan, port) = channel();
         (port, ConstellationChan(chan))
     }
 }
@@ -60,8 +60,8 @@ pub enum NavigationDirection {
     Back,
 }
 
-#[deriving(Clone, Eq, Hash, Encodable)]
+#[deriving(Clone, Eq, TotalEq, Hash, Encodable)]
 pub struct PipelineId(uint);
 
-#[deriving(Clone, Eq, Hash, Encodable)]
+#[deriving(Clone, Eq, TotalEq, Hash, Encodable)]
 pub struct SubpageId(uint);

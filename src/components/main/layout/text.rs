@@ -11,7 +11,7 @@ use gfx::font_context::FontContext;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{CompressWhitespaceNewline, transform_text, CompressNone};
 use servo_util::range::Range;
-use std::vec;
+use std::slice;
 use style::computed_values::white_space;
 use sync::Arc;
 
@@ -135,7 +135,7 @@ impl TextRunScanner {
                     // font group fonts. This is probably achieved by creating the font group above
                     // and then letting `FontGroup` decide which `Font` to stick into the text run.
                     let fontgroup = font_context.get_resolved_font_for_style(&font_style);
-                    let run = ~fontgroup.borrow().with(|fg| fg.create_textrun(transformed_text.clone(), decoration));
+                    let run = ~fontgroup.borrow().create_textrun(transformed_text.clone(), decoration);
 
                     debug!("TextRunScanner: pushing single text box in range: {} ({})",
                            self.clump,
@@ -180,7 +180,7 @@ impl TextRunScanner {
 
                 // First, transform/compress text of all the nodes.
                 let mut last_whitespace_in_clump = new_whitespace;
-                let transformed_strs: ~[~str] = vec::from_fn(self.clump.length(), |i| {
+                let transformed_strs: ~[~str] = slice::from_fn(self.clump.length(), |i| {
                     // TODO(#113): We should be passing the compression context between calls to
                     // `transform_text`, so that boxes starting and/or ending with whitespace can
                     // be compressed correctly with respect to the text run.
@@ -220,11 +220,8 @@ impl TextRunScanner {
                 // sequence. If no clump takes ownership, however, it will leak.
                 let clump = self.clump;
                 let run = if clump.length() != 0 && run_str.len() > 0 {
-                    fontgroup.borrow().with(|fg| {
-                        fg.fonts[0].borrow().with_mut(|font| {
-                            Some(Arc::new(~TextRun::new(font, run_str.clone(), decoration)))
-                        })
-                    })
+                    Some(Arc::new(~TextRun::new(&mut *fontgroup.borrow().fonts[0].borrow_mut(),
+                                                run_str.clone(), decoration)))
                 } else {
                     None
                 };

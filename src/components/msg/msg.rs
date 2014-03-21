@@ -8,11 +8,11 @@
 #[feature(managed_boxes)];
 
 extern crate azure;
-extern crate extra;
 extern crate geom;
 extern crate layers;
 extern crate serialize;
 extern crate std;
+extern crate url;
 
 #[cfg(target_os="macos")]
 extern crate core_foundation;

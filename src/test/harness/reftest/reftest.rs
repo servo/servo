@@ -7,7 +7,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-extern crate extra;
 extern crate png;
 extern crate std;
 extern crate test;
@@ -65,8 +64,8 @@ struct Reftest {
     servo_args: ~[~str],
 }
 
-fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> ~[TestDescAndFn] {
-    let mut tests: ~[TestDescAndFn] = ~[];
+fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> Vec<TestDescAndFn> {
+    let mut tests = Vec::new();
     let mut next_id = 0;
     for file in filenames.iter() {
         let file_path = Path::new(file.clone());

@@ -42,7 +42,7 @@ use std::char;
 use std::cmp;
 use std::libc::{c_uint, c_int, c_void, c_char};
 use std::ptr::null;
-use std::vec;
+use std::slice;
 
 static NO_GLYPH: i32 = -1;
 static CONTINUATION_BYTE: i32 = -2;
@@ -246,9 +246,9 @@ impl Shaper {
 
         // fast path: all chars are single-byte.
         if byte_max == char_max {
-            byteToGlyph = vec::from_elem(byte_max, NO_GLYPH);
+            byteToGlyph = slice::from_elem(byte_max, NO_GLYPH);
         } else {
-            byteToGlyph = vec::from_elem(byte_max, CONTINUATION_BYTE);
+            byteToGlyph = slice::from_elem(byte_max, CONTINUATION_BYTE);
             for (i, _) in text.char_indices() {
                 byteToGlyph[i] = NO_GLYPH;
             }

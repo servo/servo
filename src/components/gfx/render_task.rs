@@ -29,7 +29,7 @@ use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::send_on_failure;
 
-use std::comm::{Chan, Port};
+use std::comm::{channel, Receiver, Sender};
 use std::task;
 use sync::Arc;
 
@@ -53,7 +53,7 @@ pub enum Msg {
     UnusedBufferMsg(~[~LayerBuffer]),
     PaintPermissionGranted,
     PaintPermissionRevoked,
-    ExitMsg(Option<Chan<()>>),
+    ExitMsg(Option<Sender<()>>),
 }
 
 /// A request from the compositor to the renderer for tiles that need to be (re)displayed.
@@ -75,7 +75,7 @@ pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferReq
 
 // FIXME(#2005, pcwalton): This should be a newtype struct.
 pub struct RenderChan {
-    chan: Chan<Msg>,
+    chan: Sender<Msg>,
 }
 
 impl Clone for RenderChan {
@@ -87,8 +87,8 @@ impl Clone for RenderChan {
 }
 
 impl RenderChan {
-    pub fn new() -> (Port<Msg>, RenderChan) {
-        let (port, chan) = Chan::new();
+    pub fn new() -> (Receiver<Msg>, RenderChan) {
+        let (chan, port) = channel();
         let render_chan = RenderChan {
             chan: chan,
         };
@@ -113,7 +113,7 @@ enum GraphicsContext {
 
 pub struct RenderTask<C> {
     id: PipelineId,
-    port: Port<Msg>,
+    port: Receiver<Msg>,
     compositor: C,
     constellation_chan: ConstellationChan,
     font_ctx: ~FontContext,
@@ -167,13 +167,13 @@ fn initialize_layers<C:RenderListener>(
 
 impl<C: RenderListener + Send> RenderTask<C> {
     pub fn create(id: PipelineId,
-                  port: Port<Msg>,
+                  port: Receiver<Msg>,
                   compositor: C,
                   constellation_chan: ConstellationChan,
                   failure_msg: Failure,
                   opts: Opts,
                   profiler_chan: ProfilerChan,
-                  shutdown_chan: Chan<()>) {
+                  shutdown_chan: Sender<()>) {
         let mut builder = task::task().named("RenderTask");
         let ConstellationChan(c) = constellation_chan.clone();
         send_on_failure(&mut builder, FailureMsg(failure_msg), c);

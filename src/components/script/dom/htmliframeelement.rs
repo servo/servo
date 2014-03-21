@@ -15,10 +15,10 @@ use dom::node::{Node, ElementNodeTypeId};
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
-use extra::url::Url;
 use serialize::{Encoder, Encodable};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use std::ascii::StrAsciiExt;
+use url::Url;
 
 enum SandboxAllowance {
     AllowNothing = 0x00,

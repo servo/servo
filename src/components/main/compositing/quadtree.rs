@@ -10,10 +10,10 @@ use geom::size::Size2D;
 use geom::rect::Rect;
 use gfx::render_task::BufferRequest;
 use std::cmp;
-use std::num::next_power_of_two;
-use std::vec;
 use std::mem::replace;
-use std::vec::build;
+use std::num::next_power_of_two;
+use std::slice;
+use std::slice::build;
 use servo_msg::compositor_msg::Tile;
 
 #[cfg(test)]
@@ -355,8 +355,8 @@ impl<T: Tile> QuadtreeNode<T> {
         if self.size <= tile_size {
             let pix_x = (self.origin.x * scale).ceil() as uint;
             let pix_y = (self.origin.y * scale).ceil() as uint;
-            let page_width = cmp::min(clip_x - self.origin.x, self.size);
-            let page_height = cmp::min(clip_y - self.origin.y, self.size);
+            let page_width = self.size.min(clip_x - self.origin.x);
+            let page_height = self.size.min(clip_y - self.origin.y);
             let pix_width = (page_width * scale).ceil() as uint;
             let pix_height = (page_height * scale).ceil() as uint;
             self.status = Rendering;
@@ -483,8 +483,8 @@ impl<T: Tile> QuadtreeNode<T> {
         }
         
         // clip window to visible region
-        let w_width = cmp::min(clip.width - w_x, w_width);
-        let w_height = cmp::min(clip.height - w_y, w_height);
+        let w_width = w_width.min(clip.width - w_x);
+        let w_height = w_height.min(clip.height - w_y);
         
         if s_size <= tile_size { // We are the child
             return match self.tile {
@@ -546,7 +546,7 @@ impl<T: Tile> QuadtreeNode<T> {
             }
         };
         
-        let quads_to_check = vec::build(Some(4), builder);
+        let quads_to_check = slice::build(Some(4), builder);
         
         let mut request = ~[];
         let mut unused = ~[];
@@ -556,20 +556,20 @@ impl<T: Tile> QuadtreeNode<T> {
             // Recurse into child
             let new_window = match *quad {
                 TL => Rect(window.origin,
-                           Size2D(cmp::min(w_width, s_x + s_size / 2.0 - w_x),
-                                  cmp::min(w_height, (s_y + s_size / 2.0 - w_y)))),
-                TR => Rect(Point2D(cmp::max(w_x, s_x + s_size / 2.0),
+                           Size2D(w_width.min(s_x + s_size / 2.0 - w_x),
+                                  w_height.min(s_y + s_size / 2.0 - w_y))),
+                TR => Rect(Point2D(w_x.max(s_x + s_size / 2.0),
                                    w_y),
-                           Size2D(cmp::min(w_width, w_x + w_width - (s_x + s_size / 2.0)),
-                                  cmp::min(w_height, s_y + s_size / 2.0 - w_y))),
+                           Size2D(w_width.min(w_x + w_width - (s_x + s_size / 2.0)),
+                                  w_height.min(s_y + s_size / 2.0 - w_y))),
                 BL => Rect(Point2D(w_x,
-                                   cmp::max(w_y, s_y + s_size / 2.0)),
-                           Size2D(cmp::min(w_width, s_x + s_size / 2.0 - w_x),
-                                  cmp::min(w_height, w_y + w_height - (s_y + s_size / 2.0)))),
-                BR => Rect(Point2D(cmp::max(w_x, s_x + s_size / 2.0),
-                                   cmp::max(w_y, s_y + s_size / 2.0)),
-                           Size2D(cmp::min(w_width, w_x + w_width - (s_x + s_size / 2.0)),
-                                  cmp::min(w_height, w_y + w_height - (s_y + s_size / 2.0)))),
+                                   w_y.max(s_y + s_size / 2.0)),
+                           Size2D(w_width.min(s_x + s_size / 2.0 - w_x),
+                                  w_height.min(w_y + w_height - (s_y + s_size / 2.0)))),
+                BR => Rect(Point2D(w_x.max(s_x + s_size / 2.0),
+                                   w_y.max(s_y + s_size / 2.0)),
+                           Size2D(w_width.min(w_x + w_width - (s_x + s_size / 2.0)),
+                                  w_height.min(w_y + w_height - (s_y + s_size / 2.0)))),
                 
             };
 

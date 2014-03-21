@@ -8,7 +8,6 @@
 // except according to those terms.
 
 extern crate std;
-extern crate extra;
 extern crate getopts;
 extern crate test;
 
@@ -50,7 +49,7 @@ fn parse_config(args: ~[~str]) -> Config {
         filter: if matches.free.is_empty() {
             None
         } else {
-            Some(matches.free.head().unwrap().clone())
+            Some(matches.free.as_slice().head().unwrap().clone())
         }
     }
 }
@@ -69,14 +68,14 @@ fn test_options(config: Config) -> TestOpts {
     }
 }
 
-fn find_tests(config: Config) -> ~[TestDescAndFn] {
+fn find_tests(config: Config) -> Vec<TestDescAndFn> {
     let mut files_res = fs::readdir(&Path::new(config.source_dir));
     let mut files = match files_res {
         Ok(files) => files,
         _ => fail!("Error reading directory."),
     };
     files.retain(|file| file.extension_str() == Some("html") );
-    return files.map(|file| make_test(file.display().to_str()) );
+    return files.iter().map(|file| make_test(file.display().to_str()) ).collect();
 }
 
 fn make_test(file: ~str) -> TestDescAndFn {
@@ -94,7 +93,7 @@ fn run_test(file: ~str) {
     let path = os::make_absolute(&Path::new(file));
     // FIXME (#1094): not the right way to transform a path
     let infile = ~"file://" + path.display().to_str();
-    let stdout = CreatePipe(true, false); // rustc #10228
+    let stdout = CreatePipe(false, true);
     let stderr = InheritFd(2);
 
     let config = ProcessConfig {

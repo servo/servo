@@ -4,15 +4,15 @@
 
 use resource_task::{Metadata, Payload, Done, LoadResponse, LoaderTask, start_sending};
 
-use std::vec;
 use collections::hashmap::HashSet;
-use extra::url::Url;
 use http::client::RequestWriter;
 use http::method::Get;
 use http::headers::HeaderEnum;
 use std::io::Reader;
 use std::io::net::tcp::TcpStream;
+use std::slice;
 use servo_util::task::spawn_named;
+use url::Url;
 
 pub fn factory() -> LoaderTask {
     let f: LoaderTask = proc(url, start_chan) {
@@ -21,11 +21,11 @@ pub fn factory() -> LoaderTask {
     f
 }
 
-fn send_error(url: Url, start_chan: Chan<LoadResponse>) {
+fn send_error(url: Url, start_chan: Sender<LoadResponse>) {
     start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
 }
 
-fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
+fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -95,7 +95,7 @@ fn load(mut url: Url, start_chan: Chan<LoadResponse>) {
 
         let progress_chan = start_sending(start_chan, metadata);
         loop {
-            let mut buf = vec::with_capacity(1024);
+            let mut buf = slice::with_capacity(1024);
 
             unsafe { buf.set_len(1024); }
             match response.read(buf) {

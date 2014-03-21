@@ -8,16 +8,16 @@
 
 use dom::node::LayoutDataRef;
 
-use extra::url::Url;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use script_task::{ScriptChan};
 use servo_util::geometry::Au;
 use std::cmp;
-use std::comm::Chan;
+use std::comm::{channel, Receiver, Sender};
 use std::libc::c_void;
 use style::Stylesheet;
+use url::Url;
 
 /// Asynchronous messages that script can send to layout.
 ///
@@ -42,7 +42,7 @@ pub enum Msg {
     /// Requests that the layout task enter a quiescent state in which no more messages are
     /// accepted except `ExitMsg`. A response message will be sent on the supplied channel when
     /// this happens.
-    PrepareToExitMsg(Chan<()>),
+    PrepareToExitMsg(Sender<()>),
 
     /// Requests that the layout task immediately shut down. There must be no more nodes left after
     /// this, or layout will crash.
@@ -52,12 +52,12 @@ pub enum Msg {
 /// Synchronous messages that script can send to layout.
 pub enum LayoutQuery {
     /// Requests the dimensions of the content box, as in the `getBoundingClientRect()` call.
-    ContentBoxQuery(TrustedNodeAddress, Chan<ContentBoxResponse>),
+    ContentBoxQuery(TrustedNodeAddress, Sender<ContentBoxResponse>),
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
-    ContentBoxesQuery(TrustedNodeAddress, Chan<ContentBoxesResponse>),
+    ContentBoxesQuery(TrustedNodeAddress, Sender<ContentBoxesResponse>),
     /// Requests the node containing the point of interest
-    HitTestQuery(TrustedNodeAddress, Point2D<f32>, Chan<Result<HitTestResponse, ()>>),
-    MouseOverQuery(TrustedNodeAddress, Point2D<f32>, Chan<Result<MouseOverResponse, ()>>),
+    HitTestQuery(TrustedNodeAddress, Point2D<f32>, Sender<Result<HitTestResponse, ()>>),
+    MouseOverQuery(TrustedNodeAddress, Point2D<f32>, Sender<Result<MouseOverResponse, ()>>),
 }
 
 /// The address of a node known to be valid. These must only be sent from content -> layout,
@@ -74,7 +74,7 @@ pub struct HitTestResponse(UntrustedNodeAddress);
 pub struct MouseOverResponse(~[UntrustedNodeAddress]);
 
 /// Determines which part of the 
-#[deriving(Eq, Ord)]
+#[deriving(Eq, Ord, TotalEq, TotalOrd)]
 pub enum DocumentDamageLevel {
     /// Reflow, but do not perform CSS selector matching.
     ReflowDocumentDamage,
@@ -125,18 +125,18 @@ pub struct Reflow {
     /// The current window size.
     window_size: Size2D<uint>,
     /// The channel that we send a notification to.
-    script_join_chan: Chan<()>,
+    script_join_chan: Sender<()>,
     /// Unique identifier
     id: uint
 }
 
 /// Encapsulates a channel to the layout task.
 #[deriving(Clone)]
-pub struct LayoutChan(Chan<Msg>);
+pub struct LayoutChan(Sender<Msg>);
 
 impl LayoutChan {
-    pub fn new() -> (Port<Msg>, LayoutChan) {
-        let (port, chan) = Chan::new();
+    pub fn new() -> (Receiver<Msg>, LayoutChan) {
+        let (chan, port) = channel();
         (port, LayoutChan(chan))
     }
 }

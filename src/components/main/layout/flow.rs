@@ -59,7 +59,7 @@ use servo_util::smallvec::{SmallVec, SmallVec0};
 use std::cast;
 use std::iter::Zip;
 use std::sync::atomics::Relaxed;
-use std::vec::MutItems;
+use std::slice::MutItems;
 use style::ComputedValues;
 use style::computed_values::{clear, position, text_align};
 
