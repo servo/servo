@@ -321,6 +321,15 @@ impl<'a> PostorderFlowTraversal for AbsoluteStoreOverflowTraversal<'a> {
     }
 }
 
+enum BlockType {
+    BlockReplacedType,
+    BlockNonReplacedType,
+    AbsoluteReplacedType,
+    AbsoluteNonReplacedType,
+    FloatReplacedType,
+    FloatNonReplacedType,
+}
+
 // A block formatting context.
 pub struct BlockFlow {
     /// Data common to all flows.
@@ -366,24 +375,59 @@ impl BlockFlow {
         }
     }
 
-    fn width_computer(&mut self) -> ~WidthAndMarginsComputer {
+    /// Return the type of this block.
+    ///
+    /// This determines the algorithm used to calculate width, height, and the
+    /// relevant margins for this Block.
+    fn block_type(&self) -> BlockType {
         if self.is_absolutely_positioned() {
             if self.is_replaced_content() {
-                ~AbsoluteReplaced as ~WidthAndMarginsComputer
+                AbsoluteReplacedType
             } else {
-                ~AbsoluteNonReplaced as ~WidthAndMarginsComputer
+                AbsoluteNonReplacedType
             }
         } else if self.is_float() {
             if self.is_replaced_content() {
-                ~FloatReplaced as ~WidthAndMarginsComputer
+                FloatReplacedType
             } else {
-                ~FloatNonReplaced as ~WidthAndMarginsComputer
+                FloatNonReplacedType
             }
         } else {
             if self.is_replaced_content() {
-                ~BlockReplaced as ~WidthAndMarginsComputer
+                BlockReplacedType
             } else {
-                ~BlockNonReplaced as ~WidthAndMarginsComputer
+                BlockNonReplacedType
+            }
+        }
+    }
+
+    /// Compute the used value of width for this Block.
+    fn compute_used_width(&mut self, ctx: &mut LayoutContext, containing_block_width: Au) {
+        let block_type = self.block_type();
+        match block_type {
+            AbsoluteReplacedType => {
+                let width_computer = AbsoluteReplaced;
+                width_computer.compute_used_width(self, ctx, containing_block_width);
+            }
+            AbsoluteNonReplacedType => {
+                let width_computer = AbsoluteNonReplaced;
+                width_computer.compute_used_width(self, ctx, containing_block_width);
+            }
+            FloatReplacedType => {
+                let width_computer = FloatReplaced;
+                width_computer.compute_used_width(self, ctx, containing_block_width);
+            }
+            FloatNonReplacedType => {
+                let width_computer = FloatNonReplaced;
+                width_computer.compute_used_width(self, ctx, containing_block_width);
+            }
+            BlockReplacedType => {
+                let width_computer = BlockReplaced;
+                width_computer.compute_used_width(self, ctx, containing_block_width);
+            }
+            BlockNonReplacedType => {
+                let width_computer = BlockNonReplaced;
+                width_computer.compute_used_width(self, ctx, containing_block_width);
             }
         }
     }
@@ -1286,8 +1330,7 @@ impl Flow for BlockFlow {
             self.base.flags_info.flags.set_inorder(false);
         }
 
-        let width_computer = self.width_computer();
-        width_computer.compute_used_width(self, ctx, containing_block_width);
+        self.compute_used_width(ctx, containing_block_width);
 
         for box_ in self.box_.iter() {
             // Move in from the left border edge
