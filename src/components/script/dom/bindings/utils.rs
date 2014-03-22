@@ -222,7 +222,6 @@ pub struct DOMClass {
     // derivedness.
     interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH],
 
-    unused: bool, // DOMObjectIsISupports (always false)
     native_hooks: *NativePropertyHooks
 }
 
