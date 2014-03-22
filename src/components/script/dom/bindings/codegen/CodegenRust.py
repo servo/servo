@@ -1657,7 +1657,6 @@ def DOMClass(descriptor):
         prototypeChainString = ', '.join(protoList)
         return """DOMClass {
   interface_chain: [ %s ],
-  unused: false,
   native_hooks: &NativeHooks as *NativePropertyHooks
 }""" % prototypeChainString
 
