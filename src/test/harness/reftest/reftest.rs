@@ -45,7 +45,8 @@ fn main() {
     };
 
     match run_tests_console(&test_opts, tests) {
-        Err(_) => os::set_exit_status(1),
+        Ok(false) => os::set_exit_status(1), // tests failed
+        Err(_) => os::set_exit_status(2),    // I/O-related failure
         _ => (),
     }
 }
