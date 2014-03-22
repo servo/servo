@@ -146,6 +146,10 @@ pub struct PrivateLayoutData {
     /// `ConstructionItem`. See comments in `construct.rs` for more details.
     flow_construction_result: ConstructionResult,
 
+    before_flow_construction_result: ConstructionResult,
+
+    after_flow_construction_result: ConstructionResult, 
+
     /// Information needed during parallel traversals.
     parallel: DomParallelInfo,
 }
@@ -159,6 +163,8 @@ impl PrivateLayoutData {
             after_style: None,
             restyle_damage: None,
             flow_construction_result: NoConstructionResult,
+            before_flow_construction_result: NoConstructionResult,
+            after_flow_construction_result: NoConstructionResult,
             parallel: DomParallelInfo::new(),
         }
     }
