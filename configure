@@ -583,6 +583,7 @@ do
     make_dir ${CFG_BUILD_DIR}src/${i}
 done
 
+make_dir ${CFG_BUILD_DIR}src/components/macros
 make_dir ${CFG_BUILD_DIR}src/components/util
 make_dir ${CFG_BUILD_DIR}src/components/msg
 make_dir ${CFG_BUILD_DIR}src/components/net
