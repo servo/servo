@@ -5745,10 +5745,12 @@ class GlobalGenRoots():
             derived += [CGGeneric('\n')]
 
             cast = [CGGeneric(string.Template('''pub trait ${castTraitName} {
+  #[inline(always)]
   fn from<T: ${fromBound}>(derived: &JS<T>) -> JS<Self> {
     unsafe { derived.clone().transmute() }
   }
 
+  #[inline(always)]
   fn to<T: ${toBound}>(base: &JS<T>) -> Option<JS<Self>> {
     match base.get().${checkFn}() {
         true => unsafe { Some(base.clone().transmute()) },
@@ -5756,6 +5758,7 @@ class GlobalGenRoots():
     }
   }
 
+  #[inline(always)]
   unsafe fn to_unchecked<T: ${toBound}>(base: &JS<T>) -> JS<Self> {
     assert!(base.get().${checkFn}());
     base.clone().transmute()
