@@ -21,6 +21,7 @@ impl<T> Eq for JS<T> {
 }
 
 impl <T> Clone for JS<T> {
+    #[inline]
     fn clone(&self) -> JS<T> {
         JS {
             ptr: self.ptr.clone()
