@@ -27,7 +27,7 @@
 
 use css::node_style::StyledNode;
 use layout::block::{BlockFlow};
-use layout::box_::Box;
+use layout::box_::{Box, TableRowBox, TableCellBox};
 use layout::context::LayoutContext;
 use layout::construct::OptVector;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
@@ -287,6 +287,12 @@ pub trait ImmutableFlowUtils {
 
     /// Returns true if this flow is one of table-related flows.
     fn is_table_kind(self) -> bool;
+
+    /// Returns true if anonymous flow is needed between this flow and child flow.
+    fn need_anonymous_flow(self, child: &Flow) -> bool;
+
+    /// Generates missing child flow of this flow.
+    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> ~Flow;
 
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool;
@@ -896,6 +902,34 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                 TableColGroupFlowClass | TableRowGroupFlowClass |
                 TableRowFlowClass | TableCaptionFlowClass | TableCellFlowClass => true,
             _ => false,
+        }
+    }
+
+    /// Returns true if anonymous flow is needed between this flow and child flow.
+    /// Spec: http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes
+    fn need_anonymous_flow(self, child: &Flow) -> bool {
+        match self.class() {
+            TableFlowClass => !child.is_proper_table_child(),
+            TableRowGroupFlowClass => !child.is_table_row(),
+            TableRowFlowClass => !child.is_table_cell(),
+            _ => false
+        }
+    }
+
+    /// Generates missing child flow of this flow.
+    fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> ~Flow {
+        match self.class() {
+            TableFlowClass | TableRowGroupFlowClass => {
+                let box_ = Box::new_anonymous_table_box(node, TableRowBox);
+                ~TableRowFlow::from_node_and_box(node, box_) as ~Flow
+            },
+            TableRowFlowClass => {
+                let box_ = Box::new_anonymous_table_box(node, TableCellBox);
+                ~TableCellFlow::from_node_and_box(node, box_) as ~Flow
+            },
+            _ => {
+                fail!("no need to generate a missing child")
+            }
         }
     }
 

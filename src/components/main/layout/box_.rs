@@ -29,7 +29,7 @@ use servo_util::str::is_whitespace;
 use std::cast;
 use std::cell::RefCell;
 use std::num::Zero;
-use style::{ComputedValues, TElement, TNode};
+use style::{ComputedValues, TElement, TNode, cascade, initial_values};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto, overflow, LPA_Auto};
 use style::computed_values::{border_style, clear, font_family, line_height, position};
 use style::computed_values::{text_align, text_decoration, vertical_align, visibility, white_space};
@@ -435,6 +435,33 @@ impl Box {
         Box {
             node: OpaqueNode::from_thread_safe_layout_node(node),
             style: node.style().clone(),
+            border_box: RefCell::new(Au::zero_rect()),
+            border: RefCell::new(Zero::zero()),
+            padding: RefCell::new(Zero::zero()),
+            margin: RefCell::new(Zero::zero()),
+            specific: specific,
+            position_offsets: RefCell::new(Zero::zero()),
+            inline_info: RefCell::new(None),
+            new_line_pos: ~[],
+        }
+    }
+
+    /// Constructs a new `Box` instance for an anonymous table object.
+    pub fn new_anonymous_table_box(node: &ThreadSafeLayoutNode, specific: SpecificBoxInfo) -> Box {
+        // CSS 2.1 § 17.2.1 This is for non-inherited properties on anonymous table boxes
+        // example:
+        //
+        //     <div style="display: table">
+        //         Foo
+        //     </div>
+        //
+        // Anonymous table boxes, TableRowBox and TableCellBox, are generated around `Foo`, but it shouldn't inherit the border.
+
+        let (node_style, _) = cascade(&[], false, Some(node.style().get()),
+                                      &initial_values(), None);
+        Box {
+            node: OpaqueNode::from_thread_safe_layout_node(node),
+            style: Arc::new(node_style),
             border_box: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),

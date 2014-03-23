@@ -313,15 +313,17 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    /// Creates an inline flow from a set of inline boxes and adds it as a child of the given flow.
+    /// Creates an inline flow from a set of inline boxes, then adds it as a child of the given flow
+    /// or pushes it onto the given flow list.
     ///
     /// `#[inline(always)]` because this is performance critical and LLVM will not inline it
     /// otherwise.
     #[inline(always)]
-    fn flush_inline_boxes_to_flow(&mut self,
-                                  boxes: ~[Box],
-                                  flow: &mut ~Flow,
-                                  node: &ThreadSafeLayoutNode) {
+    fn flush_inline_boxes_to_flow_or_list(&mut self,
+                                          boxes: ~[Box],
+                                          flow: &mut ~Flow,
+                                          flow_list: &mut ~[~Flow],
+                                          node: &ThreadSafeLayoutNode) {
         if boxes.len() == 0 {
             return
         }
@@ -330,18 +332,23 @@ impl<'a> FlowConstructor<'a> {
         TextRunScanner::new().scan_for_runs(self.font_context(), inline_flow);
         inline_flow.finish(self.layout_context);
 
-        flow.add_new_child(inline_flow)
+        if flow.need_anonymous_flow(inline_flow) {
+            flow_list.push(inline_flow)
+        } else {
+            flow.add_new_child(inline_flow)
+        }
     }
 
     /// Creates an inline flow from a set of inline boxes, if present, and adds it as a child of
-    /// the given flow.
-    fn flush_inline_boxes_to_flow_if_necessary(&mut self,
-                                               opt_boxes: &mut Option<~[Box]>,
-                                               flow: &mut ~Flow,
-                                               node: &ThreadSafeLayoutNode) {
+    /// the given flow or pushes it onto the given flow list.
+    fn flush_inline_boxes_to_flow_or_list_if_necessary(&mut self,
+                                                       opt_boxes: &mut Option<~[Box]>,
+                                                       flow: &mut ~Flow,
+                                                       flow_list: &mut ~[~Flow],
+                                                       node: &ThreadSafeLayoutNode) {
         let opt_boxes = mem::replace(opt_boxes, None);
         if opt_boxes.len() > 0 {
-            self.flush_inline_boxes_to_flow(opt_boxes.to_vec(), flow, node)
+            self.flush_inline_boxes_to_flow_or_list(opt_boxes.to_vec(), flow, flow_list, node)
         }
     }
 
@@ -358,6 +365,7 @@ impl<'a> FlowConstructor<'a> {
                                  -> ConstructionResult {
         // Gather up boxes for the inline flows we might need to create.
         let mut opt_boxes_for_inline_flow = None;
+        let mut consecutive_siblings = ~[];
         let mut first_box = true;
         // List of absolute descendants, in tree order.
         let mut abs_descendants = Descendants::new();
@@ -368,7 +376,11 @@ impl<'a> FlowConstructor<'a> {
                 FlowConstructionResult(kid_flow, kid_abs_descendants, kid_fixed_descendants) => {
                     // If kid_flow is TableCaptionFlow, kid_flow should be added under TableWrapperFlow.
                     if flow.is_table() && kid_flow.is_table_caption() {
-                        kid.set_flow_construction_result(FlowConstructionResult(kid_flow, kid_abs_descendants, kid_fixed_descendants))
+                        kid.set_flow_construction_result(FlowConstructionResult(kid_flow,
+                                                                                Descendants::new(),
+                                                                                Descendants::new()))
+                    } else if flow.need_anonymous_flow(kid_flow) {
+                        consecutive_siblings.push(kid_flow)
                     } else {
                         // Strip ignorable whitespace from the start of this flow per CSS 2.1 §
                         // 9.2.1.1.
@@ -382,13 +394,18 @@ impl<'a> FlowConstructor<'a> {
                         debug!("flushing {} inline box(es) to flow A",
                                 opt_boxes_for_inline_flow.as_ref()
                                 .map_or(0, |boxes| boxes.len()));
-                        self.flush_inline_boxes_to_flow_if_necessary(&mut opt_boxes_for_inline_flow,
-                                &mut flow,
-                                node);
+                        self.flush_inline_boxes_to_flow_or_list_if_necessary(&mut opt_boxes_for_inline_flow,
+                                                                             &mut flow,
+                                                                             &mut consecutive_siblings,
+                                                                             node);
+                        if !consecutive_siblings.is_empty() {
+                            self.generate_anonymous_missing_child(consecutive_siblings, &mut flow, node);
+                            consecutive_siblings = ~[];
+                        }
                         flow.add_new_child(kid_flow);
-                        abs_descendants.push_descendants(kid_abs_descendants);
-                        fixed_descendants.push_descendants(kid_fixed_descendants);
                     }
+                    abs_descendants.push_descendants(kid_abs_descendants);
+                    fixed_descendants.push_descendants(kid_fixed_descendants);
                 }
                 ConstructionItemConstructionResult(InlineBoxesConstructionItem(
                         InlineBoxesConstructionResult {
@@ -423,14 +440,19 @@ impl<'a> FlowConstructor<'a> {
                                        opt_boxes_for_inline_flow.as_ref()
                                                                 .map_or(0,
                                                                         |boxes| boxes.len()));
-                                self.flush_inline_boxes_to_flow_if_necessary(
+                                self.flush_inline_boxes_to_flow_or_list_if_necessary(
                                         &mut opt_boxes_for_inline_flow,
                                         &mut flow,
+                                        &mut consecutive_siblings,
                                         node);
 
                                 // Push the flow generated by the {ib} split onto our list of
                                 // flows.
-                                flow.add_new_child(kid_flow)
+                                if flow.need_anonymous_flow(kid_flow) {
+                                    consecutive_siblings.push(kid_flow)
+                                } else {
+                                    flow.add_new_child(kid_flow)
+                                }
                             }
                         }
                     }
@@ -453,9 +475,13 @@ impl<'a> FlowConstructor<'a> {
         // Perform a final flush of any inline boxes that we were gathering up to handle {ib}
         // splits, after stripping ignorable whitespace.
         strip_ignorable_whitespace_from_end(&mut opt_boxes_for_inline_flow);
-        self.flush_inline_boxes_to_flow_if_necessary(&mut opt_boxes_for_inline_flow,
-                                                     &mut flow,
-                                                     node);
+        self.flush_inline_boxes_to_flow_or_list_if_necessary(&mut opt_boxes_for_inline_flow,
+                                                             &mut flow,
+                                                             &mut consecutive_siblings,
+                                                             node);
+        if !consecutive_siblings.is_empty() {
+            self.generate_anonymous_missing_child(consecutive_siblings, &mut flow, node);
+        }
 
         // The flow is done.
         flow.finish(self.layout_context);
@@ -717,26 +743,45 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    fn build_table_wrapper_flow_using_children(&mut self,
+    /// TableCaptionFlow is populated underneath TableWrapperFlow
+    fn place_table_caption_under_table_wrapper(&mut self,
                                                table_wrapper_flow: &mut ~Flow,
-                                               node: &ThreadSafeLayoutNode)
-                                               -> (Descendants, Descendants) {
-        // List of absolute descendants, in tree order.
-        let mut abs_descendants = Descendants::new();
-        let mut fixed_descendants = Descendants::new();
+                                               node: &ThreadSafeLayoutNode) {
         for kid in node.children() {
             match kid.swap_out_construction_result() {
                 NoConstructionResult | ConstructionItemConstructionResult(_) => {}
-                FlowConstructionResult(kid_flow, kid_abs_descendants, kid_fixed_descendants) => {
+                FlowConstructionResult(kid_flow, _, _) => {
                     // Only kid flows with table-caption are matched here.
                     assert!(kid_flow.is_table_caption());
                     table_wrapper_flow.add_new_child(kid_flow);
-                    abs_descendants.push_descendants(kid_abs_descendants);
-                    fixed_descendants.push_descendants(kid_fixed_descendants);
                 }
             }
         }
-        (abs_descendants, fixed_descendants)
+    }
+
+    /// Generates an anonymous table flow according to CSS 2.1 § 17.2.1, step 2.
+    /// If necessary, generate recursively another anonymous table flow.
+    fn generate_anonymous_missing_child(&mut self, child_flows: ~[~Flow],
+                                        flow: &mut ~Flow, node: &ThreadSafeLayoutNode) {
+        let mut anonymous_flow = flow.generate_missing_child_flow(node);
+        let mut consecutive_siblings = ~[];
+        for kid_flow in child_flows.move_iter() {
+            if anonymous_flow.need_anonymous_flow(kid_flow) {
+                consecutive_siblings.push(kid_flow);
+                continue;
+            }
+            if !consecutive_siblings.is_empty() {
+                self.generate_anonymous_missing_child(consecutive_siblings, &mut anonymous_flow, node);
+                consecutive_siblings = ~[];
+            }
+            anonymous_flow.add_new_child(kid_flow);
+        }
+        if !consecutive_siblings.is_empty() {
+            self.generate_anonymous_missing_child(consecutive_siblings, &mut anonymous_flow, node);
+        }
+        // The flow is done.
+        anonymous_flow.finish(self.layout_context);
+        flow.add_new_child(anonymous_flow);
     }
 
     /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with possibly
@@ -752,8 +797,10 @@ impl<'a> FlowConstructor<'a> {
         // We then populate the TableWrapperFlow with TableCaptionFlow, and attach
         // the TableFlow to the TableWrapperFlow
         let construction_result = self.build_flow_using_children(table_flow, node);
-        let (mut abs_descendants, mut fixed_descendants)
-                    = self.build_table_wrapper_flow_using_children(&mut wrapper_flow, node);
+        self.place_table_caption_under_table_wrapper(&mut wrapper_flow, node);
+
+        let mut abs_descendants = Descendants::new();
+        let mut fixed_descendants = Descendants::new();
 
         // NOTE: The order of captions and table are not the same order as in the DOM tree.
         // All caption blocks are placed before the table flow
