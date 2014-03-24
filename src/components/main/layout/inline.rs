@@ -5,6 +5,7 @@
 use css::node_style::StyledNode;
 use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox, SplitDidFit};
 use layout::box_::{SplitDidNotFit, UnscannedTextBox, InlineInfo};
+use layout::box_::{TableColumnBox, TableRowBox, TableWrapperBox, TableCellBox, TableBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::floats::{FloatLeft, Floats, PlacementInfo};
@@ -761,10 +762,12 @@ impl Flow for InlineFlow {
 
                         (text_offset, line_height - text_offset, text_ascent)
                     },
-                    GenericBox | IframeBox(_) => {
+                    GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
+                    TableWrapperBox => {
                         let height = cur_box.border_box.get().size.height;
                         (height, Au::new(0), height)
                     },
+                    TableColumnBox(_) => fail!("Table column boxes do not have height"),
                     UnscannedTextBox(_) => {
                         fail!("Unscanned text boxes should have been scanned by now.")
                     }
