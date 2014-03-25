@@ -123,8 +123,7 @@ bitfield!(NodeFlags, get_in_hover_state, set_is_in_hover_state, 0x02)
 impl Drop for Node {
     fn drop(&mut self) {
         unsafe {
-            let this: &mut Node = cast::transmute(self);
-            this.reap_layout_data()
+            self.reap_layout_data()
         }
     }
 }
@@ -203,7 +202,7 @@ impl LayoutDataRef {
 }
 
 /// A trait that represents abstract layout data.
-/// 
+///
 /// FIXME(pcwalton): Very very unsafe!!! We need to send these back to the layout task to be
 /// destroyed when this node is finalized.
 pub trait TLayoutData {}
@@ -338,7 +337,7 @@ impl NodeHelpers for JS<Node> {
     fn parent_node(&self) -> Option<JS<Node>> {
         self.get().parent_node.clone()
     }
-    
+
     fn first_child(&self) -> Option<JS<Node>> {
         self.get().first_child.clone()
     }
@@ -1826,8 +1825,7 @@ impl Node {
     }
 
     pub unsafe fn get_hover_state_for_layout(&self) -> bool {
-        let unsafe_this: *Node = cast::transmute::<&Node,*Node>(self);
-        (*unsafe_this).flags.get_in_hover_state()
+        self.flags.get_in_hover_state()
     }
 }
 
