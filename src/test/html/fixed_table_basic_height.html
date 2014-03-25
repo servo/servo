@@ -1,0 +1,40 @@
+<!-- This test creates one table, three rows, three header cells, and six data cells.
+     The table uses the fixed table layout algorithm and the table's width specified to 600px.
+     Each column's width will be assigned as 200px.
+     Each table row height is decided as max(specified row height, specified cells' heights, cells' minimum content heights).
+     As a result, each table row height will be assigned as followings:
+        - 1st row: 30px (specified cell height)
+        - 2nd row: 50px (specified row height)
+        - 3rd row: minimum content height
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Table Height Test</title>
+    <style>
+      table {
+        table-layout: fixed;
+        width: 600px;
+        border: solid black 2px;
+      }
+      caption {
+        border: solid blue 1px;
+      }
+      td, th {
+        border: solid red 1px;
+        padding: 0px;
+      }
+    </style>
+  </head>
+  <body>
+    <table>
+        <caption>This test checks table height algorithm (CSS 2.1, Section 17.5.3),
+                 excluding `vertical-align` and percentage height</caption>
+        <tbody>
+          <tr style="height:10px"><th>Header 1</th><td style="height: 30px">Cell 1</td><td>Cell 2</td></tr>
+          <tr style="height:50px"><th>Header 2</th><td>Cell 3</td><td style="height:10px">Cell 4</td></tr>
+          <tr style="height:20px"><th>Header 3</th><td style="height:10px">Cell 5</td><td><div>Cell6</div><p>Cell6</td></tr>
+        </tbody>
+    </table>
+  </body>
+<html>

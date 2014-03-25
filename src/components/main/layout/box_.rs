@@ -29,7 +29,7 @@ use servo_util::str::is_whitespace;
 use std::cast;
 use std::cell::RefCell;
 use std::num::Zero;
-use style::{ComputedValues, TElement, TNode};
+use style::{ComputedValues, TElement, TNode, cascade, initial_values};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto, overflow, LPA_Auto};
 use style::computed_values::{border_style, clear, font_family, line_height, position};
 use style::computed_values::{text_align, text_decoration, vertical_align, visibility, white_space};
@@ -108,6 +108,11 @@ pub enum SpecificBoxInfo {
     ImageBox(ImageBoxInfo),
     IframeBox(IframeBoxInfo),
     ScannedTextBox(ScannedTextBoxInfo),
+    TableBox,
+    TableCellBox,
+    TableColumnBox(TableColumnBoxInfo),
+    TableRowBox,
+    TableWrapperBox,
     UnscannedTextBox(UnscannedTextBoxInfo),
 }
 
@@ -310,6 +315,29 @@ pub struct InlineParentInfo {
     node: OpaqueNode,
 }
 
+/// A box that represents a table column.
+#[deriving(Clone)]
+pub struct TableColumnBoxInfo {
+    /// the number of columns a <col> element should span
+    span: Option<int>,
+}
+
+impl TableColumnBoxInfo {
+    /// Create the information specific to an table column box.
+    pub fn new(node: &ThreadSafeLayoutNode) -> TableColumnBoxInfo {
+        let span = {
+            let element = node.as_element();
+            element.get_attr(&namespace::Null, "span").and_then(|string| {
+                let n: Option<int> = FromStr::from_str(string);
+                n
+            })
+        };
+        TableColumnBoxInfo {
+            span: span,
+        }
+    }
+}
+
 // FIXME: Take just one parameter and use concat_ident! (mozilla/rust#12249)
 macro_rules! def_noncontent( ($side:ident, $get:ident, $inline_get:ident) => (
     impl Box {
@@ -396,6 +424,49 @@ impl Box {
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
             specific: constructor.build_specific_box_info_for_node(node),
+            position_offsets: RefCell::new(Zero::zero()),
+            inline_info: RefCell::new(None),
+            new_line_pos: ~[],
+        }
+    }
+
+    /// Constructs a new `Box` instance from a specific info.
+    pub fn new_from_specific_info(node: &ThreadSafeLayoutNode, specific: SpecificBoxInfo) -> Box {
+        Box {
+            node: OpaqueNode::from_thread_safe_layout_node(node),
+            style: node.style().clone(),
+            border_box: RefCell::new(Au::zero_rect()),
+            border: RefCell::new(Zero::zero()),
+            padding: RefCell::new(Zero::zero()),
+            margin: RefCell::new(Zero::zero()),
+            specific: specific,
+            position_offsets: RefCell::new(Zero::zero()),
+            inline_info: RefCell::new(None),
+            new_line_pos: ~[],
+        }
+    }
+
+    /// Constructs a new `Box` instance for an anonymous table object.
+    pub fn new_anonymous_table_box(node: &ThreadSafeLayoutNode, specific: SpecificBoxInfo) -> Box {
+        // CSS 2.1 § 17.2.1 This is for non-inherited properties on anonymous table boxes
+        // example:
+        //
+        //     <div style="display: table">
+        //         Foo
+        //     </div>
+        //
+        // Anonymous table boxes, TableRowBox and TableCellBox, are generated around `Foo`, but it shouldn't inherit the border.
+
+        let (node_style, _) = cascade(&[], false, Some(node.style().get()),
+                                      &initial_values(), None);
+        Box {
+            node: OpaqueNode::from_thread_safe_layout_node(node),
+            style: Arc::new(node_style),
+            border_box: RefCell::new(Au::zero_rect()),
+            border: RefCell::new(Zero::zero()),
+            padding: RefCell::new(Zero::zero()),
+            margin: RefCell::new(Zero::zero()),
+            specific: specific,
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: RefCell::new(None),
             new_line_pos: ~[],
@@ -521,20 +592,40 @@ impl Box {
     /// Returns the shared part of the width for computation of minimum and preferred width per
     /// CSS 2.1.
     fn guess_width(&self) -> Au {
+        let style = self.style();
+        let mut margin_left = Au::new(0);
+        let mut margin_right = Au::new(0);
+        let mut padding_left = Au::new(0);
+        let mut padding_right = Au::new(0);
+
         match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) => {}
-            ScannedTextBox(_) | UnscannedTextBox(_) => return Au(0),
+            GenericBox | IframeBox(_) | ImageBox(_) => {
+                margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
+                                                    Au::new(0)).specified_or_zero();
+                margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
+                                                     Au::new(0)).specified_or_zero();
+                padding_left = self.compute_padding_length(style.Padding.get().padding_left,
+                                                           Au::new(0));
+                padding_right = self.compute_padding_length(style.Padding.get().padding_right,
+                                                            Au::new(0));
+            }
+            TableBox | TableCellBox => {
+                padding_left = self.compute_padding_length(style.Padding.get().padding_left,
+                                                           Au::new(0));
+                padding_right = self.compute_padding_length(style.Padding.get().padding_right,
+                                                            Au::new(0));
+            }
+            TableWrapperBox => {
+                margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
+                                                    Au::new(0)).specified_or_zero();
+                margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
+                                                     Au::new(0)).specified_or_zero();
+            }
+            TableRowBox => {}
+            ScannedTextBox(_) | TableColumnBox(_) | UnscannedTextBox(_) => return Au(0),
         }
 
-        let style = self.style();
         let width = MaybeAuto::from_style(style.Box.get().width, Au::new(0)).specified_or_zero();
-        let margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
-                                                Au::new(0)).specified_or_zero();
-        let margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
-                                                 Au::new(0)).specified_or_zero();
-
-        let padding_left = self.compute_padding_length(style.Padding.get().padding_left, Au(0));
-        let padding_right = self.compute_padding_length(style.Padding.get().padding_right, Au(0));
 
         width + margin_left + margin_right + padding_left + padding_right +
             self.border.get().left + self.border.get().right
@@ -552,23 +643,31 @@ impl Box {
     ///
     /// FIXME(pcwalton): This should not be necessary. Just go to the style.
     pub fn compute_borders(&self, style: &ComputedValues) {
-        #[inline]
-        fn width(width: Au, style: border_style::T) -> Au {
-            if style == border_style::none {
-                Au(0)
-            } else {
-                width
-            }
-        }
+        let border = match self.specific {
+            TableWrapperBox => {
+                SideOffsets2D::new(Au(0), Au(0), Au(0), Au(0))
+            },
+            _ => {
+                #[inline]
+                fn width(width: Au, style: border_style::T) -> Au {
+                    if style == border_style::none {
+                        Au(0)
+                    } else {
+                        width
+                    }
+                }
 
-        self.border.set(SideOffsets2D::new(width(style.Border.get().border_top_width,
-                                                 style.Border.get().border_top_style),
-                                           width(style.Border.get().border_right_width,
-                                                 style.Border.get().border_right_style),
-                                           width(style.Border.get().border_bottom_width,
-                                                 style.Border.get().border_bottom_style),
-                                           width(style.Border.get().border_left_width,
-                                                 style.Border.get().border_left_style)))
+                SideOffsets2D::new(width(style.Border.get().border_top_width,
+                                         style.Border.get().border_top_style),
+                                   width(style.Border.get().border_right_width,
+                                         style.Border.get().border_right_style),
+                                   width(style.Border.get().border_bottom_width,
+                                         style.Border.get().border_bottom_style),
+                                   width(style.Border.get().border_left_width,
+                                         style.Border.get().border_left_style))
+            }
+        };
+        self.border.set(border)
     }
 
     pub fn compute_positioned_offsets(&self, style: &ComputedValues, containing_width: Au, containing_height: Au) {
@@ -589,36 +688,51 @@ impl Box {
     /// If it is auto, it is up to assign-height to ignore this value and
     /// calculate the correct margin values.
     pub fn compute_margin_top_bottom(&self, containing_block_width: Au) {
-        let style = self.style();
-        // Note: CSS 2.1 defines margin % values wrt CB *width* (not height).
-        let margin_top = MaybeAuto::from_style(style.Margin.get().margin_top,
-                                               containing_block_width).specified_or_zero();
-        let margin_bottom = MaybeAuto::from_style(style.Margin.get().margin_bottom,
-                                                  containing_block_width).specified_or_zero();
-        let mut margin = self.margin.get();
-        margin.top = margin_top;
-        margin.bottom = margin_bottom;
-        self.margin.set(margin);
+        match self.specific {
+            TableBox | TableCellBox | TableRowBox | TableColumnBox(_) => {
+                self.margin.set(SideOffsets2D::new(Au(0), Au(0), Au(0), Au(0)))
+            },
+            _ => {
+                let style = self.style();
+                // Note: CSS 2.1 defines margin % values wrt CB *width* (not height).
+                let margin_top = MaybeAuto::from_style(style.Margin.get().margin_top,
+                                                       containing_block_width).specified_or_zero();
+                let margin_bottom = MaybeAuto::from_style(style.Margin.get().margin_bottom,
+                                                          containing_block_width).specified_or_zero();
+                let mut margin = self.margin.get();
+                margin.top = margin_top;
+                margin.bottom = margin_bottom;
+                self.margin.set(margin);
+            }
+        }
     }
 
     /// Populates the box model padding parameters from the given computed style.
     pub fn compute_padding(&self, style: &ComputedValues, containing_block_width: Au) {
-        let padding = SideOffsets2D::new(self.compute_padding_length(style.Padding
-                                                                          .get()
-                                                                          .padding_top,
-                                                                     containing_block_width),
-                                         self.compute_padding_length(style.Padding
-                                                                          .get()
-                                                                          .padding_right,
-                                                                     containing_block_width),
-                                         self.compute_padding_length(style.Padding
-                                                                          .get()
-                                                                          .padding_bottom,
-                                                                     containing_block_width),
-                                         self.compute_padding_length(style.Padding
-                                                                          .get()
-                                                                          .padding_left,
-                                                                     containing_block_width));
+        let padding = match self.specific {
+            TableColumnBox(_) | TableRowBox | TableWrapperBox => {
+                SideOffsets2D::new(Au(0), Au(0), Au(0), Au(0))
+            },
+            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
+            ScannedTextBox(_) | UnscannedTextBox(_) => {
+                SideOffsets2D::new(self.compute_padding_length(style.Padding
+                                                                    .get()
+                                                                    .padding_top,
+                                                               containing_block_width),
+                                   self.compute_padding_length(style.Padding
+                                                                    .get()
+                                                                    .padding_right,
+                                                               containing_block_width),
+                                   self.compute_padding_length(style.Padding
+                                                                    .get()
+                                                                    .padding_bottom,
+                                                               containing_block_width),
+                                   self.compute_padding_length(style.Padding
+                                                                    .get()
+                                                                    .padding_left,
+                                                               containing_block_width))
+            }
+        };
         self.padding.set(padding)
     }
 
@@ -773,9 +887,37 @@ impl Box {
         self.style().Text.get().text_decoration
     }
 
-    /// Returns the sum of margin, border, and padding on the left.
-    pub fn offset(&self) -> Au {
-        self.margin.get().left + self.border.get().left + self.padding.get().left
+    /// Returns the left offset from margin edge to content edge.
+    pub fn left_offset(&self) -> Au {
+        match self.specific {
+            TableWrapperBox => self.margin.get().left,
+            TableBox | TableCellBox => self.border.get().left + self.padding.get().left,
+            TableRowBox => self.border.get().left,
+            TableColumnBox(_) => Au(0),
+            _ => self.margin.get().left + self.border.get().left + self.padding.get().left
+        }
+    }
+
+    /// Returns the top offset from margin edge to content edge.
+    pub fn top_offset(&self) -> Au {
+        match self.specific {
+            TableWrapperBox => self.margin.get().top,
+            TableBox | TableCellBox => self.border.get().top + self.padding.get().top,
+            TableRowBox => self.border.get().top,
+            TableColumnBox(_) => Au(0),
+            _ => self.margin.get().top + self.border.get().top + self.padding.get().top
+        }
+    }
+
+    /// Returns the bottom offset from margin edge to content edge.
+    pub fn bottom_offset(&self) -> Au {
+        match self.specific {
+            TableWrapperBox => self.margin.get().bottom,
+            TableBox | TableCellBox => self.border.get().bottom + self.padding.get().bottom,
+            TableRowBox => self.border.get().bottom,
+            TableColumnBox(_) => Au(0),
+            _ => self.margin.get().bottom + self.border.get().bottom + self.padding.get().bottom
+        }
     }
 
     /// Returns true if this element is replaced content. This is true for images, form elements,
@@ -1052,6 +1194,7 @@ impl Box {
 
         match self.specific {
             UnscannedTextBox(_) => fail!("Shouldn't see unscanned boxes here."),
+            TableColumnBox(_) => fail!("Shouldn't see table column boxes here."),
             ScannedTextBox(ref text_box) => {
                 let text_color = self.style().Color.get().color.to_gfx_color();
 
@@ -1141,7 +1284,8 @@ impl Box {
                     });
                 });
             },
-            GenericBox | IframeBox(..) => {
+            GenericBox | IframeBox(..) | TableBox | TableCellBox | TableRowBox |
+            TableWrapperBox => {
                 lists.with_mut(|lists| {
                     let item = ~ClipDisplayItem {
                         base: BaseDisplayItem {
@@ -1246,7 +1390,7 @@ impl Box {
             IframeBox(ref iframe_box) => {
                 self.finalize_position_and_size_of_iframe(iframe_box, flow_origin, builder.ctx)
             }
-            GenericBox | ImageBox(_) | ScannedTextBox(_) | UnscannedTextBox(_) => {}
+            _ => {}
         }
 
     }
@@ -1255,7 +1399,8 @@ impl Box {
     pub fn minimum_and_preferred_widths(&self) -> (Au, Au) {
         let guessed_width = self.guess_width();
         let (additional_minimum, additional_preferred) = match self.specific {
-            GenericBox | IframeBox(_) => (Au(0), Au(0)),
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableColumnBox(_) |
+            TableRowBox | TableWrapperBox => (Au(0), Au(0)),
             ImageBox(ref image_box_info) => {
                 let image_width = image_box_info.image_width();
                 (image_width, image_width)
@@ -1281,7 +1426,8 @@ impl Box {
     /// TODO: What exactly does this function return? Why is it Au(0) for GenericBox?
     pub fn content_width(&self) -> Au {
         match self.specific {
-            GenericBox | IframeBox(_) => Au(0),
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
+            TableWrapperBox => Au(0),
             ImageBox(ref image_box_info) => {
                 image_box_info.computed_width()
             }
@@ -1290,6 +1436,7 @@ impl Box {
                 let text_bounds = run.get().metrics_for_range(range).bounding_box;
                 text_bounds.size.width
             }
+            TableColumnBox(_) => fail!("Table column boxes do not have width"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
         }
     }
@@ -1297,7 +1444,8 @@ impl Box {
     ///
     pub fn content_height(&self) -> Au {
         match self.specific {
-            GenericBox | IframeBox(_) => Au(0),
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
+            TableWrapperBox => Au(0),
             ImageBox(ref image_box_info) => {
                 image_box_info.computed_height()
             }
@@ -1308,6 +1456,7 @@ impl Box {
                 let em_size = text_bounds.size.height;
                 self.calculate_line_height(em_size)
             }
+            TableColumnBox(_) => fail!("Table column boxes do not have height"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
         }
     }
@@ -1322,7 +1471,9 @@ impl Box {
     /// Split box which includes new-line character
     pub fn split_by_new_line(&self) -> SplitBoxResult {
         match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) => CannotSplit,
+            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
+            TableRowBox | TableWrapperBox => CannotSplit,
+            TableColumnBox(_) => fail!("Table column boxes do not need to split"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
                 let mut new_line_pos = self.new_line_pos.clone();
@@ -1359,7 +1510,9 @@ impl Box {
     /// Attempts to split this box so that its width is no more than `max_width`.
     pub fn split_to_width(&self, max_width: Au, starts_line: bool) -> SplitBoxResult {
         match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) => CannotSplit,
+            GenericBox | IframeBox(_) | ImageBox(_) | TableBox | TableCellBox |
+            TableRowBox | TableWrapperBox => CannotSplit,
+            TableColumnBox(_) => fail!("Table column boxes do not have width"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
             ScannedTextBox(ref text_box_info) => {
                 let mut pieces_processed_count: uint = 0;
@@ -1478,8 +1631,8 @@ impl Box {
     /// CSS 2.1 § 10.3.2.
     pub fn assign_replaced_width_if_necessary(&self,container_width: Au) {
         match self.specific {
-            GenericBox | IframeBox(_) => {
-            }
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
+            TableWrapperBox => {}
             ImageBox(ref image_box_info) => {
                 // TODO(ksh8281): compute border,margin,padding
                 let width = ImageBoxInfo::style_length(self.style().Box.get().width,
@@ -1518,6 +1671,7 @@ impl Box {
                 position.get().size.width = position.get().size.width + self.noncontent_width() +
                     self.noncontent_inline_left() + self.noncontent_inline_right();
             }
+            TableColumnBox(_) => fail!("Table column boxes do not have width"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
         }
     }
@@ -1527,8 +1681,8 @@ impl Box {
     /// Ideally, this should follow CSS 2.1 § 10.6.2
     pub fn assign_replaced_height_if_necessary(&self) {
         match self.specific {
-            GenericBox | IframeBox(_) => {
-            }
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
+            TableWrapperBox => {}
             ImageBox(ref image_box_info) => {
                 // TODO(ksh8281): compute border,margin,padding
                 let width = image_box_info.computed_width();
@@ -1566,6 +1720,7 @@ impl Box {
                 position.get().size.height
                     = position.get().size.height + self.noncontent_height()
             }
+            TableColumnBox(_) => fail!("Table column boxes do not have height"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
         }
     }
@@ -1601,6 +1756,11 @@ impl Box {
             IframeBox(_) => "IframeBox",
             ImageBox(_) => "ImageBox",
             ScannedTextBox(_) => "ScannedTextBox",
+            TableBox => "TableBox",
+            TableCellBox => "TableCellBox",
+            TableColumnBox(_) => "TableColumnBox",
+            TableRowBox => "TableRowBox",
+            TableWrapperBox => "TableWrapperBox",
             UnscannedTextBox(_) => "UnscannedTextBox",
         };
 
