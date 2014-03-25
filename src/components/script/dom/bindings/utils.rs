@@ -91,12 +91,12 @@ pub unsafe fn get_dom_class(obj: *JSObject) -> Result<DOMClass, ()> {
     let clasp = JS_GetClass(obj);
     if is_dom_class(clasp) {
         debug!("plain old dom object");
-        let domjsclass: *DOMJSClass = cast::transmute(clasp);
+        let domjsclass: *DOMJSClass = clasp as *DOMJSClass;
         return Ok((*domjsclass).dom_class);
     }
     if is_dom_proxy(obj) {
         debug!("proxy dom object");
-        let dom_class: *DOMClass = cast::transmute(GetProxyHandlerExtra(obj));
+        let dom_class: *DOMClass = GetProxyHandlerExtra(obj) as *DOMClass;
         return Ok(*dom_class);
     }
     debug!("not a dom object");
@@ -233,7 +233,7 @@ pub struct DOMJSClass {
 pub fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
     unsafe {
         /*assert ((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0;*/
-        cast::transmute(JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private())
+        JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private() as **JSObject
     }
 }
 
