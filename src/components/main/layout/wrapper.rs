@@ -27,7 +27,7 @@
 //! * You must also not use `.get()`; instead, use `.unsafe_get()`.
 //!
 //! * Do not call any methods on DOM nodes without checking to see whether they use borrow flags.
-//!   
+//!
 //!   o Instead of `get_attr()`, use `.get_attr_val_for_layout()`.
 //!
 //!   o Instead of `html_element_in_html_document()`, use
@@ -68,7 +68,7 @@ pub trait TLayoutNode {
     /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
     /// and as such is marked `unsafe`.
     unsafe fn get<'a>(&'a self) -> &'a Node {
-        cast::transmute::<*mut Node,&'a Node>(self.get_jsmanaged().unsafe_get())
+        &*self.get_jsmanaged().unsafe_get()
     }
 
     fn node_is_element(&self) -> bool {
@@ -436,7 +436,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
             // implementations.
             ThreadSafeLayoutElement {
-                element: cast::transmute::<*mut Element,&mut Element>(element),
+                element: &mut *element,
             }
         }
     }
@@ -536,4 +536,3 @@ pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode 
         cast::transmute_copy(node)
     }
 }
-

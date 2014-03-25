@@ -163,9 +163,7 @@ impl Element {
             return false
         }
         let owner_doc: *JS<Document> = self.node.owner_doc();
-        let owner_doc: **Document = cast::transmute::<*JS<Document>,
-                                                      **Document>(
-                                                      owner_doc);
+        let owner_doc: **Document = owner_doc as **Document;
         (**owner_doc).is_html_document
     }
 
