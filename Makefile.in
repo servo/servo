@@ -203,6 +203,13 @@ $(eval $(call DEF_SUBMODULE_RULES,$(submodule))))
 
 DONE_SUBMODULES = $(foreach submodule,$(SUBMODULES),$(DONE_$(submodule)))
 
+RFLAGS_macros = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
+SRC_macros = $(call rwildcard,$(S)src/components/macros/,*.rs)
+CRATE_macros = $(S)src/components/macros/macros.rs
+DONE_macros = $(B)src/components/macros/libmacros.dummy
+
+DEPS_macros = $(CRATE_macros) $(SRC_macros) $(DONE_SUBMODULES)
+
 RFLAGS_util = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
 SRC_util = $(call rwildcard,$(S)src/components/util/,*.rs)
 CRATE_util = $(S)src/components/util/util.rs
@@ -224,14 +231,14 @@ DONE_msg = $(B)src/components/msg/libmsg.dummy
 
 DEPS_msg = $(CRATE_msg) $(SRC_msg) $(DONE_SUBMODULES)
 
-RFLAGS_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg
+RFLAGS_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg -L$(B)src/components/macros
 SRC_gfx = $(call rwildcard,$(S)src/components/gfx/,*.rs)
 CRATE_gfx = $(S)src/components/gfx/gfx.rs
 DONE_gfx = $(B)src/components/gfx/libgfx.dummy
 
-DEPS_gfx = $(CRATE_gfx) $(SRC_gfx) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg)
+DEPS_gfx = $(CRATE_gfx) $(SRC_gfx) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg) $(DONE_macros)
 
-RFLAGS_script = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg
+RFLAGS_script = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg -L$(B)src/components/macros
 
 BINDINGS_SRC = $(S)src/components/script/dom/bindings/codegen
 WEBIDLS_SRC = $(S)src/components/script/dom/webidls
@@ -244,7 +251,7 @@ SRC_script = $(call rwildcard,$(S)src/components/script/,*.rs) $(AUTOGEN_SRC_scr
 CRATE_script = $(S)src/components/script/script.rs
 DONE_script = $(B)src/components/script/libscript.dummy
 
-DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg)
+DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg) $(DONE_macros)
 
 RFLAGS_style = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util
 MAKO_ZIP = $(S)src/components/style/Mako-0.8.1.zip
@@ -256,14 +263,14 @@ DONE_style = $(B)src/components/style/libstyle.dummy
 
 DEPS_style = $(CRATE_style) $(SRC_style) $(DONE_SUBMODULES) $(DONE_util)
 
-RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg
+RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg -L$(B)src/components/macros
 
 SRC_servo = $(call rwildcard,$(S)src/components/main/,*.rs)
 CRATE_servo = $(S)src/components/main/servo.rs
 
-DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_script) $(DONE_net) $(DONE_msg) $(DONE_style)
+DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_script) $(DONE_net) $(DONE_msg) $(DONE_style) $(DONE_macros)
 
-SERVO_LIB_CRATES = util net msg gfx script style
+SERVO_LIB_CRATES = macros util net msg gfx script style
 
 # rules that depend on having correct meta-target vars (DEPS_CLEAN, DEPS_servo, etc)
 # and SERVO_LIB_CRATES
