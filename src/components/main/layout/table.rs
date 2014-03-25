@@ -21,6 +21,7 @@ use style::computed_values::table_layout;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayListCollection;
 use servo_util::geometry::Au;
+use servo_util::geometry;
 
 /// A table flow corresponded to the table's internal table box under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper box,
@@ -30,6 +31,12 @@ pub struct TableFlow {
 
     /// Column widths
     col_widths: ~[Au],
+
+    /// Column min widths.
+    col_min_widths: ~[Au],
+
+    /// Column pref widths.
+    col_pref_widths: ~[Au],
 
     /// Table-layout property
     table_layout: TableLayout,
@@ -49,6 +56,8 @@ impl TableFlow {
         TableFlow {
             block_flow: block_flow,
             col_widths: ~[],
+            col_min_widths: ~[],
+            col_pref_widths: ~[],
             table_layout: table_layout
         }
     }
@@ -66,6 +75,8 @@ impl TableFlow {
         TableFlow {
             block_flow: block_flow,
             col_widths: ~[],
+            col_min_widths: ~[],
+            col_pref_widths: ~[],
             table_layout: table_layout
         }
     }
@@ -84,6 +95,8 @@ impl TableFlow {
         TableFlow {
             block_flow: block_flow,
             col_widths: ~[],
+            col_min_widths: ~[],
+            col_pref_widths: ~[],
             table_layout: table_layout
         }
     }
@@ -91,6 +104,27 @@ impl TableFlow {
     pub fn teardown(&mut self) {
         self.block_flow.teardown();
         self.col_widths = ~[];
+        self.col_min_widths = ~[];
+        self.col_pref_widths = ~[];
+    }
+
+    /// Update the corresponding value of self_widths if a value of kid_widths has larger value
+    /// than one of self_widths.
+    pub fn update_col_widths(self_widths: &mut ~[Au], kid_widths: &~[Au]) -> Au {
+        let mut sum_widths = Au(0);
+        let mut kid_widths_it = kid_widths.iter();
+        for self_width in self_widths.mut_iter() {
+            match kid_widths_it.next() {
+                Some(kid_width) => {
+                    if *self_width < *kid_width {
+                        *self_width = *kid_width;
+                    }
+                },
+                None => {}
+            }
+            sum_widths = sum_widths + *self_width;
+        }
+        sum_widths
     }
 
     /// Assign height for table flow.
@@ -162,54 +196,95 @@ impl Flow for TableFlow {
         &mut self.block_flow
     }
 
-    /// This function finds the specified column widths from column group and the first row.
-    /// Those are used in fixed table layout calculation.
-    /* FIXME: automatic table layout calculation */
-    fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
-        let mut did_first_row = false;
+    fn col_widths<'a>(&'a mut self) -> &'a mut ~[Au] {
+        &mut self.col_widths
+    }
 
-        /* find max width from child block contexts */
+    fn col_min_widths<'a>(&'a self) -> &'a ~[Au] {
+        &self.col_min_widths
+    }
+
+    fn col_pref_widths<'a>(&'a self) -> &'a ~[Au] {
+        &self.col_pref_widths
+    }
+
+    /// The specified column widths are set from column group and the first row for the fixed
+    /// table layout calculation.
+    /// The maximum min/pref widths of each column are set from the rows for the automatic
+    /// table layout calculation.
+    fn bubble_widths(&mut self, _: &mut LayoutContext) {
+        let mut min_width = Au(0);
+        let mut pref_width = Au(0);
+        let mut did_first_row = false;
+        let mut num_floats = 0;
+
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_proper_table_child());
 
             if kid.is_table_colgroup() {
                 self.col_widths.push_all(kid.as_table_colgroup().widths);
+                self.col_min_widths = self.col_widths.clone();
+                self.col_pref_widths = self.col_widths.clone();
             } else if kid.is_table_rowgroup() || kid.is_table_row() {
                 // read column widths from table-row-group/table-row, and assign
                 // width=0 for the columns not defined in column-group
                 // FIXME: need to read widths from either table-header-group OR
                 // first table-row
-                let kid_col_widths = if kid.is_table_rowgroup() {
-                    &kid.as_table_rowgroup().col_widths
-                } else {
-                    &kid.as_table_row().col_widths
-                };
                 match self.table_layout {
-                    FixedLayout if !did_first_row => {
-                        did_first_row = true;
-                        let mut child_widths = kid_col_widths.iter();
-                        for col_width in self.col_widths.mut_iter() {
-                            match child_widths.next() {
-                                Some(child_width) => {
-                                    if *col_width == Au::new(0) {
-                                        *col_width = *child_width;
-                                    }
-                                },
-                                None => break
+                    FixedLayout => {
+                        let kid_col_widths = kid.col_widths();
+                        if !did_first_row {
+                            did_first_row = true;
+                            let mut child_widths = kid_col_widths.iter();
+                            for col_width in self.col_widths.mut_iter() {
+                                match child_widths.next() {
+                                    Some(child_width) => {
+                                        if *col_width == Au::new(0) {
+                                            *col_width = *child_width;
+                                        }
+                                    },
+                                    None => break
+                                }
                             }
                         }
+                        let num_child_cols = kid_col_widths.len();
+                        let num_cols = self.col_widths.len();
+                        debug!("table until the previous row has {} column(s) and this row has {} column(s)",
+                               num_cols, num_child_cols);
+                        for i in range(num_cols, num_child_cols) {
+                            self.col_widths.push( kid_col_widths[i] );
+                        }
                     },
-                    _ => {}
-                }
-                let num_child_cols = kid_col_widths.len();
-                let num_cols = self.col_widths.len();
-                debug!("colgroup has {} column(s) and child has {} column(s)", num_cols, num_child_cols);
-                for i in range(num_cols, num_child_cols) {
-                    self.col_widths.push( kid_col_widths[i] );
+                    AutoLayout => {
+                        min_width = TableFlow::update_col_widths(&mut self.col_min_widths, kid.col_min_widths());
+                        pref_width = TableFlow::update_col_widths(&mut self.col_pref_widths, kid.col_pref_widths());
+
+                        // update the number of column widths from table-rows.
+                        let num_cols = self.col_min_widths.len();
+                        let num_child_cols = kid.col_min_widths().len();
+                        debug!("table until the previous row has {} column(s) and this row has {} column(s)",
+                               num_cols, num_child_cols);
+                        for i in range(num_cols, num_child_cols) {
+                            self.col_widths.push(Au::new(0));
+                            let new_kid_min = kid.col_min_widths()[i];
+                            self.col_min_widths.push( new_kid_min );
+                            let new_kid_pref = kid.col_pref_widths()[i];
+                            self.col_pref_widths.push( new_kid_pref );
+                            min_width = min_width + new_kid_min;
+                            pref_width = pref_width + new_kid_pref;
+                        }
+                    }
                 }
             }
+            let child_base = flow::mut_base(kid);
+            num_floats = num_floats + child_base.num_floats;
         }
-        self.block_flow.bubble_widths(ctx);
+        for box_ in self.block_flow.box_.iter() {
+            box_.compute_borders(box_.style());
+        }
+        self.block_flow.base.num_floats = num_floats;
+        self.block_flow.base.min_width = min_width;
+        self.block_flow.base.pref_width = geometry::max(min_width, pref_width);
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
@@ -242,20 +317,25 @@ impl Flow for TableFlow {
             content_width = box_.border_box.get().size.width - padding_and_borders;
         }
 
-        // In fixed table layout, we distribute extra space among the unspecified columns if there are
-        // any, or among all the columns if all are specified.
-        if (total_column_width < content_width) && (num_unspecified_widths == 0) {
-            let ratio = content_width.to_f64().unwrap() / total_column_width.to_f64().unwrap();
-            for col_width in self.col_widths.mut_iter() {
-                *col_width = (*col_width).scale_by(ratio);
-            }
-        } else if num_unspecified_widths != 0 {
-            let extra_column_width = (content_width - total_column_width) / Au::new(num_unspecified_widths);
-            for col_width in self.col_widths.mut_iter() {
-                if *col_width == Au(0) {
-                    *col_width = extra_column_width;
+        match self.table_layout {
+            FixedLayout => {
+                // In fixed table layout, we distribute extra space among the unspecified columns if there are
+                // any, or among all the columns if all are specified.
+                if (total_column_width < content_width) && (num_unspecified_widths == 0) {
+                    let ratio = content_width.to_f64().unwrap() / total_column_width.to_f64().unwrap();
+                    for col_width in self.col_widths.mut_iter() {
+                        *col_width = (*col_width).scale_by(ratio);
+                    }
+                } else if num_unspecified_widths != 0 {
+                    let extra_column_width = (content_width - total_column_width) / Au::new(num_unspecified_widths);
+                    for col_width in self.col_widths.mut_iter() {
+                        if *col_width == Au(0) {
+                            *col_width = extra_column_width;
+                        }
+                    }
                 }
             }
+            _ => {}
         }
 
         self.block_flow.propagate_assigned_width_to_children(left_content_edge, content_width, Some(self.col_widths.clone()));

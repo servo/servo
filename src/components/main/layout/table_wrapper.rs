@@ -197,7 +197,7 @@ impl Flow for TableWrapperFlow {
     any boxes it is responsible for flowing.  */
 
     fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
-        /* find max width from child block contexts */
+        // get column widths info from table flow
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_table_caption() || kid.is_table());
 
@@ -243,7 +243,12 @@ impl Flow for TableWrapperFlow {
             _ => {}
         }
 
-        self.block_flow.propagate_assigned_width_to_children(left_content_edge, content_width, None);
+        // In case of fixed layout, column widths are calculated in table flow.
+        let assigned_col_widths = match self.table_layout {
+            FixedLayout => None,
+            AutoLayout => Some(self.col_widths.clone())
+        };
+        self.block_flow.propagate_assigned_width_to_children(left_content_edge, content_width, assigned_col_widths);
     }
 
     /// This is called on kid flows by a parent.
@@ -327,10 +332,12 @@ impl TableWrapper {
         let mut input = self.compute_width_constraint_inputs(&mut table_wrapper.block_flow,
                                                              parent_flow_width,
                                                              ctx);
-        match table_wrapper.table_layout {
+        let computed_width = match table_wrapper.table_layout {
             FixedLayout => {
                 let fixed_cells_width = table_wrapper.col_widths.iter().fold(Au(0),
                                                                              |sum, width| sum.add(width));
+
+                let mut computed_width = input.computed_width.specified_or_zero();
                 for box_ in table_wrapper.block_flow.box_.iter() {
                     let style = box_.style();
 
@@ -344,15 +351,72 @@ impl TableWrapper {
                     let border_left = style.Border.get().border_left_width;
                     let border_right = style.Border.get().border_right_width;
                     let padding_and_borders = padding_left + padding_right + border_left + border_right;
-                    let mut computed_width = input.computed_width.specified_or_zero();
                     // Compare border-edge widths. Because fixed_cells_width indicates content-width,
                     // padding and border values are added to fixed_cells_width.
                     computed_width = geometry::max(fixed_cells_width + padding_and_borders, computed_width);
-                    input.computed_width = Specified(computed_width);
                 }
+                computed_width
             },
-            _ => {}
-        }
+            AutoLayout => {
+                // Automatic table layout is calculated according to CSS 2.1 § 17.5.2.2.
+                // But, this spec is not specified. Since the new spec is specified, it may be modified. See #1687.
+                let mut cap_min = Au(0);
+                let mut cols_min = Au(0);
+                let mut cols_max = Au(0);
+                let mut col_min_widths = &~[];
+                let mut col_pref_widths = &~[];
+                for kid in table_wrapper.block_flow.base.child_iter() {
+                    if kid.is_table_caption() {
+                        cap_min = kid.as_block().base.min_width;
+                    } else {
+                        assert!(kid.is_table());
+                        cols_min = kid.as_block().base.min_width;
+                        cols_max = kid.as_block().base.pref_width;
+                        col_min_widths = kid.col_min_widths();
+                        col_pref_widths = kid.col_pref_widths();
+                    }
+                }
+                // 'extra_width': difference between the calculated table width and minimum width required by all columns.
+                // It will be distributed over the columns
+                let (width, extra_width) = match input.computed_width {
+                    Auto => {
+                        if input.available_width > geometry::max(cols_max, cap_min) {
+                            if cols_max > cap_min {
+                                table_wrapper.col_widths = col_pref_widths.clone();
+                                (cols_max, Au(0))
+                            } else {
+                                (cap_min, cap_min - cols_min)
+                            }
+                        } else {
+                            let max = if cols_min >= input.available_width && cols_min >= cap_min {
+                                table_wrapper.col_widths = col_min_widths.clone();
+                                cols_min
+                            } else {
+                                geometry::max(input.available_width, cap_min)
+                            };
+                            (max, max - cols_min)
+                        }
+                    },
+                    Specified(width) => {
+                        let max = if cols_min >= width && cols_min >= cap_min {
+                            table_wrapper.col_widths = col_min_widths.clone();
+                            cols_min
+                        } else {
+                            geometry::max(width, cap_min)
+                        };
+                        (max, max - cols_min)
+                    }
+                };
+                // The extra width is distributed over the columns
+                if extra_width > Au(0) {
+                    let cell_len = table_wrapper.col_widths.len() as f64;
+                    table_wrapper.col_widths = col_min_widths.map(|width|
+                                                                  width + extra_width.scale_by(1.0/cell_len));
+                }
+                width
+            }
+        };
+        input.computed_width = Specified(computed_width);
         input
     }
 }

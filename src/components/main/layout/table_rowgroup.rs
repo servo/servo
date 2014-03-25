@@ -12,13 +12,14 @@ use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{TableRowGroupFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
-use layout::table::InternalTable;
+use layout::table::{InternalTable, TableFlow};
 use layout::wrapper::ThreadSafeLayoutNode;
 
 use std::cell::RefCell;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayListCollection;
 use servo_util::geometry::Au;
+use servo_util::geometry;
 
 /// A table formatting context.
 pub struct TableRowGroupFlow {
@@ -26,6 +27,12 @@ pub struct TableRowGroupFlow {
 
     /// Column widths
     col_widths: ~[Au],
+
+    /// Column min widths.
+    col_min_widths: ~[Au],
+
+    /// Column pref widths.
+    col_pref_widths: ~[Au],
 }
 
 impl TableRowGroupFlow {
@@ -35,6 +42,8 @@ impl TableRowGroupFlow {
         TableRowGroupFlow {
             block_flow: BlockFlow::from_node_and_box(node, box_),
             col_widths: ~[],
+            col_min_widths: ~[],
+            col_pref_widths: ~[],
         }
     }
 
@@ -44,12 +53,16 @@ impl TableRowGroupFlow {
         TableRowGroupFlow {
             block_flow: BlockFlow::from_node(constructor, node),
             col_widths: ~[],
+            col_min_widths: ~[],
+            col_pref_widths: ~[],
         }
     }
 
     pub fn teardown(&mut self) {
         self.block_flow.teardown();
         self.col_widths = ~[];
+        self.col_min_widths = ~[];
+        self.col_pref_widths = ~[];
     }
 
     pub fn box_<'a>(&'a mut self) -> &'a Option<Box>{
@@ -122,6 +135,18 @@ impl Flow for TableRowGroupFlow {
         &mut self.block_flow
     }
 
+    fn col_widths<'a>(&'a mut self) -> &'a mut ~[Au] {
+        &mut self.col_widths
+    }
+
+    fn col_min_widths<'a>(&'a self) -> &'a ~[Au] {
+        &self.col_min_widths
+    }
+
+    fn col_pref_widths<'a>(&'a self) -> &'a ~[Au] {
+        &self.col_pref_widths
+    }
+
     /// Recursively (bottom-up) determines the context's preferred and minimum widths. When called
     /// on this context, all child contexts have had their min/pref widths set. This function must
     /// decide min/pref widths based on child context widths and dimensions of any boxes it is
@@ -129,24 +154,47 @@ impl Flow for TableRowGroupFlow {
     /// Min/pref widths set by this function are used in automatic table layout calculation.
     /// Also, this function finds the specified column widths from the first row.
     /// Those are used in fixed table layout calculation
-    fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
-        /* find the specified column widths from the first table-row.
-           update the number of column widths from other table-rows. */
+    fn bubble_widths(&mut self, _: &mut LayoutContext) {
+        let mut min_width = Au(0);
+        let mut pref_width = Au(0);
+        let mut num_floats = 0;
+
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_table_row());
-            if self.col_widths.is_empty() {
-                self.col_widths = kid.as_table_row().col_widths.clone();
+
+            // calculate min_width & pref_width for automatic table layout calculation
+            // 'self.col_min_widths' collects the maximum value of cells' min-widths for each column.
+            // 'self.col_pref_widths' collects the maximum value of cells' pref-widths for each column.
+            if self.col_widths.is_empty() { // First Row
+                assert!(self.col_min_widths.is_empty() && self.col_pref_widths.is_empty());
+                // 'self.col_widths' collects the specified column widths from the first table-row for fixed table layout calculation.
+                self.col_widths = kid.col_widths().clone();
+                self.col_min_widths = kid.col_min_widths().clone();
+                self.col_pref_widths = kid.col_pref_widths().clone();
             } else {
+                min_width = TableFlow::update_col_widths(&mut self.col_min_widths, kid.col_min_widths());
+                pref_width = TableFlow::update_col_widths(&mut self.col_pref_widths, kid.col_pref_widths());
+
+                // update the number of column widths from table-rows.
                 let num_cols = self.col_widths.len();
-                let num_child_cols = kid.as_table_row().col_widths.len();
-                for _ in range(num_cols, num_child_cols) {
+                let num_child_cols = kid.col_min_widths().len();
+                for i in range(num_cols, num_child_cols) {
                     self.col_widths.push(Au::new(0));
+                    let new_kid_min = kid.col_min_widths()[i];
+                    self.col_min_widths.push(kid.col_min_widths()[i]);
+                    let new_kid_pref = kid.col_pref_widths()[i];
+                    self.col_pref_widths.push(kid.col_pref_widths()[i]);
+                    min_width = min_width + new_kid_min;
+                    pref_width = pref_width + new_kid_pref;
                 }
             }
+            let child_base = flow::mut_base(kid);
+            num_floats = num_floats + child_base.num_floats;
         }
 
-        // TODO: calculate min_width & pref_width for automatic table layout calculation
-        self.block_flow.bubble_widths(ctx);
+        self.block_flow.base.num_floats = num_floats;
+        self.block_flow.base.min_width = min_width;
+        self.block_flow.base.pref_width = geometry::max(min_width, pref_width);
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
