@@ -9,7 +9,7 @@ use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLFormElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::htmlcollection::HTMLCollection;
+use dom::htmlcollection::{HTMLCollection, Static};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
@@ -118,7 +118,7 @@ impl HTMLFormElement {
         // FIXME: https://github.com/mozilla/servo/issues/1844
         let doc = self.htmlelement.element.node.owner_doc();
         let doc = doc.get();
-        HTMLCollection::new(&doc.window, ~[])
+        HTMLCollection::new(&doc.window, Static(~[]))
     }
 
     pub fn Length(&self) -> i32 {

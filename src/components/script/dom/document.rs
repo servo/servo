@@ -20,7 +20,7 @@ use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElemen
 use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::htmlcollection::HTMLCollection;
+use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::nodelist::NodeList;
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -475,12 +475,26 @@ impl Document {
 
     pub fn Images(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"img")
+        struct ImagesFilter;
+        impl CollectionFilter for ImagesFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"img"
+            }
+        }
+        let filter = ~ImagesFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Embeds(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"embed")
+        struct EmbedsFilter;
+        impl CollectionFilter for EmbedsFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"embed"
+            }
+        }
+        let filter = ~EmbedsFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Plugins(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
@@ -490,32 +504,63 @@ impl Document {
 
     pub fn Links(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), |elem| {
-            ("a" == elem.get().tag_name || "area" == elem.get().tag_name) &&
-            elem.get_attribute(Null, "href").is_some()
-        })
+        struct LinksFilter;
+        impl CollectionFilter for LinksFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                (elem.get().tag_name == ~"a" || elem.get().tag_name == ~"area") &&
+                elem.get_attribute(Null, "href").is_some()
+            }
+        }
+        let filter = ~LinksFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Forms(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"form")
+        struct FormsFilter;
+        impl CollectionFilter for FormsFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"form"
+            }
+        }
+        let filter = ~FormsFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Scripts(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"script")
+        struct ScriptsFilter;
+        impl CollectionFilter for ScriptsFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"script"
+            }
+        }
+        let filter = ~ScriptsFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Anchors(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), |elem| {
-            "a" == elem.get().tag_name && elem.get_attribute(Null, "name").is_some()
-        })
+        struct AnchorsFilter;
+        impl CollectionFilter for AnchorsFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"a" && elem.get_attribute(Null, "name").is_some()
+            }
+        }
+        let filter = ~AnchorsFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Applets(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
-        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"applet")
+        struct AppletsFilter;
+        impl CollectionFilter for AppletsFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"applet"
+            }
+        }
+        let filter = ~AppletsFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn create_collection<T>(&self, callback: |elem: &JS<Node>| -> Option<JS<T>>) -> ~[JS<T>] {
