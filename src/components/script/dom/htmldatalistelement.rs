@@ -6,11 +6,11 @@ use dom::bindings::codegen::HTMLDataListElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, NodeCast};
 use dom::bindings::js::JS;
 use dom::document::Document;
-use dom::element::HTMLDataListElementTypeId;
+use dom::element::{Element, HTMLDataListElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::htmlcollection::HTMLCollection;
+use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -42,9 +42,14 @@ impl HTMLDataListElement {
 
 impl HTMLDataListElement {
     pub fn Options(&self, abstract_self: &JS<HTMLDataListElement>) -> JS<HTMLCollection> {
+        struct HTMLDataListOptionsFilter;
+        impl CollectionFilter for HTMLDataListOptionsFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"option"
+            }
+        }
         let node: JS<Node> = NodeCast::from(abstract_self);
-        let doc = &self.htmlelement.element.node.owner_doc();
-        let window = &doc.get().window;
-        HTMLCollection::by_tag_name(window, &node, ~"option")
+        let filter = ~HTMLDataListOptionsFilter;
+        HTMLCollection::create(&window_from_node(&node), &node, filter)
     }
 }

@@ -10,11 +10,11 @@ use dom::document::Document;
 use dom::element::{Element, HTMLFieldSetElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlformelement::HTMLFormElement;
-use dom::htmlcollection::HTMLCollection;
+use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
-use servo_util::str::DOMString;
+use servo_util::str::{DOMString, StaticStringVec};
 
 #[deriving(Encodable)]
 pub struct HTMLFieldSetElement {
@@ -68,12 +68,20 @@ impl HTMLFieldSetElement {
         ~""
     }
 
+    // http://www.whatwg.org/html/#dom-fieldset-elements
     pub fn Elements(&self, abstract_self: &JS<HTMLFieldSetElement>) -> JS<HTMLCollection> {
+        struct ElementsFilter;
+        impl CollectionFilter for ElementsFilter {
+            fn filter(&self, elem: &JS<Element>, root: &JS<Node>) -> bool {
+                static tag_names: StaticStringVec = &["button", "fieldset", "input",
+                    "keygen", "object", "output", "select", "textarea"];
+                let root: &JS<Element> = &ElementCast::to(root).unwrap();
+                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.get().tag_name)
+            }
+        }
         let node: JS<Node> = NodeCast::from(abstract_self);
-        let element: JS<Element> = ElementCast::from(abstract_self);
-        let window = &window_from_node(&node);
-        let listed_elements = ["button", "fieldset", "input", "keygen", "object", "output", "select", "textarea"];
-        HTMLCollection::create(window, &node, |elem| *elem != element && listed_elements.iter().any(|&tag_name| tag_name == elem.get().tag_name))
+        let filter = ~ElementsFilter;
+        HTMLCollection::create(&window_from_node(&node), &node, filter)
     }
 
     pub fn WillValidate(&self) -> bool {
