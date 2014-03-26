@@ -150,8 +150,7 @@
                 var html = document.implementation.createHTMLDocument("title");
                 var copy = html.cloneNode();
                 check_copy(html, copy, Document);
-                // FIXME: https://github.com/mozilla/servo/issues/1640
-                //is(html.title, copy.title);
+                is(html.title, copy.title);
             }
 
             // test9: node with children
