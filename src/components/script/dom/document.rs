@@ -28,6 +28,7 @@ use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers, INode};
+use dom::node::{CloneChildren, DoNotCloneChildren};
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::uievent::UIEvent;
@@ -292,6 +293,37 @@ impl Document {
 
         // Step 3.
         Ok(ProcessingInstruction::new(target, data, abstract_self))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-importnode
+    pub fn ImportNode(&self, abstract_self: &JS<Document>, node: &JS<Node>, deep: bool) -> Fallible<JS<Node>> {
+        // Step 1.
+        if node.is_document() {
+            return Err(NotSupported);
+        }
+
+        // Step 2.
+        let clone_children = match deep {
+            true => CloneChildren,
+            false => DoNotCloneChildren
+        };
+
+        Ok(Node::clone(node, Some(abstract_self), clone_children))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-adoptnode
+    pub fn AdoptNode(&self, abstract_self: &JS<Document>, node: &JS<Node>) -> Fallible<JS<Node>> {
+        // Step 1.
+        if node.is_document() {
+            return Err(NotSupported);
+        }
+
+        // Step 2.
+        let mut adoptee = node.clone();
+        Node::adopt(&mut adoptee, abstract_self);
+
+        // Step 3.
+        Ok(adoptee)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createevent

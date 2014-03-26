@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            let doc = document.implementation.createHTMLDocument("title");
+            is_not(doc, null);
+
+            let foo = document.getElementById("foo");
+            is(foo.ownerDocument, document);
+
+            let imported_foo = doc.importNode(foo); // deep = false
+            is(imported_foo.parentNode, null);
+            is(imported_foo.ownerDocument, doc);
+            is(imported_foo.childNodes.length, 0);
+
+            imported_foo = doc.importNode(foo, true);
+            is(imported_foo.parentNode, null);
+            is(imported_foo.ownerDocument, doc);
+            is(imported_foo.childNodes.length, 1);
+
+            let bar = document.createElement("div");
+            bar.appendChild(document.createElement("div"));
+
+            imported_bar = doc.importNode(bar, true);
+            is(imported_bar.parentNode, null);
+            is(imported_bar.ownerDocument, doc);
+            is(imported_bar.childNodes.length, 1);
+
+            finish();
+        </script>
+    </head>
+    <body>
+        <div id="foo"><div id="bar"></div></div>
+    </body>
+</html>
