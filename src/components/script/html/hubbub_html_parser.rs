@@ -14,7 +14,7 @@ use dom::htmliframeelement::IFrameSize;
 use dom::htmlformelement::HTMLFormElement;
 use dom::node::{ElementNodeTypeId, INode, NodeHelpers};
 use dom::types::*;
-use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
+use html::cssparse::{StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use script_task::Page;
 
 use hubbub::hubbub;
@@ -298,7 +298,7 @@ pub fn parse_html(page: &Page,
     parser.enable_scripting(true);
     parser.enable_styling(true);
 
-    let (css_chan2, css_chan3, js_chan2) = (css_chan.clone(), css_chan.clone(), js_chan.clone());
+    let (css_chan2, js_chan2) = (css_chan.clone(), js_chan.clone());
 
     let next_subpage_id = RefCell::new(next_subpage_id);
 
@@ -483,22 +483,8 @@ pub fn parse_html(page: &Page,
             }
             debug!("complete script");
         },
-        complete_style: |style| {
-            // We've reached the end of a <style> so we can submit all the text to the parser.
-            unsafe {
-                let style: JS<Node> = NodeWrapping::from_hubbub_node(style);
-                let mut data = ~[];
-                debug!("iterating over children {:?}", style.first_child());
-                for child in style.children() {
-                    debug!("child = {:?}", child);
-                    let text: JS<Text> = TextCast::to(&child).unwrap();
-                    data.push(text.get().characterdata.data.to_str());  // FIXME: Bad copy.
-                }
-
-                debug!("style data = {:?}", data);
-                let provenance = InlineProvenance(base_url.clone(), data.concat());
-                css_chan3.send(CSSTaskNewFile(provenance));
-            }
+        complete_style: |_| {
+            // style parsing is handled in element::notify_child_list_changed.
         },
     };
     parser.set_tree_handler(&tree_handler);

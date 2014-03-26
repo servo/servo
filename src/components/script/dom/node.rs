@@ -6,7 +6,7 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTypeCast};
-use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLStyleElementCast, TextCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::NodeBinding::NodeConstants;
@@ -21,6 +21,7 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementTypeId, HTMLAnchorElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::htmlstyleelement::StyleElementHelpers;
 use dom::nodelist::{NodeList};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
@@ -269,6 +270,8 @@ pub trait NodeHelpers {
     fn add_child(&mut self, new_child: &mut JS<Node>, before: Option<JS<Node>>);
     fn remove_child(&mut self, child: &mut JS<Node>);
 
+    fn child_inserted(&self);
+
     fn get_hover_state(&self) -> bool;
     fn set_hover_state(&mut self, state: bool);
 
@@ -408,6 +411,7 @@ impl NodeHelpers for JS<Node> {
             }
         }
 
+        self.parent_node().map(|parent| parent.child_inserted());
         document.get().content_changed();
     }
 
@@ -498,6 +502,15 @@ impl NodeHelpers for JS<Node> {
         child_node.set_next_sibling(None);
         child_node.set_parent_node(None);
     }
+
+    fn child_inserted(&self) {
+        // Parse text content added to an inline stylesheet.
+        match HTMLStyleElementCast::to(self) {
+            Some(elem) => elem.parse_own_css(),
+            None => ()
+        }
+    }
+
 
     fn get_hover_state(&self) -> bool {
         self.get().flags.get_in_hover_state()

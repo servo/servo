@@ -3,14 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLStyleElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLStyleElementDerived;
+use dom::bindings::codegen::InheritTypes::{HTMLStyleElementDerived, NodeCast};
 use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLStyleElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, ElementNodeTypeId, window_from_node};
+use html::cssparse::parse_inline_css;
+use layout_interface::{AddStylesheetMsg, LayoutChan};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -70,5 +72,22 @@ impl HTMLStyleElement {
 
     pub fn SetScoped(&self, _scoped: bool) -> ErrorResult {
         Ok(())
+    }
+}
+
+pub trait StyleElementHelpers {
+    fn parse_own_css(&self);
+}
+
+impl StyleElementHelpers for JS<HTMLStyleElement> {
+    fn parse_own_css(&self) {
+        let node: JS<Node> = NodeCast::from(self);
+        let win = window_from_node(&node);
+        let url = win.get().page().get_url();
+
+        let data = node.get().GetTextContent(&node).expect("Element.textContent must be a string");
+        let sheet = parse_inline_css(url, data);
+        let LayoutChan(ref layout_chan) = win.get().page().layout_chan;
+        layout_chan.send(AddStylesheetMsg(sheet));
     }
 }
