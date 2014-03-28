@@ -148,15 +148,10 @@ pub trait Flow {
         fail!("assign_height_inorder not yet implemented")
     }
 
-    /// Collapses margins with the parent flow. This runs as part of assign-heights.
-    fn collapse_margins(&mut self,
-                        _top_margin_collapsible: bool,
-                        _first_in_flow: &mut bool,
-                        _margin_top: &mut Au,
-                        _top_offset: &mut Au,
-                        _collapsing: &mut Au,
-                        _collapsible: &mut Au) {
-        fail!("collapse_margins not yet implemented")
+    fn compute_collapsible_top_margin(&mut self,
+                                      _layout_context: &mut LayoutContext,
+                                      _margin_collapse_info: &mut MarginCollapseInfo) {
+        // The default implementation is a no-op.
     }
 
     /// Marks this flow as the root flow. The default implementation is a no-op.
@@ -721,12 +716,16 @@ pub struct BaseFlow {
     /* layout computations */
     // TODO: min/pref and position are used during disjoint phases of
     // layout; maybe combine into a single enum to save space.
-    min_width: Au,
-    pref_width: Au,
+    intrinsic_widths: IntrinsicWidths,
 
-    /// The upper left corner of the box representing this flow, relative to
-    /// the box representing its parent flow.
-    /// For absolute flows, this represents the position wrt to its Containing Block.
+    /// The upper left corner of the box representing this flow, relative to the box representing
+    /// its parent flow.
+    ///
+    /// For absolute flows, this represents the position with respect to its *containing block*.
+    ///
+    /// This does not include margins in the block flow direction, because those can collapse. So
+    /// for the block direction (usually vertical), this represents the *border box*. For the
+    /// inline direction (usually horizontal), this represents the *margin box*.
     position: Rect<Au>,
 
     /// The amount of overflow of this flow, relative to the containing block. Must include all the
@@ -740,6 +739,9 @@ pub struct BaseFlow {
 
     /// The floats next to this flow.
     floats: Floats,
+
+    /// The value of this flow's `clear` property, if any.
+    clear: clear::T,
 
     /// For normal flows, this is the number of floated descendants that are
     /// not contained within any other floated descendant of this flow. For
