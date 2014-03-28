@@ -19,7 +19,6 @@ use std::cell::RefCell;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayListCollection;
 use servo_util::geometry::Au;
-use servo_util::geometry;
 
 /// A table formatting context.
 pub struct TableRowGroupFlow {
@@ -155,8 +154,6 @@ impl Flow for TableRowGroupFlow {
     /// Also, this function finds the specified column widths from the first row.
     /// Those are used in fixed table layout calculation
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
-        let mut min_width = Au(0);
-        let mut pref_width = Au(0);
         let mut num_floats = 0;
 
         for kid in self.block_flow.base.child_iter() {
@@ -172,29 +169,16 @@ impl Flow for TableRowGroupFlow {
                 self.col_min_widths = kid.col_min_widths().clone();
                 self.col_pref_widths = kid.col_pref_widths().clone();
             } else {
-                min_width = TableFlow::update_col_widths(&mut self.col_min_widths, kid.col_min_widths());
-                pref_width = TableFlow::update_col_widths(&mut self.col_pref_widths, kid.col_pref_widths());
-
-                // update the number of column widths from table-rows.
-                let num_cols = self.col_widths.len();
-                let num_child_cols = kid.col_min_widths().len();
-                for i in range(num_cols, num_child_cols) {
-                    self.col_widths.push(Au::new(0));
-                    let new_kid_min = kid.col_min_widths()[i];
-                    self.col_min_widths.push(kid.col_min_widths()[i]);
-                    let new_kid_pref = kid.col_pref_widths()[i];
-                    self.col_pref_widths.push(kid.col_pref_widths()[i]);
-                    min_width = min_width + new_kid_min;
-                    pref_width = pref_width + new_kid_pref;
-                }
+                TableFlow::update_col_min_pref_widths(&mut self.col_widths,
+                                                      &mut self.col_min_widths,
+                                                      &mut self.col_pref_widths,
+                                                      kid);
             }
             let child_base = flow::mut_base(kid);
             num_floats = num_floats + child_base.num_floats;
         }
 
-        self.block_flow.base.num_floats = num_floats;
-        self.block_flow.base.min_width = min_width;
-        self.block_flow.base.pref_width = geometry::max(min_width, pref_width);
+        TableFlow::set_base_data(self, num_floats);
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called

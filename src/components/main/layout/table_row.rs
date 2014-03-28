@@ -12,7 +12,7 @@ use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
-use layout::table::InternalTable;
+use layout::table::{InternalTable, TableFlow};
 use layout::model::{MaybeAuto, Specified, Auto};
 use layout::wrapper::ThreadSafeLayoutNode;
 
@@ -183,8 +183,6 @@ impl Flow for TableRowFlow {
     /// Min/pref widths set by this function are used in automatic table layout calculation.
     /// The specified column widths of children cells are used in fixed table layout calculation.
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
-        let mut min_width = Au(0);
-        let mut pref_width = Au(0);
         let mut num_floats = 0;
         /* find the specified widths from child table-cell contexts */
         for kid in self.block_flow.base.child_iter() {
@@ -201,13 +199,9 @@ impl Flow for TableRowFlow {
             let child_base = flow::mut_base(kid);
             self.col_min_widths.push(child_base.min_width);
             self.col_pref_widths.push(child_base.pref_width);
-            min_width = min_width + child_base.min_width;
-            pref_width = pref_width + child_base.pref_width;
             num_floats = num_floats + child_base.num_floats;
         }
-        self.block_flow.base.num_floats = num_floats;
-        self.block_flow.base.min_width = min_width;
-        self.block_flow.base.pref_width = geometry::max(min_width, pref_width);
+        TableFlow::set_base_data(self, num_floats);
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called

@@ -110,8 +110,7 @@ impl TableFlow {
 
     /// Update the corresponding value of self_widths if a value of kid_widths has larger value
     /// than one of self_widths.
-    pub fn update_col_widths(self_widths: &mut ~[Au], kid_widths: &~[Au]) -> Au {
-        let mut sum_widths = Au(0);
+    pub fn update_larger_widths(self_widths: &mut ~[Au], kid_widths: &~[Au]) {
         let mut kid_widths_it = kid_widths.iter();
         for self_width in self_widths.mut_iter() {
             match kid_widths_it.next() {
@@ -122,9 +121,38 @@ impl TableFlow {
                 },
                 None => {}
             }
-            sum_widths = sum_widths + *self_width;
         }
-        sum_widths
+    }
+
+    /// Update min/pref column widths from kid_row's information.
+    pub fn update_col_min_pref_widths(col_widths: &mut ~[Au],
+                                      col_min_widths: &mut ~[Au],
+                                      col_pref_widths: &mut ~[Au],
+                                      kid_row: &Flow) {
+        TableFlow::update_larger_widths(col_min_widths, kid_row.col_min_widths());
+        TableFlow::update_larger_widths(col_pref_widths, kid_row.col_pref_widths());
+
+        // If 'kid_row' flow has more columns, update the number of columns and min/pref column widths.
+        let num_cols = col_min_widths.len();
+        let num_child_cols = kid_row.col_min_widths().len();
+        debug!("table until the previous row has {} column(s) and this row has {} column(s)",
+               num_cols, num_child_cols);
+
+        for i in range(num_cols, num_child_cols) {
+            col_widths.push(Au::new(0));
+            let new_kid_min = kid_row.col_min_widths()[i];
+            col_min_widths.push( new_kid_min );
+            let new_kid_pref = kid_row.col_pref_widths()[i];
+            col_pref_widths.push( new_kid_pref );
+        }
+    }
+
+    pub fn set_base_data(flow: &mut Flow, num_floats: uint) {
+        let min_width = flow.col_min_widths().iter().fold(Au(0), |sum, width| sum.add(width));
+        let pref_width = flow.col_pref_widths().iter().fold(Au(0), |sum, width| sum.add(width));
+        flow.as_block().base.num_floats = num_floats;
+        flow.as_block().base.min_width = min_width;
+        flow.as_block().base.pref_width = geometry::max(min_width, pref_width);
     }
 
     /// Assign height for table flow.
@@ -213,8 +241,6 @@ impl Flow for TableFlow {
     /// The maximum min/pref widths of each column are set from the rows for the automatic
     /// table layout calculation.
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
-        let mut min_width = Au(0);
-        let mut pref_width = Au(0);
         let mut did_first_row = false;
         let mut num_floats = 0;
 
@@ -256,23 +282,10 @@ impl Flow for TableFlow {
                         }
                     },
                     AutoLayout => {
-                        min_width = TableFlow::update_col_widths(&mut self.col_min_widths, kid.col_min_widths());
-                        pref_width = TableFlow::update_col_widths(&mut self.col_pref_widths, kid.col_pref_widths());
-
-                        // update the number of column widths from table-rows.
-                        let num_cols = self.col_min_widths.len();
-                        let num_child_cols = kid.col_min_widths().len();
-                        debug!("table until the previous row has {} column(s) and this row has {} column(s)",
-                               num_cols, num_child_cols);
-                        for i in range(num_cols, num_child_cols) {
-                            self.col_widths.push(Au::new(0));
-                            let new_kid_min = kid.col_min_widths()[i];
-                            self.col_min_widths.push( new_kid_min );
-                            let new_kid_pref = kid.col_pref_widths()[i];
-                            self.col_pref_widths.push( new_kid_pref );
-                            min_width = min_width + new_kid_min;
-                            pref_width = pref_width + new_kid_pref;
-                        }
+                        TableFlow::update_col_min_pref_widths(&mut self.col_widths,
+                                                              &mut self.col_min_widths,
+                                                              &mut self.col_pref_widths,
+                                                              kid);
                     }
                 }
             }
@@ -282,9 +295,7 @@ impl Flow for TableFlow {
         for box_ in self.block_flow.box_.iter() {
             box_.compute_borders(box_.style());
         }
-        self.block_flow.base.num_floats = num_floats;
-        self.block_flow.base.min_width = min_width;
-        self.block_flow.base.pref_width = geometry::max(min_width, pref_width);
+        TableFlow::set_base_data(self, num_floats);
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called

@@ -360,10 +360,16 @@ impl TableWrapper {
             AutoLayout => {
                 // Automatic table layout is calculated according to CSS 2.1 § 17.5.2.2.
                 // But, this spec is not specified. Since the new spec is specified, it may be modified. See #1687.
+
+                // 'cap_min': the minimum content width of caption (CAPMIN in spec)
                 let mut cap_min = Au(0);
+                // 'cols_min': the sum of all table columns' min-widths (MIN in spec)
                 let mut cols_min = Au(0);
+                // 'cols_max': the sum of all table columns' pref-widths (MAX in spec)
                 let mut cols_max = Au(0);
+                // A set of min widths of table columns, referred from table flow
                 let mut col_min_widths = &~[];
+                // A set of pref widths of table columns, referred from table flow
                 let mut col_pref_widths = &~[];
                 for kid in table_wrapper.block_flow.base.child_iter() {
                     if kid.is_table_caption() {
