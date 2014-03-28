@@ -814,8 +814,7 @@ impl BaseFlow {
             next_sibling: None,
             prev_sibling: Rawlink::none(),
 
-            min_width: Au::new(0),
-            pref_width: Au::new(0),
+            intrinsic_widths: IntrinsicWidths::new(),
             position: Au::zero_rect(),
             overflow: Au::zero_rect(),
 
