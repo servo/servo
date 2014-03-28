@@ -219,6 +219,14 @@ pub trait Flow {
         fail!("this is not the CB-generating flow you're looking for")
     }
 
+    /// Returns a layer ID for the given fragment.
+    fn layer_id(&self, fragment_id: uint) -> LayerId {
+        unsafe {
+            let pointer: uint = cast::transmute(self);
+            LayerId(pointer, fragment_id)
+        }
+    }
+
     /// Returns a debugging string describing this flow.
     fn debug_str(&self) -> ~str {
         ~"???"
@@ -336,16 +344,11 @@ pub trait MutableFlowUtils {
     /// Computes the overflow region for this flow.
     fn store_overflow(self, _: &mut LayoutContext);
 
-    /// builds the display lists
-    fn build_display_lists<E:ExtraDisplayListData>(
-                          self,
-                          builder: &DisplayListBuilder,
-                          container_block_size: &Size2D<Au>,
-                          absolute_cb_abs_position: Point2D<Au>,
-                          dirty: &Rect<Au>,
-                          index: uint,
-                          mut list: &RefCell<DisplayListCollection<E>>)
-                          -> bool;
+    /// Builds the display lists for this flow and its descendants.
+    fn build_display_list(self,
+                          stacking_context: &mut StackingContext,
+                          builder: &mut DisplayListBuilder,
+                          info: &DisplayListBuildingInfo);
 
     /// Destroys the flow.
     fn destroy(self);
@@ -605,6 +608,17 @@ bitfield!(FlowFlags, override_overline, set_override_overline, 0b0000_0100)
 //
 // NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
 bitfield!(FlowFlags, override_line_through, set_override_line_through, 0b0000_1000)
+
+// Whether this flow contains a flow that has its own layer within the same absolute containing
+// block.
+bitfield!(FlowFlags,
+          layers_needed_for_descendants,
+          set_layers_needed_for_descendants,
+          0b0100_0000)
+
+// Whether this flow must have its own layer. Even if this flag is not set, it might get its own
+// layer if it's deemed to be likely to overlap flows with their own layer.
+bitfield!(FlowFlags, needs_layer, set_needs_layer, 0b1000_0000)
 
 // The text alignment for this flow.
 impl FlowFlags {

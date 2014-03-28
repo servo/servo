@@ -3,21 +3,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use css::node_style::StyledNode;
-use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, ScannedTextBox, SplitDidFit};
-use layout::box_::{SplitDidNotFit, UnscannedTextBox, InlineInfo};
-use layout::box_::{TableColumnBox, TableRowBox, TableWrapperBox, TableCellBox, TableBox};
+use layout::box_::{Box, CannotSplit, GenericBox, IframeBox, ImageBox, InlineInfo, ScannedTextBox};
+use layout::box_::{SplitDidFit, SplitDidNotFit, TableBox, TableCellBox, TableColumnBox};
+use layout::box_::{TableRowBox, TableWrapperBox, UnscannedTextBox};
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
 use layout::floats::{FloatLeft, Floats, PlacementInfo};
 use layout::flow::{BaseFlow, FlowClass, Flow, InlineFlowClass};
 use layout::flow;
+use layout::model::IntrinsicWidths;
 use layout::util::ElementMapping;
 use layout::wrapper::ThreadSafeLayoutNode;
 
 use collections::{Deque, RingBuf};
 use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::DisplayListCollection;
+use gfx::display_list::{ContentLevel, StackingContext};
 use servo_util::geometry::Au;
+use servo_util::geometry;
 use servo_util::range::Range;
 use std::cell::RefCell;
 use std::mem;
@@ -480,17 +482,13 @@ impl InlineFlow {
         self.boxes = ~[];
     }
 
-    pub fn build_display_list_inline<E:ExtraDisplayListData>(
-                                     &self,
+    pub fn build_display_list_inline(&self,
+                                     stacking_context: &mut StackingContext,
                                      builder: &DisplayListBuilder,
-                                     container_block_size: &Size2D<Au>,
-                                     dirty: &Rect<Au>,
-                                     index: uint,
-                                     lists: &RefCell<DisplayListCollection<E>>)
-                                     -> uint {
+                                     info: &DisplayListBuildingInfo) {
         let abs_rect = Rect(self.base.abs_position, self.base.position.size);
-        if !abs_rect.intersects(dirty) {
-            return index;
+        if !abs_rect.intersects(&builder.dirty) {
+            return
         }
 
         // TODO(#228): Once we form line boxes and have their cached bounds, we can be smarter and
@@ -498,15 +496,19 @@ impl InlineFlow {
         debug!("Flow: building display list for {:u} inline boxes", self.boxes.len());
 
         for box_ in self.boxes.iter() {
-            let rel_offset: Point2D<Au> = box_.relative_position(container_block_size);
-            box_.build_display_list(builder, dirty, self.base.abs_position + rel_offset, (&*self) as &Flow, index, lists);
+            let rel_offset: Point2D<Au> = box_.relative_position(&info.containing_block_size);
+            box_.build_display_list(stacking_context,
+                                    builder,
+                                    info,
+                                    self.base.abs_position + rel_offset,
+                                    (&*self) as &Flow,
+                                    ContentLevel);
         }
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
         // should the flow be nested inside the box somehow?
 
-        // For now, don't traverse the subtree rooted here
-        index
+        // For now, don't traverse the subtree rooted here.
     }
 
     /// Returns the relative offset from the baseline for this box, taking into account the value
@@ -696,6 +698,7 @@ impl Flow for InlineFlow {
         //
         // TODO(pcwalton): Cache the linebox scanner?
         debug!("assign_height_inline: floats in: {:?}", self.base.floats);
+
         // assign height for inline boxes
         for box_ in self.boxes.iter() {
             box_.assign_replaced_height_if_necessary();

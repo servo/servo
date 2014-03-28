@@ -37,7 +37,8 @@ use js::jsapi::{JSObject, JS_InhibitGC, JS_AllowGC, JS_CallFunctionValue};
 use js::jsval::NullValue;
 use js::rust::{Compartment, Cx, CxUtils, RtUtils};
 use js;
-use servo_msg::compositor_msg::{FinishedLoading, Loading, PerformingLayout, ScriptListener};
+use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
+use servo_msg::compositor_msg::{ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{LoadIframeUrlMsg, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
 use servo_msg::constellation_msg::{PipelineId, SubpageId, Failure, FailureMsg};
@@ -931,7 +932,11 @@ impl ScriptTask {
             ContentBoxResponse(rect) => {
                 let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(), 
                                     to_frac_px(rect.origin.y).to_f32().unwrap());
-                self.compositor.scroll_fragment_point(pipeline_id, point);
+
+                // FIXME(pcwalton): This is pretty bogus when multiple layers are involved. Really
+                // what needs to happen is that this needs to go through layout to ask which layer
+                // the element belongs to, and have it send the scroll message to the compositor.
+                self.compositor.scroll_fragment_point(pipeline_id, LayerId::null(), point);
             }
         }
     }
