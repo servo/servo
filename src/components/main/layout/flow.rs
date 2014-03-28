@@ -26,14 +26,16 @@
 ///   similar methods.
 
 use css::node_style::StyledNode;
-use layout::block::{BlockFlow};
+use layout::block::BlockFlow;
 use layout::box_::{Box, TableRowBox, TableCellBox};
-use layout::context::LayoutContext;
 use layout::construct::OptVector;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::context::LayoutContext;
+use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo, ToGfxColor};
 use layout::floats::Floats;
+use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
 use layout::incremental::RestyleDamage;
 use layout::inline::InlineFlow;
+use layout::model::{CollapsibleMargins, IntrinsicWidths, MarginCollapseInfo};
 use layout::parallel::FlowParallelInfo;
 use layout::parallel;
 use layout::table_wrapper::TableWrapperFlow;
@@ -44,24 +46,22 @@ use layout::table_row::TableRowFlow;
 use layout::table_caption::TableCaptionFlow;
 use layout::table_cell::TableCellFlow;
 use layout::wrapper::ThreadSafeLayoutNode;
-use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
 
 use collections::Deque;
-use geom::point::Point2D;
 use geom::Size2D;
+use geom::point::Point2D;
 use geom::rect::Rect;
-use gfx::display_list::{ClipDisplayItemClass, DisplayListCollection, DisplayList};
-use layout::display_list_builder::ToGfxColor;
 use gfx::color::Color;
-use servo_util::smallvec::{SmallVec, SmallVec0};
+use gfx::display_list::StackingContext;
+use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
+use servo_util::smallvec::{SmallVec, SmallVec0};
 use std::cast;
-use std::cell::RefCell;
+use std::iter::Zip;
 use std::sync::atomics::Relaxed;
 use std::vec::MutItems;
-use std::iter::Zip;
 use style::ComputedValues;
-use style::computed_values::{text_align, position};
+use style::computed_values::{clear, position, text_align};
 
 /// Virtual methods that make up a float context.
 ///
@@ -124,6 +124,24 @@ pub trait Flow {
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
     fn as_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
         fail!("called as_table_cell() on a non-tablecell flow")
+    }
+
+    /// If this is a table row or table rowgroup or table flow, returns column widths.
+    /// Fails otherwise.
+    fn col_widths<'a>(&'a mut self) -> &'a mut ~[Au] {
+        fail!("called col_widths() on an other flow than table-row/table-rowgroup/table")
+    }
+
+    /// If this is a table row flow or table rowgroup flow or table flow, returns column min widths.
+    /// Fails otherwise.
+    fn col_min_widths<'a>(&'a self) -> &'a ~[Au] {
+        fail!("called col_min_widths() on an other flow than table-row/table-rowgroup/table")
+    }
+
+    /// If this is a table row flow or table rowgroup flow or table flow, returns column min widths.
+    /// Fails otherwise.
+    fn col_pref_widths<'a>(&'a self) -> &'a ~[Au] {
+        fail!("called col_pref_widths() on an other flow than table-row/table-rowgroup/table")
     }
 
     // Main methods
@@ -1094,183 +1112,62 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
                     None => fail!("empty Rawlink to a descendant")
                 }
             }
-
-            if self.is_root() {
-                for fixed_descendant_link in mut_base(self).fixed_descendants.iter() {
-                    match fixed_descendant_link.resolve() {
-                        Some(flow) => {
-                            let mut kid_overflow = base(flow).overflow;
-                            kid_overflow = kid_overflow.translate(&my_position.origin);
-                            overflow = overflow.union(&kid_overflow)
-                        }
-                        None => fail!("empty Rawlink to a descendant")
-                    }
-                }
-            }
         }
         mut_base(self).overflow = overflow;
     }
 
-    /// Push display items for current flow and its children onto `list`.
+    /// Push display items for current flow and its descendants onto the appropriate display lists
+    /// of the given stacking context.
     ///
-    /// For InlineFlow, add display items for all its boxes onto list`.
-    /// For BlockFlow, add a ClipDisplayItemClass for itself and its children,
-    /// plus any other display items like border.
+    /// Arguments:
     ///
-    /// `container_block_size`: Size of the Containing Block for the current
-    /// flow. This is used for relative positioning (which resolves percentage
-    /// values for 'top', etc. after all Containing Block heights have been computed.)
-    /// `absolute_cb_abs_position`: Absolute position of the Containing Block
-    /// for the flow if it is absolutely positioned.
-    fn build_display_lists<E:ExtraDisplayListData>(
-                          self,
-                          builder: &DisplayListBuilder,
-                          container_block_size: &Size2D<Au>,
-                          absolute_cb_abs_position: Point2D<Au>,
-                          dirty: &Rect<Au>,
-                          mut index: uint,
-                          lists: &RefCell<DisplayListCollection<E>>)
-                          -> bool {
+    /// * `stacking_context`: The parent stacking context that this flow belongs to and to which
+    ///   display items will be added.
+    ///
+    /// * `builder`: The display list builder, which contains information used during the entire
+    ///   display list building pass.
+    ///
+    /// * `info`: Per-flow display list building information.
+    fn build_display_list(self,
+                          stacking_context: &mut StackingContext,
+                          builder: &mut DisplayListBuilder,
+                          info: &DisplayListBuildingInfo) {
         debug!("Flow: building display list");
-        index = match self.class() {
-            BlockFlowClass => self.as_block().build_display_list_block(builder,
-                                                                       container_block_size,
-                                                                       absolute_cb_abs_position,
-                                                                       dirty,
-                                                                       index,
-                                                                       lists),
-            InlineFlowClass => self.as_inline().build_display_list_inline(builder, container_block_size, dirty, index, lists),
-            TableWrapperFlowClass => self.as_table_wrapper().build_display_list_table_wrapper(builder,
-                                                                                              container_block_size,
-                                                                                              absolute_cb_abs_position,
-                                                                                              dirty,
-                                                                                              index,
-                                                                                              lists),
-            TableFlowClass => self.as_table().build_display_list_table(builder,
-                                                                       container_block_size,
-                                                                       absolute_cb_abs_position,
-                                                                       dirty,
-                                                                       index,
-                                                                       lists),
-            TableRowGroupFlowClass => self.as_table_rowgroup().build_display_list_table_rowgroup(builder,
-                                                                                                 container_block_size,
-                                                                                                 absolute_cb_abs_position,
-                                                                                                 dirty,
-                                                                                                 index,
-                                                                                                 lists),
-            TableRowFlowClass => self.as_table_row().build_display_list_table_row(builder,
-                                                                                  container_block_size,
-                                                                                  absolute_cb_abs_position,
-                                                                                  dirty,
-                                                                                  index,
-                                                                                  lists),
-            TableCaptionFlowClass => self.as_table_caption().build_display_list_table_caption(builder,
-                                                                                              container_block_size,
-                                                                                              absolute_cb_abs_position,
-                                                                                              dirty,
-                                                                                              index,
-                                                                                              lists),
-            TableCellFlowClass => self.as_table_cell().build_display_list_table_cell(builder,
-                                                                                     container_block_size,
-                                                                                     absolute_cb_abs_position,
-                                                                                     dirty,
-                                                                                     index,
-                                                                                     lists),
-            TableColGroupFlowClass => index,
-        };
-
-        if lists.with_mut(|lists| lists.lists[index].list.len() == 0) {
-            return true;
+        match self.class() {
+            BlockFlowClass => {
+                self.as_block().build_display_list_block(stacking_context, builder, info)
+            }
+            InlineFlowClass => {
+                self.as_inline().build_display_list_inline(stacking_context, builder, info)
+            }
+            TableWrapperFlowClass => {
+                self.as_table_wrapper().build_display_list_table_wrapper(stacking_context,
+                                                                         builder,
+                                                                         info)
+            }
+            TableFlowClass => {
+                self.as_table().build_display_list_table(stacking_context, builder, info)
+            }
+            TableRowGroupFlowClass => {
+                self.as_table_rowgroup().build_display_list_table_rowgroup(stacking_context,
+                                                                           builder,
+                                                                           info)
+            }
+            TableRowFlowClass => {
+                self.as_table_row().build_display_list_table_row(stacking_context, builder, info)
+            }
+            TableCaptionFlowClass => {
+                self.as_table_caption().build_display_list_table_caption(stacking_context,
+                                                                         builder,
+                                                                         info)
+            }
+            TableCellFlowClass => {
+                self.as_table_cell().build_display_list_table_cell(stacking_context, builder, info)
+            }
+            TableColGroupFlowClass => {
+                // Nothing to do here, I guess? --pcwalton
+            }
         }
-
-        if self.is_block_container() || self.is_table_kind() {
-            let block = self.as_block();
-            let mut child_lists = DisplayListCollection::new();
-            child_lists.add_list(DisplayList::new());
-            let child_lists = RefCell::new(child_lists);
-            let container_block_size;
-            let abs_cb_position;
-            // TODO(pradeep): Move this into a generated CB function and stuff in Flow.
-            match block.box_ {
-                Some(ref box_) => {
-                    // The Containing Block formed by a Block for relatively
-                    // positioned descendants is the content box.
-                    container_block_size = box_.content_box_size();
-
-                    abs_cb_position = if block.is_positioned() {
-                        block.base.abs_position + block.generated_cb_position()
-                    } else {
-                        absolute_cb_abs_position
-                    };
-                }
-                None => fail!("Flow: block container should have a box_")
-            }
-
-            for kid in block.base.child_iter() {
-                if kid.is_absolutely_positioned() {
-                    // All absolute flows will be handled by their CB.
-                    continue;
-                }
-                kid.build_display_lists(builder, &container_block_size,
-                                        abs_cb_position,
-                                        dirty, 0u, &child_lists);
-            }
-
-            // TODO: Maybe we should handle position 'absolute' and 'fixed'
-            // descendants before normal descendants just in case there is a
-            // problem when display-list building is parallel and both the
-            // original parent and this flow access the same absolute flow.
-            // Note that this can only be done once we have paint order
-            // working cos currently the later boxes paint over the absolute
-            // and fixed boxes :|
-            for abs_descendant_link in block.base.abs_descendants.iter() {
-                match abs_descendant_link.resolve() {
-                    Some(flow) => {
-                        // TODO(pradeep): Send in your abs_position directly.
-                        flow.build_display_lists(builder, &container_block_size,
-                                                 abs_cb_position,
-                                                 dirty, 0u, &child_lists);
-                    }
-                    None => fail!("empty Rawlink to a descendant")
-                }
-            }
-
-            if block.is_root() {
-                for fixed_descendant_link in block.base.fixed_descendants.iter() {
-                    match fixed_descendant_link.resolve() {
-                        Some(flow) => {
-                            flow.build_display_lists(builder, &container_block_size,
-                                                     abs_cb_position,
-                                                     dirty, 0u, &child_lists);
-                        }
-                        None => fail!("empty Rawlink to a descendant")
-                    }
-                }
-            }
-
-            let mut child_lists = Some(child_lists.unwrap());
-            // Find parent ClipDisplayItemClass and push all child display items
-            // under it
-            lists.with_mut(|lists| {
-                let mut child_lists = child_lists.take_unwrap();
-                let result = lists.lists[index].list.mut_rev_iter().position(|item| {
-                    match *item {
-                        ClipDisplayItemClass(ref mut item) => {
-                            item.child_list.push_all_move(child_lists.lists.shift().unwrap().list);
-                            true
-                        },
-                        _ => false,
-                    }
-                });
-
-                if result.is_none() {
-                    fail!("fail to find parent item");
-                }
-
-                lists.lists.push_all_move(child_lists.lists);
-            });
-        }
-        true
     }
 
     /// Destroys the flow.

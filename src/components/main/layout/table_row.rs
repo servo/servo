@@ -9,16 +9,14 @@ use layout::block::BlockFlow;
 use layout::block::WidthAndMarginsComputer;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
 use layout::flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
 use layout::table::InternalTable;
 use layout::model::{MaybeAuto, Specified, Auto};
 use layout::wrapper::ThreadSafeLayoutNode;
 
-use std::cell::RefCell;
-use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::DisplayListCollection;
+use gfx::display_list::StackingContext;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 
@@ -28,6 +26,12 @@ pub struct TableRowFlow {
 
     /// Column widths.
     col_widths: ~[Au],
+
+    /// Column min widths.
+    col_min_widths: ~[Au],
+
+    /// Column pref widths.
+    col_pref_widths: ~[Au],
 }
 
 impl TableRowFlow {
@@ -37,6 +41,8 @@ impl TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node_and_box(node, box_),
             col_widths: ~[],
+            col_min_widths: ~[],
+            col_pref_widths: ~[],
         }
     }
 
@@ -46,12 +52,16 @@ impl TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node(constructor, node),
             col_widths: ~[],
+            col_min_widths: ~[],
+            col_pref_widths: ~[],
         }
     }
 
     pub fn teardown(&mut self) {
         self.block_flow.teardown();
         self.col_widths = ~[];
+        self.col_min_widths = ~[];
+        self.col_pref_widths = ~[];
     }
 
     pub fn box_<'a>(&'a mut self) -> &'a Option<Box>{
@@ -66,19 +76,23 @@ impl TableRowFlow {
 
     /// Assign height for table-row flow.
     ///
+    /// TODO(pcwalton): This doesn't handle floats and positioned elements right.
+    ///
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_height_table_row_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
-        let (top_offset, bottom_offset, left_offset) = self.initialize_offsets();
+    fn assign_height_table_row_base(&mut self, layout_context: &mut LayoutContext, inorder: bool) {
+        let (top_offset, _, _) = self.initialize_offsets();
 
-        self.block_flow.handle_children_floats_if_necessary(ctx, inorder,
-                                                            left_offset, top_offset);
         let mut cur_y = top_offset;
 
         // Per CSS 2.1 § 17.5.3, find max_y = max( computed `height`, minimum height of all cells )
         let mut max_y = Au::new(0);
         for kid in self.block_flow.base.child_iter() {
+            if inorder {
+                kid.assign_height_inorder(layout_context)
+            }
+
             for child_box in kid.as_table_cell().box_().iter() {
                 // TODO: Percentage height
                 let child_specified_height = MaybeAuto::from_style(child_box.style().Box.get().height,
@@ -101,6 +115,8 @@ impl TableRowFlow {
         cur_y = cur_y + height;
 
         // Assign the height of own box
+        //
+        // FIXME(pcwalton): Take `cur_y` into account.
         for box_ in self.block_flow.box_.iter() {
             let mut position = box_.border_box.get();
             position.size.height = height;
@@ -118,24 +134,14 @@ impl TableRowFlow {
             let child_node = flow::mut_base(kid);
             child_node.position.size.height = height;
         }
-
-        self.block_flow.set_floats_out_if_inorder(inorder, height, cur_y,
-                                                  top_offset, bottom_offset, left_offset);
     }
 
-    pub fn build_display_list_table_row<E:ExtraDisplayListData>(
-                                        &mut self,
-                                        builder: &DisplayListBuilder,
-                                        container_block_size: &Size2D<Au>,
-                                        absolute_cb_abs_position: Point2D<Au>,
-                                        dirty: &Rect<Au>,
-                                        index: uint,
-                                        lists: &RefCell<DisplayListCollection<E>>)
-                                        -> uint {
+    pub fn build_display_list_table_row(&mut self,
+                                        stacking_context: &mut StackingContext,
+                                        builder: &mut DisplayListBuilder,
+                                        info: &DisplayListBuildingInfo) {
         debug!("build_display_list_table_row: same process as block flow");
-        self.block_flow.build_display_list_block(builder, container_block_size,
-                                                 absolute_cb_abs_position,
-                                                 dirty, index, lists)
+        self.block_flow.build_display_list_block(stacking_context, builder, info)
     }
 }
 
@@ -152,27 +158,51 @@ impl Flow for TableRowFlow {
         &mut self.block_flow
     }
 
+    fn col_widths<'a>(&'a mut self) -> &'a mut ~[Au] {
+        &mut self.col_widths
+    }
+
+    fn col_min_widths<'a>(&'a self) -> &'a ~[Au] {
+        &self.col_min_widths
+    }
+
+    fn col_pref_widths<'a>(&'a self) -> &'a ~[Au] {
+        &self.col_pref_widths
+    }
+
     /// Recursively (bottom-up) determines the context's preferred and minimum widths. When called
     /// on this context, all child contexts have had their min/pref widths set. This function must
     /// decide min/pref widths based on child context widths and dimensions of any boxes it is
     /// responsible for flowing.
     /// Min/pref widths set by this function are used in automatic table layout calculation.
-    /// Also, this function collects the specified column widths of children cells. Those are used
-    /// in fixed table layout calculation
-    fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
+    /// The specified column widths of children cells are used in fixed table layout calculation.
+    fn bubble_widths(&mut self, _: &mut LayoutContext) {
+        let mut min_width = Au(0);
+        let mut pref_width = Au(0);
+        let mut num_floats = 0;
         /* find the specified widths from child table-cell contexts */
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_table_cell());
 
+            // collect the specified column widths of cells. These are used in fixed table layout calculation.
             for child_box in kid.as_table_cell().box_().iter() {
                 let child_specified_width = MaybeAuto::from_style(child_box.style().Box.get().width,
                                                                   Au::new(0)).specified_or_zero();
                 self.col_widths.push(child_specified_width);
             }
-        }
 
-        // TODO: calculate min_width & pref_width for automatic table layout calculation
-        self.block_flow.bubble_widths(ctx);
+            // collect min_width & pref_width of children cells for automatic table layout calculation.
+            let child_base = flow::mut_base(kid);
+            self.col_min_widths.push(child_base.intrinsic_widths.minimum_width);
+            self.col_pref_widths.push(child_base.intrinsic_widths.preferred_width);
+            min_width = min_width + child_base.intrinsic_widths.minimum_width;
+            pref_width = pref_width + child_base.intrinsic_widths.preferred_width;
+            num_floats = num_floats + child_base.num_floats;
+        }
+        self.block_flow.base.num_floats = num_floats;
+        self.block_flow.base.intrinsic_widths.minimum_width = min_width;
+        self.block_flow.base.intrinsic_widths.preferred_width = geometry::max(min_width,
+                                                                              pref_width);
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
@@ -203,12 +233,6 @@ impl Flow for TableRowFlow {
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height: assigning height for table_row");
         self.assign_height_table_row_base(ctx, false);
-    }
-
-    /// TableRowBox and their parents(TableBox) do not have margins.
-    /// Therefore, margins to be collapsed do not exist.
-    fn collapse_margins(&mut self, _: bool, _: &mut bool, _: &mut Au,
-                        _: &mut Au, _: &mut Au, _: &mut Au) {
     }
 
     fn debug_str(&self) -> ~str {
