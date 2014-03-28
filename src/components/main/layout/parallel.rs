@@ -14,10 +14,11 @@ use layout::flow::{Flow, PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::layout_task::{AssignHeightsAndStoreOverflowTraversal, AssignWidthsTraversal};
 use layout::layout_task::{BubbleWidthsTraversal};
-use layout::util::{LayoutDataAccess, OpaqueNode};
+use layout::util::{LayoutDataAccess, OpaqueNodeMethods};
 use layout::wrapper::{layout_node_to_unsafe_layout_node, LayoutNode, PostorderNodeMutTraversal};
 use layout::wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
 
+use gfx::display_list::OpaqueNode;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
@@ -244,7 +245,8 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
         node.initialize_layout_data(layout_context.layout_chan.clone());
 
         // Get the parent node.
-        let parent_opt = if OpaqueNode::from_layout_node(&node) == layout_context.reflow_root {
+        let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(&node);
+        let parent_opt = if opaque_node == layout_context.reflow_root {
             None
         } else {
             node.parent_node()
@@ -345,7 +347,8 @@ fn construct_flows(mut unsafe_layout_node: UnsafeLayoutNode,
         }
 
         // If this is the reflow root, we're done.
-        if layout_context.reflow_root == OpaqueNode::from_layout_node(&node) {
+        let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(&node);
+        if layout_context.reflow_root == opaque_node {
             break
         }
 
