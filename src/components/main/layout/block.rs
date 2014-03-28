@@ -1432,6 +1432,111 @@ impl BlockFlow {
     fn get_hypothetical_top_edge(&self) -> Au {
         self.base.position.origin.y
     }
+
+    fn set_containing_width_if_float(&mut self, containing_block_width: Au) {
+        if self.is_float() {
+            self.float.get_mut_ref().containing_width = containing_block_width;
+
+            // Parent usually sets this, but floats are never inorder
+            self.base.flags_info.flags.set_inorder(false);
+        }
+    }
+
+    pub fn propagate_assigned_width_to_children(&mut self,
+                                                left_content_edge: Au,
+                                                content_width: Au,
+                                                opt_col_widths: Option<~[Au]>) {
+        let has_inorder_children = if self.is_float() {
+            self.base.num_floats > 0
+        } else {
+            self.base.flags_info.flags.inorder() || self.base.num_floats > 0
+        };
+
+        let kid_abs_cb_x_offset;
+        if self.is_positioned() {
+            match self.box_ {
+                Some(ref box_) => {
+                    // Pass yourself as a new Containing Block
+                    // The static x offset for any immediate kid flows will be the
+                    // left padding
+                    kid_abs_cb_x_offset = box_.padding.get().left;
+                }
+                None => fail!("BlockFlow: no principal box found"),
+            }
+        } else {
+            // For kids, the left margin edge will be at our left content edge.
+            // The current static offset is at our left margin
+            // edge. So move in to the left content edge.
+            kid_abs_cb_x_offset = self.base.absolute_static_x_offset + left_content_edge;
+        }
+        let kid_fixed_cb_x_offset = self.base.fixed_static_x_offset + left_content_edge;
+
+        // This value is used only for table cells.
+        let mut kid_left_margin_edge = left_content_edge;
+
+        // FIXME(ksh8281): avoid copy
+        let flags_info = self.base.flags_info.clone();
+        for (i, kid) in self.base.child_iter().enumerate() {
+            if kid.is_block_flow() {
+                let kid_block = kid.as_block();
+                kid_block.base.absolute_static_x_offset = kid_abs_cb_x_offset;
+                kid_block.base.fixed_static_x_offset = kid_fixed_cb_x_offset;
+            }
+
+            {
+                let child_base = flow::mut_base(kid);
+                // Left margin edge of kid flow is at our left content edge
+                child_base.position.origin.x = left_content_edge;
+                // Width of kid flow is our content width
+                child_base.position.size.width = content_width;
+                child_base.flags_info.flags.set_inorder(has_inorder_children);
+
+                if !child_base.flags_info.flags.inorder() {
+                    child_base.floats = Floats::new();
+                }
+            }
+
+            // Handle tables.
+            match opt_col_widths {
+                Some(ref col_widths) => {
+                    // If kid is table_rowgroup or table_row, the column widths info should be
+                    // copied from its parent.
+                    let kid_width;
+                    if kid.is_table() || kid.is_table_rowgroup() || kid.is_table_row() {
+                        *kid.col_widths() = col_widths.clone();
+
+                        // Width of kid flow is our content width.
+                        kid_width = content_width
+                    } else if kid.is_table_cell() {
+                        // If kid is table_cell, the x offset and width for each cell should be
+                        // calculated from parent's column widths info.
+                        kid_left_margin_edge = if i == 0 {
+                            Au(0)
+                        } else {
+                            kid_left_margin_edge + col_widths[i-1]
+                        };
+
+                        kid_width = col_widths[i]
+                    } else {
+                        // Width of kid flow is our content width.
+                        kid_width = content_width
+                    }
+
+                    let kid_base = flow::mut_base(kid);
+                    kid_base.position.origin.x = kid_left_margin_edge;
+                    kid_base.position.size.width = kid_width;
+                }
+                None => {}
+            }
+
+            // Per CSS 2.1 § 16.3.1, text decoration propagates to all children in flow.
+            //
+            // TODO(pcwalton): When we have out-of-flow children, don't unconditionally propagate.
+            let child_base = flow::mut_base(kid);
+            child_base.flags_info.propagate_text_decoration_from_parent(&flags_info);
+            child_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
+        }
+    }
 }
 
 impl Flow for BlockFlow {
