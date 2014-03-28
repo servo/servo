@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::NodeListBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
@@ -31,18 +31,18 @@ impl NodeList {
         }
     }
 
-    pub fn new(window: &JS<Window>,
+    pub fn new(window: &JSRef<Window>,
                list_type: NodeListType) -> JS<NodeList> {
-        reflect_dom_object(~NodeList::new_inherited(window.clone(), list_type),
+        reflect_dom_object(~NodeList::new_inherited(window.unrooted(), list_type),
                            window, NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list(window: &JS<Window>, elements: Vec<JS<Node>>) -> JS<NodeList> {
+    pub fn new_simple_list(window: &JSRef<Window>, elements: Vec<JS<Node>>) -> JS<NodeList> {
         NodeList::new(window, Simple(elements))
     }
 
-    pub fn new_child_list(window: &JS<Window>, node: &JS<Node>) -> JS<NodeList> {
-        NodeList::new(window, Children(node.clone()))
+    pub fn new_child_list(window: &JSRef<Window>, node: &JSRef<Node>) -> JS<NodeList> {
+        NodeList::new(window, Children(node.unrooted()))
     }
 
     pub fn Length(&self) -> u32 {

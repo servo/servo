@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::DOMExceptionBinding;
 use dom::bindings::codegen::BindingDeclarations::DOMExceptionBinding::DOMExceptionConstants;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::str::DOMString;
@@ -49,7 +49,7 @@ impl DOMException {
         }
     }
 
-    pub fn new(window: &JS<Window>, code: DOMErrorName) -> JS<DOMException> {
+    pub fn new(window: &JSRef<Window>, code: DOMErrorName) -> JS<DOMException> {
         reflect_dom_object(~DOMException::new_inherited(code), window, DOMExceptionBinding::Wrap)
     }
 }

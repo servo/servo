@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::trace::Untraceable;
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
@@ -74,8 +74,8 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLIFrameElement> {
-        let element = HTMLIFrameElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLIFrameElement> {
+        let element = HTMLIFrameElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLIFrameElementBinding::Wrap)
     }
 }
@@ -105,13 +105,13 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn Sandbox(&self, abstract_self: &JS<HTMLIFrameElement>) -> DOMString {
-        let element: JS<Element> = ElementCast::from(abstract_self);
+    pub fn Sandbox(&self, abstract_self: &JSRef<HTMLIFrameElement>) -> DOMString {
+        let element: JS<Element> = ElementCast::from(&abstract_self.unrooted());
         element.get_string_attribute("sandbox")
     }
 
-    pub fn SetSandbox(&mut self, abstract_self: &mut JS<HTMLIFrameElement>, sandbox: DOMString) {
-        let mut element: JS<Element> = ElementCast::from(abstract_self);
+    pub fn SetSandbox(&mut self, abstract_self: &mut JSRef<HTMLIFrameElement>, sandbox: DOMString) {
+        let mut element: JS<Element> = ElementCast::from(&abstract_self.unrooted());
         element.set_string_attribute("sandbox", sandbox);
     }
 

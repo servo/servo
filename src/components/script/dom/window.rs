@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::WindowBinding;
-use dom::bindings::js::JS;
-use dom::bindings::trace::Untraceable;
+use dom::bindings::js::{JS, JSRef};
+use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::document::Document;
@@ -35,33 +35,25 @@ use std::rc::Rc;
 use serialize::{Encoder, Encodable};
 use url::Url;
 
+#[deriving(Eq, Encodable, TotalEq)]
+pub struct TimerId(i32);
+
+#[deriving(Encodable)]
 pub struct TimerHandle {
-    pub handle: i32,
-    pub cancel_chan: Option<Sender<()>>,
+    pub handle: TimerId,
+    pub data: TimerData,
+    pub cancel_chan: Untraceable<Option<Sender<()>>>,
 }
 
-impl<S: Encoder<E>, E> Encodable<S, E> for TimerHandle {
-    fn encode(&self, _s: &mut S) -> Result<(), E> {
-        Ok(())
-    }
-}
-
-impl Hash for TimerHandle {
+impl Hash for TimerId {
     fn hash(&self, state: &mut sip::SipState) {
-        self.handle.hash(state);
+        let TimerId(id) = *self;
+        id.hash(state);
     }
 }
-
-impl Eq for TimerHandle {
-    fn eq(&self, other: &TimerHandle) -> bool {
-        self.handle == other.handle
-    }
-}
-
-impl TotalEq for TimerHandle { }
 
 impl TimerHandle {
-    fn cancel(&self) {
+    fn cancel(&mut self) {
         self.cancel_chan.as_ref().map(|chan| chan.send(()));
     }
 }
@@ -74,7 +66,7 @@ pub struct Window {
     pub location: Option<JS<Location>>,
     pub navigator: Option<JS<Navigator>>,
     pub image_cache_task: ImageCacheTask,
-    pub active_timers: ~HashMap<i32, TimerHandle>,
+    pub active_timers: ~HashMap<TimerId, TimerHandle>,
     pub next_timer_handle: i32,
     pub compositor: Untraceable<~ScriptListener>,
     pub browser_context: Option<BrowserContext>,
@@ -98,7 +90,7 @@ impl Window {
 #[unsafe_destructor]
 impl Drop for Window {
     fn drop(&mut self) {
-        for timer_handle in self.active_timers.values() {
+        for (_, timer_handle) in self.active_timers.mut_iter() {
             timer_handle.cancel();
         }
     }
@@ -107,10 +99,10 @@ impl Drop for Window {
 // Holder for the various JS values associated with setTimeout
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
+#[deriving(Encodable)]
 pub struct TimerData {
-    pub handle: i32,
     pub is_interval: bool,
-    pub funval: JSVal,
+    pub funval: Traceable<JSVal>,
 }
 
 impl Window {
@@ -160,21 +152,21 @@ impl Window {
         None
     }
 
-    pub fn Location(&mut self, abstract_self: &JS<Window>) -> JS<Location> {
+    pub fn Location(&mut self, abstract_self: &JSRef<Window>) -> JS<Location> {
         if self.location.is_none() {
             self.location = Some(Location::new(abstract_self, self.page.clone()));
         }
         self.location.get_ref().clone()
     }
 
-    pub fn Console(&mut self, abstract_self: &JS<Window>) -> JS<Console> {
+    pub fn Console(&mut self, abstract_self: &JSRef<Window>) -> JS<Console> {
         if self.console.is_none() {
             self.console = Some(Console::new(abstract_self));
         }
         self.console.get_ref().clone()
     }
 
-    pub fn Navigator(&mut self, abstract_self: &JS<Window>) -> JS<Navigator> {
+    pub fn Navigator(&mut self, abstract_self: &JSRef<Window>) -> JS<Navigator> {
         if self.navigator.is_none() {
             self.navigator = Some(Navigator::new(abstract_self));
         }
@@ -243,13 +235,8 @@ impl Window {
                 let id = select.wait();
                 if id == timeout_handle.id() {
                     timeout_port.recv();
-                    let data = ~TimerData {
-                        handle: handle,
-                        is_interval: is_interval,
-                        funval: callback,
-                    };
                     let ScriptChan(ref chan) = chan;
-                    chan.send(FireTimerMsg(page_id, data));
+                    chan.send(FireTimerMsg(page_id, TimerId(handle)));
                     if !is_interval {
                         break;
                     }
@@ -258,7 +245,16 @@ impl Window {
                 }
             }
         });
-        self.active_timers.insert(handle, TimerHandle { handle: handle, cancel_chan: Some(cancel_chan) });
+        let timer_id = TimerId(handle);
+        let timer = TimerHandle {
+            handle: timer_id,
+            cancel_chan: Untraceable::new(Some(cancel_chan)),
+            data: TimerData {
+                is_interval: is_interval,
+                funval: Traceable::new(callback),
+            }
+        };
+        self.active_timers.insert(timer_id, timer);
         handle
     }
 
@@ -267,11 +263,12 @@ impl Window {
     }
 
     pub fn ClearTimeout(&mut self, handle: i32) {
-        let timer_handle = self.active_timers.pop(&handle);
+        let mut timer_handle = self.active_timers.pop(&TimerId(handle));
         match timer_handle {
-            Some(handle) => handle.cancel(),
+            Some(ref mut handle) => handle.cancel(),
             None => { }
         }
+        self.active_timers.remove(&TimerId(handle));
     }
 
     pub fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
@@ -282,11 +279,11 @@ impl Window {
         self.ClearTimeout(handle);
     }
 
-    pub fn Window(&self, abstract_self: &JS<Window>) -> JS<Window> {
-        abstract_self.clone()
+    pub fn Window(&self, abstract_self: &JSRef<Window>) -> JS<Window> {
+        abstract_self.unrooted()
     }
 
-    pub fn Self(&self, abstract_self: &JS<Window>) -> JS<Window> {
+    pub fn Self(&self, abstract_self: &JSRef<Window>) -> JS<Window> {
         self.Window(abstract_self)
     }
 

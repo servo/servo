@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLQuoteElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLQuoteElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLQuoteElementTypeId;
@@ -34,8 +34,8 @@ impl HTMLQuoteElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLQuoteElement> {
-        let element = HTMLQuoteElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLQuoteElement> {
+        let element = HTMLQuoteElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLQuoteElementBinding::Wrap)
     }
 }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLLabelElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLabelElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::document::Document;
 use dom::element::HTMLLabelElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -33,8 +33,8 @@ impl HTMLLabelElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLLabelElement> {
-        let element = HTMLLabelElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLLabelElement> {
+        let element = HTMLLabelElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLLabelElementBinding::Wrap)
     }
 }

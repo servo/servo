@@ -5,7 +5,7 @@
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{Fallible};
 use dom::bindings::codegen::BindingDeclarations::FormDataBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::blob::Blob;
 use dom::htmlformelement::HTMLFormElement;
 use dom::window::Window;
@@ -28,27 +28,27 @@ pub struct FormData {
 }
 
 impl FormData {
-    pub fn new_inherited(form: Option<JS<HTMLFormElement>>, window: JS<Window>) -> FormData {
+    pub fn new_inherited(form: Option<JSRef<HTMLFormElement>>, window: JS<Window>) -> FormData {
         FormData {
             data: HashMap::new(),
             reflector_: Reflector::new(),
             window: window,
-            form: form
+            form: form.map(|form| form.unrooted())
         }
     }
 
-    pub fn new(form: Option<JS<HTMLFormElement>>, window: &JS<Window>) -> JS<FormData> {
-        reflect_dom_object(~FormData::new_inherited(form, window.clone()), window, FormDataBinding::Wrap)
+    pub fn new(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> JS<FormData> {
+        reflect_dom_object(~FormData::new_inherited(form, window.unrooted()), window, FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(window: &JS<Window>, form: Option<JS<HTMLFormElement>>)
+    pub fn Constructor(window: &JSRef<Window>, form: Option<JSRef<HTMLFormElement>>)
                        -> Fallible<JS<FormData>> {
         Ok(FormData::new(form, window))
     }
 
-    pub fn Append(&mut self, name: DOMString, value: &JS<Blob>, filename: Option<DOMString>) {
+    pub fn Append(&mut self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
         let blob = BlobData {
-            blob: value.clone(),
+            blob: value.unrooted(),
             name: filename.unwrap_or(~"default")
         };
         self.data.insert(name.clone(), blob);

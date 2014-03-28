@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::MouseEventBinding;
 use dom::bindings::codegen::InheritTypes::MouseEventDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference};
 use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, MouseEventTypeId};
@@ -51,21 +51,24 @@ impl MouseEvent {
         }
     }
 
-    pub fn new(window: &JS<Window>) -> JS<MouseEvent> {
+    pub fn new(window: &JSRef<Window>) -> JS<MouseEvent> {
         reflect_dom_object(~MouseEvent::new_inherited(),
                            window,
                            MouseEventBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JS<Window>,
+    pub fn Constructor(owner: &JSRef<Window>,
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<JS<MouseEvent>> {
+        let roots = RootCollection::new();
         let mut ev = MouseEvent::new(owner);
-        ev.get_mut().InitMouseEvent(type_, init.bubbles, init.cancelable, init.view.clone(),
+        let view = init.view.as_ref().map(|view| view.root(&roots));
+        let related_target = init.relatedTarget.as_ref().map(|relatedTarget| relatedTarget.root(&roots));
+        ev.get_mut().InitMouseEvent(type_, init.bubbles, init.cancelable, view.root_ref(),
                                       init.detail, init.screenX, init.screenY,
                                       init.clientX, init.clientY, init.ctrlKey,
                                       init.altKey, init.shiftKey, init.metaKey,
-                                      init.button, init.relatedTarget.clone());
+                                      init.button, related_target.root_ref());
         Ok(ev)
     }
 
@@ -123,7 +126,7 @@ impl MouseEvent {
                           typeArg: DOMString,
                           canBubbleArg: bool,
                           cancelableArg: bool,
-                          viewArg: Option<JS<Window>>,
+                          viewArg: Option<JSRef<Window>>,
                           detailArg: i32,
                           screenXArg: i32,
                           screenYArg: i32,
@@ -134,7 +137,7 @@ impl MouseEvent {
                           shiftKeyArg: bool,
                           metaKeyArg: bool,
                           buttonArg: u16,
-                          relatedTargetArg: Option<JS<EventTarget>>) {
+                          relatedTargetArg: Option<JSRef<EventTarget>>) {
         self.mouseevent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x = screenXArg;
         self.screen_y = screenYArg;
@@ -145,7 +148,7 @@ impl MouseEvent {
         self.shift_key = shiftKeyArg;
         self.meta_key = metaKeyArg;
         self.button = buttonArg;
-        self.related_target = relatedTargetArg;
+        self.related_target = relatedTargetArg.map(|target| target.unrooted());
     }
 }
 

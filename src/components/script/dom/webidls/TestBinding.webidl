@@ -156,7 +156,7 @@ interface TestBinding {
   void passOptionalNullableString(optional DOMString? arg);
   void passOptionalNullableByteString(optional ByteString? arg);
   // void passOptionalNullableEnum(optional TestEnum? arg);
-  void passOptionalNullableInterface(optional Blob? arg);
+  //void passOptionalNullableInterface(optional Blob? arg); //XXXjdm disabled until later commit
   void passOptionalNullableUnion(optional (HTMLElement or long)? arg);
 
   void passOptionalBooleanWithDefault(optional boolean arg = false);

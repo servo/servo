@@ -4,21 +4,23 @@
 
 use dom::bindings::callback::ReportExceptions;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::eventtarget::{Capturing, Bubbling, EventTarget};
 use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing};
 use dom::node::{Node, NodeHelpers};
 
 // See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
-pub fn dispatch_event(target: &JS<EventTarget>,
-                      pseudo_target: Option<JS<EventTarget>>,
-                      event: &mut JS<Event>) -> bool {
+pub fn dispatch_event(target: &JSRef<EventTarget>,
+                      pseudo_target: Option<JSRef<EventTarget>>,
+                      event: &mut JSRef<Event>) -> bool {
     assert!(!event.get().dispatching);
 
     {
         let event = event.get_mut();
-        event.target = pseudo_target.or_else(|| {
-            Some(target.clone())
+        event.target = pseudo_target.map(|pseudo_target| {
+            pseudo_target.unrooted()
+        }).or_else(|| {
+            Some(target.unrooted())
         });
         event.dispatching = true;
     }
@@ -27,7 +29,7 @@ pub fn dispatch_event(target: &JS<EventTarget>,
 
     //TODO: no chain if not participating in a tree
     let chain: Vec<JS<EventTarget>> = if target.get().is_node() {
-        let target_node: JS<Node> = NodeCast::to(target).unwrap();
+        let target_node: JS<Node> = NodeCast::to(&target.unrooted()).unwrap();
         target_node.ancestors().map(|ancestor| {
             let ancestor_target: JS<EventTarget> = EventTargetCast::from(&ancestor);
             ancestor_target
@@ -70,7 +72,7 @@ pub fn dispatch_event(target: &JS<EventTarget>,
         {
             let event = event.get_mut();
             event.phase = PhaseAtTarget;
-            event.current_target = Some(target.clone());
+            event.current_target = Some(target.unrooted());
         }
 
         let opt_listeners = target.get().get_listeners(type_);

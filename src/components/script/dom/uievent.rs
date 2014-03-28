@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::UIEventBinding;
 use dom::bindings::codegen::InheritTypes::UIEventDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference};
 use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, UIEventTypeId};
@@ -36,18 +36,20 @@ impl UIEvent {
         }
     }
 
-    pub fn new(window: &JS<Window>) -> JS<UIEvent> {
+    pub fn new(window: &JSRef<Window>) -> JS<UIEvent> {
         reflect_dom_object(~UIEvent::new_inherited(UIEventTypeId),
                            window,
                            UIEventBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JS<Window>,
+    pub fn Constructor(owner: &JSRef<Window>,
                        type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<JS<UIEvent>> {
+        let roots = RootCollection::new();
         let mut ev = UIEvent::new(owner);
+        let view = init.view.as_ref().map(|view| view.root(&roots));
         ev.get_mut().InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
-                                   init.view.clone(), init.detail);
+                                 view.root_ref(), init.detail);
         Ok(ev)
     }
 
@@ -63,10 +65,10 @@ impl UIEvent {
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
-                       view: Option<JS<Window>>,
+                       view: Option<JSRef<Window>>,
                        detail: i32) {
         self.event.InitEvent(type_, can_bubble, cancelable);
-        self.view = view;
+        self.view = view.map(|view| view.unrooted());
         self.detail = detail;
     }
 

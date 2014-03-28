@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::XMLHttpRequestDerived;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, XMLHttpRequestTargetTypeId};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -41,7 +41,7 @@ pub struct XMLHttpRequest {
 }
 
 impl XMLHttpRequest {
-    pub fn new_inherited(owner: &JS<Window>) -> XMLHttpRequest {
+    pub fn new_inherited(owner: &JSRef<Window>) -> XMLHttpRequest {
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId),
             ready_state: 0,
@@ -56,12 +56,12 @@ impl XMLHttpRequest {
             response_xml: None
         }
     }
-    pub fn new(window: &JS<Window>) -> JS<XMLHttpRequest> {
+    pub fn new(window: &JSRef<Window>) -> JS<XMLHttpRequest> {
         reflect_dom_object(~XMLHttpRequest::new_inherited(window),
                            window,
                            XMLHttpRequestBinding::Wrap)
     }
-    pub fn Constructor(owner: &JS<Window>) -> Fallible<JS<XMLHttpRequest>> {
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<JS<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(owner))
     }
     pub fn ReadyState(&self) -> u16 {

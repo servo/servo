@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::{AttributeHandlers, HTMLLinkElementTypeId, HTMLIFrameElementTypeId};
@@ -75,16 +75,19 @@ pub struct HtmlParserResult {
 }
 
 trait NodeWrapping {
-    unsafe fn to_hubbub_node(&self) -> hubbub::NodeDataPtr;
-    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> Self;
+    unsafe fn to_hubbub_node(&self, roots: &RootCollection) -> hubbub::NodeDataPtr;
+    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr, roots: Option<&RootCollection>) -> Self;
 }
 
 impl<T: NodeBase+Reflectable> NodeWrapping for JS<T> {
-    unsafe fn to_hubbub_node(&self) -> hubbub::NodeDataPtr {
+    unsafe fn to_hubbub_node(&self, roots: &RootCollection) -> hubbub::NodeDataPtr {
+        roots.root_raw(self.reflector().get_jsobject());
         cast::transmute(self.get())
     }
-    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> JS<T> {
-        JS::from_raw(cast::transmute(n))
+    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr, roots: Option<&RootCollection>) -> JS<T> {
+        let js = JS::from_raw(cast::transmute(n));
+        let _ = roots.map(|roots| roots.unroot_raw(js.reflector().get_jsobject()));
+        js
     }
 }
 
@@ -160,7 +163,7 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-pub fn build_element_from_tag(tag: DOMString, document: &JS<Document>) -> JS<Element> {
+pub fn build_element_from_tag(tag: DOMString, document: &JSRef<Document>) -> JS<Element> {
     // TODO (Issue #85): use atoms
     handle_element!(document, tag, "a",         HTMLAnchorElement);
     handle_element!(document, tag, "applet",    HTMLAppletElement);
@@ -246,7 +249,7 @@ pub fn build_element_from_tag(tag: DOMString, document: &JS<Document>) -> JS<Ele
 }
 
 pub fn parse_html(page: &Page,
-                  document: &mut JS<Document>,
+                  document: &mut JSRef<Document>,
                   url: Url,
                   resource_task: ResourceTask)
                   -> HtmlParserResult {
@@ -292,7 +295,9 @@ pub fn parse_html(page: &Page,
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
 
-    parser.set_document_node(unsafe { document.to_hubbub_node() });
+    let roots = RootCollection::new();
+
+    parser.set_document_node(unsafe { document.unrooted().to_hubbub_node(&roots) });
     parser.enable_scripting(true);
     parser.enable_styling(true);
 
@@ -309,7 +314,7 @@ pub fn parse_html(page: &Page,
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
             let comment: JS<Node> = NodeCast::from(&Comment::new(data, *tmp));
-                unsafe { comment.to_hubbub_node() }
+            unsafe { comment.to_hubbub_node(&roots) }
         },
         create_doctype: |doctype: ~hubbub::Doctype| {
             debug!("create doctype");
@@ -322,15 +327,16 @@ pub fn parse_html(page: &Page,
             let tmp = &*tmp_borrow;
             let doctype_node = DocumentType::new(name, public_id, system_id, *tmp);
             unsafe {
-                doctype_node.to_hubbub_node()
+                doctype_node.to_hubbub_node(&roots)
             }
         },
         create_element: |tag: ~hubbub::Tag| {
-            debug!("create element");
+            debug!("create element {:?}", tag.name.clone());
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
             let mut element = build_element_from_tag(tag.name.clone(), *tmp);
+            let _element_root = element.root(&roots);
 
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
@@ -389,7 +395,7 @@ pub fn parse_html(page: &Page,
                 _ => {}
             }
 
-            unsafe { element.to_hubbub_node() }
+            unsafe { element.to_hubbub_node(&roots) }
         },
         create_text: |data: ~str| {
             debug!("create text");
@@ -397,16 +403,17 @@ pub fn parse_html(page: &Page,
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
             let text = Text::new(data, *tmp);
-            unsafe { text.to_hubbub_node() }
+            unsafe { text.to_hubbub_node(&roots) }
         },
         ref_node: |_| {},
         unref_node: |_| {},
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
             unsafe {
                 debug!("append child {:x} {:x}", parent, child);
-                let mut parent: JS<Node> = NodeWrapping::from_hubbub_node(parent);
-                let mut child: JS<Node> = NodeWrapping::from_hubbub_node(child);
-                assert!(parent.AppendChild(&mut child).is_ok());
+                let mut parent: JS<Node> = NodeWrapping::from_hubbub_node(parent, None);
+                let child: JS<Node> = NodeWrapping::from_hubbub_node(child, Some(&roots));
+                let child = child.root(&roots);
+                assert!(parent.AppendChild(&mut child.root_ref()).is_ok());
             }
             child
         },
@@ -457,7 +464,7 @@ pub fn parse_html(page: &Page,
         },
         complete_script: |script| {
             unsafe {
-                let script: JS<Element> = NodeWrapping::from_hubbub_node(script);
+                let script: JS<Element> = NodeWrapping::from_hubbub_node(script, None);
                 match script.get_attribute(Null, "src") {
                     Some(src) => {
                         debug!("found script: {:s}", src.get().Value());

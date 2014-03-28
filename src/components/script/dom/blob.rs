@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::bindings::codegen::BindingDeclarations::BlobBinding;
@@ -23,15 +23,15 @@ impl Blob {
         }
     }
 
-    pub fn new(window: &JS<Window>) -> JS<Blob> {
-        reflect_dom_object(~Blob::new_inherited(window.clone()),
+    pub fn new(window: &JSRef<Window>) -> JS<Blob> {
+        reflect_dom_object(~Blob::new_inherited(window.unrooted()),
                            window,
                            BlobBinding::Wrap)
     }
 }
 
 impl Blob {
-    pub fn Constructor(window: &JS<Window>) -> Fallible<JS<Blob>> {
+    pub fn Constructor(window: &JSRef<Window>) -> Fallible<JS<Blob>> {
         Ok(Blob::new(window))
     }
 
@@ -44,7 +44,9 @@ impl Blob {
     }
 
     pub fn Slice(&self, _start: Option<i64>, _end: Option<i64>, _contentType: Option<DOMString>) -> JS<Blob> {
-        Blob::new(&self.window)
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+        Blob::new(&window.root_ref())
     }
 
     pub fn Close(&self) {}

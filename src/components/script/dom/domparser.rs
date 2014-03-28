@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::DOMParserBinding;
 use dom::bindings::codegen::BindingDeclarations::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::error::{Fallible, FailureUnknown};
 use dom::document::{Document, HTMLDocument, NonHTMLDocument};
@@ -25,12 +25,12 @@ impl DOMParser {
         }
     }
 
-    pub fn new(owner: &JS<Window>) -> JS<DOMParser> {
-        reflect_dom_object(~DOMParser::new_inherited(owner.clone()), owner,
+    pub fn new(owner: &JSRef<Window>) -> JS<DOMParser> {
+        reflect_dom_object(~DOMParser::new_inherited(owner.unrooted()), owner,
                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JS<Window>) -> Fallible<JS<DOMParser>> {
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<JS<DOMParser>> {
         Ok(DOMParser::new(owner))
     }
 
@@ -38,12 +38,14 @@ impl DOMParser {
                            _s: DOMString,
                            ty: DOMParserBinding::SupportedType)
                            -> Fallible<JS<Document>> {
+        let roots = RootCollection::new();
+        let owner = self.owner.root(&roots);
         match ty {
             Text_html => {
-                Ok(Document::new(&self.owner, None, HTMLDocument, Some(~"text/html")))
+                Ok(Document::new(&owner.root_ref(), None, HTMLDocument, Some(~"text/html")))
             }
             Text_xml => {
-                Ok(Document::new(&self.owner, None, NonHTMLDocument, Some(~"text/xml")))
+                Ok(Document::new(&owner.root_ref(), None, NonHTMLDocument, Some(~"text/xml")))
             }
             _ => {
                 Err(FailureUnknown)

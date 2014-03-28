@@ -7,7 +7,7 @@ use dom::bindings::codegen::InheritTypes::{DocumentBase, NodeCast, DocumentCast}
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast};
 use dom::bindings::codegen::BindingDeclarations::DocumentBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest, NamespaceError};
@@ -79,16 +79,18 @@ impl DocumentDerived for EventTarget {
 impl Document {
     pub fn reflect_document<D: Reflectable+DocumentBase>
             (document:  ~D,
-             window:    &JS<Window>,
-             wrap_fn:   extern "Rust" fn(*JSContext, &JS<Window>, ~D) -> JS<D>)
+             window:    &JSRef<Window>,
+             wrap_fn:   extern "Rust" fn(*JSContext, &JSRef<Window>, ~D) -> JS<D>)
              -> JS<D> {
+        let roots = RootCollection::new();
         assert!(document.reflector().get_jsobject().is_null());
         let raw_doc = reflect_dom_object(document, window, wrap_fn);
         assert!(raw_doc.reflector().get_jsobject().is_not_null());
 
         let document = DocumentCast::from(&raw_doc);
+        let document_root = document.root(&roots);
         let mut node: JS<Node> = NodeCast::from(&document);
-        node.get_mut().set_owner_doc(&document);
+        node.get_mut().set_owner_doc(&document_root.root_ref());
         raw_doc
     }
 
@@ -122,8 +124,8 @@ impl Document {
         }
     }
 
-    pub fn new(window: &JS<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> JS<Document> {
-        let document = Document::new_inherited(window.clone(), url, doctype, content_type);
+    pub fn new(window: &JSRef<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> JS<Document> {
+        let document = Document::new_inherited(window.unrooted(), url, doctype, content_type);
         Document::reflect_document(~document, window, DocumentBinding::Wrap)
     }
 }
@@ -136,7 +138,7 @@ impl Document {
 
 impl Document {
     // http://dom.spec.whatwg.org/#dom-document
-    pub fn Constructor(owner: &JS<Window>) -> Fallible<JS<Document>> {
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<JS<Document>> {
         Ok(Document::new(owner, None, NonHTMLDocument, None))
     }
 }
@@ -155,7 +157,9 @@ impl Document {
     // http://dom.spec.whatwg.org/#dom-document-implementation
     pub fn Implementation(&mut self) -> JS<DOMImplementation> {
         if self.implementation.is_none() {
-            self.implementation = Some(DOMImplementation::new(&self.window));
+            let roots = RootCollection::new();
+            let window = self.window.root(&roots);
+            self.implementation = Some(DOMImplementation::new(&window.root_ref()));
         }
         self.implementation.get_ref().clone()
     }
@@ -212,22 +216,30 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
-    pub fn GetElementsByTagName(&self, abstract_self: &JS<Document>, tag_name: DOMString) -> JS<HTMLCollection> {
-        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), tag_name)
+    pub fn GetElementsByTagName(&self, abstract_self: &JSRef<Document>, tag_name: DOMString) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+        HTMLCollection::by_tag_name(&window.root_ref(), NodeCast::from_ref(abstract_self), tag_name)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
-    pub fn GetElementsByTagNameNS(&self, abstract_self: &JS<Document>, maybe_ns: Option<DOMString>, tag_name: DOMString) -> JS<HTMLCollection> {
+    pub fn GetElementsByTagNameNS(&self, abstract_self: &JSRef<Document>, maybe_ns: Option<DOMString>, tag_name: DOMString) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
         let namespace = match maybe_ns {
             Some(namespace) => Namespace::from_str(namespace),
             None => Null
         };
-        HTMLCollection::by_tag_name_ns(&self.window, &NodeCast::from(abstract_self), tag_name, namespace)
+        HTMLCollection::by_tag_name_ns(&window.root_ref(), NodeCast::from_ref(abstract_self), tag_name, namespace)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
-    pub fn GetElementsByClassName(&self, abstract_self: &JS<Document>, classes: DOMString) -> JS<HTMLCollection> {
-        HTMLCollection::by_class_name(&self.window, &NodeCast::from(abstract_self), classes)
+    pub fn GetElementsByClassName(&self, abstract_self: &JSRef<Document>, classes: DOMString) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
+        HTMLCollection::by_class_name(&window.root_ref(), NodeCast::from_ref(abstract_self), classes)
     }
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
@@ -239,7 +251,7 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelement
-    pub fn CreateElement(&self, abstract_self: &JS<Document>, local_name: DOMString)
+    pub fn CreateElement(&self, abstract_self: &JSRef<Document>, local_name: DOMString)
                          -> Fallible<JS<Element>> {
         if xml_name_type(local_name) == InvalidXMLName {
             debug!("Not a valid element name");
@@ -250,7 +262,7 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
-    pub fn CreateElementNS(&self, abstract_self: &JS<Document>,
+    pub fn CreateElementNS(&self, abstract_self: &JSRef<Document>,
                            namespace: Option<DOMString>,
                            qualified_name: DOMString) -> Fallible<JS<Element>> {
         let ns = Namespace::from_str(null_str_as_empty_ref(&namespace));
@@ -296,23 +308,23 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createdocumentfragment
-    pub fn CreateDocumentFragment(&self, abstract_self: &JS<Document>) -> JS<DocumentFragment> {
+    pub fn CreateDocumentFragment(&self, abstract_self: &JSRef<Document>) -> JS<DocumentFragment> {
         DocumentFragment::new(abstract_self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createtextnode
-    pub fn CreateTextNode(&self, abstract_self: &JS<Document>, data: DOMString)
+    pub fn CreateTextNode(&self, abstract_self: &JSRef<Document>, data: DOMString)
                           -> JS<Text> {
         Text::new(data, abstract_self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createcomment
-    pub fn CreateComment(&self, abstract_self: &JS<Document>, data: DOMString) -> JS<Comment> {
+    pub fn CreateComment(&self, abstract_self: &JSRef<Document>, data: DOMString) -> JS<Comment> {
         Comment::new(data, abstract_self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
-    pub fn CreateProcessingInstruction(&self, abstract_self: &JS<Document>, target: DOMString,
+    pub fn CreateProcessingInstruction(&self, abstract_self: &JSRef<Document>, target: DOMString,
                                        data: DOMString) -> Fallible<JS<ProcessingInstruction>> {
         // Step 1.
         if xml_name_type(target) == InvalidXMLName {
@@ -329,9 +341,9 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-importnode
-    pub fn ImportNode(&self, abstract_self: &JS<Document>, node: &JS<Node>, deep: bool) -> Fallible<JS<Node>> {
+    pub fn ImportNode(&self, abstract_self: &JSRef<Document>, node: &JSRef<Node>, deep: bool) -> Fallible<JS<Node>> {
         // Step 1.
-        if node.is_document() {
+        if node.unrooted().is_document() {
             return Err(NotSupported);
         }
 
@@ -345,9 +357,9 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-adoptnode
-    pub fn AdoptNode(&self, abstract_self: &JS<Document>, node: &JS<Node>) -> Fallible<JS<Node>> {
+    pub fn AdoptNode(&self, abstract_self: &JSRef<Document>, node: &JSRef<Node>) -> Fallible<JS<Node>> {
         // Step 1.
-        if node.is_document() {
+        if node.unrooted().is_document() {
             return Err(NotSupported);
         }
 
@@ -356,22 +368,25 @@ impl Document {
         Node::adopt(&mut adoptee, abstract_self);
 
         // Step 3.
-        Ok(adoptee)
+        Ok(adoptee.unrooted())
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createevent
     pub fn CreateEvent(&self, interface: DOMString) -> Fallible<JS<Event>> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
         match interface.to_ascii_lower().as_slice() {
             // FIXME: Implement CustomEvent (http://dom.spec.whatwg.org/#customevent)
-            "uievents" | "uievent" => Ok(EventCast::from(&UIEvent::new(&self.window))),
-            "mouseevents" | "mouseevent" => Ok(EventCast::from(&MouseEvent::new(&self.window))),
-            "htmlevents" | "events" | "event" => Ok(Event::new(&self.window)),
+            "uievents" | "uievent" => Ok(EventCast::from(&UIEvent::new(&window.root_ref()))),
+            "mouseevents" | "mouseevent" => Ok(EventCast::from(&MouseEvent::new(&window.root_ref()))),
+            "htmlevents" | "events" | "event" => Ok(Event::new(&window.root_ref())),
             _ => Err(NotSupported)
         }
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
-    pub fn Title(&self, _: &JS<Document>) -> DOMString {
+    pub fn Title(&self, _: &JSRef<Document>) -> DOMString {
         let mut title = ~"";
         self.GetDocumentElement().map(|root| {
             let root: JS<Node> = NodeCast::from(&root);
@@ -392,7 +407,9 @@ impl Document {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
-    pub fn SetTitle(&self, abstract_self: &JS<Document>, title: DOMString) -> ErrorResult {
+    pub fn SetTitle(&self, abstract_self: &JSRef<Document>, title: DOMString) -> ErrorResult {
+        let roots = RootCollection::new();
+
         self.GetDocumentElement().map(|root| {
             let root: JS<Node> = NodeCast::from(&root);
             let mut head_node = root.traverse_preorder().find(|child| {
@@ -405,18 +422,25 @@ impl Document {
 
                 match title_node {
                     Some(ref mut title_node) => {
-                        for mut title_child in title_node.children() {
-                            assert!(title_node.RemoveChild(&mut title_child).is_ok());
+                        for title_child in title_node.children() {
+                            let title_child = title_child.root(&roots);
+                            assert!(title_node.RemoveChild(&mut title_child.root_ref()).is_ok());
                         }
                         let new_text = self.CreateTextNode(abstract_self, title.clone());
-                        assert!(title_node.AppendChild(&mut NodeCast::from(&new_text)).is_ok());
+                        let new_text = new_text.root(&roots);
+
+                        assert!(title_node.AppendChild(NodeCast::from_mut_ref(&mut new_text.root_ref())).is_ok());
                     },
                     None => {
                         let mut new_title: JS<Node> =
                             NodeCast::from(&HTMLTitleElement::new(~"title", abstract_self));
+                        let new_title_root = new_title.root(&roots);
+
                         let new_text = self.CreateTextNode(abstract_self, title.clone());
-                        assert!(new_title.AppendChild(&mut NodeCast::from(&new_text)).is_ok());
-                        assert!(head.AppendChild(&mut new_title).is_ok());
+                        let new_text = new_text.root(&roots);
+
+                        assert!(new_title.AppendChild(NodeCast::from_mut_ref(&mut new_text.root_ref())).is_ok());
+                        assert!(head.AppendChild(&mut new_title_root.root_ref()).is_ok());
                     },
                 }
             });
@@ -441,7 +465,7 @@ impl Document {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
-    pub fn GetBody(&self, _: &JS<Document>) -> Option<JS<HTMLElement>> {
+    pub fn GetBody(&self, _: &JSRef<Document>) -> Option<JS<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let node: JS<Node> = NodeCast::from(&root);
             node.children().find(|child| {
@@ -455,7 +479,9 @@ impl Document {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
-    pub fn SetBody(&self, abstract_self: &JS<Document>, new_body: Option<JS<HTMLElement>>) -> ErrorResult {
+    pub fn SetBody(&self, abstract_self: &JSRef<Document>, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult {
+        let roots = RootCollection::new();
+
         // Step 1.
         match new_body {
             Some(ref node) => {
@@ -469,7 +495,7 @@ impl Document {
 
         // Step 2.
         let old_body: Option<JS<HTMLElement>> = self.GetBody(abstract_self);
-        if old_body == new_body {
+        if old_body == new_body.as_ref().map(|new_body| new_body.unrooted()) {
             return Ok(());
         }
 
@@ -478,14 +504,18 @@ impl Document {
             // Step 4.
             None => return Err(HierarchyRequest),
             Some(root) => {
-                let mut new_body: JS<Node> = NodeCast::from(&new_body.unwrap());
+                let mut new_body_unwrapped = new_body.unwrap();
+                let new_body: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut new_body_unwrapped);
+
                 let mut root: JS<Node> = NodeCast::from(&root);
                 match old_body {
                     Some(child) => {
-                        let mut child: JS<Node> = NodeCast::from(&child);
-                        assert!(root.ReplaceChild(&mut new_body, &mut child).is_ok())
+                        let child: JS<Node> = NodeCast::from(&child);
+                        let child = child.root(&roots);
+
+                        assert!(root.ReplaceChild(new_body, &mut child.root_ref()).is_ok())
                     }
-                    None => assert!(root.AppendChild(&mut new_body).is_ok())
+                    None => assert!(root.AppendChild(new_body).is_ok())
                 };
             }
         }
@@ -495,132 +525,159 @@ impl Document {
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
     pub fn GetElementsByName(&self, name: DOMString) -> JS<NodeList> {
         self.createNodeList(|node| {
-            if !node.is_element() {
+            if !node.get().is_element() {
                 return false;
             }
 
-            let element: JS<Element> = ElementCast::to(node).unwrap();
+            let element: JS<Element> = ElementCast::to(&node.unrooted()).unwrap();
             element.get_attribute(Null, "name").map_or(false, |attr| {
                 attr.get().value_ref() == name
             })
         })
     }
 
-    pub fn Images(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+    pub fn Images(&self, abstract_self: &JSRef<Document>) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
         // FIXME: https://github.com/mozilla/servo/issues/1847
         struct ImagesFilter;
         impl CollectionFilter for ImagesFilter {
-            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
                 elem.get().local_name == ~"img"
             }
         }
         let filter = ~ImagesFilter;
-        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&window.root_ref(), NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Embeds(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+    pub fn Embeds(&self, abstract_self: &JSRef<Document>) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
         // FIXME: https://github.com/mozilla/servo/issues/1847
         struct EmbedsFilter;
         impl CollectionFilter for EmbedsFilter {
-            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
                 elem.get().local_name == ~"embed"
             }
         }
         let filter = ~EmbedsFilter;
-        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&window.root_ref(), NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Plugins(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+    pub fn Plugins(&self, abstract_self: &JSRef<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
         self.Embeds(abstract_self)
     }
 
-    pub fn Links(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+    pub fn Links(&self, abstract_self: &JSRef<Document>) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
         // FIXME: https://github.com/mozilla/servo/issues/1847
         struct LinksFilter;
         impl CollectionFilter for LinksFilter {
-            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
                 (elem.get().local_name == ~"a" || elem.get().local_name == ~"area") &&
-                elem.get_attribute(Null, "href").is_some()
+                elem.unrooted().get_attribute(Null, "href").is_some()
             }
         }
         let filter = ~LinksFilter;
-        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&window.root_ref(), NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Forms(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+    pub fn Forms(&self, abstract_self: &JSRef<Document>) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
         // FIXME: https://github.com/mozilla/servo/issues/1847
         struct FormsFilter;
         impl CollectionFilter for FormsFilter {
-            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
                 elem.get().local_name == ~"form"
             }
         }
         let filter = ~FormsFilter;
-        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&window.root_ref(), NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Scripts(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+    pub fn Scripts(&self, abstract_self: &JSRef<Document>) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
         // FIXME: https://github.com/mozilla/servo/issues/1847
         struct ScriptsFilter;
         impl CollectionFilter for ScriptsFilter {
-            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
                 elem.get().local_name == ~"script"
             }
         }
         let filter = ~ScriptsFilter;
-        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&window.root_ref(), NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Anchors(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+    pub fn Anchors(&self, abstract_self: &JSRef<Document>) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
         // FIXME: https://github.com/mozilla/servo/issues/1847
         struct AnchorsFilter;
         impl CollectionFilter for AnchorsFilter {
-            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                elem.get().local_name == ~"a" && elem.get_attribute(Null, "name").is_some()
+            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+                elem.get().local_name == ~"a" && elem.unrooted().get_attribute(Null, "name").is_some()
             }
         }
         let filter = ~AnchorsFilter;
-        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&window.root_ref(), NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Applets(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+    pub fn Applets(&self, abstract_self: &JSRef<Document>) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
         // FIXME: This should be return OBJECT elements containing applets.
         struct AppletsFilter;
         impl CollectionFilter for AppletsFilter {
-            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
                 elem.get().local_name == ~"applet"
             }
         }
         let filter = ~AppletsFilter;
-        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
+        HTMLCollection::create(&window.root_ref(), NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Location(&mut self, abstract_self: &JS<Document>) -> JS<Location> {
-        self.window.get_mut().Location(&abstract_self.get().window)
+    pub fn Location(&mut self, _abstract_self: &JSRef<Document>) -> JS<Location> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+        self.window.get_mut().Location(&window.root_ref())
     }
 
-    pub fn Children(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
-        let doc = self.node.owner_doc();
-        let doc = doc.get();
-        HTMLCollection::children(&doc.window, &NodeCast::from(abstract_self))
+    pub fn Children(&self, abstract_self: &JSRef<Document>) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+        HTMLCollection::children(&window.root_ref(), NodeCast::from_ref(abstract_self))
     }
 
-    pub fn createNodeList(&self, callback: |node: &JS<Node>| -> bool) -> JS<NodeList> {
+    pub fn createNodeList(&self, callback: |node: &JSRef<Node>| -> bool) -> JS<NodeList> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
         let mut nodes = vec!();
         match self.GetDocumentElement() {
             None => {},
             Some(root) => {
                 let root: JS<Node> = NodeCast::from(&root);
                 for child in root.traverse_preorder() {
-                    if callback(&child) {
-                        nodes.push(child.clone());
+                    let child = child.root(&roots);
+                    if callback(&child.root_ref()) {
+                        nodes.push(child.root_ref().unrooted());
                     }
                 }
             }
         }
 
-        NodeList::new_simple_list(&self.window, nodes)
+        NodeList::new_simple_list(&window.root_ref(), nodes)
     }
 
     pub fn content_changed(&self) {
@@ -638,14 +695,14 @@ impl Document {
 
     /// Remove any existing association between the provided id and any elements in this document.
     pub fn unregister_named_element(&mut self,
-                                    abstract_self: &JS<Element>,
+                                    abstract_self: &JSRef<Element>,
                                     id: DOMString) {
         let mut is_empty = false;
         match self.idmap.find_mut(&id) {
             None => {},
             Some(elements) => {
                 let position = elements.iter()
-                                       .position(|element| element == abstract_self)
+                                       .position(|element| element == &abstract_self.unrooted())
                                        .expect("This element should be in registered.");
                 elements.remove(position);
                 is_empty = elements.is_empty();
@@ -658,10 +715,10 @@ impl Document {
 
     /// Associate an element present in this document with the provided id.
     pub fn register_named_element(&mut self,
-                                  element: &JS<Element>,
+                                  element: &JSRef<Element>,
                                   id: DOMString) {
         assert!({
-            let node: JS<Node> = NodeCast::from(element);
+            let node: JS<Node> = NodeCast::from(&element.unrooted());
             node.is_in_doc()
         });
 
@@ -670,7 +727,7 @@ impl Document {
         let root = self.GetDocumentElement().expect("The element is in the document, so there must be a document element.");
         match self.idmap.find_mut(&id) {
             Some(elements) => {
-                let new_node = NodeCast::from(element);
+                let new_node = NodeCast::from_ref(element);
                 let mut head : uint = 0u;
                 let root: JS<Node> = NodeCast::from(&root);
                 for node in root.traverse_preorder() {
@@ -679,18 +736,18 @@ impl Document {
                             if elements.get(head) == &elem {
                                 head = head + 1;
                             }
-                            if new_node == node || head == elements.len() {
+                            if new_node.unrooted() == node || head == elements.len() {
                                 break;
                             }
                         }
                         None => {}
                     }
                 }
-                elements.insert(head, element.clone());
+                elements.insert(head, element.unrooted());
                 return;
             },
             None => (),
         }
-        self.idmap.insert(id, vec!(element.clone()));
+        self.idmap.insert(id, vec!(element.unrooted()));
     }
 }

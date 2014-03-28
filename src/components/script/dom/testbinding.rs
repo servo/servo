@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::codegen::BindingDeclarations::TestBindingBinding;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use self::TestBindingBinding::TestEnum;
@@ -51,8 +51,12 @@ impl TestBinding {
     pub fn SetByteStringAttribute(&self, _: ByteString) {}
     pub fn EnumAttribute(&self) -> TestEnum { _empty }
     pub fn SetEnumAttribute(&self, _: TestEnum) {}
-    pub fn InterfaceAttribute(&self) -> JS<Blob> { Blob::new(&self.window) }
-    pub fn SetInterfaceAttribute(&self, _: &JS<Blob>) {}
+    pub fn InterfaceAttribute(&self) -> JS<Blob> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+        Blob::new(&window.root_ref())
+    }
+    pub fn SetInterfaceAttribute(&self, _: &JSRef<Blob>) {}
     pub fn AnyAttribute(&self, _: *JSContext) -> JSVal { NullValue() }
     pub fn SetAnyAttribute(&self, _: *JSContext, _: JSVal) {}
 
@@ -83,8 +87,12 @@ impl TestBinding {
     pub fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some(~"") }
     pub fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
     pub fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
-    pub fn GetInterfaceAttributeNullable(&self) -> Option<JS<Blob>> { Some(Blob::new(&self.window)) }
-    pub fn SetInterfaceAttributeNullable(&self, _: Option<JS<Blob>>) {}
+    pub fn GetInterfaceAttributeNullable(&self) -> Option<JS<Blob>> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+        Some(Blob::new(&window.root_ref()))
+    }
+    pub fn SetInterfaceAttributeNullable(&self, _: Option<JSRef<Blob>>) {}
 
     pub fn PassBoolean(&self, _: bool) {}
     pub fn PassByte(&self, _: i8) {}
@@ -100,7 +108,7 @@ impl TestBinding {
     pub fn PassString(&self, _: DOMString) {}
     pub fn PassByteString(&self, _: ByteString) {}
     pub fn PassEnum(&self, _: TestEnum) {}
-    pub fn PassInterface(&self, _: &JS<Blob>) {}
+    pub fn PassInterface(&self, _: &JSRef<Blob>) {}
     pub fn PassUnion(&self, _: HTMLElementOrLong) {}
     pub fn PassAny(&self, _: *JSContext, _: JSVal) {}
 
@@ -118,7 +126,7 @@ impl TestBinding {
     pub fn PassNullableString(&self, _: Option<DOMString>) {}
     pub fn PassNullableByteString(&self, _: Option<ByteString>) {}
     // pub fn PassNullableEnum(&self, _: Option<TestEnum>) {}
-    pub fn PassNullableInterface(&self, _: Option<JS<Blob>>) {}
+    pub fn PassNullableInterface(&self, _: Option<JSRef<Blob>>) {}
     pub fn PassNullableUnion(&self, _: Option<HTMLElementOrLong>) {}
     pub fn PassNullableAny(&self, _: *JSContext, _: Option<JSVal>) {}
 
@@ -136,7 +144,7 @@ impl TestBinding {
     pub fn PassOptionalString(&self, _: Option<DOMString>) {}
     pub fn PassOptionalByteString(&self, _: Option<ByteString>) {}
     pub fn PassOptionalEnum(&self, _: Option<TestEnum>) {}
-    pub fn PassOptionalInterface(&self, _: Option<JS<Blob>>) {}
+    pub fn PassOptionalInterface(&self, _: Option<JSRef<Blob>>) {}
     pub fn PassOptionalUnion(&self, _: Option<HTMLElementOrLong>) {}
     pub fn PassOptionalAny(&self, _: *JSContext, _: Option<JSVal>) {}
 
@@ -183,7 +191,7 @@ impl TestBinding {
     pub fn PassOptionalNullableStringWithDefault(&self, _: Option<DOMString>) {}
     pub fn PassOptionalNullableByteStringWithDefault(&self, _: Option<ByteString>) {}
     // pub fn PassOptionalNullableEnumWithDefault(&self, _: Option<TestEnum>) {}
-    pub fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<JS<Blob>>) {}
+    pub fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<JSRef<Blob>>) {}
     pub fn PassOptionalNullableUnionWithDefault(&self, _: Option<HTMLElementOrLong>) {}
     pub fn PassOptionalAnyWithDefault(&self, _: *JSContext, _: JSVal) {}
 

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLOptionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOptionElementTypeId;
@@ -35,8 +35,8 @@ impl HTMLOptionElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLOptionElement> {
-        let element = HTMLOptionElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLOptionElement> {
+        let element = HTMLOptionElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLOptionElementBinding::Wrap)
     }
 }

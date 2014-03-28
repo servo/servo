@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLBRElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBRElementDerived;
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::document::Document;
 use dom::element::HTMLBRElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -34,8 +34,8 @@ impl HTMLBRElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLBRElement> {
-        let element = HTMLBRElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLBRElement> {
+        let element = HTMLBRElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLBRElementBinding::Wrap)
     }
 }

@@ -4,7 +4,7 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::BindingDeclarations::AttrListBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::window::Window;
@@ -25,8 +25,8 @@ impl AttrList {
         }
     }
 
-    pub fn new(window: &JS<Window>, elem: &JS<Element>) -> JS<AttrList> {
-        reflect_dom_object(~AttrList::new_inherited(window.clone(), elem.clone()),
+    pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> JS<AttrList> {
+        reflect_dom_object(~AttrList::new_inherited(window.unrooted(), elem.unrooted()),
                            window, AttrListBinding::Wrap)
     }
 

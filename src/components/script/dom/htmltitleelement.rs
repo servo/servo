@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTitleElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTitleElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTitleElementTypeId;
@@ -34,8 +34,8 @@ impl HTMLTitleElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTitleElement> {
-        let element = HTMLTitleElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLTitleElement> {
+        let element = HTMLTitleElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLTitleElementBinding::Wrap)
     }
 }

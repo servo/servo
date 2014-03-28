@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLScriptElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLScriptElementDerived;
 use dom::bindings::codegen::InheritTypes::ElementCast;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{HTMLScriptElementTypeId, Element, AttributeHandlers};
@@ -35,19 +35,19 @@ impl HTMLScriptElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLScriptElement> {
-        let element = HTMLScriptElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLScriptElement> {
+        let element = HTMLScriptElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLScriptElementBinding::Wrap)
     }
 }
 
 impl HTMLScriptElement {
-    pub fn Src(&self, abstract_self: &JS<HTMLScriptElement>) -> DOMString {
-        let element: JS<Element> = ElementCast::from(abstract_self);
+    pub fn Src(&self, abstract_self: &JSRef<HTMLScriptElement>) -> DOMString {
+        let element: JS<Element> = ElementCast::from(&abstract_self.unrooted());
         element.get_url_attribute("src")
     }
 
-    pub fn SetSrc(&mut self, _abstract_self: &JS<HTMLScriptElement>, _src: DOMString) -> ErrorResult {
+    pub fn SetSrc(&mut self, _abstract_self: &JSRef<HTMLScriptElement>, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::DocumentTypeDerived;
 use dom::bindings::codegen::BindingDeclarations::DocumentTypeBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, DoctypeNodeTypeId};
@@ -45,12 +45,12 @@ impl DocumentType {
     pub fn new(name: DOMString,
                public_id: Option<DOMString>,
                system_id: Option<DOMString>,
-               document: &JS<Document>)
+               document: &JSRef<Document>)
                -> JS<DocumentType> {
         let documenttype = DocumentType::new_inherited(name,
                                                        public_id,
                                                        system_id,
-                                                       document.clone());
+                                                       document.unrooted());
         Node::reflect_node(~documenttype, document, DocumentTypeBinding::Wrap)
     }
 }

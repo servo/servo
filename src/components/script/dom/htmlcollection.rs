@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::BindingDeclarations::HTMLCollectionBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::{Node, NodeHelpers};
@@ -15,7 +15,7 @@ use servo_util::str::{DOMString, split_html_space_chars};
 use serialize::{Encoder, Encodable};
 
 pub trait CollectionFilter {
-    fn filter(&self, elem: &JS<Element>, root: &JS<Node>) -> bool;
+    fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool;
 }
 
 impl<S: Encoder<E>, E> Encodable<S, E> for ~CollectionFilter {
@@ -46,24 +46,24 @@ impl HTMLCollection {
         }
     }
 
-    pub fn new(window: &JS<Window>, collection: CollectionTypeId) -> JS<HTMLCollection> {
-        reflect_dom_object(~HTMLCollection::new_inherited(window.clone(), collection),
+    pub fn new(window: &JSRef<Window>, collection: CollectionTypeId) -> JS<HTMLCollection> {
+        reflect_dom_object(~HTMLCollection::new_inherited(window.unrooted(), collection),
                            window, HTMLCollectionBinding::Wrap)
     }
 }
 
 impl HTMLCollection {
-    pub fn create(window: &JS<Window>, root: &JS<Node>, filter: ~CollectionFilter) -> JS<HTMLCollection> {
-        HTMLCollection::new(window, Live(root.clone(), filter))
+    pub fn create(window: &JSRef<Window>, root: &JSRef<Node>, filter: ~CollectionFilter) -> JS<HTMLCollection> {
+        HTMLCollection::new(window, Live(root.unrooted(), filter))
     }
 
-    pub fn by_tag_name(window: &JS<Window>, root: &JS<Node>, tag: DOMString)
+    pub fn by_tag_name(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString)
                        -> JS<HTMLCollection> {
         struct TagNameFilter {
             tag: DOMString
         }
         impl CollectionFilter for TagNameFilter {
-            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
                 elem.get().local_name == self.tag
             }
         }
@@ -73,14 +73,14 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, ~filter)
     }
 
-    pub fn by_tag_name_ns(window: &JS<Window>, root: &JS<Node>, tag: DOMString,
+    pub fn by_tag_name_ns(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString,
                           namespace: Namespace) -> JS<HTMLCollection> {
         struct TagNameNSFilter {
             tag: DOMString,
             namespace: Namespace
         }
         impl CollectionFilter for TagNameNSFilter {
-            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
                 elem.get().namespace == self.namespace && elem.get().local_name == self.tag
             }
         }
@@ -91,14 +91,14 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, ~filter)
     }
 
-    pub fn by_class_name(window: &JS<Window>, root: &JS<Node>, classes: DOMString)
+    pub fn by_class_name(window: &JSRef<Window>, root: &JSRef<Node>, classes: DOMString)
                          -> JS<HTMLCollection> {
         struct ClassNameFilter {
             classes: Vec<DOMString>
         }
         impl CollectionFilter for ClassNameFilter {
-            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                self.classes.iter().all(|class| elem.has_class(*class))
+            fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
+                self.classes.iter().all(|class| elem.unrooted().has_class(*class))
             }
         }
         let filter = ClassNameFilter {
@@ -107,11 +107,11 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, ~filter)
     }
 
-    pub fn children(window: &JS<Window>, root: &JS<Node>) -> JS<HTMLCollection> {
+    pub fn children(window: &JSRef<Window>, root: &JSRef<Node>) -> JS<HTMLCollection> {
         struct ElementChildFilter;
         impl CollectionFilter for ElementChildFilter {
-            fn filter(&self, elem: &JS<Element>, root: &JS<Node>) -> bool {
-                root.is_parent_of(&NodeCast::from(elem))
+            fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool {
+                root.unrooted().is_parent_of(NodeCast::from_ref(elem))
             }
         }
         HTMLCollection::create(window, root, ~ElementChildFilter)
@@ -121,32 +121,47 @@ impl HTMLCollection {
 impl HTMLCollection {
     // http://dom.spec.whatwg.org/#dom-htmlcollection-length
     pub fn Length(&self) -> u32 {
+        let roots = RootCollection::new();
         match self.collection {
             Static(ref elems) => elems.len() as u32,
-            Live(ref root, ref filter) => root.traverse_preorder()
-                .count(|child| {
-                    let elem: Option<JS<Element>> = ElementCast::to(&child);
-                    elem.map_or(false, |elem| filter.filter(&elem, root))
-                }) as u32
+            Live(ref root, ref filter) => {
+                let root_root = root.root(&roots);
+                root.traverse_preorder()
+                    .count(|child| {
+                        let elem: Option<JS<Element>> = ElementCast::to(&child);
+                        elem.map_or(false, |elem| {
+                            let elem = elem.root(&roots);
+                            filter.filter(&elem.root_ref(), &root_root.root_ref())
+                        })
+                    }) as u32
+            }
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-item
     pub fn Item(&self, index: u32) -> Option<JS<Element>> {
+        let roots = RootCollection::new();
         match self.collection {
             Static(ref elems) => elems
                 .as_slice()
                 .get(index as uint)
                 .map(|elem| elem.clone()),
-            Live(ref root, ref filter) => root.traverse_preorder()
-                .filter_map(|node| ElementCast::to(&node))
-                .filter(|elem| filter.filter(elem, root))
-                .nth(index as uint).clone()
+            Live(ref root, ref filter) => {
+                let root_root = root.root(&roots);
+                root.traverse_preorder()
+                    .filter_map(|node| ElementCast::to(&node))
+                    .filter(|elem| {
+                        let elem = elem.root(&roots);
+                        filter.filter(&elem.root_ref(), &root_root.root_ref())
+                    })
+                    .nth(index as uint).clone()
+            }
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
     pub fn NamedItem(&self, key: DOMString) -> Option<JS<Element>> {
+        let roots = RootCollection::new();
         // Step 1.
         if key.is_empty() {
             return None;
@@ -159,13 +174,19 @@ impl HTMLCollection {
                     elem.get_string_attribute("name") == key ||
                     elem.get_string_attribute("id") == key })
                 .map(|maybe_elem| maybe_elem.clone()),
-            Live(ref root, ref filter) => root.traverse_preorder()
-                .filter_map(|node| ElementCast::to(&node))
-                .filter(|elem| filter.filter(elem, root))
-                .find(|elem| {
-                    elem.get_string_attribute("name") == key ||
-                    elem.get_string_attribute("id") == key })
-                .map(|maybe_elem| maybe_elem.clone())
+            Live(ref root, ref filter) => {
+                let root_root = root.root(&roots);
+                root.traverse_preorder()
+                    .filter_map(|node| ElementCast::to(&node))
+                    .filter(|elem| {
+                        let elem = elem.root(&roots);
+                        filter.filter(&elem.root_ref(), &root_root.root_ref())
+                    })
+                    .find(|elem| {
+                        elem.get_string_attribute("name") == key ||
+                        elem.get_string_attribute("id") == key })
+                    .map(|maybe_elem| maybe_elem.clone())
+            }
         }
     }
 }

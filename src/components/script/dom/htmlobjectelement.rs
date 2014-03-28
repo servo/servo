@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLObjectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLObjectElementTypeId};
@@ -47,8 +47,8 @@ impl HTMLObjectElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLObjectElement> {
-        let element = HTMLObjectElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLObjectElement> {
+        let element = HTMLObjectElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLObjectElementBinding::Wrap)
     }
 }
@@ -144,9 +144,11 @@ impl HTMLObjectElement {
     }
 
     pub fn Validity(&self) -> JS<ValidityState> {
+        let roots = RootCollection::new();
         let doc = self.htmlelement.element.node.owner_doc();
         let doc = doc.get();
-        ValidityState::new(&doc.window)
+        let window = doc.window.root(&roots);
+        ValidityState::new(&window.root_ref())
     }
 
     pub fn ValidationMessage(&self) -> DOMString {

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::DOMImplementationBinding;
 use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::error::{Fallible, InvalidCharacter, NamespaceError};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
@@ -33,8 +33,8 @@ impl DOMImplementation {
         }
     }
 
-    pub fn new(owner: &JS<Window>) -> JS<DOMImplementation> {
-        reflect_dom_object(~DOMImplementation::new_inherited(owner.clone()), owner,
+    pub fn new(owner: &JSRef<Window>) -> JS<DOMImplementation> {
+        reflect_dom_object(~DOMImplementation::new_inherited(owner.unrooted()), owner,
                            DOMImplementationBinding::Wrap)
     }
 }
@@ -53,28 +53,37 @@ impl Reflectable for DOMImplementation {
 impl DOMImplementation {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
     pub fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<JS<DocumentType>> {
+        let roots = RootCollection::new();
         match xml_name_type(qname) {
             // Step 1.
             InvalidXMLName => Err(InvalidCharacter),
             // Step 2.
             Name => Err(NamespaceError),
             // Step 3.
-            QName => Ok(DocumentType::new(qname, Some(pubid), Some(sysid), &self.owner.get().Document()))
+            QName => {
+                let document = self.owner.get().Document();
+                let document = document.root(&roots);
+                Ok(DocumentType::new(qname, Some(pubid), Some(sysid), &document.root_ref()))
+            }
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocument
     pub fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
-                          maybe_doctype: Option<JS<DocumentType>>) -> Fallible<JS<Document>> {
+                          mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<JS<Document>> {
+        let roots = RootCollection::new();
+        let win = self.owner.root(&roots);
+
         // Step 1.
-        let doc = Document::new(&self.owner, None, NonHTMLDocument, None);
+        let doc = Document::new(&win.root_ref(), None, NonHTMLDocument, None);
+        let doc_root = doc.root(&roots);
         let mut doc_node: JS<Node> = NodeCast::from(&doc);
 
         // Step 2-3.
-        let maybe_elem = if qname.is_empty() {
+        let mut maybe_elem = if qname.is_empty() {
             None
         } else {
-            match doc.get().CreateElementNS(&doc, namespace, qname) {
+            match doc.get().CreateElementNS(&doc_root.root_ref(), namespace, qname) {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem)
             }
@@ -83,13 +92,16 @@ impl DOMImplementation {
         // Step 4.
         match maybe_doctype {
             None => (),
-            Some(ref doctype) => assert!(doc_node.AppendChild(&mut NodeCast::from(doctype)).is_ok())
+            Some(ref mut doctype) => assert!(doc_node.AppendChild(NodeCast::from_mut_ref(doctype)).is_ok())
         }
 
         // Step 5.
         match maybe_elem {
             None => (),
-            Some(ref elem) => assert!(doc_node.AppendChild(&mut NodeCast::from(elem)).is_ok())
+            Some(ref elem) => {
+                let elem = elem.root(&roots);
+                assert!(doc_node.AppendChild(NodeCast::from_mut_ref(&mut elem.root_ref())).is_ok())
+            }
         }
 
         // Step 6.
@@ -101,44 +113,54 @@ impl DOMImplementation {
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     pub fn CreateHTMLDocument(&self, title: Option<DOMString>) -> JS<Document> {
+        let roots = RootCollection::new();
+        let owner = self.owner.root(&roots);
+
         // Step 1-2.
-        let doc = Document::new(&self.owner, None, HTMLDocument, None);
+        let doc = Document::new(&owner.root_ref(), None, HTMLDocument, None);
+        let doc_root = doc.root(&roots);
         let mut doc_node: JS<Node> = NodeCast::from(&doc);
 
         {
             // Step 3.
-            let doc_type = DocumentType::new(~"html", None, None, &doc);
-            assert!(doc_node.AppendChild(&mut NodeCast::from(&doc_type)).is_ok());
+            let doc_type = DocumentType::new(~"html", None, None, &doc_root.root_ref());
+            let doc_type = doc_type.root(&roots);
+            assert!(doc_node.AppendChild(NodeCast::from_mut_ref(&mut doc_type.root_ref())).is_ok());
         }
 
         {
             // Step 4.
-            let mut doc_html = NodeCast::from(&HTMLHtmlElement::new(~"html", &doc));
-            assert!(doc_node.AppendChild(&mut doc_html).is_ok());
+            let mut doc_html = NodeCast::from(&HTMLHtmlElement::new(~"html", &doc_root.root_ref()));
+            let doc_html_root = {doc_html.root(&roots)};
+            assert!(doc_node.AppendChild(&mut doc_html_root.root_ref()).is_ok());
 
             {
                 // Step 5.
-                let mut doc_head = NodeCast::from(&HTMLHeadElement::new(~"head", &doc));
-                assert!(doc_html.AppendChild(&mut doc_head).is_ok());
+                let mut doc_head = NodeCast::from(&HTMLHeadElement::new(~"head", &doc_root.root_ref()));
+                let doc_head_root = doc_head.root(&roots);
+                assert!(doc_html.AppendChild(&mut doc_head_root.root_ref()).is_ok());
 
                 // Step 6.
                 match title {
                     None => (),
                     Some(title_str) => {
                         // Step 6.1.
-                        let mut doc_title = NodeCast::from(&HTMLTitleElement::new(~"title", &doc));
-                        assert!(doc_head.AppendChild(&mut doc_title).is_ok());
+                        let mut doc_title = NodeCast::from(&HTMLTitleElement::new(~"title", &doc_root.root_ref()));
+                        let doc_title_root = doc_title.root(&roots);
+                        assert!(doc_head.AppendChild(&mut doc_title_root.root_ref()).is_ok());
 
                         // Step 6.2.
-                        let title_text = Text::new(title_str, &doc);
-                        assert!(doc_title.AppendChild(&mut NodeCast::from(&title_text)).is_ok());
+                        let title_text = Text::new(title_str, &doc_root.root_ref());
+                        let title_text = title_text.root(&roots);
+                        assert!(doc_title.AppendChild(NodeCast::from_mut_ref(&mut title_text.root_ref())).is_ok());
                     }
                 }
             }
 
             // Step 7.
-            let doc_body = HTMLBodyElement::new(~"body", &doc);
-            assert!(doc_html.AppendChild(&mut NodeCast::from(&doc_body)).is_ok());
+            let doc_body = HTMLBodyElement::new(~"body", &doc_root.root_ref());
+            let doc_body = doc_body.root(&roots);
+            assert!(doc_html.AppendChild(NodeCast::from_mut_ref(&mut doc_body.root_ref())).is_ok());
         }
 
         // Step 8.

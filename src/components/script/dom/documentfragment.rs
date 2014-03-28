@@ -4,12 +4,12 @@
 
 use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
 use dom::bindings::codegen::BindingDeclarations::DocumentFragmentBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::error::Fallible;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
-use dom::node::{DocumentFragmentNodeTypeId, Node};
+use dom::node::{DocumentFragmentNodeTypeId, Node, window_from_node};
 use dom::window::Window;
 
 #[deriving(Encodable)]
@@ -34,22 +34,26 @@ impl DocumentFragment {
         }
     }
 
-    pub fn new(document: &JS<Document>) -> JS<DocumentFragment> {
-        let node = DocumentFragment::new_inherited(document.clone());
+    pub fn new(document: &JSRef<Document>) -> JS<DocumentFragment> {
+        let node = DocumentFragment::new_inherited(document.unrooted());
         Node::reflect_node(~node, document, DocumentFragmentBinding::Wrap)
     }
 }
 
 impl DocumentFragment {
-    pub fn Constructor(owner: &JS<Window>) -> Fallible<JS<DocumentFragment>> {
-        Ok(DocumentFragment::new(&owner.get().Document()))
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<JS<DocumentFragment>> {
+        let roots = RootCollection::new();
+        let document = owner.get().Document();
+        let document = document.root(&roots);
+
+        Ok(DocumentFragment::new(&document.root_ref()))
     }
 }
 
 impl DocumentFragment {
-    pub fn Children(&self, abstract_self: &JS<DocumentFragment>) -> JS<HTMLCollection> {
-        let doc = self.node.owner_doc();
-        let doc = doc.get();
-        HTMLCollection::children(&doc.window, &NodeCast::from(abstract_self))
+    pub fn Children(&self, abstract_self: &JSRef<DocumentFragment>) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
+        let window = window_from_node(&abstract_self.unrooted()).root(&roots);
+        HTMLCollection::children(&window.root_ref(), NodeCast::from_ref(abstract_self))
     }
 }

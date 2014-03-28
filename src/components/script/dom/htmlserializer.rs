@@ -7,7 +7,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, CommentCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, CharacterDataCast};
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::documenttype::DocumentType;
@@ -20,6 +20,7 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 
 pub fn serialize(iterator: &mut NodeIterator) -> ~str {
+    let roots = RootCollection::new();
     let mut html = ~"";
     let mut open_elements: Vec<~str> = vec!();
 
@@ -31,23 +32,28 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
             match node.type_id() {
                 ElementNodeTypeId(..) => {
                     let elem: JS<Element> = ElementCast::to(&node).unwrap();
-                    serialize_elem(&elem, &mut open_elements)
+                    let elem = elem.root(&roots);
+                    serialize_elem(&elem.root_ref(), &mut open_elements)
                 }
                 CommentNodeTypeId => {
                     let comment: JS<Comment> = CommentCast::to(&node).unwrap();
-                    serialize_comment(&comment)
+                    let comment = comment.root(&roots);
+                    serialize_comment(&comment.root_ref())
                 }
                 TextNodeTypeId => {
                     let text: JS<Text> = TextCast::to(&node).unwrap();
-                    serialize_text(&text)
+                    let text = text.root(&roots);
+                    serialize_text(&text.root_ref())
                 }
                 DoctypeNodeTypeId => {
                     let doctype: JS<DocumentType> = DocumentTypeCast::to(&node).unwrap();
-                    serialize_doctype(&doctype)
+                    let doctype = doctype.root(&roots);
+                    serialize_doctype(&doctype.root_ref())
                 }
                 ProcessingInstructionNodeTypeId => {
                     let processing_instruction: JS<ProcessingInstruction> = ProcessingInstructionCast::to(&node).unwrap();
-                    serialize_processing_instruction(&processing_instruction)
+                    let processing_instruction = processing_instruction.root(&roots);
+                    serialize_processing_instruction(&processing_instruction.root_ref())
                 }
                 DocumentFragmentNodeTypeId => {
                     ~""
@@ -64,11 +70,11 @@ pub fn serialize(iterator: &mut NodeIterator) -> ~str {
     html
 }
 
-fn serialize_comment(comment: &JS<Comment>) -> ~str {
+fn serialize_comment(comment: &JSRef<Comment>) -> ~str {
     ~"<!--" + comment.get().characterdata.data + "-->"
 }
 
-fn serialize_text(text: &JS<Text>) -> ~str {
+fn serialize_text(text: &JSRef<Text>) -> ~str {
     match text.get().characterdata.node.parent_node {
         Some(ref parent) if parent.is_element() => {
             let elem: JS<Element> = ElementCast::to(parent).unwrap();
@@ -85,18 +91,20 @@ fn serialize_text(text: &JS<Text>) -> ~str {
     }
 }
 
-fn serialize_processing_instruction(processing_instruction: &JS<ProcessingInstruction>) -> ~str {
+fn serialize_processing_instruction(processing_instruction: &JSRef<ProcessingInstruction>) -> ~str {
     ~"<?" + processing_instruction.get().target + " " + processing_instruction.get().characterdata.data + "?>"
 }
 
-fn serialize_doctype(doctype: &JS<DocumentType>) -> ~str {
+fn serialize_doctype(doctype: &JSRef<DocumentType>) -> ~str {
     ~"<!DOCTYPE" + doctype.get().name + ">"
 }
 
-fn serialize_elem(elem: &JS<Element>, open_elements: &mut Vec<~str>) -> ~str {
+fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<~str>) -> ~str {
+    let roots = RootCollection::new();
     let mut rv = ~"<" + elem.get().local_name;
     for attr in elem.get().attrs.iter() {
-        rv.push_str(serialize_attr(attr));
+        let attr = attr.root(&roots);
+        rv.push_str(serialize_attr(&attr.root_ref()));
     };
     rv.push_str(">");
     match elem.get().local_name.as_slice() {
@@ -119,7 +127,7 @@ fn serialize_elem(elem: &JS<Element>, open_elements: &mut Vec<~str>) -> ~str {
     rv
 }
 
-fn serialize_attr(attr: &JS<Attr>) -> ~str {
+fn serialize_attr(attr: &JSRef<Attr>) -> ~str {
     let attr_name = if attr.get().namespace == namespace::XML {
         ~"xml:" + attr.get().local_name.clone()
     } else if attr.get().namespace == namespace::XMLNS &&

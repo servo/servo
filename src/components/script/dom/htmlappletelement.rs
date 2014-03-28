@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLAppletElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAppletElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLAppletElementTypeId;
@@ -34,8 +34,8 @@ impl HTMLAppletElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLAppletElement> {
-        let element = HTMLAppletElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLAppletElement> {
+        let element = HTMLAppletElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLAppletElementBinding::Wrap)
     }
 }

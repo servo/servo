@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::EventBinding;
 use dom::bindings::codegen::BindingDeclarations::EventBinding::EventConstants;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::eventtarget::EventTarget;
@@ -80,7 +80,7 @@ impl Event {
         }
     }
 
-    pub fn new(window: &JS<Window>) -> JS<Event> {
+    pub fn new(window: &JSRef<Window>) -> JS<Event> {
         reflect_dom_object(~Event::new_inherited(HTMLEventTypeId),
                            window,
                            EventBinding::Wrap)
@@ -155,7 +155,7 @@ impl Event {
         self.trusted
     }
 
-    pub fn Constructor(global: &JS<Window>,
+    pub fn Constructor(global: &JSRef<Window>,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<JS<Event>> {
         let mut ev = Event::new(global);

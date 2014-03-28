@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLOutputElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOutputElementTypeId;
@@ -36,8 +36,8 @@ impl HTMLOutputElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLOutputElement> {
-        let element = HTMLOutputElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLOutputElement> {
+        let element = HTMLOutputElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLOutputElementBinding::Wrap)
     }
 }
@@ -83,9 +83,11 @@ impl HTMLOutputElement {
     }
 
     pub fn Validity(&self) -> JS<ValidityState> {
+        let roots = RootCollection::new();
         let doc = self.htmlelement.element.node.owner_doc();
         let doc = doc.get();
-        ValidityState::new(&doc.window)
+        let window = doc.window.root(&roots);
+        ValidityState::new(&window.root_ref())
     }
 
     pub fn SetValidity(&mut self, _validity: JS<ValidityState>) {

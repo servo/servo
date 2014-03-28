@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLLinkElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLLinkElementTypeId;
@@ -34,8 +34,8 @@ impl HTMLLinkElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLLinkElement> {
-        let element = HTMLLinkElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLLinkElement> {
+        let element = HTMLLinkElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLLinkElementBinding::Wrap)
     }
 }

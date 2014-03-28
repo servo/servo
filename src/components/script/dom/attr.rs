@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::AttrBinding;
 use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::node::Node;
@@ -57,7 +57,7 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &JS<Window>, local_name: DOMString, value: DOMString,
+    pub fn new(window: &JSRef<Window>, local_name: DOMString, value: DOMString,
                name: DOMString, namespace: Namespace,
                prefix: Option<DOMString>, owner: JS<Element>) -> JS<Attr> {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix, owner);

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::CommentDerived;
 use dom::bindings::codegen::BindingDeclarations::CommentBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::error::Fallible;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -35,12 +35,16 @@ impl Comment {
         }
     }
 
-    pub fn new(text: DOMString, document: &JS<Document>) -> JS<Comment> {
-        let node = Comment::new_inherited(text, document.clone());
+    pub fn new(text: DOMString, document: &JSRef<Document>) -> JS<Comment> {
+        let node = Comment::new_inherited(text, document.unrooted());
         Node::reflect_node(~node, document, CommentBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JS<Window>, data: DOMString) -> Fallible<JS<Comment>> {
-        Ok(Comment::new(data, &owner.get().Document()))
+    pub fn Constructor(owner: &JSRef<Window>, data: DOMString) -> Fallible<JS<Comment>> {
+        let roots = RootCollection::new();
+        let document = owner.get().Document();
+        let document = document.root(&roots);
+
+        Ok(Comment::new(data, &document.root_ref()))
     }
 }

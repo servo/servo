@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFieldSetElementDerived, NodeCast};
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLFieldSetElementTypeId};
@@ -37,8 +37,8 @@ impl HTMLFieldSetElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLFieldSetElement> {
-        let element = HTMLFieldSetElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLFieldSetElement> {
+        let element = HTMLFieldSetElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLFieldSetElementBinding::Wrap)
     }
 }
@@ -69,19 +69,21 @@ impl HTMLFieldSetElement {
     }
 
     // http://www.whatwg.org/html/#dom-fieldset-elements
-    pub fn Elements(&self, abstract_self: &JS<HTMLFieldSetElement>) -> JS<HTMLCollection> {
+    pub fn Elements(&self, abstract_self: &JSRef<HTMLFieldSetElement>) -> JS<HTMLCollection> {
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
-            fn filter(&self, elem: &JS<Element>, root: &JS<Node>) -> bool {
+            fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool {
                 static tag_names: StaticStringVec = &["button", "fieldset", "input",
                     "keygen", "object", "output", "select", "textarea"];
-                let root: &JS<Element> = &ElementCast::to(root).unwrap();
-                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.get().local_name)
+                let root: &JS<Element> = &ElementCast::to(&root.unrooted()).unwrap();
+                &elem.unrooted() != root && tag_names.iter().any(|&tag_name| tag_name == elem.get().local_name)
             }
         }
-        let node: JS<Node> = NodeCast::from(abstract_self);
+        let roots = RootCollection::new();
+        let node: &JSRef<Node> = NodeCast::from_ref(abstract_self);
         let filter = ~ElementsFilter;
-        HTMLCollection::create(&window_from_node(&node), &node, filter)
+        let window = window_from_node(&node.unrooted()).root(&roots);
+        HTMLCollection::create(&window.root_ref(), node, filter)
     }
 
     pub fn WillValidate(&self) -> bool {
@@ -89,9 +91,11 @@ impl HTMLFieldSetElement {
     }
 
     pub fn Validity(&self) -> JS<ValidityState> {
+        let roots = RootCollection::new();
         let doc = self.htmlelement.element.node.owner_doc();
         let doc = doc.get();
-        ValidityState::new(&doc.window)
+        let window = doc.window.root(&roots);
+        ValidityState::new(&window.root_ref())
     }
 
     pub fn ValidationMessage(&self) -> DOMString {

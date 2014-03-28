@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLElementBinding;
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
@@ -39,8 +39,8 @@ impl HTMLElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLElement> {
-        let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLElement> {
+        let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLElementBinding::Wrap)
     }
 }

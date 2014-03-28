@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLButtonElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLButtonElementTypeId;
@@ -36,8 +36,8 @@ impl HTMLButtonElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLButtonElement> {
-        let element = HTMLButtonElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLButtonElement> {
+        let element = HTMLButtonElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLButtonElementBinding::Wrap)
     }
 }
@@ -135,9 +135,10 @@ impl HTMLButtonElement {
     }
 
     pub fn Validity(&self) -> JS<ValidityState> {
+        let roots = RootCollection::new();
         let doc = self.htmlelement.element.node.owner_doc();
         let doc = doc.get();
-        ValidityState::new(&doc.window)
+        ValidityState::new(&doc.window.root(&roots).root_ref())
     }
 
     pub fn SetValidity(&mut self, _validity: JS<ValidityState>) {

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTemplateElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTemplateElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::document::Document;
 use dom::element::HTMLTemplateElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -33,8 +33,8 @@ impl HTMLTemplateElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTemplateElement> {
-        let element = HTMLTemplateElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLTemplateElement> {
+        let element = HTMLTemplateElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLTemplateElementBinding::Wrap)
     }
 }

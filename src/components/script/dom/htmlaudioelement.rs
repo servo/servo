@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLAudioElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAudioElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::document::Document;
 use dom::element::HTMLAudioElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -33,8 +33,8 @@ impl HTMLAudioElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLAudioElement> {
-        let element = HTMLAudioElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLAudioElement> {
+        let element = HTMLAudioElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLAudioElementBinding::Wrap)
     }
 }

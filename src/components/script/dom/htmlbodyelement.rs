@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLBodyElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBodyElementDerived;
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::document::Document;
 use dom::element::HTMLBodyElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -34,8 +34,8 @@ impl HTMLBodyElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLBodyElement> {
-        let element = HTMLBodyElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLBodyElement> {
+        let element = HTMLBodyElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLBodyElementBinding::Wrap)
     }
 }

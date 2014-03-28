@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::ConsoleBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::str::DOMString;
@@ -20,7 +20,7 @@ impl Console {
         }
     }
 
-    pub fn new(window: &JS<Window>) -> JS<Console> {
+    pub fn new(window: &JSRef<Window>) -> JS<Console> {
         reflect_dom_object(~Console::new_inherited(), window, ConsoleBinding::Wrap)
     }
 

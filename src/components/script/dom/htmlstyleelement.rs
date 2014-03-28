@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLStyleElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLStyleElementTypeId;
@@ -37,8 +37,8 @@ impl HTMLStyleElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLStyleElement> {
-        let element = HTMLStyleElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLStyleElement> {
+        let element = HTMLStyleElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLStyleElementBinding::Wrap)
     }
 }
@@ -82,11 +82,13 @@ pub trait StyleElementHelpers {
 
 impl StyleElementHelpers for JS<HTMLStyleElement> {
     fn parse_own_css(&self) {
+        let roots = RootCollection::new();
         let node: JS<Node> = NodeCast::from(self);
+        let node_root = node.root(&roots);
         let win = window_from_node(&node);
         let url = win.get().page().get_url();
 
-        let data = node.get().GetTextContent(&node).expect("Element.textContent must be a string");
+        let data = node.get().GetTextContent(&node_root.root_ref()).expect("Element.textContent must be a string");
         let sheet = parse_inline_css(url, data);
         let LayoutChan(ref layout_chan) = *win.get().page().layout_chan;
         layout_chan.send(AddStylesheetMsg(sheet));

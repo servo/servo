@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLMapElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMapElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef, RootCollection};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLMapElementTypeId;
@@ -35,8 +35,8 @@ impl HTMLMapElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLMapElement> {
-        let element = HTMLMapElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLMapElement> {
+        let element = HTMLMapElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLMapElementBinding::Wrap)
     }
 }
@@ -51,9 +51,11 @@ impl HTMLMapElement {
     }
 
     pub fn Areas(&self) -> JS<HTMLCollection> {
+        let roots = RootCollection::new();
         // FIXME: https://github.com/mozilla/servo/issues/1845
         let doc = self.htmlelement.element.node.owner_doc();
         let doc = doc.get();
-        HTMLCollection::new(&doc.window, Static(vec!()))
+        let window = doc.window.root(&roots);
+        HTMLCollection::new(&window.root_ref(), Static(vec!()))
     }
 }

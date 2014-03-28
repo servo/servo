@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLModElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLModElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLModElementTypeId;
@@ -34,8 +34,8 @@ impl HTMLModElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLModElement> {
-        let element = HTMLModElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLModElement> {
+        let element = HTMLModElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLModElementBinding::Wrap)
     }
 }

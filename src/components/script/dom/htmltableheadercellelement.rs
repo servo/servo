@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTableHeaderCellElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableHeaderCellElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::document::Document;
 use dom::element::HTMLTableHeaderCellElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -33,8 +33,8 @@ impl HTMLTableHeaderCellElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLTableHeaderCellElement> {
-        let element = HTMLTableHeaderCellElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLTableHeaderCellElement> {
+        let element = HTMLTableHeaderCellElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLTableHeaderCellElementBinding::Wrap)
     }
 }

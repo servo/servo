@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLParamElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLParamElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLParamElementTypeId;
@@ -34,8 +34,8 @@ impl HTMLParamElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLParamElement> {
-        let element = HTMLParamElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLParamElement> {
+        let element = HTMLParamElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLParamElementBinding::Wrap)
     }
 }

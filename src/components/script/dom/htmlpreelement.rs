@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLPreElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLPreElementDerived;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLPreElementTypeId;
@@ -34,8 +34,8 @@ impl HTMLPreElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JS<Document>) -> JS<HTMLPreElement> {
-        let element = HTMLPreElement::new_inherited(localName, document.clone());
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLPreElement> {
+        let element = HTMLPreElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLPreElementBinding::Wrap)
     }
 }

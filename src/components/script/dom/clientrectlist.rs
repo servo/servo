@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::ClientRectListBinding;
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::clientrect::ClientRect;
 use dom::window::Window;
@@ -25,9 +25,9 @@ impl ClientRectList {
         }
     }
 
-    pub fn new(window: &JS<Window>,
+    pub fn new(window: &JSRef<Window>,
                rects: Vec<JS<ClientRect>>) -> JS<ClientRectList> {
-        reflect_dom_object(~ClientRectList::new_inherited(window.clone(), rects),
+        reflect_dom_object(~ClientRectList::new_inherited(window.unrooted(), rects),
                            window, ClientRectListBinding::Wrap)
     }
 
