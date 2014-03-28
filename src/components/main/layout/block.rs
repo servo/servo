@@ -722,8 +722,8 @@ impl BlockFlow {
     /// This is where we use the preferred widths and minimum widths
     /// calculated in the bubble-widths traversal.
     fn get_shrink_to_fit_width(&self, available_width: Au) -> Au {
-        geometry::min(self.base.pref_width,
-                      geometry::max(self.base.min_width, available_width))
+        geometry::min(self.base.intrinsic_widths.preferred_width,
+                      geometry::max(self.base.intrinsic_widths.minimum_width, available_width))
     }
 
     /// Collect and update static y-offsets bubbled up by kids.
@@ -1542,20 +1542,22 @@ impl Flow for BlockFlow {
     min/pref widths based on child context widths and dimensions of
     any boxes it is responsible for flowing.  */
 
-    /* TODO: absolute contexts */
     /* TODO: inline-blocks */
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
-        let mut min_width = Au::new(0);
-        let mut pref_width = Au::new(0);
         let mut num_floats = 0;
 
-        /* find max width from child block contexts */
+        // Find the maximum width from children.
+        let mut intrinsic_widths = IntrinsicWidths::new();
         for child_ctx in self.base.child_iter() {
             assert!(child_ctx.is_block_flow() || child_ctx.is_inline_flow() || child_ctx.is_table_kind());
 
             let child_base = flow::mut_base(child_ctx);
-            min_width = geometry::max(min_width, child_base.min_width);
-            pref_width = geometry::max(pref_width, child_base.pref_width);
+            intrinsic_widths.minimum_width =
+                geometry::max(intrinsic_widths.minimum_width,
+                              child_base.intrinsic_widths.total_minimum_width());
+            intrinsic_widths.preferred_width =
+                geometry::max(intrinsic_widths.preferred_width,
+                              child_base.intrinsic_widths.total_preferred_width());
             num_floats = num_floats + child_base.num_floats;
         }
 
@@ -1566,21 +1568,22 @@ impl Flow for BlockFlow {
             self.base.num_floats = num_floats;
         }
 
-        /* if not an anonymous block context, add in block box's widths.
-           these widths will not include child elements, just padding etc. */
+        // Add in borders, padding, and margins.
         for box_ in self.box_.iter() {
             {
                 // Can compute border width here since it doesn't depend on anything.
                 box_.compute_borders(box_.style())
             }
 
-            let (this_minimum_width, this_preferred_width) = box_.minimum_and_preferred_widths();
-            min_width = min_width + this_minimum_width;
-            pref_width = pref_width + this_preferred_width;
+            let box_intrinsic_widths = box_.intrinsic_widths();
+            intrinsic_widths.minimum_width = geometry::max(intrinsic_widths.minimum_width,
+                                                           box_intrinsic_widths.minimum_width);
+            intrinsic_widths.preferred_width = geometry::max(intrinsic_widths.preferred_width,
+                                                             box_intrinsic_widths.preferred_width);
+            intrinsic_widths.surround_width = box_intrinsic_widths.surround_width
         }
 
-        self.base.min_width = min_width;
-        self.base.pref_width = pref_width;
+        self.base.intrinsic_widths = intrinsic_widths
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called

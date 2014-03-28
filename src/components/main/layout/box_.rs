@@ -4,17 +4,29 @@
 
 //! The `Box` type, which represents the leaves of the layout tree.
 
+use css::node_style::StyledNode;
+use layout::construct::FlowConstructor;
+use layout::context::LayoutContext;
+use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo, ToGfxColor};
+use layout::floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
+use layout::flow::{Flow, FlowFlagsInfo};
+use layout::flow;
+use layout::model::{Auto, IntrinsicWidths, MaybeAuto, Specified, specified};
+use layout::model;
+use layout::util::OpaqueNodeMethods;
+use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
+
 use extra::url::Url;
 use sync::{MutexArc, Arc};
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use geom::approxeq::ApproxEq;
 use gfx::color::rgb;
-use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
-use gfx::display_list::{LineDisplayItem, LineDisplayItemClass};
-use gfx::display_list::{ImageDisplayItem, ImageDisplayItemClass};
-use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextDisplayItem};
-use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags, ClipDisplayItem};
-use gfx::display_list::{ClipDisplayItemClass, DisplayListCollection};
+use gfx::display_list::{BackgroundAndBorderLevel, BaseDisplayItem, BorderDisplayItem};
+use gfx::display_list::{BorderDisplayItemClass, ClipDisplayItem, ClipDisplayItemClass};
+use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem};
+use gfx::display_list::{LineDisplayItemClass, OpaqueNode, SolidColorDisplayItem};
+use gfx::display_list::{SolidColorDisplayItemClass, StackingContext, TextDisplayItem};
+use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags};
 use gfx::font::FontStyle;
 use gfx::text::text_run::TextRun;
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
@@ -24,26 +36,16 @@ use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::*;
 use servo_util::namespace;
+use servo_util::smallvec::{SmallVec, SmallVec0};
 use servo_util::str::is_whitespace;
-
 use std::cast;
 use std::cell::RefCell;
 use std::num::Zero;
 use style::{ComputedValues, TElement, TNode, cascade, initial_values};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto, overflow, LPA_Auto};
-use style::computed_values::{border_style, clear, font_family, line_height, position};
-use style::computed_values::{text_align, text_decoration, vertical_align, visibility, white_space};
-
-use css::node_style::StyledNode;
-use layout::construct::FlowConstructor;
-use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
-use layout::floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
-use layout::flow::{Flow, FlowFlagsInfo};
-use layout::flow;
-use layout::model::{MaybeAuto, specified, Auto, Specified};
-use layout::util::OpaqueNode;
-use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
+use style::computed_values::{background_attachment, background_repeat, border_style, clear};
+use style::computed_values::{font_family, line_height, position, text_align, text_decoration};
+use style::computed_values::{vertical_align, visibility, white_space};
 
 /// Boxes (`struct Box`) are the leaves of the layout tree. They cannot position themselves. In
 /// general, boxes do not have a simple correspondence with CSS boxes in the specification:
@@ -288,18 +290,21 @@ pub enum SplitBoxResult {
 }
 
 
-/// data for inline boxes
+/// Data for inline boxes.
+///
+/// FIXME(pcwalton): Copying `InlineParentInfo` vectors all the time is really inefficient. Use
+/// atomic reference counting instead.
 #[deriving(Clone)]
 pub struct InlineInfo {
-    parent_info: ~[InlineParentInfo],
+    parent_info: SmallVec0<InlineParentInfo>,
     baseline: Au,
 }
 
 impl InlineInfo {
     pub fn new() -> InlineInfo {
         InlineInfo {
-            parent_info: ~[],
-            baseline: Au::new(0),
+            parent_info: SmallVec0::new(),
+            baseline: Au(0),
         }
     }
 }
@@ -413,17 +418,37 @@ def_noncontent!(bottom, noncontent_bottom, noncontent_inline_bottom)
 def_noncontent_horiz!(left,  merge_noncontent_inline_left,  clear_noncontent_inline_left)
 def_noncontent_horiz!(right, merge_noncontent_inline_right, clear_noncontent_inline_right)
 
+/// Some DOM nodes can contribute more than one type of box. We call these boxes "sub-boxes". For
+/// these nodes, this enum is used to determine which sub-box to construct for that node.
+pub enum SubBoxKind {
+    /// The main box for this node. All DOM nodes that are rendered at all have at least a main
+    /// box.
+    MainBoxKind,
+}
+
 impl Box {
-    /// Constructs a new `Box` instance.
-    pub fn new(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> Box {
+    /// Constructs a new `Box` instance for the given node.
+    ///
+    /// Arguments:
+    ///
+    ///   * `constructor`: The flow constructor.
+    ///
+    ///   * `node`: The node to create a box for.
+    ///
+    ///   * `sub_box_kind`: The kind of box to create for the node, in case this node can
+    ///     contribute more than one type of box. See the definition of `SubBoxKind`.
+    pub fn new(constructor: &mut FlowConstructor,
+               node: &ThreadSafeLayoutNode,
+               sub_box_kind: SubBoxKind)
+               -> Box {
         Box {
-            node: OpaqueNode::from_thread_safe_layout_node(node),
+            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: node.style().clone(),
             border_box: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
-            specific: constructor.build_specific_box_info_for_node(node),
+            specific: constructor.build_specific_box_info_for_node(node, sub_box_kind),
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: RefCell::new(None),
             new_line_pos: ~[],
@@ -433,7 +458,7 @@ impl Box {
     /// Constructs a new `Box` instance from a specific info.
     pub fn new_from_specific_info(node: &ThreadSafeLayoutNode, specific: SpecificBoxInfo) -> Box {
         Box {
-            node: OpaqueNode::from_thread_safe_layout_node(node),
+            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: node.style().clone(),
             border_box: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),
@@ -460,7 +485,7 @@ impl Box {
         let (node_style, _) = cascade(&[], false, Some(node.style().get()),
                                       &initial_values(), None);
         Box {
-            node: OpaqueNode::from_thread_safe_layout_node(node),
+            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: Arc::new(node_style),
             border_box: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),
@@ -589,46 +614,45 @@ impl Box {
         }
     }
 
-    /// Returns the shared part of the width for computation of minimum and preferred width per
-    /// CSS 2.1.
-    fn guess_width(&self) -> Au {
+    /// Uses the style only to estimate the intrinsic widths. These may be modified for text or
+    /// replaced elements.
+    fn style_specified_intrinsic_width(&self) -> IntrinsicWidths {
+        let (use_margins, use_padding) = match self.specific {
+            GenericBox | IframeBox(_) | ImageBox(_) => (true, true),
+            TableBox | TableCellBox => (false, true),
+            TableWrapperBox => (true, false),
+            TableRowBox => (false, false),
+            ScannedTextBox(_) | TableColumnBox(_) | UnscannedTextBox(_) => {
+                // Styles are irrelevant for these kinds of boxes.
+                return IntrinsicWidths::new()
+            }
+        };
+
         let style = self.style();
-        let mut margin_left = Au::new(0);
-        let mut margin_right = Au::new(0);
-        let mut padding_left = Au::new(0);
-        let mut padding_right = Au::new(0);
-
-        match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) => {
-                margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
-                                                    Au::new(0)).specified_or_zero();
-                margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
-                                                     Au::new(0)).specified_or_zero();
-                padding_left = self.compute_padding_length(style.Padding.get().padding_left,
-                                                           Au::new(0));
-                padding_right = self.compute_padding_length(style.Padding.get().padding_right,
-                                                            Au::new(0));
-            }
-            TableBox | TableCellBox => {
-                padding_left = self.compute_padding_length(style.Padding.get().padding_left,
-                                                           Au::new(0));
-                padding_right = self.compute_padding_length(style.Padding.get().padding_right,
-                                                            Au::new(0));
-            }
-            TableWrapperBox => {
-                margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
-                                                    Au::new(0)).specified_or_zero();
-                margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
-                                                     Au::new(0)).specified_or_zero();
-            }
-            TableRowBox => {}
-            ScannedTextBox(_) | TableColumnBox(_) | UnscannedTextBox(_) => return Au(0),
-        }
-
         let width = MaybeAuto::from_style(style.Box.get().width, Au::new(0)).specified_or_zero();
 
-        width + margin_left + margin_right + padding_left + padding_right +
-            self.border.get().left + self.border.get().right
+        let (mut margin_left, mut margin_right) = (Au(0), Au(0));
+        if use_margins {
+            margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
+                                                Au(0)).specified_or_zero();
+            margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
+                                                 Au(0)).specified_or_zero();
+        }
+
+        let (mut padding_left, mut padding_right) = (Au(0), Au(0));
+        if use_padding {
+            padding_left = self.compute_padding_length(style.Padding.get().padding_left, Au(0));
+            padding_right = self.compute_padding_length(style.Padding.get().padding_right, Au(0));
+        }
+
+        let surround_width = margin_left + margin_right + padding_left + padding_right +
+                self.border.get().left + self.border.get().right;
+
+        IntrinsicWidths {
+            minimum_width: width,
+            preferred_width: width,
+            surround_width: surround_width,
+        }
     }
 
     pub fn calculate_line_height(&self, font_size: Au) -> Au {
@@ -1315,7 +1339,7 @@ impl Box {
                 let inline_info = self.inline_info.borrow();
                 match inline_info.get() {
                     &Some(ref info) => {
-                        for data in info.parent_info.rev_iter() {
+                        for data in info.parent_info.as_slice().rev_iter() {
                             let parent_info = FlowFlagsInfo::new(data.style.get());
                             flow_flags.propagate_text_decoration_from_parent(&parent_info);
                         }
@@ -1430,18 +1454,19 @@ impl Box {
             }
             _ => {}
         }
-
     }
 
-    /// Returns the *minimum width* and *preferred width* of this box as defined by CSS 2.1.
-    pub fn minimum_and_preferred_widths(&self) -> (Au, Au) {
-        let guessed_width = self.guess_width();
-        let (additional_minimum, additional_preferred) = match self.specific {
-            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableColumnBox(_) |
-            TableRowBox | TableWrapperBox => (Au(0), Au(0)),
+    /// Returns the intrinsic widths of this fragment.
+    pub fn intrinsic_widths(&self) -> IntrinsicWidths {
+        let mut result = self.style_specified_intrinsic_width();
+
+        match self.specific {
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableColumnBox(_) | TableRowBox |
+            TableWrapperBox => {}
             ImageBox(ref image_box_info) => {
                 let image_width = image_box_info.image_width();
-                (image_width, image_width)
+                result.minimum_width = geometry::max(result.minimum_width, image_width);
+                result.preferred_width = geometry::max(result.preferred_width, image_width);
             }
             ScannedTextBox(ref text_box_info) => {
                 let range = &text_box_info.range;
@@ -1453,11 +1478,29 @@ impl Box {
                     max_line_width = Au::max(max_line_width, line_metrics.advance_width);
                 }
 
-                (min_line_width, max_line_width)
+                result.minimum_width = geometry::max(result.minimum_width, min_line_width);
+                result.preferred_width = geometry::max(result.preferred_width, max_line_width);
             }
             UnscannedTextBox(..) => fail!("Unscanned text boxes should have been scanned by now!"),
-        };
-        (guessed_width + additional_minimum, guessed_width + additional_preferred)
+        }
+
+        // Take borders and padding for parent inline boxes into account.
+        let inline_info = self.inline_info.get();
+        match inline_info {
+            None => {}
+            Some(ref inline_info) => {
+                for inline_parent_info in inline_info.parent_info.iter() {
+                    let border_width = inline_parent_info.border.left +
+                        inline_parent_info.border.right;
+                    let padding_width = inline_parent_info.padding.left +
+                        inline_parent_info.padding.right;
+                    result.minimum_width = result.minimum_width + border_width + padding_width;
+                    result.preferred_width = result.preferred_width + border_width + padding_width;
+                }
+            }
+        }
+
+        result
     }
 
 
@@ -1663,16 +1706,16 @@ impl Box {
         }
     }
 
-    /// Assigns replaced width for this box only if it is replaced content.
-    ///
-    /// This assigns only the width, not margin or anything else.
-    /// CSS 2.1 § 10.3.2.
-    pub fn assign_replaced_width_if_necessary(&self,container_width: Au) {
+    /// Assigns replaced width, padding, and margins for this box only if it is replaced content
+    /// per CSS 2.1 § 10.3.2.
+    pub fn assign_replaced_width_if_necessary(&self, container_width: Au) {
         match self.specific {
             GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
             TableWrapperBox => {}
             ImageBox(ref image_box_info) => {
-                // TODO(ksh8281): compute border,margin,padding
+                self.compute_padding(self.style(), container_width);
+
+                // TODO(ksh8281): compute border,margin
                 let width = ImageBoxInfo::style_length(self.style().Box.get().width,
                                                        image_box_info.dom_width,
                                                        container_width);

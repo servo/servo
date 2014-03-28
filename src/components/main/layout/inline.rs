@@ -21,7 +21,6 @@ use gfx::display_list::{ContentLevel, StackingContext};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::Range;
-use std::cell::RefCell;
 use std::mem;
 use std::u16;
 use style::computed_values::{text_align, vertical_align, white_space};
@@ -630,20 +629,19 @@ impl Flow for InlineFlow {
             child_base.floats = Floats::new();
         }
 
-        let mut min_width = Au::new(0);
-        let mut pref_width = Au::new(0);
-
+        let mut intrinsic_widths = IntrinsicWidths::new();
         for box_ in self.boxes.iter() {
             debug!("Flow: measuring {:s}", box_.debug_str());
             box_.compute_borders(box_.style());
-            let (this_minimum_width, this_preferred_width) =
-                box_.minimum_and_preferred_widths();
-            min_width = Au::max(min_width, this_minimum_width);
-            pref_width = Au::max(pref_width, this_preferred_width);
+
+            let box_intrinsic_widths = box_.intrinsic_widths();
+            intrinsic_widths.minimum_width = geometry::max(intrinsic_widths.minimum_width,
+                                                           box_intrinsic_widths.minimum_width);
+            intrinsic_widths.preferred_width = geometry::max(intrinsic_widths.preferred_width,
+                                                             box_intrinsic_widths.preferred_width);
         }
 
-        self.base.min_width = min_width;
-        self.base.pref_width = pref_width;
+        self.base.intrinsic_widths = intrinsic_widths;
         self.base.num_floats = num_floats;
     }
 
