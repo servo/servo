@@ -60,6 +60,12 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         }
     }
 
+    fn mut_iter<'a>(&'a mut self) -> SmallVecMutIterator<'a,T> {
+        SmallVecMutIterator {
+            iter: self.iter(),
+        }
+    }
+
     /// NB: For efficiency reasons (avoiding making a second copy of the inline elements), this
     /// actually clears out the original array instead of moving it.
     fn move_iter<'a>(&'a mut self) -> SmallVecMoveIterator<'a,T> {
@@ -91,6 +97,12 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
             mem::move_val_init(end, value);
             let len = self.len();
             self.set_len(len + 1)
+        }
+    }
+
+    fn push_all_move<V:SmallVec<T>>(&mut self, mut other: V) {
+        for value in other.move_iter() {
+            self.push(value)
         }
     }
 
@@ -190,6 +202,22 @@ impl<'a,T> Iterator<&'a T> for SmallVecIterator<'a,T> {
                 self.ptr.offset(1)
             };
             Some(cast::transmute(old))
+        }
+    }
+}
+
+pub struct SmallVecMutIterator<'a,T> {
+    priv iter: SmallVecIterator<'a,T>,
+}
+
+impl<'a,T> Iterator<&'a mut T> for SmallVecMutIterator<'a,T> {
+    #[inline]
+    fn next(&mut self) -> Option<&'a mut T> {
+        unsafe {
+            match self.iter.next() {
+                None => None,
+                Some(reference) => Some(cast::transmute::<&'a T,&'a mut T>(reference)),
+            }
         }
     }
 }
