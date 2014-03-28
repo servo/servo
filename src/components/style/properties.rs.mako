@@ -569,6 +569,83 @@ pub mod longhands {
             }
     </%self:single_component_value>
 
+    <%self:longhand name="background-position">
+            use super::super::common_types::specified;
+
+            pub mod computed_value {
+                pub use super::super::super::common_types::computed::{LP_Length, LP_Percentage};
+                pub use super::super::super::common_types::computed::{LengthOrPercentage};
+
+                #[deriving(Eq, Clone)]
+                pub struct T {
+                    horizontal: LengthOrPercentage,
+                    vertical: LengthOrPercentage,
+                }
+            }
+
+            #[deriving(Clone)]
+            pub struct SpecifiedValue {
+                horizontal: specified::LengthOrPercentage,
+                vertical: specified::LengthOrPercentage,
+            }
+
+            #[inline]
+            pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                                     -> computed_value::T {
+                computed_value::T {
+                    horizontal: computed::compute_LengthOrPercentage(value.horizontal, context),
+                    vertical: computed::compute_LengthOrPercentage(value.vertical, context),
+                }
+            }
+
+            #[inline]
+            pub fn get_initial_value() -> computed_value::T {
+                computed_value::T {
+                    horizontal: computed_value::LP_Percentage(0.0),
+                    vertical: computed_value::LP_Percentage(0.0),
+                }
+            }
+
+            pub fn parse_horizontal_and_vertical(horiz: &ComponentValue, vert: &ComponentValue)
+                                                 -> Option<SpecifiedValue> {
+                let horiz = match specified::LengthOrPercentage::parse_non_negative(horiz) {
+                    None => return None,
+                    Some(value) => value,
+                };
+
+                let vert = match specified::LengthOrPercentage::parse_non_negative(vert) {
+                    None => return None,
+                    Some(value) => value,
+                };
+
+                Some(SpecifiedValue {
+                    horizontal: horiz,
+                    vertical: vert,
+                })
+            }
+
+            pub fn parse(input: &[ComponentValue], _: &Url) -> Option<SpecifiedValue> {
+                let (mut horizontal, mut vertical) = (None, None);
+                for value in input.skip_whitespace() {
+                    match (horizontal, vertical) {
+                        (None, None) => horizontal = Some(value),
+                        (Some(_), None) => vertical = Some(value),
+                        _ => return None,
+                    }
+                }
+
+                match (horizontal, vertical) {
+                    (Some(horizontal), Some(vertical)) => {
+                        parse_horizontal_and_vertical(horizontal, vertical)
+                    }
+                    _ => None
+                }
+            }
+    </%self:longhand>
+
+    ${single_keyword("background-repeat", "repeat repeat-x repeat-y no-repeat")}
+
+    ${single_keyword("background-attachment", "scroll fixed")}
 
     ${new_style_struct("Color", is_inherited=True)}
 
@@ -916,9 +993,13 @@ pub mod shorthands {
     </%def>
 
     // TODO: other background-* properties
-    <%self:shorthand name="background" sub_properties="background-color background-image">
-                let mut color = None;
-                let mut image = None;
+    <%self:shorthand name="background"
+                     sub_properties="background-color background-position background-repeat background-attachment background-image">
+                use std::mem;
+
+                let (mut color, mut image, mut position, mut repeat, mut attachment) =
+                    (None, None, None, None, None);
+                let mut last_component_value = None;
                 let mut any = false;
 
                 for component_value in input.skip_whitespace() {
@@ -935,10 +1016,54 @@ pub mod shorthands {
                             None => (),
                         }
                     }
-                    return None;
+
+                    if repeat.is_none() {
+                        match background_repeat::from_component_value(component_value, base_url) {
+                            Some(v) => { repeat = Some(v); any = true; continue },
+                            None => ()
+                        }
+                    }
+
+                    if attachment.is_none() {
+                        match background_attachment::from_component_value(component_value,
+                                                                          base_url) {
+                            Some(v) => { attachment = Some(v); any = true; continue },
+                            None => ()
+                        }
+                    }
+
+                    match mem::replace(&mut last_component_value, None) {
+                        Some(saved_component_value) => {
+                            if position.is_none() {
+                                match background_position::parse_horizontal_and_vertical(
+                                        saved_component_value,
+                                        component_value) {
+                                    Some(v) => { position = Some(v); any = true; continue },
+                                    None => (),
+                                }
+                            }
+
+                            // If we get here, parsing failed.
+                            return None
+                        }
+                        None => {
+                            // Save the component value.
+                            last_component_value = Some(component_value)
+                        }
+                    }
                 }
-                if any { Some(Longhands { background_color: color, background_image: image }) }
-                else { None }
+                
+                if any && last_component_value.is_none() {
+                    Some(Longhands {
+                        background_color: color,
+                        background_image: image,
+                        background_position: position,
+                        background_repeat: repeat,
+                        background_attachment: attachment,
+                    })
+                } else {
+                    None
+                }
     </%self:shorthand>
 
     ${four_sides_shorthand("margin", "margin-%s", "margin_top::from_component_value")}
