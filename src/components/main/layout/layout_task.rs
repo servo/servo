@@ -434,15 +434,13 @@ impl LayoutTask {
             None => fail!("no layout data for root node"),
         };
         let mut flow = match result {
-            FlowConstructionResult(mut flow, abs_descendants, fixed_descendants) => {
+            FlowConstructionResult(mut flow, abs_descendants) => {
                 // Note: Assuming that the root has display 'static' (as per
                 // CSS Section 9.3.1). Otherwise, if it were absolutely
                 // positioned, it would return a reference to itself in
                 // `abs_descendants` and would lead to a circular reference.
                 // Set Root as CB for any remaining absolute descendants.
                 flow.set_abs_descendants(abs_descendants);
-                // Set Root as CB for all fixed descendants.
-                flow.set_fixed_descendants(fixed_descendants);
                 flow
             }
             _ => fail!("Flow construction didn't result in a flow at the root of the tree!"),

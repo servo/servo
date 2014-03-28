@@ -503,7 +503,7 @@ impl BlockFlow {
                      -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Some(Box::new(constructor, node)),
+            box_: Some(Box::new(constructor, node, MainBoxKind)),
             is_root: false,
             static_y_offset: Au::new(0),
             float: None
@@ -528,7 +528,7 @@ impl BlockFlow {
                            -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Some(Box::new(constructor, node)),
+            box_: Some(Box::new(constructor, node, MainBoxKind)),
             is_root: false,
             static_y_offset: Au::new(0),
             float: Some(~FloatedBlockInfo::new(float_kind))
