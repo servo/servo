@@ -33,6 +33,7 @@ use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::uievent::UIEvent;
 use dom::window::Window;
+use dom::location::Location;
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
@@ -561,6 +562,10 @@ impl Document {
         }
         let filter = ~AppletsFilter;
         HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
+    }
+
+    pub fn Location(&mut self, abstract_self: &JS<Document>) -> JS<Location> {
+        self.window.get_mut().Location(&abstract_self.get().window)
     }
 
     pub fn createNodeList(&self, callback: |node: &JS<Node>| -> bool) -> JS<NodeList> {
