@@ -2497,7 +2497,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
     def __init__(self, descriptor, method):
         self.method = method
         name = method.identifier.name
-        args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', 'obj'),
+        args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', '_obj'),
                 Argument('*mut %s' % descriptor.concreteType, 'this'),
                 Argument('libc::c_uint', 'argc'), Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'JSBool', args)
@@ -2514,7 +2514,6 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         return CGWrapper(CGMethodCall(argsPre, nativeName, self.method.isStatic(),
                                       self.descriptor, self.method),
                          pre=extraPre +
-                             "  let obj = *obj.unnamed;\n" +
                              "  let this = &mut *this;\n").define()
 
 class CGGenericGetter(CGAbstractBindingMethod):
@@ -2552,7 +2551,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         self.attr = attr
         name = 'get_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
-                 Argument('JSHandleObject', 'obj'),
+                 Argument('JSHandleObject', '_obj'),
                  Argument('*mut %s' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
@@ -2574,7 +2573,6 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         return CGWrapper(CGIndenter(CGGetterCall(argsPre, self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
-                             "  let obj = *obj.unnamed;\n" +
                              "  let this = &mut *this;\n").define()
 
 class CGGenericSetter(CGAbstractBindingMethod):
@@ -2618,7 +2616,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         self.attr = attr
         name = 'set_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
-                 Argument('JSHandleObject', 'obj'),
+                 Argument('JSHandleObject', '_obj'),
                  Argument('*mut %s' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'argv')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
@@ -2635,7 +2633,6 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         return CGWrapper(CGIndenter(CGSetterCall(argsPre, self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
-                             "  let obj = *obj.unnamed;\n" +
                              "  let this = &mut *this;\n").define()
 
 
