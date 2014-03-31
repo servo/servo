@@ -42,18 +42,12 @@ use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
 use js;
 
 pub struct GlobalStaticData {
-    proxy_handlers: HashMap<uint, *libc::c_void>,
-    attribute_ids: HashMap<uint, ~[jsid]>,
-    method_ids: HashMap<uint, ~[jsid]>,
-    constant_ids: HashMap<uint, ~[jsid]>
+    proxy_handlers: HashMap<uint, *libc::c_void>
 }
 
 pub fn GlobalStaticData() -> GlobalStaticData {
     GlobalStaticData {
-        proxy_handlers: HashMap::new(),
-        attribute_ids: HashMap::new(),
-        method_ids: HashMap::new(),
-        constant_ids: HashMap::new()
+        proxy_handlers: HashMap::new()
     }
 }
 
@@ -165,31 +159,6 @@ pub static DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
 // LSetDOMProperty. Those constants need to be changed accordingly if this value
 // changes.
 pub static JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
-
-pub struct NativeProperties {
-    staticMethods: *JSFunctionSpec,
-    staticMethodIds: *jsid,
-    staticMethodsSpecs: *JSFunctionSpec,
-    staticAttributes: *JSPropertySpec,
-    staticAttributeIds: *jsid,
-    staticAttributeSpecs: *JSPropertySpec,
-    methods: *JSFunctionSpec,
-    methodIds: *jsid,
-    methodsSpecs: *JSFunctionSpec,
-    attributes: *JSPropertySpec,
-    attributeIds: *jsid,
-    attributeSpecs: *JSPropertySpec,
-    unforgeableAttributes: *JSPropertySpec,
-    unforgeableAttributeIds: *jsid,
-    unforgeableAttributeSpecs: *JSPropertySpec,
-    constants: *ConstantSpec,
-    constantIds: *jsid,
-    constantSpecs: *ConstantSpec
-}
-
-pub struct JSNativeHolder {
-    native: js::jsapi::JSNative
-}
 
 #[deriving(Clone)]
 pub enum ConstantVal {

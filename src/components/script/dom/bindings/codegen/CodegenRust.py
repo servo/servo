@@ -2315,11 +2315,6 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
 """ % (FINALIZE_HOOK_NAME,
        ('Some(%s)' % TRACE_HOOK_NAME),
        self.descriptor.name)
-        else:
-            body += """  js_info.dom_static.attribute_ids.insert(PrototypeList::id::%s as uint,
-                                             vec::cast_to_mut(vec::from_slice(sAttributes_ids)));
-""" % self.descriptor.name
-            body = "" #XXXjdm xray stuff isn't necessary yet
 
         return (body + """  let cx = js_info.js_context.borrow().ptr;
   let receiver = js_info.js_compartment.borrow().global_obj;
@@ -3664,50 +3659,6 @@ class CGClass(CGThing):
         result += "}"
         return result
 
-
-class CGXrayHelper(CGAbstractExternMethod):
-    def __init__(self, descriptor, name, args, properties):
-        CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args)
-        self.properties = properties
-
-    def definition_body(self):
-        varNames = self.properties.variableNames(True)
-
-        setup = ("let window = global_object_for_js_object(wrapper);\n"
-                 "let js_info = window.get().page().js_info();\n")
-
-        methods = self.properties.methods
-        if methods.hasNonChromeOnly() or methods.hasChromeOnly():
-            methodArgs = "Some(zip_copies(%(methods)s, *method_ids))" % varNames
-            setup += "let method_ids = js_info.get().get_ref().dom_static.method_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
-        else:
-            methodArgs = "None"
-        methodArgs = CGGeneric(methodArgs)
-
-        attrs = self.properties.attrs
-        if attrs.hasNonChromeOnly() or attrs.hasChromeOnly():
-            attrArgs = "Some(zip_copies(%(attrs)s, *attr_ids))" % varNames
-            setup += "let attr_ids = js_info.get().get_ref().dom_static.attribute_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
-        else:
-            attrArgs = "None"
-        attrArgs = CGGeneric(attrArgs)
-
-        consts = self.properties.consts
-        if consts.hasNonChromeOnly() or consts.hasChromeOnly():
-            constArgs = "Some(zip_copies(%(consts)s, *const_ids))" % varNames
-            setup += "let const_ids = js_info.get().get_ref().dom_static.constant_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
-        else:
-            constArgs = "None"
-        constArgs = CGGeneric(constArgs)
-
-        prefixArgs = CGGeneric(self.getPrefixArgs())
-
-        return CGIndenter(
-            CGWrapper(CGList([prefixArgs, methodArgs, attrArgs, constArgs], ", "),
-                      pre=(setup + "return Xray%s(" % self.name),
-                      post=");",
-                      reindent=True)).define()
-
 class CGProxySpecialOperation(CGPerSignatureCall):
     """
     Base class for classes for calling an indexed or named special operation
@@ -4251,22 +4202,11 @@ class CGDescriptor(CGThing):
                                           CGConstant(m for m in descriptor.interface.members if m.isConst()),
                                           public=True))
 
-        # Set up our Xray callbacks as needed.
-        if descriptor.interface.hasInterfacePrototypeObject():
-            if descriptor.concrete and descriptor.proxy:
-                #cgThings.append(CGResolveOwnProperty(descriptor))
-                #cgThings.append(CGEnumerateOwnProperties(descriptor))
-                pass
-            #cgThings.append(CGEnumerateProperties(descriptor, properties))
-
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
             if (descriptor.interface.getExtendedAttribute("PrefControlled") is not None):
                 #cgThings.append(CGPrefEnabled(descriptor))
                 pass
-
-        if descriptor.interface.hasInterfacePrototypeObject():
-            pass
 
         if descriptor.concrete:
             if descriptor.proxy:
