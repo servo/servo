@@ -179,8 +179,7 @@ pub struct ConstantSpec {
 pub struct DOMClass {
     // A list of interfaces that this object implements, in order of decreasing
     // derivedness.
-    interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH],
-    unused: bool // DOMObjectIsISupports (always false)
+    interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH]
 }
 
 pub struct DOMJSClass {

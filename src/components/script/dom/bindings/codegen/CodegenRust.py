@@ -1635,8 +1635,7 @@ def DOMClass(descriptor):
         protoList.extend(['PrototypeList::id::IDCount'] * (descriptor.config.maxProtoChainLength - len(protoList)))
         prototypeChainString = ', '.join(protoList)
         return """DOMClass {
-  interface_chain: [ %s ],
-  unused: false
+  interface_chain: [ %s ]
 }""" % prototypeChainString
 
 class CGDOMJSClass(CGThing):
