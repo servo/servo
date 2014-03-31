@@ -10,7 +10,7 @@ use js::jsval::JSVal;
 
 use libc;
 use std::cast;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::ptr;
 use std::ptr::null;
 use serialize::{Encodable, Encoder};
@@ -139,6 +139,12 @@ impl<T> DerefMut<T> for Traceable<T> {
 impl<S: Encoder<E>, E, T: Encodable<S, E>> Encodable<S, E> for Traceable<RefCell<T>> {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         self.borrow().encode(s)
+    }
+}
+
+impl<S: Encoder<E>, E, T: Encodable<S, E>+Copy> Encodable<S, E> for Traceable<Cell<T>> {
+    fn encode(&self, s: &mut S) -> Result<(), E> {
+        self.deref().get().encode(s)
     }
 }
 
