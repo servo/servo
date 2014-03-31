@@ -82,12 +82,6 @@ impl Flow for TableColGroupFlow {
     fn assign_height(&mut self, _ctx: &mut LayoutContext) {
     }
 
-    /// TableColumnBox and their parents(TableBox) do not have margins.
-    /// Therefore, margins to be collapsed do not exist.
-    fn collapse_margins(&mut self, _: bool, _: &mut bool, _: &mut Au,
-                        _: &mut Au, _: &mut Au, _: &mut Au) {
-    }
-
     fn debug_str(&self) -> ~str {
         let txt = ~"TableColGroupFlow: ";
         txt.append(match self.box_ {
