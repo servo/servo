@@ -477,7 +477,7 @@ impl<T: Tile> QuadtreeNode<T> {
 
         // if window is outside of visible region, nothing to do
         if w_x + w_width < s_x || w_x > s_x + s_size
-                || w_y + w_height < s_y || w_y > s_y + s_size 
+                || w_y + w_height < s_y || w_y > s_y + s_size
                 || w_x >= clip.width || w_y >= clip.height {
             return (~[], ~[], 0);
         }

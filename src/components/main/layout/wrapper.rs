@@ -37,7 +37,7 @@ use extra::url::Url;
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};
 use script::dom::bindings::js::JS;
-use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId, HTMLPseudoElementTypeId};
+use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::HTMLImageElement;
@@ -58,8 +58,9 @@ pub trait TLayoutNode {
     /// Creates a new layout node with the same lifetime as this layout node.
     unsafe fn new_with_this_lifetime(&self, node: &JS<Node>) -> Self;
 
-    /// Returns the type ID of this node. Fails if this node is borrowed mutably.
-    fn type_id(&self) -> NodeTypeId;
+    /// Returns the type ID of this node. Fails if this node is borrowed mutably. Returns `None`
+    /// if this is a pseudo-element; otherwise, returns `Some`.
+    fn type_id(&self) -> Option<NodeTypeId>;
 
     /// Returns the interior of this node as a `JS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
@@ -73,14 +74,14 @@ pub trait TLayoutNode {
 
     fn node_is_element(&self) -> bool {
         match self.type_id() {
-            ElementNodeTypeId(..) => true,
+            Some(ElementNodeTypeId(..)) => true,
             _ => false
         }
     }
 
     fn node_is_document(&self) -> bool {
         match self.type_id() {
-            DocumentNodeTypeId(..) => true,
+            Some(DocumentNodeTypeId(..)) => true,
             _ => false
         }
     }
@@ -160,17 +161,21 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
             chain: self.chain,
         }
     }
-    fn type_id(&self) -> NodeTypeId {
-        self.node.type_id()
+
+    fn type_id(&self) -> Option<NodeTypeId> {
+        Some(self.node.type_id())
     }
+
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
         &self.node
     }
+
     fn first_child(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.get().first_child_ref().map(|node| self.new_with_this_lifetime(node))
         }
     }
+
     fn text(&self) -> ~str {
         unsafe {
             if !self.get().is_text() {
@@ -377,12 +382,12 @@ impl<'le> TElement for LayoutElement<'le> {
     }
 }
 
-fn get_content(content_list: &content::T) -> ~str{
+fn get_content(content_list: &content::T) -> ~str {
     match *content_list {
         content::Content(ref value) => {
             let iter = &mut value.clone().move_iter().peekable();
             match iter.next() {
-                Some(content::StringContent(str)) => str,
+                Some(content::StringContent(content)) => content,
                 _ => ~"",
             }
         }
@@ -412,29 +417,33 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     /// Creates a new layout node with the same lifetime as this layout node.
     unsafe fn new_with_this_lifetime(&self, node: &JS<Node>) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
-            node:  LayoutNode {
+            node: LayoutNode {
                 node: node.transmute_copy(),
                 chain: self.node.chain,
             },
             pseudo: Normal,
         }
     }
-   
-    fn type_id(&self) -> NodeTypeId {
+
+    /// Returns `None` if this is a pseudo-element.
+    fn type_id(&self) -> Option<NodeTypeId> {
         if self.pseudo == Before || self.pseudo == After {
-            return ElementNodeTypeId(HTMLPseudoElementTypeId)
-        } else {
-            return self.node.type_id()
-       }
+            return None
+        }
+
+        self.node.type_id()
     }
+
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
         self.node.get_jsmanaged()
     }
+
     unsafe fn get<'a>(&'a self) -> &'a Node { // this change.
         cast::transmute::<*mut Node,&'a Node>(self.get_jsmanaged().unsafe_get())
     }
+
     fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo == Before {
+        if self.pseudo == Before || self.pseudo == After {
             return None
         }
 
@@ -442,7 +451,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
             if self.is_block(Before) && self.pseudo == Normal {
                 let pseudo_before_node = ThreadSafeLayoutNode::new_with_pseudo_without_self(&self.node, BeforeBlock);
                 return Some(pseudo_before_node)
-            } else if self.pseudo == Normal || self.pseudo == BeforeBlock{
+            } else if self.pseudo == Normal || self.pseudo == BeforeBlock {
                 let pseudo_before_node = ThreadSafeLayoutNode::new_with_pseudo_without_self(&self.node, Before);
                 return Some(pseudo_before_node)
             }
@@ -452,26 +461,27 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
             self.get().first_child_ref().map(|node| self.new_with_this_lifetime(node))
         }
     }
+
     fn text(&self) -> ~str {
         if self.pseudo == Before || self.pseudo == After {
             let layout_data_ref = self.borrow_layout_data();
-            let node_ldw = layout_data_ref.get().get_ref();
+            let node_layout_data_wrapper = layout_data_ref.get().get_ref();
 
             if self.pseudo == Before {
-                let before_style = node_ldw.data.before_style.get_ref();
+                let before_style = node_layout_data_wrapper.data.before_style.get_ref();
                 return get_content(&before_style.get().Box.get().content)
             } else {
-                let after_style = node_ldw.data.after_style.get_ref();
+                let after_style = node_layout_data_wrapper.data.after_style.get_ref();
                 return get_content(&after_style.get().Box.get().content)
             }
-        } else {
-            unsafe {
-                if !self.get().is_text() {
-                    fail!("not text!")
-                }
-                let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-                (*text.unsafe_get()).characterdata.data.to_str()
+        }
+
+        unsafe {
+            if !self.get().is_text() {
+                fail!("not text!")
             }
+            let text: JS<Text> = self.get_jsmanaged().transmute_copy();
+            (*text.unsafe_get()).characterdata.data.to_str()
         }
     }
 }
@@ -547,40 +557,36 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn is_block(&self, kind: ElementType) -> bool {
         let mut layout_data_ref = self.mutate_layout_data();
-        let node_ldw = layout_data_ref.get().get_mut_ref();
+        let node_layout_data_wrapper = layout_data_ref.get().get_mut_ref();
 
         let display = match kind {
             Before | BeforeBlock => {
-                let before_style = node_ldw.data.before_style.get_ref();
+                let before_style = node_layout_data_wrapper.data.before_style.get_ref();
                 before_style.get().Box.get().display
             }
             After | AfterBlock => {
-                let after_style = node_ldw.data.after_style.get_ref();
+                let after_style = node_layout_data_wrapper.data.after_style.get_ref();
                 after_style.get().Box.get().display
             }
             Normal => {
-                let after_style = node_ldw.data.style.get_ref();
+                let after_style = node_layout_data_wrapper.data.style.get_ref();
                 after_style.get().Box.get().display
             }
         };
 
-        if display == display::block {
-            return true
-        }
-        
-        false
+        display == display::block
     }
 
     pub fn has_before_pseudo(&self) -> bool {
-        let ldw = self.borrow_layout_data();
-        let ldw_ref = ldw.get().get_ref();
-        ldw_ref.data.before_style.is_some()
+        let layout_data_wrapper = self.borrow_layout_data();
+        let layout_data_wrapper_ref = layout_data_wrapper.get().get_ref();
+        layout_data_wrapper_ref.data.before_style.is_some()
     }
 
     pub fn has_after_pseudo(&self) -> bool {
-        let ldw = self.borrow_layout_data();
-        let ldw_ref = ldw.get().get_ref();
-        ldw_ref.data.after_style.is_some()
+        let layout_data_wrapper = self.borrow_layout_data();
+        let layout_data_wrapper_ref = layout_data_wrapper.get().get_ref();
+        layout_data_wrapper_ref.data.after_style.is_some()
     }
 
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
@@ -650,8 +656,8 @@ impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIter
                                     node.next_sibling()
                                 }
                             });
-                        } else { 
-                            self.current_node = None; 
+                        } else {
+                            self.current_node = None;
                         }
                     }
                     None => {}

@@ -12,7 +12,7 @@
 //!
 //! CB: Containing Block of the current flow.
 
-use layout::box_::{Box, ImageBox, MainBoxKind, ScannedTextBox};
+use layout::box_::{Box, ImageBox, ScannedTextBox};
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
@@ -459,10 +459,10 @@ pub enum MarginsMayCollapseFlag {
 //
 // If any fixed descendants of kids are present, this kid needs a layer.
 //
-// FIXME(pcwalton): This is too layer-happy. Like WebKit, we shouldn't do this unless
+// FIXME(#2006, pcwalton): This is too layer-happy. Like WebKit, we shouldn't do this unless
 // the positioned descendants are actually on top of the fixed kids.
 //
-// TODO(pcwalton): Do this for CSS transforms and opacity too, at least if they're
+// TODO(#1244, #2007, pcwalton): Do this for CSS transforms and opacity too, at least if they're
 // animating.
 fn propagate_layer_flag_from_child(layers_needed_for_descendants: &mut bool, kid: &mut Flow) {
     if kid.is_absolute_containing_block() {
@@ -498,21 +498,17 @@ pub struct BlockFlow {
 }
 
 impl BlockFlow {
-    pub fn from_node(constructor: &mut FlowConstructor,
-                     node: &ThreadSafeLayoutNode)
-                     -> BlockFlow {
+    pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Some(Box::new(constructor, node, MainBoxKind)),
+            box_: Some(Box::new(constructor, node)),
             is_root: false,
             static_y_offset: Au::new(0),
             float: None
         }
     }
 
-    pub fn from_node_and_box(node: &ThreadSafeLayoutNode,
-                             box_: Box)
-                             -> BlockFlow {
+    pub fn from_node_and_box(node: &ThreadSafeLayoutNode, box_: Box) -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
             box_: Some(box_),
@@ -528,7 +524,7 @@ impl BlockFlow {
                            -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Some(Box::new(constructor, node, MainBoxKind)),
+            box_: Some(Box::new(constructor, node)),
             is_root: false,
             static_y_offset: Au::new(0),
             float: Some(~FloatedBlockInfo::new(float_kind))
@@ -828,7 +824,7 @@ impl BlockFlow {
 
         // Absolute positioning establishes a block formatting context. Don't propagate floats
         // in or out. (But do propagate them between kids.)
-        if inorder && (self.is_absolutely_positioned()) {
+        if inorder && self.is_absolutely_positioned() {
             self.base.floats = Floats::new();
         }
         if margins_may_collapse != MarginsMayCollapse {
@@ -879,7 +875,7 @@ impl BlockFlow {
                     if kid_base.clear != clear::none {
                         // We have clearance, so assume there are no floats in and perform layout.
                         //
-                        // FIXME(pcwalton): This could be wrong if we have `clear: left` or
+                        // FIXME(#2008, pcwalton): This could be wrong if we have `clear: left` or
                         // `clear: right` and there are still floats to impact, of course. But this
                         // gets complicated with margin collapse. Possibly the right thing to do is
                         // to lay out the block again in this rare case. (Note that WebKit can lay
@@ -899,8 +895,8 @@ impl BlockFlow {
 
                 floats_out = Some(flow::mut_base(kid).floats.clone());
 
-                // FIXME(pcwalton): A horrible hack that has to do with the fact that `origin.y`
-                // is used for something else later (containing block for float).
+                // A horrible hack that has to do with the fact that `origin.y` is used for
+                // something else later (containing block for float).
                 if kid.is_float() {
                     flow::mut_base(kid).position.origin.y = cur_y;
                 }
@@ -972,10 +968,10 @@ impl BlockFlow {
             translate_including_floats(&mut cur_y, delta, inorder, &mut floats);
         }
 
-        // FIXME(pcwalton): The max is taken here so that you can scroll the page, but this is not
-        // correct behavior according to CSS 2.1 § 10.5. Instead I think we should treat the root
-        // element as having `overflow: scroll` and use the layers-based scrolling infrastructure
-        // to make it scrollable.
+        // FIXME(#2003, pcwalton): The max is taken here so that you can scroll the page, but this
+        // is not correct behavior according to CSS 2.1 § 10.5. Instead I think we should treat the
+        // root element as having `overflow: scroll` and use the layers-based scrolling
+        // infrastructure to make it scrollable.
         let mut height = cur_y - top_offset;
         if self.is_root() {
             height = Au::max(layout_context.screen_size.height, height)
@@ -1002,7 +998,6 @@ impl BlockFlow {
         }
 
         for fragment in self.box_.iter() {
-            // FIXME(pcwalton): Is this right?
             let containing_block_height = height;
 
             let mut candidate_height_iterator =
@@ -1214,14 +1209,6 @@ impl BlockFlow {
         }
 
         // Process absolute descendant links.
-        //
-        // TODO: Maybe we should handle position 'absolute' and 'fixed'
-        // descendants before normal descendants just in case there is a
-        // problem when display-list building is parallel and both the
-        // original parent and this flow access the same absolute flow.
-        // Note that this can only be done once we have paint order
-        // working cos currently the later boxes paint over the absolute
-        // and fixed boxes :|
         let mut absolute_info = info;
         absolute_info.layers_needed_for_positioned_flows =
             self.base.flags_info.flags.layers_needed_for_descendants();
@@ -1245,8 +1232,8 @@ impl BlockFlow {
                                     builder: &mut DisplayListBuilder,
                                     info: &DisplayListBuildingInfo) {
         if self.is_float() {
-            // TODO(pcwalton): This is a pseudo-stacking context. We need to merge `z-index: auto`
-            // kids into the parent stacking context, when that is supported.
+            // TODO(#2009, pcwalton): This is a pseudo-stacking context. We need to merge `z-index:
+            // auto` kids into the parent stacking context, when that is supported.
             self.build_display_list_float(stacking_context, builder, info)
         } else if self.is_absolutely_positioned() {
             self.build_display_list_abs(stacking_context, builder, info)
@@ -1395,14 +1382,12 @@ impl BlockFlow {
         if !info.layers_needed_for_positioned_flows && !self.base.flags_info.flags.needs_layer() {
             // We didn't need a layer.
             //
-            // TODO(pcwalton): `z-index`.
+            // TODO(#781, pcwalton): `z-index`.
             parent_stacking_context.positioned_descendants.push((0, stacking_context.flatten()));
             return
         }
 
         // If we got here, then we need a new layer.
-        // 
-        // FIXME(pcwalton): The color is wrong!
         let size = Size2D(self.base.position.size.width.to_nearest_px() as uint,
                           self.base.position.size.height.to_nearest_px() as uint);
         let origin = Point2D(info.absolute_containing_block_position.x.to_nearest_px() as uint,
@@ -1415,8 +1400,8 @@ impl BlockFlow {
         let new_layer = RenderLayer {
             id: self.layer_id(0),
             display_list: Arc::new(stacking_context.flatten()),
-            rect: Rect(origin, size),
-            color: color::rgba(255.0, 255.0, 255.0, 0.0),
+            position: Rect(origin, size),
+            background_color: color::rgba(255.0, 255.0, 255.0, 0.0),
             scroll_policy: scroll_policy,
         };
         builder.layers.push(new_layer)
@@ -1433,6 +1418,8 @@ impl BlockFlow {
         self.base.position.origin.y
     }
 
+    /// Initializes the containing width if this block flow is a float. This is done at the start
+    /// of `assign_widths`.
     fn set_containing_width_if_float(&mut self, containing_block_width: Au) {
         if self.is_float() {
             self.float.get_mut_ref().containing_width = containing_block_width;
@@ -1442,6 +1429,7 @@ impl BlockFlow {
         }
     }
 
+    /// Assigns the computed left content edge and width to all the children of this block flow.
     pub fn propagate_assigned_width_to_children(&mut self,
                                                 left_content_edge: Au,
                                                 content_width: Au,
@@ -1474,7 +1462,6 @@ impl BlockFlow {
         // This value is used only for table cells.
         let mut kid_left_margin_edge = left_content_edge;
 
-        // FIXME(ksh8281): avoid copy
         let flags_info = self.base.flags_info.clone();
         for (i, kid) in self.base.child_iter().enumerate() {
             if kid.is_block_flow() {
@@ -1747,9 +1734,9 @@ impl Flow for BlockFlow {
     }
 
     fn layer_id(&self, fragment_index: uint) -> LayerId {
-        // FIXME(pcwalton): This is a hack and is totally bogus in the presence of pseudo-elements.
-        // But until we have incremental reflow we can't do better--we recreate the flow for every
-        // DOM node so otherwise we nuke layers on every reflow.
+        // FIXME(#2010, pcwalton): This is a hack and is totally bogus in the presence of pseudo-
+        // elements. But until we have incremental reflow we can't do better--we recreate the flow
+        // for every DOM node so otherwise we nuke layers on every reflow.
         match self.box_ {
             Some(ref box_) => {
                 LayerId(box_.node.id(), fragment_index)

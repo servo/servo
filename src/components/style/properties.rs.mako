@@ -89,9 +89,7 @@ pub mod longhands {
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
         LONGHANDS_BY_NAME[name] = property
-        if derived_from not in DERIVED_LONGHANDS:
-            DERIVED_LONGHANDS[derived_from] = []
-        DERIVED_LONGHANDS[derived_from].append(property)
+        DERIVED_LONGHANDS.setdefault(derived_from, []).append(property)
     %>
         pub mod ${property.ident} {
             % if not no_super:
@@ -114,9 +112,13 @@ pub mod longhands {
     <%def name="longhand(name, no_super=False, derived_from=None)">
         <%self:raw_longhand name="${name}" derived_from="${derived_from}">
             ${caller.body()}
-            pub fn parse_specified(input: &[ComponentValue], base_url: &Url)
+            pub fn parse_specified(_input: &[ComponentValue], _base_url: &Url)
                                -> Option<DeclaredValue<SpecifiedValue>> {
-                parse(input, base_url).map(super::SpecifiedValue)
+                % if derived_from is None:
+                    parse(_input, _base_url).map(super::SpecifiedValue)
+                % else:
+                    None
+                % endif
             }
         </%self:raw_longhand>
     </%def>
@@ -380,6 +382,7 @@ pub mod longhands {
 
     <%self:longhand name="-servo-minimum-line-height" derived_from="line-height">
         use super::Au;
+        use super::super::common_types::DEFAULT_LINE_HEIGHT;
         use super::super::longhands::display;
         use super::super::longhands::line_height;
 
@@ -397,16 +400,11 @@ pub mod longhands {
         }
 
         #[inline]
-        pub fn parse(_: &[ComponentValue], _: &Url) -> Option<SpecifiedValue> {
-            None
-        }
-
-        #[inline]
         pub fn derive(value: line_height::computed_value::T, context: &computed::Context)
                       -> Au {
             if context.display != display::computed_value::inline {
                 match value {
-                    line_height::Normal => context.font_size.scale_by(1.14),
+                    line_height::Normal => context.font_size.scale_by(DEFAULT_LINE_HEIGHT),
                     line_height::Number(percentage) => context.font_size.scale_by(percentage),
                     line_height::Length(length) => length,
                 }
@@ -573,8 +571,7 @@ pub mod longhands {
             use super::super::common_types::specified;
 
             pub mod computed_value {
-                pub use super::super::super::common_types::computed::{LP_Length, LP_Percentage};
-                pub use super::super::super::common_types::computed::{LengthOrPercentage};
+                use super::super::super::common_types::computed::LengthOrPercentage;
 
                 #[deriving(Eq, Clone)]
                 pub struct T {
@@ -601,11 +598,12 @@ pub mod longhands {
             #[inline]
             pub fn get_initial_value() -> computed_value::T {
                 computed_value::T {
-                    horizontal: computed_value::LP_Percentage(0.0),
-                    vertical: computed_value::LP_Percentage(0.0),
+                    horizontal: computed::LP_Percentage(0.0),
+                    vertical: computed::LP_Percentage(0.0),
                 }
             }
 
+            // FIXME(#1997, pcwalton): Support complete CSS2 syntax.
             pub fn parse_horizontal_and_vertical(horiz: &ComponentValue, vert: &ComponentValue)
                                                  -> Option<SpecifiedValue> {
                 let horiz = match specified::LengthOrPercentage::parse_non_negative(horiz) {
@@ -625,13 +623,11 @@ pub mod longhands {
             }
 
             pub fn parse(input: &[ComponentValue], _: &Url) -> Option<SpecifiedValue> {
-                let (mut horizontal, mut vertical) = (None, None);
-                for value in input.skip_whitespace() {
-                    match (horizontal, vertical) {
-                        (None, None) => horizontal = Some(value),
-                        (Some(_), None) => vertical = Some(value),
-                        _ => return None,
-                    }
+                let mut input_iter = input.skip_whitespace();
+                let horizontal = input_iter.next();
+                let vertical = input_iter.next();
+                if input_iter.next().is_some() {
+                    return None
                 }
 
                 match (horizontal, vertical) {
@@ -1005,21 +1001,33 @@ pub mod shorthands {
                 for component_value in input.skip_whitespace() {
                     if color.is_none() {
                         match background_color::from_component_value(component_value, base_url) {
-                            Some(v) => { color = Some(v); any = true; continue },
+                            Some(v) => {
+                                color = Some(v);
+                                any = true;
+                                continue
+                            },
                             None => ()
                         }
                     }
 
                     if image.is_none() {
                         match background_image::from_component_value(component_value, base_url) {
-                            Some(v) => { image = Some(v); any = true; continue },
+                            Some(v) => {
+                                image = Some(v);
+                                any = true;
+                                continue
+                            },
                             None => (),
                         }
                     }
 
                     if repeat.is_none() {
                         match background_repeat::from_component_value(component_value, base_url) {
-                            Some(v) => { repeat = Some(v); any = true; continue },
+                            Some(v) => {
+                                repeat = Some(v);
+                                any = true;
+                                continue
+                            },
                             None => ()
                         }
                     }
@@ -1027,7 +1035,11 @@ pub mod shorthands {
                     if attachment.is_none() {
                         match background_attachment::from_component_value(component_value,
                                                                           base_url) {
-                            Some(v) => { attachment = Some(v); any = true; continue },
+                            Some(v) => {
+                                attachment = Some(v);
+                                any = true;
+                                continue
+                            },
                             None => ()
                         }
                     }
@@ -1038,7 +1050,11 @@ pub mod shorthands {
                                 match background_position::parse_horizontal_and_vertical(
                                         saved_component_value,
                                         component_value) {
-                                    Some(v) => { position = Some(v); any = true; continue },
+                                    Some(v) => {
+                                        position = Some(v);
+                                        any = true;
+                                        continue
+                                    },
                                     None => (),
                                 }
                             }
@@ -1052,7 +1068,7 @@ pub mod shorthands {
                         }
                     }
                 }
-                
+
                 if any && last_component_value.is_none() {
                     Some(Longhands {
                         background_color: color,

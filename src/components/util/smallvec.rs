@@ -61,8 +61,12 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
     }
 
     fn mut_iter<'a>(&'a mut self) -> SmallVecMutIterator<'a,T> {
-        SmallVecMutIterator {
-            iter: self.iter(),
+        unsafe {
+            SmallVecMutIterator {
+                ptr: cast::transmute(self.begin()),
+                end: cast::transmute(self.end()),
+                lifetime: None,
+            }
         }
     }
 
@@ -207,17 +211,25 @@ impl<'a,T> Iterator<&'a T> for SmallVecIterator<'a,T> {
 }
 
 pub struct SmallVecMutIterator<'a,T> {
-    priv iter: SmallVecIterator<'a,T>,
+    priv ptr: *mut T,
+    priv end: *mut T,
+    priv lifetime: Option<&'a mut T>
 }
 
 impl<'a,T> Iterator<&'a mut T> for SmallVecMutIterator<'a,T> {
     #[inline]
     fn next(&mut self) -> Option<&'a mut T> {
         unsafe {
-            match self.iter.next() {
-                None => None,
-                Some(reference) => Some(cast::transmute::<&'a T,&'a mut T>(reference)),
+            if self.ptr == self.end {
+                return None
             }
+            let old = self.ptr;
+            self.ptr = if mem::size_of::<T>() == 0 {
+                cast::transmute(self.ptr as uint + 1)
+            } else {
+                self.ptr.offset(1)
+            };
+            Some(cast::transmute(old))
         }
     }
 }

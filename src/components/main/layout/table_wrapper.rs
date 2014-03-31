@@ -100,7 +100,7 @@ impl TableWrapperFlow {
 
     /// Assign height for table-wrapper flow.
     /// `Assign height` of table-wrapper flow follows a similar process to that of block flow.
-    /// 
+    ///
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
@@ -116,11 +116,6 @@ impl TableWrapperFlow {
                                             info: &DisplayListBuildingInfo) {
         debug!("build_display_list_table_wrapper: same process as block flow");
         self.block_flow.build_display_list_block(stacking_context, builder, info);
-
-        for kid in self.block_flow.base.child_iter() {
-            kid.as_table().block_flow.base.position.size.height =
-                self.block_flow.base.position.size.height;
-        }
     }
 }
 
@@ -173,8 +168,6 @@ impl Flow for TableWrapperFlow {
         let containing_block_width = self.block_flow.base.position.size.width;
         let mut left_content_edge = Au::new(0);
         let mut content_width = containing_block_width;
-
-        // self.block_flow.set_containing_width_if_float(containing_block_width);
 
         let width_computer = TableWrapper;
         width_computer.compute_used_width_table_wrapper(self, ctx, containing_block_width);
@@ -286,7 +279,6 @@ impl TableWrapper {
             },
             AutoLayout => {
                 // Automatic table layout is calculated according to CSS 2.1 § 17.5.2.2.
-                // But, this spec is not specified. Since the new spec is specified, it may be modified. See #1687.
                 let mut cap_min = Au(0);
                 let mut cols_min = Au(0);
                 let mut cols_max = Au(0);
@@ -303,8 +295,8 @@ impl TableWrapper {
                         col_pref_widths = kid.col_pref_widths();
                     }
                 }
-                // 'extra_width': difference between the calculated table width and minimum width required by all columns.
-                // It will be distributed over the columns
+                // 'extra_width': difference between the calculated table width and minimum width
+                // required by all columns. It will be distributed over the columns.
                 let (width, extra_width) = match input.computed_width {
                     Auto => {
                         if input.available_width > geometry::max(cols_max, cap_min) {
@@ -337,8 +329,9 @@ impl TableWrapper {
                 // The extra width is distributed over the columns
                 if extra_width > Au(0) {
                     let cell_len = table_wrapper.col_widths.len() as f64;
-                    table_wrapper.col_widths = col_min_widths.map(|width|
-                                                                  width + extra_width.scale_by(1.0/cell_len));
+                    table_wrapper.col_widths = col_min_widths.map(|width| {
+                        width + extra_width.scale_by(1.0 / cell_len)
+                    });
                 }
                 width
             }

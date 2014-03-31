@@ -40,9 +40,9 @@ pub struct RenderLayer {
     /// The display list describing the contents of this layer.
     display_list: Arc<DisplayList>,
     /// The position of the layer in pixels.
-    rect: Rect<uint>,
+    position: Rect<uint>,
     /// The color of the background in this layer. Used for unrendered content.
-    color: Color,
+    background_color: Color,
     /// The scrolling policy of this layer.
     scroll_policy: ScrollPolicy,
 }
@@ -73,7 +73,7 @@ pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferReq
     }
 }
 
-// FIXME(pcwalton): This should be a newtype struct.
+// FIXME(#2005, pcwalton): This should be a newtype struct.
 pub struct RenderChan {
     chan: Chan<Msg>,
 }
@@ -157,8 +157,8 @@ fn initialize_layers<C:RenderListener>(
     let metadata = render_layers.iter().map(|render_layer| {
         LayerMetadata {
             id: render_layer.id,
-            rect: render_layer.rect,
-            color: render_layer.color,
+            position: render_layer.position,
+            background_color: render_layer.background_color,
             scroll_policy: render_layer.scroll_policy,
         }
     }).collect();
@@ -297,14 +297,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
             let mut new_buffers = ~[];
 
             // Find the appropriate render layer.
-            let mut render_layer = None;
-            for layer in self.render_layers.iter() {
-                if layer.id == layer_id {
-                    render_layer = Some(layer);
-                    break
-                }
-            }
-            let render_layer = match render_layer {
+            let render_layer = match self.render_layers.iter().find(|layer| layer.id == layer_id) {
                 Some(render_layer) => render_layer,
                 None => return,
             };
@@ -349,14 +342,14 @@ impl<C: RenderListener + Send> RenderTask<C> {
                     let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
                     let matrix = matrix.translate(-(tile.page_rect.origin.x) as AzFloat,
                                                   -(tile.page_rect.origin.y) as AzFloat);
-                    let matrix = matrix.translate(-(render_layer.rect.origin.x as AzFloat),
-                                                  -(render_layer.rect.origin.y as AzFloat));
-                    
+                    let matrix = matrix.translate(-(render_layer.position.origin.x as AzFloat),
+                                                  -(render_layer.position.origin.y as AzFloat));
+
                     ctx.draw_target.set_transform(&matrix);
 
                     // Clear the buffer.
                     ctx.clear();
-                    
+
                     // Draw the display list.
                     profile(time::RenderingDrawingCategory, self.profiler_chan.clone(), || {
                         render_layer.display_list.get().draw_into_context(&mut ctx);
@@ -429,7 +422,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                         }
                     }
                 };
-                
+
                 new_buffers.push(buffer);
             }
 

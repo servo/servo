@@ -41,7 +41,7 @@ impl TableCellFlow {
 
     /// Assign height for table-cell flow.
     ///
-    /// TODO(pcwalton): This doesn't handle floats right.
+    /// TODO(#2015, pcwalton): This doesn't handle floats right.
     ///
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods

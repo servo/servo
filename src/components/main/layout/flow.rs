@@ -1101,7 +1101,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
                 overflow = overflow.union(&kid_overflow)
             }
 
-            // FIXME(pcwalton): This is wrong for `position: fixed`.
+            // FIXME(#2004, pcwalton): This is wrong for `position: fixed`.
             for descendant_link in mut_base(self).abs_descendants.iter() {
                 match descendant_link.resolve() {
                     Some(flow) => {
@@ -1165,7 +1165,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
                 self.as_table_cell().build_display_list_table_cell(stacking_context, builder, info)
             }
             TableColGroupFlowClass => {
-                // Nothing to do here, I guess? --pcwalton
+                // Nothing to do here, as column groups don't render.
             }
         }
     }
@@ -1233,4 +1233,3 @@ impl MutableOwnedFlowUtils for ~Flow {
         self_borrowed.destroy();
     }
 }
-

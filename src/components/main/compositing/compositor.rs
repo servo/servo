@@ -326,7 +326,7 @@ impl IOCompositor {
         }
     }
 
-    // FIXME(pcwalton): Take the pipeline ID and layer ID into account.
+    // FIXME(#2004, pcwalton): Take the pipeline ID and layer ID into account.
     fn set_unrendered_color(&mut self, _: PipelineId, _: LayerId, color: Color) {
         match self.compositor_layer {
             Some(ref mut layer) => layer.unrendered_color = color,

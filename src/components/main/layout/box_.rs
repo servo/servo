@@ -292,8 +292,8 @@ pub enum SplitBoxResult {
 
 /// Data for inline boxes.
 ///
-/// FIXME(pcwalton): Copying `InlineParentInfo` vectors all the time is really inefficient. Use
-/// atomic reference counting instead.
+/// FIXME(#2013, pcwalton): Copying `InlineParentInfo` vectors all the time is really inefficient.
+/// Use atomic reference counting instead.
 #[deriving(Clone)]
 pub struct InlineInfo {
     parent_info: SmallVec0<InlineParentInfo>,
@@ -418,14 +418,6 @@ def_noncontent!(bottom, noncontent_bottom, noncontent_inline_bottom)
 def_noncontent_horiz!(left,  merge_noncontent_inline_left,  clear_noncontent_inline_left)
 def_noncontent_horiz!(right, merge_noncontent_inline_right, clear_noncontent_inline_right)
 
-/// Some DOM nodes can contribute more than one type of box. We call these boxes "sub-boxes". For
-/// these nodes, this enum is used to determine which sub-box to construct for that node.
-pub enum SubBoxKind {
-    /// The main box for this node. All DOM nodes that are rendered at all have at least a main
-    /// box.
-    MainBoxKind,
-}
-
 impl Box {
     /// Constructs a new `Box` instance for the given node.
     ///
@@ -434,13 +426,7 @@ impl Box {
     ///   * `constructor`: The flow constructor.
     ///
     ///   * `node`: The node to create a box for.
-    ///
-    ///   * `sub_box_kind`: The kind of box to create for the node, in case this node can
-    ///     contribute more than one type of box. See the definition of `SubBoxKind`.
-    pub fn new(constructor: &mut FlowConstructor,
-               node: &ThreadSafeLayoutNode,
-               sub_box_kind: SubBoxKind)
-               -> Box {
+    pub fn new(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> Box {
         Box {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: node.style().clone(),
@@ -448,7 +434,7 @@ impl Box {
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
-            specific: constructor.build_specific_box_info_for_node(node, sub_box_kind),
+            specific: constructor.build_specific_box_info_for_node(node),
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: RefCell::new(None),
             new_line_pos: ~[],

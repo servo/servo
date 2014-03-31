@@ -23,8 +23,6 @@ use servo_net::image::base::Image;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec0, SmallVecIterator};
-use std::cast::transmute_region;
-use std::cast;
 use std::libc::uintptr_t;
 use std::mem;
 use std::vec::Items;
@@ -43,9 +41,8 @@ pub struct OpaqueNode(uintptr_t);
 impl OpaqueNode {
     /// Returns the address of this node, for debugging purposes.
     pub fn id(&self) -> uintptr_t {
-        unsafe {
-            cast::transmute_copy(self)
-        }
+        let OpaqueNode(pointer) = *self;
+        pointer
     }
 }
 
@@ -428,16 +425,13 @@ impl DisplayItem {
     }
 
     pub fn base<'a>(&'a self) -> &'a BaseDisplayItem {
-        // FIXME(tkuehn): Workaround for Rust region bug.
-        unsafe {
-            match *self {
-                SolidColorDisplayItemClass(ref solid_color) => transmute_region(&solid_color.base),
-                TextDisplayItemClass(ref text) => transmute_region(&text.base),
-                ImageDisplayItemClass(ref image_item) => transmute_region(&image_item.base),
-                BorderDisplayItemClass(ref border) => transmute_region(&border.base),
-                LineDisplayItemClass(ref line) => transmute_region(&line.base),
-                ClipDisplayItemClass(ref clip) => transmute_region(&clip.base),
-            }
+        match *self {
+            SolidColorDisplayItemClass(ref solid_color) => &solid_color.base,
+            TextDisplayItemClass(ref text) => &text.base,
+            ImageDisplayItemClass(ref image_item) => &image_item.base,
+            BorderDisplayItemClass(ref border) => &border.base,
+            LineDisplayItemClass(ref line) => &line.base,
+            ClipDisplayItemClass(ref clip) => &clip.base,
         }
     }
 

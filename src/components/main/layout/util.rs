@@ -149,7 +149,7 @@ pub struct PrivateLayoutData {
 
     before_flow_construction_result: ConstructionResult,
 
-    after_flow_construction_result: ConstructionResult, 
+    after_flow_construction_result: ConstructionResult,
 
     /// Information needed during parallel traversals.
     parallel: DomParallelInfo,
@@ -235,7 +235,7 @@ impl OpaqueNodeMethods for OpaqueNode {
     fn from_thread_safe_layout_node(node: &ThreadSafeLayoutNode) -> OpaqueNode {
         unsafe {
             let abstract_node = node.get_jsmanaged();
-            let ptr: uintptr_t = cast::transmute(abstract_node.reflector().get_jsobject());
+            let ptr: uintptr_t = abstract_node.reflector().get_jsobject() as uint;
             OpaqueNode(ptr)
         }
     }

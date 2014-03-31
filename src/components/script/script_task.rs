@@ -934,9 +934,10 @@ impl ScriptTask {
             page.query_layout(ContentBoxQuery(node.to_trusted_node_address(), chan), port);
         let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(),
                             to_frac_px(rect.origin.y).to_f32().unwrap());
-        // FIXME(pcwalton): This is pretty bogus when multiple layers are involved. Really
-        // what needs to happen is that this needs to go through layout to ask which layer
-        // the element belongs to, and have it send the scroll message to the compositor.
+        // FIXME(#2003, pcwalton): This is pretty bogus when multiple layers are involved.
+        // Really what needs to happen is that this needs to go through layout to ask which
+        // layer the element belongs to, and have it send the scroll message to the
+        // compositor.
         self.compositor.scroll_fragment_point(pipeline_id, LayerId::null(), point);
     }
 

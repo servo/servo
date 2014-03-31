@@ -83,14 +83,14 @@ pub struct MarginCollapseInfo {
 }
 
 impl MarginCollapseInfo {
-    /// TODO(pcwalton): Remove this method once `box_` is not an `Option`.
+    /// TODO(#2012, pcwalton): Remove this method once `box_` is not an `Option`.
     pub fn new() -> MarginCollapseInfo {
         MarginCollapseInfo {
             state: AccumulatingCollapsibleTopMargin,
             top_margin: AdjoiningMargins::new(),
             margin_in: AdjoiningMargins::new(),
         }
-    } 
+    }
 
     pub fn initialize_top_margin(&mut self,
                                  fragment: &Box,
