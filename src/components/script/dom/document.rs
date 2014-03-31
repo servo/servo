@@ -15,12 +15,12 @@ use dom::comment::Comment;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{Element};
+use dom::element::{Element, AttributeHandlers};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::htmlcollection::HTMLCollection;
+use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::nodelist::NodeList;
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -28,6 +28,7 @@ use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers, INode};
+use dom::node::{CloneChildren, DoNotCloneChildren};
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::uievent::UIEvent;
@@ -213,7 +214,7 @@ impl Document {
     // http://dom.spec.whatwg.org/#dom-document-doctype
     pub fn GetDoctype(&self) -> Option<JS<DocumentType>> {
         self.node.children().find(|child| child.is_doctype())
-                            .map(|node| DocumentTypeCast::to(&node))
+                            .map(|node| DocumentTypeCast::to(&node).unwrap())
     }
 
     // http://dom.spec.whatwg.org/#dom-document-documentelement
@@ -294,6 +295,37 @@ impl Document {
         Ok(ProcessingInstruction::new(target, data, abstract_self))
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-importnode
+    pub fn ImportNode(&self, abstract_self: &JS<Document>, node: &JS<Node>, deep: bool) -> Fallible<JS<Node>> {
+        // Step 1.
+        if node.is_document() {
+            return Err(NotSupported);
+        }
+
+        // Step 2.
+        let clone_children = match deep {
+            true => CloneChildren,
+            false => DoNotCloneChildren
+        };
+
+        Ok(Node::clone(node, Some(abstract_self), clone_children))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-adoptnode
+    pub fn AdoptNode(&self, abstract_self: &JS<Document>, node: &JS<Node>) -> Fallible<JS<Node>> {
+        // Step 1.
+        if node.is_document() {
+            return Err(NotSupported);
+        }
+
+        // Step 2.
+        let mut adoptee = node.clone();
+        Node::adopt(&mut adoptee, abstract_self);
+
+        // Step 3.
+        Ok(adoptee)
+    }
+
     // http://dom.spec.whatwg.org/#dom-document-createevent
     pub fn CreateEvent(&self, interface: DOMString) -> Fallible<JS<Event>> {
         match interface.as_slice() {
@@ -314,7 +346,7 @@ impl Document {
                 .map(|title_elem| {
                     for child in title_elem.children() {
                         if child.is_text() {
-                            let text: JS<Text> = TextCast::to(&child);
+                            let text: JS<Text> = TextCast::to(&child).unwrap();
                             title.push_str(text.get().characterdata.data.as_slice());
                         }
                     }
@@ -362,7 +394,7 @@ impl Document {
     fn get_html_element(&self) -> Option<JS<HTMLHtmlElement>> {
         self.GetDocumentElement().filtered(|root| {
             root.get().node.type_id == ElementNodeTypeId(HTMLHtmlElementTypeId)
-        }).map(|elem| HTMLHtmlElementCast::to(&elem))
+        }).map(|elem| HTMLHtmlElementCast::to(&elem).unwrap())
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-head
@@ -371,7 +403,7 @@ impl Document {
             let node: JS<Node> = NodeCast::from(&root);
             node.children().find(|child| {
                 child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
-            }).map(|node| HTMLHeadElementCast::to(&node))
+            }).map(|node| HTMLHeadElementCast::to(&node).unwrap())
         })
     }
 
@@ -385,7 +417,7 @@ impl Document {
                     ElementNodeTypeId(HTMLFrameSetElementTypeId) => true,
                     _ => false
                 }
-            }).map(|node| HTMLElementCast::to(&node))
+            }).map(|node| HTMLElementCast::to(&node).unwrap())
         })
     }
 
@@ -434,8 +466,8 @@ impl Document {
                 return false;
             }
 
-            let element: JS<Element> = ElementCast::to(node);
-            element.get().get_attribute(Null, "name").map_or(false, |attr| {
+            let element: JS<Element> = ElementCast::to(node).unwrap();
+            element.get_attribute(Null, "name").map_or(false, |attr| {
                 attr.get().value_ref() == name
             })
         })
@@ -443,12 +475,26 @@ impl Document {
 
     pub fn Images(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"img")
+        struct ImagesFilter;
+        impl CollectionFilter for ImagesFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"img"
+            }
+        }
+        let filter = ~ImagesFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Embeds(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"embed")
+        struct EmbedsFilter;
+        impl CollectionFilter for EmbedsFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"embed"
+            }
+        }
+        let filter = ~EmbedsFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Plugins(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
@@ -458,32 +504,63 @@ impl Document {
 
     pub fn Links(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), |elem| {
-            ("a" == elem.get().tag_name || "area" == elem.get().tag_name) &&
-            elem.get().get_attribute(Null, "href").is_some()
-        })
+        struct LinksFilter;
+        impl CollectionFilter for LinksFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                (elem.get().tag_name == ~"a" || elem.get().tag_name == ~"area") &&
+                elem.get_attribute(Null, "href").is_some()
+            }
+        }
+        let filter = ~LinksFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Forms(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"form")
+        struct FormsFilter;
+        impl CollectionFilter for FormsFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"form"
+            }
+        }
+        let filter = ~FormsFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Scripts(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"script")
+        struct ScriptsFilter;
+        impl CollectionFilter for ScriptsFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"script"
+            }
+        }
+        let filter = ~ScriptsFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Anchors(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), |elem| {
-            "a" == elem.get().tag_name && elem.get().get_attribute(Null, "name").is_some()
-        })
+        struct AnchorsFilter;
+        impl CollectionFilter for AnchorsFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"a" && elem.get_attribute(Null, "name").is_some()
+            }
+        }
+        let filter = ~AnchorsFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn Applets(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
-        HTMLCollection::by_tag_name(&self.window, &NodeCast::from(abstract_self), ~"applet")
+        struct AppletsFilter;
+        impl CollectionFilter for AppletsFilter {
+            fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
+                elem.get().tag_name == ~"applet"
+            }
+        }
+        let filter = ~AppletsFilter;
+        HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
     pub fn create_collection<T>(&self, callback: |elem: &JS<Node>| -> Option<JS<T>>) -> ~[JS<T>] {

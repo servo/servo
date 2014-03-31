@@ -31,7 +31,8 @@ fn main() {
     let opts = test_options(config.clone());
     let tests = find_tests(config);
     match run_tests_console(&opts, tests) {
-        Err(_) => os::set_exit_status(1),
+        Ok(false) => os::set_exit_status(1), // tests failed
+        Err(_) => os::set_exit_status(2),    // I/O-related failure
         _ => (),
     }
 }

@@ -216,18 +216,17 @@ impl StyleSharingCandidate {
 
         let mut style = Some(style);
         let mut parent_style = Some(parent_style);
-        node.with_element(|element| {
-            if element.style_attribute().is_some() {
-                return None
-            }
+        let element = node.as_element();
+        if element.style_attribute().is_some() {
+            return None
+        }
 
-            Some(StyleSharingCandidate {
-                style: style.take_unwrap(),
-                parent_style: parent_style.take_unwrap(),
-                local_name: element.get_local_name().to_str(),
-                class: element.get_attr(&Null, "class")
-                              .map(|string| string.to_str()),
-            })
+        Some(StyleSharingCandidate {
+            style: style.take_unwrap(),
+            parent_style: parent_style.take_unwrap(),
+            local_name: element.get_local_name().to_str(),
+            class: element.get_attr(&Null, "class")
+                          .map(|string| string.to_str()),
         })
     }
 
@@ -401,7 +400,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                 }
 
                 // Check tag names, classes, etc.
-                if !self.with_element(|element| candidate.can_share_style_with(element)) {
+                if !candidate.can_share_style_with(&self.as_element()) {
                     return None
                 }
 
@@ -419,9 +418,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                   stylist: &Stylist,
                   applicable_declarations: &mut ApplicableDeclarations,
                   shareable: &mut bool) {
-        let style_attribute = self.with_element(|element| {
-            element.style_attribute().as_ref()
-        });
+        let style_attribute = self.as_element().style_attribute().as_ref();
 
         applicable_declarations.normal_shareable =
             stylist.push_applicable_declarations(self,
@@ -448,9 +445,10 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         if !self.is_element() {
             return CannotShare(false)
         }
-        let ok = self.with_element(|element| {
+        let ok = {
+            let element = self.as_element();
             element.style_attribute().is_none() && element.get_attr(&Null, "id").is_none()
-        });
+        };
         if !ok {
             return CannotShare(false)
         }

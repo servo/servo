@@ -80,29 +80,29 @@ pub unsafe fn dom_object_slot(obj: *JSObject) -> u32 {
     }
 }
 
-pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
+pub unsafe fn unwrap<T>(obj: *JSObject) -> *mut T {
     let slot = dom_object_slot(obj);
     let val = JS_GetReservedSlot(obj, slot);
-    cast::transmute(val.to_private())
+    val.to_private() as *mut T
 }
 
 pub unsafe fn get_dom_class(obj: *JSObject) -> Result<DOMClass, ()> {
     let clasp = JS_GetClass(obj);
     if is_dom_class(clasp) {
         debug!("plain old dom object");
-        let domjsclass: *DOMJSClass = cast::transmute(clasp);
+        let domjsclass: *DOMJSClass = clasp as *DOMJSClass;
         return Ok((*domjsclass).dom_class);
     }
     if is_dom_proxy(obj) {
         debug!("proxy dom object");
-        let dom_class: *DOMClass = cast::transmute(GetProxyHandlerExtra(obj));
+        let dom_class: *DOMClass = GetProxyHandlerExtra(obj) as *DOMClass;
         return Ok(*dom_class);
     }
     debug!("not a dom object");
     return Err(());
 }
 
-pub fn unwrap_object<T>(obj: *JSObject, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
+pub fn unwrap_object<T>(obj: *JSObject, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<*mut T, ()> {
     unsafe {
         get_dom_class(obj).and_then(|dom_class| {
             if dom_class.interface_chain[proto_depth] == proto_id {
@@ -127,14 +127,7 @@ pub fn unwrap_jsmanaged<T: Reflectable>(obj: *JSObject,
     })
 }
 
-pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
-    unsafe {
-        let obj = (*val).to_object();
-        unwrap_object(obj, proto_id, proto_depth)
-    }
-}
-
-pub unsafe fn squirrel_away_unboxed<T>(x: ~T) -> *T {
+pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *T {
     cast::transmute(x)
 }
 
@@ -218,7 +211,6 @@ pub struct DOMClass {
     // A list of interfaces that this object implements, in order of decreasing
     // derivedness.
     interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH],
-
     unused: bool // DOMObjectIsISupports (always false)
 }
 
@@ -230,7 +222,7 @@ pub struct DOMJSClass {
 pub fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
     unsafe {
         /*assert ((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0;*/
-        cast::transmute(JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private())
+        JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private() as **JSObject
     }
 }
 
@@ -398,7 +390,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: c_uint, _vp: *mut JSVa
 pub fn initialize_global(global: *JSObject) {
     let protoArray = ~([0 as *JSObject, ..PrototypeList::id::IDCount as uint]);
     unsafe {
-        let box_ = squirrel_away_unboxed(protoArray);
+        let box_ = squirrel_away_unique(protoArray);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
                            PrivateValue(box_ as *libc::c_void));
@@ -584,7 +576,7 @@ pub fn global_object_for_js_object(obj: *JSObject) -> JS<window::Window> {
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
         // FIXME(jdm): Either don't hardcode or sanity assert prototype stuff.
-        match unwrap_object::<*mut window::Window>(global, PrototypeList::id::Window, 1) {
+        match unwrap_object(global, PrototypeList::id::Window, 1) {
             Ok(win) => JS::from_raw(win),
             Err(_) => fail!("found DOM global that doesn't unwrap to Window"),
         }

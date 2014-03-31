@@ -6,7 +6,7 @@
 #[comment = "The Servo Parallel Browser Project"];
 #[license = "MPL"];
 
-#[feature(globs, macro_rules, managed_boxes, thread_local)];
+#[feature(globs, macro_rules, managed_boxes, phase, thread_local)];
 
 extern crate alert;
 extern crate azure;
@@ -23,6 +23,8 @@ extern crate png;
 #[cfg(target_os="android")]
 extern crate rustuv;
 extern crate script;
+#[phase(syntax)]
+extern crate servo_macros = "macros";
 extern crate servo_net = "net";
 extern crate servo_msg = "msg";
 extern crate servo_util = "util";
@@ -75,8 +77,6 @@ use std::task::TaskOpts;
 #[path="compositing/compositor_task.rs"]
 pub mod compositing;
 
-pub mod macros;
-
 pub mod css {
     mod node_util;
 
@@ -101,6 +101,13 @@ pub mod layout {
     pub mod inline;
     pub mod model;
     pub mod parallel;
+    pub mod table_wrapper;
+    pub mod table;
+    pub mod table_caption;
+    pub mod table_colgroup;
+    pub mod table_rowgroup;
+    pub mod table_row;
+    pub mod table_cell;
     pub mod text;
     pub mod util;
     pub mod incremental;

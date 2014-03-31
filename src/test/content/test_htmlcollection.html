@@ -40,33 +40,25 @@
                 is(htmlcollection.length, 1);
                 is(htmlcollection.item(0), live);
 
-                is(live.childNodes.length, 0)
-                is(htmlcollection.item(0).childNodes.length, 0);
-                is(document.getElementById("live").childNodes.length, 0);
+                let new_live = document.createElement("div");
+                new_live.className = "live";
+                document.body.appendChild(new_live);
+                is(htmlcollection.length, 2);
+                is(htmlcollection.item(1), new_live);
 
-                live.appendChild(child);
-
-                is(live.childNodes.length, 1);
-                is(htmlcollection.item(0).childNodes.length, 1);
-                is(document.getElementById("live").childNodes.length, 1);
+                document.body.removeChild(new_live);
+                is(htmlcollection.length, 1);
             }
 
             // test3: getElementsByTagName
             {
-                htmlcollection = document.getElementsByTagName("div");
-                is(htmlcollection.length, 5);
+                is(document.getElementsByTagName("DIV").length, 0);
 
-                let from_element = document.documentElement.getElementsByTagName("div");
-                is(htmlcollection.length, from_element.length);
+                is(document.getElementsByTagName("div").length,
+                   document.documentElement.getElementsByTagName("div").length);
 
-                htmlcollection = document.getElementsByTagName("DIV");
-                is(htmlcollection.length, 0);
-
-                htmlcollection = document.getElementsByTagName("p");
-                is(htmlcollection.length, 4);
-
-                from_element = document.getElementById("class-example").getElementsByTagName("p");
-                is(from_element.length, 3);
+                is(document.getElementsByTagName("p").length,
+                   document.getElementById("class-example").getElementsByTagName("p").length);
             }
 
             // test4: getElementsByTagNameNS

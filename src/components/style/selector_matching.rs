@@ -117,44 +117,43 @@ impl SelectorMap {
 
         // At the end, we're going to sort the rules that we added, so remember where we began.
         let init_len = matching_rules_list.len();
-        node.with_element(|element: &E| {
-            match element.get_attr(&namespace::Null, "id") {
-                Some(id) => {
+        let element = node.as_element();
+        match element.get_attr(&namespace::Null, "id") {
+            Some(id) => {
+                SelectorMap::get_matching_rules_from_hash(node,
+                                                            &self.id_hash,
+                                                            id,
+                                                            matching_rules_list,
+                                                            shareable)
+            }
+            None => {}
+        }
+
+        match element.get_attr(&namespace::Null, "class") {
+            Some(ref class_attr) => {
+                for class in class_attr.split(SELECTOR_WHITESPACE) {
                     SelectorMap::get_matching_rules_from_hash(node,
-                                                              &self.id_hash,
-                                                              id,
-                                                              matching_rules_list,
-                                                              shareable)
+                                                                &self.class_hash,
+                                                                class,
+                                                                matching_rules_list,
+                                                                shareable);
                 }
-                None => {}
             }
+            None => {}
+        }
 
-            match element.get_attr(&namespace::Null, "class") {
-                Some(ref class_attr) => {
-                    for class in class_attr.split(SELECTOR_WHITESPACE) {
-                        SelectorMap::get_matching_rules_from_hash(node,
-                                                                  &self.class_hash,
-                                                                  class,
-                                                                  matching_rules_list,
-                                                                  shareable);
-                    }
-                }
-                None => {}
-            }
+        // HTML elements in HTML documents must be matched case-insensitively.
+        // TODO(pradeep): Case-sensitivity depends on the document type.
+        SelectorMap::get_matching_rules_from_hash_ignoring_case(node,
+                                                                &self.element_hash,
+                                                                element.get_local_name(),
+                                                                matching_rules_list,
+                                                                shareable);
 
-            // HTML elements in HTML documents must be matched case-insensitively.
-            // TODO(pradeep): Case-sensitivity depends on the document type.
-            SelectorMap::get_matching_rules_from_hash_ignoring_case(node,
-                                                                    &self.element_hash,
-                                                                    element.get_local_name(),
-                                                                    matching_rules_list,
-                                                                    shareable);
-
-            SelectorMap::get_matching_rules(node,
-                                            self.universal_rules,
-                                            matching_rules_list,
-                                            shareable);
-        });
+        SelectorMap::get_matching_rules(node,
+                                        self.universal_rules,
+                                        matching_rules_list,
+                                        shareable);
 
         // Sort only the rules we just added.
         sort::quicksort(matching_rules_list.mut_slice_from(init_len));
@@ -582,36 +581,32 @@ fn matches_simple_selector<E:TElement,
         // TODO: case-sensitivity depends on the document type
         // TODO: intern element names
         LocalNameSelector(ref name) => {
-            element.with_element(|element: &E| {
-                element.get_local_name().eq_ignore_ascii_case(name.as_slice())
-            })
+            let element = element.as_element();
+            element.get_local_name().eq_ignore_ascii_case(name.as_slice())
         }
 
         NamespaceSelector(ref namespace) => {
             *shareable = false;
-            element.with_element(|element: &E| {
-                element.get_namespace() == namespace
-            })
+            let element = element.as_element();
+            element.get_namespace() == namespace
         }
         // TODO: case-sensitivity depends on the document type and quirks mode
         // TODO: cache and intern IDs on elements.
         IDSelector(ref id) => {
             *shareable = false;
-            element.with_element(|element: &E| {
-                element.get_attr(&namespace::Null, "id")
-                       .map_or(false, |attr| {
-                    attr == *id
-                })
+            let element = element.as_element();
+            element.get_attr(&namespace::Null, "id")
+                    .map_or(false, |attr| {
+                attr == *id
             })
         }
         // TODO: cache and intern class names on elements.
         ClassSelector(ref class) => {
-            element.with_element(|element: &E| {
-                element.get_attr(&namespace::Null, "class")
-                       .map_or(false, |attr| {
-                    // TODO: case-sensitivity depends on the document type and quirks mode
-                    attr.split(SELECTOR_WHITESPACE).any(|c| c == class.as_slice())
-                })
+            let element = element.as_element();
+            element.get_attr(&namespace::Null, "class")
+                    .map_or(false, |attr| {
+                // TODO: case-sensitivity depends on the document type and quirks mode
+                attr.split(SELECTOR_WHITESPACE).any(|c| c == class.as_slice())
             })
         }
 
@@ -663,34 +658,30 @@ fn matches_simple_selector<E:TElement,
 
         AnyLink => {
             *shareable = false;
-            element.with_element(|element: &E| {
-                element.get_link().is_some()
-            })
+            let element = element.as_element();
+            element.get_link().is_some()
         }
         Link => {
             *shareable = false;
-            element.with_element(|element: &E| {
-                match element.get_link() {
-                    Some(url) => !url_is_visited(url),
-                    None => false,
-                }
-            })
+            let elem = element.as_element();
+            match elem.get_link() {
+                Some(url) => !url_is_visited(url),
+                None => false,
+            }
         }
         Visited => {
             *shareable = false;
-            element.with_element(|element: &E| {
-                match element.get_link() {
-                    Some(url) => url_is_visited(url),
-                    None => false,
-                }
-            })
+            let elem = element.as_element();
+            match elem.get_link() {
+                Some(url) => url_is_visited(url),
+                None => false,
+            }
         }
 
         Hover => {
             *shareable = false;
-            element.with_element(|element: &E| {
-                element.get_hover_state()
-            })
+            let elem = element.as_element();
+            elem.get_hover_state()
         },
         FirstChild => {
             *shareable = false;
@@ -791,14 +782,12 @@ fn matches_generic_nth_child<'a,
 
         if node.is_element() {
             if is_of_type {
-                element.with_element(|element: &E| {
-                    node.with_element(|node: &E| {
-                        if element.get_local_name() == node.get_local_name() &&
-                           element.get_namespace() == node.get_namespace() {
-                            index += 1;
-                        }
-                    })
-                })
+                let element = element.as_element();
+                let node = node.as_element();
+                if element.get_local_name() == node.get_local_name() &&
+                    element.get_namespace() == node.get_namespace() {
+                    index += 1;
+                }
             } else {
               index += 1;
             }
