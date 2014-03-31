@@ -23,7 +23,7 @@
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
 use layout::box_::{Box, GenericBox, IframeBox, IframeBoxInfo, ImageBox, ImageBoxInfo};
-use layout::box_::{InlineInfo, InlineParentInfo, MainBoxKind, SpecificBoxInfo, SubBoxKind};
+use layout::box_::{InlineInfo, InlineParentInfo, SpecificBoxInfo};
 use layout::box_::{TableBox, TableCellBox, TableColumnBox, TableColumnBoxInfo, TableRowBox};
 use layout::box_::{TableWrapperBox, UnscannedTextBox, UnscannedTextBoxInfo};
 use layout::context::LayoutContext;
@@ -50,7 +50,7 @@ use gfx::font_context::FontContext;
 use script::dom::bindings::codegen::InheritTypes::TextCast;
 use script::dom::bindings::js::JS;
 use script::dom::element::{HTMLIFrameElementTypeId, HTMLImageElementTypeId};
-use script::dom::element::{HTMLObjectElementTypeId, HTMLPseudoElementTypeId};
+use script::dom::element::{HTMLObjectElementTypeId};
 use script::dom::element::{HTMLTableColElementTypeId, HTMLTableDataCellElementTypeId};
 use script::dom::element::{HTMLTableElementTypeId, HTMLTableHeaderCellElementTypeId};
 use script::dom::element::{HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId};
@@ -281,7 +281,8 @@ impl<'a> FlowConstructor<'a> {
     }
 
     /// Builds the `ImageBoxInfo` for the given image. This is out of line to guide inlining.
-    fn build_box_info_for_image(&mut self, node: &ThreadSafeLayoutNode, url: Option<Url>) -> SpecificBoxInfo {
+    fn build_box_info_for_image(&mut self, node: &ThreadSafeLayoutNode, url: Option<Url>)
+                                -> SpecificBoxInfo {
         match url {
             None => GenericBox,
             Some(url) => {
@@ -293,29 +294,28 @@ impl<'a> FlowConstructor<'a> {
     }
 
     /// Builds specific `Box` info for the given node.
-    pub fn build_specific_box_info_for_node(&mut self,
-                                            node: &ThreadSafeLayoutNode,
-                                            sub_box_kind: SubBoxKind)
+    pub fn build_specific_box_info_for_node(&mut self, node: &ThreadSafeLayoutNode)
                                             -> SpecificBoxInfo {
         match node.type_id() {
-            ElementNodeTypeId(HTMLImageElementTypeId) => {
+            Some(ElementNodeTypeId(HTMLImageElementTypeId)) => {
                 self.build_box_info_for_image(node, node.image_url())
             }
-            ElementNodeTypeId(HTMLIFrameElementTypeId) => IframeBox(IframeBoxInfo::new(node)),
-            ElementNodeTypeId(HTMLObjectElementTypeId) => {
+            Some(ElementNodeTypeId(HTMLIFrameElementTypeId)) => {
+                IframeBox(IframeBoxInfo::new(node))
+            }
+            Some(ElementNodeTypeId(HTMLObjectElementTypeId)) => {
                 let data = node.get_object_data(&self.layout_context.url);
                 self.build_box_info_for_image(node, data)
             }
-            ElementNodeTypeId(HTMLTableElementTypeId) => TableWrapperBox,
-            ElementNodeTypeId(HTMLTableColElementTypeId) => {
+            Some(ElementNodeTypeId(HTMLTableElementTypeId)) => TableWrapperBox,
+            Some(ElementNodeTypeId(HTMLTableColElementTypeId)) => {
                 TableColumnBox(TableColumnBoxInfo::new(node))
             }
-            ElementNodeTypeId(HTMLTableDataCellElementTypeId) |
-            ElementNodeTypeId(HTMLTableHeaderCellElementTypeId) => TableCellBox,
-            ElementNodeTypeId(HTMLTableRowElementTypeId) |
-            ElementNodeTypeId(HTMLTableSectionElementTypeId) => TableRowBox,
-            ElementNodeTypeId(HTMLPseudoElementTypeId) |
-            TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(node)),
+            Some(ElementNodeTypeId(HTMLTableDataCellElementTypeId)) |
+            Some(ElementNodeTypeId(HTMLTableHeaderCellElementTypeId)) => TableCellBox,
+            Some(ElementNodeTypeId(HTMLTableRowElementTypeId)) |
+            Some(ElementNodeTypeId(HTMLTableSectionElementTypeId)) => TableRowBox,
+            None | Some(TextNodeTypeId) => UnscannedTextBox(UnscannedTextBoxInfo::new(node)),
             _ => GenericBox,
         }
     }
@@ -489,7 +489,7 @@ impl<'a> FlowConstructor<'a> {
         for kid in node.children() {
             if kid.get_element_type() != Normal {
                 self.process(&kid);
-            }            
+            }
 
             self.build_block_flow_using_children_construction_result(
                 &mut flow,
@@ -676,11 +676,11 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    // FIXME(pcwalton): Why does this function create a box only to throw it away???
+    // FIXME(#1999, pcwalton): Why does this function create a box only to throw it away???
     fn set_inline_info_for_inline_child(&mut self,
                                         boxes: &[&Box],
                                         parent_node: &ThreadSafeLayoutNode) {
-        let parent_box = Box::new(self, parent_node, MainBoxKind);
+        let parent_box = Box::new(self, parent_node);
         let font_style = parent_box.font_style();
         let font_group = self.font_context().get_resolved_font_for_style(&font_style);
         let (font_ascent,font_descent) = font_group.borrow().with_mut( |fg| {
@@ -692,7 +692,8 @@ impl<'a> FlowConstructor<'a> {
         let boxes_len = boxes.len();
         parent_box.compute_borders(parent_box.style());
 
-        // FIXME(pcwalton): I suspect that `Au(0)` is not correct for the containing block width.
+        // FIXME(#2000, pcwalton): I suspect that `Au(0)` is not correct for the containing block
+        // width.
         parent_box.compute_padding(parent_box.style(), Au(0));
 
         for (i, box_) in boxes.iter().enumerate() {
@@ -739,7 +740,7 @@ impl<'a> FlowConstructor<'a> {
 
         // If this node is ignorable whitespace, bail out now.
         //
-        // FIXME(pcwalton): Don't do this if there's padding or borders.
+        // FIXME(#2001, pcwalton): Don't do this if there's padding or borders.
         if node.is_ignorable_whitespace() {
             let opaque_node = OpaqueNodeMethods::from_thread_safe_layout_node(node);
             return ConstructionItemConstructionResult(WhitespaceConstructionItem(
@@ -748,7 +749,7 @@ impl<'a> FlowConstructor<'a> {
         }
 
         let mut opt_box_accumulator = None;
-        opt_box_accumulator.push(Box::new(self, node, MainBoxKind));
+        opt_box_accumulator.push(Box::new(self, node));
 
         let construction_item = InlineBoxesConstructionItem(InlineBoxesConstructionResult {
             splits: None,
@@ -951,20 +952,23 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
     fn process(&mut self, node: &ThreadSafeLayoutNode) -> bool {
         // Get the `display` property for this node, and determine whether this node is floated.
         let (display, float, positioning) = match node.type_id() {
-            ElementNodeTypeId(HTMLPseudoElementTypeId) => {
+            None => {
+                // Pseudo-element.
                 let style = node.style().get();
                 (display::inline, style.Box.get().float, style.Box.get().position)
             }
-            ElementNodeTypeId(_) => {
+            Some(ElementNodeTypeId(_)) => {
                 let style = node.style().get();
                 (style.Box.get().display, style.Box.get().float, style.Box.get().position)
             }
-            TextNodeTypeId => (display::inline, float::none, position::static_),
-            CommentNodeTypeId |
-            DoctypeNodeTypeId |
-            DocumentFragmentNodeTypeId |
-            DocumentNodeTypeId |
-            ProcessingInstructionNodeTypeId => (display::none, float::none, position::static_),
+            Some(TextNodeTypeId) => (display::inline, float::none, position::static_),
+            Some(CommentNodeTypeId) |
+            Some(DoctypeNodeTypeId) |
+            Some(DocumentFragmentNodeTypeId) |
+            Some(DocumentNodeTypeId) |
+            Some(ProcessingInstructionNodeTypeId) => {
+                (display::none, float::none, position::static_)
+            }
         };
 
         debug!("building flow for node: {:?} {:?}", display, float);
@@ -1077,22 +1081,22 @@ trait NodeUtils {
 impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
     fn is_replaced_content(&self) -> bool {
         match self.type_id() {
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId |
-            CommentNodeTypeId |
-            DoctypeNodeTypeId |
-            DocumentFragmentNodeTypeId |
-            DocumentNodeTypeId |
-            ElementNodeTypeId(HTMLPseudoElementTypeId) |
-            ElementNodeTypeId(HTMLImageElementTypeId) => true,
-            ElementNodeTypeId(HTMLObjectElementTypeId) => self.has_object_data(),
-            ElementNodeTypeId(_) => false,
+            Some(TextNodeTypeId) |
+            Some(ProcessingInstructionNodeTypeId) |
+            Some(CommentNodeTypeId) |
+            Some(DoctypeNodeTypeId) |
+            Some(DocumentFragmentNodeTypeId) |
+            Some(DocumentNodeTypeId) |
+            None |
+            Some(ElementNodeTypeId(HTMLImageElementTypeId)) => true,
+            Some(ElementNodeTypeId(HTMLObjectElementTypeId)) => self.has_object_data(),
+            Some(ElementNodeTypeId(_)) => false,
         }
     }
 
     fn is_ignorable_whitespace(&self) -> bool {
         match self.type_id() {
-            TextNodeTypeId => {
+            Some(TextNodeTypeId) => {
                 unsafe {
                     let text: JS<Text> = TextCast::to(self.get_jsmanaged()).unwrap();
                     if !is_whitespace(text.get().characterdata.data) {
@@ -1141,13 +1145,18 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
             Some(ref mut layout_data) => {
                 match self.get_element_type() {
                     Before | BeforeBlock => {
-                        return mem::replace(&mut layout_data.data.before_flow_construction_result, NoConstructionResult)
-                    },
+                        mem::replace(&mut layout_data.data.before_flow_construction_result,
+                                     NoConstructionResult)
+                    }
                     After | AfterBlock => {
-                        return mem::replace(&mut layout_data.data.after_flow_construction_result, NoConstructionResult)
-                    },
-                    Normal => { return mem::replace(&mut layout_data.data.flow_construction_result, NoConstructionResult) },
-                }               
+                        mem::replace(&mut layout_data.data.after_flow_construction_result,
+                                     NoConstructionResult)
+                    }
+                    Normal => {
+                        mem::replace(&mut layout_data.data.flow_construction_result,
+                                     NoConstructionResult)
+                    }
+                }
             }
             None => fail!("no layout data"),
         }

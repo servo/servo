@@ -127,7 +127,7 @@ impl TableFlow {
 
     /// Assign height for table flow.
     ///
-    /// TODO(pcwalton): This probably doesn't handle margin collapse right.
+    /// TODO(#2014, pcwalton): This probably doesn't handle margin collapse right.
     ///
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods

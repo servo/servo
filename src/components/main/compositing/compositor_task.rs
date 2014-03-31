@@ -94,13 +94,15 @@ impl RenderListener for CompositorChan {
                                       pipeline_id: PipelineId,
                                       metadata: ~[LayerMetadata],
                                       epoch: Epoch) {
-        // FIXME(pcwalton): This assumes that the first layer determines the page size, and that
-        // all other layers are immediate children of it. This is sufficient to handle
+        // FIXME(#2004, pcwalton): This assumes that the first layer determines the page size, and
+        // that all other layers are immediate children of it. This is sufficient to handle
         // `position: fixed` but will not be sufficient to handle `overflow: scroll` or transforms.
         let mut first = true;
         for metadata in metadata.iter() {
-            let origin = Point2D(metadata.rect.origin.x as f32, metadata.rect.origin.y as f32);
-            let size = Size2D(metadata.rect.size.width as f32, metadata.rect.size.height as f32);
+            let origin = Point2D(metadata.position.origin.x as f32,
+                                 metadata.position.origin.y as f32);
+            let size = Size2D(metadata.position.size.width as f32,
+                              metadata.position.size.height as f32);
             let rect = Rect(origin, size);
             if first {
                 self.chan.send(CreateRootCompositorLayerIfNecessary(pipeline_id,
@@ -115,7 +117,9 @@ impl RenderListener for CompositorChan {
                                                                      metadata.scroll_policy));
             }
 
-            self.chan.send(SetUnRenderedColor(pipeline_id, metadata.id, metadata.color));
+            self.chan.send(SetUnRenderedColor(pipeline_id,
+                                              metadata.id,
+                                              metadata.background_color));
             self.chan.send(SetLayerPageSize(pipeline_id, metadata.id, size, epoch));
         }
     }

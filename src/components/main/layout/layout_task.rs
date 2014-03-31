@@ -649,8 +649,8 @@ impl LayoutTask {
                 // it with extreme prejudice.
                 let mut color = color::rgba(255.0, 255.0, 255.0, 255.0);
                 for child in node.traverse_preorder() {
-                    if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) ||
-                            child.type_id() == ElementNodeTypeId(HTMLBodyElementTypeId) {
+                    if child.type_id() == Some(ElementNodeTypeId(HTMLHtmlElementTypeId)) ||
+                            child.type_id() == Some(ElementNodeTypeId(HTMLBodyElementTypeId)) {
                         let element_bg_color = {
                             let thread_safe_child = ThreadSafeLayoutNode::new(&child);
                             thread_safe_child.style()
@@ -681,8 +681,8 @@ impl LayoutTask {
                 let render_layer = RenderLayer {
                     id: layout_root.layer_id(0),
                     display_list: display_list.clone(),
-                    rect: Rect(Point2D(0u, 0u), root_size),
-                    color: color,
+                    position: Rect(Point2D(0u, 0u), root_size),
+                    background_color: color,
                     scroll_policy: Scrollable,
                 };
 

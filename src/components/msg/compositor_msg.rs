@@ -89,7 +89,7 @@ impl Show for LayerId {
 }
 
 impl LayerId {
-    /// FIXME(pcwalton): This is unfortunate. Maybe remove this in the future.
+    /// FIXME(#2011, pcwalton): This is unfortunate. Maybe remove this in the future.
     pub fn null() -> LayerId {
         LayerId(0, 0)
     }
@@ -110,9 +110,9 @@ pub struct LayerMetadata {
     /// An opaque ID. This is usually the address of the flow and index of the box within it.
     id: LayerId,
     /// The position and size of the layer in pixels.
-    rect: Rect<uint>,
+    position: Rect<uint>,
     /// The background color of the layer.
-    color: Color,
+    background_color: Color,
     /// The scrolling policy of this layer.
     scroll_policy: ScrollPolicy,
 }

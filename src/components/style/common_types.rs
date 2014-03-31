@@ -8,6 +8,7 @@ pub use servo_util::geometry::Au;
 
 pub type CSSFloat = f64;
 
+pub static DEFAULT_LINE_HEIGHT: CSSFloat = 1.14;
 
 pub mod specified {
     use std::ascii::StrAsciiExt;

@@ -26,7 +26,7 @@ use servo_msg::constellation_msg::PipelineId;
 use std::cmp;
 use std::rc::Rc;
 
-#[cfg(target_os="macos")] 
+#[cfg(target_os="macos")]
 #[cfg(target_os="android")]
 use layers::layers::VerticalFlip;
 #[cfg(not(target_os="macos"))]
@@ -41,7 +41,7 @@ static MAX_TILE_MEMORY_PER_LAYER: uint = 10000000;
 /// or animation behavior. This can include absolute positioned elements, iframes, etc.
 /// Each layer can also have child layers.
 ///
-/// FIXME(pcwalton): This should be merged with the concept of a layer in `rust-layers` and
+/// FIXME(#2003, pcwalton): This should be merged with the concept of a layer in `rust-layers` and
 /// ultimately removed, except as a set of helper methods on `rust-layers` layers.
 pub struct CompositorLayer {
     /// This layer's pipeline. BufferRequests and mouse events will be sent through this.
@@ -216,7 +216,7 @@ impl CompositorLayer {
             unrendered_color: gfx::color::rgba(0.0, 0.0, 0.0, 0.0),
         }
     }
-    
+
     /// Adds a child layer to the layer with the given ID and the given pipeline, if it doesn't
     /// exist yet. The child layer will have the same pipeline, tile size, memory limit, and CPU
     /// painting status as its parent.
@@ -248,18 +248,18 @@ impl CompositorLayer {
         }
 
         // See if we've already made this child layer.
-        for kid_holder in self.children.iter() {
-            if kid_holder.child.pipeline.id == pipeline_id &&
-                    kid_holder.child.id == child_layer_id {
-                return true
-            }
+        if self.children.iter().any(|kid_holder| {
+                    kid_holder.child.pipeline.id == pipeline_id &&
+                    kid_holder.child.id == child_layer_id
+                }) {
+            return true
         }
 
         let mut kid = ~CompositorLayer::new(self.pipeline.clone(),
                                             child_layer_id,
                                             rect,
                                             Some(page_size),
-                                            self.quadtree.tile_size(), 
+                                            self.quadtree.tile_size(),
                                             self.cpu_painting,
                                             DoesntWantScrollEvents,
                                             scroll_policy);
@@ -452,8 +452,8 @@ impl CompositorLayer {
                 if !request.is_empty() {
                     // Ask for tiles.
                     //
-                    // FIXME(pcwalton): We may want to batch these up in the case in which one
-                    // page has multiple layers, to avoid the user seeing inconsistent states.
+                    // FIXME(#2003, pcwalton): We may want to batch these up in the case in which
+                    // one page has multiple layers, to avoid the user seeing inconsistent states.
                     let msg = ReRenderMsg(request, scale, self.id, self.epoch);
                     self.pipeline.render_chan.try_send(msg);
                 }
@@ -600,12 +600,9 @@ impl CompositorLayer {
                 -> bool {
         // Search children for the right layer to move.
         if self.pipeline.id != pipeline_id || self.id != layer_id {
-            for kid_holder in self.children.mut_iter() {
-                if kid_holder.child.move(pipeline_id, layer_id, origin, window_size) {
-                    return true
-                }
-            }
-            return false
+            return self.children.mut_iter().any(|kid_holder| {
+                kid_holder.child.move(pipeline_id, layer_id, origin, window_size)
+            })
         }
 
         if self.wants_scroll_events != WantsScrollEvents {
@@ -625,7 +622,7 @@ impl CompositorLayer {
         self.scroll_offset.x = self.scroll_offset.x.clamp(&min_x, &0.0);
         let min_y = cmp::min(window_size.height - page_size.height, 0.0);
         self.scroll_offset.y = self.scroll_offset.y.clamp(&min_y, &0.0);
-        
+
         // check to see if we scrolled
         if old_origin - self.scroll_offset == Point2D(0f32, 0f32) {
             return false;
@@ -874,9 +871,8 @@ impl CompositorLayer {
                 }
                 Tree(ref mut quadtree) => quadtree,
             };
-            
+
             let mut unused_tiles = ~[];
-            // `move_rev_iter` is more efficient than `.move_iter().reverse()`.
             for buffer in new_buffers.buffers.move_rev_iter() {
                 unused_tiles.push_all_move(quadtree.add_tile_pixel(buffer.screen_pos.origin.x,
                                                                    buffer.screen_pos.origin.y,
@@ -1013,10 +1009,7 @@ impl CompositorLayer {
     }
 
     pub fn id_of_first_child(&self) -> LayerId {
-        for kid_holder in self.children.iter() {
-            return kid_holder.child.id
-        }
-        fail!("no first child!");
+        self.children.iter().next().expect("no first child!").child.id
     }
 }
 
