@@ -310,7 +310,7 @@ globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/, GlobalGen.py Bindings.co
 
 $(MAKO_style): $(MAKO_SRC_style)
 # Use a temporary file to avoid writing an empty (but more recent) file on failure.
-	PYTHONPATH=$(MAKO_ZIP) python -c "from mako.template import Template; print(Template(filename='$<').render())" > $@.tmp
+	PYTHONPATH=$(MAKO_ZIP) $(CFG_PYTHON2) -c "from mako.template import Template; print(Template(filename='$<').render())" > $@.tmp
 	mv $@.tmp $@
 
 
