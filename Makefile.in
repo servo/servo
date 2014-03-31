@@ -309,7 +309,9 @@ $(AUTOGEN_SRC_script): $(BINDINGS_SRC)/%Binding.rs: $(bindinggen_dependencies) \
 globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/, GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done
 
 $(MAKO_style): $(MAKO_SRC_style)
-	PYTHONPATH=$(MAKO_ZIP) python -c "from mako.template import Template; print(Template(filename='$<').render())" > $@
+# Use a temporary file to avoid writing an empty (but more recent) file on failure.
+	PYTHONPATH=$(MAKO_ZIP) python -c "from mako.template import Template; print(Template(filename='$<').render())" > $@.tmp
+	mv $@.tmp $@
 
 
 $(CACHE_DIR)/.done:
