@@ -632,11 +632,13 @@ impl Box {
     }
 
     pub fn calculate_line_height(&self, font_size: Au) -> Au {
-        match self.line_height() {
+        let from_inline = match self.style().InheritedBox.get().line_height {
             line_height::Normal => font_size.scale_by(1.14),
             line_height::Number(l) => font_size.scale_by(l),
             line_height::Length(l) => l
-        }
+        };
+        let minimum = self.style().InheritedBox.get()._servo_minimum_line_height;
+        Au::max(from_inline, minimum)
     }
 
     /// Populates the box model border parameters from the given computed style.
@@ -862,10 +864,6 @@ impl Box {
     /// node.
     pub fn text_align(&self) -> text_align::T {
         self.style().InheritedText.get().text_align
-    }
-
-    pub fn line_height(&self) -> line_height::T {
-        self.style().InheritedBox.get().line_height
     }
 
     pub fn vertical_align(&self) -> vertical_align::T {
