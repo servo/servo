@@ -25,7 +25,7 @@ use js::jsval::JSVal;
 use js::jsval::{NullValue, ObjectValue};
 use js::JSPROP_ENUMERATE;
 
-use collections::hashmap::HashSet;
+use collections::hashmap::HashMap;
 use std::cast;
 use std::cmp;
 use std::comm::Chan;
@@ -79,7 +79,7 @@ pub struct Window {
     location: Option<JS<Location>>,
     navigator: Option<JS<Navigator>>,
     image_cache_task: ImageCacheTask,
-    active_timers: ~HashSet<TimerHandle>,
+    active_timers: ~HashMap<i32, TimerHandle>,
     next_timer_handle: i32,
     priv extra: Untraceable
 }
@@ -116,8 +116,8 @@ impl Window {
 impl Drop for Window {
     fn drop(&mut self) {
         self.extra.timer_chan.send(TimerMessageClose);
-        for handle in self.active_timers.iter() {
-            handle.cancel();
+        for timer_handle in self.active_timers.values() {
+            timer_handle.cancel();
         }
     }
 }
@@ -254,14 +254,16 @@ impl Window {
                 }));
             }
         });
-        self.active_timers.insert(TimerHandle { handle: handle, cancel_chan: Some(cancel_chan) });
+        self.active_timers.insert(handle, TimerHandle { handle: handle, cancel_chan: Some(cancel_chan) });
         handle
     }
 
     pub fn ClearTimeout(&mut self, handle: i32) {
-        // FIXME(#1477): active_timers should be a HashMap and this should
-        // cancel the removed timer.
-        self.active_timers.remove(&TimerHandle { handle: handle, cancel_chan: None });
+        let timer_handle = self.active_timers.pop(&handle);
+        match timer_handle {
+            Some(handle) => handle.cancel(),
+            None => { }
+        }
     }
 
     pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
@@ -310,7 +312,7 @@ impl Window {
             location: None,
             navigator: None,
             image_cache_task: image_cache_task,
-            active_timers: ~HashSet::new(),
+            active_timers: ~HashMap::new(),
             next_timer_handle: 0
         };
 
