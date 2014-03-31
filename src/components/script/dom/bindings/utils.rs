@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
+use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::JS;
 use dom::window;
 use servo_util::str::DOMString;
@@ -34,8 +35,8 @@ use js::jsapi::{JSString};
 use js::jsapi::{JS_AllowGC, JS_InhibitGC};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::jsval::JSVal;
-use js::jsval::{PrivateValue, ObjectValue, NullValue, Int32Value};
-use js::jsval::{UInt32Value, DoubleValue, BooleanValue, UndefinedValue};
+use js::jsval::{PrivateValue, ObjectValue, NullValue, ObjectOrNullValue};
+use js::jsval::{Int32Value, UInt32Value, DoubleValue, BooleanValue, UndefinedValue};
 use js::{JSPROP_ENUMERATE, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::JSPROP_PERMANENT;
 use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
@@ -532,11 +533,8 @@ pub fn global_object_for_js_object(obj: *JSObject) -> JS<window::Window> {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        // FIXME(jdm): Either don't hardcode or sanity assert prototype stuff.
-        match unwrap_object(global, PrototypeList::id::Window, 1) {
-            Ok(win) => JS::from_raw(win),
-            Err(_) => fail!("found DOM global that doesn't unwrap to Window"),
-        }
+        FromJSValConvertible::from_jsval(ptr::null(), ObjectOrNullValue(global), ())
+            .ok().expect("found DOM global that doesn't unwrap to Window")
     }
 }
 

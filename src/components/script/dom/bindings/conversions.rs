@@ -5,6 +5,7 @@
 use dom::bindings::js::JS;
 use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::jsstring_to_str;
+use dom::bindings::utils::unwrap_jsmanaged;
 use servo_util::str::DOMString;
 
 use js::jsapi::{JSBool, JSContext};
@@ -19,6 +20,15 @@ use js::jsval::{StringValue, ObjectValue};
 use js::glue::RUST_JS_NumberValue;
 use std::default::Default;
 use std::libc;
+
+use dom::bindings::codegen::PrototypeList;
+
+// FIXME (https://github.com/rust-lang/rfcs/pull/4)
+//       remove Option<Self> arguments.
+pub trait IDLInterface {
+    fn get_prototype_id(_: Option<Self>) -> PrototypeList::id::ID;
+    fn get_prototype_depth(_: Option<Self>) -> uint;
+}
 
 pub trait ToJSValConvertible {
     fn to_jsval(&self, cx: *JSContext) -> JSVal;
@@ -252,6 +262,17 @@ impl<T: Reflectable> ToJSValConvertible for JS<T> {
             fail!("JS_WrapValue failed.");
         }
         value
+    }
+}
+
+impl<T: Reflectable+IDLInterface> FromJSValConvertible<()> for JS<T> {
+    fn from_jsval(_cx: *JSContext, value: JSVal, _option: ()) -> Result<JS<T>, ()> {
+        if !value.is_object() {
+            return Err(());
+        }
+        unwrap_jsmanaged(value.to_object(),
+                         IDLInterface::get_prototype_id(None::<T>),
+                         IDLInterface::get_prototype_depth(None::<T>))
     }
 }
 
