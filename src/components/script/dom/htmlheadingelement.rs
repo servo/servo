@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLHeadingElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHeadingElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::document::Document;
 use dom::element::HTMLHeadingElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -45,7 +45,7 @@ impl HTMLHeadingElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>, level: HeadingLevel) -> JS<HTMLHeadingElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>, level: HeadingLevel) -> Unrooted<HTMLHeadingElement> {
         let element = HTMLHeadingElement::new_inherited(localName, document.unrooted(), level);
         Node::reflect_node(~element, document, HTMLHeadingElementBinding::Wrap)
     }

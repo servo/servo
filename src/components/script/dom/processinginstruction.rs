@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::ProcessingInstructionBinding;
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -35,7 +35,7 @@ impl ProcessingInstruction {
         }
     }
 
-    pub fn new(target: DOMString, data: DOMString, document: &JSRef<Document>) -> JS<ProcessingInstruction> {
+    pub fn new(target: DOMString, data: DOMString, document: &JSRef<Document>) -> Unrooted<ProcessingInstruction> {
         let node = ProcessingInstruction::new_inherited(target, data, document.unrooted());
         Node::reflect_node(~node, document, ProcessingInstructionBinding::Wrap)
     }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOptGroupElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLOptGroupElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLOptGroupElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLOptGroupElement> {
         let element = HTMLOptGroupElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLOptGroupElementBinding::Wrap)
     }

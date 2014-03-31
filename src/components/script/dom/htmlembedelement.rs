@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLEmbedElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLEmbedElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLEmbedElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLEmbedElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLEmbedElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLEmbedElement> {
         let element = HTMLEmbedElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLEmbedElementBinding::Wrap)
     }
@@ -89,7 +89,7 @@ impl HTMLEmbedElement {
         Ok(())
     }
 
-    pub fn GetSVGDocument(&self) -> Option<JS<Document>> {
+    pub fn GetSVGDocument(&self) -> Option<Unrooted<Document>> {
         None
     }
 }

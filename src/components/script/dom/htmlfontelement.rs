@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFontElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFontElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFontElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLFontElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLFontElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLFontElement> {
         let element = HTMLFontElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLFontElementBinding::Wrap)
     }

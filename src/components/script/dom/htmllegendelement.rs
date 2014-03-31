@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLLegendElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLegendElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLLegendElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLLegendElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLLegendElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLLegendElement> {
         let element = HTMLLegendElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLLegendElementBinding::Wrap)
     }

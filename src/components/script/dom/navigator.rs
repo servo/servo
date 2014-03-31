@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::NavigatorBinding;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JSRef, Unrooted};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::window::Window;
@@ -21,7 +21,7 @@ impl Navigator {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> JS<Navigator> {
+    pub fn new(window: &JSRef<Window>) -> Unrooted<Navigator> {
         reflect_dom_object(~Navigator::new_inherited(),
                            window,
                            NavigatorBinding::Wrap)

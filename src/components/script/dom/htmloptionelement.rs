@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLOptionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOptionElementTypeId;
@@ -35,7 +35,7 @@ impl HTMLOptionElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLOptionElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLOptionElement> {
         let element = HTMLOptionElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLOptionElementBinding::Wrap)
     }
@@ -50,7 +50,7 @@ impl HTMLOptionElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<JS<HTMLFormElement>> {
+    pub fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
         None
     }
 

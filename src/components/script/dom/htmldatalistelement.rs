@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLDataListElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, RootCollection};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
 use dom::document::Document;
 use dom::element::{Element, HTMLDataListElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -34,14 +34,14 @@ impl HTMLDataListElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLDataListElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLDataListElement> {
         let element = HTMLDataListElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLDataListElementBinding::Wrap)
     }
 }
 
 impl HTMLDataListElement {
-    pub fn Options(&self, abstract_self: &JSRef<HTMLDataListElement>) -> JS<HTMLCollection> {
+    pub fn Options(&self, abstract_self: &JSRef<HTMLDataListElement>) -> Unrooted<HTMLCollection> {
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
@@ -51,7 +51,7 @@ impl HTMLDataListElement {
         let roots = RootCollection::new();
         let node: &JSRef<Node> = NodeCast::from_ref(abstract_self);
         let filter = ~HTMLDataListOptionsFilter;
-        let window = window_from_node(&node.unrooted()).root(&roots);
-        HTMLCollection::create(&window.root_ref(), node, filter)
+        let window = window_from_node(node).root(&roots);
+        HTMLCollection::create(&*window, node, filter)
     }
 }

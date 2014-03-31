@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::UIEventBinding;
 use dom::bindings::codegen::InheritTypes::UIEventDerived;
-use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference};
+use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Unrooted};
 use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, UIEventTypeId};
@@ -36,7 +36,7 @@ impl UIEvent {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> JS<UIEvent> {
+    pub fn new(window: &JSRef<Window>) -> Unrooted<UIEvent> {
         reflect_dom_object(~UIEvent::new_inherited(UIEventTypeId),
                            window,
                            UIEventBinding::Wrap)
@@ -44,17 +44,17 @@ impl UIEvent {
 
     pub fn Constructor(owner: &JSRef<Window>,
                        type_: DOMString,
-                       init: &UIEventBinding::UIEventInit) -> Fallible<JS<UIEvent>> {
+                       init: &UIEventBinding::UIEventInit) -> Fallible<Unrooted<UIEvent>> {
         let roots = RootCollection::new();
-        let mut ev = UIEvent::new(owner);
+        let mut ev = UIEvent::new(owner).root(&roots);
         let view = init.view.as_ref().map(|view| view.root(&roots));
         ev.get_mut().InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
                                  view.root_ref(), init.detail);
-        Ok(ev)
+        Ok(Unrooted::new_rooted(&*ev))
     }
 
-    pub fn GetView(&self) -> Option<JS<Window>> {
-        self.view.clone()
+    pub fn GetView(&self) -> Option<Unrooted<Window>> {
+        self.view.clone().map(|view| Unrooted::new(view))
     }
 
     pub fn Detail(&self) -> i32 {
@@ -97,7 +97,7 @@ impl UIEvent {
         0
     }
 
-    pub fn GetRangeParent(&self) -> Option<JS<Node>> {
+    pub fn GetRangeParent(&self) -> Option<Unrooted<Node>> {
         //TODO
         None
     }

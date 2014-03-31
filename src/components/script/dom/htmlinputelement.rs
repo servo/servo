@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLInputElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLInputElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::HTMLInputElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLInputElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLInputElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLInputElement> {
         let element = HTMLInputElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLInputElementBinding::Wrap)
     }

@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::XMLHttpRequestDerived;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, XMLHttpRequestTargetTypeId};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted, OptionalAssignable};
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -31,7 +31,7 @@ pub struct XMLHttpRequest {
     ready_state: u16,
     timeout: u32,
     with_credentials: bool,
-    upload: JS<XMLHttpRequestUpload>,
+    upload: Option<JS<XMLHttpRequestUpload>>,
     response_url: DOMString,
     status: u16,
     status_text: ByteString,
@@ -42,26 +42,28 @@ pub struct XMLHttpRequest {
 
 impl XMLHttpRequest {
     pub fn new_inherited(owner: &JSRef<Window>) -> XMLHttpRequest {
-        XMLHttpRequest {
+        let mut xhr = XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId),
             ready_state: 0,
             timeout: 0u32,
             with_credentials: false,
-            upload: XMLHttpRequestUpload::new(owner),
+            upload: None,
             response_url: ~"",
             status: 0,
             status_text: ByteString::new(vec!()),
             response_type: _empty,
             response_text: ~"",
             response_xml: None
-        }
+        };
+        xhr.upload.assign(Some(XMLHttpRequestUpload::new(owner)));
+        xhr
     }
-    pub fn new(window: &JSRef<Window>) -> JS<XMLHttpRequest> {
+    pub fn new(window: &JSRef<Window>) -> Unrooted<XMLHttpRequest> {
         reflect_dom_object(~XMLHttpRequest::new_inherited(window),
                            window,
                            XMLHttpRequestBinding::Wrap)
     }
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<JS<XMLHttpRequest>> {
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Unrooted<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(owner))
     }
     pub fn ReadyState(&self) -> u16 {
@@ -89,8 +91,8 @@ impl XMLHttpRequest {
     pub fn SetWithCredentials(&mut self, with_credentials: bool) {
         self.with_credentials = with_credentials
     }
-    pub fn Upload(&self) -> JS<XMLHttpRequestUpload> {
-        self.upload.clone()
+    pub fn Upload(&self) -> Unrooted<XMLHttpRequestUpload> {
+        Unrooted::new(self.upload.get_ref().clone())
     }
     pub fn Send(&self, _data: Option<DOMString>) {
 
@@ -128,8 +130,8 @@ impl XMLHttpRequest {
     pub fn ResponseText(&self) -> DOMString {
         self.response_text.clone()
     }
-    pub fn GetResponseXML(&self) -> Option<JS<Document>> {
-        self.response_xml.clone()
+    pub fn GetResponseXML(&self) -> Option<Unrooted<Document>> {
+        self.response_xml.clone().map(|response| Unrooted::new(response))
     }
 }
 

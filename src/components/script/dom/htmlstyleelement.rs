@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLStyleElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, RootCollection};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLStyleElementTypeId;
@@ -37,7 +37,7 @@ impl HTMLStyleElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLStyleElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLStyleElement> {
         let element = HTMLStyleElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLStyleElementBinding::Wrap)
     }
@@ -80,28 +80,27 @@ pub trait StyleElementHelpers {
     fn parse_own_css(&self);
 }
 
-impl StyleElementHelpers for JS<HTMLStyleElement> {
+impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
     fn parse_own_css(&self) {
         let roots = RootCollection::new();
-        let node: JS<Node> = NodeCast::from(self);
-        let node_root = node.root(&roots);
-        let win = window_from_node(&node);
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        let win = window_from_node(node).root(&roots);
         let url = win.get().page().get_url();
 
-        let data = node.get().GetTextContent(&node_root.root_ref()).expect("Element.textContent must be a string");
+        let data = node.get().GetTextContent(node).expect("Element.textContent must be a string");
         let sheet = parse_inline_css(url, data);
         let LayoutChan(ref layout_chan) = *win.get().page().layout_chan;
         layout_chan.send(AddStylesheetMsg(sheet));
     }
 }
 
-impl VirtualMethods for JS<HTMLStyleElement> {
+impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
     fn super_type(&self) -> Option<~VirtualMethods:> {
-        let htmlelement: JS<HTMLElement> = HTMLElementCast::from(self);
-        Some(~htmlelement as ~VirtualMethods:)
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        Some(~htmlelement.clone() as ~VirtualMethods:)
     }
 
-    fn child_inserted(&mut self, child: &JS<Node>) {
+    fn child_inserted(&mut self, child: &JSRef<Node>) {
         match self.super_type() {
             Some(ref mut s) => s.child_inserted(child),
             _ => (),

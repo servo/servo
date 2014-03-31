@@ -1008,6 +1008,13 @@ def typeNeedsCx(type, retVal=False):
         return True
     return type.isCallback() or type.isAny() or type.isObject()
 
+def typeRetValNeedsRooting(type):
+    if type is None:
+        return False
+    if type.nullable():
+        type = type.inner
+    return type.isGeckoInterface() and not type.isCallback()
+
 def memberIsCreator(member):
     return member.getExtendedAttribute("Creator") is not None
 
@@ -1039,7 +1046,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isGeckoInterface():
         descriptor = descriptorProvider.getDescriptor(
             returnType.unroll().inner.identifier.name)
-        result = CGGeneric(descriptor.nativeType)
+        result = CGGeneric(descriptor.returnType)
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -2234,6 +2241,14 @@ class CGCallGenerator(CGThing):
             self.cgRoot.append(CGIndenter(errorReport))
             self.cgRoot.append(CGGeneric("}"))
             self.cgRoot.append(CGGeneric("result = result_fallible.unwrap();"))
+
+        if typeRetValNeedsRooting(returnType):
+            rooted_value = CGGeneric("result.root(&roots).root_ref().unrooted()")
+            if returnType.nullable():
+                rooted_value = CGWrapper(rooted_value, pre="result.map(|result| ", post=")")
+            rooted_value = CGWrapper(rooted_value, pre="let result = ", post=";")
+
+            self.cgRoot.append(rooted_value)
 
     def define(self):
         return self.cgRoot.define()
@@ -4306,7 +4321,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
             'dom::types::*',
             'dom::bindings',
-            'dom::bindings::js::{JS, JSRef, RootCollection, RootedReference}',
+            'dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Unrooted}',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
             'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
@@ -5277,8 +5292,9 @@ class GlobalGenRoots():
         descriptors = config.getDescriptors(register=True, hasInterfaceObject=True)
         allprotos = [CGGeneric("#![allow(unused_imports)]\n"),
                      CGGeneric("use dom::types::*;\n"),
-                     CGGeneric("use dom::bindings::js::{JS, JSRef};\n"),
+                     CGGeneric("use dom::bindings::js::{JS, JSRef, Unrooted};\n"),
                      CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
+                     CGGeneric("use dom::bindings::utils::Reflectable;\n"),
                      CGGeneric("use serialize::{Encodable, Encoder};\n"),
                      CGGeneric("use js::jsapi::JSTracer;\n\n")]
         for descriptor in descriptors:
@@ -5310,7 +5326,7 @@ class GlobalGenRoots():
   }
 
   #[inline(always)]
-  fn to<T: ${toBound}>(base: &JS<T>) -> Option<JS<Self>> {
+  fn to<T: ${toBound}+Reflectable>(base: &JS<T>) -> Option<JS<Self>> {
     match base.get().${checkFn}() {
         true => unsafe { Some(base.clone().transmute()) },
         false => None
@@ -5318,7 +5334,23 @@ class GlobalGenRoots():
   }
 
   #[inline(always)]
-  unsafe fn to_unchecked<T: ${toBound}>(base: &JS<T>) -> JS<Self> {
+  fn to_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a JSRef<'b, T>) -> Option<&'a JSRef<'b, Self>> {
+    match base.get().${checkFn}() {
+        true => unsafe { Some(base.transmute()) },
+        false => None
+    }
+  }
+
+  #[inline(always)]
+  fn to_mut_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a mut JSRef<'b, T>) -> Option<&'a mut JSRef<'b, Self>> {
+    match base.get().${checkFn}() {
+        true => unsafe { Some(base.transmute_mut()) },
+        false => None
+    }
+  }
+
+  #[inline(always)]
+  unsafe fn to_unchecked<T: ${toBound}+Reflectable>(base: &JS<T>) -> JS<Self> {
     assert!(base.get().${checkFn}());
     base.clone().transmute()
   }
@@ -5329,6 +5361,10 @@ class GlobalGenRoots():
 
   fn from_mut_ref<'a, 'b, T: ${fromBound}>(derived: &'a mut JSRef<'b, T>) -> &'a mut JSRef<'b, Self> {
     unsafe { derived.transmute_mut() }
+  }
+
+  fn from_unrooted<T: ${fromBound}+Reflectable>(derived: Unrooted<T>) -> Unrooted<Self> {
+    unsafe { derived.transmute() }
   }
 }
 ''').substitute({'checkFn': 'is_' + name.lower(),

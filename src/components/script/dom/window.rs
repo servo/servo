@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::WindowBinding;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted, OptionalAssignable};
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
@@ -116,9 +116,9 @@ impl Window {
         chan.send(ExitWindowMsg(self.page.id.clone()));
     }
 
-    pub fn Document(&self) -> JS<Document> {
+    pub fn Document(&self) -> Unrooted<Document> {
         let frame = self.page().frame();
-        frame.get_ref().document.clone()
+        Unrooted::new(frame.get_ref().document.clone())
     }
 
     pub fn Name(&self) -> DOMString {
@@ -148,29 +148,29 @@ impl Window {
     pub fn Blur(&self) {
     }
 
-    pub fn GetFrameElement(&self) -> Option<JS<Element>> {
+    pub fn GetFrameElement(&self) -> Option<Unrooted<Element>> {
         None
     }
 
-    pub fn Location(&mut self, abstract_self: &JSRef<Window>) -> JS<Location> {
+    pub fn Location(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Location> {
         if self.location.is_none() {
-            self.location = Some(Location::new(abstract_self, self.page.clone()));
+            self.location.assign(Some(Location::new(abstract_self, self.page.clone())));
         }
-        self.location.get_ref().clone()
+        Unrooted::new(self.location.get_ref().clone())
     }
 
-    pub fn Console(&mut self, abstract_self: &JSRef<Window>) -> JS<Console> {
+    pub fn Console(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Console> {
         if self.console.is_none() {
-            self.console = Some(Console::new(abstract_self));
+            self.console.assign(Some(Console::new(abstract_self)));
         }
-        self.console.get_ref().clone()
+        Unrooted::new(self.console.get_ref().clone())
     }
 
-    pub fn Navigator(&mut self, abstract_self: &JSRef<Window>) -> JS<Navigator> {
+    pub fn Navigator(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Navigator> {
         if self.navigator.is_none() {
-            self.navigator = Some(Navigator::new(abstract_self));
+            self.navigator.assign(Some(Navigator::new(abstract_self)));
         }
-        self.navigator.get_ref().clone()
+        Unrooted::new(self.navigator.get_ref().clone())
     }
 
     pub fn Confirm(&self, _message: DOMString) -> bool {
@@ -279,11 +279,11 @@ impl Window {
         self.ClearTimeout(handle);
     }
 
-    pub fn Window(&self, abstract_self: &JSRef<Window>) -> JS<Window> {
-        abstract_self.unrooted()
+    pub fn Window(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window> {
+        Unrooted::new_rooted(abstract_self)
     }
 
-    pub fn Self(&self, abstract_self: &JSRef<Window>) -> JS<Window> {
+    pub fn Self(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window> {
         self.Window(abstract_self)
     }
 
@@ -301,7 +301,7 @@ impl Window {
         self.page().join_layout();
     }
 
-    pub fn init_browser_context(&mut self, doc: &JS<Document>) {
+    pub fn init_browser_context(&mut self, doc: &JSRef<Document>) {
         self.browser_context = Some(BrowserContext::new(doc));
     }
 
@@ -310,7 +310,7 @@ impl Window {
                script_chan: ScriptChan,
                compositor: ~ScriptListener,
                image_cache_task: ImageCacheTask)
-               -> JS<Window> {
+               -> Unrooted<Window> {
         let win = ~Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
             script_chan: script_chan,
@@ -325,6 +325,6 @@ impl Window {
             browser_context: None,
         };
 
-        WindowBinding::Wrap(cx, win)
+        Unrooted::new(WindowBinding::Wrap(cx, win))
     }
 }

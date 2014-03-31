@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::NodeListBinding;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
@@ -32,35 +32,44 @@ impl NodeList {
     }
 
     pub fn new(window: &JSRef<Window>,
-               list_type: NodeListType) -> JS<NodeList> {
+               list_type: NodeListType) -> Unrooted<NodeList> {
         reflect_dom_object(~NodeList::new_inherited(window.unrooted(), list_type),
                            window, NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list(window: &JSRef<Window>, elements: Vec<JS<Node>>) -> JS<NodeList> {
-        NodeList::new(window, Simple(elements))
+    pub fn new_simple_list(window: &JSRef<Window>, elements: Vec<JSRef<Node>>) -> Unrooted<NodeList> {
+        NodeList::new(window, Simple(elements.iter().map(|element| element.unrooted()).collect()))
     }
 
-    pub fn new_child_list(window: &JSRef<Window>, node: &JSRef<Node>) -> JS<NodeList> {
+    pub fn new_child_list(window: &JSRef<Window>, node: &JSRef<Node>) -> Unrooted<NodeList> {
         NodeList::new(window, Children(node.unrooted()))
     }
 
     pub fn Length(&self) -> u32 {
+        let roots = RootCollection::new();
         match self.list_type {
             Simple(ref elems) => elems.len() as u32,
-            Children(ref node) => node.children().len() as u32
+            Children(ref node) => {
+                let node = node.root(&roots);
+                node.deref().children().len() as u32
+            }
         }
     }
 
-    pub fn Item(&self, index: u32) -> Option<JS<Node>> {
+    pub fn Item(&self, index: u32) -> Option<Unrooted<Node>> {
+        let roots = RootCollection::new();
         match self.list_type {
             _ if index >= self.Length() => None,
-            Simple(ref elems) => Some(elems.get(index as uint).clone()),
-            Children(ref node) => node.children().nth(index as uint)
+            Simple(ref elems) => Some(Unrooted::new(elems.get(index as uint).clone())),
+            Children(ref node) => {
+                let node = node.root(&roots);
+                node.deref().children().nth(index as uint)
+                                       .map(|child| Unrooted::new_rooted(&child))
+            }
         }
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JS<Node>> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Node>> {
         let item = self.Item(index);
         *found = item.is_some();
         item

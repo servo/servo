@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::DOMImplementationBinding;
 use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::js::{JS, JSRef, RootCollection};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::error::{Fallible, InvalidCharacter, NamespaceError};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
@@ -14,7 +14,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
-use dom::node::{Node, INode};
+use dom::node::{Node, AppendChild};
 use dom::text::Text;
 use dom::window::Window;
 use servo_util::str::DOMString;
@@ -33,7 +33,7 @@ impl DOMImplementation {
         }
     }
 
-    pub fn new(owner: &JSRef<Window>) -> JS<DOMImplementation> {
+    pub fn new(owner: &JSRef<Window>) -> Unrooted<DOMImplementation> {
         reflect_dom_object(~DOMImplementation::new_inherited(owner.unrooted()), owner,
                            DOMImplementationBinding::Wrap)
     }
@@ -52,7 +52,7 @@ impl Reflectable for DOMImplementation {
 // http://dom.spec.whatwg.org/#domimplementation
 impl DOMImplementation {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
-    pub fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<JS<DocumentType>> {
+    pub fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Unrooted<DocumentType>> {
         let roots = RootCollection::new();
         match xml_name_type(qname) {
             // Step 1.
@@ -70,37 +70,39 @@ impl DOMImplementation {
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocument
     pub fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
-                          mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<JS<Document>> {
+                          mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Unrooted<Document>> {
         let roots = RootCollection::new();
         let win = self.owner.root(&roots);
 
         // Step 1.
-        let doc = Document::new(&win.root_ref(), None, NonHTMLDocument, None);
-        let doc_root = doc.root(&roots);
-        let mut doc_node: JS<Node> = NodeCast::from(&doc);
-
+        let mut doc = Document::new(&win.root_ref(), None, NonHTMLDocument, None).root(&roots);
         // Step 2-3.
         let mut maybe_elem = if qname.is_empty() {
             None
         } else {
-            match doc.get().CreateElementNS(&doc_root.root_ref(), namespace, qname) {
+            match doc.get().CreateElementNS(&*doc, namespace, qname) {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem)
             }
         };
 
-        // Step 4.
-        match maybe_doctype {
-            None => (),
-            Some(ref mut doctype) => assert!(doc_node.AppendChild(NodeCast::from_mut_ref(doctype)).is_ok())
-        }
+        {
+            let doc_node: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut *doc);
 
-        // Step 5.
-        match maybe_elem {
-            None => (),
-            Some(ref elem) => {
-                let elem = elem.root(&roots);
-                assert!(doc_node.AppendChild(NodeCast::from_mut_ref(&mut elem.root_ref())).is_ok())
+            // Step 4.
+            match maybe_doctype {
+                None => (),
+                Some(ref mut doctype) => {
+                    assert!(AppendChild(doc_node, NodeCast::from_mut_ref(doctype)).is_ok())
+                }
+            }
+
+            // Step 5.
+            match maybe_elem.root(&roots) {
+                None => (),
+                Some(mut elem) => {
+                    assert!(AppendChild(doc_node, NodeCast::from_mut_ref(&mut *elem)).is_ok())
+                }
             }
         }
 
@@ -108,65 +110,59 @@ impl DOMImplementation {
         // FIXME: https://github.com/mozilla/servo/issues/1522
 
         // Step 7.
-        Ok(doc)
+        Ok(Unrooted::new_rooted(&*doc))
     }
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-    pub fn CreateHTMLDocument(&self, title: Option<DOMString>) -> JS<Document> {
+    pub fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Unrooted<Document> {
         let roots = RootCollection::new();
         let owner = self.owner.root(&roots);
 
         // Step 1-2.
-        let doc = Document::new(&owner.root_ref(), None, HTMLDocument, None);
-        let doc_root = doc.root(&roots);
-        let mut doc_node: JS<Node> = NodeCast::from(&doc);
+        let mut doc = Document::new(&owner.root_ref(), None, HTMLDocument, None).root(&roots);
+        let mut doc_alias = doc.clone();
+        let doc_node: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut doc_alias);
 
         {
             // Step 3.
-            let doc_type = DocumentType::new(~"html", None, None, &doc_root.root_ref());
-            let doc_type = doc_type.root(&roots);
-            assert!(doc_node.AppendChild(NodeCast::from_mut_ref(&mut doc_type.root_ref())).is_ok());
+            let mut doc_type = DocumentType::new(~"html", None, None, &*doc).root(&roots);
+            assert!(AppendChild(&mut *doc_node, NodeCast::from_mut_ref(&mut *doc_type)).is_ok());
         }
 
         {
             // Step 4.
-            let mut doc_html = NodeCast::from(&HTMLHtmlElement::new(~"html", &doc_root.root_ref()));
-            let doc_html_root = {doc_html.root(&roots)};
-            assert!(doc_node.AppendChild(&mut doc_html_root.root_ref()).is_ok());
+            let mut doc_html = NodeCast::from_unrooted(HTMLHtmlElement::new(~"html", &*doc)).root(&roots);
+            assert!(AppendChild(&mut *doc_node, &mut *doc_html).is_ok());
 
             {
                 // Step 5.
-                let mut doc_head = NodeCast::from(&HTMLHeadElement::new(~"head", &doc_root.root_ref()));
-                let doc_head_root = doc_head.root(&roots);
-                assert!(doc_html.AppendChild(&mut doc_head_root.root_ref()).is_ok());
+                let mut doc_head = NodeCast::from_unrooted(HTMLHeadElement::new(~"head", &*doc)).root(&roots);
+                assert!(AppendChild(&mut *doc_html, &mut *doc_head).is_ok());
 
                 // Step 6.
                 match title {
                     None => (),
                     Some(title_str) => {
                         // Step 6.1.
-                        let mut doc_title = NodeCast::from(&HTMLTitleElement::new(~"title", &doc_root.root_ref()));
-                        let doc_title_root = doc_title.root(&roots);
-                        assert!(doc_head.AppendChild(&mut doc_title_root.root_ref()).is_ok());
+                        let mut doc_title = NodeCast::from_unrooted(HTMLTitleElement::new(~"title", &*doc)).root(&roots);
+                        assert!(AppendChild(&mut *doc_head, &mut *doc_title).is_ok());
 
                         // Step 6.2.
-                        let title_text = Text::new(title_str, &doc_root.root_ref());
-                        let title_text = title_text.root(&roots);
-                        assert!(doc_title.AppendChild(NodeCast::from_mut_ref(&mut title_text.root_ref())).is_ok());
+                        let mut title_text = Text::new(title_str, &*doc).root(&roots);
+                        assert!(AppendChild(&mut *doc_title, NodeCast::from_mut_ref(&mut *title_text)).is_ok());
                     }
                 }
             }
 
             // Step 7.
-            let doc_body = HTMLBodyElement::new(~"body", &doc_root.root_ref());
-            let doc_body = doc_body.root(&roots);
-            assert!(doc_html.AppendChild(NodeCast::from_mut_ref(&mut doc_body.root_ref())).is_ok());
+            let mut doc_body = HTMLBodyElement::new(~"body", &*doc).root(&roots);
+            assert!(AppendChild(&mut *doc_html, NodeCast::from_mut_ref(&mut *doc_body)).is_ok());
         }
 
         // Step 8.
         // FIXME: https://github.com/mozilla/servo/issues/1522
 
         // Step 9.
-        doc
+        Unrooted::new_rooted(&*doc)
     }
 }

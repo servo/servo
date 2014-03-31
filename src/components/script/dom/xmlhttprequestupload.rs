@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestUploadDerived;
 use dom::bindings::codegen::BindingDeclarations::XMLHttpRequestUploadBinding;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{Unrooted, JSRef};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::eventtarget::{EventTarget, XMLHttpRequestTargetTypeId};
 use dom::window::Window;
@@ -22,7 +22,7 @@ impl XMLHttpRequestUpload {
             eventtarget:XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestUploadTypeId)
         }
     }
-    pub fn new(window: &JSRef<Window>) -> JS<XMLHttpRequestUpload> {
+    pub fn new(window: &JSRef<Window>) -> Unrooted<XMLHttpRequestUpload> {
         reflect_dom_object(~XMLHttpRequestUpload::new_inherited(),
                            window,
                            XMLHttpRequestUploadBinding::Wrap)

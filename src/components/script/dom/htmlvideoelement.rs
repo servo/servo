@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLVideoElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLVideoElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLVideoElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLVideoElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLVideoElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLVideoElement> {
         let element = HTMLVideoElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLVideoElementBinding::Wrap)
     }

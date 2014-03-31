@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::ClientRectListBinding;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::clientrect::ClientRect;
 use dom::window::Window;
@@ -17,16 +17,16 @@ pub struct ClientRectList {
 
 impl ClientRectList {
     pub fn new_inherited(window: JS<Window>,
-                         rects: Vec<JS<ClientRect>>) -> ClientRectList {
+                         rects: Vec<JSRef<ClientRect>>) -> ClientRectList {
         ClientRectList {
             reflector_: Reflector::new(),
-            rects: rects,
+            rects: rects.iter().map(|rect| rect.unrooted()).collect(),
             window: window,
         }
     }
 
     pub fn new(window: &JSRef<Window>,
-               rects: Vec<JS<ClientRect>>) -> JS<ClientRectList> {
+               rects: Vec<JSRef<ClientRect>>) -> Unrooted<ClientRectList> {
         reflect_dom_object(~ClientRectList::new_inherited(window.unrooted(), rects),
                            window, ClientRectListBinding::Wrap)
     }
@@ -35,15 +35,15 @@ impl ClientRectList {
         self.rects.len() as u32
     }
 
-    pub fn Item(&self, index: u32) -> Option<JS<ClientRect>> {
+    pub fn Item(&self, index: u32) -> Option<Unrooted<ClientRect>> {
         if index < self.rects.len() as u32 {
-            Some(self.rects.get(index as uint).clone())
+            Some(Unrooted::new(self.rects.get(index as uint).clone()))
         } else {
             None
         }
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JS<ClientRect>> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<ClientRect>> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
     }

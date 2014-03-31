@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLObjectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::js::{JS, JSRef, RootCollection};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLObjectElementTypeId};
@@ -47,7 +47,7 @@ impl HTMLObjectElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLObjectElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLObjectElement> {
         let element = HTMLObjectElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLObjectElementBinding::Wrap)
     }
@@ -57,15 +57,16 @@ trait ProcessDataURL {
     fn process_data_url(&mut self, image_cache: ImageCacheTask, url: Option<Url>);
 }
 
-impl ProcessDataURL for JS<HTMLObjectElement> {
+impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
     fn process_data_url(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
-        let elem: JS<Element> = ElementCast::from(self);
+        let roots = RootCollection::new();
+        let elem: &JSRef<Element> = ElementCast::from_ref(self);
 
         // TODO: support other values
-        match (elem.get_attribute(Null, "type").map(|x| x.get().Value()),
-               elem.get_attribute(Null, "data").map(|x| x.get().Value())) {
+        match (elem.get_attribute(Null, "type").map(|x| x.root(&roots).Value()),
+               elem.get_attribute(Null, "data").map(|x| x.root(&roots).Value())) {
             (None, Some(uri)) => {
                 if is_image_data(uri) {
                     let data_url = parse_url(uri, url);
@@ -111,7 +112,7 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<JS<HTMLFormElement>> {
+    pub fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
         None
     }
 
@@ -131,11 +132,11 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn GetContentDocument(&self) -> Option<JS<Document>> {
+    pub fn GetContentDocument(&self) -> Option<Unrooted<Document>> {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<JS<Window>> {
+    pub fn GetContentWindow(&self) -> Option<Unrooted<Window>> {
         None
     }
 
@@ -143,11 +144,10 @@ impl HTMLObjectElement {
         false
     }
 
-    pub fn Validity(&self) -> JS<ValidityState> {
+    pub fn Validity(&self) -> Unrooted<ValidityState> {
         let roots = RootCollection::new();
-        let doc = self.htmlelement.element.node.owner_doc();
-        let doc = doc.get();
-        let window = doc.window.root(&roots);
+        let doc = self.htmlelement.element.node.owner_doc().root(&roots);
+        let window = doc.deref().window.root(&roots);
         ValidityState::new(&window.root_ref())
     }
 
@@ -242,25 +242,26 @@ impl HTMLObjectElement {
         Ok(())
     }
 
-    pub fn GetSVGDocument(&self) -> Option<JS<Document>> {
+    pub fn GetSVGDocument(&self) -> Option<Unrooted<Document>> {
         None
     }
 }
 
-impl VirtualMethods for JS<HTMLObjectElement> {
+impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
     fn super_type(&self) -> Option<~VirtualMethods:> {
-        let htmlelement: JS<HTMLElement> = HTMLElementCast::from(self);
-        Some(~htmlelement as ~VirtualMethods:)
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        Some(~htmlelement.clone() as ~VirtualMethods:)
     }
 
     fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+        let roots = RootCollection::new();
         match self.super_type() {
             Some(ref mut s) => s.after_set_attr(name.clone(), value),
             _ => (),
         }
 
         if "data" == name {
-            let window = window_from_node(self);
+            let window = window_from_node(self).root(&roots);
             let url = Some(window.get().get_url());
             self.process_data_url(window.get().image_cache_task.clone(), url);
         }

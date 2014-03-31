@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFrameElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFrameElementTypeId;
@@ -35,7 +35,7 @@ impl HTMLFrameElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLFrameElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLFrameElement> {
         let element = HTMLFrameElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLFrameElementBinding::Wrap)
     }
@@ -90,11 +90,11 @@ impl HTMLFrameElement {
         Ok(())
     }
 
-    pub fn GetContentDocument(&self) -> Option<JS<Document>> {
+    pub fn GetContentDocument(&self) -> Option<Unrooted<Document>> {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<JS<Window>> {
+    pub fn GetContentWindow(&self) -> Option<Unrooted<Window>> {
         None
     }
 

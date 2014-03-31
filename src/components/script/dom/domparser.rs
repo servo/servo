@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::DOMParserBinding;
 use dom::bindings::codegen::BindingDeclarations::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::js::{JS, JSRef, RootCollection};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::error::{Fallible, FailureUnknown};
 use dom::document::{Document, HTMLDocument, NonHTMLDocument};
@@ -25,19 +25,19 @@ impl DOMParser {
         }
     }
 
-    pub fn new(owner: &JSRef<Window>) -> JS<DOMParser> {
+    pub fn new(owner: &JSRef<Window>) -> Unrooted<DOMParser> {
         reflect_dom_object(~DOMParser::new_inherited(owner.unrooted()), owner,
                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<JS<DOMParser>> {
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Unrooted<DOMParser>> {
         Ok(DOMParser::new(owner))
     }
 
     pub fn ParseFromString(&self,
                            _s: DOMString,
                            ty: DOMParserBinding::SupportedType)
-                           -> Fallible<JS<Document>> {
+                           -> Fallible<Unrooted<Document>> {
         let roots = RootCollection::new();
         let owner = self.owner.root(&roots);
         match ty {

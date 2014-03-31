@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLButtonElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementDerived;
-use dom::bindings::js::{JS, JSRef, RootCollection};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLButtonElementTypeId;
@@ -36,7 +36,7 @@ impl HTMLButtonElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLButtonElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLButtonElement> {
         let element = HTMLButtonElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLButtonElementBinding::Wrap)
     }
@@ -59,7 +59,7 @@ impl HTMLButtonElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<JS<HTMLFormElement>> {
+    pub fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
         None
     }
 
@@ -134,11 +134,10 @@ impl HTMLButtonElement {
     pub fn SetWillValidate(&mut self, _will_validate: bool) {
     }
 
-    pub fn Validity(&self) -> JS<ValidityState> {
+    pub fn Validity(&self) -> Unrooted<ValidityState> {
         let roots = RootCollection::new();
-        let doc = self.htmlelement.element.node.owner_doc();
-        let doc = doc.get();
-        ValidityState::new(&doc.window.root(&roots).root_ref())
+        let doc = self.htmlelement.element.node.owner_doc().root(&roots);
+        ValidityState::new(&*doc.deref().window.root(&roots))
     }
 
     pub fn SetValidity(&mut self, _validity: JS<ValidityState>) {

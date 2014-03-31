@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLBaseElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::document::Document;
 use dom::element::HTMLBaseElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -34,7 +34,7 @@ impl HTMLBaseElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLBaseElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLBaseElement> {
         let element = HTMLBaseElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLBaseElementBinding::Wrap)
     }

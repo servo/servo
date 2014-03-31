@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::AttrBinding;
 use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::node::Node;
@@ -45,7 +45,7 @@ impl Reflectable for Attr {
 impl Attr {
     fn new_inherited(local_name: DOMString, value: DOMString,
                      name: DOMString, namespace: Namespace,
-                     prefix: Option<DOMString>, owner: JS<Element>) -> Attr {
+                     prefix: Option<DOMString>, owner: &JSRef<Element>) -> Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
@@ -53,25 +53,27 @@ impl Attr {
             name: name, //TODO: Intern attribute names
             namespace: namespace,
             prefix: prefix,
-            owner: owner,
+            owner: owner.unrooted(),
         }
     }
 
     pub fn new(window: &JSRef<Window>, local_name: DOMString, value: DOMString,
                name: DOMString, namespace: Namespace,
-               prefix: Option<DOMString>, owner: JS<Element>) -> JS<Attr> {
+               prefix: Option<DOMString>, owner: &JSRef<Element>) -> Unrooted<Attr> {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix, owner);
         reflect_dom_object(~attr, window, AttrBinding::Wrap)
     }
 
     pub fn set_value(&mut self, set_type: AttrSettingType, value: DOMString) {
-        let node: JS<Node> = NodeCast::from(&self.owner);
+        let roots = RootCollection::new();
+        let owner = self.owner.root(&roots);
+        let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
         let namespace_is_null = self.namespace == namespace::Null;
 
         match set_type {
             ReplacedAttr => {
                 if namespace_is_null {
-                    vtable_for(&node).before_remove_attr(self.local_name.clone(), self.value.clone());
+                    vtable_for(node).before_remove_attr(self.local_name.clone(), self.value.clone());
                 }
             }
             FirstSetAttr => {}
@@ -80,7 +82,7 @@ impl Attr {
         self.value = value;
 
         if namespace_is_null {
-            vtable_for(&node).after_set_attr(self.local_name.clone(), self.value.clone());
+            vtable_for(node).after_set_attr(self.local_name.clone(), self.value.clone());
         }
     }
 

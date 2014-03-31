@@ -40,7 +40,7 @@ use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementType
 use script::dom::element::{HTMLLinkElementTypeId};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::HTMLImageElement;
-use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId, NodeHelpers};
+use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId, LayoutNodeHelpers};
 use script::dom::text::Text;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::namespace;
@@ -163,7 +163,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
     }
 
     fn type_id(&self) -> Option<NodeTypeId> {
-        Some(self.node.type_id())
+        Some(self.node.type_id_for_layout())
     }
 
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {

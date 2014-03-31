@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::EventBinding;
 use dom::bindings::codegen::BindingDeclarations::EventBinding::EventConstants;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::eventtarget::EventTarget;
@@ -80,7 +80,7 @@ impl Event {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> JS<Event> {
+    pub fn new(window: &JSRef<Window>) -> Unrooted<Event> {
         reflect_dom_object(~Event::new_inherited(HTMLEventTypeId),
                            window,
                            EventBinding::Wrap)
@@ -94,12 +94,12 @@ impl Event {
         self.type_.clone()
     }
 
-    pub fn GetTarget(&self) -> Option<JS<EventTarget>> {
-        self.target.clone()
+    pub fn GetTarget(&self) -> Option<Unrooted<EventTarget>> {
+        self.target.as_ref().map(|target| Unrooted::new(target.clone()))
     }
 
-    pub fn GetCurrentTarget(&self) -> Option<JS<EventTarget>> {
-        self.current_target.clone()
+    pub fn GetCurrentTarget(&self) -> Option<Unrooted<EventTarget>> {
+        self.current_target.as_ref().map(|target| Unrooted::new(target.clone()))
     }
 
     pub fn DefaultPrevented(&self) -> bool {
@@ -157,10 +157,11 @@ impl Event {
 
     pub fn Constructor(global: &JSRef<Window>,
                        type_: DOMString,
-                       init: &EventBinding::EventInit) -> Fallible<JS<Event>> {
-        let mut ev = Event::new(global);
-        ev.get_mut().InitEvent(type_, init.bubbles, init.cancelable);
-        Ok(ev)
+                       init: &EventBinding::EventInit) -> Fallible<Unrooted<Event>> {
+        let roots = RootCollection::new();
+        let mut ev = Event::new(global).root(&roots);
+        ev.InitEvent(type_, init.bubbles, init.cancelable);
+        Ok(Unrooted::new_rooted(&*ev))
     }
 }
 

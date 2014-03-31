@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::TextBinding;
 use dom::bindings::codegen::InheritTypes::TextDerived;
-use dom::bindings::js::{JS, JSRef, RootCollection};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
 use dom::bindings::error::Fallible;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -35,19 +35,19 @@ impl Text {
         }
     }
 
-    pub fn new(text: DOMString, document: &JSRef<Document>) -> JS<Text> {
+    pub fn new(text: DOMString, document: &JSRef<Document>) -> Unrooted<Text> {
         let node = Text::new_inherited(text, document.unrooted());
         Node::reflect_node(~node, document, TextBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>, text: DOMString) -> Fallible<JS<Text>> {
+    pub fn Constructor(owner: &JSRef<Window>, text: DOMString) -> Fallible<Unrooted<Text>> {
         let roots = RootCollection::new();
         let document = owner.get().Document();
         let document = document.root(&roots);
         Ok(Text::new(text.clone(), &document.root_ref()))
     }
 
-    pub fn SplitText(&self, _offset: u32) -> Fallible<JS<Text>> {
+    pub fn SplitText(&self, _offset: u32) -> Fallible<Unrooted<Text>> {
         fail!("unimplemented")
     }
 

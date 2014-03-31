@@ -5,7 +5,7 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{FromJSValConvertible, IDLInterface};
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
 use dom::bindings::trace::Untraceable;
 use dom::browsercontext;
 use dom::window;
@@ -391,7 +391,7 @@ pub fn reflect_dom_object<T: Reflectable>
         (obj:     ~T,
          window:  &JSRef<window::Window>,
          wrap_fn: extern "Rust" fn(*JSContext, &JSRef<window::Window>, ~T) -> JS<T>)
-         ->       JS<T> {
+         -> Unrooted<T> {
     JS::new(obj, window, wrap_fn)
 }
 
@@ -613,18 +613,20 @@ pub extern fn outerize_global(_cx: *JSContext, obj: JSHandleObject) -> *JSObject
 }
 
 /// Returns the global object of the realm that the given JS object was created in.
-pub fn global_object_for_js_object(obj: *JSObject) -> JS<window::Window> {
+pub fn global_object_for_js_object(obj: *JSObject) -> Unrooted<window::Window> {
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        FromJSValConvertible::from_jsval(ptr::null(), ObjectOrNullValue(global), ())
-            .ok().expect("found DOM global that doesn't unwrap to Window")
+        Unrooted::new(
+            FromJSValConvertible::from_jsval(ptr::null(), ObjectOrNullValue(global), ())
+                .ok().expect("found DOM global that doesn't unwrap to Window"))
     }
 }
 
 fn cx_for_dom_reflector(obj: *JSObject) -> *JSContext {
-    let win = global_object_for_js_object(obj);
+    let roots = RootCollection::new();
+    let win = global_object_for_js_object(obj).root(&roots);
     let js_info = win.get().page().js_info();
     match *js_info {
         Some(ref info) => info.js_context.deref().deref().ptr,

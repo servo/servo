@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTimeElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTimeElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTimeElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLTimeElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLTimeElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLTimeElement> {
         let element = HTMLTimeElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLTimeElementBinding::Wrap)
     }

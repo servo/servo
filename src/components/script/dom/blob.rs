@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JS, JSRef, RootCollection};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::bindings::codegen::BindingDeclarations::BlobBinding;
@@ -23,7 +23,7 @@ impl Blob {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> JS<Blob> {
+    pub fn new(window: &JSRef<Window>) -> Unrooted<Blob> {
         reflect_dom_object(~Blob::new_inherited(window.unrooted()),
                            window,
                            BlobBinding::Wrap)
@@ -31,7 +31,7 @@ impl Blob {
 }
 
 impl Blob {
-    pub fn Constructor(window: &JSRef<Window>) -> Fallible<JS<Blob>> {
+    pub fn Constructor(window: &JSRef<Window>) -> Fallible<Unrooted<Blob>> {
         Ok(Blob::new(window))
     }
 
@@ -43,7 +43,7 @@ impl Blob {
         ~""
     }
 
-    pub fn Slice(&self, _start: Option<i64>, _end: Option<i64>, _contentType: Option<DOMString>) -> JS<Blob> {
+    pub fn Slice(&self, _start: Option<i64>, _end: Option<i64>, _contentType: Option<DOMString>) -> Unrooted<Blob> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
         Blob::new(&window.root_ref())

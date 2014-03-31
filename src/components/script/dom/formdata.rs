@@ -5,7 +5,7 @@
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{Fallible};
 use dom::bindings::codegen::BindingDeclarations::FormDataBinding;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::blob::Blob;
 use dom::htmlformelement::HTMLFormElement;
 use dom::window::Window;
@@ -37,12 +37,12 @@ impl FormData {
         }
     }
 
-    pub fn new(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> JS<FormData> {
+    pub fn new(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> Unrooted<FormData> {
         reflect_dom_object(~FormData::new_inherited(form, window.unrooted()), window, FormDataBinding::Wrap)
     }
 
     pub fn Constructor(window: &JSRef<Window>, form: Option<JSRef<HTMLFormElement>>)
-                       -> Fallible<JS<FormData>> {
+                       -> Fallible<Unrooted<FormData>> {
         Ok(FormData::new(form, window))
     }
 

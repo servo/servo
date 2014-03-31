@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFrameSetElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFrameSetElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFrameSetElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLFrameSetElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLFrameSetElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLFrameSetElement> {
         let element = HTMLFrameSetElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLFrameSetElementBinding::Wrap)
     }

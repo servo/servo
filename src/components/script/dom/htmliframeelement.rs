@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::trace::Untraceable;
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
@@ -74,7 +74,7 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLIFrameElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLIFrameElement> {
         let element = HTMLIFrameElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLIFrameElementBinding::Wrap)
     }
@@ -106,12 +106,12 @@ impl HTMLIFrameElement {
     }
 
     pub fn Sandbox(&self, abstract_self: &JSRef<HTMLIFrameElement>) -> DOMString {
-        let element: JS<Element> = ElementCast::from(&abstract_self.unrooted());
+        let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         element.get_string_attribute("sandbox")
     }
 
     pub fn SetSandbox(&mut self, abstract_self: &mut JSRef<HTMLIFrameElement>, sandbox: DOMString) {
-        let mut element: JS<Element> = ElementCast::from(&abstract_self.unrooted());
+        let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         element.set_string_attribute("sandbox", sandbox);
     }
 
@@ -139,11 +139,11 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn GetContentDocument(&self) -> Option<JS<Document>> {
+    pub fn GetContentDocument(&self) -> Option<Unrooted<Document>> {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<JS<Window>> {
+    pub fn GetContentWindow(&self) -> Option<Unrooted<Window>> {
         None
     }
 
@@ -195,15 +195,15 @@ impl HTMLIFrameElement {
         Ok(())
     }
 
-    pub fn GetSVGDocument(&self) -> Option<JS<Document>> {
+    pub fn GetSVGDocument(&self) -> Option<Unrooted<Document>> {
         None
     }
 }
 
-impl VirtualMethods for JS<HTMLIFrameElement> {
+impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
     fn super_type(&self) -> Option<~VirtualMethods:> {
-        let htmlelement: JS<HTMLElement> = HTMLElementCast::from(self);
-        Some(~htmlelement as ~VirtualMethods:)
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
+        Some(~htmlelement.clone() as ~VirtualMethods:)
     }
 
     fn after_set_attr(&mut self, name: DOMString, value: DOMString) {

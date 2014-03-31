@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{Fallible, InvalidState};
 use dom::bindings::codegen::BindingDeclarations::EventListenerBinding;
@@ -107,10 +107,10 @@ impl EventTarget {
         self.dispatch_event_with_target(abstract_self, None, event)
     }
 
-    pub fn dispatch_event_with_target(&self,
-                                      abstract_self: &JSRef<EventTarget>,
-                                      abstract_target: Option<JSRef<EventTarget>>,
-                                      event: &mut JSRef<Event>) -> Fallible<bool> {
+    pub fn dispatch_event_with_target<'a>(&self,
+                                          abstract_self: &JSRef<'a, EventTarget>,
+                                          abstract_target: Option<JSRef<'a, EventTarget>>,
+                                          event: &mut JSRef<Event>) -> Fallible<bool> {
         if event.get().dispatching || !event.get().initialized {
             return Err(InvalidState);
         }
@@ -128,7 +128,7 @@ impl Reflectable for EventTarget {
     }
 }
 
-impl VirtualMethods for JS<EventTarget> {
+impl<'a> VirtualMethods for JSRef<'a, EventTarget> {
     fn super_type(&self) -> Option<~VirtualMethods:> {
         None
     }

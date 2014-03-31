@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
 use dom::bindings::codegen::BindingDeclarations::DocumentFragmentBinding;
-use dom::bindings::js::{JS, JSRef, RootCollection};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
 use dom::bindings::error::Fallible;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -34,14 +34,14 @@ impl DocumentFragment {
         }
     }
 
-    pub fn new(document: &JSRef<Document>) -> JS<DocumentFragment> {
+    pub fn new(document: &JSRef<Document>) -> Unrooted<DocumentFragment> {
         let node = DocumentFragment::new_inherited(document.unrooted());
         Node::reflect_node(~node, document, DocumentFragmentBinding::Wrap)
     }
 }
 
 impl DocumentFragment {
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<JS<DocumentFragment>> {
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Unrooted<DocumentFragment>> {
         let roots = RootCollection::new();
         let document = owner.get().Document();
         let document = document.root(&roots);
@@ -51,9 +51,9 @@ impl DocumentFragment {
 }
 
 impl DocumentFragment {
-    pub fn Children(&self, abstract_self: &JSRef<DocumentFragment>) -> JS<HTMLCollection> {
+    pub fn Children(&self, abstract_self: &JSRef<DocumentFragment>) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
-        let window = window_from_node(&abstract_self.unrooted()).root(&roots);
+        let window = window_from_node(abstract_self).root(&roots);
         HTMLCollection::children(&window.root_ref(), NodeCast::from_ref(abstract_self))
     }
 }

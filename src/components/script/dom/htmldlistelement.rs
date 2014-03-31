@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLDListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDListElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLDListElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLDListElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLDListElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLDListElement> {
         let element = HTMLDListElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLDListElementBinding::Wrap)
     }

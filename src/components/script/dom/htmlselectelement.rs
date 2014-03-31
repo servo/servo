@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLSelectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementDerived;
 use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement};
-use dom::bindings::js::{JS, JSRef, RootCollection};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLSelectElementTypeId};
@@ -38,7 +38,7 @@ impl HTMLSelectElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLSelectElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLSelectElement> {
         let element = HTMLSelectElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLSelectElementBinding::Wrap)
     }
@@ -61,7 +61,7 @@ impl HTMLSelectElement {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<JS<HTMLFormElement>> {
+    pub fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
         None
     }
 
@@ -109,15 +109,15 @@ impl HTMLSelectElement {
         Ok(())
     }
 
-    pub fn Item(&self, _index: u32) -> Option<JS<Element>> {
+    pub fn Item(&self, _index: u32) -> Option<Unrooted<Element>> {
         None
     }
 
-    pub fn NamedItem(&self, _name: DOMString) -> Option<JS<HTMLOptionElement>> {
+    pub fn NamedItem(&self, _name: DOMString) -> Option<Unrooted<HTMLOptionElement>> {
         None
     }
 
-    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<JS<Element>> {
+    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Unrooted<Element>> {
         None
     }
 
@@ -153,12 +153,11 @@ impl HTMLSelectElement {
     pub fn SetWillValidate(&mut self, _will_validate: bool) {
     }
 
-    pub fn Validity(&self) -> JS<ValidityState> {
+    pub fn Validity(&self) -> Unrooted<ValidityState> {
         let roots = RootCollection::new();
-        let doc = self.htmlelement.element.node.owner_doc();
-        let doc = doc.get();
-        let window = doc.window.root(&roots);
-        ValidityState::new(&window.root_ref())
+        let doc = self.htmlelement.element.node.owner_doc().root(&roots);
+        let window = doc.deref().window.root(&roots);
+        ValidityState::new(&*window)
     }
 
     pub fn SetValidity(&mut self, _validity: JS<ValidityState>) {

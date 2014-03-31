@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLElementBinding;
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
@@ -39,7 +39,7 @@ impl HTMLElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLElement> {
         let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLElementBinding::Wrap)
     }
@@ -143,7 +143,7 @@ impl HTMLElement {
         Ok(())
     }
 
-    pub fn GetOffsetParent(&self) -> Option<JS<Element>> {
+    pub fn GetOffsetParent(&self) -> Option<Unrooted<Element>> {
         None
     }
 
@@ -164,9 +164,9 @@ impl HTMLElement {
     }
 }
 
-impl VirtualMethods for JS<HTMLElement> {
+impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
     fn super_type(&self) -> Option<~VirtualMethods:> {
-        let element: JS<Element> = ElementCast::from(self);
-        Some(~element as ~VirtualMethods:)
+        let element: &JSRef<Element> = ElementCast::from_ref(self);
+        Some(~element.clone() as ~VirtualMethods:)
     }
 }

@@ -4,35 +4,32 @@
 
 use dom::bindings::callback::ReportExceptions;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JSRef, OptionalAssignable, RootCollection, Root};
 use dom::eventtarget::{Capturing, Bubbling, EventTarget};
 use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing};
 use dom::node::{Node, NodeHelpers};
 
 // See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
-pub fn dispatch_event(target: &JSRef<EventTarget>,
-                      pseudo_target: Option<JSRef<EventTarget>>,
-                      event: &mut JSRef<Event>) -> bool {
+pub fn dispatch_event<'a>(target: &JSRef<'a, EventTarget>,
+                          pseudo_target: Option<JSRef<'a, EventTarget>>,
+                          event: &mut JSRef<Event>) -> bool {
+    let roots = RootCollection::new();
     assert!(!event.get().dispatching);
 
     {
         let event = event.get_mut();
-        event.target = pseudo_target.map(|pseudo_target| {
-            pseudo_target.unrooted()
-        }).or_else(|| {
-            Some(target.unrooted())
-        });
+        event.target.assign(Some(pseudo_target.unwrap_or(target.clone())));
         event.dispatching = true;
     }
 
     let type_ = event.get().type_.clone();
 
     //TODO: no chain if not participating in a tree
-    let chain: Vec<JS<EventTarget>> = if target.get().is_node() {
-        let target_node: JS<Node> = NodeCast::to(&target.unrooted()).unwrap();
+    let mut chain: Vec<Root<EventTarget>> = if target.get().is_node() {
+        let target_node: &JSRef<Node> = NodeCast::to_ref(target).unwrap();
         target_node.ancestors().map(|ancestor| {
-            let ancestor_target: JS<EventTarget> = EventTargetCast::from(&ancestor);
-            ancestor_target
+            let ancestor_target: &JSRef<EventTarget> = EventTargetCast::from_ref(&ancestor);
+            ancestor_target.unrooted().root(&roots)
         }).collect()
     } else {
         vec!()
@@ -44,9 +41,9 @@ pub fn dispatch_event(target: &JSRef<EventTarget>,
 
     /* capturing */
     for cur_target in chain.as_slice().rev_iter() {
-        let stopped = match cur_target.get().get_listeners_for(type_, Capturing) {
+        let stopped = match cur_target.get_listeners_for(type_, Capturing) {
             Some(listeners) => {
-                event.get_mut().current_target = Some(cur_target.clone());
+                event.current_target.assign(Some(cur_target.deref().clone()));
                 for listener in listeners.iter() {
                     //FIXME: this should have proper error handling, or explicitly
                     //       drop the exception on the floor
@@ -72,7 +69,7 @@ pub fn dispatch_event(target: &JSRef<EventTarget>,
         {
             let event = event.get_mut();
             event.phase = PhaseAtTarget;
-            event.current_target = Some(target.unrooted());
+            event.current_target.assign(Some(target.clone()));
         }
 
         let opt_listeners = target.get().get_listeners(type_);
@@ -95,7 +92,7 @@ pub fn dispatch_event(target: &JSRef<EventTarget>,
         for cur_target in chain.iter() {
             let stopped = match cur_target.get().get_listeners_for(type_, Bubbling) {
                 Some(listeners) => {
-                    event.get_mut().current_target = Some(cur_target.clone());
+                    event.get_mut().current_target.assign(Some(cur_target.deref().clone()));
                     for listener in listeners.iter() {
                         //FIXME: this should have proper error handling or explicitly
                         //       drop exceptions on the floor.
@@ -114,6 +111,12 @@ pub fn dispatch_event(target: &JSRef<EventTarget>,
                 break;
             }
         }
+    }
+
+    // Root ordering restrictions mean we need to unroot the chain entries
+    // in the same order they were rooted.
+    while chain.len() > 0 {
+        let _ = chain.pop();
     }
 
     let event = event.get_mut();

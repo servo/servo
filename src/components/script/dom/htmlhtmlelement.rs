@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLHtmlElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHtmlElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLHtmlElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLHtmlElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLHtmlElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLHtmlElement> {
         let element = HTMLHtmlElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLHtmlElementBinding::Wrap)
     }

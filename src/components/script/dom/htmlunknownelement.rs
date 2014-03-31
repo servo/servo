@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLUnknownElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLUnknownElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::document::Document;
 use dom::element::HTMLUnknownElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -33,7 +33,7 @@ impl HTMLUnknownElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> JS<HTMLUnknownElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLUnknownElement> {
         let element = HTMLUnknownElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLUnknownElementBinding::Wrap)
     }

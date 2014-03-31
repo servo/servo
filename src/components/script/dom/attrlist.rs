@@ -4,7 +4,7 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::BindingDeclarations::AttrListBinding;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::window::Window;
@@ -25,7 +25,7 @@ impl AttrList {
         }
     }
 
-    pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> JS<AttrList> {
+    pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> Unrooted<AttrList> {
         reflect_dom_object(~AttrList::new_inherited(window.unrooted(), elem.unrooted()),
                            window, AttrListBinding::Wrap)
     }
@@ -34,11 +34,11 @@ impl AttrList {
         self.owner.get().attrs.len() as u32
     }
 
-    pub fn Item(&self, index: u32) -> Option<JS<Attr>> {
-        self.owner.get().attrs.as_slice().get(index as uint).map(|x| x.clone())
+    pub fn Item(&self, index: u32) -> Option<Unrooted<Attr>> {
+        self.owner.get().attrs.as_slice().get(index as uint).map(|x| Unrooted::new(x.clone()))
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JS<Attr>> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Attr>> {
         let item = self.Item(index);
         *found = item.is_some();
         item

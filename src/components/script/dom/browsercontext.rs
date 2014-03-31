@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, JSRef};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
@@ -22,7 +22,7 @@ pub struct BrowserContext {
 }
 
 impl BrowserContext {
-    pub fn new(document: &JS<Document>) -> BrowserContext {
+    pub fn new(document: &JSRef<Document>) -> BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
@@ -71,9 +71,9 @@ pub struct SessionHistoryEntry {
 }
 
 impl SessionHistoryEntry {
-    fn new(document: &JS<Document>) -> SessionHistoryEntry {
+    fn new(document: &JSRef<Document>) -> SessionHistoryEntry {
         SessionHistoryEntry {
-            document: document.clone(),
+            document: document.unrooted(),
             children: vec!()
         }
     }
