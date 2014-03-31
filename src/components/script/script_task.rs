@@ -16,7 +16,7 @@ use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{Node, NodeHelpers};
-use dom::window::{TimerData, TimerHandle, Window};
+use dom::window::{TimerData, Window};
 use dom::windowproxy::WindowProxy;
 use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
@@ -645,10 +645,12 @@ impl ScriptTask {
             pipeline ID not associated with this script task. This is a bug.").page();
         let frame = page.frame();
         let mut window = frame.get().get_ref().window.clone();
-        if !window.get().active_timers.contains(&TimerHandle { handle: timer_data.handle, cancel_chan: None }) {
+
+        let timer_handle = window.get_mut().active_timers.pop(&timer_data.handle);
+        if timer_handle.is_none() {
             return;
         }
-        window.get_mut().active_timers.remove(&TimerHandle { handle: timer_data.handle, cancel_chan: None });
+
         let js_info = page.js_info();
         let this_value = if timer_data.args.len() > 0 {
             fail!("NYI")
