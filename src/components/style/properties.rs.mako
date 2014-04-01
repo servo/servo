@@ -97,29 +97,29 @@ pub mod longhands {
             % endif
             pub use self::computed_value::*;
             ${caller.body()}
-            pub fn parse_declared(input: &[ComponentValue], base_url: &Url)
-                               -> Option<DeclaredValue<SpecifiedValue>> {
-                match CSSWideKeyword::parse(input) {
-                    Some(Some(keyword)) => Some(CSSWideKeyword(keyword)),
-                    Some(None) => Some(CSSWideKeyword(${
-                        "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"})),
-                    None => parse_specified(input, base_url),
+            % if derived_from is None:
+                pub fn parse_declared(input: &[ComponentValue], base_url: &Url)
+                                   -> Option<DeclaredValue<SpecifiedValue>> {
+                    match CSSWideKeyword::parse(input) {
+                        Some(Some(keyword)) => Some(CSSWideKeyword(keyword)),
+                        Some(None) => Some(CSSWideKeyword(${
+                            "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"})),
+                        None => parse_specified(input, base_url),
+                    }
                 }
-            }
+            % endif
         }
     </%def>
 
     <%def name="longhand(name, no_super=False, derived_from=None)">
         <%self:raw_longhand name="${name}" derived_from="${derived_from}">
             ${caller.body()}
-            pub fn parse_specified(_input: &[ComponentValue], _base_url: &Url)
-                               -> Option<DeclaredValue<SpecifiedValue>> {
-                % if derived_from is None:
+            % if derived_from is None:
+                pub fn parse_specified(_input: &[ComponentValue], _base_url: &Url)
+                                   -> Option<DeclaredValue<SpecifiedValue>> {
                     parse(_input, _base_url).map(super::SpecifiedValue)
-                % else:
-                    None
-                % endif
-            }
+                }
+            % endif
         </%self:raw_longhand>
     </%def>
 
@@ -1328,12 +1328,16 @@ impl PropertyDeclaration {
         let name_lower = tmp_for_lifetime.as_str_ascii();
         match name_lower.as_slice() {
             % for property in LONGHANDS:
-                "${property.name}" => result_list.push(${property.ident}_declaration(
-                    match longhands::${property.ident}::parse_declared(value, base_url) {
-                        Some(value) => value,
-                        None => return InvalidValue,
-                    }
-                )),
+                % if property.derived_from is None:
+                    "${property.name}" => result_list.push(${property.ident}_declaration(
+                        match longhands::${property.ident}::parse_declared(value, base_url) {
+                            Some(value) => value,
+                            None => return InvalidValue,
+                        }
+                    )),
+                % else:
+                    "${property.name}" => {}
+                % endif
             % endfor
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => match CSSWideKeyword::parse(value) {

@@ -766,7 +766,8 @@ impl BlockFlow {
     /// If this is the root flow, shifts all kids down and adjusts our size to account for
     /// collapsed margins.
     ///
-    /// TODO(pcwalton): This is somewhat inefficient (traverses kids twice); can we do better?
+    /// TODO(#2017, pcwalton): This is somewhat inefficient (traverses kids twice); can we do
+    /// better?
     fn adjust_boxes_for_collapsed_margins_if_root(&mut self) {
         if !self.is_root() {
             return
@@ -1519,7 +1520,7 @@ impl BlockFlow {
 
             // Per CSS 2.1 § 16.3.1, text decoration propagates to all children in flow.
             //
-            // TODO(pcwalton): When we have out-of-flow children, don't unconditionally propagate.
+            // TODO(#2018, pcwalton): Do this in the cascade instead.
             let child_base = flow::mut_base(kid);
             child_base.flags_info.propagate_text_decoration_from_parent(&flags_info);
             child_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
