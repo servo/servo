@@ -495,7 +495,7 @@ impl InlineFlow {
         debug!("Flow: building display list for {:u} inline boxes", self.boxes.len());
 
         for box_ in self.boxes.iter() {
-            let rel_offset: Point2D<Au> = box_.relative_position(&info.containing_block_size);
+            let rel_offset = box_.relative_position(&info.relative_containing_block_size);
             box_.build_display_list(stacking_context,
                                     builder,
                                     info,

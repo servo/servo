@@ -634,7 +634,7 @@ impl LayoutTask {
                     dirty: flow::base(layout_root).position.clone(),
                 };
                 let display_list_building_info = DisplayListBuildingInfo {
-                    containing_block_size: flow::base(layout_root).position.size,
+                    relative_containing_block_size: flow::base(layout_root).position.size,
                     absolute_containing_block_position: Point2D(Au(0), Au(0)),
                     layers_needed_for_positioned_flows: false,
                 };
@@ -672,10 +672,10 @@ impl LayoutTask {
                     }
                 }
 
-                let root_size = Size2D(display_list_building_info.containing_block_size
+                let root_size = Size2D(display_list_building_info.relative_containing_block_size
                                                                  .width
                                                                  .to_nearest_px() as uint,
-                                       display_list_building_info.containing_block_size
+                                       display_list_building_info.relative_containing_block_size
                                                                  .height
                                                                  .to_nearest_px() as uint);
                 let render_layer = RenderLayer {

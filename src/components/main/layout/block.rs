@@ -1171,7 +1171,7 @@ impl BlockFlow {
         let mut info = *info;
         let mut rel_offset = Point2D(Au(0), Au(0));
         for fragment in self.box_.iter() {
-            rel_offset = fragment.relative_position(&info.containing_block_size);
+            rel_offset = fragment.relative_position(&info.relative_containing_block_size);
 
             // Add the box that starts the block context.
             fragment.build_display_list(stacking_context,
@@ -1184,11 +1184,12 @@ impl BlockFlow {
             // For relatively-positioned descendants, the containing block formed by a block is
             // just the content box. The containing block for absolutely-positioned descendants,
             // on the other hand, only established if we are positioned.
-            let container_block_size = fragment.content_box_size();
+            info.relative_containing_block_size = fragment.content_box_size();
             if self.is_positioned() {
-                info.absolute_containing_block_position = self.base.abs_position +
+                info.absolute_containing_block_position =
+                    self.base.abs_position +
                     self.generated_cb_position() +
-                    fragment.relative_position(&container_block_size)
+                    fragment.relative_position(&info.relative_containing_block_size)
             }
         }
 

@@ -26,9 +26,9 @@ pub struct DisplayListBuilder<'a> {
 
 /// Information needed at each step of the display list building traversal.
 pub struct DisplayListBuildingInfo {
-    /// The size of the containing block.
-    containing_block_size: Size2D<Au>,
-    /// The absolute position of the absolute containing block.
+    /// The size of the containing block for relatively-positioned descendants.
+    relative_containing_block_size: Size2D<Au>,
+    /// The position and size of the absolute containing block.
     absolute_containing_block_position: Point2D<Au>,
     /// Whether the absolute containing block forces positioned descendants to be layerized.
     layers_needed_for_positioned_flows: bool,
