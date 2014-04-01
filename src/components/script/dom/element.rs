@@ -571,19 +571,15 @@ impl Element {
         let node: JS<Node> = NodeCast::from(abstract_self);
         let (port, chan) = Chan::new();
         let addr = node.to_trusted_node_address();
-        let rects =
-            match win.get().page().query_layout(ContentBoxesQuery(addr, chan), port) {
-                ContentBoxesResponse(rects) => {
-                    rects.map(|r| {
-                        ClientRect::new(
-                            win,
-                            r.origin.y,
-                            r.origin.y + r.size.height,
-                            r.origin.x,
-                            r.origin.x + r.size.width)
-                    })
-                },
-            };
+        let ContentBoxesResponse(rects) = win.get().page().query_layout(ContentBoxesQuery(addr, chan), port);
+        let rects = rects.map(|r| {
+            ClientRect::new(
+                win,
+                r.origin.y,
+                r.origin.y + r.size.height,
+                r.origin.x,
+                r.origin.x + r.size.width)
+        });
 
         ClientRectList::new(win, rects)
     }
@@ -595,16 +591,13 @@ impl Element {
         let node: JS<Node> = NodeCast::from(abstract_self);
         let (port, chan) = Chan::new();
         let addr = node.to_trusted_node_address();
-        match win.get().page().query_layout(ContentBoxQuery(addr, chan), port) {
-            ContentBoxResponse(rect) => {
-                ClientRect::new(
-                    win,
-                    rect.origin.y,
-                    rect.origin.y + rect.size.height,
-                    rect.origin.x,
-                    rect.origin.x + rect.size.width)
-            }
-        }
+        let ContentBoxResponse(rect) = win.get().page().query_layout(ContentBoxQuery(addr, chan), port);
+        ClientRect::new(
+            win,
+            rect.origin.y,
+            rect.origin.y + rect.size.height,
+            rect.origin.x,
+            rect.origin.x + rect.size.width)
     }
 
     pub fn GetInnerHTML(&self, abstract_self: &JS<Element>) -> Fallible<DOMString> {
