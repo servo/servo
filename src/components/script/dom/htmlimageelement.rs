@@ -140,11 +140,8 @@ impl HTMLImageElement {
         let page = window.get().page();
         let (port, chan) = Chan::new();
         let addr = node.to_trusted_node_address();
-        match page.query_layout(ContentBoxQuery(addr, chan), port) {
-            ContentBoxResponse(rect) => {
-                to_px(rect.size.width) as u32
-            }
-        }
+        let ContentBoxResponse(rect) = page.query_layout(ContentBoxQuery(addr, chan), port);
+        to_px(rect.size.width) as u32
     }
 
     pub fn SetWidth(&mut self, abstract_self: &JS<HTMLImageElement>, width: u32) -> ErrorResult {
@@ -159,11 +156,8 @@ impl HTMLImageElement {
         let (port, chan) = Chan::new();
         let this_node: JS<Node> = NodeCast::from(abstract_self);
         let addr = this_node.to_trusted_node_address();
-        match page.query_layout(ContentBoxQuery(addr, chan), port) {
-            ContentBoxResponse(rect) => {
-                to_px(rect.size.height) as u32
-            }
-        }
+        let ContentBoxResponse(rect) = page.query_layout(ContentBoxQuery(addr, chan), port);
+        to_px(rect.size.height) as u32
     }
 
     pub fn SetHeight(&mut self, abstract_self: &JS<HTMLImageElement>, height: u32) -> ErrorResult {

@@ -929,13 +929,10 @@ impl ScriptTask {
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &Page, node: JS<Element>) {
         let (port, chan) = Chan::new();
         let node: JS<Node> = NodeCast::from(&node);
-        match page.query_layout(ContentBoxQuery(node.to_trusted_node_address(), chan), port) {
-            ContentBoxResponse(rect) => {
-                let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(), 
-                                    to_frac_px(rect.origin.y).to_f32().unwrap());
-                self.compositor.scroll_fragment_point(pipeline_id, point);
-            }
-        }
+        let ContentBoxResponse(rect) = page.query_layout(ContentBoxQuery(node.to_trusted_node_address(), chan), port);
+        let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(),
+                            to_frac_px(rect.origin.y).to_f32().unwrap());
+        self.compositor.scroll_fragment_point(pipeline_id, point);
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.
