@@ -288,35 +288,35 @@ struct CandidateHeightIterator {
 }
 
 impl CandidateHeightIterator {
-    pub fn new(style: &ComputedValues, auto_value: Au, is_absolutely_positioned: bool)
+    /// Creates a new candidate height iterator. `block_container_height` is `None` if the height
+    /// of the block container has not been determined yet. It will always be `Some` in the case of
+    /// absolutely-positioned containing blocks.
+    pub fn new(style: &ComputedValues, block_container_height: Option<Au>)
                -> CandidateHeightIterator {
-        // Per CSS 2.1 § 10.7, if the height is not *specified explicitly*, then we ignore
-        // `min-height` and `max-height`. Heights are considered to be specified explicitly if the
-        // element is absolutely positioned or the value of the containing block's height depends
-        // on the content.
-        //
-        // TODO(pcwalton): Consider heights specified explicitly if the containing block's height
-        // depends on the content.
-        let height_specified_explicitly = is_absolutely_positioned;
+        // Per CSS 2.1 § 10.7, percentages in `min-height` and `max-height` refer to the height of
+        // the containing block. If that is not determined yet by the time we need to resolve
+        // `min-height` and `max-height`, percentage values are ignored.
 
-        let height = match style.Box.get().height {
-            LPA_Percentage(percent) if height_specified_explicitly => {
-                Specified(auto_value.scale_by(percent))
+        let height = match (style.Box.get().height, block_container_height) {
+            (LPA_Percentage(percent), Some(block_container_height)) => {
+                Specified(block_container_height.scale_by(percent))
             }
-            LPA_Percentage(_) | LPA_Auto => Auto,
-            LPA_Length(length) => Specified(length),
+            (LPA_Percentage(_), None) | (LPA_Auto, _) => Auto,
+            (LPA_Length(length), _) => Specified(length),
         };
-        let max_height = match style.Box.get().max_height {
-            LPN_Percentage(percent) if height_specified_explicitly => {
-                Some(auto_value.scale_by(percent))
+        let max_height = match (style.Box.get().max_height, block_container_height) {
+            (LPN_Percentage(percent), Some(block_container_height)) => {
+                Some(block_container_height.scale_by(percent))
             }
-            LPN_Percentage(_) | LPN_None => None,
-            LPN_Length(length) => Some(length),
+            (LPN_Percentage(_), None) | (LPN_None, _) => None,
+            (LPN_Length(length), _) => Some(length),
         };
-        let min_height = match style.Box.get().min_height {
-            LP_Percentage(percent) if height_specified_explicitly => auto_value.scale_by(percent),
-            LP_Percentage(_) => Au(0),
-            LP_Length(length) => length,
+        let min_height = match (style.Box.get().min_height, block_container_height) {
+            (LP_Percentage(percent), Some(block_container_height)) => {
+                block_container_height.scale_by(percent)
+            }
+            (LP_Percentage(_), None) => Au(0),
+            (LP_Length(length), _) => length,
         };
 
         CandidateHeightIterator {
@@ -999,10 +999,8 @@ impl BlockFlow {
         }
 
         for fragment in self.box_.iter() {
-            let containing_block_height = height;
-
-            let mut candidate_height_iterator =
-                CandidateHeightIterator::new(fragment.style(), containing_block_height, false);
+            let mut candidate_height_iterator = CandidateHeightIterator::new(fragment.style(),
+                                                                             None);
             for (candidate_height, new_candidate_height) in candidate_height_iterator {
                 *new_candidate_height = match candidate_height {
                     Auto => height,
@@ -1145,9 +1143,7 @@ impl BlockFlow {
 
         // Calculate content height, taking `min-height` and `max-height` into account.
 
-        let mut candidate_height_iterator = CandidateHeightIterator::new(box_.style(),
-                                                                         content_height,
-                                                                         false);
+        let mut candidate_height_iterator = CandidateHeightIterator::new(box_.style(), None);
         for (candidate_height, new_candidate_height) in candidate_height_iterator {
             *new_candidate_height = match candidate_height {
                 Auto => content_height,
@@ -1317,7 +1313,7 @@ impl BlockFlow {
                         static_y_offset));
             } else {
                 let mut candidate_height_iterator =
-                    CandidateHeightIterator::new(style, containing_block_height, true);
+                    CandidateHeightIterator::new(style, Some(containing_block_height));
 
                 for (height_used_val, new_candidate_height) in candidate_height_iterator {
                     solution =
