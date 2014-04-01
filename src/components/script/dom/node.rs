@@ -954,14 +954,8 @@ impl Node {
         match self.type_id {
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => {
-                let mut content = ~"";
-                for node in abstract_self.traverse_preorder() {
-                    if node.is_text() {
-                        let text: JS<Text> = TextCast::to(&node).unwrap();
-                        content.push_str(text.get().characterdata.data.as_slice());
-                    }
-                }
-                Some(content)
+                let element: JS<Element> = ElementCast::to(abstract_self).unwrap();
+                Some(element.get().GetTextContent(&element))
             }
             CommentNodeTypeId |
             TextNodeTypeId |

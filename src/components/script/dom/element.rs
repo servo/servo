@@ -7,7 +7,7 @@
 use dom::attr::Attr;
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::ElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast, TextCast};
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
@@ -19,6 +19,7 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlserializer::serialize;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
+use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
@@ -629,6 +630,19 @@ impl Element {
 
     pub fn GetOuterHTML(&self, abstract_self: &JS<Element>) -> Fallible<DOMString> {
         Ok(serialize(&mut NodeIterator::new(NodeCast::from(abstract_self), true, false)))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-textcontent
+    pub fn GetTextContent(&self, abstract_self: &JS<Element>) -> DOMString {
+        let mut content = ~"";
+        let node: JS<Node> = NodeCast::from(abstract_self);
+        for child in node.traverse_preorder() {
+            if child.is_text() {
+                let text: JS<Text> = TextCast::to(&child).unwrap();
+                content.push_str(text.get().characterdata.data.as_slice());
+            }
+        }
+        content
     }
 }
 
