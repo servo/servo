@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cookie::Cookie;
 use resource_task::{Metadata, TargetedLoadResponse, LoadData, start_sending_opt, ResponseSenders};
+use resource_task::ControlMsg;
 use resource_task::ProgressMsg::{Payload, Done};
 
 use log;
@@ -24,21 +26,21 @@ use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;
 
-pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
-    spawn_named("http_loader".to_owned(), move || load(load_data, start_chan))
+pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_chan: Sender<ControlMsg>) {
+    spawn_named("http_loader".to_owned(), move || load(load_data, start_chan, cookies_chan))
 }
 
-fn send_error(url: Url, err: String, senders: ResponseSenders) {
+fn send_error(url: Url, err: String, senders: ResponseSenders, cookies_chan: Sender<ControlMsg>) {
     let mut metadata = Metadata::default(url);
     metadata.status = None;
 
-    match start_sending_opt(senders, metadata) {
+    match start_sending_opt(senders, metadata, cookies_chan) {
         Ok(p) => p.send(Done(Err(err))).unwrap(),
         _ => {}
     };
 }
 
-fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
+fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_chan: Sender<ControlMsg>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -57,12 +59,12 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         iters = iters + 1;
 
         if iters > max_redirects {
-            send_error(url, "too many redirects".to_string(), senders);
+            send_error(url, "too many redirects".to_string(), senders, cookies_chan);
             return;
         }
 
         if redirected_to.contains(&url) {
-            send_error(url, "redirect loop".to_string(), senders);
+            send_error(url, "redirect loop".to_string(), senders, cookies_chan);
             return;
         }
 
@@ -72,7 +74,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
             "http" | "https" => {}
             _ => {
                 let s = format!("{} request, but we don't support that scheme", url.scheme);
-                send_error(url, s, senders);
+                send_error(url, s, senders, cookies_chan);
                 return;
             }
         }
@@ -104,7 +106,7 @@ reason: \"certificate verify failed\" }]";
             },
             Err(e) => {
                 println!("{:?}", e);
-                send_error(url, e.description().to_string(), senders);
+                send_error(url, e.description().to_string(), senders, cookies_chan);
                 return;
             }
         };
@@ -124,13 +126,13 @@ reason: \"certificate verify failed\" }]";
                 let mut writer = match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.description().to_string(), senders);
+                        send_error(url, e.description().to_string(), senders, cookies_chan);
                         return;
                     }
                 };
                 match writer.write(data.as_slice()) {
                     Err(e) => {
-                        send_error(url, e.desc.to_string(), senders);
+                        send_error(url, e.desc.to_string(), senders, cookies_chan);
                         return;
                     }
                     _ => {}
@@ -145,7 +147,7 @@ reason: \"certificate verify failed\" }]";
                 match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.description().to_string(), senders);
+                        send_error(url, e.description().to_string(), senders, cookies_chan);
                         return;
                     }
                 }
@@ -154,7 +156,7 @@ reason: \"certificate verify failed\" }]";
         let mut response = match writer.send() {
             Ok(r) => r,
             Err(e) => {
-                send_error(url, e.description().to_string(), senders);
+                send_error(url, e.description().to_string(), senders, cookies_chan);
                 return;
             }
         };
@@ -167,6 +169,16 @@ reason: \"certificate verify failed\" }]";
             }
         }
 
+        let mut cookies = Vec::new();
+        for header in response.headers.iter() {
+            if header.name().as_slice() == "Set-Cookie" {
+                match Cookie::new(header.value_string(), &url) {
+                    Some(cookie) => cookies.push(cookie),
+                    None => continue
+                }
+            }
+        }
+
         if response.status.class() == StatusClass::Redirection {
             match response.headers.get::<Location>() {
                 Some(&Location(ref new_url)) => {
@@ -175,7 +187,7 @@ reason: \"certificate verify failed\" }]";
                         Some(ref c) => {
                             if c.preflight {
                                 // The preflight lied
-                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), senders);
+                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), senders, cookies_chan);
                                 return;
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
@@ -187,7 +199,7 @@ reason: \"certificate verify failed\" }]";
                     let new_url = match UrlParser::new().base_url(&url).parse(new_url.as_slice()) {
                         Ok(u) => u,
                         Err(e) => {
-                            send_error(url, e.to_string(), senders);
+                            send_error(url, e.to_string(), senders, cookies_chan);
                             return;
                         }
                     };
@@ -206,8 +218,9 @@ reason: \"certificate verify failed\" }]";
         });
         metadata.headers = Some(response.headers.clone());
         metadata.status = Some(response.status_raw().clone());
+        metadata.cookies = cookies;
 
-        let progress_chan = match start_sending_opt(senders, metadata) {
+        let progress_chan = match start_sending_opt(senders, metadata, cookies_chan) {
             Ok(p) => p,
             _ => return
         };

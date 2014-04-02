@@ -10,6 +10,8 @@ use file_loader;
 use http_loader;
 use sniffer_task;
 use sniffer_task::SnifferTask;
+use cookie::Cookie;
+use cookie_storage::CookieStorage;
 
 use util::task::spawn_named;
 
@@ -26,6 +28,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
     Load(LoadData),
+    Cookies(Vec<Cookie>),
     Exit
 }
 
@@ -61,6 +64,7 @@ pub struct ResourceCORSData {
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
+#[deriving(Clone)]
 pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: Url,
@@ -75,7 +79,9 @@ pub struct Metadata {
     pub headers: Option<Headers>,
 
     /// HTTP Status
-    pub status: Option<RawStatus>
+    pub status: Option<RawStatus>,
+
+    pub cookies: Vec<Cookie>
 }
 
 impl Metadata {
@@ -87,7 +93,8 @@ impl Metadata {
             charset:      None,
             headers: None,
             // http://fetch.spec.whatwg.org/#concept-response-status-message
-            status: Some(RawStatus(200, "OK".to_owned()))
+            status: Some(RawStatus(200, "OK".to_owned())),
+            cookies: Vec::new(),
         }
     }
 
@@ -140,13 +147,14 @@ pub enum ProgressMsg {
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending(senders: ResponseSenders, metadata: Metadata) -> Sender<ProgressMsg> {
-    start_sending_opt(senders, metadata).ok().unwrap()
+pub fn start_sending(senders: ResponseSenders, metadata: Metadata, cookies_chan: Sender<ControlMsg>) -> Sender<ProgressMsg> {
+    start_sending_opt(senders, metadata, cookies_chan).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result<Sender<ProgressMsg>, ()> {
+pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata, cookies_chan: Sender<ControlMsg>) -> Result<Sender<ProgressMsg>, ()> {
     let (progress_chan, progress_port) = channel();
+    let cookies = metadata.cookies.clone();
     let result = senders.immediate_consumer.send(TargetedLoadResponse {
         load_response: LoadResponse {
             metadata:      metadata,
@@ -154,6 +162,10 @@ pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result
         },
         consumer: senders.eventual_consumer
     });
+    match cookies_chan.send(ControlMsg::Cookies(cookies)) {
+        Ok(_) => {}
+        Err(_) => { return Err(()) }
+    }
     match result {
         Ok(_) => Ok(progress_chan),
         Err(_) => Err(())
@@ -184,8 +196,9 @@ pub type ResourceTask = Sender<ControlMsg>;
 pub fn new_resource_task(user_agent: Option<String>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
     let sniffer_task = sniffer_task::new_sniffer_task();
+    let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
-        ResourceManager::new(setup_port, user_agent, sniffer_task).start();
+        ResourceManager::new(setup_port, user_agent, sniffer_task, setup_chan_clone).start();
     });
     setup_chan
 }
@@ -194,25 +207,34 @@ struct ResourceManager {
     from_client: Receiver<ControlMsg>,
     user_agent: Option<String>,
     sniffer_task: SnifferTask,
+    cookie_storage: CookieStorage,
+    cookies_chan: Sender<ControlMsg>,
 }
 
 impl ResourceManager {
-    fn new(from_client: Receiver<ControlMsg>, user_agent: Option<String>, sniffer_task: SnifferTask) -> ResourceManager {
+    fn new(from_client: Receiver<ControlMsg>, user_agent: Option<String>, sniffer_task: SnifferTask, cookies_chan: Sender<ControlMsg>) -> ResourceManager {
         ResourceManager {
             from_client: from_client,
             user_agent: user_agent,
             sniffer_task: sniffer_task,
+            cookie_storage: CookieStorage::new(),
+            cookies_chan: cookies_chan,
         }
     }
 }
 
 
 impl ResourceManager {
-    fn start(&self) {
+    fn start(&mut self) {
         loop {
             match self.from_client.recv().unwrap() {
               ControlMsg::Load(load_data) => {
                 self.load(load_data)
+              }
+              ControlMsg::Cookies(vector) => {
+                for cookie in vector.iter() {
+                    self.cookie_storage.push(cookie.clone());
+                }
               }
               ControlMsg::Exit => {
                 break
@@ -221,9 +243,14 @@ impl ResourceManager {
         }
     }
 
-    fn load(&self, load_data: LoadData) {
+    fn load(&mut self, load_data: LoadData) {
         let mut load_data = load_data;
         self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
+        if let Some(cookies) = self.cookie_storage.cookies_for_url(load_data.url.clone()) {
+            let mut v = Vec::new();
+            v.push(cookies.into_bytes());
+            load_data.headers.set_raw("cookie".to_owned(), v);
+        }
         let senders = ResponseSenders {
             immediate_consumer: self.sniffer_task.clone(),
             eventual_consumer: load_data.consumer.clone(),
@@ -231,13 +258,13 @@ impl ResourceManager {
 
         debug!("resource_task: loading url: {}", load_data.url.serialize());
         match load_data.url.scheme.as_slice() {
-            "file" => file_loader::factory(load_data, self.sniffer_task.clone()),
-            "http" | "https" => http_loader::factory(load_data, self.sniffer_task.clone()),
-            "data" => data_loader::factory(load_data, self.sniffer_task.clone()),
-            "about" => about_loader::factory(load_data, self.sniffer_task.clone()),
+            "file" => file_loader::factory(load_data, self.sniffer_task.clone(), self.cookies_chan.clone()),
+            "http" | "https" => http_loader::factory(load_data, self.sniffer_task.clone(), self.cookies_chan.clone()),
+            "data" => data_loader::factory(load_data, self.sniffer_task.clone(), self.cookies_chan.clone()),
+            "about" => about_loader::factory(load_data, self.sniffer_task.clone(), self.cookies_chan.clone()),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
-                start_sending(senders, Metadata::default(load_data.url))
+                start_sending(senders, Metadata::default(load_data.url), self.cookie_chan.clone())
                     .send(ProgressMsg::Done(Err("no loader for scheme".to_string()))).unwrap();
                 return
             }

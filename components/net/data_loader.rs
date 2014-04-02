@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use resource_task::{Metadata, LoadData, TargetedLoadResponse, start_sending, ResponseSenders};
+use resource_task::ControlMsg;
 use resource_task::ProgressMsg::{Payload, Done};
 
 use serialize::base64::FromBase64;
@@ -12,15 +13,15 @@ use url::{percent_decode, SchemeData};
 
 use std::sync::mpsc::Sender;
 
-pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
+pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_chan: Sender<ControlMsg>) {
     // NB: we don't spawn a new task.
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
     // Should be tested at some point.
     // Left in separate function to allow easy moving to a task, if desired.
-    load(load_data, start_chan)
+    load(load_data, start_chan, cookies_chan)
 }
 
-fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
+fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_chan: Sender<ControlMsg>) {
     let url = load_data.url;
     assert!("data" == url.scheme.as_slice());
 
@@ -45,7 +46,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     }
     let parts: Vec<&str> = scheme_data.as_slice().splitn(1, ',').collect();
     if parts.len() != 2 {
-        start_sending(senders, metadata).send(Done(Err("invalid data uri".to_string()))).unwrap();
+        start_sending(senders, metadata, cookies_chan).send(Done(Err("invalid data uri".to_string()))).unwrap();
         return;
     }
 
@@ -63,7 +64,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     let content_type: Option<Mime> = ct_str.parse();
     metadata.set_content_type(content_type.as_ref());
 
-    let progress_chan = start_sending(senders, metadata);
+    let progress_chan = start_sending(senders, metadata, cookies_chan);
     let bytes = percent_decode(parts[1].as_bytes());
 
     if is_base64 {
@@ -95,8 +96,9 @@ fn assert_parse(url:          &'static str,
     use sniffer_task;
 
     let (start_chan, start_port) = channel();
+    let (cookies_chan, _) = channel();
     let sniffer_task = sniffer_task::new_sniffer_task();
-    load(LoadData::new(Url::parse(url).unwrap(), start_chan), sniffer_task);
+    load(LoadData::new(Url::parse(url).unwrap(), start_chan), sniffer_task, cookies_chan);
 
     let response = start_port.recv().unwrap();
     assert_eq!(&response.metadata.content_type, &content_type);
