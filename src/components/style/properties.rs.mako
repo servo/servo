@@ -314,9 +314,29 @@ pub mod longhands {
     ${predefined_type("width", "LengthOrPercentageOrAuto",
                       "computed::LPA_Auto",
                       "parse_non_negative")}
-    ${predefined_type("height", "LengthOrPercentageOrAuto",
-                      "computed::LPA_Auto",
-                      "parse_non_negative")}
+    <%self:single_component_value name="height">
+        pub type SpecifiedValue = specified::LengthOrPercentageOrAuto;
+        pub mod computed_value {
+            pub type T = super::super::computed::LengthOrPercentageOrAuto;
+        }
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T { computed::LPA_Auto }
+        #[inline]
+        pub fn from_component_value(v: &ComponentValue, _base_url: &Url)
+                                              -> Option<SpecifiedValue> {
+            specified::LengthOrPercentageOrAuto::parse_non_negative(v)
+        }
+        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                              -> computed_value::T {
+            match (value, context.inherited_height) {
+                (specified::LPA_Percentage(_), computed::LPA_Auto)
+                if !context.is_root_element && !context.positioned => {
+                    computed::LPA_Auto
+                },
+                _ => computed::compute_LengthOrPercentageOrAuto(value, context)
+            }
+        }
+    </%self:single_component_value>
 
     ${predefined_type("min-width", "LengthOrPercentage",
                       "computed::LP_Length(Au(0))",
@@ -1538,6 +1558,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
             is_root_element: is_root_element,
             inherited_font_weight: inherited_font_style.font_weight,
             inherited_font_size: inherited_font_style.font_size,
+            inherited_height: inherited_style.Box.get().height,
             inherited_minimum_line_height: inherited_style.InheritedBox
                                                           .get()
                                                           ._servo_minimum_line_height,
