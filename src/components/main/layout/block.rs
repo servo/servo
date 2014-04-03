@@ -1135,10 +1135,8 @@ impl BlockFlow {
                 Some(ref col_widths) => {
                     // If kid is table_rowgroup or table_row, the column widths info should be
                     // copied from its parent.
-                    if kid.is_table_rowgroup() {
-                        kid.as_table_rowgroup().col_widths = col_widths.clone()
-                    } else if kid.is_table_row() {
-                        kid.as_table_row().col_widths = col_widths.clone()
+                    if kid.is_table() || kid.is_table_rowgroup() || kid.is_table_row() {
+                        *kid.col_widths() = col_widths.clone()
                     } else if kid.is_table_cell() {
                         // If kid is table_cell, the x offset and width for each cell should be
                         // calculated from parent's column widths info.

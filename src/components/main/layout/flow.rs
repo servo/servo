@@ -126,6 +126,24 @@ pub trait Flow {
         fail!("called as_table_cell() on a non-tablecell flow")
     }
 
+    /// If this is a table row or table rowgroup or table flow, returns column widths.
+    /// Fails otherwise.
+    fn col_widths<'a>(&'a mut self) -> &'a mut ~[Au] {
+        fail!("called col_widths() on an other flow than table-row/table-rowgroup/table")
+    }
+
+    /// If this is a table row flow or table rowgroup flow or table flow, returns column min widths.
+    /// Fails otherwise.
+    fn col_min_widths<'a>(&'a self) -> &'a ~[Au] {
+        fail!("called col_min_widths() on an other flow than table-row/table-rowgroup/table")
+    }
+
+    /// If this is a table row flow or table rowgroup flow or table flow, returns column min widths.
+    /// Fails otherwise.
+    fn col_pref_widths<'a>(&'a self) -> &'a ~[Au] {
+        fail!("called col_pref_widths() on an other flow than table-row/table-rowgroup/table")
+    }
+
     // Main methods
 
     /// Pass 1 of reflow: computes minimum and preferred widths.

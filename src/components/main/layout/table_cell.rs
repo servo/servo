@@ -9,6 +9,7 @@ use layout::block::{BlockFlow, WidthAndMarginsComputer};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{TableCellFlowClass, FlowClass, Flow};
+use layout::model::{MaybeAuto};
 use layout::table::InternalTable;
 use layout::wrapper::ThreadSafeLayoutNode;
 
@@ -117,6 +118,16 @@ impl Flow for TableCellFlow {
     /// Minimum/preferred widths set by this function are used in automatic table layout calculation.
     fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
         self.block_flow.bubble_widths(ctx);
+        for box_ in self.block_flow.box_.iter() {
+            let specified_width = MaybeAuto::from_style(box_.style().Box.get().width,
+                                                        Au::new(0)).specified_or_zero();
+            if self.block_flow.base.min_width < specified_width {
+                self.block_flow.base.min_width = specified_width;
+            }
+            if self.block_flow.base.pref_width < self.block_flow.base.min_width {
+                self.block_flow.base.pref_width = self.block_flow.base.min_width;
+            }
+        }
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
