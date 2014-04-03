@@ -617,19 +617,19 @@ impl Box {
         let style = self.style();
         let width = MaybeAuto::from_style(style.Box.get().width, Au::new(0)).specified_or_zero();
 
-        let (mut margin_left, mut margin_right) = (Au(0), Au(0));
-        if use_margins {
-            margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
-                                                Au(0)).specified_or_zero();
-            margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
-                                                 Au(0)).specified_or_zero();
-        }
+        let (margin_left, margin_right) = if use_margins {
+            (MaybeAuto::from_style(style.Margin.get().margin_left, Au(0)).specified_or_zero(),
+             MaybeAuto::from_style(style.Margin.get().margin_right, Au(0)).specified_or_zero())
+        } else {
+            (Au(0), Au(0))
+        };
 
-        let (mut padding_left, mut padding_right) = (Au(0), Au(0));
-        if use_padding {
-            padding_left = self.compute_padding_length(style.Padding.get().padding_left, Au(0));
-            padding_right = self.compute_padding_length(style.Padding.get().padding_right, Au(0));
-        }
+        let (padding_left, padding_right) = if use_padding {
+            (self.compute_padding_length(style.Padding.get().padding_left, Au(0)),
+             self.compute_padding_length(style.Padding.get().padding_right, Au(0)))
+        } else {
+            (Au(0), Au(0))
+        };
 
         let surround_width = margin_left + margin_right + padding_left + padding_right +
                 self.border.get().left + self.border.get().right;

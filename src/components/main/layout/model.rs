@@ -7,6 +7,7 @@
 use layout::box_::Box;
 
 use computed = style::computed_values;
+use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 
@@ -61,7 +62,8 @@ pub enum CollapsibleMargins {
     /// margins do not collapse through this flow.
     MarginsCollapse(AdjoiningMargins, AdjoiningMargins),
 
-    /// Margins collapse *through* this flow. This means, essentially, that the flow is empty.
+    /// Margins collapse *through* this flow. This means, essentially, that the flow doesn’t
+    /// have any border, padding, or out-of-flow (floating or positioned) content
     MarginsCollapseThrough(AdjoiningMargins),
 }
 
@@ -108,9 +110,11 @@ impl MarginCollapseInfo {
                                                   -> (CollapsibleMargins, Au) {
         let state = match self.state {
             AccumulatingCollapsibleTopMargin => {
-                match MaybeAuto::from_style(fragment.style().Box.get().height, Au(0)) {
-                    Auto | Specified(Au(0)) => MarginsCollapseThroughFinalMarginState,
-                    Specified(_) => {
+                match fragment.style().Box.get().height {
+                    LPA_Auto | LPA_Length(Au(0)) | LPA_Percentage(0.) => {
+                        MarginsCollapseThroughFinalMarginState
+                    },
+                    _ => {
                         // If the box has an explicitly specified height, margins may not collapse
                         // through it.
                         BottomMarginCollapsesFinalMarginState
@@ -205,7 +209,8 @@ impl MarginCollapseInfo {
                 Au(0)
             }
             (AccumulatingMarginIn, NoCollapsibleMargins(_, bottom)) => {
-                // Margin-in should have been set to zero above.
+                assert_eq!(self.margin_in.most_positive, Au(0));
+                assert_eq!(self.margin_in.most_negative, Au(0));
                 bottom
             }
             (AccumulatingMarginIn, MarginsCollapse(_, bottom)) |
