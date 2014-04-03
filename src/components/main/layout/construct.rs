@@ -42,11 +42,12 @@ use layout::table_cell::TableCellFlow;
 use layout::text::TextRunScanner;
 use layout::util::{LayoutDataAccess, OpaqueNode};
 use layout::wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
+use layout::wrapper::{Before, BeforeBlock, After, AfterBlock, Normal};
 
 use gfx::font_context::FontContext;
 use script::dom::bindings::codegen::InheritTypes::TextCast;
 use script::dom::bindings::js::JS;
-use script::dom::element::{HTMLIFrameElementTypeId, HTMLImageElementTypeId, HTMLObjectElementTypeId};
+use script::dom::element::{HTMLIFrameElementTypeId, HTMLImageElementTypeId, HTMLObjectElementTypeId, HTMLPseudoElementTypeId};
 use script::dom::element::{HTMLTableElementTypeId, HTMLTableSectionElementTypeId};
 use script::dom::element::{HTMLTableDataCellElementTypeId, HTMLTableHeaderCellElementTypeId};
 use script::dom::element::{HTMLTableColElementTypeId, HTMLTableRowElementTypeId};
@@ -56,6 +57,7 @@ use script::dom::node::{TextNodeTypeId};
 use script::dom::text::Text;
 use style::computed_values::{display, position, float, white_space};
 use style::ComputedValues;
+
 use servo_util::namespace;
 use servo_util::url::parse_url;
 use servo_util::url::is_image_data;
@@ -308,6 +310,7 @@ impl<'a> FlowConstructor<'a> {
             ElementNodeTypeId(HTMLTableHeaderCellElementTypeId) => TableCellBox,
             ElementNodeTypeId(HTMLTableRowElementTypeId) |
             ElementNodeTypeId(HTMLTableSectionElementTypeId) => TableRowBox,
+            ElementNodeTypeId(HTMLPseudoElementTypeId) |
             TextNodeTypeId => UnscannedTextBox(UnscannedTextBoxInfo::new(node)),
             _ => GenericBox,
         }
@@ -352,6 +355,117 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
+    fn build_block_flow_using_children_construction_result(&mut self,
+                                                           flow: &mut ~Flow,
+                                                           consecutive_siblings: &mut ~[~Flow],
+                                                           node: &ThreadSafeLayoutNode,
+                                                           kid: &ThreadSafeLayoutNode,
+                                                           opt_boxes_for_inline_flow: &mut Option<~[Box]>,
+                                                           abs_descendants: &mut Descendants,
+                                                           fixed_descendants: &mut Descendants,
+                                                           first_box: &mut bool) {
+        match kid.swap_out_construction_result() {
+            NoConstructionResult => {}
+            FlowConstructionResult(kid_flow, kid_abs_descendants, kid_fixed_descendants) => {
+                // If kid_flow is TableCaptionFlow, kid_flow should be added under TableWrapperFlow.
+                if flow.is_table() && kid_flow.is_table_caption() {
+                    kid.set_flow_construction_result(FlowConstructionResult(kid_flow,
+                                                                            Descendants::new(),
+                                                                            Descendants::new()))
+                } else if flow.need_anonymous_flow(kid_flow) {
+                    consecutive_siblings.push(kid_flow)
+                } else {
+                    // Strip ignorable whitespace from the start of this flow per CSS 2.1 §
+                    // 9.2.1.1.
+                    if flow.is_table_kind() || *first_box {
+                        strip_ignorable_whitespace_from_start(opt_boxes_for_inline_flow);
+                        *first_box = false
+                    }
+
+                    // Flush any inline boxes that we were gathering up. This allows us to handle
+                    // {ib} splits.
+                    debug!("flushing {} inline box(es) to flow A",
+                            opt_boxes_for_inline_flow.as_ref()
+                            .map_or(0, |boxes| boxes.len()));
+                    self.flush_inline_boxes_to_flow_or_list_if_necessary(opt_boxes_for_inline_flow,
+                                                                         flow,
+                                                                         consecutive_siblings,
+                                                                         node);
+                    if !consecutive_siblings.is_empty() {
+                        let consecutive_siblings = mem::replace(consecutive_siblings, ~[]);
+                        self.generate_anonymous_missing_child(consecutive_siblings, flow, node);
+                    }
+                    flow.add_new_child(kid_flow);
+                }
+                abs_descendants.push_descendants(kid_abs_descendants);
+                fixed_descendants.push_descendants(kid_fixed_descendants);
+            }
+            ConstructionItemConstructionResult(InlineBoxesConstructionItem(
+                    InlineBoxesConstructionResult {
+                        splits: opt_splits,
+                        boxes: boxes,
+                        abs_descendants: kid_abs_descendants,
+                        fixed_descendants: kid_fixed_descendants,
+                    })) => {
+                // Add any {ib} splits.
+                match opt_splits {
+                    None => {}
+                    Some(splits) => {
+                        for split in splits.move_iter() {
+                            // Pull apart the {ib} split object and push its predecessor boxes
+                            // onto the list.
+                            let InlineBlockSplit {
+                                predecessor_boxes: predecessor_boxes,
+                                flow: kid_flow
+                            } = split;
+                            opt_boxes_for_inline_flow.push_all_move(predecessor_boxes);
+
+                            // If this is the first box in flow, then strip ignorable
+                            // whitespace per CSS 2.1 § 9.2.1.1.
+                            if *first_box {
+                                strip_ignorable_whitespace_from_start(
+                                    opt_boxes_for_inline_flow);
+                                *first_box = false
+                            }
+
+                            // Flush any inline boxes that we were gathering up.
+                            debug!("flushing {} inline box(es) to flow A",
+                                   opt_boxes_for_inline_flow.as_ref()
+                                                            .map_or(0,
+                                                                    |boxes| boxes.len()));
+                            self.flush_inline_boxes_to_flow_or_list_if_necessary(
+                                    opt_boxes_for_inline_flow,
+                                    flow,
+                                    consecutive_siblings,
+                                    node);
+
+                            // Push the flow generated by the {ib} split onto our list of
+                            // flows.
+                            if flow.need_anonymous_flow(kid_flow) {
+                                consecutive_siblings.push(kid_flow)
+                            } else {
+                                flow.add_new_child(kid_flow)
+                            }
+                        }
+                    }
+                }
+
+                // Add the boxes to the list we're maintaining.
+                opt_boxes_for_inline_flow.push_all_move(boxes);
+                abs_descendants.push_descendants(kid_abs_descendants);
+                fixed_descendants.push_descendants(kid_fixed_descendants);
+            }
+            ConstructionItemConstructionResult(WhitespaceConstructionItem(..)) => {
+                // Nothing to do here.
+            }
+            ConstructionItemConstructionResult(TableColumnBoxConstructionItem(_)) => {
+                // TODO: Implement anonymous table objects for missing parents
+                // CSS 2.1 § 17.2.1, step 3-2
+            }
+        }
+        
+    }
+
     /// Build block flow for current node using information from children nodes.
     ///
     /// Consume results from children and combine them, handling {ib} splits.
@@ -370,106 +484,20 @@ impl<'a> FlowConstructor<'a> {
         // List of absolute descendants, in tree order.
         let mut abs_descendants = Descendants::new();
         let mut fixed_descendants = Descendants::new();
+
         for kid in node.children() {
-            match kid.swap_out_construction_result() {
-                NoConstructionResult => {}
-                FlowConstructionResult(kid_flow, kid_abs_descendants, kid_fixed_descendants) => {
-                    // If kid_flow is TableCaptionFlow, kid_flow should be added under TableWrapperFlow.
-                    if flow.is_table() && kid_flow.is_table_caption() {
-                        kid.set_flow_construction_result(FlowConstructionResult(kid_flow,
-                                                                                Descendants::new(),
-                                                                                Descendants::new()))
-                    } else if flow.need_anonymous_flow(kid_flow) {
-                        consecutive_siblings.push(kid_flow)
-                    } else {
-                        // Strip ignorable whitespace from the start of this flow per CSS 2.1 §
-                        // 9.2.1.1.
-                        if flow.is_table_kind() || first_box {
-                            strip_ignorable_whitespace_from_start(&mut opt_boxes_for_inline_flow);
-                            first_box = false
-                        }
+            if kid.get_element_type() != Normal {
+                self.process(&kid);
+            }            
 
-                        // Flush any inline boxes that we were gathering up. This allows us to handle
-                        // {ib} splits.
-                        debug!("flushing {} inline box(es) to flow A",
-                                opt_boxes_for_inline_flow.as_ref()
-                                .map_or(0, |boxes| boxes.len()));
-                        self.flush_inline_boxes_to_flow_or_list_if_necessary(&mut opt_boxes_for_inline_flow,
-                                                                             &mut flow,
-                                                                             &mut consecutive_siblings,
-                                                                             node);
-                        if !consecutive_siblings.is_empty() {
-                            self.generate_anonymous_missing_child(consecutive_siblings, &mut flow, node);
-                            consecutive_siblings = ~[];
-                        }
-                        flow.add_new_child(kid_flow);
-                    }
-                    abs_descendants.push_descendants(kid_abs_descendants);
-                    fixed_descendants.push_descendants(kid_fixed_descendants);
-                }
-                ConstructionItemConstructionResult(InlineBoxesConstructionItem(
-                        InlineBoxesConstructionResult {
-                            splits: opt_splits,
-                            boxes: boxes,
-                            abs_descendants: kid_abs_descendants,
-                            fixed_descendants: kid_fixed_descendants,
-                        })) => {
-                    // Add any {ib} splits.
-                    match opt_splits {
-                        None => {}
-                        Some(splits) => {
-                            for split in splits.move_iter() {
-                                // Pull apart the {ib} split object and push its predecessor boxes
-                                // onto the list.
-                                let InlineBlockSplit {
-                                    predecessor_boxes: predecessor_boxes,
-                                    flow: kid_flow
-                                } = split;
-                                opt_boxes_for_inline_flow.push_all_move(predecessor_boxes);
-
-                                // If this is the first box in flow, then strip ignorable
-                                // whitespace per CSS 2.1 § 9.2.1.1.
-                                if first_box {
-                                    strip_ignorable_whitespace_from_start(
-                                        &mut opt_boxes_for_inline_flow);
-                                    first_box = false
-                                }
-
-                                // Flush any inline boxes that we were gathering up.
-                                debug!("flushing {} inline box(es) to flow A",
-                                       opt_boxes_for_inline_flow.as_ref()
-                                                                .map_or(0,
-                                                                        |boxes| boxes.len()));
-                                self.flush_inline_boxes_to_flow_or_list_if_necessary(
-                                        &mut opt_boxes_for_inline_flow,
-                                        &mut flow,
-                                        &mut consecutive_siblings,
-                                        node);
-
-                                // Push the flow generated by the {ib} split onto our list of
-                                // flows.
-                                if flow.need_anonymous_flow(kid_flow) {
-                                    consecutive_siblings.push(kid_flow)
-                                } else {
-                                    flow.add_new_child(kid_flow)
-                                }
-                            }
-                        }
-                    }
-
-                    // Add the boxes to the list we're maintaining.
-                    opt_boxes_for_inline_flow.push_all_move(boxes);
-                    abs_descendants.push_descendants(kid_abs_descendants);
-                    fixed_descendants.push_descendants(kid_fixed_descendants);
-                }
-                ConstructionItemConstructionResult(WhitespaceConstructionItem(..)) => {
-                    // Nothing to do here.
-                }
-                ConstructionItemConstructionResult(TableColumnBoxConstructionItem(_)) => {
-                    // TODO: Implement anonymous table objects for missing parents
-                    // CSS 2.1 § 17.2.1, step 3-2
-                }
-            }
+            self.build_block_flow_using_children_construction_result(&mut flow,
+                                                                     &mut consecutive_siblings,
+                                                                     node,
+                                                                     &kid,
+                                                                     &mut opt_boxes_for_inline_flow,
+                                                                     &mut abs_descendants,
+                                                                     &mut fixed_descendants,
+                                                                     &mut first_box);
         }
 
         // Perform a final flush of any inline boxes that we were gathering up to handle {ib}
@@ -922,6 +950,10 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
     fn process(&mut self, node: &ThreadSafeLayoutNode) -> bool {
         // Get the `display` property for this node, and determine whether this node is floated.
         let (display, float, positioning) = match node.type_id() {
+            ElementNodeTypeId(HTMLPseudoElementTypeId) => {
+                let style = node.style().get();
+                (display::inline, style.Box.get().float, style.Box.get().position)
+            }
             ElementNodeTypeId(_) => {
                 let style = node.style().get();
                 (style.Box.get().display, style.Box.get().float, style.Box.get().position)
@@ -1050,6 +1082,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
             DoctypeNodeTypeId |
             DocumentFragmentNodeTypeId |
             DocumentNodeTypeId |
+            ElementNodeTypeId(HTMLPseudoElementTypeId) |
             ElementNodeTypeId(HTMLImageElementTypeId) => true,
             ElementNodeTypeId(HTMLObjectElementTypeId) => self.has_object_data(),
             ElementNodeTypeId(_) => false,
@@ -1085,7 +1118,17 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
     fn set_flow_construction_result(&self, result: ConstructionResult) {
         let mut layout_data_ref = self.mutate_layout_data();
         match *layout_data_ref.get() {
-            Some(ref mut layout_data) => layout_data.data.flow_construction_result = result,
+            Some(ref mut layout_data) =>{
+                match self.get_element_type() {
+                    Before | BeforeBlock => {
+                        layout_data.data.before_flow_construction_result = result
+                    },
+                    After | AfterBlock => {
+                        layout_data.data.after_flow_construction_result = result
+                    },
+                    Normal => layout_data.data.flow_construction_result = result,
+                }
+            },
             None => fail!("no layout data"),
         }
     }
@@ -1095,7 +1138,15 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         match *layout_data_ref.get() {
             Some(ref mut layout_data) => {
-                mem::replace(&mut layout_data.data.flow_construction_result, NoConstructionResult)
+                match self.get_element_type() {
+                    Before | BeforeBlock => {
+                        return mem::replace(&mut layout_data.data.before_flow_construction_result, NoConstructionResult)
+                    },
+                    After | AfterBlock => {
+                        return mem::replace(&mut layout_data.data.after_flow_construction_result, NoConstructionResult)
+                    },
+                    Normal => { return mem::replace(&mut layout_data.data.flow_construction_result, NoConstructionResult) },
+                }               
             }
             None => fail!("no layout data"),
         }

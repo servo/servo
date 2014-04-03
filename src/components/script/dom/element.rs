@@ -112,6 +112,7 @@ pub enum ElementTypeId {
     HTMLParamElementTypeId,
     HTMLPreElementTypeId,
     HTMLProgressElementTypeId,
+    HTMLPseudoElementTypeId,
     HTMLQuoteElementTypeId,
     HTMLScriptElementTypeId,
     HTMLSelectElementTypeId,
