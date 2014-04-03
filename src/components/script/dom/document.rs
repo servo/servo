@@ -563,31 +563,21 @@ impl Document {
         HTMLCollection::create(&self.window, &NodeCast::from(abstract_self), filter)
     }
 
-    pub fn create_collection<T>(&self, callback: |elem: &JS<Node>| -> Option<JS<T>>) -> ~[JS<T>] {
-        let mut nodes = ~[];
+    pub fn createNodeList(&self, callback: |node: &JS<Node>| -> bool) -> JS<NodeList> {
+        let mut nodes: ~[JS<Node>] = ~[];
         match self.GetDocumentElement() {
             None => {},
             Some(root) => {
                 let root: JS<Node> = NodeCast::from(&root);
                 for child in root.traverse_preorder() {
-                    match callback(&child) {
-                        Some(node) => nodes.push(node),
-                        None => (),
+                    if callback(&child) {
+                        nodes.push(child.clone());
                     }
                 }
             }
         }
-        nodes
-    }
 
-    pub fn createNodeList(&self, callback: |node: &JS<Node>| -> bool) -> JS<NodeList> {
-        NodeList::new_simple_list(&self.window, self.create_collection(|node| {
-            if !callback(node) {
-                return None;
-            }
-
-            Some(node.clone())
-        }))
+        NodeList::new_simple_list(&self.window, nodes)
     }
 
     pub fn content_changed(&self) {
