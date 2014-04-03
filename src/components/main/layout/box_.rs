@@ -4,17 +4,29 @@
 
 //! The `Box` type, which represents the leaves of the layout tree.
 
+use css::node_style::StyledNode;
+use layout::construct::FlowConstructor;
+use layout::context::LayoutContext;
+use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo, ToGfxColor};
+use layout::floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
+use layout::flow::{Flow, FlowFlagsInfo};
+use layout::flow;
+use layout::model::{Auto, IntrinsicWidths, MaybeAuto, Specified, specified};
+use layout::model;
+use layout::util::OpaqueNodeMethods;
+use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
+
 use extra::url::Url;
 use sync::{MutexArc, Arc};
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use geom::approxeq::ApproxEq;
 use gfx::color::rgb;
-use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
-use gfx::display_list::{LineDisplayItem, LineDisplayItemClass};
-use gfx::display_list::{ImageDisplayItem, ImageDisplayItemClass};
-use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextDisplayItem};
-use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags, ClipDisplayItem};
-use gfx::display_list::{ClipDisplayItemClass, DisplayListCollection};
+use gfx::display_list::{BackgroundAndBorderLevel, BaseDisplayItem, BorderDisplayItem};
+use gfx::display_list::{BorderDisplayItemClass, ClipDisplayItem, ClipDisplayItemClass};
+use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem};
+use gfx::display_list::{LineDisplayItemClass, OpaqueNode, SolidColorDisplayItem};
+use gfx::display_list::{SolidColorDisplayItemClass, StackingContext, TextDisplayItem};
+use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags};
 use gfx::font::FontStyle;
 use gfx::text::text_run::TextRun;
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
@@ -24,26 +36,16 @@ use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::*;
 use servo_util::namespace;
+use servo_util::smallvec::{SmallVec, SmallVec0};
 use servo_util::str::is_whitespace;
-
 use std::cast;
 use std::cell::RefCell;
 use std::num::Zero;
 use style::{ComputedValues, TElement, TNode, cascade, initial_values};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto, overflow, LPA_Auto};
-use style::computed_values::{border_style, clear, font_family, line_height, position};
-use style::computed_values::{text_align, text_decoration, vertical_align, visibility, white_space};
-
-use css::node_style::StyledNode;
-use layout::construct::FlowConstructor;
-use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
-use layout::floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
-use layout::flow::{Flow, FlowFlagsInfo};
-use layout::flow;
-use layout::model::{MaybeAuto, specified, Auto, Specified};
-use layout::util::OpaqueNode;
-use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
+use style::computed_values::{background_attachment, background_repeat, border_style, clear};
+use style::computed_values::{font_family, line_height, position, text_align, text_decoration};
+use style::computed_values::{vertical_align, visibility, white_space};
 
 /// Boxes (`struct Box`) are the leaves of the layout tree. They cannot position themselves. In
 /// general, boxes do not have a simple correspondence with CSS boxes in the specification:
@@ -288,18 +290,21 @@ pub enum SplitBoxResult {
 }
 
 
-/// data for inline boxes
+/// Data for inline boxes.
+///
+/// FIXME(#2013, pcwalton): Copying `InlineParentInfo` vectors all the time is really inefficient.
+/// Use atomic reference counting instead.
 #[deriving(Clone)]
 pub struct InlineInfo {
-    parent_info: ~[InlineParentInfo],
+    parent_info: SmallVec0<InlineParentInfo>,
     baseline: Au,
 }
 
 impl InlineInfo {
     pub fn new() -> InlineInfo {
         InlineInfo {
-            parent_info: ~[],
-            baseline: Au::new(0),
+            parent_info: SmallVec0::new(),
+            baseline: Au(0),
         }
     }
 }
@@ -414,10 +419,16 @@ def_noncontent_horiz!(left,  merge_noncontent_inline_left,  clear_noncontent_inl
 def_noncontent_horiz!(right, merge_noncontent_inline_right, clear_noncontent_inline_right)
 
 impl Box {
-    /// Constructs a new `Box` instance.
+    /// Constructs a new `Box` instance for the given node.
+    ///
+    /// Arguments:
+    ///
+    ///   * `constructor`: The flow constructor.
+    ///
+    ///   * `node`: The node to create a box for.
     pub fn new(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> Box {
         Box {
-            node: OpaqueNode::from_thread_safe_layout_node(node),
+            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: node.style().clone(),
             border_box: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),
@@ -433,7 +444,7 @@ impl Box {
     /// Constructs a new `Box` instance from a specific info.
     pub fn new_from_specific_info(node: &ThreadSafeLayoutNode, specific: SpecificBoxInfo) -> Box {
         Box {
-            node: OpaqueNode::from_thread_safe_layout_node(node),
+            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: node.style().clone(),
             border_box: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),
@@ -460,7 +471,7 @@ impl Box {
         let (node_style, _) = cascade(&[], false, Some(node.style().get()),
                                       &initial_values(), None);
         Box {
-            node: OpaqueNode::from_thread_safe_layout_node(node),
+            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: Arc::new(node_style),
             border_box: RefCell::new(Au::zero_rect()),
             border: RefCell::new(Zero::zero()),
@@ -589,54 +600,55 @@ impl Box {
         }
     }
 
-    /// Returns the shared part of the width for computation of minimum and preferred width per
-    /// CSS 2.1.
-    fn guess_width(&self) -> Au {
+    /// Uses the style only to estimate the intrinsic widths. These may be modified for text or
+    /// replaced elements.
+    fn style_specified_intrinsic_width(&self) -> IntrinsicWidths {
+        let (use_margins, use_padding) = match self.specific {
+            GenericBox | IframeBox(_) | ImageBox(_) => (true, true),
+            TableBox | TableCellBox => (false, true),
+            TableWrapperBox => (true, false),
+            TableRowBox => (false, false),
+            ScannedTextBox(_) | TableColumnBox(_) | UnscannedTextBox(_) => {
+                // Styles are irrelevant for these kinds of boxes.
+                return IntrinsicWidths::new()
+            }
+        };
+
         let style = self.style();
-        let mut margin_left = Au::new(0);
-        let mut margin_right = Au::new(0);
-        let mut padding_left = Au::new(0);
-        let mut padding_right = Au::new(0);
-
-        match self.specific {
-            GenericBox | IframeBox(_) | ImageBox(_) => {
-                margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
-                                                    Au::new(0)).specified_or_zero();
-                margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
-                                                     Au::new(0)).specified_or_zero();
-                padding_left = self.compute_padding_length(style.Padding.get().padding_left,
-                                                           Au::new(0));
-                padding_right = self.compute_padding_length(style.Padding.get().padding_right,
-                                                            Au::new(0));
-            }
-            TableBox | TableCellBox => {
-                padding_left = self.compute_padding_length(style.Padding.get().padding_left,
-                                                           Au::new(0));
-                padding_right = self.compute_padding_length(style.Padding.get().padding_right,
-                                                            Au::new(0));
-            }
-            TableWrapperBox => {
-                margin_left = MaybeAuto::from_style(style.Margin.get().margin_left,
-                                                    Au::new(0)).specified_or_zero();
-                margin_right = MaybeAuto::from_style(style.Margin.get().margin_right,
-                                                     Au::new(0)).specified_or_zero();
-            }
-            TableRowBox => {}
-            ScannedTextBox(_) | TableColumnBox(_) | UnscannedTextBox(_) => return Au(0),
-        }
-
         let width = MaybeAuto::from_style(style.Box.get().width, Au::new(0)).specified_or_zero();
 
-        width + margin_left + margin_right + padding_left + padding_right +
-            self.border.get().left + self.border.get().right
+        let (margin_left, margin_right) = if use_margins {
+            (MaybeAuto::from_style(style.Margin.get().margin_left, Au(0)).specified_or_zero(),
+             MaybeAuto::from_style(style.Margin.get().margin_right, Au(0)).specified_or_zero())
+        } else {
+            (Au(0), Au(0))
+        };
+
+        let (padding_left, padding_right) = if use_padding {
+            (self.compute_padding_length(style.Padding.get().padding_left, Au(0)),
+             self.compute_padding_length(style.Padding.get().padding_right, Au(0)))
+        } else {
+            (Au(0), Au(0))
+        };
+
+        let surround_width = margin_left + margin_right + padding_left + padding_right +
+                self.border.get().left + self.border.get().right;
+
+        IntrinsicWidths {
+            minimum_width: width,
+            preferred_width: width,
+            surround_width: surround_width,
+        }
     }
 
     pub fn calculate_line_height(&self, font_size: Au) -> Au {
-        match self.line_height() {
+        let from_inline = match self.style().InheritedBox.get().line_height {
             line_height::Normal => font_size.scale_by(1.14),
             line_height::Number(l) => font_size.scale_by(l),
             line_height::Length(l) => l
-        }
+        };
+        let minimum = self.style().InheritedBox.get()._servo_minimum_line_height;
+        Au::max(from_inline, minimum)
     }
 
     /// Populates the box model border parameters from the given computed style.
@@ -864,10 +876,6 @@ impl Box {
         self.style().InheritedText.get().text_align
     }
 
-    pub fn line_height(&self) -> line_height::T {
-        self.style().InheritedBox.get().line_height
-    }
-
     pub fn vertical_align(&self) -> vertical_align::T {
         self.style().Box.get().vertical_align
     }
@@ -920,15 +928,6 @@ impl Box {
         }
     }
 
-    /// Returns true if this element is replaced content. This is true for images, form elements,
-    /// and so on.
-    pub fn is_replaced(&self) -> bool {
-        match self.specific {
-            ImageBox(..) => true,
-            _ => false,
-        }
-    }
-
     /// Returns true if this element can be split. This is true for text boxes.
     pub fn can_split(&self) -> bool {
         match self.specific {
@@ -951,12 +950,10 @@ impl Box {
         (Au::new(0), Au::new(0))
     }
 
-    pub fn paint_inline_background_border_if_applicable<E:ExtraDisplayListData>(
-                                          &self,
-                                          index: uint,
-                                          lists: &RefCell<DisplayListCollection<E>>,
-                                          absolute_bounds: &Rect<Au>,
-                                          offset: &Point2D<Au>) {
+    pub fn paint_inline_background_border_if_applicable(&self,
+                                                        list: &mut DisplayList,
+                                                        absolute_bounds: &Rect<Au>,
+                                                        offset: &Point2D<Au>) {
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
         // needed. We could use display list optimization to clean this up, but it still seems
         // inefficient. What we really want is something like "nearest ancestor element that
@@ -965,7 +962,7 @@ impl Box {
         match info.get() {
             &Some(ref box_info) => {
                 let mut bg_rect = absolute_bounds.clone();
-                for info in box_info.parent_info.rev_iter() {
+                for info in box_info.parent_info.as_slice().rev_iter() {
                     // TODO (ksh8281) compute vertical-align, line-height
                     bg_rect.origin.y = box_info.baseline + offset.y - info.font_ascent;
                     bg_rect.size.height = info.font_ascent + info.font_descent;
@@ -973,23 +970,24 @@ impl Box {
                         info.style.get().Background.get().background_color);
 
                     if !background_color.alpha.approx_eq(&0.0) {
-                        lists.with_mut(|lists| {
-                            let solid_color_display_item = ~SolidColorDisplayItem {
-                                base: BaseDisplayItem {
-                                          bounds: bg_rect.clone(),
-                                          extra: ExtraDisplayListData::new(self),
-                                      },
-                                      color: background_color.to_gfx_color(),
-                            };
+                        let solid_color_display_item = ~SolidColorDisplayItem {
+                            base: BaseDisplayItem {
+                                      bounds: bg_rect.clone(),
+                                      node: self.node,
+                                  },
+                                  color: background_color.to_gfx_color(),
+                        };
 
-                            lists.lists[index].append_item(SolidColorDisplayItemClass(solid_color_display_item))
-                        });
+                        list.push(SolidColorDisplayItemClass(solid_color_display_item))
                     }
+
                     let border = &info.border;
+
                     // Fast path.
                     if border.is_zero() {
-                        continue;
+                        continue
                     }
+
                     bg_rect.origin.y = bg_rect.origin.y - border.top;
                     bg_rect.size.height = bg_rect.size.height + border.top + border.bottom;
 
@@ -1003,26 +1001,20 @@ impl Box {
                     let bottom_style = style.Border.get().border_bottom_style;
                     let left_style = style.Border.get().border_left_style;
 
+                    let border_display_item = ~BorderDisplayItem {
+                        base: BaseDisplayItem {
+                            bounds: bg_rect,
+                            node: self.node,
+                        },
+                        border: border.clone(),
+                        color: SideOffsets2D::new(top_color.to_gfx_color(),
+                        right_color.to_gfx_color(),
+                        bottom_color.to_gfx_color(),
+                        left_color.to_gfx_color()),
+                        style: SideOffsets2D::new(top_style, right_style, bottom_style, left_style)
+                    };
 
-                    lists.with_mut(|lists| {
-                        let border_display_item = ~BorderDisplayItem {
-                            base: BaseDisplayItem {
-                                      bounds: bg_rect,
-                                      extra: ExtraDisplayListData::new(self),
-                                  },
-                                  border: border.clone(),
-                                  color: SideOffsets2D::new(top_color.to_gfx_color(),
-                                  right_color.to_gfx_color(),
-                                  bottom_color.to_gfx_color(),
-                                  left_color.to_gfx_color()),
-                                  style: SideOffsets2D::new(top_style,
-                                  right_style,
-                                  bottom_style,
-                                  left_style)
-                        };
-
-                        lists.lists[index].append_item(BorderDisplayItemClass(border_display_item))
-                    });
+                    list.push(BorderDisplayItemClass(border_display_item));
 
                     bg_rect.origin.x = bg_rect.origin.x + border.left;
                     bg_rect.size.width = bg_rect.size.width - border.left - border.right;
@@ -1033,11 +1025,9 @@ impl Box {
     }
     /// Adds the display items necessary to paint the background of this box to the display list if
     /// necessary.
-    pub fn paint_background_if_applicable<E:ExtraDisplayListData>(
-                                          &self,
+    pub fn paint_background_if_applicable(&self,
+                                          list: &mut DisplayList,
                                           builder: &DisplayListBuilder,
-                                          index: uint,
-                                          lists: &RefCell<DisplayListCollection<E>>,
                                           absolute_bounds: &Rect<Au>) {
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
         // needed. We could use display list optimization to clean this up, but it still seems
@@ -1046,17 +1036,15 @@ impl Box {
         let style = self.style();
         let background_color = style.resolve_color(style.Background.get().background_color);
         if !background_color.alpha.approx_eq(&0.0) {
-            lists.with_mut(|lists| {
-                let solid_color_display_item = ~SolidColorDisplayItem {
-                    base: BaseDisplayItem {
-                        bounds: *absolute_bounds,
-                        extra: ExtraDisplayListData::new(self),
-                    },
-                    color: background_color.to_gfx_color(),
-                };
+            let display_item = ~SolidColorDisplayItem {
+                base: BaseDisplayItem {
+                    bounds: *absolute_bounds,
+                    node: self.node,
+                },
+                color: background_color.to_gfx_color(),
+            };
 
-                lists.lists[index].append_item(SolidColorDisplayItemClass(solid_color_display_item))
-            });
+            list.push(SolidColorDisplayItemClass(display_item))
         }
 
         // The background image is painted on top of the background color.
@@ -1064,22 +1052,81 @@ impl Box {
         // http://www.w3.org/TR/CSS21/colors.html#background
         match style.Background.get().background_image {
             Some(ref image_url) => {
-                let mut holder = ImageHolder::new(image_url.clone(), builder.ctx.image_cache.clone());
+                let mut holder = ImageHolder::new(image_url.clone(),
+                                                  builder.ctx.image_cache.clone());
                 match holder.get_image() {
                     Some(image) => {
                         debug!("(building display list) building background image");
 
-                        // Place the image into the display list.
-                        lists.with_mut(|lists| {
-                            let image_display_item = ~ImageDisplayItem {
-                                base: BaseDisplayItem {
-                                    bounds: *absolute_bounds,
-                                    extra: ExtraDisplayListData::new(self),
-                                },
-                                image: image.clone(),
-                            };
-                            lists.lists[index].append_item(ImageDisplayItemClass(image_display_item));
+                        // Adjust bounds for `background-position` and `background-attachment`.
+                        let mut bounds = *absolute_bounds;
+                        let horizontal_position = model::specified(
+                            style.Background.get().background_position.horizontal,
+                            bounds.size.width);
+                        let vertical_position = model::specified(
+                            style.Background.get().background_position.vertical,
+                            bounds.size.height);
+
+                        let clip_display_item;
+                        match style.Background.get().background_attachment {
+                            background_attachment::scroll => {
+                                clip_display_item = None;
+                                bounds.origin.x = bounds.origin.x + horizontal_position;
+                                bounds.origin.y = bounds.origin.y + vertical_position;
+                                bounds.size.width = bounds.size.width - horizontal_position;
+                                bounds.size.height = bounds.size.height - vertical_position;
+                            }
+                            background_attachment::fixed => {
+                                clip_display_item = Some(~ClipDisplayItem {
+                                    base: BaseDisplayItem {
+                                        bounds: bounds,
+                                        node: self.node,
+                                    },
+                                    child_list: SmallVec0::new(),
+                                    need_clip: true,
+                                });
+
+                                bounds = Rect {
+                                    origin: Point2D(horizontal_position, vertical_position),
+                                    size: Size2D(bounds.origin.x + bounds.size.width,
+                                                 bounds.origin.y + bounds.size.height),
+                                }
+                            }
+                        }
+                        // Adjust sizes for `background-repeat`.
+                        match style.Background.get().background_repeat {
+                            background_repeat::no_repeat => {
+                                bounds.size.width = Au::from_px(image.get().width as int);
+                                bounds.size.height = Au::from_px(image.get().height as int)
+                            }
+                            background_repeat::repeat_x => {
+                                bounds.size.height = Au::from_px(image.get().height as int)
+                            }
+                            background_repeat::repeat_y => {
+                                bounds.size.width = Au::from_px(image.get().width as int)
+                            }
+                            background_repeat::repeat => {}
+                        };
+
+
+                        // Create the image display item.
+                        let image_display_item = ImageDisplayItemClass(~ImageDisplayItem {
+                            base: BaseDisplayItem {
+                                bounds: bounds,
+                                node: self.node,
+                            },
+                            image: image.clone(),
+                            stretch_size: Size2D(Au::from_px(image.get().width as int),
+                                                 Au::from_px(image.get().height as int)),
                         });
+
+                        match clip_display_item {
+                            None => list.push(image_display_item),
+                            Some(mut clip_display_item) => {
+                                clip_display_item.child_list.push(image_display_item);
+                                list.push(ClipDisplayItemClass(clip_display_item))
+                            }
+                        }
                     }
                     None => {
                         // No image data at all? Do nothing.
@@ -1095,11 +1142,7 @@ impl Box {
 
     /// Adds the display items necessary to paint the borders of this box to a display list if
     /// necessary.
-    pub fn paint_borders_if_applicable<E:ExtraDisplayListData>(
-                                       &self,
-                                       index: uint,
-                                       lists: &RefCell<DisplayListCollection<E>>,
-                                       abs_bounds: &Rect<Au>) {
+    pub fn paint_borders_if_applicable(&self, list: &mut DisplayList, abs_bounds: &Rect<Au>) {
         // Fast path.
         let border = self.border.get();
         if border.is_zero() {
@@ -1122,75 +1165,142 @@ impl Box {
             - self.noncontent_inline_right();
 
         // Append the border to the display list.
-        lists.with_mut(|lists| {
-            let border_display_item = ~BorderDisplayItem {
-                base: BaseDisplayItem {
-                    bounds: abs_bounds,
-                    extra: ExtraDisplayListData::new(self),
-                },
-                border: border,
-                color: SideOffsets2D::new(top_color.to_gfx_color(),
-                                          right_color.to_gfx_color(),
-                                          bottom_color.to_gfx_color(),
-                                          left_color.to_gfx_color()),
-                style: SideOffsets2D::new(top_style,
-                                          right_style,
-                                          bottom_style,
-                                          left_style)
-            };
+        let border_display_item = ~BorderDisplayItem {
+            base: BaseDisplayItem {
+                bounds: abs_bounds,
+                node: self.node,
+            },
+            border: border,
+            color: SideOffsets2D::new(top_color.to_gfx_color(),
+                                      right_color.to_gfx_color(),
+                                      bottom_color.to_gfx_color(),
+                                      left_color.to_gfx_color()),
+            style: SideOffsets2D::new(top_style,
+                                      right_style,
+                                      bottom_style,
+                                      left_style)
+        };
 
-            lists.lists[index].append_item(BorderDisplayItemClass(border_display_item))
-        });
+        list.push(BorderDisplayItemClass(border_display_item))
     }
 
-    /// Adds the display items for this box to the given display list.
+    fn build_debug_borders_around_text_boxes(&self,
+                                             stacking_context: &mut StackingContext,
+                                             flow_origin: Point2D<Au>,
+                                             text_box: &ScannedTextBoxInfo) {
+        let box_bounds = self.border_box.get();
+        let absolute_box_bounds = box_bounds.translate(&flow_origin);
+
+        // Compute the text box bounds and draw a border surrounding them.
+        let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
+
+        let border_display_item = ~BorderDisplayItem {
+            base: BaseDisplayItem {
+                bounds: absolute_box_bounds,
+                node: self.node,
+            },
+            border: debug_border,
+            color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
+            style: SideOffsets2D::new_all_same(border_style::solid)
+
+        };
+        stacking_context.content.push(BorderDisplayItemClass(border_display_item));
+
+        // Draw a rectangle representing the baselines.
+        let ascent = text_box.run.get().metrics_for_range(&text_box.range).ascent;
+        let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
+                            Size2D(absolute_box_bounds.size.width, Au(0)));
+
+        let line_display_item = ~LineDisplayItem {
+            base: BaseDisplayItem {
+                bounds: baseline,
+                node: self.node,
+            },
+            color: rgb(0, 200, 0),
+            style: border_style::dashed,
+
+        };
+        stacking_context.content.push(LineDisplayItemClass(line_display_item))
+    }
+
+    fn build_debug_borders_around_box(&self,
+                                      stacking_context: &mut StackingContext,
+                                      flow_origin: Point2D<Au>) {
+        let box_bounds = self.border_box.get();
+        let absolute_box_bounds = box_bounds.translate(&flow_origin);
+
+        // This prints a debug border around the border of this box.
+        let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
+
+        let border_display_item = ~BorderDisplayItem {
+            base: BaseDisplayItem {
+                bounds: absolute_box_bounds,
+                node: self.node,
+            },
+            border: debug_border,
+            color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
+            style: SideOffsets2D::new_all_same(border_style::solid)
+
+        };
+        stacking_context.content.push(BorderDisplayItemClass(border_display_item))
+    }
+
+    /// Adds the display items for this box to the given stacking context.
     ///
     /// Arguments:
+    ///
+    /// * `stacking_context`: The stacking context to add display items to.
     /// * `builder`: The display list builder, which manages the coordinate system and options.
     /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
     /// * `flow_origin`: Position of the origin of the owning flow wrt the display list root flow.
     ///   box.
-    /// * `list`: The display list to which items should be appended.
-    ///
-    /// TODO: To implement stacking contexts correctly, we need to create a set of display lists,
-    /// one per layer of the stacking context (CSS 2.1 § 9.9.1). Each box is passed the list set
-    /// representing the box's stacking context. When asked to construct its constituent display
-    /// items, each box puts its display items into the correct stack layer according to CSS 2.1
-    /// Appendix E. Finally, the builder flattens the list.
-    pub fn build_display_list<E:ExtraDisplayListData>(
-                              &self,
+    /// * `flow`: The flow that this box belongs to.
+    pub fn build_display_list(&self,
+                              stacking_context: &mut StackingContext,
                               builder: &DisplayListBuilder,
-                              dirty: &Rect<Au>,
+                              _: &DisplayListBuildingInfo,
                               flow_origin: Point2D<Au>,
                               flow: &Flow,
-                              index: uint,
-                              lists: &RefCell<DisplayListCollection<E>>) {
+                              background_and_border_level: BackgroundAndBorderLevel) {
         // Box position wrt to the owning flow.
         let box_bounds = self.border_box.get();
         let absolute_box_bounds = box_bounds.translate(&flow_origin);
         debug!("Box::build_display_list at rel={}, abs={}: {:s}",
-               box_bounds, absolute_box_bounds, self.debug_str());
-        debug!("Box::build_display_list: dirty={}, flow_origin={}", *dirty, flow_origin);
+               box_bounds,
+               absolute_box_bounds,
+               self.debug_str());
+        debug!("Box::build_display_list: dirty={}, flow_origin={}", builder.dirty, flow_origin);
 
         if self.style().InheritedBox.get().visibility != visibility::visible {
-            return;
+            return
         }
 
-        if absolute_box_bounds.intersects(dirty) {
-            debug!("Box::build_display_list: intersected. Adding display item...");
-        } else {
+        if !absolute_box_bounds.intersects(&builder.dirty) {
             debug!("Box::build_display_list: Did not intersect...");
-            return;
+            return
         }
 
-        self.paint_inline_background_border_if_applicable(index, lists, &absolute_box_bounds, &flow_origin);
-        // Add the background to the list, if applicable.
-        self.paint_background_if_applicable(builder, index, lists, &absolute_box_bounds);
+        debug!("Box::build_display_list: intersected. Adding display item...");
 
-        // Add a border, if applicable.
-        //
-        // TODO: Outlines.
-        self.paint_borders_if_applicable(index, lists, &absolute_box_bounds);
+        {
+            let list =
+                stacking_context.list_for_background_and_border_level(background_and_border_level);
+
+            // Add a background to the list, if this is an inline.
+            //
+            // FIXME(pcwalton): This is kind of ugly; merge with the call below?
+            self.paint_inline_background_border_if_applicable(list,
+                                                              &absolute_box_bounds,
+                                                              &flow_origin);
+
+            // Add the background to the list, if applicable.
+            self.paint_background_if_applicable(list, builder, &absolute_box_bounds);
+
+            // Add a border, if applicable.
+            //
+            // TODO: Outlines.
+            self.paint_borders_if_applicable(list, &absolute_box_bounds);
+        }
 
         match self.specific {
             UnscannedTextBox(_) => fail!("Shouldn't see unscanned boxes here."),
@@ -1204,7 +1314,7 @@ impl Box {
                 let inline_info = self.inline_info.borrow();
                 match inline_info.get() {
                     &Some(ref info) => {
-                        for data in info.parent_info.rev_iter() {
+                        for data in info.parent_info.as_slice().rev_iter() {
                             let parent_info = FlowFlagsInfo::new(data.style.get());
                             flow_flags.propagate_text_decoration_from_parent(&parent_info);
                         }
@@ -1224,100 +1334,45 @@ impl Box {
                                     - self.noncontent_inline_right();
 
                 // Create the text box.
-                lists.with_mut(|lists| {
-                    let text_display_item = ~TextDisplayItem {
-                        base: BaseDisplayItem {
-                            bounds: bounds,
-                            extra: ExtraDisplayListData::new(self),
-                        },
-                        text_run: text_box.run.clone(),
-                        range: text_box.range,
-                        text_color: text_color,
-                        overline_color: flow_flags.overline_color(text_color),
-                        underline_color: flow_flags.underline_color(text_color),
-                        line_through_color: flow_flags.line_through_color(text_color),
-                        flags: text_flags,
-                    };
+                let text_display_item = ~TextDisplayItem {
+                    base: BaseDisplayItem {
+                        bounds: bounds,
+                        node: self.node,
+                    },
+                    text_run: text_box.run.clone(),
+                    range: text_box.range,
+                    text_color: text_color,
+                    overline_color: flow_flags.overline_color(text_color),
+                    underline_color: flow_flags.underline_color(text_color),
+                    line_through_color: flow_flags.line_through_color(text_color),
+                    flags: text_flags,
+                };
 
-                    lists.lists[index].append_item(TextDisplayItemClass(text_display_item));
-                });
+                stacking_context.content.push(TextDisplayItemClass(text_display_item));
 
                 // Draw debug frames for text bounds.
                 //
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
-                debug!("{:?}", {
-                    // Compute the text box bounds and draw a border surrounding them.
-                    let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
-
-                    lists.with_mut(|lists| {
-                        let border_display_item = ~BorderDisplayItem {
-                            base: BaseDisplayItem {
-                                bounds: absolute_box_bounds,
-                                extra: ExtraDisplayListData::new(self),
-                            },
-                            border: debug_border,
-                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
-                            style: SideOffsets2D::new_all_same(border_style::solid)
-
-                        };
-                        lists.lists[index].append_item(BorderDisplayItemClass(border_display_item));
-                    });
-
-                    // Draw a rectangle representing the baselines.
-                    let ascent = text_box.run.get().metrics_for_range(
-                        &text_box.range).ascent;
-                    let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
-                                        Size2D(absolute_box_bounds.size.width, Au(0)));
-
-                    lists.with_mut(|lists| {
-                        let line_display_item = ~LineDisplayItem {
-                            base: BaseDisplayItem {
-                                bounds: baseline,
-                                extra: ExtraDisplayListData::new(self),
-                            },
-                            color: rgb(0, 200, 0),
-                            style: border_style::dashed
-
-                        };
-                        lists.lists[index].append_item(LineDisplayItemClass(line_display_item));
-                    });
-                });
+                debug!("{:?}", self.build_debug_borders_around_text_boxes(stacking_context,
+                                                                          flow_origin,
+                                                                          text_box))
             },
             GenericBox | IframeBox(..) | TableBox | TableCellBox | TableRowBox |
             TableWrapperBox => {
-                lists.with_mut(|lists| {
-                    let item = ~ClipDisplayItem {
-                        base: BaseDisplayItem {
-                            bounds: absolute_box_bounds,
-                            extra: ExtraDisplayListData::new(self),
-                        },
-                        child_list: ~[],
-                        need_clip: self.needs_clip()
-                    };
-                    lists.lists[index].append_item(ClipDisplayItemClass(item));
-                });
+                let item = ~ClipDisplayItem {
+                    base: BaseDisplayItem {
+                        bounds: absolute_box_bounds,
+                        node: self.node,
+                    },
+                    child_list: SmallVec0::new(),
+                    need_clip: self.needs_clip()
+                };
+                stacking_context.content.push(ClipDisplayItemClass(item));
 
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
-                debug!("{:?}", {
-                    // This prints a debug border around the border of this box.
-                    let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
-
-                    lists.with_mut(|lists| {
-                        let border_display_item = ~BorderDisplayItem {
-                            base: BaseDisplayItem {
-                                bounds: absolute_box_bounds,
-                                extra: ExtraDisplayListData::new(self),
-                            },
-                            border: debug_border,
-                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
-                            style: SideOffsets2D::new_all_same(border_style::solid)
-
-                        };
-                        lists.lists[index].append_item(BorderDisplayItemClass(border_display_item));
-                    });
-                });
+                debug!("{:?}", self.build_debug_borders_around_box(stacking_context, flow_origin))
             },
             ImageBox(ref image_box) => {
                 let mut image_ref = image_box.image.borrow_mut();
@@ -1335,16 +1390,15 @@ impl Box {
                         debug!("(building display list) building image box");
 
                         // Place the image into the display list.
-                        lists.with_mut(|lists| {
-                            let image_display_item = ~ImageDisplayItem {
-                                base: BaseDisplayItem {
-                                    bounds: bounds,
-                                    extra: ExtraDisplayListData::new(self),
-                                },
-                                image: image.clone(),
-                            };
-                            lists.lists[index].append_item(ImageDisplayItemClass(image_display_item));
-                        });
+                        let image_display_item = ~ImageDisplayItem {
+                            base: BaseDisplayItem {
+                                bounds: bounds,
+                                node: self.node,
+                            },
+                            image: image.clone(),
+                            stretch_size: bounds.size,
+                        };
+                        stacking_context.content.push(ImageDisplayItemClass(image_display_item))
                     }
                     None => {
                         // No image data at all? Do nothing.
@@ -1355,24 +1409,7 @@ impl Box {
                 }
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
-                debug!("{:?}", {
-                    let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
-
-                    lists.with_mut(|lists| {
-                        let border_display_item = ~BorderDisplayItem {
-                            base: BaseDisplayItem {
-                                bounds: absolute_box_bounds,
-                                extra: ExtraDisplayListData::new(self),
-                            },
-                            border: debug_border,
-                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200)),
-                            style: SideOffsets2D::new_all_same(border_style::solid)
-
-                        };
-                        lists.lists[index].append_item(BorderDisplayItemClass(border_display_item))
-                    });
-                });
-
+                debug!("{:?}", self.build_debug_borders_around_box(stacking_context, flow_origin))
             }
         }
 
@@ -1392,18 +1429,19 @@ impl Box {
             }
             _ => {}
         }
-
     }
 
-    /// Returns the *minimum width* and *preferred width* of this box as defined by CSS 2.1.
-    pub fn minimum_and_preferred_widths(&self) -> (Au, Au) {
-        let guessed_width = self.guess_width();
-        let (additional_minimum, additional_preferred) = match self.specific {
-            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableColumnBox(_) |
-            TableRowBox | TableWrapperBox => (Au(0), Au(0)),
+    /// Returns the intrinsic widths of this fragment.
+    pub fn intrinsic_widths(&self) -> IntrinsicWidths {
+        let mut result = self.style_specified_intrinsic_width();
+
+        match self.specific {
+            GenericBox | IframeBox(_) | TableBox | TableCellBox | TableColumnBox(_) | TableRowBox |
+            TableWrapperBox => {}
             ImageBox(ref image_box_info) => {
                 let image_width = image_box_info.image_width();
-                (image_width, image_width)
+                result.minimum_width = geometry::max(result.minimum_width, image_width);
+                result.preferred_width = geometry::max(result.preferred_width, image_width);
             }
             ScannedTextBox(ref text_box_info) => {
                 let range = &text_box_info.range;
@@ -1415,11 +1453,29 @@ impl Box {
                     max_line_width = Au::max(max_line_width, line_metrics.advance_width);
                 }
 
-                (min_line_width, max_line_width)
+                result.minimum_width = geometry::max(result.minimum_width, min_line_width);
+                result.preferred_width = geometry::max(result.preferred_width, max_line_width);
             }
             UnscannedTextBox(..) => fail!("Unscanned text boxes should have been scanned by now!"),
-        };
-        (guessed_width + additional_minimum, guessed_width + additional_preferred)
+        }
+
+        // Take borders and padding for parent inline boxes into account.
+        let inline_info = self.inline_info.get();
+        match inline_info {
+            None => {}
+            Some(ref inline_info) => {
+                for inline_parent_info in inline_info.parent_info.iter() {
+                    let border_width = inline_parent_info.border.left +
+                        inline_parent_info.border.right;
+                    let padding_width = inline_parent_info.padding.left +
+                        inline_parent_info.padding.right;
+                    result.minimum_width = result.minimum_width + border_width + padding_width;
+                    result.preferred_width = result.preferred_width + border_width + padding_width;
+                }
+            }
+        }
+
+        result
     }
 
 
@@ -1440,8 +1496,8 @@ impl Box {
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),
         }
     }
+
     /// Returns, and computes, the height of this box.
-    ///
     pub fn content_height(&self) -> Au {
         match self.specific {
             GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
@@ -1625,16 +1681,16 @@ impl Box {
         }
     }
 
-    /// Assigns replaced width for this box only if it is replaced content.
-    ///
-    /// This assigns only the width, not margin or anything else.
-    /// CSS 2.1 § 10.3.2.
-    pub fn assign_replaced_width_if_necessary(&self,container_width: Au) {
+    /// Assigns replaced width, padding, and margins for this box only if it is replaced content
+    /// per CSS 2.1 § 10.3.2.
+    pub fn assign_replaced_width_if_necessary(&self, container_width: Au) {
         match self.specific {
             GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
             TableWrapperBox => {}
             ImageBox(ref image_box_info) => {
-                // TODO(ksh8281): compute border,margin,padding
+                self.compute_padding(self.style(), container_width);
+
+                // TODO(ksh8281): compute border,margin
                 let width = ImageBoxInfo::style_length(self.style().Box.get().width,
                                                        image_box_info.dom_width,
                                                        container_width);

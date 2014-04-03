@@ -5,7 +5,7 @@
 use layout::incremental::RestyleDamage;
 use layout::util::LayoutDataAccess;
 use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
-
+use layout::wrapper::{After, AfterBlock, Before, BeforeBlock, Normal};
 use std::cast;
 use style::ComputedValues;
 use sync::Arc;
@@ -25,13 +25,35 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues> {
         unsafe {
             let layout_data_ref = self.borrow_layout_data();
-            cast::transmute_region(layout_data_ref.get()
-                                                  .as_ref()
-                                                  .unwrap()
-                                                  .data
-                                                  .style
-                                                  .as_ref()
-                                                  .unwrap())
+            match self.get_element_type() {
+                Before | BeforeBlock => {
+                     cast::transmute_region(layout_data_ref.get()
+                                                           .as_ref()
+                                                           .unwrap()
+                                                           .data
+                                                           .before_style
+                                                           .as_ref()
+                                                           .unwrap())
+                }
+                After | AfterBlock => {
+                    cast::transmute_region(layout_data_ref.get()
+                                                          .as_ref()
+                                                          .unwrap()
+                                                          .data
+                                                          .after_style
+                                                          .as_ref()
+                                                          .unwrap())
+                }
+                Normal => {
+                    cast::transmute_region(layout_data_ref.get()
+                                                          .as_ref()
+                                                          .unwrap()
+                                                          .data
+                                                          .style
+                                                          .as_ref()
+                                                          .unwrap())
+                }
+            }
         }
     }
 

@@ -48,9 +48,20 @@
 == position_abs_replaced_simple_a.html position_abs_replaced_simple_b.html
 == position_abs_static_y_a.html position_abs_static_y_b.html
 == position_abs_width_percentage_a.html position_abs_width_percentage_b.html
-== position_fixed_a.html position_fixed_b.html
-== position_fixed_simple_a.html position_fixed_simple_b.html
-== position_fixed_static_y_a.html position_fixed_static_y_b.html
+# commented out because multiple layers don't work with reftests --pcwalton
+# == position_fixed_a.html position_fixed_b.html
+# == position_fixed_simple_a.html position_fixed_simple_b.html
+# == position_fixed_static_y_a.html position_fixed_static_y_b.html
 == position_relative_a.html position_relative_b.html
 == position_relative_top_percentage_a.html position_relative_top_percentage_b.html
 == background_none_a.html background_none_b.html
+== negative_margins_a.html negative_margins_b.html
+== negative_margin_uncle_a.html negative_margin_uncle_b.html
+== inline_padding_a.html inline_padding_b.html
+== min_max_height_a.html min_max_height_b.html
+== minimum_line_height_a.html minimum_line_height_b.html
+== background_position_a.html background_position_b.html
+== background_repeat_x_a.html background_repeat_x_b.html
+== background_repeat_y_a.html background_repeat_y_b.html
+== background_repeat_none_a.html background_repeat_none_b.html
+== background_repeat_both_a.html background_repeat_both_b.html

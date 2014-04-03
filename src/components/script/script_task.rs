@@ -37,7 +37,8 @@ use js::jsapi::{JSObject, JS_InhibitGC, JS_AllowGC, JS_CallFunctionValue};
 use js::jsval::NullValue;
 use js::rust::{Compartment, Cx, CxUtils, RtUtils};
 use js;
-use servo_msg::compositor_msg::{FinishedLoading, Loading, PerformingLayout, ScriptListener};
+use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
+use servo_msg::compositor_msg::{ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{LoadIframeUrlMsg, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
 use servo_msg::constellation_msg::{PipelineId, SubpageId, Failure, FailureMsg};
@@ -929,10 +930,15 @@ impl ScriptTask {
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &Page, node: JS<Element>) {
         let (port, chan) = Chan::new();
         let node: JS<Node> = NodeCast::from(&node);
-        let ContentBoxResponse(rect) = page.query_layout(ContentBoxQuery(node.to_trusted_node_address(), chan), port);
+        let ContentBoxResponse(rect) =
+            page.query_layout(ContentBoxQuery(node.to_trusted_node_address(), chan), port);
         let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(),
                             to_frac_px(rect.origin.y).to_f32().unwrap());
-        self.compositor.scroll_fragment_point(pipeline_id, point);
+        // FIXME(#2003, pcwalton): This is pretty bogus when multiple layers are involved.
+        // Really what needs to happen is that this needs to go through layout to ask which
+        // layer the element belongs to, and have it send the scroll message to the
+        // compositor.
+        self.compositor.scroll_fragment_point(pipeline_id, LayerId::null(), point);
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.

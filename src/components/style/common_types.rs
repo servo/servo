@@ -8,6 +8,7 @@ pub use servo_util::geometry::Au;
 
 pub type CSSFloat = f64;
 
+pub static DEFAULT_LINE_HEIGHT: CSSFloat = 1.14;
 
 pub mod specified {
     use std::ascii::StrAsciiExt;
@@ -172,7 +173,10 @@ pub mod computed {
         color: longhands::color::computed_value::T,
         inherited_font_weight: longhands::font_weight::computed_value::T,
         inherited_font_size: longhands::font_size::computed_value::T,
+        inherited_minimum_line_height: longhands::_servo_minimum_line_height::T,
+        inherited_height: longhands::height::T,
         font_size: longhands::font_size::computed_value::T,
+        display: longhands::display::computed_value::T,
         positioned: bool,
         floated: bool,
         border_top_present: bool,

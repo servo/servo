@@ -9,7 +9,6 @@ use extra::url::Url;
 use geom::size::Size2D;
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::render_task::{RenderChan, RenderTask};
-use layout::util::OpaqueNode;
 use script::layout_interface::LayoutChan;
 use script::script_task::LoadMsg;
 use script::script_task::{AttachLayoutMsg, NewLayoutInfo, ScriptTask, ScriptChan};
@@ -28,7 +27,7 @@ pub struct Pipeline {
     subpage_id: Option<SubpageId>,
     script_chan: ScriptChan,
     layout_chan: LayoutChan,
-    render_chan: RenderChan<OpaqueNode>,
+    render_chan: RenderChan,
     layout_shutdown_port: Port<()>,
     render_shutdown_port: Port<()>,
     /// The most recently loaded url
@@ -40,7 +39,7 @@ pub struct Pipeline {
 pub struct CompositionPipeline {
     id: PipelineId,
     script_chan: ScriptChan,
-    render_chan: RenderChan<OpaqueNode>,
+    render_chan: RenderChan,
 }
 
 impl Pipeline {
@@ -171,7 +170,7 @@ impl Pipeline {
                subpage_id: Option<SubpageId>,
                script_chan: ScriptChan,
                layout_chan: LayoutChan,
-               render_chan: RenderChan<OpaqueNode>,
+               render_chan: RenderChan,
                layout_shutdown_port: Port<()>,
                render_shutdown_port: Port<()>)
                -> Pipeline {

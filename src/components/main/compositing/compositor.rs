@@ -5,16 +5,13 @@
 use constellation::SendableFrameTree;
 use compositing::compositor_layer::CompositorLayer;
 use compositing::*;
-
+use pipeline::CompositionPipeline;
 use platform::{Application, Window};
-
-use windowing::{WindowEvent, WindowMethods,
-                WindowNavigateMsg,
-                IdleWindowEvent, RefreshWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent,
-                MouseWindowEventClass, MouseWindowMoveEventClass,ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent,
-                FinishedWindowEvent, QuitWindowEvent,
-                MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
-
+use windowing::{FinishedWindowEvent, IdleWindowEvent, LoadUrlWindowEvent, MouseWindowClickEvent};
+use windowing::{MouseWindowEvent, MouseWindowEventClass, MouseWindowMouseDownEvent};
+use windowing::{MouseWindowMouseUpEvent, MouseWindowMoveEventClass, NavigationWindowEvent};
+use windowing::{QuitWindowEvent, RefreshWindowEvent, ResizeWindowEvent, ScrollWindowEvent};
+use windowing::{WindowEvent, WindowMethods, WindowNavigateMsg, ZoomWindowEvent};
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
 use azure::azure_hl;
@@ -29,8 +26,10 @@ use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use opengles::gl2;
 use png;
-use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerBufferSet, ReadyState, RenderState};
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, NavigateMsg, ResizedWindowMsg, LoadUrlMsg, PipelineId};
+use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerBufferSet};
+use servo_msg::compositor_msg::{LayerId, ReadyState, RenderState, ScrollPolicy, Scrollable};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
+use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg};
 use servo_msg::constellation_msg;
 use servo_util::opts::Opts;
 use servo_util::time::{profile, ProfilerChan, Timer};
@@ -54,6 +53,9 @@ pub struct IOCompositor {
 
     /// The root ContainerLayer.
     root_layer: Rc<ContainerLayer>,
+
+    /// The root pipeline.
+    root_pipeline: Option<CompositionPipeline>,
 
     /// The canvas to paint a page.
     scene: Scene,
@@ -110,7 +112,6 @@ pub struct IOCompositor {
 }
 
 impl IOCompositor {
-
     pub fn new(app: &Application,
                opts: Opts,
                port: Port<Msg>,
@@ -131,6 +132,7 @@ impl IOCompositor {
             opts: opts,
             context: rendergl::init_render_context(),
             root_layer: root_layer.clone(),
+            root_pipeline: None,
             scene: Scene(ContainerLayerKind(root_layer), window_size, identity()),
             window_size: Size2D(window_size.width as uint, window_size.height as uint),
             graphics_context: CompositorTask::create_graphics_context(),
@@ -253,10 +255,9 @@ impl IOCompositor {
                     self.change_render_state(render_state);
                 }
 
-                (Data(SetUnRenderedColor(_id, color)), false) => {
-                    self.set_unrendered_color(_id, color);
+                (Data(SetUnRenderedColor(pipeline_id, layer_id, color)), false) => {
+                    self.set_unrendered_color(pipeline_id, layer_id, color);
                 }
-
 
                 (Data(SetIds(frame_tree, response_chan, new_constellation_chan)), _) => {
                     self.set_ids(frame_tree, response_chan, new_constellation_chan);
@@ -266,32 +267,44 @@ impl IOCompositor {
                     chan.send(Some(azure_hl::current_graphics_metadata()));
                 }
 
-                (Data(NewLayer(_id, new_size)), false) => {
-                    self.create_new_layer(_id, new_size);
+                (Data(CreateRootCompositorLayerIfNecessary(pipeline_id, layer_id, size)),
+                 false) => {
+                    self.create_root_compositor_layer_if_necessary(pipeline_id, layer_id, size);
                 }
 
-                (Data(SetLayerPageSize(id, new_size, epoch)), false) => {
-                    self.set_layer_page_size(id, new_size, epoch);
+                (Data(CreateDescendantCompositorLayerIfNecessary(pipeline_id,
+                                                                 layer_id,
+                                                                 rect,
+                                                                 scroll_behavior)),
+                 false) => {
+                    self.create_descendant_compositor_layer_if_necessary(pipeline_id,
+                                                                         layer_id,
+                                                                         rect,
+                                                                         scroll_behavior);
                 }
 
-                (Data(SetLayerClipRect(id, new_rect)), false) => {
-                    self.set_layer_clip_rect(id, new_rect);
+                (Data(SetLayerPageSize(pipeline_id, layer_id, new_size, epoch)), false) => {
+                    self.set_layer_page_size(pipeline_id, layer_id, new_size, epoch);
                 }
 
-                (Data(DeleteLayer(id)), _) => {
+                (Data(SetLayerClipRect(pipeline_id, layer_id, new_rect)), false) => {
+                    self.set_layer_clip_rect(pipeline_id, layer_id, new_rect);
+                }
+
+                (Data(DeleteLayerGroup(id)), _) => {
                     self.delete_layer(id);
                 }
 
-                (Data(Paint(id, new_layer_buffer_set, epoch)), false) => {
-                    self.paint(id, new_layer_buffer_set, epoch);
+                (Data(Paint(pipeline_id, layer_id, new_layer_buffer_set, epoch)), false) => {
+                    self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                 }
 
-                (Data(InvalidateRect(id, rect)), false) => {
-                    self.invalidate_rect(id, rect);
+                (Data(InvalidateRect(pipeline_id, layer_id, rect)), false) => {
+                    self.invalidate_rect(pipeline_id, layer_id, rect);
                 }
 
-                (Data(ScrollFragmentPoint(id, point)), false) => {
-                    self.scroll_fragment_to_point(id, point);
+                (Data(ScrollFragmentPoint(pipeline_id, layer_id, point)), false) => {
+                    self.scroll_fragment_to_point(pipeline_id, layer_id, point);
                 }
 
                 (Data(LoadComplete(..)), false) => {
@@ -313,11 +326,10 @@ impl IOCompositor {
         }
     }
 
-    fn set_unrendered_color(&mut self, _id: PipelineId, color: Color) {
+    // FIXME(#2004, pcwalton): Take the pipeline ID and layer ID into account.
+    fn set_unrendered_color(&mut self, _: PipelineId, _: LayerId, color: Color) {
         match self.compositor_layer {
-            Some(ref mut layer) => {
-                layer.unrendered_color = color;
-            }
+            Some(ref mut layer) => layer.unrendered_color = color,
             None => {}
         }
     }
@@ -328,31 +340,7 @@ impl IOCompositor {
                new_constellation_chan: ConstellationChan) {
         response_chan.send(());
 
-        // This assumes there is at most one child, which should be the case.
-        // NOTE: work around borrowchk
-        {
-            let tmp = self.root_layer.borrow().first_child.borrow();
-            match *tmp.get() {
-                Some(ref old_layer) => ContainerLayer::remove_child(self.root_layer.clone(),
-                                                                     old_layer.clone()),
-                None => {}
-            }
-        }
-
-        let layer = CompositorLayer::from_frame_tree(frame_tree,
-                                                     self.opts.tile_size,
-                                                     Some(10000000u),
-                                                     self.opts.cpu_painting);
-        ContainerLayer::add_child_start(self.root_layer.clone(),
-                                        ContainerLayerKind(layer.root_layer.clone()));
-
-        // If there's already a root layer, destroy it cleanly.
-        match self.compositor_layer {
-            None => {}
-            Some(ref mut compositor_layer) => compositor_layer.clear_all(),
-        }
-
-        self.compositor_layer = Some(layer);
+        self.root_pipeline = Some(frame_tree.pipeline.clone());
 
         // Initialize the new constellation channel by sending it the root window size.
         let window_size = self.window.borrow().size();
@@ -366,39 +354,81 @@ impl IOCompositor {
         self.constellation_chan = new_constellation_chan;
     }
 
-    fn create_new_layer(&mut self, _id: PipelineId, new_size: Size2D<f32>) {
-        // FIXME: This should create an additional layer instead of replacing the current one.
-        // Once ResizeLayer messages are set up, we can switch to the new functionality.
+    // FIXME(pcwalton): Take the pipeline ID into account.
+    fn create_root_compositor_layer_if_necessary(&mut self,
+                                                 _: PipelineId,
+                                                 layer_id: LayerId,
+                                                 size: Size2D<f32>) {
+        let (root_pipeline, root_layer_id) = match self.compositor_layer {
+            Some(ref compositor_layer) => {
+                (compositor_layer.pipeline.clone(), compositor_layer.id_of_first_child())
+            }
+            None => {
+                match self.root_pipeline {
+                    Some(ref root_pipeline) => (root_pipeline.clone(), LayerId::null()),
+                    None => fail!("Compositor: Received new layer without initialized pipeline"),
+                }
+            }
+        };
 
-        let p = match self.compositor_layer {
-            Some(ref compositor_layer) => compositor_layer.pipeline.clone(),
+        if layer_id != root_layer_id {
+            let root_pipeline_id = root_pipeline.id;
+            let mut new_layer = CompositorLayer::new_root(root_pipeline,
+                                                          size,
+                                                          self.opts.tile_size,
+                                                          self.opts.cpu_painting);
+
+            {
+                let current_child = self.root_layer.borrow().first_child.borrow();
+                match *current_child.get() {
+                    None => {}
+                    Some(ref old_layer) => {
+                        ContainerLayer::remove_child(self.root_layer.clone(), old_layer.clone())
+                    }
+                }
+            }
+
+            assert!(new_layer.add_child_if_necessary(self.root_layer.clone(),
+                                                     root_pipeline_id,
+                                                     new_layer.id,
+                                                     layer_id,
+                                                     Rect(Point2D(0f32, 0f32), size),
+                                                     size,
+                                                     Scrollable));
+
+            ContainerLayer::add_child_start(self.root_layer.clone(),
+                                            ContainerLayerKind(new_layer.root_layer.clone()));
+            self.compositor_layer = Some(new_layer);
+        }
+
+        self.ask_for_tiles();
+    }
+
+    fn create_descendant_compositor_layer_if_necessary(&mut self,
+                                                       pipeline_id: PipelineId,
+                                                       layer_id: LayerId,
+                                                       rect: Rect<f32>,
+                                                       scroll_policy: ScrollPolicy) {
+        match self.compositor_layer {
+            Some(ref mut compositor_layer) => {
+                assert!(compositor_layer.add_child_if_necessary(self.root_layer.clone(),
+                                                                pipeline_id,
+                                                                compositor_layer.id,
+                                                                layer_id,
+                                                                rect,
+                                                                compositor_layer.page_size
+                                                                                .unwrap(),
+                                                                scroll_policy))
+            }
             None => fail!("Compositor: Received new layer without initialized pipeline"),
         };
-        let page_size = Size2D(new_size.width as f32, new_size.height as f32);
-        let new_layer = CompositorLayer::new(p,
-                                             Some(page_size),
-                                             self.opts.tile_size,
-                                             Some(10000000u),
-                                             self.opts.cpu_painting);
-
-        {
-            let current_child = self.root_layer.borrow().first_child.borrow();
-            // This assumes there is at most one child, which should be the case.
-            match *current_child.get() {
-                Some(ref old_layer) => ContainerLayer::remove_child(self.root_layer.clone(),
-                                                                     old_layer.clone()),
-                None => {}
-            }
-        }
-        ContainerLayer::add_child_start(self.root_layer.clone(),
-                                        ContainerLayerKind(new_layer.root_layer.clone()));
-        self.compositor_layer = Some(new_layer);
 
         self.ask_for_tiles();
     }
 
     fn set_layer_page_size(&mut self,
-                           id: PipelineId,
+                           pipeline_id: PipelineId,
+                           layer_id: LayerId,
                            new_size: Size2D<f32>,
                            epoch: Epoch) {
         let (ask, move): (bool, bool) = match self.compositor_layer {
@@ -407,8 +437,10 @@ impl IOCompositor {
                 let world_zoom = self.world_zoom;
                 let page_window = Size2D(window_size.width as f32 / world_zoom,
                                          window_size.height as f32 / world_zoom);
-                layer.resize(id, new_size, page_window, epoch);
-                let move = self.fragment_point.take().map_or(false, |point| layer.move(point, page_window));
+                layer.resize(pipeline_id, layer_id, new_size, page_window, epoch);
+                let move = self.fragment_point.take().map_or(false, |point| {
+                    layer.move(pipeline_id, layer_id, point, page_window)
+                });
 
                 (true, move)
             }
@@ -421,10 +453,13 @@ impl IOCompositor {
         }
     }
 
-    fn set_layer_clip_rect(&mut self, id: PipelineId, new_rect: Rect<f32>) {
+    fn set_layer_clip_rect(&mut self,
+                           pipeline_id: PipelineId,
+                           layer_id: LayerId,
+                           new_rect: Rect<f32>) {
         let ask: bool = match self.compositor_layer {
             Some(ref mut layer) => {
-                assert!(layer.set_clipping_rect(id, new_rect));
+                assert!(layer.set_clipping_rect(pipeline_id, layer_id, new_rect));
                 true
             }
             None => {
@@ -454,10 +489,11 @@ impl IOCompositor {
     }
 
     fn paint(&mut self,
-             id: PipelineId,
+             pipeline_id: PipelineId,
+             layer_id: LayerId,
              new_layer_buffer_set: ~LayerBufferSet,
              epoch: Epoch) {
-        debug!("osmain: received new frame");
+        debug!("compositor received new frame");
 
         // From now on, if we destroy the buffers, they will leak.
         let mut new_layer_buffer_set = new_layer_buffer_set;
@@ -466,27 +502,29 @@ impl IOCompositor {
         match self.compositor_layer {
             Some(ref mut layer) => {
                 assert!(layer.add_buffers(&self.graphics_context,
-                                          id,
+                                          pipeline_id,
+                                          layer_id,
                                           new_layer_buffer_set,
                                           epoch).is_none());
                 self.recomposite = true;
             }
             None => {
-                fail!("Compositor: given paint command with no CompositorLayer initialized");
+                fail!("compositor given paint command with no CompositorLayer initialized");
             }
         }
+
         // TODO: Recycle the old buffers; send them back to the renderer to reuse if
         // it wishes.
     }
 
-    fn invalidate_rect(&mut self, id: PipelineId, rect: Rect<uint>) {
+    fn invalidate_rect(&mut self, pipeline_id: PipelineId, layer_id: LayerId, rect: Rect<uint>) {
         let ask: bool = match self.compositor_layer {
             Some(ref mut layer) => {
                 let point = Point2D(rect.origin.x as f32,
                                     rect.origin.y as f32);
                 let size = Size2D(rect.size.width as f32,
                                   rect.size.height as f32);
-                layer.invalidate_rect(id, Rect(point, size));
+                layer.invalidate_rect(pipeline_id, layer_id, Rect(point, size));
                 true
             }
             None => {
@@ -500,14 +538,18 @@ impl IOCompositor {
         }
     }
 
-    fn scroll_fragment_to_point(&mut self, id: PipelineId, point: Point2D<f32>) {
+    fn scroll_fragment_to_point(&mut self,
+                                pipeline_id: PipelineId,
+                                layer_id: LayerId,
+                                point: Point2D<f32>) {
         let world_zoom = self.world_zoom;
         let page_window = Size2D(self.window_size.width as f32 / world_zoom,
                                  self.window_size.height as f32 / world_zoom);
-        let (ask, move): (bool, bool) = match self.compositor_layer {
-            Some(ref mut layer) if layer.pipeline.id == id && !layer.hidden => {
 
-                (true, layer.move(point, page_window))
+        let (ask, move): (bool, bool) = match self.compositor_layer {
+            Some(ref mut layer) if layer.pipeline.id == pipeline_id && !layer.hidden => {
+
+                (true, layer.move(pipeline_id, layer_id, point, page_window))
             }
             Some(_) | None => {
                 self.fragment_point = Some(point);
@@ -630,7 +672,7 @@ impl IOCompositor {
                                  self.window_size.height as f32 / world_zoom);
         let mut scroll = false;
         for layer in self.compositor_layer.mut_iter() {
-            scroll = layer.scroll(page_delta, page_cursor, page_window) || scroll;
+            scroll = layer.handle_scroll_event(page_delta, page_cursor, page_window) || scroll;
         }
         self.recomposite_if(scroll);
         self.ask_for_tiles();
@@ -656,7 +698,7 @@ impl IOCompositor {
         let page_window = Size2D(window_size.width as f32 / world_zoom,
                                  window_size.height as f32 / world_zoom);
         for layer in self.compositor_layer.mut_iter() {
-            layer.scroll(page_delta, page_cursor, page_window);
+            layer.handle_scroll_event(page_delta, page_cursor, page_window);
         }
 
         self.recomposite = true;
@@ -679,7 +721,9 @@ impl IOCompositor {
         for layer in self.compositor_layer.mut_iter() {
             if !layer.hidden {
                 let rect = Rect(Point2D(0f32, 0f32), window_size_page);
-                let recomposite = layer.get_buffer_request(&self.graphics_context, rect, world_zoom) ||
+                let recomposite = layer.get_buffer_request(&self.graphics_context,
+                                                           rect,
+                                                           world_zoom) ||
                                   self.recomposite;
                 self.recomposite = recomposite;
             } else {
@@ -756,3 +800,4 @@ impl IOCompositor {
         self.recomposite = result || self.recomposite;
     }
 }
+

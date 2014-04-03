@@ -460,9 +460,13 @@ impl<T: Tile> QuadtreeNode<T> {
     /// treated as invalid as well.
     /// NOTE: this method will sometimes modify the tree by deleting tiles.
     /// See the QuadTree function description for more details.
-    fn get_tile_rects(&mut self, window: Rect<f32>, clip: Size2D<f32>, scale: f32, tile_size: f32, override: bool) ->
-        (~[BufferRequest], ~[T], int) {
-        
+    fn get_tile_rects(&mut self,
+                      window: Rect<f32>,
+                      clip: Size2D<f32>,
+                      scale: f32,
+                      tile_size: f32,
+                      override: bool)
+                      -> (~[BufferRequest], ~[T], int) {
         let w_x = window.origin.x;
         let w_y = window.origin.y;
         let w_width = window.size.width;
@@ -470,11 +474,11 @@ impl<T: Tile> QuadtreeNode<T> {
         let s_x = self.origin.x;
         let s_y = self.origin.y;
         let s_size = self.size;
-        
+
         // if window is outside of visible region, nothing to do
         if w_x + w_width < s_x || w_x > s_x + s_size
-            || w_y + w_height < s_y || w_y > s_y + s_size 
-            || w_x >= clip.width || w_y >= clip.height {
+                || w_y + w_height < s_y || w_y > s_y + s_size
+                || w_x >= clip.width || w_y >= clip.height {
             return (~[], ~[], 0);
         }
         
