@@ -50,7 +50,7 @@ use std::cast;
 use std::cell::{Ref, RefMut};
 use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector, SpecificNamespace};
 use style::{AnyNamespace};
-
+use style::computed_values::{content, display};
 use layout::util::LayoutDataWrapper;
 
 /// Allows some convenience methods on generic layout nodes.
@@ -58,8 +58,9 @@ pub trait TLayoutNode {
     /// Creates a new layout node with the same lifetime as this layout node.
     unsafe fn new_with_this_lifetime(&self, node: &JS<Node>) -> Self;
 
-    /// Returns the type ID of this node. Fails if this node is borrowed mutably.
-    fn type_id(&self) -> NodeTypeId;
+    /// Returns the type ID of this node. Fails if this node is borrowed mutably. Returns `None`
+    /// if this is a pseudo-element; otherwise, returns `Some`.
+    fn type_id(&self) -> Option<NodeTypeId>;
 
     /// Returns the interior of this node as a `JS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
@@ -73,14 +74,14 @@ pub trait TLayoutNode {
 
     fn node_is_element(&self) -> bool {
         match self.type_id() {
-            ElementNodeTypeId(..) => true,
+            Some(ElementNodeTypeId(..)) => true,
             _ => false
         }
     }
 
     fn node_is_document(&self) -> bool {
         match self.type_id() {
-            DocumentNodeTypeId(..) => true,
+            Some(DocumentNodeTypeId(..)) => true,
             _ => false
         }
     }
@@ -114,22 +115,10 @@ pub trait TLayoutNode {
     /// If this is a text node, copies out the text. If this is not a text node, fails.
     ///
     /// FIXME(pcwalton): Don't copy text. Atomically reference count instead.
-    fn text(&self) -> ~str {
-        unsafe {
-            if !self.get().is_text() {
-                fail!("not text!")
-            }
-            let text: JS<Text> = self.get_jsmanaged().transmute_copy();
-            (*text.unsafe_get()).characterdata.data.to_str()
-        }
-    }
+    fn text(&self) -> ~str;
 
     /// Returns the first child of this node.
-    fn first_child(&self) -> Option<Self> {
-        unsafe {
-            self.get().first_child_ref().map(|node| self.new_with_this_lifetime(node))
-        }
-    }
+    fn first_child(&self) -> Option<Self>;
 
     /// Dumps this node tree, for debugging.
     fn dump(&self) {
@@ -144,7 +133,7 @@ pub struct LayoutNode<'a> {
     priv node: JS<Node>,
 
     /// Being chained to a value prevents `LayoutNode`s from escaping.
-    priv chain: &'a (),
+    chain: &'a (),
 }
 
 impl<'ln> Clone for LayoutNode<'ln> {
@@ -172,11 +161,29 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
             chain: self.chain,
         }
     }
-    fn type_id(&self) -> NodeTypeId {
-        self.node.type_id()
+
+    fn type_id(&self) -> Option<NodeTypeId> {
+        Some(self.node.type_id())
     }
+
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
         &self.node
+    }
+
+    fn first_child(&self) -> Option<LayoutNode<'ln>> {
+        unsafe {
+            self.get().first_child_ref().map(|node| self.new_with_this_lifetime(node))
+        }
+    }
+
+    fn text(&self) -> ~str {
+        unsafe {
+            if !self.get().is_text() {
+                fail!("not text!")
+            }
+            let text: JS<Text> = self.get_jsmanaged().transmute_copy();
+            (*text.unsafe_get()).characterdata.data.to_str()
+        }
     }
 }
 
@@ -205,6 +212,10 @@ impl<'ln> LayoutNode<'ln> {
             current_node: self.first_child(),
         }
     }
+
+   pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
+       &self.node
+   }
 }
 
 impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
@@ -371,29 +382,107 @@ impl<'le> TElement for LayoutElement<'le> {
     }
 }
 
+fn get_content(content_list: &content::T) -> ~str {
+    match *content_list {
+        content::Content(ref value) => {
+            let iter = &mut value.clone().move_iter().peekable();
+            match iter.next() {
+                Some(content::StringContent(content)) => content,
+                _ => ~"",
+            }
+        }
+        _ => ~"",
+    }
+}
+
+#[deriving(Eq, Clone)]
+pub enum ElementType {
+    Normal,
+    Before,
+    After,
+    BeforeBlock,
+    AfterBlock,
+}
+
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
 pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
-    priv node: JS<Node>,
+    priv node: LayoutNode<'ln>,
 
-    /// Being chained to a value prevents `ThreadSafeLayoutNode`s from escaping.
-    priv chain: &'ln (),
+    priv pseudo: ElementType,
 }
 
 impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     /// Creates a new layout node with the same lifetime as this layout node.
     unsafe fn new_with_this_lifetime(&self, node: &JS<Node>) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
-            node: node.transmute_copy(),
-            chain: self.chain,
+            node: LayoutNode {
+                node: node.transmute_copy(),
+                chain: self.node.chain,
+            },
+            pseudo: Normal,
         }
     }
-    fn type_id(&self) -> NodeTypeId {
+
+    /// Returns `None` if this is a pseudo-element.
+    fn type_id(&self) -> Option<NodeTypeId> {
+        if self.pseudo == Before || self.pseudo == After {
+            return None
+        }
+
         self.node.type_id()
     }
+
     unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
-        &self.node
+        self.node.get_jsmanaged()
+    }
+
+    unsafe fn get<'a>(&'a self) -> &'a Node { // this change.
+        cast::transmute::<*mut Node,&'a Node>(self.get_jsmanaged().unsafe_get())
+    }
+
+    fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        if self.pseudo == Before || self.pseudo == After {
+            return None
+        }
+
+        if self.has_before_pseudo() {
+            if self.is_block(Before) && self.pseudo == Normal {
+                let pseudo_before_node = ThreadSafeLayoutNode::new_with_pseudo_without_self(&self.node, BeforeBlock);
+                return Some(pseudo_before_node)
+            } else if self.pseudo == Normal || self.pseudo == BeforeBlock {
+                let pseudo_before_node = ThreadSafeLayoutNode::new_with_pseudo_without_self(&self.node, Before);
+                return Some(pseudo_before_node)
+            }
+        }
+
+        unsafe {
+            self.get().first_child_ref().map(|node| self.new_with_this_lifetime(node))
+        }
+    }
+
+    fn text(&self) -> ~str {
+        if self.pseudo == Before || self.pseudo == After {
+            let layout_data_ref = self.borrow_layout_data();
+            let node_layout_data_wrapper = layout_data_ref.get().get_ref();
+
+            if self.pseudo == Before {
+                let before_style = node_layout_data_wrapper.data.before_style.get_ref();
+                return get_content(&before_style.get().Box.get().content)
+            } else {
+                let after_style = node_layout_data_wrapper.data.after_style.get_ref();
+                return get_content(&after_style.get().Box.get().content)
+            }
+        }
+
+        unsafe {
+            if !self.get().is_text() {
+                fail!("not text!")
+            }
+            let text: JS<Text> = self.get_jsmanaged().transmute_copy();
+            (*text.unsafe_get()).characterdata.data.to_str()
+        }
     }
 }
 
@@ -401,7 +490,7 @@ impl<'ln> Clone for ThreadSafeLayoutNode<'ln> {
     fn clone(&self) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
             node: self.node.clone(),
-            chain: self.chain,
+            pseudo: self.pseudo,
         }
     }
 }
@@ -410,13 +499,33 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
     pub fn new<'a>(node: &LayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
         ThreadSafeLayoutNode {
-            node: node.node.clone(),
-            chain: node.chain,
+            node: node.clone(),
+            pseudo: Normal,
+        }
+    }
+
+    pub fn new_with_pseudo_without_self<'a>(node: &LayoutNode<'a>, element_type: ElementType) -> ThreadSafeLayoutNode<'a> {
+         ThreadSafeLayoutNode {
+             node: node.clone(),
+             pseudo: element_type,
+         }
+    }
+
+
+    /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
+    pub fn new_with_pseudo<'a>(&'a self, element_type: ElementType) -> ThreadSafeLayoutNode<'a> {
+        ThreadSafeLayoutNode {
+            node: self.node.clone(),
+            pseudo: element_type,
         }
     }
 
     /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
     unsafe fn next_sibling(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
+        if self.pseudo == Before || self.pseudo == BeforeBlock {
+            return self.get().first_child_ref().map(|node| self.new_with_this_lifetime(node))
+        }
+
         self.node.get().next_sibling_ref().map(|node| self.new_with_this_lifetime(node))
     }
 
@@ -424,6 +533,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln> {
         ThreadSafeLayoutNodeChildrenIterator {
             current_node: self.first_child(),
+            parent_node: Some(ThreadSafeLayoutNode::new_with_pseudo_without_self(&self.node, self.pseudo)),
         }
     }
 
@@ -431,7 +541,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline]
     pub fn as_element(&self) -> ThreadSafeLayoutElement {
         unsafe {
-            let elem: JS<Element> = self.node.transmute_copy();
+            let elem: JS<Element> = self.node.get_jsmanaged().transmute_copy();
             let element = elem.unsafe_get();
             // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
             // implementations.
@@ -439,6 +549,44 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
                 element: &mut *element,
             }
         }
+    }
+
+    pub fn get_element_type(&self) ->  ElementType {
+        self.pseudo
+    }
+
+    pub fn is_block(&self, kind: ElementType) -> bool {
+        let mut layout_data_ref = self.mutate_layout_data();
+        let node_layout_data_wrapper = layout_data_ref.get().get_mut_ref();
+
+        let display = match kind {
+            Before | BeforeBlock => {
+                let before_style = node_layout_data_wrapper.data.before_style.get_ref();
+                before_style.get().Box.get().display
+            }
+            After | AfterBlock => {
+                let after_style = node_layout_data_wrapper.data.after_style.get_ref();
+                after_style.get().Box.get().display
+            }
+            Normal => {
+                let after_style = node_layout_data_wrapper.data.style.get_ref();
+                after_style.get().Box.get().display
+            }
+        };
+
+        display == display::block
+    }
+
+    pub fn has_before_pseudo(&self) -> bool {
+        let layout_data_wrapper = self.borrow_layout_data();
+        let layout_data_wrapper_ref = layout_data_wrapper.get().get_ref();
+        layout_data_wrapper_ref.data.before_style.is_some()
+    }
+
+    pub fn has_after_pseudo(&self) -> bool {
+        let layout_data_wrapper = self.borrow_layout_data();
+        let layout_data_wrapper_ref = layout_data_wrapper.get().get_ref();
+        layout_data_wrapper_ref.data.after_style.is_some()
     }
 
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
@@ -487,16 +635,56 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
 pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
     priv current_node: Option<ThreadSafeLayoutNode<'a>>,
+    priv parent_node: Option<ThreadSafeLayoutNode<'a>>,
 }
 
 impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<ThreadSafeLayoutNode<'a>> {
         let node = self.current_node.clone();
-        self.current_node = self.current_node.clone().and_then(|node| {
-            unsafe {
-                node.next_sibling()
+
+        match node {
+            Some(ref node) => {
+                if node.pseudo == After || node.pseudo == AfterBlock {
+                    return None
+                }
+
+                match self.parent_node {
+                    Some(ref parent_node) => {
+                        if parent_node.pseudo == Normal {
+                            self.current_node = self.current_node.clone().and_then(|node| {
+                                unsafe {
+                                    node.next_sibling()
+                                }
+                            });
+                        } else {
+                            self.current_node = None;
+                        }
+                    }
+                    None => {}
+                }
             }
-        });
+            None => {
+                match self.parent_node {
+                    Some(ref parent_node) => {
+                        if parent_node.has_after_pseudo() {
+                            let pseudo_after_node = if parent_node.is_block(After) && parent_node.pseudo == Normal {
+                                let pseudo_after_node = ThreadSafeLayoutNode::new_with_pseudo_without_self(&parent_node.node, AfterBlock);
+                                Some(pseudo_after_node)
+                            } else if parent_node.pseudo == Normal || parent_node.pseudo == AfterBlock {
+                                let pseudo_after_node = ThreadSafeLayoutNode::new_with_pseudo_without_self(&parent_node.node, After);
+                                Some(pseudo_after_node)
+                            } else {
+                                None
+                            };
+                            self.current_node = pseudo_after_node;
+                            return self.current_node.clone()
+                        }
+                   }
+                   None => {}
+                }
+            }
+        }
+
         node
     }
 }

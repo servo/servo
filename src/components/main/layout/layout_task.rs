@@ -11,22 +11,22 @@ use css::select::new_stylist;
 use css::node_style::StyledNode;
 use layout::construct::{FlowConstructionResult, NoConstructionResult};
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
+use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo, ToGfxColor};
 use layout::flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use layout::flow;
 use layout::incremental::RestyleDamage;
 use layout::parallel::PaddedUnsafeFlow;
 use layout::parallel;
-use layout::util::{LayoutDataAccess, OpaqueNode, LayoutDataWrapper};
+use layout::util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods};
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use extra::url::Url;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator};
-use gfx::display_list::{DisplayList, DisplayListCollection};
+use gfx::display_list::{ClipDisplayItemClass, DisplayItem, DisplayItemIterator, DisplayList};
+use gfx::display_list::{OpaqueNode, StackingContext};
 use gfx::font_context::{FontContext, FontContextInfo};
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
@@ -41,18 +41,20 @@ use script::layout_interface::{ContentChangedDocumentDamage, LayoutChan, Msg, Pr
 use script::layout_interface::{QueryMsg, ReapLayoutDataMsg, Reflow, UntrustedNodeAddress};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
 use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
+use servo_msg::compositor_msg::Scrollable;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
+use servo_util::geometry;
 use servo_util::opts::Opts;
+use servo_util::smallvec::{SmallVec, SmallVec0, SmallVec1};
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use servo_util::task::send_on_failure;
 use servo_util::workqueue::WorkQueue;
 use std::cast::transmute;
 use std::cast;
-use std::cell::RefCell;
 use std::comm::Port;
 use std::mem;
 use std::ptr;
@@ -79,7 +81,7 @@ pub struct LayoutTask {
     script_chan: ScriptChan,
 
     /// The channel on which messages can be sent to the painting task.
-    render_chan: RenderChan<OpaqueNode>,
+    render_chan: RenderChan,
 
     /// The channel on which messages can be sent to the image cache.
     image_cache_task: ImageCacheTask,
@@ -91,7 +93,7 @@ pub struct LayoutTask {
     screen_size: Size2D<Au>,
 
     /// A cached display list.
-    display_list_collection: Option<Arc<DisplayListCollection<OpaqueNode>>>,
+    display_list: Option<Arc<DisplayList>>,
 
     stylist: ~Stylist,
 
@@ -251,7 +253,7 @@ impl LayoutTask {
                   constellation_chan: ConstellationChan,
                   failure_msg: Failure,
                   script_chan: ScriptChan,
-                  render_chan: RenderChan<OpaqueNode>,
+                  render_chan: RenderChan,
                   img_cache_task: ImageCacheTask,
                   opts: Opts,
                   profiler_chan: ProfilerChan,
@@ -282,7 +284,7 @@ impl LayoutTask {
            chan: LayoutChan,
            constellation_chan: ConstellationChan,
            script_chan: ScriptChan,
-           render_chan: RenderChan<OpaqueNode>,
+           render_chan: RenderChan,
            image_cache_task: ImageCacheTask,
            opts: &Opts,
            profiler_chan: ProfilerChan)
@@ -306,7 +308,7 @@ impl LayoutTask {
             local_image_cache: local_image_cache,
             screen_size: screen_size,
 
-            display_list_collection: None,
+            display_list: None,
             stylist: ~new_stylist(),
             initial_css_values: Arc::new(style::initial_values()),
             parallel_traversal: parallel_traversal,
@@ -339,7 +341,7 @@ impl LayoutTask {
             stylist: &*self.stylist,
             initial_css_values: self.initial_css_values.clone(),
             url: (*url).clone(),
-            reflow_root: OpaqueNode::from_layout_node(reflow_root),
+            reflow_root: OpaqueNodeMethods::from_layout_node(reflow_root),
             opts: self.opts.clone(),
         }
     }
@@ -432,15 +434,13 @@ impl LayoutTask {
             None => fail!("no layout data for root node"),
         };
         let mut flow = match result {
-            FlowConstructionResult(mut flow, abs_descendants, fixed_descendants) => {
+            FlowConstructionResult(mut flow, abs_descendants) => {
                 // Note: Assuming that the root has display 'static' (as per
                 // CSS Section 9.3.1). Otherwise, if it were absolutely
                 // positioned, it would return a reference to itself in
                 // `abs_descendants` and would lead to a circular reference.
                 // Set Root as CB for any remaining absolute descendants.
                 flow.set_abs_descendants(abs_descendants);
-                // Set Root as CB for all fixed descendants.
-                flow.set_fixed_descendants(fixed_descendants);
                 flow
             }
             _ => fail!("Flow construction didn't result in a flow at the root of the tree!"),
@@ -627,26 +627,30 @@ impl LayoutTask {
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
             profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone(), || {
-                let root_size = flow::base(layout_root).position.size;
-                let root_abs_position = Point2D(Au::new(0), Au::new(0));
-                let mut display_list_collection = DisplayListCollection::new();
-                display_list_collection.add_list(DisplayList::<OpaqueNode>::new());
-                let display_list_collection = ~RefCell::new(display_list_collection);
-                let dirty = flow::base(layout_root).position.clone();
-                let display_list_builder = DisplayListBuilder {
+                let mut root_stacking_context = StackingContext::new();
+                let mut display_list_builder = DisplayListBuilder {
                     ctx: &layout_ctx,
+                    layers: SmallVec0::new(),
+                    dirty: flow::base(layout_root).position.clone(),
                 };
-                layout_root.build_display_lists(&display_list_builder, &root_size,
-                                                root_abs_position,
-                                                &dirty, 0u, display_list_collection);
+                let display_list_building_info = DisplayListBuildingInfo {
+                    relative_containing_block_size: flow::base(layout_root).position.size,
+                    absolute_containing_block_position: Point2D(Au(0), Au(0)),
+                    layers_needed_for_positioned_flows: false,
+                };
 
-                let display_list_collection = Arc::new(display_list_collection.unwrap());
+                layout_root.build_display_list(&mut root_stacking_context,
+                                               &mut display_list_builder,
+                                               &display_list_building_info);
 
+                let display_list = Arc::new(root_stacking_context.flatten());
+
+                // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
+                // it with extreme prejudice.
                 let mut color = color::rgba(255.0, 255.0, 255.0, 255.0);
-
                 for child in node.traverse_preorder() {
-                    if child.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) ||
-                            child.type_id() == ElementNodeTypeId(HTMLBodyElementTypeId) {
+                    if child.type_id() == Some(ElementNodeTypeId(HTMLHtmlElementTypeId)) ||
+                            child.type_id() == Some(ElementNodeTypeId(HTMLBodyElementTypeId)) {
                         let element_bg_color = {
                             let thread_safe_child = ThreadSafeLayoutNode::new(&child);
                             thread_safe_child.style()
@@ -668,18 +672,33 @@ impl LayoutTask {
                     }
                 }
 
+                let root_size = Size2D(display_list_building_info.relative_containing_block_size
+                                                                 .width
+                                                                 .to_nearest_px() as uint,
+                                       display_list_building_info.relative_containing_block_size
+                                                                 .height
+                                                                 .to_nearest_px() as uint);
                 let render_layer = RenderLayer {
-                    display_list_collection: display_list_collection.clone(),
-                    size: Size2D(root_size.width.to_nearest_px() as uint,
-                                 root_size.height.to_nearest_px() as uint),
-                    color: color
+                    id: layout_root.layer_id(0),
+                    display_list: display_list.clone(),
+                    position: Rect(Point2D(0u, 0u), root_size),
+                    background_color: color,
+                    scroll_policy: Scrollable,
                 };
 
-                self.display_list_collection = Some(display_list_collection.clone());
+                self.display_list = Some(display_list.clone());
+
+                let mut layers = SmallVec1::new();
+                layers.push(render_layer);
+                let DisplayListBuilder {
+                    layers: sublayers,
+                    ..
+                } = display_list_builder;
+                layers.push_all_move(sublayers);
 
                 debug!("Layout done!");
 
-                self.render_chan.send(RenderMsg(render_layer));
+                self.render_chan.send(RenderMsg(layers));
             });
         }
 
@@ -701,15 +720,14 @@ impl LayoutTask {
             // The neat thing here is that in order to answer the following two queries we only
             // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
             ContentBoxQuery(node, reply_chan) => {
-                let node = OpaqueNode::from_script_node(node);
+                let node: OpaqueNode = OpaqueNodeMethods::from_script_node(node);
 
-                fn union_boxes_for_node<'a>(
-                                        accumulator: &mut Option<Rect<Au>>,
-                                        mut iter: DisplayItemIterator<'a,OpaqueNode>,
+                fn union_boxes_for_node(accumulator: &mut Option<Rect<Au>>,
+                                        mut iter: DisplayItemIterator,
                                         node: OpaqueNode) {
                     for item in iter {
                         union_boxes_for_node(accumulator, item.children(), node);
-                        if item.base().extra == node {
+                        if item.base().node == node {
                             match *accumulator {
                                 None => *accumulator = Some(item.base().bounds),
                                 Some(ref mut acc) => *acc = acc.union(&item.base().bounds),
@@ -719,41 +737,49 @@ impl LayoutTask {
                 }
 
                 let mut rect = None;
-                for display_list in self.display_list_collection.as_ref().unwrap().get().iter() {
-                    union_boxes_for_node(&mut rect, display_list.iter(), node);
+                match self.display_list {
+                    None => fail!("no display list!"),
+                    Some(ref display_list) => {
+                        union_boxes_for_node(&mut rect, display_list.get().iter(), node)
+                    }
                 }
                 reply_chan.send(ContentBoxResponse(rect.unwrap_or(Au::zero_rect())))
             }
             ContentBoxesQuery(node, reply_chan) => {
-                let node = OpaqueNode::from_script_node(node);
+                let node: OpaqueNode = OpaqueNodeMethods::from_script_node(node);
 
-                fn add_boxes_for_node<'a>(
-                                      accumulator: &mut ~[Rect<Au>],
-                                      mut iter: DisplayItemIterator<'a,OpaqueNode>,
+                fn add_boxes_for_node(accumulator: &mut ~[Rect<Au>],
+                                      mut iter: DisplayItemIterator,
                                       node: OpaqueNode) {
                     for item in iter {
                         add_boxes_for_node(accumulator, item.children(), node);
-                        if item.base().extra == node {
+                        if item.base().node == node {
                             accumulator.push(item.base().bounds)
                         }
                     }
                 }
 
                 let mut boxes = ~[];
-                for display_list in self.display_list_collection.as_ref().unwrap().get().iter() {
-                    add_boxes_for_node(&mut boxes, display_list.iter(), node);
+                match self.display_list {
+                    None => fail!("no display list!"),
+                    Some(ref display_list) => {
+                        add_boxes_for_node(&mut boxes, display_list.get().iter(), node)
+                    }
                 }
                 reply_chan.send(ContentBoxesResponse(boxes))
             }
             HitTestQuery(_, point, reply_chan) => {
-                fn hit_test(x: Au, y: Au, list: &[DisplayItem<OpaqueNode>])
+                fn hit_test(x: Au, y: Au, list: &[DisplayItem])
                             -> Option<HitTestResponse> {
                     for item in list.rev_iter() {
                         match *item {
                             ClipDisplayItemClass(ref cc) => {
-                                let ret = hit_test(x, y, cc.child_list);
-                                if !ret.is_none() {
-                                    return ret;
+                                if !cc.need_clip || geometry::rect_contains_point(cc.base.bounds,
+                                                                                  Point2D(x, y)) {
+                                    let ret = hit_test(x, y, cc.child_list.as_slice());
+                                    if !ret.is_none() {
+                                        return ret
+                                    }
                                 }
                             }
                             _ => {}
@@ -774,31 +800,35 @@ impl LayoutTask {
                                 y < bounds.origin.y + bounds.size.height &&
                                 bounds.origin.y <= y {
                             return Some(HitTestResponse(item.base()
-                                                            .extra
+                                                            .node
                                                             .to_untrusted_node_address()))
                         }
                     }
                     let ret: Option<HitTestResponse> = None;
                     ret
                 }
-                for display_list in self.display_list_collection.as_ref().unwrap().get().lists.rev_iter() {
-                    let (x, y) = (Au::from_frac_px(point.x as f64),
-                                  Au::from_frac_px(point.y as f64));
-                    let resp = hit_test(x,y,display_list.list);
-                    if resp.is_some() {
-                        reply_chan.send(Ok(resp.unwrap()));
-                        return
-                    }
+                let (x, y) = (Au::from_frac_px(point.x as f64),
+                              Au::from_frac_px(point.y as f64));
+                let resp = match self.display_list {
+                    None => fail!("no display list!"),
+                    Some(ref display_list) => hit_test(x, y, display_list.get().list.as_slice()),
+                };
+                if resp.is_some() {
+                    reply_chan.send(Ok(resp.unwrap()));
+                    return
                 }
                 reply_chan.send(Err(()));
 
             }
             MouseOverQuery(_, point, reply_chan) => {
-                fn mouse_over_test(x: Au, y: Au, list: &[DisplayItem<OpaqueNode>], result: &mut ~[UntrustedNodeAddress]) {
+                fn mouse_over_test(x: Au,
+                                   y: Au,
+                                   list: &[DisplayItem],
+                                   result: &mut ~[UntrustedNodeAddress]) {
                     for item in list.rev_iter() {
                         match *item {
                             ClipDisplayItemClass(ref cc) => {
-                                mouse_over_test(x, y, cc.child_list, result);
+                                mouse_over_test(x, y, cc.child_list.as_slice(), result);
                             }
                             _ => {}
                         }
@@ -814,18 +844,24 @@ impl LayoutTask {
                                 y < bounds.origin.y + bounds.size.height &&
                                 bounds.origin.y <= y {
                             result.push(item.base()
-                                            .extra
+                                            .node
                                             .to_untrusted_node_address());
                         }
                     }
                 }
 
                 let mut mouse_over_list:~[UntrustedNodeAddress] = ~[];
-                for display_list in self.display_list_collection.as_ref().unwrap().get().lists.rev_iter() {
-                    let (x, y) = (Au::from_frac_px(point.x as f64),
-                                  Au::from_frac_px(point.y as f64));
-                    mouse_over_test(x,y,display_list.list, &mut mouse_over_list);
-                }
+                let (x, y) = (Au::from_frac_px(point.x as f64),
+                              Au::from_frac_px(point.y as f64));
+                match self.display_list {
+                    None => fail!("no display list!"),
+                    Some(ref display_list) => {
+                        mouse_over_test(x,
+                                        y,
+                                        display_list.get().list.as_slice(),
+                                        &mut mouse_over_list);
+                    }
+                };
 
                 if mouse_over_list.is_empty() {
                     reply_chan.send(Err(()));

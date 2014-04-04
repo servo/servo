@@ -7,14 +7,11 @@
 use layout::block::BlockFlow;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
 use layout::flow::{TableCaptionFlowClass, FlowClass, Flow};
 use layout::wrapper::ThreadSafeLayoutNode;
 
-use std::cell::RefCell;
-use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::DisplayListCollection;
-use servo_util::geometry::Au;
+use gfx::display_list::StackingContext;
 
 /// A table formatting context.
 pub struct TableCaptionFlow {
@@ -34,19 +31,12 @@ impl TableCaptionFlow {
         self.block_flow.teardown();
     }
 
-    pub fn build_display_list_table_caption<E:ExtraDisplayListData>(
-                                           &mut self,
-                                           builder: &DisplayListBuilder,
-                                           container_block_size: &Size2D<Au>,
-                                           absolute_cb_abs_position: Point2D<Au>,
-                                           dirty: &Rect<Au>,
-                                           index: uint,
-                                           lists: &RefCell<DisplayListCollection<E>>)
-                                           -> uint {
+    pub fn build_display_list_table_caption(&mut self,
+                                            stacking_context: &mut StackingContext,
+                                            builder: &mut DisplayListBuilder,
+                                            info: &DisplayListBuildingInfo) {
         debug!("build_display_list_table_caption: same process as block flow");
-        self.block_flow.build_display_list_block(builder, container_block_size,
-                                                 absolute_cb_abs_position,
-                                                 dirty, index, lists)
+        self.block_flow.build_display_list_block(stacking_context, builder, info)
     }
 }
 
@@ -84,13 +74,6 @@ impl Flow for TableCaptionFlow {
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height: assigning height for table_caption");
         self.block_flow.assign_height(ctx);
-    }
-
-    /// table-caption has margins but is not collapsed with a sibling(table)
-    /// or its parents(table-wrapper).
-    /// Therefore, margins to be collapsed do not exist.
-    fn collapse_margins(&mut self, _: bool, _: &mut bool, _: &mut Au,
-                        _: &mut Au, _: &mut Au, _: &mut Au) {
     }
 
     fn debug_str(&self) -> ~str {

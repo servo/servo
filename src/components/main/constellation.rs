@@ -14,6 +14,7 @@ use script::script_task::{ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg};
 use script::layout_interface;
 use script::layout_interface::LayoutChan;
 use script::script_task::ScriptChan;
+use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
 use servo_msg::constellation_msg::{LoadCompleteMsg, LoadIframeUrlMsg, LoadUrlMsg, Msg, NavigateMsg};
@@ -97,15 +98,6 @@ pub struct SendableChildFrameTree {
     frame_tree: SendableFrameTree,
     rect: Option<Rect<f32>>,
 }
-
-// impl SendableFrameTree {
-//     fn contains(&self, id: PipelineId) -> bool {
-//         self.pipeline.id == id ||
-//         self.children.iter().any(|&SendableChildFrameTree { frame_tree: ref frame_tree, .. }| {
-//             frame_tree.contains(id)
-//         })
-//     }
-// }
 
 enum ReplaceResult {
     ReplacedNode(Rc<FrameTree>),
@@ -511,11 +503,12 @@ impl Constellation {
                 == subpage_id
         };
 
+        let frames = self.find_all(pipeline_id);
+
         {
             // Update a child's frame rect and inform its script task of the change,
             // if it hasn't been already. Optionally inform the compositor if 
             // resize happens immediately.
-            let compositor_chan = self.compositor_chan.clone();
             let update_child_rect = |child_frame_tree: &mut ChildFrameTree, is_active: bool| {
                 child_frame_tree.rect = Some(rect.clone());
                 // NOTE: work around borrowchk issues
@@ -524,21 +517,19 @@ impl Constellation {
                     let Size2D { width, height } = rect.size;
                     if is_active {
                         let pipeline = pipeline.get().borrow();
-                        let ScriptChan(ref chan) = pipeline.script_chan;
-                        chan.send(ResizeMsg(pipeline.id, Size2D {
+                        let ScriptChan(ref script_chan) = pipeline.script_chan;
+                        script_chan.send(ResizeMsg(pipeline.id, Size2D {
                             width:  width  as uint,
                             height: height as uint
                         }));
-                        compositor_chan.send(SetLayerClipRect(pipeline.id, rect));
+                        self.compositor_chan.send(SetLayerClipRect(pipeline.id,
+                                                                   LayerId::null(),
+                                                                   rect));
                     } else {
                         let pipeline = pipeline.get().borrow();
-                        let ScriptChan(ref chan) = pipeline.script_chan;
-                        chan.send(ResizeInactiveMsg(pipeline.id,
-                                                    Size2D(width as uint, height as uint)));
+                        already_sent.insert(pipeline.id);
                     }
-                    let pipeline = pipeline.get().borrow();
-                    already_sent.insert(pipeline.id);
-                }
+                };
             };
 
             // If the subframe is in the current frame tree, the compositor needs the new size
@@ -554,7 +545,6 @@ impl Constellation {
             }
 
             // Update all frames with matching pipeline- and subpage-ids
-            let frames = self.find_all(pipeline_id);
             for frame_tree in frames.iter() {
                 // NOTE: work around borrowchk issues
                 let mut tmp = frame_tree.borrow().children.borrow_mut();

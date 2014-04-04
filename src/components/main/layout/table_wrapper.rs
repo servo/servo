@@ -5,23 +5,20 @@
 //! CSS table formatting contexts.
 
 use layout::box_::Box;
-use layout::block::BlockFlow;
-use layout::block::{WidthAndMarginsComputer, WidthConstraintInput, WidthConstraintSolution};
+use layout::block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
+use layout::block::{WidthConstraintInput, WidthConstraintSolution};
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::floats::{FloatKind};
+use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
+use layout::floats::FloatKind;
 use layout::flow::{TableWrapperFlowClass, FlowClass, Flow, ImmutableFlowUtils};
-use layout::flow;
-use layout::model::{MaybeAuto, Specified, Auto, specified};
+use layout::model::{Specified, Auto, specified};
 use layout::wrapper::ThreadSafeLayoutNode;
 
-use std::cell::RefCell;
-use style::computed_values::table_layout;
-use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::DisplayListCollection;
+use gfx::display_list::StackingContext;
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use style::computed_values::table_layout;
 
 pub enum TableLayout {
     FixedLayout,
@@ -103,77 +100,22 @@ impl TableWrapperFlow {
 
     /// Assign height for table-wrapper flow.
     /// `Assign height` of table-wrapper flow follows a similar process to that of block flow.
-    /// However, table-wrapper flow doesn't consider collapsing margins for flow's children
-    /// and calculating padding/border.
     ///
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_height_table_wrapper_base(&mut self, ctx: &mut LayoutContext, inorder: bool) {
-
-        // Note: Ignoring clearance for absolute flows as of now.
-        let ignore_clear = self.is_absolutely_positioned();
-        let (clearance, top_offset, bottom_offset, left_offset) = self.block_flow.initialize_offsets(ignore_clear);
-
-        self.block_flow.handle_children_floats_if_necessary(ctx, inorder,
-                                                            left_offset, top_offset);
-
-        // Table wrapper flow has margin but is not collapsed with kids(table caption and table).
-        let (margin_top, margin_bottom, _, _) = self.block_flow.precompute_margin();
-
-        let mut cur_y = top_offset;
-
-        for kid in self.block_flow.base.child_iter() {
-            let child_node = flow::mut_base(kid);
-            child_node.position.origin.y = cur_y;
-            cur_y = cur_y + child_node.position.size.height;
-        }
-
-        // top_offset: top margin-edge of the topmost child.
-        // hence, height = content height
-        let mut height = cur_y - top_offset;
-
-        // For an absolutely positioned element, store the content height and stop the function.
-        if self.block_flow.store_content_height_if_absolutely_positioned(height) {
-            return;
-        }
-
-        for box_ in self.block_flow.box_.iter() {
-            let style = box_.style();
-
-            // At this point, `height` is the height of the containing block, so passing `height`
-            // as the second argument here effectively makes percentages relative to the containing
-            // block per CSS 2.1 § 10.5.
-            height = match MaybeAuto::from_style(style.Box.get().height, height) {
-                Auto => height,
-                Specified(value) => geometry::max(value, height)
-            };
-        }
-
-        self.block_flow.compute_height_position(&mut height,
-                                                Au(0),
-                                                margin_top,
-                                                margin_bottom,
-                                                clearance);
-
-        self.block_flow.set_floats_out_if_inorder(inorder, height, cur_y,
-                                                  top_offset, bottom_offset, left_offset);
-        self.block_flow.assign_height_absolute_flows(ctx);
+    fn assign_height_table_wrapper_base(&mut self,
+                                        layout_context: &mut LayoutContext,
+                                        inorder: bool) {
+        self.block_flow.assign_height_block_base(layout_context, inorder, MarginsMayNotCollapse);
     }
 
-    pub fn build_display_list_table_wrapper<E:ExtraDisplayListData>(
-                                            &mut self,
-                                            builder: &DisplayListBuilder,
-                                            container_block_size: &Size2D<Au>,
-                                            absolute_cb_abs_position: Point2D<Au>,
-                                            dirty: &Rect<Au>,
-                                            index: uint,
-                                            lists: &RefCell<DisplayListCollection<E>>)
-                                            -> uint {
+    pub fn build_display_list_table_wrapper(&mut self,
+                                            stacking_context: &mut StackingContext,
+                                            builder: &mut DisplayListBuilder,
+                                            info: &DisplayListBuildingInfo) {
         debug!("build_display_list_table_wrapper: same process as block flow");
-        self.block_flow.build_display_list_block(builder, container_block_size,
-                                                 absolute_cb_abs_position,
-                                                 dirty, index, lists)
+        self.block_flow.build_display_list_block(stacking_context, builder, info);
     }
 }
 
@@ -197,7 +139,7 @@ impl Flow for TableWrapperFlow {
     any boxes it is responsible for flowing.  */
 
     fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
-        /* find max width from child block contexts */
+        // get column widths info from table flow
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_table_caption() || kid.is_table());
 
@@ -227,8 +169,6 @@ impl Flow for TableWrapperFlow {
         let mut left_content_edge = Au::new(0);
         let mut content_width = containing_block_width;
 
-        self.block_flow.set_containing_width_if_float(containing_block_width);
-
         let width_computer = TableWrapper;
         width_computer.compute_used_width_table_wrapper(self, ctx, containing_block_width);
 
@@ -243,7 +183,12 @@ impl Flow for TableWrapperFlow {
             _ => {}
         }
 
-        self.block_flow.propagate_assigned_width_to_children(left_content_edge, content_width, None);
+        // In case of fixed layout, column widths are calculated in table flow.
+        let assigned_col_widths = match self.table_layout {
+            FixedLayout => None,
+            AutoLayout => Some(self.col_widths.clone())
+        };
+        self.block_flow.propagate_assigned_width_to_children(left_content_edge, content_width, assigned_col_widths);
     }
 
     /// This is called on kid flows by a parent.
@@ -268,26 +213,6 @@ impl Flow for TableWrapperFlow {
             debug!("assign_height: assigning height for table_wrapper");
             self.assign_height_table_wrapper_base(ctx, false);
         }
-    }
-
-    // CSS Section 8.3.1 - Collapsing Margins
-    // `self`: the Flow whose margins we want to collapse.
-    // `collapsing`: value to be set by this function. This tells us how much
-    // of the top margin has collapsed with a previous margin.
-    // `collapsible`: Potential collapsible margin at the bottom of this flow's box.
-    fn collapse_margins(&mut self,
-                        top_margin_collapsible: bool,
-                        first_in_flow: &mut bool,
-                        margin_top: &mut Au,
-                        top_offset: &mut Au,
-                        collapsing: &mut Au,
-                        collapsible: &mut Au) {
-        self.block_flow.collapse_margins(top_margin_collapsible,
-                                         first_in_flow,
-                                         margin_top,
-                                         top_offset,
-                                         collapsing,
-                                         collapsible);
     }
 
     fn debug_str(&self) -> ~str {
@@ -327,10 +252,12 @@ impl TableWrapper {
         let mut input = self.compute_width_constraint_inputs(&mut table_wrapper.block_flow,
                                                              parent_flow_width,
                                                              ctx);
-        match table_wrapper.table_layout {
+        let computed_width = match table_wrapper.table_layout {
             FixedLayout => {
                 let fixed_cells_width = table_wrapper.col_widths.iter().fold(Au(0),
                                                                              |sum, width| sum.add(width));
+
+                let mut computed_width = input.computed_width.specified_or_zero();
                 for box_ in table_wrapper.block_flow.box_.iter() {
                     let style = box_.style();
 
@@ -344,15 +271,72 @@ impl TableWrapper {
                     let border_left = style.Border.get().border_left_width;
                     let border_right = style.Border.get().border_right_width;
                     let padding_and_borders = padding_left + padding_right + border_left + border_right;
-                    let mut computed_width = input.computed_width.specified_or_zero();
                     // Compare border-edge widths. Because fixed_cells_width indicates content-width,
                     // padding and border values are added to fixed_cells_width.
                     computed_width = geometry::max(fixed_cells_width + padding_and_borders, computed_width);
-                    input.computed_width = Specified(computed_width);
                 }
+                computed_width
             },
-            _ => {}
-        }
+            AutoLayout => {
+                // Automatic table layout is calculated according to CSS 2.1 § 17.5.2.2.
+                let mut cap_min = Au(0);
+                let mut cols_min = Au(0);
+                let mut cols_max = Au(0);
+                let mut col_min_widths = &~[];
+                let mut col_pref_widths = &~[];
+                for kid in table_wrapper.block_flow.base.child_iter() {
+                    if kid.is_table_caption() {
+                        cap_min = kid.as_block().base.intrinsic_widths.minimum_width;
+                    } else {
+                        assert!(kid.is_table());
+                        cols_min = kid.as_block().base.intrinsic_widths.minimum_width;
+                        cols_max = kid.as_block().base.intrinsic_widths.preferred_width;
+                        col_min_widths = kid.col_min_widths();
+                        col_pref_widths = kid.col_pref_widths();
+                    }
+                }
+                // 'extra_width': difference between the calculated table width and minimum width
+                // required by all columns. It will be distributed over the columns.
+                let (width, extra_width) = match input.computed_width {
+                    Auto => {
+                        if input.available_width > geometry::max(cols_max, cap_min) {
+                            if cols_max > cap_min {
+                                table_wrapper.col_widths = col_pref_widths.clone();
+                                (cols_max, Au(0))
+                            } else {
+                                (cap_min, cap_min - cols_min)
+                            }
+                        } else {
+                            let max = if cols_min >= input.available_width && cols_min >= cap_min {
+                                table_wrapper.col_widths = col_min_widths.clone();
+                                cols_min
+                            } else {
+                                geometry::max(input.available_width, cap_min)
+                            };
+                            (max, max - cols_min)
+                        }
+                    },
+                    Specified(width) => {
+                        let max = if cols_min >= width && cols_min >= cap_min {
+                            table_wrapper.col_widths = col_min_widths.clone();
+                            cols_min
+                        } else {
+                            geometry::max(width, cap_min)
+                        };
+                        (max, max - cols_min)
+                    }
+                };
+                // The extra width is distributed over the columns
+                if extra_width > Au(0) {
+                    let cell_len = table_wrapper.col_widths.len() as f64;
+                    table_wrapper.col_widths = col_min_widths.map(|width| {
+                        width + extra_width.scale_by(1.0 / cell_len)
+                    });
+                }
+                width
+            }
+        };
+        input.computed_width = Specified(computed_width);
         input
     }
 }

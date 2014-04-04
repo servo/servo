@@ -32,10 +32,11 @@ def to_rust_ident(name):
     return name
 
 class Longhand(object):
-    def __init__(self, name):
+    def __init__(self, name, derived_from=None):
         self.name = name
         self.ident = to_rust_ident(name)
         self.style_struct = THIS_STYLE_STRUCT
+        self.derived_from = None if derived_from is None else to_rust_ident(derived_from)
 
 class Shorthand(object):
     def __init__(self, name, sub_properties):
@@ -53,6 +54,7 @@ STYLE_STRUCTS = []
 THIS_STYLE_STRUCT = None
 LONGHANDS = []
 LONGHANDS_BY_NAME = {}
+DERIVED_LONGHANDS = {}
 SHORTHANDS = []
 
 def new_style_struct(name, is_inherited):
@@ -81,12 +83,13 @@ pub mod longhands {
         value
     }
 
-    <%def name="raw_longhand(name, no_super=False)">
+    <%def name="raw_longhand(name, no_super=False, derived_from=None)">
     <%
-        property = Longhand(name)
+        property = Longhand(name, derived_from=derived_from)
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
         LONGHANDS_BY_NAME[name] = property
+        DERIVED_LONGHANDS.setdefault(derived_from, []).append(property)
     %>
         pub mod ${property.ident} {
             % if not no_super:
@@ -94,30 +97,34 @@ pub mod longhands {
             % endif
             pub use self::computed_value::*;
             ${caller.body()}
-            pub fn parse_declared(input: &[ComponentValue], base_url: &Url)
-                               -> Option<DeclaredValue<SpecifiedValue>> {
-                match CSSWideKeyword::parse(input) {
-                    Some(Some(keyword)) => Some(CSSWideKeyword(keyword)),
-                    Some(None) => Some(CSSWideKeyword(${
-                        "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"})),
-                    None => parse_specified(input, base_url),
+            % if derived_from is None:
+                pub fn parse_declared(input: &[ComponentValue], base_url: &Url)
+                                   -> Option<DeclaredValue<SpecifiedValue>> {
+                    match CSSWideKeyword::parse(input) {
+                        Some(Some(keyword)) => Some(CSSWideKeyword(keyword)),
+                        Some(None) => Some(CSSWideKeyword(${
+                            "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"})),
+                        None => parse_specified(input, base_url),
+                    }
                 }
-            }
+            % endif
         }
     </%def>
 
-    <%def name="longhand(name, no_super=False)">
-        <%self:raw_longhand name="${name}">
+    <%def name="longhand(name, no_super=False, derived_from=None)">
+        <%self:raw_longhand name="${name}" derived_from="${derived_from}">
             ${caller.body()}
-            pub fn parse_specified(input: &[ComponentValue], base_url: &Url)
-                               -> Option<DeclaredValue<SpecifiedValue>> {
-                parse(input, base_url).map(super::SpecifiedValue)
-            }
+            % if derived_from is None:
+                pub fn parse_specified(_input: &[ComponentValue], _base_url: &Url)
+                                   -> Option<DeclaredValue<SpecifiedValue>> {
+                    parse(_input, _base_url).map(super::SpecifiedValue)
+                }
+            % endif
         </%self:raw_longhand>
     </%def>
 
-    <%def name="single_component_value(name)">
-        <%self:longhand name="${name}">
+    <%def name="single_component_value(name, derived_from=None)">
+        <%self:longhand name="${name}" derived_from="${derived_from}">
             ${caller.body()}
             pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<SpecifiedValue> {
                 one_component_value(input).and_then(|c| from_component_value(c, base_url))
@@ -307,14 +314,41 @@ pub mod longhands {
     ${predefined_type("width", "LengthOrPercentageOrAuto",
                       "computed::LPA_Auto",
                       "parse_non_negative")}
-    ${predefined_type("height", "LengthOrPercentageOrAuto",
-                      "computed::LPA_Auto",
-                      "parse_non_negative")}
+    <%self:single_component_value name="height">
+        pub type SpecifiedValue = specified::LengthOrPercentageOrAuto;
+        pub mod computed_value {
+            pub type T = super::super::computed::LengthOrPercentageOrAuto;
+        }
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T { computed::LPA_Auto }
+        #[inline]
+        pub fn from_component_value(v: &ComponentValue, _base_url: &Url)
+                                              -> Option<SpecifiedValue> {
+            specified::LengthOrPercentageOrAuto::parse_non_negative(v)
+        }
+        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                              -> computed_value::T {
+            match (value, context.inherited_height) {
+                (specified::LPA_Percentage(_), computed::LPA_Auto)
+                if !context.is_root_element && !context.positioned => {
+                    computed::LPA_Auto
+                },
+                _ => computed::compute_LengthOrPercentageOrAuto(value, context)
+            }
+        }
+    </%self:single_component_value>
 
     ${predefined_type("min-width", "LengthOrPercentage",
                       "computed::LP_Length(Au(0))",
                       "parse_non_negative")}
     ${predefined_type("max-width", "LengthOrPercentageOrNone",
+                      "computed::LPN_None",
+                      "parse_non_negative")}
+
+    ${predefined_type("min-height", "LengthOrPercentage",
+                      "computed::LP_Length(Au(0))",
+                      "parse_non_negative")}
+    ${predefined_type("max-height", "LengthOrPercentageOrNone",
                       "computed::LPN_None",
                       "parse_non_negative")}
 
@@ -365,6 +399,40 @@ pub mod longhands {
             }
         }
     </%self:single_component_value>
+
+    <%self:longhand name="-servo-minimum-line-height" derived_from="line-height">
+        use super::Au;
+        use super::super::common_types::DEFAULT_LINE_HEIGHT;
+        use super::super::longhands::display;
+        use super::super::longhands::line_height;
+
+        pub use to_computed_value = super::computed_as_specified;
+
+        pub type SpecifiedValue = line_height::SpecifiedValue;
+
+        pub mod computed_value {
+            pub type T = super::super::Au;
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            Au(0)
+        }
+
+        #[inline]
+        pub fn derive(value: line_height::computed_value::T, context: &computed::Context)
+                      -> Au {
+            if context.display != display::computed_value::inline {
+                match value {
+                    line_height::Normal => context.font_size.scale_by(DEFAULT_LINE_HEIGHT),
+                    line_height::Number(percentage) => context.font_size.scale_by(percentage),
+                    line_height::Length(length) => length,
+                }
+            } else {
+                context.inherited_minimum_line_height
+            }
+        }
+    </%self:longhand>
 
     ${switch_to_style_struct("Box")}
 
@@ -519,6 +587,81 @@ pub mod longhands {
             }
     </%self:single_component_value>
 
+    <%self:longhand name="background-position">
+            use super::super::common_types::specified;
+
+            pub mod computed_value {
+                use super::super::super::common_types::computed::LengthOrPercentage;
+
+                #[deriving(Eq, Clone)]
+                pub struct T {
+                    horizontal: LengthOrPercentage,
+                    vertical: LengthOrPercentage,
+                }
+            }
+
+            #[deriving(Clone)]
+            pub struct SpecifiedValue {
+                horizontal: specified::LengthOrPercentage,
+                vertical: specified::LengthOrPercentage,
+            }
+
+            #[inline]
+            pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                                     -> computed_value::T {
+                computed_value::T {
+                    horizontal: computed::compute_LengthOrPercentage(value.horizontal, context),
+                    vertical: computed::compute_LengthOrPercentage(value.vertical, context),
+                }
+            }
+
+            #[inline]
+            pub fn get_initial_value() -> computed_value::T {
+                computed_value::T {
+                    horizontal: computed::LP_Percentage(0.0),
+                    vertical: computed::LP_Percentage(0.0),
+                }
+            }
+
+            // FIXME(#1997, pcwalton): Support complete CSS2 syntax.
+            pub fn parse_horizontal_and_vertical(horiz: &ComponentValue, vert: &ComponentValue)
+                                                 -> Option<SpecifiedValue> {
+                let horiz = match specified::LengthOrPercentage::parse_non_negative(horiz) {
+                    None => return None,
+                    Some(value) => value,
+                };
+
+                let vert = match specified::LengthOrPercentage::parse_non_negative(vert) {
+                    None => return None,
+                    Some(value) => value,
+                };
+
+                Some(SpecifiedValue {
+                    horizontal: horiz,
+                    vertical: vert,
+                })
+            }
+
+            pub fn parse(input: &[ComponentValue], _: &Url) -> Option<SpecifiedValue> {
+                let mut input_iter = input.skip_whitespace();
+                let horizontal = input_iter.next();
+                let vertical = input_iter.next();
+                if input_iter.next().is_some() {
+                    return None
+                }
+
+                match (horizontal, vertical) {
+                    (Some(horizontal), Some(vertical)) => {
+                        parse_horizontal_and_vertical(horizontal, vertical)
+                    }
+                    _ => None
+                }
+            }
+    </%self:longhand>
+
+    ${single_keyword("background-repeat", "repeat repeat-x repeat-y no-repeat")}
+
+    ${single_keyword("background-attachment", "scroll fixed")}
 
     ${new_style_struct("Color", is_inherited=True)}
 
@@ -866,29 +1009,97 @@ pub mod shorthands {
     </%def>
 
     // TODO: other background-* properties
-    <%self:shorthand name="background" sub_properties="background-color background-image">
-                let mut color = None;
-                let mut image = None;
+    <%self:shorthand name="background"
+                     sub_properties="background-color background-position background-repeat background-attachment background-image">
+                use std::mem;
+
+                let (mut color, mut image, mut position, mut repeat, mut attachment) =
+                    (None, None, None, None, None);
+                let mut last_component_value = None;
                 let mut any = false;
 
                 for component_value in input.skip_whitespace() {
                     if color.is_none() {
                         match background_color::from_component_value(component_value, base_url) {
-                            Some(v) => { color = Some(v); any = true; continue },
+                            Some(v) => {
+                                color = Some(v);
+                                any = true;
+                                continue
+                            },
                             None => ()
                         }
                     }
 
                     if image.is_none() {
                         match background_image::from_component_value(component_value, base_url) {
-                            Some(v) => { image = Some(v); any = true; continue },
+                            Some(v) => {
+                                image = Some(v);
+                                any = true;
+                                continue
+                            },
                             None => (),
                         }
                     }
-                    return None;
+
+                    if repeat.is_none() {
+                        match background_repeat::from_component_value(component_value, base_url) {
+                            Some(v) => {
+                                repeat = Some(v);
+                                any = true;
+                                continue
+                            },
+                            None => ()
+                        }
+                    }
+
+                    if attachment.is_none() {
+                        match background_attachment::from_component_value(component_value,
+                                                                          base_url) {
+                            Some(v) => {
+                                attachment = Some(v);
+                                any = true;
+                                continue
+                            },
+                            None => ()
+                        }
+                    }
+
+                    match mem::replace(&mut last_component_value, None) {
+                        Some(saved_component_value) => {
+                            if position.is_none() {
+                                match background_position::parse_horizontal_and_vertical(
+                                        saved_component_value,
+                                        component_value) {
+                                    Some(v) => {
+                                        position = Some(v);
+                                        any = true;
+                                        continue
+                                    },
+                                    None => (),
+                                }
+                            }
+
+                            // If we get here, parsing failed.
+                            return None
+                        }
+                        None => {
+                            // Save the component value.
+                            last_component_value = Some(component_value)
+                        }
+                    }
                 }
-                if any { Some(Longhands { background_color: color, background_image: image }) }
-                else { None }
+
+                if any && last_component_value.is_none() {
+                    Some(Longhands {
+                        background_color: color,
+                        background_image: image,
+                        background_position: position,
+                        background_repeat: repeat,
+                        background_attachment: attachment,
+                    })
+                } else {
+                    None
+                }
     </%self:shorthand>
 
     ${four_sides_shorthand("margin", "margin-%s", "margin_top::from_component_value")}
@@ -1137,12 +1348,16 @@ impl PropertyDeclaration {
         let name_lower = tmp_for_lifetime.as_str_ascii();
         match name_lower.as_slice() {
             % for property in LONGHANDS:
-                "${property.name}" => result_list.push(${property.ident}_declaration(
-                    match longhands::${property.ident}::parse_declared(value, base_url) {
-                        Some(value) => value,
-                        None => return InvalidValue,
-                    }
-                )),
+                % if property.derived_from is None:
+                    "${property.name}" => result_list.push(${property.ident}_declaration(
+                        match longhands::${property.ident}::parse_declared(value, base_url) {
+                            Some(value) => value,
+                            None => return InvalidValue,
+                        }
+                    )),
+                % else:
+                    "${property.name}" => {}
+                % endif
             % endfor
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => match CSSWideKeyword::parse(value) {
@@ -1254,26 +1469,44 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                 % for style_struct in STYLE_STRUCTS:
                     % if style_struct.inherited:
                         % for property in style_struct.longhands:
-                            ${property.ident}_declaration(ref declared_value) => {
-                                style_${style_struct.name}.get_mut().${property.ident} =
-                                match *declared_value {
-                                    SpecifiedValue(ref specified_value)
-                                    => longhands::${property.ident}::to_computed_value(
-                                        (*specified_value).clone(),
-                                        context
-                                    ),
-                                    CSSWideKeyword(Initial)
-                                    => longhands::${property.ident}::get_initial_value(),
-                                    CSSWideKeyword(Inherit) => {
-                                        // This is a bit slow, but this is rare so it shouldn't matter.
-                                        // FIXME: is it still?
-                                        parent_style.${style_struct.name}
-                                                    .get()
-                                                    .${property.ident}
-                                                    .clone()
-                                    }
+                            % if property.derived_from is None:
+                                ${property.ident}_declaration(ref declared_value) => {
+                                    let computed_value = match *declared_value {
+                                        SpecifiedValue(ref specified_value)
+                                        => longhands::${property.ident}::to_computed_value(
+                                            (*specified_value).clone(),
+                                            context
+                                        ),
+                                        CSSWideKeyword(Initial)
+                                        => longhands::${property.ident}::get_initial_value(),
+                                        CSSWideKeyword(Inherit) => {
+                                            // This is a bit slow, but this is rare so it shouldn't
+                                            // matter.
+                                            //
+                                            // FIXME: is it still?
+                                            parent_style.${style_struct.name}
+                                                        .get()
+                                                        .${property.ident}
+                                                        .clone()
+                                        }
+                                    };
+                                    style_${style_struct.name}.get_mut().${property.ident} =
+                                        computed_value;
+
+                                    % if property.name in DERIVED_LONGHANDS:
+                                        % for derived in DERIVED_LONGHANDS[property.name]:
+                                            style_${derived.style_struct.name}.get_mut()
+                                                .${derived.ident} =
+                                                longhands::${derived.ident}::derive(computed_value,
+                                                                                    context);
+                                        % endfor
+                                    % endif
                                 }
-                            }
+                            % else:
+                                ${property.ident}_declaration(_) => {
+                                    // Ignore derived properties; they cannot be set by content.
+                                }
+                            % endif
                         % endfor
                     % endif
                 % endfor
@@ -1325,8 +1558,13 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
             is_root_element: is_root_element,
             inherited_font_weight: inherited_font_style.font_weight,
             inherited_font_size: inherited_font_style.font_size,
+            inherited_height: inherited_style.Box.get().height,
+            inherited_minimum_line_height: inherited_style.InheritedBox
+                                                          .get()
+                                                          ._servo_minimum_line_height,
             // To be overridden by applicable declarations:
             font_size: inherited_font_style.font_size,
+            display: longhands::display::get_initial_value(),
             color: inherited_style.Color.get().color,
             positioned: false,
             floated: false,
@@ -1362,6 +1600,9 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                 }
                 color_declaration(ref value) => {
                     context.color = get_specified!(Color, color, value);
+                }
+                display_declaration(ref value) => {
+                    context.display = get_specified!(Box, display, value);
                 }
                 position_declaration(ref value) => {
                     context.positioned = match get_specified!(Box, position, value) {
@@ -1414,27 +1655,45 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
             match *declaration {
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:
-                        ${property.ident}_declaration(ref declared_value) => {
-                            style_${style_struct.name}.get_mut().${property.ident} =
-                            match *declared_value {
-                                SpecifiedValue(ref specified_value)
-                                => longhands::${property.ident}::to_computed_value(
-                                    (*specified_value).clone(),
-                                    &context
-                                ),
-                                CSSWideKeyword(Initial)
-                                => longhands::${property.ident}::get_initial_value(),
-                                CSSWideKeyword(Inherit) => {
-                                    // This is a bit slow, but this is rare so it shouldn't matter.
-                                    // FIXME: is it still?
-                                    cacheable = false;
-                                    inherited_style.${style_struct.name}
-                                                   .get()
-                                                   .${property.ident}
-                                                   .clone()
-                                }
+                        % if property.derived_from is None:
+                            ${property.ident}_declaration(ref declared_value) => {
+                                let computed_value = match *declared_value {
+                                    SpecifiedValue(ref specified_value)
+                                    => longhands::${property.ident}::to_computed_value(
+                                        (*specified_value).clone(),
+                                        &context
+                                    ),
+                                    CSSWideKeyword(Initial)
+                                    => longhands::${property.ident}::get_initial_value(),
+                                    CSSWideKeyword(Inherit) => {
+                                        // This is a bit slow, but this is rare so it shouldn't
+                                        // matter.
+                                        //
+                                        // FIXME: is it still?
+                                        cacheable = false;
+                                        inherited_style.${style_struct.name}
+                                                       .get()
+                                                       .${property.ident}
+                                                       .clone()
+                                    }
+                                };
+                                style_${style_struct.name}.get_mut().${property.ident} =
+                                    computed_value;
+
+                                % if property.name in DERIVED_LONGHANDS:
+                                    % for derived in DERIVED_LONGHANDS[property.name]:
+                                        style_${derived.style_struct.name}.get_mut()
+                                            .${derived.ident} =
+                                            longhands::${derived.ident}::derive(computed_value,
+                                                                                &context);
+                                    % endfor
+                                % endif
                             }
-                        }
+                        % else:
+                            ${property.ident}_declaration(_) => {
+                                // Ignore derived properties; they cannot be set by content.
+                            }
+                        % endif
                     % endfor
                 % endfor
             }
