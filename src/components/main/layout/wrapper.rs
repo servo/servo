@@ -33,7 +33,6 @@
 //!   o Instead of `html_element_in_html_document()`, use
 //!     `html_element_in_html_document_for_layout()`.
 
-use extra::url::Url;
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, TextDerived};
 use script::dom::bindings::js::JS;
@@ -52,6 +51,7 @@ use style::{PropertyDeclarationBlock, TElement, TNode, AttrSelector, SpecificNam
 use style::{AnyNamespace};
 use style::computed_values::{content, display};
 use layout::util::LayoutDataWrapper;
+use url::Url;
 
 /// Allows some convenience methods on generic layout nodes.
 pub trait TLayoutNode {
@@ -465,7 +465,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     fn text(&self) -> ~str {
         if self.pseudo == Before || self.pseudo == After {
             let layout_data_ref = self.borrow_layout_data();
-            let node_layout_data_wrapper = layout_data_ref.get().get_ref();
+            let node_layout_data_wrapper = layout_data_ref.get_ref();
 
             if self.pseudo == Before {
                 let before_style = node_layout_data_wrapper.data.before_style.get_ref();
@@ -557,7 +557,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn is_block(&self, kind: ElementType) -> bool {
         let mut layout_data_ref = self.mutate_layout_data();
-        let node_layout_data_wrapper = layout_data_ref.get().get_mut_ref();
+        let node_layout_data_wrapper = layout_data_ref.get_mut_ref();
 
         let display = match kind {
             Before | BeforeBlock => {
@@ -579,13 +579,13 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn has_before_pseudo(&self) -> bool {
         let layout_data_wrapper = self.borrow_layout_data();
-        let layout_data_wrapper_ref = layout_data_wrapper.get().get_ref();
+        let layout_data_wrapper_ref = layout_data_wrapper.get_ref();
         layout_data_wrapper_ref.data.before_style.is_some()
     }
 
     pub fn has_after_pseudo(&self) -> bool {
         let layout_data_wrapper = self.borrow_layout_data();
-        let layout_data_wrapper_ref = layout_data_wrapper.get().get_ref();
+        let layout_data_wrapper_ref = layout_data_wrapper.get_ref();
         layout_data_wrapper_ref.data.after_style.is_some()
     }
 

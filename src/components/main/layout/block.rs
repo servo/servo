@@ -755,8 +755,7 @@ impl BlockFlow {
                 // Consume all the static y-offsets bubbled up by kid.
                 for y_offset in kid_base.abs_descendants.static_y_offsets.move_iter() {
                     // The offsets are wrt the kid flow box. Translate them to current flow.
-                    y_offset = y_offset + kid_base.position.origin.y;
-                    abs_descendant_y_offsets.push(y_offset);
+                    abs_descendant_y_offsets.push(y_offset + kid_base.position.origin.y);
                 }
             }
         }
@@ -1533,10 +1532,6 @@ impl Flow for BlockFlow {
         self
     }
 
-    fn is_store_overflow_delayed(&mut self) -> bool {
-        self.is_absolutely_positioned()
-    }
-
     /* Recursively (bottom-up) determine the context's preferred and
     minimum widths.  When called on this context, all child contexts
     have had their min/pref widths set. This function must decide
@@ -1897,10 +1892,10 @@ pub trait WidthAndMarginsComputer {
         // The associated box is the border box of this flow.
         let mut position_ref = box_.border_box.borrow_mut();
         // Left border edge.
-        position_ref.get().origin.x = box_.margin.get().left;
+        position_ref.origin.x = box_.margin.borrow().left;
 
         // Border box width
-        position_ref.get().size.width = solution.width + box_.noncontent_width();
+        position_ref.size.width = solution.width + box_.noncontent_width();
     }
 
     /// Set the x coordinate of the given flow if it is absolutely positioned.

@@ -17,6 +17,7 @@ use js::jsval::JSVal;
 use js::jsval::{NullValue, BooleanValue, Int32Value, UInt32Value, StringValue};
 use js::jsval::ObjectValue;
 use js::glue::RUST_JS_NumberValue;
+use std::default::Default;
 use std::libc;
 
 pub trait ToJSValConvertible {

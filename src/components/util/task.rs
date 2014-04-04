@@ -4,7 +4,7 @@
 
 use std::str::IntoMaybeOwned;
 use std::task;
-use std::comm::Chan;
+use std::comm::Sender;
 use std::task::TaskBuilder;
 
 pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc()) {
@@ -14,7 +14,7 @@ pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc()) {
 
 /// Arrange to send a particular message to a channel if the task built by
 /// this `TaskBuilder` fails.
-pub fn send_on_failure<T: Send>(builder: &mut TaskBuilder, msg: T, dest: Chan<T>) {
+pub fn send_on_failure<T: Send>(builder: &mut TaskBuilder, msg: T, dest: Sender<T>) {
     let port = builder.future_result();
     spawn(proc() {
         match port.recv() {

@@ -44,7 +44,6 @@ use layout::util::{LayoutDataAccess, OpaqueNodeMethods};
 use layout::wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
 use layout::wrapper::{Before, BeforeBlock, After, AfterBlock, Normal};
 
-use extra::url::Url;
 use gfx::display_list::OpaqueNode;
 use gfx::font_context::FontContext;
 use script::dom::bindings::codegen::InheritTypes::TextCast;
@@ -68,6 +67,7 @@ use std::num::Zero;
 use style::ComputedValues;
 use style::computed_values::{display, position, float, white_space};
 use sync::Arc;
+use url::Url;
 
 /// The results of flow construction for a DOM node.
 pub enum ConstructionResult {
@@ -683,11 +683,11 @@ impl<'a> FlowConstructor<'a> {
         let parent_box = Box::new(self, parent_node);
         let font_style = parent_box.font_style();
         let font_group = self.font_context().get_resolved_font_for_style(&font_style);
-        let (font_ascent,font_descent) = font_group.borrow().with_mut( |fg| {
-            fg.fonts[0].borrow().with_mut( |font| {
-                (font.metrics.ascent,font.metrics.descent)
-            })
-        });
+        let (font_ascent,font_descent) = {
+            let fg = font_group.borrow();
+            let font = fg.fonts[0].borrow();
+            (font.metrics.ascent,font.metrics.descent)
+        };
 
         let boxes_len = boxes.len();
         parent_box.compute_borders(parent_box.style());
@@ -697,8 +697,9 @@ impl<'a> FlowConstructor<'a> {
         parent_box.compute_padding(parent_box.style(), Au(0));
 
         for (i, box_) in boxes.iter().enumerate() {
-            if box_.inline_info.with( |data| data.is_none() ) {
-                box_.inline_info.set(Some(InlineInfo::new()));
+            let mut info = box_.inline_info.borrow_mut();
+            if info.is_none() {
+                *info = Some(InlineInfo::new());
             }
 
             let mut border = parent_box.border.get();
@@ -712,8 +713,7 @@ impl<'a> FlowConstructor<'a> {
                 padding.right = Zero::zero()
             }
 
-            let mut info = box_.inline_info.borrow_mut();
-            match info.get() {
+            match &mut *info {
                 &Some(ref mut info) => {
                     // TODO(ksh8281): Compute margins.
                     info.parent_info.push(InlineParentInfo {
@@ -1122,8 +1122,8 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
     #[inline(always)]
     fn set_flow_construction_result(&self, result: ConstructionResult) {
         let mut layout_data_ref = self.mutate_layout_data();
-        match *layout_data_ref.get() {
-            Some(ref mut layout_data) =>{
+        match &mut *layout_data_ref {
+            &Some(ref mut layout_data) =>{
                 match self.get_element_type() {
                     Before | BeforeBlock => {
                         layout_data.data.before_flow_construction_result = result
@@ -1134,15 +1134,15 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
                     Normal => layout_data.data.flow_construction_result = result,
                 }
             },
-            None => fail!("no layout data"),
+            &None => fail!("no layout data"),
         }
     }
 
     #[inline(always)]
     fn swap_out_construction_result(&self) -> ConstructionResult {
         let mut layout_data_ref = self.mutate_layout_data();
-        match *layout_data_ref.get() {
-            Some(ref mut layout_data) => {
+        match &mut *layout_data_ref {
+            &Some(ref mut layout_data) => {
                 match self.get_element_type() {
                     Before | BeforeBlock => {
                         mem::replace(&mut layout_data.data.before_flow_construction_result,
@@ -1158,7 +1158,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
                     }
                 }
             }
-            None => fail!("no layout data"),
+            &None => fail!("no layout data"),
         }
     }
 }

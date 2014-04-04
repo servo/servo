@@ -6,7 +6,6 @@
 
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
-use extra::url::Url;
 use geom::size::Size2D;
 use gfx::display_list::OpaqueNode;
 use gfx::font_context::{FontContext, FontContextInfo};
@@ -23,6 +22,7 @@ use std::rt::local::Local;
 use std::rt::task::Task;
 use style::{ComputedValues, Stylist};
 use sync::{Arc, MutexArc};
+use url::Url;
 
 #[thread_local]
 static mut FONT_CONTEXT: *mut FontContext = 0 as *mut FontContext;

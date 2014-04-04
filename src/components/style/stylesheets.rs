@@ -4,7 +4,7 @@
 
 use std::iter::Iterator;
 use std::ascii::StrAsciiExt;
-use extra::url::Url;
+use url::Url;
 
 use encoding::EncodingRef;
 

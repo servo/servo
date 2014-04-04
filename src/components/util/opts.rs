@@ -15,7 +15,7 @@ use std::os;
 #[deriving(Clone)]
 pub struct Opts {
     /// The initial URLs to load.
-    urls: ~[~str],
+    urls: Vec<~str>,
 
     /// The rendering backend to use (`-r`).
     render_backend: BackendType,

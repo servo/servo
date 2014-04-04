@@ -31,13 +31,13 @@ impl<T> Drop for CowArc<T> {
     }
 }
 
-impl<T:Eq + Freeze + Clone> Eq for CowArc<T> {
+impl<T:Eq + Clone> Eq for CowArc<T> {
     fn eq(&self, other: &CowArc<T>) -> bool {
         self.get() == other.get()
     }
 }
 
-impl<T:Freeze + Clone> Clone for CowArc<T> {
+impl<T:Clone> Clone for CowArc<T> {
     #[inline]
     fn clone(&self) -> CowArc<T> {
         unsafe {
@@ -49,7 +49,7 @@ impl<T:Freeze + Clone> Clone for CowArc<T> {
     }
 }
 
-impl<T:Freeze + Clone> CowArc<T> {
+impl<T:Clone> CowArc<T> {
     #[inline]
     pub fn new(value: T) -> CowArc<T> {
         let alloc = ~CowArcAlloc {

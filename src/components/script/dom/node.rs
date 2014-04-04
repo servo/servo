@@ -162,14 +162,12 @@ impl LayoutDataRef {
     /// Returns true if there is layout data present.
     #[inline]
     pub fn is_present(&self) -> bool {
-        let data_ref = self.data_cell.borrow();
-        data_ref.get().is_some()
+        self.data_cell.borrow().is_some()
     }
 
     /// Take the chan out of the layout data if it is present.
     pub fn take_chan(&self) -> Option<LayoutChan> {
-        let mut data_ref = self.data_cell.borrow_mut();
-        let layout_data = data_ref.get();
+        let mut layout_data = self.data_cell.borrow_mut();
         match *layout_data {
             None => None,
             Some(..) => Some(layout_data.get_mut_ref().chan.take_unwrap()),
@@ -1353,7 +1351,7 @@ impl Node {
         if copy.is_document() {
             document = DocumentCast::to(&copy).unwrap();
         }
-        assert_eq!(copy.get().owner_doc(), &document);
+        assert!(copy.get().owner_doc() == &document);
 
         // Step 4 (some data already copied in step 2).
         match node.type_id() {

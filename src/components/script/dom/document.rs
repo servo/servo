@@ -40,9 +40,9 @@ use servo_util::namespace::{Namespace, Null};
 use servo_util::str::DOMString;
 
 use collections::hashmap::HashMap;
-use extra::url::{Url, from_str};
 use js::jsapi::JSContext;
 use std::ascii::StrAsciiExt;
+use url::{Url, from_str};
 
 use serialize::{Encoder, Encodable};
 
@@ -610,12 +610,15 @@ impl Document {
 
         // TODO: support the case if multiple elements
         // which haves same id are in the same document.
-        self.idmap.mangle(id, element,
-                          |_, new_element: &JS<Element>| -> JS<Element> {
-                              new_element.clone()
-                          },
-                          |_, old_element: &mut JS<Element>, new_element: &JS<Element>| {
-                              *old_element = new_element.clone();
-                          });
+        // FIXME https://github.com/mozilla/rust/issues/13195
+        //       Use mangle() when it exists again.
+        match self.idmap.find_mut(&id) {
+            Some(v) => {
+                *v = element.clone();
+                return;
+            },
+            None => (),
+        }
+        self.idmap.insert(id, element.clone());
     }
 }

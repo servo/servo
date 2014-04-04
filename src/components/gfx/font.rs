@@ -166,9 +166,7 @@ impl FontGroup {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        self.fonts[0].borrow().with_mut(|font| {
-            TextRun::new(font, text.clone(), decoration)
-        })
+        TextRun::new(&mut *self.fonts[0].borrow_mut(), text.clone(), decoration)
     }
 }
 

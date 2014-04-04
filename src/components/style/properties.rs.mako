@@ -8,7 +8,7 @@
 
 pub use servo_util::url::parse_url;
 use sync::Arc;
-pub use extra::url::Url;
+pub use url::Url;
 use servo_util::cowarc::CowArc;
 
 pub use cssparser::*;
@@ -568,7 +568,7 @@ pub mod longhands {
             // The computed value is the same as the specified value.
             pub use to_computed_value = super::computed_as_specified;
             pub mod computed_value {
-                pub use extra::url::Url;
+                pub use url::Url;
                 pub type T = Option<Url>;
             }
             pub type SpecifiedValue = computed_value::T;

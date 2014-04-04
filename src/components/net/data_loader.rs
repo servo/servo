@@ -4,8 +4,8 @@
 
 use resource_task::{Done, Payload, Metadata, LoadResponse, LoaderTask, start_sending};
 
-use extra::url::Url;
 use serialize::base64::FromBase64;
+use url::Url;
 
 use http::headers::test_utils::from_stream_with_str;
 use http::headers::content_type::MediaType;
@@ -19,7 +19,7 @@ pub fn factory() -> LoaderTask {
     }
 }
 
-fn load(url: Url, start_chan: Chan<LoadResponse>) {
+fn load(url: Url, start_chan: Sender<LoadResponse>) {
     assert!("data" == url.scheme);
 
     let mut metadata = Metadata::default(url.clone());
@@ -71,8 +71,9 @@ fn assert_parse(url:          &'static str,
                 charset:      Option<~str>,
                 data:         Option<~[u8]>) {
     use std::from_str::FromStr;
+    use std::comm;
 
-    let (start_port, start_chan) = Chan::new();
+    let (start_chan, start_port) = comm::channel();
     load(FromStr::from_str(url).unwrap(), start_chan);
 
     let response = start_port.recv();
