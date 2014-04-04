@@ -9,7 +9,8 @@
 #[feature(globs, macro_rules, managed_boxes, phase, thread_local)];
 
 #[feature(phase)];
-#[phase(syntax, link)] extern crate log;
+#[phase(syntax, link)]
+extern crate log;
 
 extern crate alert;
 extern crate azure;

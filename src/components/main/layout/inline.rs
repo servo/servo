@@ -853,10 +853,11 @@ impl Flow for InlineFlow {
                 cur_box.border_box.borrow_mut().origin.y = cur_box.border_box.get().origin.y +
                     adjust_offset;
 
-                if { cur_box.inline_info.borrow().is_none() } {
-                    cur_box.inline_info.set(Some(InlineInfo::new()));
+                let mut info = cur_box.inline_info.borrow_mut();
+                if info.is_none() {
+                    *info = Some(InlineInfo::new());
                 }
-                match &mut *cur_box.inline_info.borrow_mut() {
+                match &mut *info {
                     &Some(ref mut info) => {
                         // TODO (ksh8281) compute vertical-align, line-height
                         info.baseline = line.bounds.origin.y + baseline_offset;

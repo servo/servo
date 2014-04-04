@@ -11,7 +11,8 @@
 #[feature(globs, macro_rules, struct_variant, managed_boxes, phase)];
 
 #[feature(phase)];
-#[phase(syntax, link)] extern crate log;
+#[phase(syntax, link)]
+extern crate log;
 
 extern crate collections;
 extern crate geom;

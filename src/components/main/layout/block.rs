@@ -755,8 +755,7 @@ impl BlockFlow {
                 // Consume all the static y-offsets bubbled up by kid.
                 for y_offset in kid_base.abs_descendants.static_y_offsets.move_iter() {
                     // The offsets are wrt the kid flow box. Translate them to current flow.
-                    let y_offset = y_offset + kid_base.position.origin.y;
-                    abs_descendant_y_offsets.push(y_offset);
+                    abs_descendant_y_offsets.push(y_offset + kid_base.position.origin.y);
                 }
             }
         }
