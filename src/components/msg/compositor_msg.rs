@@ -83,7 +83,7 @@ pub struct LayerId(uint, uint);
 impl Show for LayerId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let LayerId(a, b) = *self;
-        write!(f.buf, "Layer({}, {})", a, b);
+        (write!(f.buf, "Layer({}, {})", a, b)).unwrap();
         Ok(())
     }
 }
