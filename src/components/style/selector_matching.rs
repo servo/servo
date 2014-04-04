@@ -527,19 +527,80 @@ fn matches_compound_selector<E:TElement,
                              element: &N,
                              shareable: &mut bool)
                              -> bool {
+    match matches_compound_selector_internal(selector, element, shareable) {
+        Matched => true,
+        _ => false
+    }
+}
+
+/// A result of selector matching, includes 3 failure types,
+///
+///     NotMatchedAndRestartFromClosestLaterSibling
+///     NotMatchedAndRestartFromClosestDescendant
+///     NotMatchedGlobally
+///
+/// When NotMatchedGlobally appears, stop selector matching completely since
+/// the succeeding selectors never matches.
+/// It is raised when
+///     Child combinator cannot find the candidate element.
+///     Descendant combinator cannot find the candidate element.
+///
+/// When NotMatchedAndRestartFromClosestDescendant appears, the selector
+/// matching does backtracking and restarts from the closest Descendant
+/// combinator.
+/// It is raised when
+///     NextSibling combinator cannot find the candidate element.
+///     LaterSibling combinator cannot find the candidate element.
+///     Child combinator doesn't match on the found element.
+///
+/// When NotMatchedAndRestartFromClosestLaterSibling appears, the selector
+/// matching does backtracking and restarts from the closest LaterSibling
+/// combinator.
+/// It is raised when
+///     NextSibling combinator doesn't match on the found element.
+///
+/// For example, when the selector "d1 d2 a" is provided and we cannot *find*
+/// an appropriate ancestor node for "d1", this selector matching raises
+/// NotMatchedGlobally since even if "d2" is moved to more upper node, the
+/// candidates for "d1" becomes less than before and d1 .
+///
+/// The next example is siblings. When the selector "b1 + b2 ~ d1 a" is
+/// providied and we cannot *find* an appropriate brother node for b1,
+/// the selector matching raises NotMatchedAndRestartFromClosestDescendant.
+/// The selectors ("b1 + b2 ~") doesn't match and matching restart from "d1".
+///
+/// The additional example is child and sibling. When the selector
+/// "b1 + c1 > b2 ~ d1 a" is provided and the selector "b1" doesn't match on
+/// the element, this "b1" raises NotMatchedAndRestartFromClosestLaterSibling.
+/// However since the selector "c1" raises
+/// NotMatchedAndRestartFromClosestDescendant. So the selector
+/// "b1 + c1 > b2 ~ " doesn't match and restart matching from "d1".
+enum SelectorMatchingResult {
+    Matched,
+    NotMatchedAndRestartFromClosestLaterSibling,
+    NotMatchedAndRestartFromClosestDescendant,
+    NotMatchedGlobally,
+}
+
+fn matches_compound_selector_internal<E:TElement,
+                                      N:TNode<E>>(
+                                      selector: &CompoundSelector,
+                                      element: &N,
+                                      shareable: &mut bool)
+                                      -> SelectorMatchingResult {
     if !selector.simple_selectors.iter().all(|simple_selector| {
             matches_simple_selector(simple_selector, element, shareable)
     }) {
-        return false
+        return NotMatchedAndRestartFromClosestLaterSibling
     }
     match selector.next {
-        None => true,
+        None => Matched,
         Some((ref next_selector, combinator)) => {
-            let (siblings, just_one) = match combinator {
-                Child => (false, true),
-                Descendant => (false, false),
-                NextSibling => (true, true),
-                LaterSibling => (true, false),
+            let (siblings, candidate_not_found) = match combinator {
+                Child => (false, NotMatchedGlobally),
+                Descendant => (false, NotMatchedGlobally),
+                NextSibling => (true, NotMatchedAndRestartFromClosestDescendant),
+                LaterSibling => (true, NotMatchedAndRestartFromClosestDescendant),
             };
             let mut node = (*element).clone();
             loop {
@@ -549,14 +610,37 @@ fn matches_compound_selector<E:TElement,
                     node.parent_node()
                 };
                 match next_node {
-                    None => return false,
+                    None => return candidate_not_found,
                     Some(next_node) => node = next_node,
                 }
                 if node.is_element() {
-                    if matches_compound_selector(&**next_selector, &node, shareable) {
-                        return true
-                    } else if just_one {
-                        return false
+                    let result = matches_compound_selector_internal(&**next_selector,
+                                                                    &node,
+                                                                    shareable);
+                    match (result, combinator) {
+                        // Return the status immediately.
+                        (Matched, _) => return result,
+                        (NotMatchedGlobally, _) => return result,
+
+                        // Upgrade the failure status to
+                        // NotMatchedAndRestartFromClosestDescendant.
+                        (_, Child) => return NotMatchedAndRestartFromClosestDescendant,
+
+                        // Return the status directly.
+                        (_, NextSibling) => return result,
+
+                        // If the failure status is NotMatchedAndRestartFromClosestDescendant
+                        // and combinator is LaterSibling, give up this LaterSibling matching
+                        // and restart from the closest descendant combinator.
+                        (NotMatchedAndRestartFromClosestDescendant, LaterSibling) => return result,
+
+                        // The Descendant combinator and the status is
+                        // NotMatchedAndRestartFromClosestLaterSibling or
+                        // NotMatchedAndRestartFromClosestDescendant,
+                        // or the LaterSibling combinator and the status is
+                        // NotMatchedAndRestartFromClosestDescendant
+                        // can continue to matching on the next candidate element.
+                        _ => {},
                     }
                 }
             }
