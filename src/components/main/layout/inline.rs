@@ -821,7 +821,7 @@ impl Flow for InlineFlow {
                     bottommost = bottom_from_base;
                 }
 
-                cur_box.border_box.borrow_mut().get().origin.y = line.bounds.origin.y + offset + top;
+                cur_box.border_box.borrow_mut().origin.y = line.bounds.origin.y + offset + top;
             }
 
             // Calculate the distance from baseline to the top of the biggest box with 'bottom'
@@ -850,21 +850,20 @@ impl Flow for InlineFlow {
                     _ => baseline_offset,
                 };
 
-                cur_box.border_box.borrow_mut().get().origin.y = cur_box.border_box.get().origin.y +
+                cur_box.border_box.borrow_mut().origin.y = cur_box.border_box.get().origin.y +
                     adjust_offset;
 
-                if cur_box.inline_info.with(|info| info.is_none()) {
-                    cur_box.inline_info.set(Some(InlineInfo::new()));
+                let mut info = cur_box.inline_info.borrow_mut();
+                if info.is_none() {
+                    *info = Some(InlineInfo::new());
                 }
-                cur_box.inline_info.with_mut( |info| {
-                    match info {
-                        &Some(ref mut info) => {
-                            // TODO (ksh8281) compute vertical-align, line-height
-                            info.baseline = line.bounds.origin.y + baseline_offset;
-                        },
-                        &None => {}
-                    }
-                });
+                match &mut *info {
+                    &Some(ref mut info) => {
+                        // TODO (ksh8281) compute vertical-align, line-height
+                        info.baseline = line.bounds.origin.y + baseline_offset;
+                    },
+                    &None => {}
+                }
             }
 
             // This is used to set the top y position of the next linebox in the next loop.

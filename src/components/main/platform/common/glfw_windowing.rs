@@ -144,8 +144,11 @@ impl WindowMethods<Application> for Window {
     }
 
     fn recv(&self) -> WindowEvent {
-        if !self.event_queue.with_mut(|queue| queue.is_empty()) {
-            return self.event_queue.with_mut(|queue| queue.shift().unwrap())
+        {
+            let mut event_queue = self.event_queue.borrow_mut();
+            if !event_queue.is_empty() {
+                return event_queue.shift().unwrap();
+            }
         }
 
         glfw::poll_events();
@@ -155,10 +158,8 @@ impl WindowMethods<Application> for Window {
 
         if self.glfw_window.should_close() {
             QuitWindowEvent
-        } else if !self.event_queue.with_mut(|queue| queue.is_empty()) {
-            self.event_queue.with_mut(|queue| queue.shift().unwrap())
         } else {
-            IdleWindowEvent
+            self.event_queue.borrow_mut().shift().unwrap_or(IdleWindowEvent)
         }
     }
 
@@ -174,7 +175,7 @@ impl WindowMethods<Application> for Window {
             self.render_state.get() == RenderingRenderState &&
             render_state == IdleRenderState {
             // page loaded
-            self.event_queue.with_mut(|queue| queue.push(FinishedWindowEvent));
+            self.event_queue.borrow_mut().push(FinishedWindowEvent);
         }
 
         self.render_state.set(render_state);
@@ -197,10 +198,10 @@ impl Window {
                 }
             },
             glfw::FramebufferSizeEvent(width, height) => {
-                self.event_queue.with_mut(|queue| queue.push(ResizeWindowEvent(width as uint, height as uint)));
+                self.event_queue.borrow_mut().push(ResizeWindowEvent(width as uint, height as uint));
             },
             glfw::RefreshEvent => {
-                self.event_queue.with_mut(|queue| queue.push(RefreshWindowEvent));
+                self.event_queue.borrow_mut().push(RefreshWindowEvent);
             },
             glfw::MouseButtonEvent(button, action, _mods) => {
                 let (x, y) = window.get_cursor_pos();
@@ -215,7 +216,7 @@ impl Window {
                 }
             },
             glfw::CursorPosEvent(xpos, ypos) => {
-                self.event_queue.with_mut(|queue| queue.push(MouseWindowMoveEventClass(Point2D(xpos as f32, ypos as f32))));
+                self.event_queue.borrow_mut().push(MouseWindowMoveEventClass(Point2D(xpos as f32, ypos as f32)));
             },
             glfw::ScrollEvent(xpos, ypos) => {
                 let dx = (xpos as f32) * 30.0;
@@ -229,7 +230,7 @@ impl Window {
                 let x = x as f32 * hidpi;
                 let y = y as f32 * hidpi;
 
-                self.event_queue.with_mut(|queue| queue.push(ScrollWindowEvent(Point2D(dx, dy), Point2D(x as i32, y as i32))));
+                self.event_queue.borrow_mut().push(ScrollWindowEvent(Point2D(dx, dy), Point2D(x as i32, y as i32)));
             },
             _ => {}
         }
@@ -272,16 +273,16 @@ impl Window {
             glfw::KeyEscape => self.glfw_window.set_should_close(true),
             glfw::KeyL if mods.contains(glfw::Control) => self.load_url(), // Ctrl+L
             glfw::KeyEqual if mods.contains(glfw::Control) => { // Ctrl-+
-                self.event_queue.with_mut(|queue| queue.push(ZoomWindowEvent(1.1)));
+                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
             }
             glfw::KeyMinus if mods.contains(glfw::Control) => { // Ctrl--
-                self.event_queue.with_mut(|queue| queue.push(ZoomWindowEvent(0.90909090909)));
+                self.event_queue.borrow_mut().push(ZoomWindowEvent(0.90909090909));
             }
             glfw::KeyBackspace if mods.contains(glfw::Shift) => { // Shift-Backspace
-                self.event_queue.with_mut(|queue| queue.push(NavigationWindowEvent(Forward)));
+                self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));
             }
             glfw::KeyBackspace => { // Backspace
-                self.event_queue.with_mut(|queue| queue.push(NavigationWindowEvent(Back)));
+                self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
             }
             _ => {}
         }
@@ -307,7 +308,7 @@ impl Window {
                         if pixel_dist < max_pixel_dist {
                             let click_event = MouseWindowClickEvent(button as uint,
                                                                     Point2D(x as f32, y as f32));
-                            self.event_queue.with_mut(|queue| queue.push(MouseWindowEventClass(click_event)));
+                            self.event_queue.borrow_mut().push(MouseWindowEventClass(click_event));
                         }
                     }
                     Some(_) => (),
@@ -316,7 +317,7 @@ impl Window {
             }
             _ => fail!("I cannot recognize the type of mouse action that occured. :-(")
         };
-        self.event_queue.with_mut(|queue| queue.push(MouseWindowEventClass(event)));
+        self.event_queue.borrow_mut().push(MouseWindowEventClass(event));
     }
 
     /// Helper function to pop up an alert box prompting the user to load a URL.
@@ -326,9 +327,9 @@ impl Window {
         alert.run();
         let value = alert.prompt_value();
         if "" == value {    // To avoid crashing on Linux.
-            self.event_queue.with_mut(|queue| queue.push(LoadUrlWindowEvent(~"http://purple.com/")))
+            self.event_queue.borrow_mut().push(LoadUrlWindowEvent(~"http://purple.com/"))
         } else {
-            self.event_queue.with_mut(|queue| queue.push(LoadUrlWindowEvent(value.clone())))
+            self.event_queue.borrow_mut().push(LoadUrlWindowEvent(value.clone()))
         }
     }
 }

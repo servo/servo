@@ -8,17 +8,17 @@ use file_loader;
 use http_loader;
 use data_loader;
 
-use std::comm::{Chan, Port};
+use std::comm::{channel, Receiver, Sender};
 use std::task;
-use extra::url::Url;
 use http::headers::content_type::MediaType;
+use url::Url;
 
 #[cfg(test)]
 use std::from_str::FromStr;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
-    Load(Url, Chan<LoadResponse>),
+    Load(Url, Sender<LoadResponse>),
     Exit
 }
 
@@ -71,11 +71,11 @@ pub struct LoadResponse {
     /// Metadata, such as from HTTP headers.
     metadata: Metadata,
     /// Port for reading data.
-    progress_port: Port<ProgressMsg>,
+    progress_port: Receiver<ProgressMsg>,
 }
 
 /// Messages sent in response to a `Load` message
-#[deriving(Eq)]
+#[deriving(Eq,Show)]
 pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(~[u8]),
@@ -84,9 +84,9 @@ pub enum ProgressMsg {
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending(start_chan: Chan<LoadResponse>,
-                     metadata:   Metadata) -> Chan<ProgressMsg> {
-    let (progress_port, progress_chan) = Chan::new();
+pub fn start_sending(start_chan: Sender<LoadResponse>,
+                     metadata:   Metadata) -> Sender<ProgressMsg> {
+    let (progress_chan, progress_port) = channel();
     start_chan.send(LoadResponse {
         metadata:      metadata,
         progress_port: progress_port,
@@ -97,7 +97,7 @@ pub fn start_sending(start_chan: Chan<LoadResponse>,
 /// Convenience function for synchronously loading a whole resource.
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, ~[u8]), ()> {
-    let (start_port, start_chan) = Chan::new();
+    let (start_chan, start_port) = channel();
     resource_task.send(Load(url, start_chan));
     let response = start_port.recv();
 
@@ -112,9 +112,9 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 }
 
 /// Handle to a resource task
-pub type ResourceTask = Chan<ControlMsg>;
+pub type ResourceTask = Sender<ControlMsg>;
 
-pub type LoaderTask = proc(url: Url, Chan<LoadResponse>);
+pub type LoaderTask = proc(url: Url, Sender<LoadResponse>);
 
 /**
 Creates a task to load a specific resource
@@ -135,10 +135,10 @@ pub fn ResourceTask() -> ResourceTask {
 }
 
 fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
-    let (setup_port, setup_chan) = Chan::new();
+    let (setup_chan, setup_port) = channel();
     let builder = task::task().named("ResourceManager");
     builder.spawn(proc() {
-        let (port, chan) = Chan::new();
+        let (chan, port) = channel();
         setup_chan.send(chan);
         ResourceManager(port, loaders).start();
     });
@@ -146,13 +146,13 @@ fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> R
 }
 
 pub struct ResourceManager {
-    from_client: Port<ControlMsg>,
+    from_client: Receiver<ControlMsg>,
     /// Per-scheme resource loaders
     loaders: ~[(~str, LoaderTaskFactory)],
 }
 
 
-pub fn ResourceManager(from_client: Port<ControlMsg>, 
+pub fn ResourceManager(from_client: Receiver<ControlMsg>,
                        loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
     ResourceManager {
         from_client : from_client,
@@ -175,7 +175,7 @@ impl ResourceManager {
         }
     }
 
-    fn load(&self, url: Url, start_chan: Chan<LoadResponse>) {
+    fn load(&self, url: Url, start_chan: Sender<LoadResponse>) {
         match self.get_loader_factory(&url) {
             Some(loader_factory) => {
                 debug!("resource_task: loading url: {:s}", url.to_str());
@@ -211,7 +211,7 @@ fn test_exit() {
 #[test]
 fn test_bad_scheme() {
     let resource_task = ResourceTask();
-    let (start, start_chan) = Chan::new();
+    let (start_chan, start) = channel();
     resource_task.send(Load(FromStr::from_str("bogus://whatever").unwrap(), start_chan));
     let response = start.recv();
     match response.progress_port.recv() {
@@ -226,7 +226,7 @@ static snicklefritz_payload: [u8, ..3] = [1, 2, 3];
 
 #[cfg(test)]
 fn snicklefritz_loader_factory() -> LoaderTask {
-    let f: LoaderTask = proc(url: Url, start_chan: Chan<LoadResponse>) {
+    let f: LoaderTask = proc(url: Url, start_chan: Sender<LoadResponse>) {
         let progress_chan = start_sending(start_chan, Metadata::default(url));
         progress_chan.send(Payload(snicklefritz_payload.into_owned()));
         progress_chan.send(Done(Ok(())));
@@ -238,7 +238,7 @@ fn snicklefritz_loader_factory() -> LoaderTask {
 fn should_delegate_to_scheme_loader() {
     let loader_factories = ~[(~"snicklefritz", snicklefritz_loader_factory)];
     let resource_task = create_resource_task_with_loaders(loader_factories);
-    let (start, start_chan) = Chan::new();
+    let (start_chan, start) = channel();
     resource_task.send(Load(FromStr::from_str("snicklefritz://heya").unwrap(), start_chan));
 
     let response = start.recv();

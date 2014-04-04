@@ -84,7 +84,7 @@ impl TableRowFlow {
     fn assign_height_table_row_base(&mut self, layout_context: &mut LayoutContext, inorder: bool) {
         let (top_offset, _, _) = self.initialize_offsets();
 
-        let mut cur_y = top_offset;
+        let /* mut */ cur_y = top_offset;
 
         // Per CSS 2.1 § 17.5.3, find max_y = max( computed `height`, minimum height of all cells )
         let mut max_y = Au::new(0);
@@ -112,7 +112,7 @@ impl TableRowFlow {
                 Specified(value) => geometry::max(value, height)
             };
         }
-        cur_y = cur_y + height;
+        // cur_y = cur_y + height;
 
         // Assign the height of own box
         //

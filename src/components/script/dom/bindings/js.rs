@@ -64,14 +64,14 @@ impl<T> JS<T> {
     pub fn get<'a>(&'a self) -> &'a T {
         let borrowed = self.ptr.borrow();
         unsafe {
-            &(**borrowed.get())
+            &**borrowed
         }
     }
 
     pub fn get_mut<'a>(&'a mut self) -> &'a mut T {
         let mut borrowed = self.ptr.borrow_mut();
         unsafe {
-            &mut (**borrowed.get())
+            &mut **borrowed
         }
     }
 

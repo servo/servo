@@ -8,11 +8,11 @@
 //! higher-level API on top of this could allow safe fork-join parallelism.
 
 use native;
+use rand;
+use rand::{Rng, XorShiftRng};
 use std::cast;
 use std::comm;
 use std::mem;
-use std::rand::{Rng, XorShiftRng};
-use std::rand;
 use std::sync::atomics::{AtomicUint, SeqCst};
 use std::sync::deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 use std::task::TaskOpts;
@@ -50,7 +50,7 @@ enum SupervisorMsg<QUD,WUD> {
 /// Information that the supervisor thread keeps about the worker threads.
 struct WorkerInfo<QUD,WUD> {
     /// The communication channel to the workers.
-    chan: Chan<WorkerMsg<QUD,WUD>>,
+    chan: Sender<WorkerMsg<QUD,WUD>>,
     /// The buffer pool for this deque.
     pool: BufferPool<WorkUnit<QUD,WUD>>,
     /// The worker end of the deque, if we have it.
@@ -64,9 +64,9 @@ struct WorkerThread<QUD,WUD> {
     /// The index of this worker.
     index: uint,
     /// The communication port from the supervisor.
-    port: Port<WorkerMsg<QUD,WUD>>,
+    port: Receiver<WorkerMsg<QUD,WUD>>,
     /// The communication channel on which messages are sent to the supervisor.
-    chan: Chan<SupervisorMsg<QUD,WUD>>,
+    chan: Sender<SupervisorMsg<QUD,WUD>>,
     /// The thief end of the work-stealing deque for all other workers.
     other_deques: ~[Stealer<WorkUnit<QUD,WUD>>],
     /// The random number generator for this worker.
@@ -191,7 +191,7 @@ pub struct WorkQueue<QUD,WUD> {
     /// Information about each of the workers.
     priv workers: ~[WorkerInfo<QUD,WUD>],
     /// A port on which deques can be received from the workers.
-    priv port: Port<SupervisorMsg<QUD,WUD>>,
+    priv port: Receiver<SupervisorMsg<QUD,WUD>>,
     /// The amount of work that has been enqueued.
     priv work_count: uint,
     /// Arbitrary user data.
@@ -203,10 +203,10 @@ impl<QUD:Send,WUD:Send> WorkQueue<QUD,WUD> {
     /// it.
     pub fn new(task_name: &'static str, thread_count: uint, user_data: QUD) -> WorkQueue<QUD,WUD> {
         // Set up data structures.
-        let (supervisor_port, supervisor_chan) = Chan::new();
+        let (supervisor_chan, supervisor_port) = channel();
         let (mut infos, mut threads) = (~[], ~[]);
         for i in range(0, thread_count) {
-            let (worker_port, worker_chan) = Chan::new();
+            let (worker_chan, worker_port) = channel();
             let mut pool = BufferPool::new();
             let (worker, thief) = pool.deque();
             infos.push(WorkerInfo {

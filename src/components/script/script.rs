@@ -10,11 +10,16 @@
 
 #[feature(globs, macro_rules, struct_variant, managed_boxes, phase)];
 
+#[feature(phase)];
+#[phase(syntax, link)]
+extern crate log;
+
 extern crate collections;
 extern crate geom;
 extern crate hubbub;
 extern crate encoding;
 extern crate js;
+extern crate native;
 extern crate serialize;
 #[phase(syntax)]
 extern crate servo_macros = "macros";
@@ -22,8 +27,7 @@ extern crate servo_net = "net";
 extern crate servo_util = "util";
 extern crate style;
 extern crate servo_msg = "msg";
-extern crate extra;
-extern crate native;
+extern crate url;
 
 pub mod dom {
     pub mod bindings {

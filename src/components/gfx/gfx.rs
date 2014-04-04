@@ -7,9 +7,12 @@
 
 #[feature(globs, managed_boxes, macro_rules, phase)];
 
+#[feature(phase)];
+#[phase(syntax, link)]
+extern crate log;
+
 extern crate azure;
 extern crate collections;
-extern crate extra;
 extern crate geom;
 extern crate layers;
 extern crate stb_image;

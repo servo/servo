@@ -20,9 +20,9 @@ impl<'ln> LayoutAuxMethods for LayoutNode<'ln> {
     /// FIXME(pcwalton): Do this as part of box building instead of in a traversal.
     fn initialize_layout_data(&self, chan: LayoutChan) {
         let mut layout_data_ref = self.mutate_layout_data();
-        match *layout_data_ref.get() {
+        match *layout_data_ref {
             None => {
-                *layout_data_ref.get() = Some(LayoutDataWrapper {
+                *layout_data_ref = Some(LayoutDataWrapper {
                     chan: Some(chan),
                     data: ~PrivateLayoutData::new(),
                 });

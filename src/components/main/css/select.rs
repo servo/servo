@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use style::{Stylesheet, Stylist, UserAgentOrigin, with_errors_silenced};
-use extra::url;
+use url;
 
 
 pub fn new_stylist() -> Stylist {

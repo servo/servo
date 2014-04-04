@@ -16,7 +16,6 @@ use layout::model;
 use layout::util::OpaqueNodeMethods;
 use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
-use extra::url::Url;
 use sync::{MutexArc, Arc};
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use geom::approxeq::ApproxEq;
@@ -40,12 +39,14 @@ use servo_util::smallvec::{SmallVec, SmallVec0};
 use servo_util::str::is_whitespace;
 use std::cast;
 use std::cell::RefCell;
+use std::from_str::FromStr;
 use std::num::Zero;
 use style::{ComputedValues, TElement, TNode, cascade, initial_values};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto, overflow, LPA_Auto};
 use style::computed_values::{background_attachment, background_repeat, border_style, clear};
 use style::computed_values::{font_family, line_height, position, text_align, text_decoration};
 use style::computed_values::{vertical_align, visibility, white_space};
+use url::Url;
 
 /// Boxes (`struct Box`) are the leaves of the layout tree. They cannot position themselves. In
 /// general, boxes do not have a simple correspondence with CSS boxes in the specification:
@@ -157,7 +158,7 @@ impl ImageBoxInfo {
 
     /// Returns the calculated width of the image, accounting for the width attribute.
     pub fn computed_width(&self) -> Au {
-        match self.computed_width.borrow().get() {
+        match &*self.computed_width.borrow() {
             &Some(width) => {
                 width
             },
@@ -169,7 +170,7 @@ impl ImageBoxInfo {
     /// Returns width of image(just original width)
     pub fn image_width(&self) -> Au {
         let mut image_ref = self.image.borrow_mut();
-        Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0,0)).width)
+        Au::from_px(image_ref.get_size().unwrap_or(Size2D(0,0)).width)
     }
 
     // Return used value for width or height.
@@ -193,7 +194,7 @@ impl ImageBoxInfo {
     }
     /// Returns the calculated height of the image, accounting for the height attribute.
     pub fn computed_height(&self) -> Au {
-        match self.computed_height.borrow().get() {
+        match &*self.computed_height.borrow() {
             &Some(height) => {
                 height
             },
@@ -206,7 +207,7 @@ impl ImageBoxInfo {
     /// Returns height of image(just original height)
     pub fn image_height(&self) -> Au {
         let mut image_ref = self.image.borrow_mut();
-        Au::from_px(image_ref.get().get_size().unwrap_or(Size2D(0,0)).height)
+        Au::from_px(image_ref.get_size().unwrap_or(Size2D(0,0)).height)
     }
 }
 
@@ -353,7 +354,7 @@ macro_rules! def_noncontent( ($side:ident, $get:ident, $inline_get:ident) => (
         pub fn $inline_get(&self) -> Au {
             let mut val = Au::new(0);
             let info = self.inline_info.borrow();
-            match info.get() {
+            match &*info {
                 &Some(ref info) => {
                     for info in info.parent_info.iter() {
                         val = val + info.border.$side + info.padding.$side;
@@ -372,9 +373,9 @@ macro_rules! def_noncontent_horiz( ($side:ident, $merge:ident, $clear:ident) => 
             let mut info = self.inline_info.borrow_mut();
             let other_info = other_box.inline_info.borrow();
 
-            match other_info.get() {
+            match &*other_info {
                 &Some(ref other_info) => {
-                    match info.get() {
+                    match &mut *info {
                         &Some(ref mut info) => {
                             for other_item in other_info.parent_info.iter() {
                                 for item in info.parent_info.mut_iter() {
@@ -396,7 +397,7 @@ macro_rules! def_noncontent_horiz( ($side:ident, $merge:ident, $clear:ident) => 
 
         pub fn $clear(&self) {
             let mut info = self.inline_info.borrow_mut();
-            match info.get() {
+            match &mut *info {
                 &Some(ref mut info) => {
                     for item in info.parent_info.mut_iter() {
                         item.border.$side = Au::new(0);
@@ -807,7 +808,7 @@ impl Box {
 
         // Go over the ancestor boxes and add all relative offsets (if any).
         let info = self.inline_info.borrow();
-        match info.get() {
+        match &*info {
             &Some(ref info) => {
                 for info in info.parent_info.iter() {
                     if info.style.get().Box.get().position == position::relative {
@@ -959,7 +960,7 @@ impl Box {
         // inefficient. What we really want is something like "nearest ancestor element that
         // doesn't have a box".
         let info = self.inline_info.borrow();
-        match info.get() {
+        match &*info {
             &Some(ref box_info) => {
                 let mut bg_rect = absolute_bounds.clone();
                 for info in box_info.parent_info.as_slice().rev_iter() {
@@ -972,10 +973,10 @@ impl Box {
                     if !background_color.alpha.approx_eq(&0.0) {
                         let solid_color_display_item = ~SolidColorDisplayItem {
                             base: BaseDisplayItem {
-                                      bounds: bg_rect.clone(),
-                                      node: self.node,
-                                  },
-                                  color: background_color.to_gfx_color(),
+                                bounds: bg_rect.clone(),
+                                node: self.node,
+                            },
+                            color: background_color.to_gfx_color(),
                         };
 
                         list.push(SolidColorDisplayItemClass(solid_color_display_item))
@@ -1312,7 +1313,7 @@ impl Box {
                 let mut flow_flags = flow::base(flow).flags_info.clone();
 
                 let inline_info = self.inline_info.borrow();
-                match inline_info.get() {
+                match &*inline_info {
                     &Some(ref info) => {
                         for data in info.parent_info.as_slice().rev_iter() {
                             let parent_info = FlowFlagsInfo::new(data.style.get());
@@ -1385,7 +1386,7 @@ impl Box {
                                     - self.noncontent_inline_right();
                 bounds.size.height = bounds.size.height - self.noncontent_height();
 
-                match image_ref.get().get_image() {
+                match image_ref.get_image() {
                     Some(image) => {
                         debug!("(building display list) building image box");
 
@@ -1716,7 +1717,7 @@ impl Box {
                 };
 
                 let mut position = self.border_box.borrow_mut();
-                position.get().size.width = width + self.noncontent_width() +
+                position.size.width = width + self.noncontent_width() +
                     self.noncontent_inline_left() + self.noncontent_inline_right();
                 image_box_info.computed_width.set(Some(width));
             }
@@ -1724,7 +1725,7 @@ impl Box {
                 // Scanned text boxes will have already had their
                 // content_widths assigned by this point.
                 let mut position = self.border_box.borrow_mut();
-                position.get().size.width = position.get().size.width + self.noncontent_width() +
+                position.size.width = position.size.width + self.noncontent_width() +
                     self.noncontent_inline_left() + self.noncontent_inline_right();
             }
             TableColumnBox(_) => fail!("Table column boxes do not have width"),
@@ -1766,15 +1767,15 @@ impl Box {
 
                 let mut position = self.border_box.borrow_mut();
                 image_box_info.computed_height.set(Some(height));
-                position.get().size.height = height + self.noncontent_height()
+                position.size.height = height + self.noncontent_height()
             }
             ScannedTextBox(_) => {
                 // Scanned text boxes will have already had their widths assigned by this point
                 let mut position = self.border_box.borrow_mut();
                 // Scanned text boxes' content heights are calculated by the
                 // text run scanner during Flow construction.
-                position.get().size.height
-                    = position.get().size.height + self.noncontent_height()
+                position.size.height
+                    = position.size.height + self.noncontent_height()
             }
             TableColumnBox(_) => fail!("Table column boxes do not have height"),
             UnscannedTextBox(_) => fail!("Unscanned text boxes should have been scanned by now!"),

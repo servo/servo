@@ -7,15 +7,20 @@
 
 #[feature(macro_rules, managed_boxes)];
 
+#[feature(phase)];
+#[phase(syntax, link)]
+extern crate log;
+
 extern crate azure;
 extern crate collections;
-extern crate extra;
 extern crate geom;
 extern crate getopts;
 extern crate native;
+extern crate rand;
 extern crate serialize;
 extern crate sync;
 extern crate std_time = "time";
+extern crate std_url = "url";
 
 pub mod cache;
 pub mod concurrentmap;

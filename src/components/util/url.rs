@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use extra::url;
-use extra::url::Url;
 use collections::HashMap;
 use std::os;
+use std::vec::Vec;
+use std_url;
+use std_url::Url;
 
 /**
 Create a URL object from a string. Does various helpful browsery things like
@@ -17,9 +18,9 @@ Create a URL object from a string. Does various helpful browsery things like
 
 */
 // TODO: about:failure->
-pub fn parse_url(str_url: &str, base_url: Option<Url>) -> Url {
+pub fn parse_url(str_url: &str, base_url: Option<std_url::Url>) -> std_url::Url {
     let str_url = str_url.trim_chars(& &[' ', '\t', '\n', '\r', '\x0C']).to_owned();
-    let schm = url::get_scheme(str_url);
+    let schm = std_url::get_scheme(str_url);
     let str_url = match schm {
         Err(_) => {
             if base_url.is_none() {
@@ -38,7 +39,7 @@ pub fn parse_url(str_url: &str, base_url: Option<Url>) -> Url {
                 debug!("parse_url: base_url: {:?}", base_url);
 
                 let mut new_url = base_url.clone();
-                new_url.query = ~[];
+                new_url.query = Vec::new();
                 new_url.fragment = None;
 
                 if str_url.starts_with("//") {
@@ -84,7 +85,7 @@ pub fn parse_url(str_url: &str, base_url: Option<Url>) -> Url {
     };
 
     // FIXME: Need to handle errors
-    url::from_str(str_url).ok().expect("URL parsing failed")
+    std_url::from_str(str_url).ok().expect("URL parsing failed")
 }
 
 #[cfg(test)]
@@ -162,7 +163,7 @@ mod parse_url_tests {
 
     #[test]
     fn should_create_url_based_on_old_url_6() {
-        use extra::url::UserInfo;
+        use std_url::UserInfo;
 
         let old_str = "http://foo:bar@example.com:8080/index.html";
         let old_url = parse_url(old_str, None);
@@ -190,7 +191,7 @@ mod parse_url_tests {
 
 }
 
-pub type UrlMap<T> = HashMap<Url, T>;
+pub type UrlMap<T> = HashMap<std_url::Url, T>;
 
 pub fn url_map<T: Clone + 'static>() -> UrlMap<T> {
     HashMap::new()

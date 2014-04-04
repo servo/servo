@@ -15,8 +15,8 @@ use std::cmp::Eq;
 use std::libc;
 use std::ptr;
 use std::ptr::null;
+use std::slice;
 use std::str;
-use std::vec;
 use js::glue::*;
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
@@ -136,7 +136,7 @@ pub fn jsstring_to_str(cx: *JSContext, s: *JSString) -> DOMString {
     unsafe {
         let length = 0;
         let chars = JS_GetStringCharsAndLength(cx, s, &length);
-        vec::raw::buf_as_slice(chars, length as uint, |char_vec| {
+        slice::raw::buf_as_slice(chars, length as uint, |char_vec| {
             str::from_utf16(char_vec).unwrap()
         })
     }
@@ -646,8 +646,8 @@ pub fn global_object_for_js_object(obj: *JSObject) -> JS<window::Window> {
 fn cx_for_dom_reflector(obj: *JSObject) -> *JSContext {
     let win = global_object_for_js_object(obj);
     let js_info = win.get().page().js_info();
-    match *js_info.get() {
-        Some(ref info) => info.js_context.borrow().ptr,
+    match *js_info {
+        Some(ref info) => info.js_context.deref().ptr,
         None => fail!("no JS context for DOM global")
     }
 }

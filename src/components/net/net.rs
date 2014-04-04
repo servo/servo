@@ -7,15 +7,19 @@
 
 #[feature(globs, managed_boxes)];
 
+#[feature(phase)];
+#[phase(syntax, link)]
+extern crate log;
+
 extern crate collections;
 extern crate geom;
 extern crate http;
 extern crate servo_util = "util";
 extern crate stb_image;
-extern crate extra;
 extern crate png;
 extern crate serialize;
 extern crate sync;
+extern crate url;
 
 /// Image handling.
 ///

@@ -79,8 +79,8 @@ pub fn quicksort<T:Ord + Eq>(arr: &mut [T]) {
 
 #[cfg(test)]
 pub mod test {
-    use std::rand::{Rng, task_rng};
-    use std::rand;
+    use rand;
+    use rand::{Rng, task_rng};
 
     use sort;
 

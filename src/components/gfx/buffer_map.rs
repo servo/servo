@@ -43,6 +43,12 @@ impl Eq for BufferKey {
     }
 }
 
+impl TotalEq for BufferKey {
+    fn equals(&self, other: &BufferKey) -> bool {
+        self.eq(other)
+    }
+}
+
 /// Create a key from a given size
 impl BufferKey {
     fn get(input: Size2D<uint>) -> BufferKey {
