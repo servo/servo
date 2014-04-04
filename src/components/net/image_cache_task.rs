@@ -501,6 +501,7 @@ mod tests {
     use resource_task::{ResourceTask, Metadata, start_sending};
     use image::base::test_image_bin;
     use servo_util::url::parse_url;
+    use std::comm;
     use std::comm::{Empty, Data, Disconnected};
 
     fn mock_resource_task(on_load: proc(resource: Sender<resource_task::ProgressMsg>)) -> ResourceTask {
@@ -561,7 +562,7 @@ mod tests {
 
     #[test]
     fn should_not_request_url_from_resource_task_on_multiple_prefetches() {
-        let (url_requested, url_requested_chan) = Chan::new();
+        let (url_requested_chan, url_requested) = comm::channel();
 
         let mock_resource_task = mock_resource_task(proc(response) {
             url_requested_chan.send(());
@@ -584,7 +585,7 @@ mod tests {
 
     #[test]
     fn should_return_image_not_ready_if_data_has_not_arrived() {
-        let (wait_port, wait_chan) = Chan::new();
+        let (wait_chan, wait_port) = comm::channel();
 
         let mock_resource_task = mock_resource_task(proc(response) {
             // Don't send the data until after the client requests
@@ -599,7 +600,7 @@ mod tests {
 
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
-        let (response_port, response_chan) = Chan::new();
+        let (response_chan, response_port) = comm::channel();
         image_cache_task.send(GetImage(url, response_chan));
         assert!(response_port.recv() == ImageNotReady);
         wait_chan.send(());
@@ -625,7 +626,7 @@ mod tests {
         // Wait until our mock resource task has sent the image to the image cache
         join_port.recv();
 
-        let (response_port, response_chan) = Chan::new();
+        let (response_chan, response_port) = comm::channel();
         image_cache_task.send(GetImage(url, response_chan));
         match response_port.recv() {
           ImageReady(_) => (),
@@ -655,7 +656,7 @@ mod tests {
         join_port.recv();
 
         for _ in range(0,2) {
-            let (response_port, response_chan) = Chan::new();
+            let (response_chan, response_port) = comm::channel();
             image_cache_task.send(GetImage(url.clone(), response_chan));
             match response_port.recv() {
               ImageReady(_) => (),
@@ -669,9 +670,9 @@ mod tests {
 
     #[test]
     fn should_not_request_image_from_resource_task_if_image_is_already_available() {
-        let (image_bin_sent, image_bin_sent_chan) = Chan::new();
+        let (image_bin_sent_chan, image_bin_sent) = comm::channel();
 
-        let (resource_task_exited, resource_task_exited_chan) = Chan::new();
+        let (resource_task_exited_chan, resource_task_exited) = comm::channel();
 
         let mock_resource_task = spawn_listener(proc(port: Receiver<resource_task::ControlMsg>) {
             loop {
@@ -715,9 +716,9 @@ mod tests {
 
     #[test]
     fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
-        let (image_bin_sent, image_bin_sent_chan) = Chan::new();
+        let (image_bin_sent_chan, image_bin_sent) = comm::channel();
 
-        let (resource_task_exited, resource_task_exited_chan) = Chan::new();
+        let (resource_task_exited_chan, resource_task_exited) = comm::channel();
 
         let mock_resource_task = spawn_listener(proc(port: Receiver<resource_task::ControlMsg>) {
             loop {
@@ -780,7 +781,7 @@ mod tests {
         // Wait until our mock resource task has sent the image to the image cache
         join_port.recv();
 
-        let (response_port, response_chan) = Chan::new();
+        let (response_chan, response_port) = comm::channel();
         image_cache_task.send(GetImage(url, response_chan));
         match response_port.recv() {
           ImageFailed => (),
@@ -810,7 +811,7 @@ mod tests {
         // Wait until our mock resource task has sent the image to the image cache
         join_port.recv();
 
-        let (response_port, response_chan) = Chan::new();
+        let (response_chan, response_port) = comm::channel();
         image_cache_task.send(GetImage(url.clone(), response_chan));
         match response_port.recv() {
           ImageFailed => (),
@@ -818,7 +819,7 @@ mod tests {
         }
 
         // And ask again, we should get the same response
-        let (response_port, response_chan) = Chan::new();
+        let (response_chan, response_port) = comm::channel();
         image_cache_task.send(GetImage(url, response_chan));
         match response_port.recv() {
           ImageFailed => (),
@@ -849,7 +850,7 @@ mod tests {
         join_port.recv();
 
         // Make the request
-        let (response_port, response_chan) = Chan::new();
+        let (response_chan, response_port) = comm::channel();
         image_cache_task.send(GetImage(url, response_chan));
 
         match response_port.recv() {
@@ -879,7 +880,7 @@ mod tests {
         // Wait until our mock resource task has sent the image to the image cache
         join_port.recv();
 
-        let (response_port, response_chan) = Chan::new();
+        let (response_chan, response_port) = comm::channel();
         image_cache_task.send(WaitForImage(url, response_chan));
         match response_port.recv() {
           ImageReady(..) => (),
@@ -892,7 +893,7 @@ mod tests {
 
     #[test]
     fn should_return_image_on_wait_if_image_is_not_yet_loaded() {
-        let (wait_port, wait_chan) = Chan::new();
+        let (wait_chan, wait_port) = comm::channel();
 
         let mock_resource_task = mock_resource_task(proc(response) {
             wait_port.recv();
@@ -906,7 +907,7 @@ mod tests {
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
 
-        let (response_port, response_chan) = Chan::new();
+        let (response_chan, response_port) = comm::channel();
         image_cache_task.send(WaitForImage(url, response_chan));
 
         wait_chan.send(());
@@ -922,7 +923,7 @@ mod tests {
 
     #[test]
     fn should_return_image_failed_on_wait_if_image_fails_to_load() {
-        let (wait_port, wait_chan) = Chan::new();
+        let (wait_chan, wait_port) = comm::channel();
 
         let mock_resource_task = mock_resource_task(proc(response) {
             wait_port.recv();
@@ -936,7 +937,7 @@ mod tests {
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
 
-        let (response_port, response_chan) = Chan::new();
+        let (response_chan, response_port) = comm::channel();
         image_cache_task.send(WaitForImage(url, response_chan));
 
         wait_chan.send(());
@@ -963,7 +964,7 @@ mod tests {
         image_cache_task.send(Prefetch(url.clone()));
         image_cache_task.send(Decode(url.clone()));
 
-        let (response_port, response_chan) = Chan::new();
+        let (response_chan, response_port) = comm::channel();
         image_cache_task.send(GetImage(url, response_chan));
         match response_port.recv() {
           ImageReady(_) => (),

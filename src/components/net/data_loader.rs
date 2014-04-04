@@ -71,8 +71,9 @@ fn assert_parse(url:          &'static str,
                 charset:      Option<~str>,
                 data:         Option<~[u8]>) {
     use std::from_str::FromStr;
+    use std::comm;
 
-    let (start_port, start_chan) = Chan::new();
+    let (start_chan, start_port) = comm::channel();
     load(FromStr::from_str(url).unwrap(), start_chan);
 
     let response = start_port.recv();

@@ -75,7 +75,7 @@ pub struct LoadResponse {
 }
 
 /// Messages sent in response to a `Load` message
-#[deriving(Eq)]
+#[deriving(Eq,Show)]
 pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(~[u8]),

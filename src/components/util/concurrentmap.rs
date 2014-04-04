@@ -484,13 +484,14 @@ impl<'a,K,V> Iterator<(&'a K, &'a V)> for ConcurrentHashMapIterator<'a,K,V> {
 pub mod test {
     use sync::Arc;
     use native;
+    use std::comm;
 
     use concurrentmap::ConcurrentHashMap;
 
     #[test]
     pub fn smoke() {
         let m = Arc::new(ConcurrentHashMap::new());
-        let (port, chan) = Chan::new();
+        let (chan, port) = comm::channel();
 
         // Big enough to make it resize once.
         for i in range(0, 5) {

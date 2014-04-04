@@ -600,8 +600,8 @@ mod tests {
 
     #[test]
     fn test_parsing() {
-        assert_eq!(parse(""), None)
-        assert_eq!(parse("e"), Some(~[Selector{
+        assert!(parse("") == None)
+        assert!(parse("e") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[LocalNameSelector(~"e")],
                 next: None,
@@ -609,7 +609,7 @@ mod tests {
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
         }]))
-        assert_eq!(parse(".foo"), Some(~[Selector{
+        assert!(parse(".foo") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[ClassSelector(~"foo")],
                 next: None,
@@ -617,7 +617,7 @@ mod tests {
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
         }]))
-        assert_eq!(parse("#bar"), Some(~[Selector{
+        assert!(parse("#bar") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[IDSelector(~"bar")],
                 next: None,
@@ -625,7 +625,7 @@ mod tests {
             pseudo_element: None,
             specificity: specificity(1, 0, 0),
         }]))
-        assert_eq!(parse("e.foo#bar"), Some(~[Selector{
+        assert!(parse("e.foo#bar") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[LocalNameSelector(~"e"),
                                     ClassSelector(~"foo"),
@@ -635,7 +635,7 @@ mod tests {
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
         }]))
-        assert_eq!(parse("e.foo #bar"), Some(~[Selector{
+        assert!(parse("e.foo #bar") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[IDSelector(~"bar")],
                 next: Some((~CompoundSelector {
@@ -650,7 +650,7 @@ mod tests {
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
         let mut namespaces = NamespaceMap::new();
-        assert_eq!(parse_ns("[Foo]", &namespaces), Some(~[Selector{
+        assert!(parse_ns("[Foo]", &namespaces) == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[AttrExists(AttrSelector {
                     name: ~"Foo",
@@ -665,7 +665,7 @@ mod tests {
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
         namespaces.default = Some(namespace::MathML);
-        assert_eq!(parse_ns("[Foo]", &namespaces), Some(~[Selector{
+        assert!(parse_ns("[Foo]", &namespaces) == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[AttrExists(AttrSelector {
                     name: ~"Foo",
@@ -678,7 +678,7 @@ mod tests {
             specificity: specificity(0, 1, 0),
         }]))
         // Default namespace does apply to type selectors
-        assert_eq!(parse_ns("e", &namespaces), Some(~[Selector{
+        assert!(parse_ns("e", &namespaces) == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[
                     NamespaceSelector(namespace::MathML),
@@ -690,7 +690,7 @@ mod tests {
             specificity: specificity(0, 0, 1),
         }]))
         // https://github.com/mozilla/servo/issues/1723
-        assert_eq!(parse("::before"), Some(~[Selector{
+        assert!(parse("::before") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[],
                 next: None,
@@ -698,7 +698,7 @@ mod tests {
             pseudo_element: Some(Before),
             specificity: specificity(0, 0, 1),
         }]))
-        assert_eq!(parse("div :after"), Some(~[Selector{
+        assert!(parse("div :after") == Some(~[Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[],
                 next: Some((~CompoundSelector {
