@@ -17,6 +17,7 @@ interface Document : Node {
   readonly attribute DOMString compatMode;
   readonly attribute DOMString characterSet;
   readonly attribute DOMString contentType;
+  readonly attribute Location location;
 
   readonly attribute DocumentType? doctype;
   readonly attribute Element? documentElement;
