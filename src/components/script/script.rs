@@ -29,6 +29,9 @@ extern crate style;
 extern crate servo_msg = "msg";
 extern crate url;
 
+// Macros
+mod macros;
+
 pub mod dom {
     pub mod bindings {
         pub mod js;
