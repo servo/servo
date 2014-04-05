@@ -197,6 +197,7 @@ pub trait AttributeHandlers {
     fn get_url_attribute(&self, name: &str) -> DOMString;
     fn set_url_attribute(&mut self, name: &str, value: DOMString);
     fn get_string_attribute(&self, name: &str) -> DOMString;
+    fn get_bool_attribute(&self, name: &str) -> bool;
     fn set_string_attribute(&mut self, name: &str, value: DOMString);
 }
 
@@ -404,6 +405,12 @@ impl AttributeHandlers for JS<Element> {
         match self.get_attribute(Null, name) {
             Some(x) => x.get().Value(),
             None => ~""
+        }
+    }
+    fn get_bool_attribute(&self, name: &str) -> bool {
+        match self.get_attribute(Null, name) {
+            Some(x) => true,
+            None => false
         }
     }
     fn set_string_attribute(&mut self, name: &str, value: DOMString) {
