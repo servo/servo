@@ -210,10 +210,17 @@ pub trait BeforeRemoveAttrListener {
 
 impl AttributeHandlers for JS<Element> {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<JS<Attr>> {
-        self.get().attrs.iter().find(|attr| {
-            let attr = attr.get();
-            name == attr.local_name && attr.namespace == namespace
-        }).map(|x| x.clone())
+        if self.get().html_element_in_html_document() {
+            self.get().attrs.iter().find(|attr| {
+                let attr = attr.get();
+                name.to_ascii_lower() == attr.local_name && attr.namespace == namespace
+            }).map(|x| x.clone())
+        } else {
+            self.get().attrs.iter().find(|attr| {
+                let attr = attr.get();
+                name == attr.local_name && attr.namespace == namespace
+            }).map(|x| x.clone())
+        }
     }
 
     fn set_attr(&mut self, name: DOMString, value: DOMString) -> ErrorResult {
@@ -239,7 +246,11 @@ impl AttributeHandlers for JS<Element> {
 
         // FIXME: reduce the time of `value.clone()`.
         let idx = self.get().attrs.iter().position(|attr| {
-            attr.get().local_name == local_name
+            if self.get().html_element_in_html_document() {
+                attr.get().local_name.eq_ignore_ascii_case(local_name)
+            } else {
+                attr.get().local_name == local_name
+            }
         });
 
         match idx {
