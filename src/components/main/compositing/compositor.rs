@@ -32,9 +32,10 @@ use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, Navig
 use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg};
 use servo_msg::constellation_msg;
 use servo_util::opts::Opts;
-use servo_util::time::{profile, ProfilerChan, Timer};
+use servo_util::time::{profile, ProfilerChan};
 use servo_util::{time, url};
 use std::comm::{Empty, Disconnected, Data, Sender, Receiver};
+use std::io::timer::sleep;
 use std::path::Path;
 use std::rc::Rc;
 use time::precise_time_s;
@@ -195,7 +196,7 @@ impl IOCompositor {
                 self.composite();
             }
 
-            Timer::sleep(10);
+            sleep(10);
 
             // If a pinch-zoom happened recently, ask for tiles at the new resolution
             if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {
