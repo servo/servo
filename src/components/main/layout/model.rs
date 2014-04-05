@@ -7,7 +7,7 @@
 use layout::box_::Box;
 
 use computed = style::computed_values;
-use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage};
+use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LP_Length, LP_Percentage};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 
@@ -112,7 +112,16 @@ impl MarginCollapseInfo {
             AccumulatingCollapsibleTopMargin => {
                 match fragment.style().Box.get().height {
                     LPA_Auto | LPA_Length(Au(0)) | LPA_Percentage(0.) => {
-                        MarginsCollapseThroughFinalMarginState
+                        match fragment.style().Box.get().min_height {
+                            LP_Length(Au(0)) | LP_Percentage(0.) => {
+                                MarginsCollapseThroughFinalMarginState
+                            },
+                            _ => {
+                                // If the box has non-zero min-height, margins may not collapse
+                                // through it.
+                                BottomMarginCollapsesFinalMarginState
+                            }
+                        }
                     },
                     _ => {
                         // If the box has an explicitly specified height, margins may not collapse
