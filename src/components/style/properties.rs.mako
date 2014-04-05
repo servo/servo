@@ -595,8 +595,8 @@ pub mod longhands {
 
                 #[deriving(Eq, Clone)]
                 pub struct T {
-                    horizontal: LengthOrPercentage,
-                    vertical: LengthOrPercentage,
+                    pub horizontal: LengthOrPercentage,
+                    pub vertical: LengthOrPercentage,
                 }
             }
 
@@ -972,7 +972,7 @@ pub mod shorthands {
             use super::*;
             pub struct Longhands {
                 % for sub_property in shorthand.sub_properties:
-                    ${sub_property.ident}: Option<${sub_property.ident}::SpecifiedValue>,
+                    pub ${sub_property.ident}: Option<${sub_property.ident}::SpecifiedValue>,
                 % endfor
             }
             pub fn parse(input: &[ComponentValue], base_url: &Url) -> Option<Longhands> {
@@ -1256,12 +1256,13 @@ pub mod shorthands {
 
 
 pub struct PropertyDeclarationBlock {
-    important: Arc<~[PropertyDeclaration]>,
-    normal: Arc<~[PropertyDeclaration]>,
+    pub important: Arc<~[PropertyDeclaration]>,
+    pub normal: Arc<~[PropertyDeclaration]>,
 }
 
-impl<S: Encoder> Encodable<S> for PropertyDeclarationBlock {
-    fn encode(&self, _: &mut S) {
+impl<E, S: Encoder<E>> Encodable<S, E> for PropertyDeclarationBlock {
+    fn encode(&self, _: &mut S) -> Result<(), E> {
+        Ok(())
     }
 }
 
@@ -1404,7 +1405,7 @@ pub mod style_structs {
         #[deriving(Eq, Clone)]
         pub struct ${style_struct.name} {
             % for longhand in style_struct.longhands:
-                ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
+                pub ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
             % endfor
         }
     % endfor
@@ -1464,7 +1465,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
     % endfor
 
     for sub_list in applicable_declarations.iter() {
-        for declaration in sub_list.declarations.get().iter() {
+        for declaration in sub_list.declarations.iter() {
             match *declaration {
                 % for style_struct in STYLE_STRUCTS:
                     % if style_struct.inherited:
@@ -1588,7 +1589,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
 
     // Initialize `context`
     for sub_list in applicable_declarations.iter() {
-        for declaration in sub_list.declarations.get().iter() {
+        for declaration in sub_list.declarations.iter() {
             match *declaration {
                 font_size_declaration(ref value) => {
                     context.font_size = match *value {
@@ -1651,7 +1652,7 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
     % endfor
     let mut cacheable = true;
     for sub_list in applicable_declarations.iter() {
-        for declaration in sub_list.declarations.get().iter() {
+        for declaration in sub_list.declarations.iter() {
             match *declaration {
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:

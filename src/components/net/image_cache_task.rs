@@ -12,7 +12,7 @@ use std::mem::replace;
 use std::task::spawn;
 use std::to_str::ToStr;
 use std::result;
-use sync::{Arc,MutexArc};
+use sync::{Arc, Mutex};
 use serialize::{Encoder, Encodable};
 use url::Url;
 
@@ -81,8 +81,9 @@ pub struct ImageCacheTask {
     chan: Sender<Msg>,
 }
 
-impl<S: Encoder> Encodable<S> for ImageCacheTask {
-    fn encode(&self, _: &mut S) {
+impl<E, S: Encoder<E>> Encodable<S, E> for ImageCacheTask {
+    fn encode(&self, _: &mut S) -> Result<(), E> {
+        Ok(())
     }
 }
 
@@ -147,7 +148,7 @@ struct ImageCache {
     /// The state of processsing an image for a URL
     state_map: UrlMap<ImageState>,
     /// List of clients waiting on a WaitForImage response
-    wait_map: UrlMap<MutexArc<~[Sender<ImageResponseMsg>]>>,
+    wait_map: UrlMap<Arc<Mutex<~[Sender<ImageResponseMsg>]>>>,
     need_exit: Option<Sender<()>>,
 }
 
@@ -375,11 +376,9 @@ impl ImageCache {
     fn purge_waiters(&mut self, url: Url, f: || -> ImageResponseMsg) {
         match self.wait_map.pop(&url) {
             Some(waiters) => {
-                waiters.access(|waiters| {
-                    for response in waiters.iter() {
-                        response.send(f());
-                    }
-                });
+                for response in waiters.lock().iter() {
+                    response.send(f());
+                }
             }
             None => ()
         }
@@ -407,9 +406,9 @@ impl ImageCache {
                 if self.wait_map.contains_key(&url) {
                     let waiters = self.wait_map.find_mut(&url).unwrap();
                     let mut response = Some(response);
-                    waiters.access(|waiters| waiters.push(response.take().unwrap()));
+                    waiters.lock().push(response.take().unwrap());
                 } else {
-                    self.wait_map.insert(url, MutexArc::new(~[response]));
+                    self.wait_map.insert(url, Arc::new(Mutex::new(~[response])));
                 }
             }
 
@@ -481,7 +480,7 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
 }
 
 
-pub fn spawn_listener<A: Send>(f: proc(Receiver<A>)) -> Sender<A> {
+pub fn spawn_listener<A: Send>(f: proc:Send(Receiver<A>)) -> Sender<A> {
     let (setup_chan, setup_port) = channel();
 
     spawn(proc() {

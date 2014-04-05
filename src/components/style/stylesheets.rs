@@ -21,7 +21,7 @@ use media_queries;
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
-    rules: ~[CSSRule],
+    pub rules: ~[CSSRule],
     namespaces: NamespaceMap,
     encoding: EncodingRef,
     base_url: Url,
@@ -35,8 +35,8 @@ pub enum CSSRule {
 
 
 pub struct StyleRule {
-    selectors: ~[selectors::Selector],
-    declarations: properties::PropertyDeclarationBlock,
+    pub selectors: ~[selectors::Selector],
+    pub declarations: properties::PropertyDeclarationBlock,
 }
 
 

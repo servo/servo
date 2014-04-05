@@ -19,16 +19,16 @@ use namespaces::NamespaceMap;
 // Only used in tests
 impl Eq for Arc<CompoundSelector> {
     fn eq(&self, other: &Arc<CompoundSelector>) -> bool {
-        self.get() == other.get()
+        **self == **other
     }
 }
 
 
 #[deriving(Eq, Clone)]
 pub struct Selector {
-    compound_selectors: Arc<CompoundSelector>,
-    pseudo_element: Option<PseudoElement>,
-    specificity: u32,
+    pub compound_selectors: Arc<CompoundSelector>,
+    pub pseudo_element: Option<PseudoElement>,
+    pub specificity: u32,
 }
 
 #[deriving(Eq, Clone)]
@@ -42,8 +42,8 @@ pub enum PseudoElement {
 
 #[deriving(Eq, Clone)]
 pub struct CompoundSelector {
-    simple_selectors: ~[SimpleSelector],
-    next: Option<(~CompoundSelector, Combinator)>,  // c.next is left of c
+    pub simple_selectors: ~[SimpleSelector],
+    pub next: Option<(~CompoundSelector, Combinator)>,  // c.next is left of c
 }
 
 #[deriving(Eq, Clone)]

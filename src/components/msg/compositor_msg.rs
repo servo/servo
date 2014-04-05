@@ -159,8 +159,9 @@ pub trait ScriptListener : Clone {
     fn dup(&self) -> ~ScriptListener;
 }
 
-impl<S: Encoder> Encodable<S> for ~ScriptListener {
-    fn encode(&self, _s: &mut S) {
+impl<E, S: Encoder<E>> Encodable<S, E> for ~ScriptListener {
+    fn encode(&self, _s: &mut S) -> Result<(), E> {
+        Ok(())
     }
 }
 

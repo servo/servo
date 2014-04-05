@@ -71,7 +71,7 @@ pub struct LoadResponse {
     /// Metadata, such as from HTTP headers.
     metadata: Metadata,
     /// Port for reading data.
-    progress_port: Receiver<ProgressMsg>,
+    pub progress_port: Receiver<ProgressMsg>,
 }
 
 /// Messages sent in response to a `Load` message

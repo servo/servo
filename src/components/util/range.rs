@@ -18,8 +18,8 @@ enum RangeRelation {
 
 #[deriving(Clone)]
 pub struct Range {
-    priv off: uint,
-    priv len: uint
+    off: uint,
+    len: uint
 }
 
 impl fmt::Show for Range {

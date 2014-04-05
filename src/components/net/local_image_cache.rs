@@ -30,10 +30,10 @@ pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
 }
 
 pub struct LocalImageCache {
-    priv image_cache_task: ImageCacheTask,
-    priv round_number: uint,
-    priv on_image_available: Option<~ImageResponder:Send>,
-    priv state_map: UrlMap<ImageState>
+    image_cache_task: ImageCacheTask,
+    round_number: uint,
+    on_image_available: Option<~ImageResponder:Send+Share>,
+    state_map: UrlMap<ImageState>
 }
 
 #[deriving(Clone)]
@@ -47,7 +47,7 @@ struct ImageState {
 impl LocalImageCache {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
-    pub fn next_round(&mut self, on_image_available: ~ImageResponder:Send) {
+    pub fn next_round(&mut self, on_image_available: ~ImageResponder:Send+Share) {
         self.round_number += 1;
         self.on_image_available = Some(on_image_available);
     }

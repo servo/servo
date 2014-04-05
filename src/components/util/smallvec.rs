@@ -187,9 +187,9 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
 }
 
 pub struct SmallVecIterator<'a,T> {
-    priv ptr: *T,
-    priv end: *T,
-    priv lifetime: Option<&'a T>
+    ptr: *T,
+    end: *T,
+    lifetime: Option<&'a T>
 }
 
 impl<'a,T> Iterator<&'a T> for SmallVecIterator<'a,T> {
@@ -211,9 +211,9 @@ impl<'a,T> Iterator<&'a T> for SmallVecIterator<'a,T> {
 }
 
 pub struct SmallVecMutIterator<'a,T> {
-    priv ptr: *mut T,
-    priv end: *mut T,
-    priv lifetime: Option<&'a mut T>
+    ptr: *mut T,
+    end: *mut T,
+    lifetime: Option<&'a mut T>
 }
 
 impl<'a,T> Iterator<&'a mut T> for SmallVecMutIterator<'a,T> {
@@ -235,9 +235,9 @@ impl<'a,T> Iterator<&'a mut T> for SmallVecMutIterator<'a,T> {
 }
 
 pub struct SmallVecMoveIterator<'a,T> {
-    priv allocation: Option<*mut u8>,
-    priv iter: SmallVecIterator<'static,T>,
-    priv lifetime: Option<&'a T>,
+    allocation: Option<*mut u8>,
+    iter: SmallVecIterator<'static,T>,
+    lifetime: Option<&'a T>,
 }
 
 impl<'a,T> Iterator<T> for SmallVecMoveIterator<'a,T> {

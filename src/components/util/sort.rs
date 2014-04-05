@@ -14,14 +14,14 @@ fn quicksort_helper<T:Ord + Eq>(arr: &mut [T], left: int, right: int) {
     let mut p: int = i;
     let mut q: int = j;
     unsafe {
-        let v: *mut T = &mut arr[right];
+        let v: *mut T = &mut arr[right as uint];
         loop {
             i += 1;
-            while arr[i] < (*v) {
+            while arr[i as uint] < (*v) {
                 i += 1
             }
             j -= 1;
-            while (*v) < arr[j] {
+            while (*v) < arr[j as uint] {
                 if j == left {
                     break
                 }
@@ -31,11 +31,11 @@ fn quicksort_helper<T:Ord + Eq>(arr: &mut [T], left: int, right: int) {
                 break
             }
             arr.swap(i as uint, j as uint);
-            if arr[i] == (*v) {
+            if arr[i as uint] == (*v) {
                 p += 1;
                 arr.swap(p as uint, i as uint)
             }
-            if (*v) == arr[j] {
+            if (*v) == arr[j as uint] {
                 q -= 1;
                 arr.swap(j as uint, q as uint)
             }

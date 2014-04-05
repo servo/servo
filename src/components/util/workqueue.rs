@@ -162,9 +162,9 @@ impl<QUD:Send,WUD:Send> WorkerThread<QUD,WUD> {
 
 /// A handle to the work queue that individual work units have.
 pub struct WorkerProxy<'a,QUD,WUD> {
-    priv worker: &'a mut Worker<WorkUnit<QUD,WUD>>,
-    priv ref_count: *mut AtomicUint,
-    priv queue_data: *QUD,
+    worker: &'a mut Worker<WorkUnit<QUD,WUD>>,
+    ref_count: *mut AtomicUint,
+    queue_data: *QUD,
 }
 
 impl<'a,QUD,WUD:Send> WorkerProxy<'a,QUD,WUD> {
@@ -189,13 +189,13 @@ impl<'a,QUD,WUD:Send> WorkerProxy<'a,QUD,WUD> {
 /// A work queue on which units of work can be submitted.
 pub struct WorkQueue<QUD,WUD> {
     /// Information about each of the workers.
-    priv workers: ~[WorkerInfo<QUD,WUD>],
+    workers: ~[WorkerInfo<QUD,WUD>],
     /// A port on which deques can be received from the workers.
-    priv port: Receiver<SupervisorMsg<QUD,WUD>>,
+    port: Receiver<SupervisorMsg<QUD,WUD>>,
     /// The amount of work that has been enqueued.
-    priv work_count: uint,
+    work_count: uint,
     /// Arbitrary user data.
-    data: QUD,
+    pub data: QUD,
 }
 
 impl<QUD:Send,WUD:Send> WorkQueue<QUD,WUD> {

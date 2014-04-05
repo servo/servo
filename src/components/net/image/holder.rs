@@ -6,7 +6,7 @@ use image::base::Image;
 use image_cache_task::{ImageReady, ImageNotReady, ImageFailed};
 use local_image_cache::LocalImageCache;
 
-use sync::{Arc, MutexArc};
+use sync::{Arc, Mutex};
 use geom::size::Size2D;
 use std::mem;
 use url::Url;
@@ -22,11 +22,11 @@ pub struct ImageHolder {
     url: Url,
     image: Option<Arc<~Image>>,
     cached_size: Size2D<int>,
-    local_image_cache: MutexArc<LocalImageCache>,
+    local_image_cache: Arc<Mutex<LocalImageCache>>,
 }
 
 impl ImageHolder {
-    pub fn new(url: Url, local_image_cache: MutexArc<LocalImageCache>) -> ImageHolder {
+    pub fn new(url: Url, local_image_cache: Arc<Mutex<LocalImageCache>>) -> ImageHolder {
         debug!("ImageHolder::new() {}", url.to_str());
         let holder = ImageHolder {
             url: url,
@@ -40,10 +40,11 @@ impl ImageHolder {
         // but they are intended to be spread out in time. Ideally prefetch
         // should be done as early as possible and decode only once we
         // are sure that the image will be used.
-        holder.local_image_cache.access(|local_image_cache| {
+        {
+            let mut local_image_cache = holder.local_image_cache.lock();
             local_image_cache.prefetch(&holder.url);
             local_image_cache.decode(&holder.url);
-        });
+        }
 
         holder
     }
@@ -61,9 +62,8 @@ impl ImageHolder {
     pub fn get_size(&mut self) -> Option<Size2D<int>> {
         debug!("get_size() {}", self.url.to_str());
         self.get_image().map(|img| {
-            let img_ref = img.get();
-            self.cached_size = Size2D(img_ref.width as int,
-                                      img_ref.height as int);
+            self.cached_size = Size2D(img.width as int,
+                                      img.height as int);
             self.cached_size.clone()
         })
     }
@@ -74,10 +74,9 @@ impl ImageHolder {
         // If this is the first time we've called this function, load
         // the image and store it for the future
         if self.image.is_none() {
-            let port =
-                self.local_image_cache.access(|local_image_cache| {
-                    local_image_cache.get_image(&self.url)
-                });
+            let port = {
+                self.local_image_cache.lock().get_image(&self.url)
+            };
             match port.recv() {
                 ImageReady(image) => {
                     self.image = Some(image);

@@ -13,8 +13,8 @@ use url::Url;
 
 
 pub struct MediaRule {
-    media_queries: MediaQueryList,
-    rules: ~[CSSRule],
+    pub media_queries: MediaQueryList,
+    pub rules: ~[CSSRule],
 }
 
 
@@ -43,7 +43,7 @@ pub enum MediaType {
 }
 
 pub struct Device {
-    media_type: MediaType,
+    pub media_type: MediaType,
     // TODO: Level 3 MQ data: viewport size, etc.
 }
 
