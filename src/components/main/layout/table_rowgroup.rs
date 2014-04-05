@@ -21,16 +21,16 @@ use servo_util::geometry;
 
 /// A table formatting context.
 pub struct TableRowGroupFlow {
-    block_flow: BlockFlow,
+    pub block_flow: BlockFlow,
 
     /// Column widths
-    col_widths: ~[Au],
+    pub col_widths: ~[Au],
 
     /// Column min widths.
-    col_min_widths: ~[Au],
+    pub col_min_widths: ~[Au],
 
     /// Column pref widths.
-    col_pref_widths: ~[Au],
+    pub col_pref_widths: ~[Au],
 }
 
 impl TableRowGroupFlow {
@@ -93,9 +93,9 @@ impl TableRowGroupFlow {
 
         let height = cur_y - top_offset;
 
-        let mut position = self.block_flow.box_.border_box.get();
+        let mut position = *self.block_flow.box_.border_box.borrow();
         position.size.height = height;
-        self.block_flow.box_.border_box.set(position);
+        *self.block_flow.box_.border_box.borrow_mut() = position;
         self.block_flow.base.position.size.height = height;
     }
 

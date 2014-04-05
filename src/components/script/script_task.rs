@@ -85,17 +85,18 @@ pub enum ScriptMsg {
 }
 
 pub struct NewLayoutInfo {
-    old_id: PipelineId,
-    new_id: PipelineId,
-    layout_chan: LayoutChan,
+    pub old_id: PipelineId,
+    pub new_id: PipelineId,
+    pub layout_chan: LayoutChan,
 }
 
 /// Encapsulates external communication with the script task.
 #[deriving(Clone)]
-pub struct ScriptChan(Sender<ScriptMsg>);
+pub struct ScriptChan(pub Sender<ScriptMsg>);
 
-impl<S: Encoder> Encodable<S> for ScriptChan {
-    fn encode(&self, _s: &mut S) {
+impl<S: Encoder<E>, E> Encodable<S, E> for ScriptChan {
+    fn encode(&self, _s: &mut S) -> Result<(), E> {
+        Ok(())
     }
 }
 
@@ -111,50 +112,50 @@ impl ScriptChan {
 #[deriving(Encodable)]
 pub struct Page {
     /// Pipeline id associated with this page.
-    id: PipelineId,
+    pub id: PipelineId,
 
     /// Unique id for last reflow request; used for confirming completion reply.
-    last_reflow_id: Traceable<RefCell<uint>>,
+    pub last_reflow_id: Traceable<RefCell<uint>>,
 
     /// The outermost frame containing the document, window, and page URL.
-    frame: Traceable<RefCell<Option<Frame>>>,
+    pub frame: Traceable<RefCell<Option<Frame>>>,
 
     /// A handle for communicating messages to the layout task.
-    layout_chan: Untraceable<LayoutChan>,
+    pub layout_chan: Untraceable<LayoutChan>,
 
     /// The port that we will use to join layout. If this is `None`, then layout is not running.
-    layout_join_port: Untraceable<RefCell<Option<Receiver<()>>>>,
+    pub layout_join_port: Untraceable<RefCell<Option<Receiver<()>>>>,
 
     /// What parts of the document are dirty, if any.
-    damage: Traceable<RefCell<Option<DocumentDamage>>>,
+    pub damage: Traceable<RefCell<Option<DocumentDamage>>>,
 
     /// The current size of the window, in pixels.
-    window_size: Untraceable<RefCell<Size2D<uint>>>,
+    pub window_size: Untraceable<RefCell<Size2D<uint>>>,
 
-    js_info: Traceable<RefCell<Option<JSPageInfo>>>,
+    pub js_info: Traceable<RefCell<Option<JSPageInfo>>>,
 
     /// Cached copy of the most recent url loaded by the script
     /// TODO(tkuehn): this currently does not follow any particular caching policy
     /// and simply caches pages forever (!). The bool indicates if reflow is required
     /// when reloading.
-    url: Untraceable<RefCell<Option<(Url, bool)>>>,
+    pub url: Untraceable<RefCell<Option<(Url, bool)>>>,
 
-    next_subpage_id: Untraceable<RefCell<SubpageId>>,
+    pub next_subpage_id: Untraceable<RefCell<SubpageId>>,
 
     /// Pending resize event, if any.
-    resize_event: Untraceable<RefCell<Option<Size2D<uint>>>>,
+    pub resize_event: Untraceable<RefCell<Option<Size2D<uint>>>>,
 
     /// Pending scroll to fragment event, if any
-    fragment_node: Traceable<RefCell<Option<JS<Element>>>>
+    pub fragment_node: Traceable<RefCell<Option<JS<Element>>>>
 }
 
 pub struct PageTree {
-    page: Rc<Page>,
-    inner: ~[PageTree],
+    pub page: Rc<Page>,
+    pub inner: ~[PageTree],
 }
 
 pub struct PageTreeIterator<'a> {
-    priv stack: ~[&'a mut PageTree],
+    stack: ~[&'a mut PageTree],
 }
 
 impl PageTree {
@@ -483,18 +484,18 @@ impl Page {
 #[deriving(Encodable)]
 pub struct Frame {
     /// The document for this frame.
-    document: JS<Document>,
+    pub document: JS<Document>,
     /// The window object for this frame.
-    window: JS<Window>,
+    pub window: JS<Window>,
 }
 
 /// Encapsulation of the javascript information associated with each frame.
 #[deriving(Encodable)]
 pub struct JSPageInfo {
     /// Global static data related to the DOM.
-    dom_static: GlobalStaticData,
+    pub dom_static: GlobalStaticData,
     /// The JavaScript context.
-    js_context: Untraceable<Rc<Cx>>,
+    pub js_context: Untraceable<Rc<Cx>>,
 }
 
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
@@ -503,27 +504,27 @@ pub struct JSPageInfo {
 /// FIXME: Rename to `Page`, following WebKit?
 pub struct ScriptTask {
     /// A handle to the information pertaining to page layout
-    page_tree: RefCell<PageTree>,
+    pub page_tree: RefCell<PageTree>,
     /// A handle to the image cache task.
-    image_cache_task: ImageCacheTask,
+    pub image_cache_task: ImageCacheTask,
     /// A handle to the resource task.
-    resource_task: ResourceTask,
+    pub resource_task: ResourceTask,
 
     /// The port on which the script task receives messages (load URL, exit, etc.)
-    port: Receiver<ScriptMsg>,
+    pub port: Receiver<ScriptMsg>,
     /// A channel to hand out when some other task needs to be able to respond to a message from
     /// the script task.
-    chan: ScriptChan,
+    pub chan: ScriptChan,
 
     /// For communicating load url messages to the constellation
-    constellation_chan: ConstellationChan,
+    pub constellation_chan: ConstellationChan,
     /// A handle to the compositor for communicating ready state messages.
-    compositor: ~ScriptListener,
+    pub compositor: ~ScriptListener,
 
     /// The JavaScript runtime.
-    js_runtime: js::rust::rt,
+    pub js_runtime: js::rust::rt,
 
-    mouse_over_targets: RefCell<Option<~[JS<Node>]>>
+    pub mouse_over_targets: RefCell<Option<~[JS<Node>]>>
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -927,7 +928,7 @@ impl ScriptTask {
                 }
                 Some(HtmlDiscoveredIFrame((iframe_url, subpage_id, sandboxed))) => {
                     let SubpageId(num) = subpage_id;
-                    page.next_subpage_id.deref().set(SubpageId(num + 1));
+                    *page.next_subpage_id.deref().borrow_mut() = SubpageId(num + 1);
                     let sandboxed = if sandboxed {
                         IFrameSandboxed
                     } else {

@@ -128,13 +128,13 @@ pub struct InlineBoxesConstructionResult {
     /// Any {ib} splits that we're bubbling up.
     ///
     /// TODO(pcwalton): Small vector optimization.
-    splits: Option<~[InlineBlockSplit]>,
+    pub splits: Option<~[InlineBlockSplit]>,
 
     /// Any boxes that succeed the {ib} splits.
-    boxes: ~[Box],
+    pub boxes: ~[Box],
 
     /// Any absolute descendants that we're bubbling up.
-    abs_descendants: AbsDescendants,
+    pub abs_descendants: AbsDescendants,
 }
 
 /// Represents an {ib} split that has not yet found the containing block that it belongs to. This
@@ -163,10 +163,10 @@ pub struct InlineBlockSplit {
     /// The inline boxes that precede the flow.
     ///
     /// TODO(pcwalton): Small vector optimization.
-    predecessor_boxes: ~[Box],
+    pub predecessor_boxes: ~[Box],
 
     /// The flow that caused this {ib} split.
-    flow: ~Flow,
+    pub flow: ~Flow,
 }
 
 impl InlineBlockSplit {
@@ -241,14 +241,14 @@ impl<T> OptVector<T> for Option<~[T]> {
 /// An object that knows how to create flows.
 pub struct FlowConstructor<'a> {
     /// The layout context.
-    layout_context: &'a mut LayoutContext,
+    pub layout_context: &'a mut LayoutContext,
 
     /// An optional font context. If this is `None`, then we fetch the font context from the
     /// layout context.
     ///
     /// FIXME(pcwalton): This is pretty bogus and is basically just a workaround for libgreen
     /// having slow TLS.
-    font_context: Option<~FontContext>,
+    pub font_context: Option<~FontContext>,
 }
 
 impl<'a> FlowConstructor<'a> {
@@ -705,8 +705,8 @@ impl<'a> FlowConstructor<'a> {
                 *info = Some(InlineInfo::new());
             }
 
-            let mut border = parent_box.border.get();
-            let mut padding = parent_box.padding.get();
+            let mut border = *parent_box.border.borrow();
+            let mut padding = *parent_box.padding.borrow();
             if i != 0 {
                 border.left = Zero::zero();
                 padding.left = Zero::zero()
@@ -957,11 +957,11 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
         let (display, float, positioning) = match node.type_id() {
             None => {
                 // Pseudo-element.
-                let style = node.style().get();
+                let style = node.style();
                 (display::inline, style.Box.get().float, style.Box.get().position)
             }
             Some(ElementNodeTypeId(_)) => {
-                let style = node.style().get();
+                let style = node.style();
                 (style.Box.get().display, style.Box.get().float, style.Box.get().position)
             }
             Some(TextNodeTypeId) => (display::inline, float::none, position::static_),
@@ -1112,7 +1112,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
                     //
                     // If you implement other values for this property, you will almost certainly
                     // want to update this check.
-                    match self.style().get().InheritedText.get().white_space {
+                    match self.style().InheritedText.get().white_space {
                         white_space::normal => true,
                         _ => false,
                     }

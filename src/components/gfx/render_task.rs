@@ -36,15 +36,15 @@ use sync::Arc;
 /// Information about a layer that layout sends to the painting task.
 pub struct RenderLayer {
     /// A per-pipeline ID describing this layer that should be stable across reflows.
-    id: LayerId,
+    pub id: LayerId,
     /// The display list describing the contents of this layer.
-    display_list: Arc<DisplayList>,
+    pub display_list: Arc<DisplayList>,
     /// The position of the layer in pixels.
-    position: Rect<uint>,
+    pub position: Rect<uint>,
     /// The color of the background in this layer. Used for unrendered content.
-    background_color: Color,
+    pub background_color: Color,
     /// The scrolling policy of this layer.
-    scroll_policy: ScrollPolicy,
+    pub scroll_policy: ScrollPolicy,
 }
 
 pub enum Msg {
@@ -75,7 +75,7 @@ pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferReq
 
 // FIXME(#2005, pcwalton): This should be a newtype struct.
 pub struct RenderChan {
-    chan: Sender<Msg>,
+    pub chan: Sender<Msg>,
 }
 
 impl Clone for RenderChan {
@@ -138,7 +138,7 @@ pub struct RenderTask<C> {
     epoch: Epoch,
 
     /// A data structure to store unused LayerBuffers
-    priv buffer_map: BufferMap<~LayerBuffer>,
+    buffer_map: BufferMap<~LayerBuffer>,
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing
@@ -352,7 +352,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
                     // Draw the display list.
                     profile(time::RenderingDrawingCategory, self.profiler_chan.clone(), || {
-                        render_layer.display_list.get().draw_into_context(&mut ctx);
+                        render_layer.display_list.draw_into_context(&mut ctx);
                         ctx.draw_target.flush();
                     });
                 }

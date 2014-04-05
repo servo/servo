@@ -51,18 +51,18 @@ use style::computed_values::{text_align, vertical_align, white_space};
 /// left corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
 pub struct LineBox {
-    range: Range,
-    bounds: Rect<Au>,
-    green_zone: Size2D<Au>
+    pub range: Range,
+    pub bounds: Rect<Au>,
+    pub green_zone: Size2D<Au>
 }
 
 struct LineboxScanner {
-    floats: Floats,
-    new_boxes: ~[Box],
-    work_list: RingBuf<Box>,
-    pending_line: LineBox,
-    lines: ~[LineBox],
-    cur_y: Au,
+    pub floats: Floats,
+    pub new_boxes: ~[Box],
+    pub work_list: RingBuf<Box>,
+    pub pending_line: LineBox,
+    pub lines: ~[LineBox],
+    pub cur_y: Au,
 }
 
 impl LineboxScanner {
@@ -179,7 +179,7 @@ impl LineboxScanner {
                               -> (Rect<Au>, Au) {
         debug!("LineboxScanner: Trying to place first box of line {}", self.lines.len());
 
-        let first_box_size = first_box.border_box.get().size;
+        let first_box_size = first_box.border_box.borrow().size;
         let splittable = first_box.can_split();
         debug!("LineboxScanner: box size: {}, splittable: {}", first_box_size, splittable);
         let line_is_empty: bool = self.pending_line.range.length() == 0;
@@ -233,9 +233,9 @@ impl LineboxScanner {
 
                 debug!("LineboxScanner: case=box split and fit");
                 let actual_box_width = match (left, right) {
-                    (Some(l_box), Some(_))  => l_box.border_box.get().size.width,
-                    (Some(l_box), None)     => l_box.border_box.get().size.width,
-                    (None, Some(r_box))     => r_box.border_box.get().size.width,
+                    (Some(l_box), Some(_))  => l_box.border_box.borrow().size.width,
+                    (Some(l_box), None)     => l_box.border_box.borrow().size.width,
+                    (None, Some(r_box))     => r_box.border_box.borrow().size.width,
                     (None, None)            => fail!("This case makes no sense.")
                 };
                 return (line_bounds, actual_box_width);
@@ -247,9 +247,9 @@ impl LineboxScanner {
 
                 debug!("LineboxScanner: case=box split and fit didn't fit; trying to push it down");
                 let actual_box_width = match (left, right) {
-                    (Some(l_box), Some(_))  => l_box.border_box.get().size.width,
-                    (Some(l_box), None)     => l_box.border_box.get().size.width,
-                    (None, Some(r_box))     => r_box.border_box.get().size.width,
+                    (Some(l_box), Some(_))  => l_box.border_box.borrow().size.width,
+                    (Some(l_box), None)     => l_box.border_box.borrow().size.width,
+                    (None, Some(r_box))     => r_box.border_box.borrow().size.width,
                     (None, None)            => fail!("This case makes no sense.")
                 };
 
@@ -348,7 +348,7 @@ impl LineboxScanner {
         debug!("LineboxScanner: Trying to append box to line {:u} (box size: {}, green zone: \
                 {}): {:s}",
                self.lines.len(),
-               in_box.border_box.get().size,
+               in_box.border_box.borrow().size,
                self.pending_line.green_zone,
                in_box.debug_str());
 
@@ -368,7 +368,7 @@ impl LineboxScanner {
         // horizontally. We'll try to place the whole box on this line and break somewhere if it
         // doesn't fit.
 
-        let new_width = self.pending_line.bounds.size.width + in_box.border_box.get().size.width;
+        let new_width = self.pending_line.bounds.size.width + in_box.border_box.borrow().size.width;
         if new_width <= green_zone.width {
             debug!("LineboxScanner: case=box fits without splitting");
             self.push_box_to_line(in_box);
@@ -439,29 +439,29 @@ impl LineboxScanner {
         }
         self.pending_line.range.extend_by(1);
         self.pending_line.bounds.size.width = self.pending_line.bounds.size.width +
-            box_.border_box.get().size.width;
+            box_.border_box.borrow().size.width;
         self.pending_line.bounds.size.height = Au::max(self.pending_line.bounds.size.height,
-                                                       box_.border_box.get().size.height);
+                                                       box_.border_box.borrow().size.height);
         self.new_boxes.push(box_);
     }
 }
 
 pub struct InlineFlow {
     /// Data common to all flows.
-    base: BaseFlow,
+    pub base: BaseFlow,
 
     /// A vector of all inline render boxes. Several boxes may correspond to one node/element.
-    boxes: ~[Box],
+    pub boxes: ~[Box],
 
     // vec of ranges into boxes that represents line positions.
     // these ranges are disjoint, and are the result of inline layout.
     // also some metadata used for positioning lines
-    lines: ~[LineBox],
+    pub lines: ~[LineBox],
 
     // vec of ranges into boxes that represent elements. These ranges
     // must be well-nested, and are only related to the content of
     // boxes (not lines). Ranges are only kept for non-leaf elements.
-    elems: ElementMapping,
+    pub elems: ElementMapping,
 }
 
 impl InlineFlow {
@@ -600,8 +600,9 @@ impl InlineFlow {
 
         for i in line.range.eachi() {
             let box_ = &boxes[i];
-            let size = box_.border_box.get().size;
-            box_.border_box.set(Rect(Point2D(offset_x, box_.border_box.get().origin.y), size));
+            let mut border_box = box_.border_box.borrow_mut();
+            let size = border_box.size;
+            *border_box = Rect(Point2D(offset_x, border_box.origin.y), size);
             offset_x = offset_x + size.width;
         }
     }
@@ -749,23 +750,23 @@ impl Flow for InlineFlow {
                         let run = &text_box.run;
 
                         // Compute the height based on the line-height and font size
-                        let text_bounds = run.get().metrics_for_range(range).bounding_box;
+                        let text_bounds = run.metrics_for_range(range).bounding_box;
                         let em_size = text_bounds.size.height;
                         let line_height = cur_box.calculate_line_height(em_size);
 
                         // Find the top and bottom of the content area.
                         // Those are used in text-top and text-bottom value of 'vertical-align'
-                        let text_ascent = text_box.run.get().font_metrics.ascent;
+                        let text_ascent = text_box.run.font_metrics.ascent;
 
                         // Offset from the top of the box is 1/2 of the leading + ascent
                         let text_offset = text_ascent + (line_height - em_size).scale_by(0.5);
-                        text_bounds.translate(&Point2D(cur_box.border_box.get().origin.x, Au(0)));
+                        text_bounds.translate(&Point2D(cur_box.border_box.borrow().origin.x, Au(0)));
 
                         (text_offset, line_height - text_offset, text_ascent)
                     },
                     GenericBox | IframeBox(_) | TableBox | TableCellBox | TableRowBox |
                     TableWrapperBox => {
-                        let height = cur_box.border_box.get().size.height;
+                        let height = cur_box.border_box.borrow().size.height;
                         (height, Au::new(0), height)
                     },
                     TableColumnBox(_) => fail!("Table column boxes do not have height"),
@@ -850,8 +851,8 @@ impl Flow for InlineFlow {
                     _ => baseline_offset,
                 };
 
-                cur_box.border_box.borrow_mut().origin.y = cur_box.border_box.get().origin.y +
-                    adjust_offset;
+                let mut border_box = cur_box.border_box.borrow_mut();
+                border_box.origin.y = border_box.origin.y + adjust_offset;
 
                 let mut info = cur_box.inline_info.borrow_mut();
                 if info.is_none() {
@@ -884,6 +885,8 @@ impl Flow for InlineFlow {
     }
 
     fn debug_str(&self) -> ~str {
-        ~"InlineFlow: " + self.boxes.map(|s| s.debug_str()).connect(", ")
+        let val: ~[~str] = self.boxes.iter().map(|s| s.debug_str()).collect();
+        let toprint = val.connect(",");
+        format!("InlineFlow: {}", toprint)
     }
 }

@@ -18,7 +18,7 @@ use servo_util::str::{DOMString, StaticStringVec};
 
 #[deriving(Encodable)]
 pub struct HTMLFieldSetElement {
-    htmlelement: HTMLElement
+    pub htmlelement: HTMLElement
 }
 
 impl HTMLFieldSetElementDerived for EventTarget {

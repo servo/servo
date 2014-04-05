@@ -8,6 +8,7 @@ use collections::hashmap::{HashMap, HashSet};
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::render_task;
+use libc;
 use pipeline::{Pipeline, CompositionPipeline};
 use script::script_task::{ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg};
 use script::layout_interface;
@@ -30,39 +31,38 @@ use servo_util::task::spawn_named;
 use std::cell::RefCell;
 use std::mem::replace;
 use std::io;
-use std::libc;
 use std::rc::Rc;
 use url::Url;
 
 /// Maintains the pipelines and navigation context and grants permission to composite
 pub struct Constellation {
-    chan: ConstellationChan,
-    request_port: Receiver<Msg>,
-    compositor_chan: CompositorChan,
-    resource_task: ResourceTask,
-    image_cache_task: ImageCacheTask,
-    pipelines: HashMap<PipelineId, Rc<Pipeline>>,
-    priv navigation_context: NavigationContext,
-    priv next_pipeline_id: PipelineId,
-    priv pending_frames: ~[FrameChange],
-    priv pending_sizes: HashMap<(PipelineId, SubpageId), Rect<f32>>,
-    profiler_chan: ProfilerChan,
-    window_size: Size2D<uint>,
-    opts: Opts,
+    pub chan: ConstellationChan,
+    pub request_port: Receiver<Msg>,
+    pub compositor_chan: CompositorChan,
+    pub resource_task: ResourceTask,
+    pub image_cache_task: ImageCacheTask,
+    pub pipelines: HashMap<PipelineId, Rc<Pipeline>>,
+    navigation_context: NavigationContext,
+    next_pipeline_id: PipelineId,
+    pending_frames: ~[FrameChange],
+    pending_sizes: HashMap<(PipelineId, SubpageId), Rect<f32>>,
+    pub profiler_chan: ProfilerChan,
+    pub window_size: Size2D<uint>,
+    pub opts: Opts,
 }
 
 /// Stores the Id of the outermost frame's pipeline, along with a vector of children frames
 struct FrameTree {
-    pipeline: Rc<Pipeline>,
-    parent: RefCell<Option<Rc<Pipeline>>>,
-    children: RefCell<~[ChildFrameTree]>,
+    pub pipeline: Rc<Pipeline>,
+    pub parent: RefCell<Option<Rc<Pipeline>>>,
+    pub children: RefCell<~[ChildFrameTree]>,
 }
 
 struct ChildFrameTree {
     frame_tree: Rc<FrameTree>,
     /// Clipping rect representing the size and position, in page coordinates, of the visible
     /// region of the child frame relative to the parent.
-    rect: Option<Rect<f32>>,
+    pub rect: Option<Rect<f32>>,
 }
 
 impl Clone for ChildFrameTree {
@@ -75,13 +75,13 @@ impl Clone for ChildFrameTree {
 }
 
 pub struct SendableFrameTree {
-    pipeline: CompositionPipeline,
-    children: ~[SendableChildFrameTree],
+    pub pipeline: CompositionPipeline,
+    pub children: ~[SendableChildFrameTree],
 }
 
 pub struct SendableChildFrameTree {
-    frame_tree: SendableFrameTree,
-    rect: Option<Rect<f32>>,
+    pub frame_tree: SendableFrameTree,
+    pub rect: Option<Rect<f32>>,
 }
 
 enum ReplaceResult {
@@ -124,7 +124,7 @@ impl FrameTreeTraversal for Rc<FrameTree> {
             let mut child = children.mut_iter()
                 .find(|child| child.frame_tree.pipeline.id == id);
             for child in child.mut_iter() {
-                new_child.parent.set(child.frame_tree.parent.borrow().clone());
+                *new_child.parent.borrow_mut() = child.frame_tree.parent.borrow().clone();
                 return ReplacedNode(replace(&mut child.frame_tree, new_child));
             }
         }
@@ -170,16 +170,16 @@ impl Iterator<Rc<FrameTree>> for FrameTreeIterator {
 
 /// Represents the portion of a page that is changing in navigating.
 struct FrameChange {
-    before: Option<PipelineId>,
-    after: Rc<FrameTree>,
-    navigation_type: NavigationType,
+    pub before: Option<PipelineId>,
+    pub after: Rc<FrameTree>,
+    pub navigation_type: NavigationType,
 }
 
 /// Stores the Id's of the pipelines previous and next in the browser's history
 struct NavigationContext {
-    previous: ~[Rc<FrameTree>],
-    next: ~[Rc<FrameTree>],
-    current: Option<Rc<FrameTree>>,
+    pub previous: ~[Rc<FrameTree>],
+    pub next: ~[Rc<FrameTree>],
+    pub current: Option<Rc<FrameTree>>,
 }
 
 impl NavigationContext {

@@ -6,7 +6,7 @@ use std::local_data;
 use cssparser::ast::{SyntaxError, SourceLocation};
 
 
-pub struct ErrorLoggerIterator<I>(I);
+pub struct ErrorLoggerIterator<I>(pub I);
 
 impl<T, I: Iterator<Result<T, SyntaxError>>> Iterator<T> for ErrorLoggerIterator<I> {
     fn next(&mut self) -> Option<T> {

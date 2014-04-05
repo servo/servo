@@ -13,10 +13,10 @@ use servo_util::str::DOMString;
 /// The `DOCTYPE` tag.
 #[deriving(Encodable)]
 pub struct DocumentType {
-    node: Node,
-    name: DOMString,
-    public_id: DOMString,
-    system_id: DOMString,
+    pub node: Node,
+    pub name: DOMString,
+    pub public_id: DOMString,
+    pub system_id: DOMString,
 }
 
 impl DocumentTypeDerived for EventTarget {

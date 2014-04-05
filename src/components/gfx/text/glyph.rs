@@ -500,9 +500,9 @@ impl<'a> GlyphInfo<'a> {
 pub struct GlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
-    priv entry_buffer: ~[GlyphEntry],
+    entry_buffer: ~[GlyphEntry],
 
-    priv detail_store: DetailedGlyphStore,
+    detail_store: DetailedGlyphStore,
 
     is_whitespace: bool,
 }
@@ -673,10 +673,10 @@ impl<'a> GlyphStore {
 }
 
 pub struct GlyphIterator<'a> {
-    priv store:       &'a GlyphStore,
-    priv char_index:  uint,
-    priv char_range:  iter::Range<uint>,
-    priv glyph_range: Option<iter::Range<uint>>,
+    store:       &'a GlyphStore,
+    char_index:  uint,
+    char_range:  iter::Range<uint>,
+    glyph_range: Option<iter::Range<uint>>,
 }
 
 impl<'a> GlyphIterator<'a> {

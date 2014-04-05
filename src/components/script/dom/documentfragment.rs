@@ -14,7 +14,7 @@ use dom::window::Window;
 
 #[deriving(Encodable)]
 pub struct DocumentFragment {
-    node: Node,
+    pub node: Node,
 }
 
 impl DocumentFragmentDerived for EventTarget {

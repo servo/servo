@@ -14,8 +14,8 @@ use servo_util::str::DOMString;
 /// An HTML processing instruction node.
 #[deriving(Encodable)]
 pub struct ProcessingInstruction {
-    characterdata: CharacterData,
-    target: DOMString,
+    pub characterdata: CharacterData,
+    pub target: DOMString,
 }
 
 impl ProcessingInstructionDerived for EventTarget {

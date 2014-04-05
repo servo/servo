@@ -2,24 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[crate_id = "github.com/mozilla/servo#net:0.1"];
-#[crate_type = "lib"];
-#[crate_type = "dylib"];
-#[crate_type = "rlib"];
+#![crate_id = "github.com/mozilla/servo#net:0.1"]
+#![crate_type = "lib"]
+#![crate_type = "dylib"]
+#![crate_type = "rlib"]
 
-#[feature(globs)];
-
-#[feature(phase)];
-#[phase(syntax, link)]
-extern crate log;
+#![feature(default_type_params, globs, managed_boxes, phase)]
 
 extern crate collections;
 extern crate geom;
 extern crate http;
+extern crate png;
+#[phase(syntax, link)]
+extern crate log;
+extern crate serialize;
 extern crate servo_util = "util";
 extern crate stb_image;
-extern crate png;
-extern crate serialize;
 extern crate sync;
 extern crate url;
 

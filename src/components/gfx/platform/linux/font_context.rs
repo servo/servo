@@ -15,12 +15,12 @@ use std::rc::Rc;
 
 #[deriving(Clone)]
 pub struct FreeTypeLibraryHandle {
-    ctx: FT_Library,
+    pub ctx: FT_Library,
 }
 
 #[deriving(Clone)]
 pub struct FontContextHandle {
-    ctx: Rc<FreeTypeLibraryHandle>,
+    pub ctx: Rc<FreeTypeLibraryHandle>,
 }
 
 impl Drop for FreeTypeLibraryHandle {

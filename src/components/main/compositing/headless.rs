@@ -16,7 +16,7 @@ use servo_util::time;
 /// It's intended for headless testing.
 pub struct NullCompositor {
     /// The port on which we receive messages.
-    port: Receiver<Msg>,
+    pub port: Receiver<Msg>,
 }
 
 impl NullCompositor {

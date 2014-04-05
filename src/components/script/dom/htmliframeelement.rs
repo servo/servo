@@ -33,10 +33,10 @@ enum SandboxAllowance {
 
 #[deriving(Encodable)]
 pub struct HTMLIFrameElement {
-    htmlelement: HTMLElement,
+    pub htmlelement: HTMLElement,
     frame: Untraceable<Option<Url>>,
-    size: Option<IFrameSize>,
-    sandbox: Option<u8>
+    pub size: Option<IFrameSize>,
+    pub sandbox: Option<u8>
 }
 
 impl HTMLIFrameElementDerived for EventTarget {
@@ -50,8 +50,8 @@ impl HTMLIFrameElementDerived for EventTarget {
 
 #[deriving(Encodable)]
 pub struct IFrameSize {
-    pipeline_id: PipelineId,
-    subpage_id: SubpageId,
+    pub pipeline_id: PipelineId,
+    pub subpage_id: SubpageId,
 }
 
 impl HTMLIFrameElement {

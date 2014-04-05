@@ -9,9 +9,9 @@ use dom::window::Window;
 
 #[deriving(Encodable)]
 pub struct ValidityState {
-    reflector_: Reflector,
-    window: JS<Window>,
-    state: u8,
+    pub reflector_: Reflector,
+    pub window: JS<Window>,
+    pub state: u8,
 }
 
 impl ValidityState {

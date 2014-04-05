@@ -35,7 +35,7 @@ mod headless;
 #[deriving(Clone)]
 pub struct CompositorChan {
     /// A channel on which messages can be sent to the compositor.
-    chan: Sender<Msg>,
+    pub chan: Sender<Msg>,
 }
 
 /// Implementation of the abstract `ScriptListener` interface.
@@ -197,7 +197,7 @@ pub enum CompositorMode {
 }
 
 pub struct CompositorTask {
-    mode: CompositorMode,
+    pub mode: CompositorMode,
 }
 
 impl CompositorTask {

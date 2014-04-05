@@ -23,7 +23,7 @@ use url::Url;
 
 #[deriving(Encodable)]
 pub struct HTMLImageElement {
-    htmlelement: HTMLElement,
+    pub htmlelement: HTMLElement,
     image: Untraceable<Option<Url>>,
 }
 

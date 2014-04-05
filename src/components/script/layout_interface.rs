@@ -12,11 +12,11 @@ use dom::node::{Node, LayoutDataRef};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use libc::c_void;
 use script_task::{ScriptChan};
 use servo_util::geometry::Au;
 use std::cmp;
 use std::comm::{channel, Receiver, Sender};
-use std::libc::c_void;
 use style::Stylesheet;
 use url::Url;
 
@@ -65,15 +65,16 @@ pub enum LayoutQuery {
 
 /// The address of a node known to be valid. These must only be sent from content -> layout,
 /// because we do not trust layout.
-pub struct TrustedNodeAddress(*c_void);
+pub struct TrustedNodeAddress(pub *c_void);
 
-impl<S: Encoder> Encodable<S> for TrustedNodeAddress {
-    fn encode(&self, s: &mut S) {
+impl<S: Encoder<E>, E> Encodable<S, E> for TrustedNodeAddress {
+    fn encode(&self, s: &mut S) -> Result<(), E> {
         let TrustedNodeAddress(addr) = *self;
         let node = addr as *Node as *mut Node;
         unsafe {
             JS::from_raw(node).encode(s)
-        }
+        };
+        Ok(())
     }
 }
 
@@ -81,10 +82,10 @@ impl<S: Encoder> Encodable<S> for TrustedNodeAddress {
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
 pub type UntrustedNodeAddress = *c_void;
 
-pub struct ContentBoxResponse(Rect<Au>);
-pub struct ContentBoxesResponse(~[Rect<Au>]);
-pub struct HitTestResponse(UntrustedNodeAddress);
-pub struct MouseOverResponse(~[UntrustedNodeAddress]);
+pub struct ContentBoxResponse(pub Rect<Au>);
+pub struct ContentBoxesResponse(pub ~[Rect<Au>]);
+pub struct HitTestResponse(pub UntrustedNodeAddress);
+pub struct MouseOverResponse(pub ~[UntrustedNodeAddress]);
 
 /// Determines which part of the
 #[deriving(Eq, Ord, TotalEq, TotalOrd, Encodable)]
@@ -110,9 +111,9 @@ impl DocumentDamageLevel {
 #[deriving(Encodable)]
 pub struct DocumentDamage {
     /// The topmost node in the tree that has changed.
-    root: TrustedNodeAddress,
+    pub root: TrustedNodeAddress,
     /// The amount of damage that occurred.
-    level: DocumentDamageLevel,
+    pub level: DocumentDamageLevel,
 }
 
 /// Why we're doing reflow.
@@ -127,26 +128,26 @@ pub enum ReflowGoal {
 /// Information needed for a reflow.
 pub struct Reflow {
     /// The document node.
-    document_root: TrustedNodeAddress,
+    pub document_root: TrustedNodeAddress,
     /// The style changes that need to be done.
-    damage: DocumentDamage,
+    pub damage: DocumentDamage,
     /// The goal of reflow: either to render to the screen or to flush layout info for script.
-    goal: ReflowGoal,
+    pub goal: ReflowGoal,
     /// The URL of the page.
-    url: Url,
+    pub url: Url,
     /// The channel through which messages can be sent back to the script task.
-    script_chan: ScriptChan,
+    pub script_chan: ScriptChan,
     /// The current window size.
-    window_size: Size2D<uint>,
+    pub window_size: Size2D<uint>,
     /// The channel that we send a notification to.
-    script_join_chan: Sender<()>,
+    pub script_join_chan: Sender<()>,
     /// Unique identifier
-    id: uint
+    pub id: uint
 }
 
 /// Encapsulates a channel to the layout task.
 #[deriving(Clone)]
-pub struct LayoutChan(Sender<Msg>);
+pub struct LayoutChan(pub Sender<Msg>);
 
 impl LayoutChan {
     pub fn new() -> (Receiver<Msg>, LayoutChan) {

@@ -105,13 +105,13 @@ impl FloatListRef {
 /// All the information necessary to place a float.
 pub struct PlacementInfo {
     /// The dimensions of the float.
-    size: Size2D<Au>,
+    pub size: Size2D<Au>,
     /// The minimum top of the float, as determined by earlier elements.
-    ceiling: Au,
+    pub ceiling: Au,
     /// The maximum right position of the float, generally determined by the containing block.
-    max_width: Au,
+    pub max_width: Au,
     /// The kind of float.
-    kind: FloatKind
+    pub kind: FloatKind
 }
 
 fn range_intersect(top_1: Au, bottom_1: Au, top_2: Au, bottom_2: Au) -> (Au, Au) {
@@ -123,9 +123,9 @@ fn range_intersect(top_1: Au, bottom_1: Au, top_2: Au, bottom_2: Au) -> (Au, Au)
 #[deriving(Clone)]
 pub struct Floats {
     /// The list of floats.
-    priv list: FloatListRef,
+    list: FloatListRef,
     /// The offset of the flow relative to the first float.
-    priv offset: Point2D<Au>,
+    offset: Point2D<Au>,
 }
 
 impl Floats {

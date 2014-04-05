@@ -15,7 +15,7 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct HTMLVideoElement {
-    htmlmediaelement: HTMLMediaElement
+    pub htmlmediaelement: HTMLMediaElement
 }
 
 impl HTMLVideoElementDerived for EventTarget {

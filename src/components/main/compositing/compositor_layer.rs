@@ -44,64 +44,64 @@ static MAX_TILE_MEMORY_PER_LAYER: uint = 10000000;
 /// ultimately removed, except as a set of helper methods on `rust-layers` layers.
 pub struct CompositorLayer {
     /// This layer's pipeline. BufferRequests and mouse events will be sent through this.
-    pipeline: CompositionPipeline,
+    pub pipeline: CompositionPipeline,
 
     /// The ID of this layer within the pipeline.
-    id: LayerId,
+    pub id: LayerId,
 
     /// The bounds of this layer in terms of its parent (a.k.a. the scissor box).
-    bounds: Rect<f32>,
+    pub bounds: Rect<f32>,
 
     /// The size of the underlying page in page coordinates. This is an option
     /// because we may not know the size of the page until layout is finished completely.
     /// if we have no size yet, the layer is hidden until a size message is recieved.
-    page_size: Option<Size2D<f32>>,
+    pub page_size: Option<Size2D<f32>>,
 
     /// The offset of the page due to scrolling. (0,0) is when the window sees the
     /// top left corner of the page.
-    scroll_offset: Point2D<f32>,
+    pub scroll_offset: Point2D<f32>,
 
     /// This layer's children. These could be iframes or any element which
     /// differs in scroll behavior from its parent. Each is associated with a
     /// ContainerLayer which determines its position relative to its parent and
     /// clipping rect. Children are stored in the order in which they are drawn.
-    children: ~[CompositorLayerChild],
+    pub children: ~[CompositorLayerChild],
 
     /// This layer's quadtree. This is where all buffers are stored for this layer.
-    quadtree: MaybeQuadtree,
+    pub quadtree: MaybeQuadtree,
 
     /// The root layer of this CompositorLayer's layer tree. Buffers are collected
     /// from the quadtree and inserted here when the layer is painted to the screen.
-    root_layer: Rc<ContainerLayer>,
+    pub root_layer: Rc<ContainerLayer>,
 
     /// When set to true, this layer is ignored by its parents. This is useful for
     /// soft deletion or when waiting on a page size.
-    hidden: bool,
+    pub hidden: bool,
 
     /// A monotonically increasing counter that keeps track of the current epoch.
     /// add_buffer() calls that don't match the current epoch will be ignored.
-    epoch: Epoch,
+    pub epoch: Epoch,
 
     /// The behavior of this layer when a scroll message is received.
-    wants_scroll_events: WantsScrollEventsFlag,
+    pub wants_scroll_events: WantsScrollEventsFlag,
 
     /// Whether an ancestor layer that receives scroll events moves this layer.
-    scroll_policy: ScrollPolicy,
+    pub scroll_policy: ScrollPolicy,
 
     /// True if CPU rendering is enabled, false if we're using GPU rendering.
-    cpu_painting: bool,
+    pub cpu_painting: bool,
 
     /// The color to use for the unrendered-content void
-    unrendered_color: Color,
+    pub unrendered_color: Color,
 }
 
 /// Helper struct for keeping CompositorLayer children organized.
 pub struct CompositorLayerChild {
     /// The child itself.
-    child: ~CompositorLayer,
+    pub child: ~CompositorLayer,
     /// A ContainerLayer managed by the parent node. This deals with clipping and
     /// positioning, and is added above the child's layer tree.
-    container: Rc<ContainerLayer>,
+    pub container: Rc<ContainerLayer>,
 }
 
 /// Helper enum for storing quadtrees. Either contains a quadtree, or contains
@@ -128,7 +128,7 @@ pub enum WantsScrollEventsFlag {
 
 fn create_container_layer_from_rect(rect: Rect<f32>) -> Rc<ContainerLayer> {
     let container = Rc::new(ContainerLayer());
-    container.scissor.set(Some(rect));
+    *container.scissor.borrow_mut() = Some(rect);
     container.common.borrow_mut().transform =
         identity().translate(rect.origin.x, rect.origin.y, 0f32);
     container
@@ -303,7 +303,7 @@ impl CompositorLayer {
         // Allow children to scroll.
         let cursor = cursor - self.scroll_offset;
         for child in self.children.mut_iter() {
-            match child.container.scissor.get() {
+            match *child.container.scissor.borrow() {
                 None => {
                     error!("CompositorLayer: unable to perform cursor hit test for layer");
                 }
@@ -343,7 +343,7 @@ impl CompositorLayer {
 
     #[allow(dead_code)]
     fn dump_layer_tree(&self, layer: Rc<ContainerLayer>, indent: ~str) {
-        println!("{}scissor {:?}", indent, layer.scissor.get());
+        println!("{}scissor {:?}", indent, layer.scissor.borrow());
         for kid in layer.children() {
             match kid {
                 ContainerLayerKind(ref container_layer) => {
@@ -385,7 +385,7 @@ impl CompositorLayer {
     pub fn send_mouse_event(&self, event: MouseWindowEvent, cursor: Point2D<f32>) {
         let cursor = cursor - self.scroll_offset;
         for child in self.children.iter().filter(|&x| !x.child.hidden) {
-            match child.container.scissor.get() {
+            match *child.container.scissor.borrow() {
                 None => {
                     error!("CompositorLayer: unable to perform cursor hit test for layer");
                 }
@@ -450,7 +450,7 @@ impl CompositorLayer {
         }
 
         let transform = |x: &mut CompositorLayerChild| -> bool {
-            match x.container.scissor.get() {
+            match *x.container.scissor.borrow() {
                 Some(scissor) => {
                     let mut new_rect = window_rect;
                     new_rect.origin.x = new_rect.origin.x - x.child.scroll_offset.x;
@@ -497,8 +497,8 @@ impl CompositorLayer {
                 let child_node = &mut self.children[i];
                 child_node.container.common.borrow_mut().set_transform(
                     identity().translate(new_rect.origin.x, new_rect.origin.y, 0.0));
-                let old_rect = child_node.container.scissor.get().clone();
-                child_node.container.scissor.set(Some(new_rect));
+                let old_rect = child_node.container.scissor.borrow().clone();
+                *child_node.container.scissor.borrow_mut() = Some(new_rect);
                 match self.quadtree {
                     NoTree(..) => {} // Nothing to do
                         Tree(ref mut quadtree) => {
@@ -665,7 +665,7 @@ impl CompositorLayer {
                                                             max_mem))
                     }
                 }
-                match child_node.container.scissor.get() {
+                match *child_node.container.scissor.borrow() {
                     Some(scissor) => {
                         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
                         // cursor position to make sure the scroll isn't propagated downwards.
@@ -698,7 +698,7 @@ impl CompositorLayer {
     // are not rebuilt directly from this method.
     pub fn build_layer_tree(&mut self, graphics_context: &NativeCompositingGraphicsContext) {
         // Iterate over the children of the container layer.
-        let mut current_layer_child = self.root_layer.first_child.get().clone();
+        let mut current_layer_child = self.root_layer.first_child.borrow().clone();
 
         // Delete old layer.
         while current_layer_child.is_some() {
@@ -869,7 +869,7 @@ impl CompositorLayer {
                 match self.quadtree {
                     NoTree(..) => {} // Nothing to do
                     Tree(ref mut quadtree) => {
-                        match child.get_ref().container.scissor.get() {
+                        match *child.get_ref().container.scissor.borrow() {
                             Some(rect) => {
                                 quadtree.set_status_page(rect, Normal, false); // Unhide this rect
                             }
@@ -899,7 +899,7 @@ impl CompositorLayer {
             Tree(ref mut quadtree) => quadtree,
         };
         for child in self.children.iter().filter(|x| !x.child.hidden) {
-            match child.container.scissor.get() {
+            match *child.container.scissor.borrow() {
                 None => {} // Nothing to do
                 Some(rect) => {
                     quadtree.set_status_page(rect, Hidden, false);

@@ -17,25 +17,25 @@ use constellation_msg::PipelineId;
 pub struct LayerBuffer {
     /// The native surface which can be shared between threads or processes. On Mac this is an
     /// `IOSurface`; on Linux this is an X Pixmap; on Android this is an `EGLImageKHR`.
-    native_surface: NativeSurface,
+    pub native_surface: NativeSurface,
 
     /// The rect in the containing RenderLayer that this represents.
-    rect: Rect<f32>,
+    pub rect: Rect<f32>,
 
     /// The rect in pixels that will be drawn to the screen.
-    screen_pos: Rect<uint>,
+    pub screen_pos: Rect<uint>,
 
     /// The scale at which this tile is rendered
-    resolution: f32,
+    pub resolution: f32,
 
     /// NB: stride is in pixels, like OpenGL GL_UNPACK_ROW_LENGTH.
-    stride: uint,
+    pub stride: uint,
 }
 
 /// A set of layer buffers. This is an atomic unit used to switch between the front and back
 /// buffers.
 pub struct LayerBufferSet {
-    buffers: ~[~LayerBuffer]
+    pub buffers: ~[~LayerBuffer]
 }
 
 impl LayerBufferSet {
@@ -68,7 +68,7 @@ pub enum ReadyState {
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[deriving(Eq)]
-pub struct Epoch(uint);
+pub struct Epoch(pub uint);
 
 impl Epoch {
     pub fn next(&mut self) {
@@ -78,7 +78,7 @@ impl Epoch {
 }
 
 #[deriving(Clone, Eq)]
-pub struct LayerId(uint, uint);
+pub struct LayerId(pub uint, pub uint);
 
 impl Show for LayerId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -108,13 +108,13 @@ pub enum ScrollPolicy {
 /// buffer contents of the layer itself.
 pub struct LayerMetadata {
     /// An opaque ID. This is usually the address of the flow and index of the box within it.
-    id: LayerId,
+    pub id: LayerId,
     /// The position and size of the layer in pixels.
-    position: Rect<uint>,
+    pub position: Rect<uint>,
     /// The background color of the layer.
-    background_color: Color,
+    pub background_color: Color,
     /// The scrolling policy of this layer.
-    scroll_policy: ScrollPolicy,
+    pub scroll_policy: ScrollPolicy,
 }
 
 /// The interface used by the renderer to acquire draw targets for each render frame and
@@ -158,8 +158,9 @@ pub trait ScriptListener : Clone {
     fn dup(&self) -> ~ScriptListener;
 }
 
-impl<S: Encoder> Encodable<S> for ~ScriptListener {
-    fn encode(&self, _s: &mut S) {
+impl<E, S: Encoder<E>> Encodable<S, E> for ~ScriptListener {
+    fn encode(&self, _s: &mut S) -> Result<(), E> {
+        Ok(())
     }
 }
 

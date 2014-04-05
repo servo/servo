@@ -13,20 +13,17 @@ use gfx::font_context::{FontContext, FontContextInfo};
 use green::task::GreenTask;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::ConstellationChan;
-use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 use servo_util::opts::Opts;
 use std::cast;
 #[cfg(not(target_os="android"))]
 use std::ptr;
 #[cfg(not(target_os="android"))]
-use std::rt::Runtime;
-#[cfg(not(target_os="android"))]
 use std::rt::local::Local;
 #[cfg(not(target_os="android"))]
 use std::rt::task::Task;
 use style::{ComputedValues, Stylist};
-use sync::{Arc, MutexArc};
+use sync::{Arc, Mutex};
 use url::Url;
 
 #[cfg(target_os="android")]
@@ -59,36 +56,37 @@ local_data_key!(style_sharing_candidate_cache: *mut StyleSharingCandidateCache)
 #[deriving(Clone)]
 pub struct LayoutContext {
     /// The local image cache.
-    image_cache: MutexArc<LocalImageCache>,
+    // FIXME(rust#13125): Remove the *() for the real type.
+    pub image_cache: Arc<Mutex<*()>>,
 
     /// The current screen size.
-    screen_size: Size2D<Au>,
+    pub screen_size: Size2D<Au>,
 
     /// A channel up to the constellation.
-    constellation_chan: ConstellationChan,
+    pub constellation_chan: ConstellationChan,
 
     /// A channel up to the layout task.
-    layout_chan: LayoutChan,
+    pub layout_chan: LayoutChan,
 
     /// Information needed to construct a font context.
-    font_context_info: FontContextInfo,
+    pub font_context_info: FontContextInfo,
 
     /// The CSS selector stylist.
     ///
     /// FIXME(pcwalton): Make this no longer an unsafe pointer once we have fast `RWArc`s.
-    stylist: *Stylist,
+    pub stylist: *Stylist,
 
     /// The initial set of CSS properties.
-    initial_css_values: Arc<ComputedValues>,
+    pub initial_css_values: Arc<ComputedValues>,
 
     /// The root node at which we're starting the layout.
-    reflow_root: OpaqueNode,
+    pub reflow_root: OpaqueNode,
 
     /// The URL.
-    url: Url,
+    pub url: Url,
 
     /// The command line options.
-    opts: Opts,
+    pub opts: Opts,
 }
 
 #[cfg(not(target_os="android"))]
@@ -99,7 +97,7 @@ impl LayoutContext {
             let mut task = Local::borrow(None::<Task>);
             match task.get().maybe_take_runtime::<GreenTask>() {
                 Some(green) => {
-                    task.get().put_runtime(green as ~Runtime);
+                    task.get().put_runtime(green);
                     fail!("can't call this on a green task!")
                 }
                 None => {}
@@ -121,7 +119,7 @@ impl LayoutContext {
             let mut task = Local::borrow(None::<Task>);
             match task.get().maybe_take_runtime::<GreenTask>() {
                 Some(green) => {
-                    task.get().put_runtime(green as ~Runtime);
+                    task.get().put_runtime(green);
                     fail!("can't call this on a green task!")
                 }
                 None => {}
@@ -143,7 +141,7 @@ impl LayoutContext {
             let mut task = Local::borrow(None::<Task>);
             match task.get().maybe_take_runtime::<GreenTask>() {
                 Some(green) => {
-                    task.get().put_runtime(green as ~Runtime);
+                    task.get().put_runtime(green);
                     fail!("can't call this on a green task!")
                 }
                 None => {}

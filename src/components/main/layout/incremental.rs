@@ -28,7 +28,7 @@ pub enum RestyleEffect {
 // FIXME: Switch to librustc/util/enum_set.rs if that gets moved into
 // libextra (Rust #8054)
 pub struct RestyleDamage {
-    priv bits: int
+    bits: int
 }
 
 // Provide literal syntax of the form restyle_damage!(Repaint, Reflow)

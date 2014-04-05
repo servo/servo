@@ -1394,7 +1394,7 @@ class CGImports(CGWrapper):
             'dead_code',
         ]
 
-        statements = ['#[allow(%s)];' % ','.join(ignored_warnings)]
+        statements = ['#![allow(%s)]' % ','.join(ignored_warnings)]
         statements.extend('use %s;' % i for i in sorted(imports))
 
         CGWrapper.__init__(self, child,
@@ -4076,11 +4076,11 @@ class CGDictionary(CGThing):
     def struct(self):
         d = self.dictionary
         if d.parent:
-            inheritance = "  parent: %s::%s,\n" % (self.makeModuleName(d.parent),
+            inheritance = "  pub parent: %s::%s,\n" % (self.makeModuleName(d.parent),
                                                    self.makeClassName(d.parent))
         else:
             inheritance = ""
-        memberDecls = ["  %s: %s," %
+        memberDecls = ["  pub %s: %s," %
                        (self.makeMemberName(m[0].identifier.name), self.getMemberType(m))
                        for m in self.memberInfo]
 
@@ -4344,11 +4344,11 @@ class CGBindingRoot(CGThing):
             'dom::bindings::proxyhandler::{_obj_toString, defineProperty}',
             'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
             'dom::bindings::proxyhandler::{getPropertyDescriptor}',
+            'libc',
             'servo_util::str::DOMString',
             'servo_util::vec::zip_copies',
             'std::cast',
             'std::cmp',
-            'std::libc',
             'std::ptr',
             'std::slice',
             'std::str',
@@ -5282,7 +5282,7 @@ class GlobalGenRoots():
     def InheritTypes(config):
 
         descriptors = config.getDescriptors(register=True, hasInterfaceObject=True)
-        allprotos = [CGGeneric("#[allow(unused_imports)];\n"),
+        allprotos = [CGGeneric("#![allow(unused_imports)]\n"),
                      CGGeneric("use dom::types::*;\n"),
                      CGGeneric("use dom::bindings::js::JS;\n"),
                      CGGeneric("use dom::bindings::trace::JSTraceable;\n"),

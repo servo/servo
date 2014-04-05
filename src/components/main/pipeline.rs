@@ -23,23 +23,23 @@ use url::Url;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and render task.
 pub struct Pipeline {
-    id: PipelineId,
-    subpage_id: Option<SubpageId>,
-    script_chan: ScriptChan,
-    layout_chan: LayoutChan,
-    render_chan: RenderChan,
-    layout_shutdown_port: Receiver<()>,
-    render_shutdown_port: Receiver<()>,
+    pub id: PipelineId,
+    pub subpage_id: Option<SubpageId>,
+    pub script_chan: ScriptChan,
+    pub layout_chan: LayoutChan,
+    pub render_chan: RenderChan,
+    pub layout_shutdown_port: Receiver<()>,
+    pub render_shutdown_port: Receiver<()>,
     /// The most recently loaded url
-    url: RefCell<Option<Url>>,
+    pub url: RefCell<Option<Url>>,
 }
 
 /// The subset of the pipeline that is needed for layer composition.
 #[deriving(Clone)]
 pub struct CompositionPipeline {
-    id: PipelineId,
-    script_chan: ScriptChan,
-    render_chan: RenderChan,
+    pub id: PipelineId,
+    pub script_chan: ScriptChan,
+    pub render_chan: RenderChan,
 }
 
 impl Pipeline {
@@ -187,7 +187,7 @@ impl Pipeline {
     }
 
     pub fn load(&self, url: Url) {
-        self.url.set(Some(url.clone()));
+        *self.url.borrow_mut() = Some(url.clone());
         let ScriptChan(ref chan) = self.script_chan;
         chan.send(LoadMsg(self.id, url));
     }

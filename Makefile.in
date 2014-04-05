@@ -350,7 +350,7 @@ libservo.dummy: $(DEPS_servo)
 else
 servo:  $(DEPS_servo)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_servo) -C gen-crate-map $< -o libservo.so --crate-type dylib
+	$(Q)$(RUSTC) $(RFLAGS_servo) $< -o libservo.so --crate-type dylib
 	touch servo
 endif
 
