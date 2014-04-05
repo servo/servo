@@ -231,7 +231,7 @@ impl MarginCollapseInfo {
     }
 }
 
-enum MarginCollapseState {
+pub enum MarginCollapseState {
     AccumulatingCollapsibleTopMargin,
     AccumulatingMarginIn,
 }
