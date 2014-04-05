@@ -29,7 +29,7 @@ use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
-use servo_util::str::{DOMString, null_str_as_empty_ref};
+use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
 
 use std::ascii::StrAsciiExt;
 use std::cast;
@@ -376,9 +376,8 @@ impl AttributeHandlers for JS<Element> {
     }
 
     fn has_class(&self, name: &str) -> bool {
-        // FIXME: https://github.com/mozilla/servo/issues/1840
         let class_names = self.get_string_attribute("class");
-        let mut classes = class_names.split(' ');
+        let mut classes = split_html_space_chars(class_names);
         classes.any(|class| name == class)
     }
 
