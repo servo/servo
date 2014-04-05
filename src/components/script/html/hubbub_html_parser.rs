@@ -50,7 +50,7 @@ pub struct JSFile {
     url: Url
 }
 
-type JSResult = ~[JSFile];
+pub type JSResult = ~[JSFile];
 
 enum CSSMessage {
     CSSTaskNewFile(StylesheetProvenance),

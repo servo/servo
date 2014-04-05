@@ -11,7 +11,7 @@ use servo_util::str::DOMString;
 
 #[repr(uint)]
 #[deriving(Show, Encodable)]
-enum DOMErrorName {
+pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,
     HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR,
     WrongDocumentError = DOMExceptionConstants::WRONG_DOCUMENT_ERR,

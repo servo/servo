@@ -14,7 +14,7 @@ use servo_util::str::DOMString;
 use collections::hashmap::HashMap;
 
 #[deriving(Encodable)]
-enum FormDatum {
+pub enum FormDatum {
     StringData(DOMString),
     BlobData { blob: JS<Blob>, name: DOMString }
 }
