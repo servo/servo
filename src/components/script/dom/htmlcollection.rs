@@ -10,7 +10,7 @@ use dom::element::{Element, AttributeHandlers};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 use servo_util::namespace::Namespace;
-use servo_util::str::DOMString;
+use servo_util::str::{DOMString, split_html_space_chars};
 
 use serialize::{Encoder, Encodable};
 
@@ -100,7 +100,7 @@ impl HTMLCollection {
             }
         }
         let filter = ClassNameFilter {
-            classes: classes.split(' ').map(|class| class.into_owned()).to_owned_vec()
+            classes: split_html_space_chars(classes).map(|class| class.into_owned()).to_owned_vec()
         };
         HTMLCollection::create(window, root, ~filter)
     }

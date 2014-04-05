@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::iter::Filter;
+use std::str::CharSplits;
+
 pub type DOMString = ~str;
+pub type StaticCharVec = &'static [char];
 pub type StaticStringVec = &'static [&'static str];
 
 pub fn null_str_as_empty(s: &Option<DOMString>) -> DOMString {
@@ -31,7 +35,7 @@ pub fn is_whitespace(s: &str) -> bool {
 ///
 ///     http://www.whatwg.org/specs/web-apps/current-work/multipage/common-microsyntaxes.html#
 ///     space-character
-pub static HTML_SPACE_CHARACTERS: [char, ..5] = [
+pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
     '\u0020',
     '\u0009',
     '\u000a',
@@ -39,3 +43,6 @@ pub static HTML_SPACE_CHARACTERS: [char, ..5] = [
     '\u000d',
 ];
 
+pub fn split_html_space_chars<'a>(s: &'a str) -> Filter<'a, &'a str, CharSplits<'a, StaticCharVec>> {
+    s.split(HTML_SPACE_CHARACTERS).filter(|&split| !split.is_empty())
+}
