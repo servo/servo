@@ -1549,7 +1549,7 @@ static NativeHooks: NativePropertyHooks = NativePropertyHooks { resolve_own_prop
 # We'll want to insert the indent at the beginnings of lines, but we
 # don't want to indent empty lines.  So only indent lines that have a
 # non-newline character on them.
-lineStartDetector = re.compile("^(?=[^\n#])", re.MULTILINE)
+lineStartDetector = re.compile("^(?=[^\n])", re.MULTILINE)
 class CGIndenter(CGThing):
     """
     A class that takes another CGThing and generates code that indents that
@@ -2908,20 +2908,28 @@ def getEnumValueName(value):
 class CGEnum(CGThing):
     def __init__(self, enum):
         CGThing.__init__(self)
-        self.enum = enum
+        inner = """
+use dom::bindings::utils::EnumEntry;
+#[repr(uint)]
+pub enum valuelist {
+  %s
+}
+
+pub static strings: &'static [EnumEntry] = &[
+  %s,
+];
+""" % (",\n  ".join(map(getEnumValueName, enum.values())),
+       ",\n  ".join(['EnumEntry {value: &"' + val + '", length: ' + str(len(val)) + '}' for val in enum.values()]))
+
+        self.cgRoot = CGList([
+            CGNamespace.build([enum.identifier.name + "Values"],
+                              CGIndenter(CGGeneric(inner)), public=True),
+            CGGeneric("pub type %s = self::%sValues::valuelist;\n" %
+                                      (enum.identifier.name, enum.identifier.name)),
+        ])
 
     def define(self):
-        return """
-  #[repr(uint)]
-  pub enum valuelist {
-    %s
-  }
-
-  pub static strings: &'static [EnumEntry] = &[
-    %s,
-  ];
-""" % (",\n    ".join(map(getEnumValueName, self.enum.values())),
-       ",\n    ".join(['EnumEntry {value: &"' + val + '", length: ' + str(len(val)) + '}' for val in self.enum.values()]))
+        return self.cgRoot.define()
 
 
 def convertConstIDLValueToRust(value):
@@ -4656,15 +4664,7 @@ class CGBindingRoot(CGThing):
                                                     isCallback=True)
 
         # Do codegen for all the enums
-        def makeEnum(e):
-            return CGNamespace.build([e.identifier.name + "Values"],
-                                     CGList([CGGeneric("  use dom::bindings::utils::EnumEntry;"),
-                                             CGEnum(e)]), public=True)
-        def makeEnumTypedef(e):
-            return CGGeneric("pub type %s = self::%sValues::valuelist;\n" %
-                                      (e.identifier.name, e.identifier.name))
-        cgthings = [ fun(e) for e in config.getEnums(webIDLFile)
-                     for fun in [makeEnum, makeEnumTypedef] ]
+        cgthings = [CGEnum(e) for e in config.getEnums(webIDLFile)]
 
         # Do codegen for all the dictionaries.  We have to be a bit careful
         # here, because we have to generate these in order from least derived
