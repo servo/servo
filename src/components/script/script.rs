@@ -29,7 +29,6 @@ extern crate style;
 extern crate servo_msg = "msg";
 extern crate url;
 
-mod macros;
 
 pub mod dom {
     pub mod bindings {
@@ -159,6 +158,7 @@ pub mod dom {
     pub mod windowproxy;
 
     pub mod testbinding;
+    pub mod macros;
 }
 
 pub mod html {
