@@ -1089,9 +1089,6 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
         return (setValue("(%s).to_jsval(cx)" % result), True)
 
     if type.isEnum():
-        if type.nullable():
-            raise TypeError("We don't support nullable enumerated return types "
-                            "yet")
         return (setValue("(%s).to_jsval(cx)" % result), True)
 
     if type.isCallback():
@@ -1188,9 +1185,10 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
             result = CGWrapper(result, pre="Option<", post=">")
         return result
     if returnType.isEnum():
+        result = CGGeneric(returnType.unroll().inner.identifier.name)
         if returnType.nullable():
-            raise TypeError("We don't support nullable enum return values")
-        return CGGeneric(returnType.inner.identifier.name)
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
     if returnType.isGeckoInterface():
         descriptor = descriptorProvider.getDescriptor(
             returnType.unroll().inner.identifier.name)

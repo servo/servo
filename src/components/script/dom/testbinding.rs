@@ -74,6 +74,7 @@ impl TestBinding {
     pub fn SetDoubleAttributeNullable(&self, _: Option<f64>) {}
     pub fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some(~"") }
     pub fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
+    pub fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
     pub fn GetInterfaceAttributeNullable(&self) -> Option<JS<Blob>> { Some(Blob::new(&self.window)) }
     pub fn SetInterfaceAttributeNullable(&self, _: Option<JS<Blob>>) {}
 

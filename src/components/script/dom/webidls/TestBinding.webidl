@@ -33,6 +33,7 @@ interface TestBinding {
            attribute float? floatAttributeNullable;
            attribute double? doubleAttributeNullable;
            attribute DOMString? stringAttributeNullable;
+  readonly attribute TestEnum? enumAttributeNullable;
            attribute Blob? interfaceAttributeNullable;
 
   void passOptionalBoolean(optional boolean arg);
