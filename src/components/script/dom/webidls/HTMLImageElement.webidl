@@ -23,9 +23,7 @@ interface HTMLImageElement : HTMLElement {
            attribute DOMString useMap;
            [SetterThrows]
            attribute boolean isMap;
-           [SetterThrows]
            attribute unsigned long width;
-           [SetterThrows]
            attribute unsigned long height;
   readonly attribute unsigned long naturalWidth;
   readonly attribute unsigned long naturalHeight;
