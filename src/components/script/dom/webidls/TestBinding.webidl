@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+enum TestEnum { "", "foo", "bar" };
+
 interface TestBinding {
            attribute boolean booleanAttribute;
            attribute byte byteAttribute;
@@ -15,6 +17,7 @@ interface TestBinding {
            attribute float floatAttribute;
            attribute double doubleAttribute;
            attribute DOMString stringAttribute;
+  readonly attribute TestEnum enumAttribute;
            attribute Blob interfaceAttribute;
            attribute any anyAttribute;
 
@@ -30,6 +33,7 @@ interface TestBinding {
            attribute float? floatAttributeNullable;
            attribute double? doubleAttributeNullable;
            attribute DOMString? stringAttributeNullable;
+  readonly attribute TestEnum? enumAttributeNullable;
            attribute Blob? interfaceAttributeNullable;
 
   void passOptionalBoolean(optional boolean arg);

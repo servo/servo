@@ -1089,18 +1089,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
         return (setValue("(%s).to_jsval(cx)" % result), True)
 
     if type.isEnum():
-        if type.nullable():
-            raise TypeError("We don't support nullable enumerated return types "
-                            "yet")
-        return ("""assert!((%(result)s as uint) < %(strings)s.len());
-let %(resultStr)s: *JSString = JS_NewStringCopyN(cx, &%(strings)s[%(result)s as u32].value[0] as *i8, %(strings)s[%(result)s as u32].length as libc::size_t);
-if %(resultStr)s.is_null() {
-  return 0;
-}
-""" % { "result" : result,
-        "resultStr" : result + "_str",
-        "strings" : type.inner.identifier.name + "Values::strings" } +
-        setValue("StringValue(&*(%s_str))" % result), False)
+        return (setValue("(%s).to_jsval(cx)" % result), True)
 
     if type.isCallback():
         assert not type.isInterface()
@@ -1196,9 +1185,10 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
             result = CGWrapper(result, pre="Option<", post=">")
         return result
     if returnType.isEnum():
+        result = CGGeneric(returnType.unroll().inner.identifier.name)
         if returnType.nullable():
-            raise TypeError("We don't support nullable enum return values")
-        return CGGeneric(returnType.inner.identifier.name)
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
     if returnType.isGeckoInterface():
         descriptor = descriptorProvider.getDescriptor(
             returnType.unroll().inner.identifier.name)
@@ -1549,7 +1539,7 @@ static NativeHooks: NativePropertyHooks = NativePropertyHooks { resolve_own_prop
 # We'll want to insert the indent at the beginnings of lines, but we
 # don't want to indent empty lines.  So only indent lines that have a
 # non-newline character on them.
-lineStartDetector = re.compile("^(?=[^\n#])", re.MULTILINE)
+lineStartDetector = re.compile("^(?=[^\n])", re.MULTILINE)
 class CGIndenter(CGThing):
     """
     A class that takes another CGThing and generates code that indents that
@@ -2908,20 +2898,37 @@ def getEnumValueName(value):
 class CGEnum(CGThing):
     def __init__(self, enum):
         CGThing.__init__(self)
-        self.enum = enum
+        inner = """
+use dom::bindings::conversions::ToJSValConvertible;
+use js::jsapi::JSContext;
+use js::jsval::JSVal;
+
+#[repr(uint)]
+pub enum valuelist {
+  %s
+}
+
+pub static strings: &'static [&'static str] = &[
+  %s,
+];
+
+impl ToJSValConvertible for valuelist {
+  fn to_jsval(&self, cx: *JSContext) -> JSVal {
+    strings[*self as uint].to_owned().to_jsval(cx)
+  }
+}
+""" % (",\n  ".join(map(getEnumValueName, enum.values())),
+       ",\n  ".join(['&"%s"' % val for val in enum.values()]))
+
+        self.cgRoot = CGList([
+            CGNamespace.build([enum.identifier.name + "Values"],
+                              CGIndenter(CGGeneric(inner)), public=True),
+            CGGeneric("pub type %s = self::%sValues::valuelist;\n" %
+                                      (enum.identifier.name, enum.identifier.name)),
+        ])
 
     def define(self):
-        return """
-  #[repr(uint)]
-  pub enum valuelist {
-    %s
-  }
-
-  pub static strings: &'static [EnumEntry] = &[
-    %s,
-  ];
-""" % (",\n    ".join(map(getEnumValueName, self.enum.values())),
-       ",\n    ".join(['EnumEntry {value: &"' + val + '", length: ' + str(len(val)) + '}' for val in self.enum.values()]))
+        return self.cgRoot.define()
 
 
 def convertConstIDLValueToRust(value):
@@ -4656,15 +4663,7 @@ class CGBindingRoot(CGThing):
                                                     isCallback=True)
 
         # Do codegen for all the enums
-        def makeEnum(e):
-            return CGNamespace.build([e.identifier.name + "Values"],
-                                     CGList([CGGeneric("  use dom::bindings::utils::EnumEntry;"),
-                                             CGEnum(e)]), public=True)
-        def makeEnumTypedef(e):
-            return CGGeneric("pub type %s = self::%sValues::valuelist;\n" %
-                                      (e.identifier.name, e.identifier.name))
-        cgthings = [ fun(e) for e in config.getEnums(webIDLFile)
-                     for fun in [makeEnum, makeEnumTypedef] ]
+        cgthings = [CGEnum(e) for e in config.getEnums(webIDLFile)]
 
         # Do codegen for all the dictionaries.  We have to be a bit careful
         # here, because we have to generate these in order from least derived
