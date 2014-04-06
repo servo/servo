@@ -566,14 +566,9 @@ pub fn InitIds(cx: *JSContext, specs: &[JSPropertySpec], ids: &mut [jsid]) -> bo
     true
 }
 
-pub struct EnumEntry {
-    value: &'static str,
-    length: uint
-}
-
 pub fn FindEnumStringIndex(cx: *JSContext,
                            v: JSVal,
-                           values: &[EnumEntry]) -> Result<uint, ()> {
+                           values: &[&'static str]) -> Result<uint, ()> {
     unsafe {
         let jsstr = JS_ValueToString(cx, v);
         if jsstr.is_null() {
@@ -585,16 +580,10 @@ pub fn FindEnumStringIndex(cx: *JSContext,
             return Err(());
         }
         for (i, value) in values.iter().enumerate() {
-            if value.length != length as uint {
-                continue;
-            }
-            let mut equal = true;
-            for j in range(0, length as int) {
-                if value.value[j] as u16 != *chars.offset(j) {
-                    equal = false;
-                    break;
-                }
-            };
+            let equal = value.len() == length as uint &&
+                        range(0, length as int).all(|j| {
+                            value[j] as u16 == *chars.offset(j)
+                        });
 
             if equal {
                 return Ok(i);

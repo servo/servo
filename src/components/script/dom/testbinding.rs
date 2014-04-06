@@ -4,6 +4,8 @@
 
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflector, Reflectable};
+use dom::bindings::codegen::TestBindingBinding::TestEnum;
+use dom::bindings::codegen::TestBindingBinding::TestEnumValues::_empty;
 use dom::blob::Blob;
 use dom::window::Window;
 use servo_util::str::DOMString;
@@ -42,6 +44,7 @@ impl TestBinding {
     pub fn SetDoubleAttribute(&self, _: f64) {}
     pub fn StringAttribute(&self) -> DOMString { ~"" }
     pub fn SetStringAttribute(&self, _: DOMString) {}
+    pub fn EnumAttribute(&self) -> TestEnum { _empty }
     pub fn InterfaceAttribute(&self) -> JS<Blob> { Blob::new(&self.window) }
     pub fn SetInterfaceAttribute(&self, _: &JS<Blob>) {}
     pub fn AnyAttribute(&self, _: *JSContext) -> JSVal { NullValue() }
@@ -71,6 +74,7 @@ impl TestBinding {
     pub fn SetDoubleAttributeNullable(&self, _: Option<f64>) {}
     pub fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some(~"") }
     pub fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
+    pub fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
     pub fn GetInterfaceAttributeNullable(&self) -> Option<JS<Blob>> { Some(Blob::new(&self.window)) }
     pub fn SetInterfaceAttributeNullable(&self, _: Option<JS<Blob>>) {}
 
