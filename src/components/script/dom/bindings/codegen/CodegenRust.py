@@ -2909,17 +2909,16 @@ class CGEnum(CGThing):
     def __init__(self, enum):
         CGThing.__init__(self)
         inner = """
-use dom::bindings::utils::EnumEntry;
 #[repr(uint)]
 pub enum valuelist {
   %s
 }
 
-pub static strings: &'static [EnumEntry] = &[
+pub static strings: &'static [&'static str] = &[
   %s,
 ];
 """ % (",\n  ".join(map(getEnumValueName, enum.values())),
-       ",\n  ".join(['EnumEntry {value: &"' + val + '", length: ' + str(len(val)) + '}' for val in enum.values()]))
+       ",\n  ".join(['&"%s"' % val for val in enum.values()]))
 
         self.cgRoot = CGList([
             CGNamespace.build([enum.identifier.name + "Values"],
