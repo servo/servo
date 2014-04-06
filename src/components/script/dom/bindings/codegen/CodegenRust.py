@@ -1092,15 +1092,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
         if type.nullable():
             raise TypeError("We don't support nullable enumerated return types "
                             "yet")
-        return ("""assert!((%(result)s as uint) < %(strings)s.len());
-let %(resultStr)s: *JSString = JS_NewStringCopyN(cx, &%(strings)s[%(result)s as u32].value[0] as *i8, %(strings)s[%(result)s as u32].length as libc::size_t);
-if %(resultStr)s.is_null() {
-  return 0;
-}
-""" % { "result" : result,
-        "resultStr" : result + "_str",
-        "strings" : type.inner.identifier.name + "Values::strings" } +
-        setValue("StringValue(&*(%s_str))" % result), False)
+        return (setValue("(%s).to_jsval(cx)" % result), True)
 
     if type.isCallback():
         assert not type.isInterface()
@@ -2909,6 +2901,10 @@ class CGEnum(CGThing):
     def __init__(self, enum):
         CGThing.__init__(self)
         inner = """
+use dom::bindings::conversions::ToJSValConvertible;
+use js::jsapi::JSContext;
+use js::jsval::JSVal;
+
 #[repr(uint)]
 pub enum valuelist {
   %s
@@ -2917,6 +2913,12 @@ pub enum valuelist {
 pub static strings: &'static [&'static str] = &[
   %s,
 ];
+
+impl ToJSValConvertible for valuelist {
+  fn to_jsval(&self, cx: *JSContext) -> JSVal {
+    strings[*self as uint].to_owned().to_jsval(cx)
+  }
+}
 """ % (",\n  ".join(map(getEnumValueName, enum.values())),
        ",\n  ".join(['&"%s"' % val for val in enum.values()]))
 
