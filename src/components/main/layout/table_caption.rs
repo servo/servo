@@ -78,9 +78,6 @@ impl Flow for TableCaptionFlow {
 
     fn debug_str(&self) -> ~str {
         let txt = ~"TableCaptionFlow: ";
-        txt.append(match self.block_flow.box_ {
-            Some(ref rb) => rb.debug_str(),
-            None => ~"",
-        })
+        txt.append(self.block_flow.box_.debug_str())
     }
 }
