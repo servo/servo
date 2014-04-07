@@ -87,11 +87,11 @@ impl<'a> RenderContext<'a>  {
 
         let path = path_builder.finish();
         self.draw_target.push_clip(&path);
-    }    
-    
+    }
+
     pub fn draw_pop_clip(&self) {
         self.draw_target.pop_clip();
-    }    
+    }
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<~Image>) {
         let image = image.get();

@@ -65,7 +65,7 @@ fn test_match<T: Eq>(b: &T, a: Option<&T>) -> bool {
         None => false,
         Some(t) => t == b
     }
-} 
+}
 
 pub fn zip_copies<A: Clone, B: Clone>(avec: &[A], bvec: &[B]) -> ~[(A,B)] {
     avec.iter().map(|x| x.clone())

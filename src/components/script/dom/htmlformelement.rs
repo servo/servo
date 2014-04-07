@@ -124,7 +124,7 @@ impl HTMLFormElement {
     pub fn Length(&self) -> i32 {
         0
     }
-    
+
     pub fn Submit(&self) -> ErrorResult {
         Ok(())
     }

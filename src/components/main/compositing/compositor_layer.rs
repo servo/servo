@@ -82,7 +82,7 @@ pub struct CompositorLayer {
     /// add_buffer() calls that don't match the current epoch will be ignored.
     epoch: Epoch,
 
-    /// The behavior of this layer when a scroll message is received. 
+    /// The behavior of this layer when a scroll message is received.
     wants_scroll_events: WantsScrollEventsFlag,
 
     /// Whether an ancestor layer that receives scroll events moves this layer.
@@ -188,7 +188,7 @@ impl CompositorLayer {
             unrendered_color: gfx::color::rgba(0.0, 0.0, 0.0, 0.0),
         }
     }
-    
+
     /// Creates a new root `CompositorLayer` bound to a composition pipeline with an optional page
     /// size. If no page size is given, the layer is initially hidden and initialized without a
     /// quadtree.
@@ -379,7 +379,7 @@ impl CompositorLayer {
         result
     }
 
-    // Takes in a MouseWindowEvent, determines if it should be passed to children, and 
+    // Takes in a MouseWindowEvent, determines if it should be passed to children, and
     // sends the event off to the appropriate pipeline. NB: the cursor position is in
     // page coordinates.
     pub fn send_mouse_event(&self, event: MouseWindowEvent, cursor: Point2D<f32>) {
@@ -398,7 +398,7 @@ impl CompositorLayer {
                 }
             }
         }
-        
+
         // This mouse event is mine!
         let message = match event {
             MouseWindowClickEvent(button, _) => ClickEvent(button, cursor),
@@ -518,7 +518,7 @@ impl CompositorLayer {
                 true
             }
             None => {
-                // ID does not match any of our immediate children, so recurse on 
+                // ID does not match any of our immediate children, so recurse on
                 // descendents (including hidden children)
                 self.children
                     .mut_iter()
@@ -634,7 +634,7 @@ impl CompositorLayer {
     fn texture_flip_and_target(_: bool, _: Size2D<uint>) -> (Flip, TextureTarget) {
         (NoFlip, TextureTarget2D)
     }
-    
+
     // A helper method to resize sublayers.
     fn resize_helper(&mut self,
                      pipeline_id: PipelineId,
@@ -679,8 +679,8 @@ impl CompositorLayer {
                 true
             }
             None => false,
-        }; 
-                
+        };
+
         if found { // Boolean flag to get around double borrow of self
             self.set_occlusions();
             return true
@@ -790,7 +790,7 @@ impl CompositorLayer {
             };
         }
     }
-    
+
     // Add LayerBuffers to the specified layer. Returns the layer buffer set back if the layer that
     // matches the given pipeline ID was not found; otherwise returns None and consumes the layer
     // buffer set.
@@ -910,7 +910,7 @@ impl CompositorLayer {
                 .any(|kid| kid.invalidate_rect(pipeline_id, layer_id, rect))
         }
     }
-    
+
     // Recursively sets occluded portions of quadtrees to Hidden, so that they do not ask for
     // tile requests. If layers are moved, resized, or deleted, these portions may be updated.
     fn set_occlusions(&mut self) {

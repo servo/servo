@@ -94,7 +94,7 @@ impl FontHandleMethods for FontHandle {
     fn family_name(&self) -> ~str {
         self.ctfont.family_name()
     }
-    
+
     fn face_name(&self) -> ~str {
         self.ctfont.face_name()
     }

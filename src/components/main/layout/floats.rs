@@ -185,17 +185,17 @@ impl Floats {
 
             debug!("float_pos: {}, float_size: {}", float_pos, float_size);
             match float.kind {
-                FloatLeft if float_pos.x + float_size.width > max_left && 
+                FloatLeft if float_pos.x + float_size.width > max_left &&
                         float_pos.y + float_size.height > top && float_pos.y < top + height => {
                     max_left = float_pos.x + float_size.width;
-                
+
                     l_top = Some(float_pos.y);
                     l_bottom = Some(float_pos.y + float_size.height);
 
                     debug!("available_rect: collision with left float: new max_left is {}",
                             max_left);
                 }
-                FloatRight if float_pos.x < min_right && 
+                FloatRight if float_pos.x < min_right &&
                        float_pos.y + float_size.height > top && float_pos.y < top + height => {
                     min_right = float_pos.x;
 
@@ -213,7 +213,7 @@ impl Floats {
         // two areas. Also make sure we never return a top smaller than the
         // given upper bound.
         let (top, bottom) = match (r_top, r_bottom, l_top, l_bottom) {
-            (Some(r_top), Some(r_bottom), Some(l_top), Some(l_bottom)) => 
+            (Some(r_top), Some(r_bottom), Some(l_top), Some(l_bottom)) =>
                 range_intersect(max(top, r_top), r_bottom, max(top, l_top), l_bottom),
 
             (None, None, Some(l_top), Some(l_bottom)) => (max(top, l_top), l_bottom),
@@ -225,8 +225,8 @@ impl Floats {
         // FIXME(eatkinson): This assertion is too strong and fails in some cases. It is OK to
         // return negative widths since we check against that right away, but we should still
         // undersrtand why they occur and add a stronger assertion here.
-        // assert!(max_left < min_right); 
-        
+        // assert!(max_left < min_right);
+
         assert!(top <= bottom, "Float position error");
 
         Some(Rect {
@@ -317,25 +317,25 @@ impl Floats {
                 // If there are no floats blocking us, return the current location
                 // TODO(eatkinson): integrate with overflow
                 None => {
-                    return match info.kind { 
+                    return match info.kind {
                         FloatLeft => {
                             Rect(Point2D(Au(0), float_y),
                                  Size2D(info.max_width, Au(i32::MAX)))
                         }
                         FloatRight => {
-                            Rect(Point2D(info.max_width - info.size.width, float_y), 
+                            Rect(Point2D(info.max_width - info.size.width, float_y),
                                          Size2D(info.max_width, Au(i32::MAX)))
                         }
                     }
                 }
                 Some(rect) => {
-                    assert!(rect.origin.y + rect.size.height != float_y, 
+                    assert!(rect.origin.y + rect.size.height != float_y,
                             "Non-terminating float placement");
-                    
+
                     // Place here if there is enough room
                     if rect.size.width >= info.size.width {
-                        let height = self.max_height_for_bounds(rect.origin.x, 
-                                                                rect.origin.y, 
+                        let height = self.max_height_for_bounds(rect.origin.x,
+                                                                rect.origin.y,
                                                                 rect.size.width);
                         let height = height.unwrap_or(Au(i32::MAX));
                         return match info.kind {

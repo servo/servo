@@ -10,7 +10,7 @@ use self::freetype::freetype::{
     FT_Library,
 };
 use self::freetype::freetype::bindgen::{
-    FT_Init_FreeType, 
+    FT_Init_FreeType,
     FT_Done_FreeType
 };
 use fontconfig::font_list::path_from_identifier;
@@ -43,7 +43,7 @@ pub impl FreeTypeFontContextHandle {
         let result = FT_Init_FreeType(ptr::to_unsafe_ptr(&ctx));
         if !result.succeeded() { fail!(); }
 
-        FreeTypeFontContextHandle { 
+        FreeTypeFontContextHandle {
             ctx: @FreeTypeLibraryHandle { ctx: ctx },
         }
     }

@@ -148,7 +148,7 @@ impl WindowMethods<Application> for Window {
     fn present(&self) {
         glut::swap_buffers();
     }
-    
+
     fn recv(&self) -> WindowEvent {
         if !self.event_queue.with_mut(|queue| queue.is_empty()) {
             return self.event_queue.with_mut(|queue| queue.shift().unwrap())

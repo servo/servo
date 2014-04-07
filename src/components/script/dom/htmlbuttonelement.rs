@@ -110,7 +110,7 @@ impl HTMLButtonElement {
     pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
-    
+
     pub fn Type(&self) -> DOMString {
         ~""
     }
