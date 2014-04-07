@@ -1734,8 +1734,9 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-namespaceuri
-    pub fn GetNamespaceURI(&self) -> Option<DOMString> {
-        None
+    pub fn GetNamespaceURI(&self, abstract_self: &JS<Node>) -> Option<DOMString> {
+        let element: Option<JS<Element>> = ElementCast::to(abstract_self);
+        element.map(|element| element.get().namespace.to_str().to_owned())
     }
 
     // http://dom.spec.whatwg.org/#dom-node-prefix

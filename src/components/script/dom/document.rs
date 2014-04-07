@@ -9,13 +9,13 @@ use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest};
-use dom::bindings::utils::{xml_name_type, InvalidXMLName};
+use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest, NamespaceError};
+use dom::bindings::utils::{xml_name_type, InvalidXMLName, Name, QName};
 use dom::comment::Comment;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{Element, AttributeHandlers};
+use dom::element::{Element, AttributeHandlers, get_attribute_parts};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::Event;
@@ -37,8 +37,9 @@ use dom::location::Location;
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
 use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
+use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
-use servo_util::str::DOMString;
+use servo_util::str::{DOMString, null_str_as_empty_ref};
 
 use collections::hashmap::HashMap;
 use js::jsapi::JSContext;
@@ -261,6 +262,52 @@ impl Document {
         }
         let local_name = local_name.to_ascii_lower();
         Ok(build_element_from_tag(local_name, abstract_self))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-document-createelementns
+    pub fn CreateElementNS(&self, abstract_self: &JS<Document>,
+                           namespace: Option<DOMString>,
+                           qualified_name: DOMString) -> Fallible<JS<Element>> {
+        let ns = Namespace::from_str(null_str_as_empty_ref(&namespace));
+        match xml_name_type(qualified_name) {
+            InvalidXMLName => {
+                debug!("Not a valid element name");
+                return Err(InvalidCharacter);
+            },
+            Name => {
+                debug!("Not a valid qualified element name");
+                return Err(NamespaceError);
+            },
+            QName => {}
+        }
+
+        let (prefix_from_qname, local_name_from_qname) = get_attribute_parts(qualified_name);
+        match (&ns, prefix_from_qname, local_name_from_qname.as_slice()) {
+            // throw if prefix is not null and namespace is null
+            (&namespace::Null, Some(_), _) => {
+                debug!("Namespace can't be null with a non-null prefix");
+                return Err(NamespaceError);
+            },
+            // throw if prefix is "xml" and namespace is not the XML namespace
+            (_, Some(ref prefix), _) if "xml" == *prefix && ns != namespace::XML => {
+                debug!("Namespace must be the xml namespace if the prefix is 'xml'");
+                return Err(NamespaceError);
+            },
+            // throw if namespace is the XMLNS namespace and neither qualifiedName nor prefix is "xmlns"
+            (&namespace::XMLNS, Some(ref prefix), _) if "xmlns" == *prefix => {},
+            (&namespace::XMLNS, _, "xmlns") => {},
+            (&namespace::XMLNS, _, _) => {
+                debug!("The prefix or the qualified name must be 'xmlns' if namespace is the XMLNS namespace ");
+                return Err(NamespaceError);
+            },
+            _ => {}
+        }
+
+        if ns == namespace::HTML {
+            Ok(build_element_from_tag(local_name_from_qname, abstract_self))
+        } else {
+            Ok(Element::new(local_name_from_qname, ns, abstract_self))
+        }
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createdocumentfragment

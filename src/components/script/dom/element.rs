@@ -6,6 +6,7 @@
 
 use dom::attr::Attr;
 use dom::attrlist::AttrList;
+use dom::bindings::codegen::ElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLImageElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
@@ -133,6 +134,8 @@ pub enum ElementTypeId {
     HTMLUListElementTypeId,
     HTMLVideoElementTypeId,
     HTMLUnknownElementTypeId,
+
+    ElementTypeId,
 }
 
 //
@@ -140,7 +143,7 @@ pub enum ElementTypeId {
 //
 
 impl Element {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: ~str, namespace: Namespace, document: JS<Document>) -> Element {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, namespace: Namespace, document: JS<Document>) -> Element {
         Element {
             node: Node::new_inherited(ElementNodeTypeId(type_id), document),
             tag_name: tag_name,
@@ -149,6 +152,11 @@ impl Element {
             attr_list: None,
             style_attribute: None,
         }
+    }
+
+    pub fn new(tag_name: DOMString, namespace: Namespace, document: &JS<Document>) -> JS<Element> {
+        let element = Element::new_inherited(ElementTypeId, tag_name, namespace, document.clone());
+        Node::reflect_node(~element, document, ElementBinding::Wrap)
     }
 
     pub fn html_element_in_html_document(&self) -> bool {
@@ -647,7 +655,7 @@ impl IElement for JS<Element> {
     }
 }
 
-fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
+pub fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
     let (prefix, local_name) = if name.contains(":")  {
