@@ -1240,23 +1240,13 @@ class PropertyDefiner:
         if self.hasNonChromeOnly():
             return "s" + self.name
         return "ptr::null()"
-    def usedForXrays(self, chrome):
-        # We only need Xrays for methods, attributes and constants.  And we only
-        # need them for the non-chrome ones if we have no chromeonly things.
-        # Otherwise (we have chromeonly attributes) we need Xrays for the chrome
-        # methods/attributes/constants.
-        return ((self.name is "Methods" or self.name is "Attributes" or
-                 self.name is "Constants") and
-                chrome == self.hasChromeOnly())
 
     def __str__(self):
         # We only need to generate id arrays for things that will end
         # up used via ResolveProperty or EnumerateProperties.
-        str = self.generateArray(self.regular, self.variableName(False),
-                                 self.usedForXrays(False))
+        str = self.generateArray(self.regular, self.variableName(False))
         if self.hasChromeOnly():
-            str += self.generateArray(self.chrome, self.variableName(True),
-                                      self.usedForXrays(True))
+            str += self.generateArray(self.chrome, self.variableName(True))
         return str
 
     @staticmethod
@@ -1270,7 +1260,7 @@ class PropertyDefiner:
         return prefName[0]
 
     def generatePrefableArray(self, array, name, specTemplate, specTerminator,
-                              specType, getPref, getDataTuple, doIdArrays):
+                              specType, getPref, getDataTuple):
         """
         This method generates our various arrays.
 
@@ -1303,8 +1293,6 @@ class PropertyDefiner:
                                      # at the very front of the list.
         specs = []
         prefableSpecs = []
-        if doIdArrays:
-            prefableIds = []
 
         prefableTemplate = '  { true, &%s[%d] }'
         prefCacheTemplate = '&%s[%d].enabled'
@@ -1335,16 +1323,9 @@ class PropertyDefiner:
         specs.append(specTerminator)
         prefableSpecs.append("  { false, NULL }");
 
-        arrays = (("static %s: [%s, ..%i] = [\n" +
-                   ',\n'.join(specs) + "\n" +
-                   "];\n\n") % (name, specType, len(specs)))
-                   #+
-                   #"static Prefable<%s> %s[] = [\n" +
-                   #',\n'.join(prefableSpecs) + "\n" +
-                   #"];\n\n")
-        if doIdArrays:
-            arrays += ("static %s_ids: [jsid, ..%i] = [" % (name, len(specs))) + ", ".join(["JSID_VOID"] * len(specs)) + "];\n\n"
-        return arrays
+        return (("static %s: [%s, ..%i] = [\n" +
+                 ",\n".join(specs) + "\n" +
+                 "];\n\n") % (name, specType, len(specs)))
 
 # The length of a method is the maximum of the lengths of the
 # argument lists of all its overloads.
@@ -1407,7 +1388,7 @@ class MethodDefiner(PropertyDefiner):
                 # non-static methods go on the interface prototype object
                 assert not self.hasChromeOnly() and not self.hasNonChromeOnly()
 
-    def generateArray(self, array, name, doIdArrays):
+    def generateArray(self, array, name):
         if len(array) == 0:
             return ""
 
@@ -1433,7 +1414,7 @@ class MethodDefiner(PropertyDefiner):
             '  JSFunctionSpec {name: &%s_name as *u8 as *libc::c_char, call: JSNativeWrapper {op: Some(%s), info: %s}, nargs: %s, flags: %s as u16, selfHostedName: 0 as *libc::c_char }',
             '  JSFunctionSpec {name: 0 as *libc::c_char, call: JSNativeWrapper {op: None, info: 0 as *JSJitInfo}, nargs: 0, flags: 0, selfHostedName: 0 as *libc::c_char }',
             'JSFunctionSpec',
-            pref, specData, doIdArrays)
+            pref, specData)
 
 class AttrDefiner(PropertyDefiner):
     def __init__(self, descriptor, name):
@@ -1442,7 +1423,7 @@ class AttrDefiner(PropertyDefiner):
         self.chrome = [m for m in descriptor.interface.members if m.isAttr()]
         self.regular = [m for m in self.chrome if not isChromeOnly(m)]
 
-    def generateArray(self, array, name, doIdArrays):
+    def generateArray(self, array, name):
         if len(array) == 0:
             return ""
 
@@ -1481,7 +1462,7 @@ class AttrDefiner(PropertyDefiner):
             '  JSPropertySpec { name: &%s_name as *u8 as *libc::c_char, tinyid: 0, flags: ((%s) & 0xFF) as u8, getter: %s, setter: %s }',
             '  JSPropertySpec { name: 0 as *libc::c_char, tinyid: 0, flags: 0, getter: JSPropertyOpWrapper {op: None, info: 0 as *JSJitInfo}, setter: JSStrictPropertyOpWrapper {op: None, info: 0 as *JSJitInfo} }',
             'JSPropertySpec',
-            PropertyDefiner.getControllingPref, specData, doIdArrays)
+            PropertyDefiner.getControllingPref, specData)
 
 class ConstDefiner(PropertyDefiner):
     """
@@ -1493,7 +1474,7 @@ class ConstDefiner(PropertyDefiner):
         self.chrome = [m for m in descriptor.interface.members if m.isConst()]
         self.regular = [m for m in self.chrome if not isChromeOnly(m)]
 
-    def generateArray(self, array, name, doIdArrays):
+    def generateArray(self, array, name):
         if len(array) == 0:
             return ""
 
@@ -1513,7 +1494,7 @@ class ConstDefiner(PropertyDefiner):
             '  ConstantSpec { name: &%s_name as *u8 as *libc::c_char, value: %s }',
             '  ConstantSpec { name: 0 as *libc::c_char, value: VoidVal }',
             'ConstantSpec',
-            PropertyDefiner.getControllingPref, specData, doIdArrays)
+            PropertyDefiner.getControllingPref, specData)
 
 # We'll want to insert the indent at the beginnings of lines, but we
 # don't want to indent empty lines.  So only indent lines that have a
