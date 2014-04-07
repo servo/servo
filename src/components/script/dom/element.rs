@@ -206,6 +206,7 @@ pub trait AttributeHandlers {
     fn set_url_attribute(&mut self, name: &str, value: DOMString);
     fn get_string_attribute(&self, name: &str) -> DOMString;
     fn set_string_attribute(&mut self, name: &str, value: DOMString);
+    fn set_uint_attribute(&mut self, name: &str, value: u32);
 }
 
 pub trait AfterSetAttrListener {
@@ -417,6 +418,11 @@ impl AttributeHandlers for JS<Element> {
     fn set_string_attribute(&mut self, name: &str, value: DOMString) {
         assert!(name == name.to_ascii_lower());
         assert!(self.set_attribute(Null, name.to_owned(), value).is_ok());
+    }
+
+    fn set_uint_attribute(&mut self, name: &str, value: u32) {
+        assert!(name == name.to_ascii_lower());
+        assert!(self.set_attribute(Null, name.to_owned(), value.to_str()).is_ok());
     }
 }
 
