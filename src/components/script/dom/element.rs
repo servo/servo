@@ -299,13 +299,27 @@ impl AttributeHandlers for JS<Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-setattribute
     fn SetAttribute(&mut self, name: DOMString, value: DOMString) -> ErrorResult {
-        // FIXME: If name does not match the Name production in XML, throw an "InvalidCharacterError" exception.
+        let node: JS<Node> = NodeCast::from(self);
+        node.get().wait_until_safe_to_modify_dom();
+
+        // Step 1.
+        match xml_name_type(name) {
+            InvalidXMLName => return Err(InvalidCharacter),
+            _ => {}
+        }
+
+        // Step 2.
         let name = if self.get().html_element_in_html_document() {
             name.to_ascii_lower()
         } else {
             name
         };
-        self.set_attr(name, value)
+
+        // Step 3-5.
+        self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, |attr| {
+            attr.get().name == name
+        });
+        Ok(())
     }
 
     fn SetAttributeNS(&mut self, namespace_url: Option<DOMString>,

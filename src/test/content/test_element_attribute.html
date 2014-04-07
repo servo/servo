@@ -41,6 +41,15 @@
       is(r2, null, "test4-1, Element.removeAttribute().");
     }
 
+    {
+      test.setAttribute("xml:lang", "en");
+
+      let r1 = test.hasAttribute("xml:lang");
+      is(r1, true, "test5-0, Element.setAttribute('xml:lang').");
+      let r2 = test.getAttribute("xml:lang");
+      is_not(r2, null, "test5-1, Element.setAttribute('xml:lang').");
+    }
+
     finish();
   </script>
 </body>
