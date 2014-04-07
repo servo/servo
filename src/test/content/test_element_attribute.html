@@ -50,6 +50,16 @@
       is_not(r2, null, "test5-1, Element.setAttribute('xml:lang').");
     }
 
+    should_throw(function () {
+      test.setAttributeNS("http://example.com", "xmlns", "foo");
+    });
+    should_throw(function () {
+      test.setAttributeNS("http://www.w3.org/2000/xmlns/", "attr", "value");
+    });
+    should_throw(function () {
+      test.setAttributeNS("http://www.w3.org/2000/xmlns/", "prefix:attr", "value");
+    });
+
     finish();
   </script>
 </body>

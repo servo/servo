@@ -324,15 +324,59 @@ impl AttributeHandlers for JS<Element> {
 
     fn SetAttributeNS(&mut self, namespace_url: Option<DOMString>,
                       name: DOMString, value: DOMString) -> ErrorResult {
+        let node: JS<Node> = NodeCast::from(self);
+        node.get().wait_until_safe_to_modify_dom();
+
+        // Step 1.
+        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace_url));
+
         let name_type = xml_name_type(name);
         match name_type {
+            // Step 2.
             InvalidXMLName => return Err(InvalidCharacter),
+            // Step 3.
             Name => return Err(NamespaceError),
             QName => {}
         }
 
-        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace_url));
-        self.set_attribute(namespace, name, value)
+        // Step 4.
+        let (prefix, local_name) = get_attribute_parts(name.clone());
+        match prefix {
+            Some(ref prefix_str) => {
+                // Step 5.
+                if namespace == namespace::Null {
+                    return Err(NamespaceError);
+                }
+
+                // Step 6.
+                if "xml" == prefix_str.as_slice() && namespace != namespace::XML {
+                    return Err(NamespaceError);
+                }
+
+                // Step 7b.
+                if "xmlns" == prefix_str.as_slice() && namespace != namespace::XMLNS {
+                    return Err(NamespaceError);
+                }
+            },
+            None => {}
+        }
+
+        // Step 7a.
+        if "xmlns" == name && namespace != namespace::XMLNS {
+            return Err(NamespaceError);
+        }
+
+        // Step 8.
+        if namespace == namespace::XMLNS && "xmlns" != name && Some(~"xmlns") != prefix {
+            return Err(NamespaceError);
+        }
+
+        // Step 9.
+        self.do_set_attribute(local_name.clone(), value, name, namespace.clone(), prefix, |attr| {
+            attr.get().local_name == local_name &&
+            attr.get().namespace == namespace
+        });
+        Ok(())
     }
 
     fn after_set_attr(&mut self, local_name: DOMString, value: DOMString) {
