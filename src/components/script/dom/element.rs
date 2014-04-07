@@ -195,6 +195,10 @@ pub trait AttributeHandlers {
     fn set_attr(&mut self, name: DOMString, value: DOMString) -> ErrorResult;
     fn set_attribute(&mut self, namespace: Namespace, name: DOMString,
                      value: DOMString) -> ErrorResult;
+    fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
+                        name: DOMString, namespace: Namespace,
+                        prefix: Option<DOMString>, cb: |&JS<Attr>| -> bool);
+
     fn after_set_attr(&mut self, local_name: DOMString, value: DOMString);
     fn remove_attribute(&mut self, namespace: Namespace, name: DOMString) -> ErrorResult;
     fn before_remove_attr(&mut self, local_name: DOMString, old_value: DOMString);
@@ -253,15 +257,20 @@ impl AttributeHandlers for JS<Element> {
         let node: JS<Node> = NodeCast::from(self);
         node.get().wait_until_safe_to_modify_dom();
 
-        // FIXME: reduce the time of `value.clone()`.
-        let idx = self.get().attrs.iter().position(|attr| {
+        let position: |&JS<Attr>| -> bool =
             if self.get().html_element_in_html_document() {
-                attr.get().local_name.eq_ignore_ascii_case(local_name)
+                |attr| attr.get().local_name.eq_ignore_ascii_case(local_name)
             } else {
-                attr.get().local_name == local_name
-            }
-        });
+                |attr| attr.get().local_name == local_name
+            };
+        self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, position);
+        Ok(())
+    }
 
+    fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
+                        name: DOMString, namespace: Namespace,
+                        prefix: Option<DOMString>, cb: |&JS<Attr>| -> bool) {
+        let idx = self.get().attrs.iter().position(cb);
         match idx {
             Some(idx) => {
                 if namespace == namespace::Null {
@@ -270,12 +279,12 @@ impl AttributeHandlers for JS<Element> {
                 }
                 self.get_mut().attrs[idx].get_mut().set_value(value.clone());
             }
+
             None => {
                 let node: JS<Node> = NodeCast::from(self);
                 let doc = node.get().owner_doc().get();
                 let new_attr = Attr::new_ns(&doc.window, local_name.clone(), value.clone(),
-                                            name.clone(), namespace.clone(),
-                                            prefix);
+                                            name, namespace.clone(), prefix);
                 self.get_mut().attrs.push(new_attr);
             }
         }
@@ -283,7 +292,6 @@ impl AttributeHandlers for JS<Element> {
         if namespace == namespace::Null {
             self.after_set_attr(local_name, value);
         }
-        Ok(())
     }
 
     fn after_set_attr(&mut self, local_name: DOMString, value: DOMString) {
