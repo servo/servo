@@ -878,10 +878,10 @@ impl ScriptTask {
                 };
                 //FIXME: this should have some kind of error handling, or explicitly
                 //       drop an exception on the floor.
-                assert!(cx.evaluate_script(global_obj,
-                                           file.data.clone(),
-                                           file.url.to_str(),
-                                           1).is_ok());
+                match cx.evaluate_script(global_obj, file.data.clone(), file.url.to_str(), 1) {
+                    Ok(_) => (),
+                    Err(_) => println!("evaluate_script failed")
+                }
             });
         }
 
