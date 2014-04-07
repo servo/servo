@@ -72,17 +72,17 @@ impl Range {
     }
 
     #[inline]
-    pub fn shift_by(&mut self, i: int) { 
+    pub fn shift_by(&mut self, i: int) {
         self.off = ((self.off as int) + i) as uint;
     }
 
     #[inline]
-    pub fn extend_by(&mut self, i: int) { 
+    pub fn extend_by(&mut self, i: int) {
         self.len = ((self.len as int) + i) as uint;
     }
 
     #[inline]
-    pub fn extend_to(&mut self, i: uint) { 
+    pub fn extend_to(&mut self, i: uint) {
         self.len = i - self.off;
     }
 
@@ -120,7 +120,7 @@ impl Range {
         }
         if self.begin() > other.end() {
             return EntirelyAfter;
-        } 
+        }
         if self.begin() == other.begin() && self.end() == other.end() {
             return Coincides;
         }

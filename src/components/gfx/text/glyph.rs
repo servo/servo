@@ -146,7 +146,7 @@ static GLYPH_COUNT_SHIFT:             u32 = 8;
 static FLAG_NOT_MISSING:              u32 = 0x00000001;
 static FLAG_NOT_CLUSTER_START:        u32 = 0x00000002;
 static FLAG_NOT_LIGATURE_GROUP_START: u32 = 0x00000004;
- 
+
 static FLAG_CHAR_IS_TAB:              u32 = 0x00000008;
 static FLAG_CHAR_IS_NEWLINE:          u32 = 0x00000010;
 //static FLAG_CHAR_IS_LOW_SURROGATE:    u32 = 0x00000020;
@@ -183,7 +183,7 @@ impl GlyphEntry {
     fn is_cluster_start(&self) -> bool {
         self.has_flag(!FLAG_NOT_CLUSTER_START)
     }
-    
+
     // True if original char was normal (U+0020) space. Other chars may
     // map to space glyph, but this does not account for them.
     fn char_is_space(&self) -> bool {

@@ -61,7 +61,7 @@ pub enum Msg {
 pub struct BufferRequest {
     // The rect in pixels that will be drawn to the screen
     screen_rect: Rect<uint>,
-    
+
     // The rect in page coordinates that this tile represents
     page_rect: Rect<f32>,
 }

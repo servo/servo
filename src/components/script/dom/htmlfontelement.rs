@@ -56,7 +56,7 @@ impl HTMLFontElement {
     pub fn SetFace(&mut self, _face: DOMString) -> ErrorResult {
         Ok(())
     }
-    
+
     pub fn Size(&self) -> DOMString {
         ~""
     }

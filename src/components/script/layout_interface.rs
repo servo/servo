@@ -73,7 +73,7 @@ pub struct ContentBoxesResponse(~[Rect<Au>]);
 pub struct HitTestResponse(UntrustedNodeAddress);
 pub struct MouseOverResponse(~[UntrustedNodeAddress]);
 
-/// Determines which part of the 
+/// Determines which part of the
 #[deriving(Eq, Ord, TotalEq, TotalOrd)]
 pub enum DocumentDamageLevel {
     /// Reflow, but do not perform CSS selector matching.

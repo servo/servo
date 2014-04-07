@@ -273,9 +273,9 @@ impl<'a> Font {
     fn make_shaper(&'a mut self) -> &'a Shaper {
         // fast path: already created a shaper
         match self.shaper {
-            Some(ref shaper) => { 
+            Some(ref shaper) => {
                 let s: &'a Shaper = shaper;
-                return s; 
+                return s;
             },
             None => {}
         }
@@ -385,7 +385,7 @@ impl Font {
 
         let glyphbuf = struct__AzGlyphBuffer {
             mGlyphs: azglyphs.as_ptr(),
-            mNumGlyphs: azglyph_buf_len as uint32_t            
+            mNumGlyphs: azglyph_buf_len as uint32_t
         };
 
         unsafe {

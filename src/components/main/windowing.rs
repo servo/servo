@@ -61,7 +61,7 @@ pub trait WindowMethods<A> {
     fn size(&self) -> Size2D<f32>;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
- 
+
     /// Spins the event loop and returns the next event.
     fn recv(&self) -> WindowEvent;
 

@@ -53,7 +53,7 @@ impl FontList {
     }
 
     pub fn find_font_in_family<'a>(&'a mut self,
-                                   family_name: &~str, 
+                                   family_name: &~str,
                                    style: &SpecifiedFontStyle) -> Option<&'a FontEntry> {
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
@@ -81,7 +81,7 @@ impl FontList {
     }
 }
 
-// Holds a specific font family, and the various 
+// Holds a specific font family, and the various
 pub struct FontFamily {
     family_name: ~str,
     entries: ~[FontEntry],

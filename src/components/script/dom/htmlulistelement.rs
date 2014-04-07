@@ -44,7 +44,7 @@ impl HTMLUListElement {
     pub fn Compact(&self) -> bool {
         false
     }
-    
+
     pub fn SetCompact(&mut self, _compact: bool) -> ErrorResult {
         Ok(())
     }

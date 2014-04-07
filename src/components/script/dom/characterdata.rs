@@ -37,7 +37,7 @@ impl CharacterData {
             data: data
         }
     }
-    
+
     pub fn Data(&self) -> DOMString {
         self.data.clone()
     }
