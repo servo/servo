@@ -13,15 +13,11 @@
 
 [NamedConstructor=Image(optional unsigned long width, optional unsigned long height)]
 interface HTMLImageElement : HTMLElement {
-           [SetterThrows]
            attribute DOMString alt;
-           [SetterThrows]
            attribute DOMString src;
            [SetterThrows]
            attribute DOMString crossOrigin;
-           [SetterThrows]
            attribute DOMString useMap;
-           [SetterThrows]
            attribute boolean isMap;
            attribute unsigned long width;
            attribute unsigned long height;
@@ -32,16 +28,11 @@ interface HTMLImageElement : HTMLElement {
 
 // http://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis
 partial interface HTMLImageElement {
-           [SetterThrows]
            attribute DOMString name;
-           [SetterThrows]
            attribute DOMString align;
-           [SetterThrows]
            attribute unsigned long hspace;
-           [SetterThrows]
            attribute unsigned long vspace;
-           [SetterThrows]
            attribute DOMString longDesc;
 
-  [TreatNullAs=EmptyString,SetterThrows] attribute DOMString border;
+  [TreatNullAs=EmptyString] attribute DOMString border;
 };
