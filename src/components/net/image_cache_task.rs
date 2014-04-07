@@ -442,7 +442,7 @@ impl ImageCacheTask {
     pub fn send(&self, msg: Msg) {
         self.chan.send(msg);
     }
-    
+
     #[cfg(test)]
     fn wait_for_store(&self) -> Receiver<()> {
         let (chan, port) = channel();

@@ -74,7 +74,7 @@ impl<T: Tile> BufferMap<T> {
             counter: 0u,
         }
     }
-    
+
     /// Insert a new buffer into the map.
     pub fn insert(&mut self, graphics_context: &NativePaintingGraphicsContext, new_buffer: T) {
         let new_key = BufferKey::get(new_buffer.get_size_2d());
@@ -129,7 +129,7 @@ impl<T: Tile> BufferMap<T> {
             Some(ref mut buffer_val) => {
                 buffer_val.last_action = self.counter;
                 self.counter += 1;
-                
+
                 let buffer = buffer_val.buffers.pop().take_unwrap();
                 self.mem -= buffer.get_mem();
                 if buffer_val.buffers.is_empty() {
@@ -139,7 +139,7 @@ impl<T: Tile> BufferMap<T> {
             }
             None => None,
         };
-        
+
         if flag {
             self.map.pop(&key); // Don't store empty vectors!
         }

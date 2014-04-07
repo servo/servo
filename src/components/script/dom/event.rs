@@ -14,7 +14,7 @@ use servo_util::str::DOMString;
 use geom::point::Point2D;
 
 pub enum Event_ {
-    ResizeEvent(uint, uint), 
+    ResizeEvent(uint, uint),
     ReflowEvent,
     ClickEvent(uint, Point2D<f32>),
     MouseDownEvent(uint, Point2D<f32>),

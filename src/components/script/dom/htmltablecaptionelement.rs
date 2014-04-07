@@ -44,7 +44,7 @@ impl HTMLTableCaptionElement {
     pub fn Align(&self) -> DOMString {
         ~""
     }
-    
+
     pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }

@@ -21,7 +21,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use url::Url;
 
-/// A uniquely-identifiable pipeline of script task, layout task, and render task. 
+/// A uniquely-identifiable pipeline of script task, layout task, and render task.
 pub struct Pipeline {
     id: PipelineId,
     subpage_id: Option<SubpageId>,

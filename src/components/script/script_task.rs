@@ -742,7 +742,7 @@ impl ScriptTask {
             // needs to be smarter about exiting pipelines.
             None => false,
         }
-        
+
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
@@ -1096,7 +1096,7 @@ impl ScriptTask {
                             }
                             None => { target_compare = true; }
                         }
- 
+
                         if target_compare {
                             if mouse_over_targets.is_some() {
                                 page.damage(MatchSelectorsDocumentDamage);

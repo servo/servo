@@ -212,7 +212,7 @@ impl Profiler {
 }
 
 
-pub fn profile<T>(category: ProfilerCategory, 
+pub fn profile<T>(category: ProfilerCategory,
                   profiler_chan: ProfilerChan,
                   callback: || -> T)
                   -> T {

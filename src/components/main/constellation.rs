@@ -349,7 +349,7 @@ impl Constellation {
                 self.handle_load_url_msg(source_id, url);
             }
             // A page loaded through one of several methods above has completed all parsing,
-            // script, and reflow messages have been sent. 
+            // script, and reflow messages have been sent.
             LoadCompleteMsg(pipeline_id, url) => {
                 debug!("constellation got load complete message");
                 self.compositor_chan.send(LoadComplete(pipeline_id, url));
@@ -473,7 +473,7 @@ impl Constellation {
 
         {
             // Update a child's frame rect and inform its script task of the change,
-            // if it hasn't been already. Optionally inform the compositor if 
+            // if it hasn't been already. Optionally inform the compositor if
             // resize happens immediately.
             let update_child_rect = |child_frame_tree: &mut ChildFrameTree, is_active: bool| {
                 child_frame_tree.rect = Some(rect.clone());

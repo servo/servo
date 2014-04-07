@@ -10,12 +10,12 @@ enum CompressionMode {
     DiscardNewline
 }
 
-// ported from Gecko's nsTextFrameUtils::TransformText. 
-// 
+// ported from Gecko's nsTextFrameUtils::TransformText.
+//
 // High level TODOs:
 //
 // * Issue #113: consider incoming text state (arabic, etc)
-//               and propogate outgoing text state (dual of above) 
+//               and propogate outgoing text state (dual of above)
 //
 // * Issue #114: record skipped and kept chars for mapping original to new text
 //
@@ -42,7 +42,7 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
                     if ch != '\n' {
                         new_line_index += 1;
                     }
-                    out_str.push_char(ch);                        
+                    out_str.push_char(ch);
                 }
             }
             text.len() > 0 && is_in_whitespace(text.char_at_reverse(0), mode)
@@ -53,7 +53,7 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
             for ch in text.chars() {
                 // TODO: discard newlines between CJK chars
                 let mut next_in_whitespace: bool = is_in_whitespace(ch, mode);
-                
+
                 if !next_in_whitespace {
                     if is_always_discardable_char(ch) {
                         // revert whitespace setting, since this char was discarded
@@ -75,7 +75,7 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
                 in_whitespace = next_in_whitespace;
             } /* /for str::each_char */
             in_whitespace
-        } 
+        }
     };
 
     return (out_str, out_whitespace);

@@ -99,7 +99,7 @@ fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> Vec<TestDescAndFn> {
             let src_dir = src_path.display().to_str();
             let file_left =  src_dir + "/" + parts[1];
             let file_right = src_dir + "/" + parts[2];
-            
+
             let reftest = Reftest {
                 name: parts[1] + " / " + parts[2],
                 kind: kind,
@@ -151,7 +151,7 @@ fn check_reftest(reftest: Reftest) {
     let pixels: ~[u8] = left.pixels.iter().zip(right.pixels.iter()).map(|(&a, &b)| {
             if a as i8 - b as i8 == 0 {
                 // White for correct
-                0xFF 
+                0xFF
             } else {
                 // "1100" in the RGBA channel with an error for an incorrect value
                 // This results in some number of C0 and FFs, which is much more
