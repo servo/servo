@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script id="script">
+            // test1: createElementNS
+            {
+                var htmlElt = document.createElementNS("http://www.w3.org/1999/xhtml", "p");
+                is_not(htmlElt, null, "test1-0: createElementNS");
+                is_a(htmlElt, Element, "test1-1: createElementNS");
+                is_a(htmlElt, HTMLElement, "test1-2: createElementNS");
+                is_a(htmlElt, HTMLParagraphElement, "test1-3: createElementNS");
+                is(htmlElt.namespaceURI, "http://www.w3.org/1999/xhtml", "test1-4: createElementNS");
+
+                var otherNsElt = document.createElementNS("http://www.example.org/dummy", "p");
+                is_not(otherNsElt, null, "test1-5: createElementNS");
+                is_a(otherNsElt, Element, "test1-6: createElementNS");
+                is_not_a(otherNsElt, HTMLElement, "test1-7: createElementNS");
+                is(otherNsElt.namespaceURI, "http://www.example.org/dummy", "test1-8: createElementNS");
+            }
+            // test2: Node.namespaceURI
+            {
+                is(document.namespaceURI, null, "test2.0: createElementNS");
+                is(document.documentElement.namespaceURI, "http://www.w3.org/1999/xhtml", "test2.1: createElementNS");
+                var scriptElt = document.getElementById("script");
+                is(scriptElt.firstChild.namespaceURI, null, "test2.2: createElementNS");
+                is(scriptElt.nextSibling.namespaceURI, null, "test2.3: createElementNS");
+            }
+
+            finish();
+        </script><!-- this is a comment -->
+    </head>
+</html>
