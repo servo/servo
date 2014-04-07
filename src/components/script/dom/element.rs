@@ -199,6 +199,8 @@ pub trait AttributeHandlers {
                         name: DOMString, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JS<Attr>| -> bool);
     fn SetAttribute(&mut self, name: DOMString, value: DOMString) -> ErrorResult;
+    fn SetAttributeNS(&mut self, namespace_url: Option<DOMString>,
+                      name: DOMString, value: DOMString) -> ErrorResult;
 
     fn after_set_attr(&mut self, local_name: DOMString, value: DOMString);
     fn remove_attribute(&mut self, namespace: Namespace, name: DOMString) -> ErrorResult;
@@ -304,6 +306,19 @@ impl AttributeHandlers for JS<Element> {
             name
         };
         self.set_attr(name, value)
+    }
+
+    fn SetAttributeNS(&mut self, namespace_url: Option<DOMString>,
+                      name: DOMString, value: DOMString) -> ErrorResult {
+        let name_type = xml_name_type(name);
+        match name_type {
+            InvalidXMLName => return Err(InvalidCharacter),
+            Name => return Err(NamespaceError),
+            QName => {}
+        }
+
+        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace_url));
+        self.set_attribute(namespace, name, value)
     }
 
     fn after_set_attr(&mut self, local_name: DOMString, value: DOMString) {
@@ -534,20 +549,12 @@ impl Element {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-setattributens
-    pub fn SetAttributeNS(&mut self,
+    pub fn SetAttributeNS(&self,
                           abstract_self: &mut JS<Element>,
                           namespace_url: Option<DOMString>,
                           name: DOMString,
                           value: DOMString) -> ErrorResult {
-        let name_type = xml_name_type(name);
-        match name_type {
-            InvalidXMLName => return Err(InvalidCharacter),
-            Name => return Err(NamespaceError),
-            QName => {}
-        }
-
-        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace_url));
-        abstract_self.set_attribute(namespace, name, value)
+        abstract_self.SetAttributeNS(namespace_url, name, value)
     }
 
     // http://dom.spec.whatwg.org/#dom-element-removeattribute
