@@ -18,10 +18,11 @@ interface Element : Node {
   We haven't moved these from Node to Element like the spec wants.
 
   [Throws]
-  readonly attribute DOMString? namespaceURI;
   readonly attribute DOMString? prefix;
   readonly attribute DOMString localName;
 */
+  [Constant]
+  readonly attribute DOMString namespaceURI;
   // Not [Constant] because it depends on which document we're in
   [Pure]
   readonly attribute DOMString tagName;

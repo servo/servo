@@ -443,6 +443,11 @@ impl Element {
 }
 
 impl Element {
+    // http://dom.spec.whatwg.org/#dom-element-namespaceuri
+    pub fn NamespaceURI(&self) -> DOMString {
+        self.namespace.to_str().to_owned()
+    }
+
     // http://dom.spec.whatwg.org/#dom-element-tagname
     pub fn TagName(&self) -> DOMString {
         self.tag_name.to_ascii_upper()
