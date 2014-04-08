@@ -675,8 +675,6 @@ impl Document {
             node.is_in_doc()
         });
 
-        // TODO: support the case if multiple elements
-        // which haves same id are in the same document.
         // FIXME https://github.com/mozilla/rust/issues/13195
         //       Use mangle() when it exists again.
         match self.idmap.find_mut(&id) {
