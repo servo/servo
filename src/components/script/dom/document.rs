@@ -7,6 +7,7 @@ use dom::bindings::codegen::InheritTypes::{DocumentBase, NodeCast, DocumentCast}
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast};
 use dom::bindings::codegen::DocumentBinding;
+use dom::bindings::codegen::NodeBinding::NodeConstants::{DOCUMENT_POSITION_CONTAINS, DOCUMENT_POSITION_PRECEDING};
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest, NamespaceError};
@@ -59,7 +60,7 @@ pub struct Document {
     node: Node,
     reflector_: Reflector,
     window: JS<Window>,
-    idmap: HashMap<DOMString, JS<Element>>,
+    idmap: HashMap<DOMString, ~[JS<Element>]>,
     implementation: Option<JS<DOMImplementation>>,
     content_type: DOMString,
     encoding_name: DOMString,
@@ -249,7 +250,7 @@ impl Document {
         // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
         match self.idmap.find_equiv(&id) {
             None => None,
-            Some(node) => Some(node.clone()),
+            Some(ref elements) => Some(elements[0].clone()),
         }
     }
 
@@ -647,8 +648,22 @@ impl Document {
 
     /// Remove any existing association between the provided id and any elements in this document.
     pub fn unregister_named_element(&mut self,
+                                    abstract_self: &JS<Element>,
                                     id: DOMString) {
-        self.idmap.remove(&id);
+        let mut is_empty = false;
+        match self.idmap.find_mut(&id) {
+            None => {},
+            Some(elements) => {
+                let position = elements.iter()
+                                       .position(|element| element == abstract_self)
+                                       .expect("This element should be in registered.");
+                elements.remove(position);
+                is_empty = elements.is_empty();
+            }
+        }
+        if is_empty {
+            self.idmap.remove(&id);
+        }
     }
 
     /// Associate an element present in this document with the provided id.
@@ -665,12 +680,26 @@ impl Document {
         // FIXME https://github.com/mozilla/rust/issues/13195
         //       Use mangle() when it exists again.
         match self.idmap.find_mut(&id) {
-            Some(v) => {
-                *v = element.clone();
+            Some(elements) => {
+                let new_node = NodeCast::from(element);
+                let mut head : uint = 0u;
+                let mut tail : uint = elements.len();
+                while head < tail {
+                    let middle = ((head + tail) / 2) as int;
+                    let elem = &elements[middle];
+                    let js_node = NodeCast::from(elem);
+                    let position = elem.get().node.CompareDocumentPosition(&js_node, &new_node);
+                    if position == DOCUMENT_POSITION_PRECEDING || position == DOCUMENT_POSITION_PRECEDING + DOCUMENT_POSITION_CONTAINS {
+                        tail = middle as uint;
+                    } else {
+                        head = middle as uint + 1u;
+                    }
+                }
+                elements.insert(tail, element.clone());
                 return;
             },
             None => (),
         }
-        self.idmap.insert(id, element.clone());
+        self.idmap.insert(id, ~[element.clone()]);
     }
 }
