@@ -19,14 +19,11 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
 
-use js::glue::*;
-use js::jsapi::{JSObject, JSContext, JS_DefineProperty};
-use js::jsval::JSVal;
-use js::jsval::{NullValue, ObjectValue};
+use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JS_PropertyStub, JS_StrictPropertyStub};
+use js::jsval::{NullValue, ObjectValue, JSVal};
 use js::JSPROP_ENUMERATE;
 
 use collections::hashmap::HashMap;
-use std::cast;
 use std::cmp;
 use std::comm::{channel, Sender, Receiver};
 use std::comm::Select;
@@ -329,8 +326,8 @@ impl Window {
                 unsafe {
                     JS_DefineProperty(cx, object, name,
                                       ObjectValue(&*object),
-                                      Some(cast::transmute(GetJSClassHookStubPointer(PROPERTY_STUB))),
-                                      Some(cast::transmute(GetJSClassHookStubPointer(STRICT_PROPERTY_STUB))),
+                                      Some(JS_PropertyStub),
+                                      Some(JS_StrictPropertyStub),
                                       JSPROP_ENUMERATE);
                 }
             })

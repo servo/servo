@@ -1361,13 +1361,13 @@ class MethodDefiner(PropertyDefiner):
         if any(m.isGetter() and m.isIndexed() for m in methods):
             self.chrome.append({"name": 'iterator',
                                 "methodInfo": False,
-                                "nativeName": "crust::JS_ArrayIterator",
+                                "nativeName": "JS_ArrayIterator",
                                 "length": 0,
                                 "flags": "JSPROP_ENUMERATE",
                                 "pref": None })
             self.regular.append({"name": 'iterator',
                                  "methodInfo": False,
-                                 "nativeName": "crust::JS_ArrayIterator",
+                                 "nativeName": "JS_ArrayIterator",
                                  "length": 0,
                                  "flags": "JSPROP_ENUMERATE",
                                  "pref": None })
@@ -1630,19 +1630,19 @@ static Class_name: [u8, ..%i] = %s;
 static Class: DOMJSClass = DOMJSClass {
   base: JSClass { name: &Class_name as *u8 as *libc::c_char,
     flags: JSCLASS_IS_DOMJSCLASS | %s | (((%s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), //JSCLASS_HAS_RESERVED_SLOTS(%s),
-    addProperty: Some(%s), /* addProperty */
-    delProperty: Some(crust::JS_PropertyStub),       /* delProperty */
-    getProperty: Some(crust::JS_PropertyStub),       /* getProperty */
-    setProperty: Some(crust::JS_StrictPropertyStub), /* setProperty */
-    enumerate: Some(crust::JS_EnumerateStub),
-    resolve: Some(crust::JS_ResolveStub),
-    convert: Some(crust::JS_ConvertStub),
-    finalize: Some(%s), /* finalize */
-    checkAccess: None,                  /* checkAccess */
-    call: None,                  /* call */
-    hasInstance: None,                  /* hasInstance */
-    construct: None,                  /* construct */
-    trace: %s, /* trace */
+    addProperty: Some(JS_PropertyStub),
+    delProperty: Some(JS_PropertyStub),
+    getProperty: Some(JS_PropertyStub),
+    setProperty: Some(JS_StrictPropertyStub),
+    enumerate: Some(JS_EnumerateStub),
+    resolve: Some(JS_ResolveStub),
+    convert: Some(JS_ConvertStub),
+    finalize: Some(%s),
+    checkAccess: None,
+    call: None,
+    hasInstance: None,
+    construct: None,
+    trace: %s,
     reserved: (0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 05
                     0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 10
                     0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 15
@@ -1657,7 +1657,6 @@ static Class: DOMJSClass = DOMJSClass {
 """ % (len(self.descriptor.interface.identifier.name) + 1,
        str_to_const_array(self.descriptor.interface.identifier.name),
        flags, slots, slots,
-       'crust::JS_PropertyStub',
        FINALIZE_HOOK_NAME, traceHook,
        CGIndenter(CGGeneric(DOMClass(self.descriptor))).define())
 
@@ -1675,19 +1674,19 @@ static PrototypeClassName__: [u8, ..%s] = %s;
 static PrototypeClass: JSClass = JSClass {
   name: &PrototypeClassName__ as *u8 as *libc::c_char,
   flags: (1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT, //JSCLASS_HAS_RESERVED_SLOTS(1)
-  addProperty: Some(crust::JS_PropertyStub),       /* addProperty */
-  delProperty: Some(crust::JS_PropertyStub),       /* delProperty */
-  getProperty: Some(crust::JS_PropertyStub),       /* getProperty */
-  setProperty: Some(crust::JS_StrictPropertyStub), /* setProperty */
-  enumerate: Some(crust::JS_EnumerateStub),
-  resolve: Some(crust::JS_ResolveStub),
-  convert: Some(crust::JS_ConvertStub),
-  finalize: None,                  /* finalize */
-  checkAccess: None,                  /* checkAccess */
-  call: None,                  /* call */
-  hasInstance: None,                  /* hasInstance */
-  construct: None,                  /* construct */
-  trace: None,                  /* trace */
+  addProperty: Some(JS_PropertyStub),
+  delProperty: Some(JS_PropertyStub),
+  getProperty: Some(JS_PropertyStub),
+  setProperty: Some(JS_StrictPropertyStub),
+  enumerate: Some(JS_EnumerateStub),
+  resolve: Some(JS_ResolveStub),
+  convert: Some(JS_ConvertStub),
+  finalize: None,
+  checkAccess: None,
+  call: None,
+  hasInstance: None,
+  construct: None,
+  trace: None,
   reserved: (0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 05
                     0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 10
                     0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 15
@@ -1713,19 +1712,19 @@ class CGInterfaceObjectJSClass(CGThing):
         return """
 static InterfaceObjectClass: JSClass = {
   %s, 0,
-  crust::JS_PropertyStub,       /* addProperty */
-  crust::JS_PropertyStub,       /* delProperty */
-  crust::JS_PropertyStub,       /* getProperty */
-  crust::JS_StrictPropertyStub, /* setProperty */
-  crust::JS_EnumerateStub,
-  crust::JS_ResolveStub,
-  crust::JS_ConvertStub,
-  0 as *u8,                  /* finalize */
-  0 as *u8,                  /* checkAccess */
-  %s, /* call */
-  %s, /* hasInstance */
-  %s, /* construct */
-  0 as *u8,                  /* trace */
+  JS_PropertyStub,
+  JS_PropertyStub,
+  JS_PropertyStub,
+  JS_StrictPropertyStub,
+  JS_EnumerateStub,
+  JS_ResolveStub,
+  JS_ConvertStub,
+  0 as *u8,
+  0 as *u8,
+  %s,
+  %s,
+  %s,
+  0 as *u8,
   JSCLASS_NO_INTERNAL_MEMBERS
 };
 """ % (str_to_const_array("Function"), ctorname, hasinstance, ctorname)
@@ -4587,7 +4586,7 @@ class CGBindingRoot(CGThing):
         #XXXjdm This should only import the namespace for the current binding,
         #       not every binding ever.
         curr = CGImports(curr, [
-            'js::{crust, JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
+            'js::{JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
             'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS}',
             'js::{JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_SHIFT}',
             'js::{JSCLASS_RESERVED_SLOTS_MASK, JSID_VOID, JSJitInfo}',
@@ -4600,9 +4599,10 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JS_NewObject, JS_ObjectIsCallable, JS_SetPrototype}',
             'js::jsapi::{JS_SetReservedSlot, JS_WrapValue, JSBool, JSContext}',
             'js::jsapi::{JSClass, JSFreeOp, JSFunctionSpec, JSHandleObject, jsid}',
-            'js::jsapi::{JSNativeWrapper, JSObject, JSPropertyDescriptor}',
-            'js::jsapi::{JSPropertyOpWrapper, JSPropertySpec}',
-            'js::jsapi::{JSStrictPropertyOpWrapper, JSString, JSTracer}',
+            'js::jsapi::{JSNativeWrapper, JSObject, JSPropertyDescriptor, JS_ArrayIterator}',
+            'js::jsapi::{JSPropertyOpWrapper, JSPropertySpec, JS_PropertyStub}',
+            'js::jsapi::{JSStrictPropertyOpWrapper, JSString, JSTracer, JS_ConvertStub}',
+            'js::jsapi::{JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub}',
             'js::jsval::JSVal',
             'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
             'js::jsval::{NullValue, UndefinedValue}',
@@ -5712,7 +5712,7 @@ class GlobalGenRoots():
             'dom::bindings::error::throw_not_in_union',
             'dom::bindings::js::JS',
             'dom::types::*',
-            'js::{crust, JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
+            'js::{JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
             'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS}',
             'js::{JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_SHIFT}',
             'js::{JSCLASS_RESERVED_SLOTS_MASK, JSID_VOID, JSJitInfo}',
