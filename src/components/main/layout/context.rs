@@ -9,6 +9,7 @@ use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use geom::size::Size2D;
 use gfx::display_list::OpaqueNode;
 use gfx::font_context::{FontContext, FontContextInfo};
+#[cfg(not(target_os="android"))]
 use green::task::GreenTask;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::ConstellationChan;
@@ -16,9 +17,13 @@ use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 use servo_util::opts::Opts;
 use std::cast;
+#[cfg(not(target_os="android"))]
 use std::ptr;
+#[cfg(not(target_os="android"))]
 use std::rt::Runtime;
+#[cfg(not(target_os="android"))]
 use std::rt::local::Local;
+#[cfg(not(target_os="android"))]
 use std::rt::task::Task;
 use style::{ComputedValues, Stylist};
 use sync::{Arc, MutexArc};
