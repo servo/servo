@@ -6,7 +6,7 @@ use dom::bindings::codegen::AttrBinding;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
-use servo_util::namespace::{Namespace, Null};
+use servo_util::namespace::Namespace;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -43,20 +43,9 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &JS<Window>, local_name: DOMString, value: DOMString) -> JS<Attr> {
-        let name = local_name.clone();
-        Attr::new_helper(window, local_name, value, name, Null, None)
-    }
-
-    pub fn new_ns(window: &JS<Window>, local_name: DOMString, value: DOMString,
-                  name: DOMString, namespace: Namespace,
-                  prefix: Option<DOMString>) -> JS<Attr> {
-        Attr::new_helper(window, local_name, value, name, namespace, prefix)
-    }
-
-    fn new_helper(window: &JS<Window>, local_name: DOMString, value: DOMString,
-                  name: DOMString, namespace: Namespace,
-                  prefix: Option<DOMString>) -> JS<Attr> {
+    pub fn new(window: &JS<Window>, local_name: DOMString, value: DOMString,
+               name: DOMString, namespace: Namespace,
+               prefix: Option<DOMString>) -> JS<Attr> {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix);
         reflect_dom_object(~attr, window, AttrBinding::Wrap)
     }

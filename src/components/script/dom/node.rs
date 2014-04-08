@@ -1372,10 +1372,10 @@ impl Node {
                 copy_elem.namespace = node_elem.namespace.clone();
                 for attr in node_elem.attrs.iter() {
                     let attr = attr.get();
-                    copy_elem.attrs.push(Attr::new_ns(&document.get().window,
-                                                      attr.local_name.clone(), attr.value.clone(),
-                                                      attr.name.clone(), attr.namespace.clone(),
-                                                      attr.prefix.clone()));
+                    copy_elem.attrs.push(Attr::new(&document.get().window,
+                                                   attr.local_name.clone(), attr.value.clone(),
+                                                   attr.name.clone(), attr.namespace.clone(),
+                                                   attr.prefix.clone()));
                 }
             },
             _ => ()

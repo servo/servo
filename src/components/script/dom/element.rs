@@ -195,6 +195,13 @@ pub trait AttributeHandlers {
     fn set_attr(&mut self, name: DOMString, value: DOMString) -> ErrorResult;
     fn set_attribute(&mut self, namespace: Namespace, name: DOMString,
                      value: DOMString) -> ErrorResult;
+    fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
+                        name: DOMString, namespace: Namespace,
+                        prefix: Option<DOMString>, cb: |&JS<Attr>| -> bool);
+    fn SetAttribute(&mut self, name: DOMString, value: DOMString) -> ErrorResult;
+    fn SetAttributeNS(&mut self, namespace_url: Option<DOMString>,
+                      name: DOMString, value: DOMString) -> ErrorResult;
+
     fn after_set_attr(&mut self, local_name: DOMString, value: DOMString);
     fn remove_attribute(&mut self, namespace: Namespace, name: DOMString) -> ErrorResult;
     fn before_remove_attr(&mut self, local_name: DOMString, old_value: DOMString);
@@ -253,15 +260,20 @@ impl AttributeHandlers for JS<Element> {
         let node: JS<Node> = NodeCast::from(self);
         node.get().wait_until_safe_to_modify_dom();
 
-        // FIXME: reduce the time of `value.clone()`.
-        let idx = self.get().attrs.iter().position(|attr| {
+        let position: |&JS<Attr>| -> bool =
             if self.get().html_element_in_html_document() {
-                attr.get().local_name.eq_ignore_ascii_case(local_name)
+                |attr| attr.get().local_name.eq_ignore_ascii_case(local_name)
             } else {
-                attr.get().local_name == local_name
-            }
-        });
+                |attr| attr.get().local_name == local_name
+            };
+        self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, position);
+        Ok(())
+    }
 
+    fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
+                        name: DOMString, namespace: Namespace,
+                        prefix: Option<DOMString>, cb: |&JS<Attr>| -> bool) {
+        let idx = self.get().attrs.iter().position(cb);
         match idx {
             Some(idx) => {
                 if namespace == namespace::Null {
@@ -270,12 +282,12 @@ impl AttributeHandlers for JS<Element> {
                 }
                 self.get_mut().attrs[idx].get_mut().set_value(value.clone());
             }
+
             None => {
                 let node: JS<Node> = NodeCast::from(self);
                 let doc = node.get().owner_doc().get();
-                let new_attr = Attr::new_ns(&doc.window, local_name.clone(), value.clone(),
-                                            name.clone(), namespace.clone(),
-                                            prefix);
+                let new_attr = Attr::new(&doc.window, local_name.clone(), value.clone(),
+                                         name, namespace.clone(), prefix);
                 self.get_mut().attrs.push(new_attr);
             }
         }
@@ -283,6 +295,87 @@ impl AttributeHandlers for JS<Element> {
         if namespace == namespace::Null {
             self.after_set_attr(local_name, value);
         }
+    }
+
+    // http://dom.spec.whatwg.org/#dom-element-setattribute
+    fn SetAttribute(&mut self, name: DOMString, value: DOMString) -> ErrorResult {
+        let node: JS<Node> = NodeCast::from(self);
+        node.get().wait_until_safe_to_modify_dom();
+
+        // Step 1.
+        match xml_name_type(name) {
+            InvalidXMLName => return Err(InvalidCharacter),
+            _ => {}
+        }
+
+        // Step 2.
+        let name = if self.get().html_element_in_html_document() {
+            name.to_ascii_lower()
+        } else {
+            name
+        };
+
+        // Step 3-5.
+        self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, |attr| {
+            attr.get().name == name
+        });
+        Ok(())
+    }
+
+    fn SetAttributeNS(&mut self, namespace_url: Option<DOMString>,
+                      name: DOMString, value: DOMString) -> ErrorResult {
+        let node: JS<Node> = NodeCast::from(self);
+        node.get().wait_until_safe_to_modify_dom();
+
+        // Step 1.
+        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace_url));
+
+        let name_type = xml_name_type(name);
+        match name_type {
+            // Step 2.
+            InvalidXMLName => return Err(InvalidCharacter),
+            // Step 3.
+            Name => return Err(NamespaceError),
+            QName => {}
+        }
+
+        // Step 4.
+        let (prefix, local_name) = get_attribute_parts(name.clone());
+        match prefix {
+            Some(ref prefix_str) => {
+                // Step 5.
+                if namespace == namespace::Null {
+                    return Err(NamespaceError);
+                }
+
+                // Step 6.
+                if "xml" == prefix_str.as_slice() && namespace != namespace::XML {
+                    return Err(NamespaceError);
+                }
+
+                // Step 7b.
+                if "xmlns" == prefix_str.as_slice() && namespace != namespace::XMLNS {
+                    return Err(NamespaceError);
+                }
+            },
+            None => {}
+        }
+
+        // Step 7a.
+        if "xmlns" == name && namespace != namespace::XMLNS {
+            return Err(NamespaceError);
+        }
+
+        // Step 8.
+        if namespace == namespace::XMLNS && "xmlns" != name && Some(~"xmlns") != prefix {
+            return Err(NamespaceError);
+        }
+
+        // Step 9.
+        self.do_set_attribute(local_name.clone(), value, name, namespace.clone(), prefix, |attr| {
+            attr.get().local_name == local_name &&
+            attr.get().namespace == namespace
+        });
         Ok(())
     }
 
@@ -507,33 +600,19 @@ impl Element {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-setattribute
-    pub fn SetAttribute(&mut self, abstract_self: &mut JS<Element>,
+    pub fn SetAttribute(&self, abstract_self: &mut JS<Element>,
                         name: DOMString,
                         value: DOMString) -> ErrorResult {
-        // FIXME: If name does not match the Name production in XML, throw an "InvalidCharacterError" exception.
-        let name = if self.html_element_in_html_document() {
-            name.to_ascii_lower()
-        } else {
-            name
-        };
-        abstract_self.set_attr(name, value)
+        abstract_self.SetAttribute(name, value)
     }
 
     // http://dom.spec.whatwg.org/#dom-element-setattributens
-    pub fn SetAttributeNS(&mut self,
+    pub fn SetAttributeNS(&self,
                           abstract_self: &mut JS<Element>,
                           namespace_url: Option<DOMString>,
                           name: DOMString,
                           value: DOMString) -> ErrorResult {
-        let name_type = xml_name_type(name);
-        match name_type {
-            InvalidXMLName => return Err(InvalidCharacter),
-            Name => return Err(NamespaceError),
-            QName => {}
-        }
-
-        let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace_url));
-        abstract_self.set_attribute(namespace, name, value)
+        abstract_self.SetAttributeNS(namespace_url, name, value)
     }
 
     // http://dom.spec.whatwg.org/#dom-element-removeattribute
