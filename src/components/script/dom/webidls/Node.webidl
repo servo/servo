@@ -79,10 +79,8 @@ interface Node : EventTarget {
 
   // Mozilla-specific stuff
   // These have been moved to Element in the spec.
-  // If we move namespaceURI, prefix and localName to Element they should return
+  // If we move prefix and localName to Element they should return
   // a non-nullable type.
-  [Constant]
-  readonly attribute DOMString? namespaceURI;
   [Constant]
   readonly attribute DOMString? prefix;
   [Constant]
