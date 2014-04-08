@@ -5,6 +5,13 @@
 </head>
 <body>
   <div id="bar"></div>
+
+  <!-- for test5 -->
+  <div id="test5" data-name="1st">
+    <p id="test5" data-name="2nd">P</p>
+    <input id="test5" type="submit" value="Submit" data-name="3rd">
+  </div>
+
   <script>
     let gBody = document.getElementsByTagName("body")[0];
 
@@ -76,9 +83,30 @@
       is(document.getElementById("should-not-exist"), e, "test 4-1");
     }
 
-    // TODO:
     // test5: "in tree order, within the context object's tree"
     // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
+    {
+      // the method should return the 1st element.
+      let TEST_ID = "test5";
+      let target = document.getElementById(TEST_ID);
+      is_not(target, null, "test5-0");
+      is(target && target.getAttribute("data-name"), "1st", "test5-1");
+
+      // even if after the new element was appended.
+      let element4 = document.createElement("div");
+      element4.setAttribute("id", TEST_ID);
+      element4.setAttribute("data-name", "4th");
+      gBody.appendChild(element4);
+      let target2 = document.getElementById(TEST_ID);
+      is_not(target2, null, "test5-2");
+      is(target2 && target2.getAttribute("data-name"), "1st", "test5-3");
+
+      // should return the next element after removed the subtree including the 1st element.
+      target2.parentNode.removeChild(target2);
+      let target3 = document.getElementById(TEST_ID);
+      is_not(target3, null, "test5-4");
+      is(target3 && target3.getAttribute("data-name"), "4th", "test5-5");
+    }
 
     // TODO:
     // test6: innerHTML
