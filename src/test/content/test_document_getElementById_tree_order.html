@@ -1,0 +1,40 @@
+<html>
+  <head>
+    <script src="harness.js"></script>
+  </head>
+  <body>
+    <div id="a">
+    </div>
+    <div id="b">
+      <p id="b">P</p>
+      <input id="b" type="submit" value="Submit">
+    </div>
+    <script>
+      {
+        var b = document.getElementById("b");
+        is_a(b, HTMLDivElement);
+        var a = document.getElementById("a");
+        var p = document.createElement("p");
+        p.id = "b";
+        a.appendChild(p);
+        var newB = document.getElementById("b");
+        is_a(newB, HTMLParagraphElement);
+      }
+      {
+        var gbody = document.getElementsByTagName("body")[0];
+        var div = document.createElement("div");
+        div.setAttribute("id", "c");
+        var h1 = document.createElement("h1");
+        h1.setAttribute("id", "c");
+        gbody.appendChild(div);
+        gbody.appendChild(h1);
+        var c = document.getElementById("c");
+        is_a(c, HTMLDivElement);
+        gbody.removeChild(div);
+        var newC = document.getElementById("c");
+        is_a(newC, HTMLHeadingElement);
+      }
+      finish();
+    </script>
+  </body>
+</html>

@@ -361,7 +361,7 @@ impl AttributeHandlers for JS<Element> {
                 // "borrowed value does not live long enough"
                 let mut doc = node.get().owner_doc().clone();
                 let doc = doc.get_mut();
-                doc.unregister_named_element(old_value);
+                doc.unregister_named_element(self, old_value);
             }
             _ => ()
         }
@@ -654,7 +654,7 @@ impl IElement for JS<Element> {
         match self.get_attribute(Null, "id") {
             Some(attr) => {
                 let mut doc = document_from_node(self);
-                doc.get_mut().unregister_named_element(attr.get().Value());
+                doc.get_mut().unregister_named_element(self, attr.get().Value());
             }
             _ => ()
         }
