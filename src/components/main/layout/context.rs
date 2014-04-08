@@ -37,7 +37,7 @@ use std::local_data;
 static mut FONT_CONTEXT: *mut FontContext = 0 as *mut FontContext;
 
 #[cfg(target_os="android")]
-local_data_key!(font_context: * mut FontContext)
+local_data_key!(font_context: *mut FontContext)
 
 #[cfg(not(target_os="android"))]
 #[thread_local]
@@ -45,7 +45,7 @@ static mut APPLICABLE_DECLARATIONS_CACHE: *mut ApplicableDeclarationsCache =
     0 as *mut ApplicableDeclarationsCache;
 
 #[cfg(target_os="android")]
-local_data_key!(applicable_declarations_cache: * mut ApplicableDeclarationsCache)
+local_data_key!(applicable_declarations_cache: *mut ApplicableDeclarationsCache)
 
 #[cfg(not(target_os="android"))]
 #[thread_local]
@@ -53,7 +53,7 @@ static mut STYLE_SHARING_CANDIDATE_CACHE: *mut StyleSharingCandidateCache =
     0 as *mut StyleSharingCandidateCache;
 
 #[cfg(target_os="android")]
-local_data_key!(style_sharing_candidate_cache: * mut StyleSharingCandidateCache)
+local_data_key!(style_sharing_candidate_cache: *mut StyleSharingCandidateCache)
 
 /// Data shared by all layout workers.
 #[deriving(Clone)]

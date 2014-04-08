@@ -107,6 +107,12 @@ $(B)src/compiler/rust/rust-auto-clean-stamp: $(S)src/compiler/rust-auto-clean-tr
 
 rust: $(CFG_RUSTC)
 
+# These arguments are automatically provided by the Rust compiler's build process to
+# itself, so they must be specified later for our Rust modules.
+ifeq ($(CFG_OSTYPE),linux-androideabi)
+  CFG_RUSTC_FLAGS += --target arm-linux-androideabi -C android-cross-path=$(CFG_ANDROID_CROSS_PATH)
+endif
+
 # Strip off submodule paths to determine "raw" submodule names.
 SUBMODULES=$(shell echo $(CFG_SUBMODULES) | perl -p -e 's![A-Za-z0-9_-]+/!!g')
 
