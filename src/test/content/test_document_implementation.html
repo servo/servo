@@ -51,6 +51,30 @@
                 is(htmldoc.body.childNodes.length, 0, "test3-19, createHTMLDocument");
             }
 
+            // test4: createDocument
+            {
+                var doc = document.implementation.createDocument('http://www.w3.org/1999/xhtml', 'html', null);
+                is_not(doc, null, "test4-0, createDocument");
+                is_a(doc, Document, "test4-1, createDocument");
+                is(doc.childNodes.length, 1, "test4-2, createDocument");
+                is(doc.doctype, null, "test4-3, createDocument");
+                is_a(doc.documentElement, HTMLHtmlElement, "test4-4, createDocument");
+
+                var doctype = document.implementation.createDocumentType("html", null, null);
+                doc = document.implementation.createDocument('http://www.w3.org/1999/xhtml', 'html', doctype);
+                is(doc.childNodes.length, 2, "test4-5, createDocument");
+                is(doc.doctype, doctype, "test4-6, createDocument");
+                is_a(doc.documentElement, HTMLHtmlElement, "test4-7, createDocument");
+
+                doctype = document.implementation.createDocumentType(
+                    'svg:svg', '-//W3C//DTD SVG 1.1//EN',
+                    'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd');
+                doc = document.implementation.createDocument('http://www.w3.org/2000/svg', 'svg:svg', doctype);
+                is(doc.childNodes.length, 2, "test4-8, createDocument");
+                is(doc.doctype, doctype, "test4-9, createDocument");
+                is_a(doc.documentElement, Element, "test4-10, createDocument");
+            }
+
             finish();
         </script>
     </head>
