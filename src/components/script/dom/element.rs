@@ -202,9 +202,9 @@ pub trait AttributeHandlers {
     fn SetAttributeNS(&mut self, namespace_url: Option<DOMString>,
                       name: DOMString, value: DOMString) -> ErrorResult;
 
-    fn after_set_attr(&mut self, local_name: DOMString, value: DOMString);
+    fn after_set_attr_(&mut self, local_name: DOMString, value: DOMString);
     fn remove_attribute(&mut self, namespace: Namespace, name: DOMString) -> ErrorResult;
-    fn before_remove_attr(&mut self, local_name: DOMString, old_value: DOMString);
+    fn before_remove_attr_(&mut self, local_name: DOMString, old_value: DOMString);
     fn notify_attribute_changed(&self, local_name: DOMString);
     fn has_class(&self, name: &str) -> bool;
 
@@ -278,7 +278,7 @@ impl AttributeHandlers for JS<Element> {
             Some(idx) => {
                 if namespace == namespace::Null {
                     let old_value = self.get().attrs[idx].get().Value();
-                    self.before_remove_attr(local_name.clone(), old_value);
+                    self.before_remove_attr_(local_name.clone(), old_value);
                 }
                 self.get_mut().attrs[idx].get_mut().set_value(value.clone());
             }
@@ -293,7 +293,7 @@ impl AttributeHandlers for JS<Element> {
         }
 
         if namespace == namespace::Null {
-            self.after_set_attr(local_name, value);
+            self.after_set_attr_(local_name, value);
         }
     }
 
@@ -379,7 +379,7 @@ impl AttributeHandlers for JS<Element> {
         Ok(())
     }
 
-    fn after_set_attr(&mut self, local_name: DOMString, value: DOMString) {
+    fn after_set_attr_(&mut self, local_name: DOMString, value: DOMString) {
         let node: JS<Node> = NodeCast::from(self);
         match local_name.as_slice() {
             "style" => {
@@ -433,7 +433,7 @@ impl AttributeHandlers for JS<Element> {
             Some(idx) => {
                 if namespace == namespace::Null {
                     let removed_raw_value = self.get().attrs[idx].get().Value();
-                    self.before_remove_attr(local_name, removed_raw_value);
+                    self.before_remove_attr_(local_name, removed_raw_value);
                 }
 
                 self.get_mut().attrs.remove(idx);
@@ -443,7 +443,7 @@ impl AttributeHandlers for JS<Element> {
         Ok(())
     }
 
-    fn before_remove_attr(&mut self, local_name: DOMString, old_value: DOMString) {
+    fn before_remove_attr_(&mut self, local_name: DOMString, old_value: DOMString) {
         let node: JS<Node> = NodeCast::from(self);
         match local_name.as_slice() {
             "style" => {
