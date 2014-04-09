@@ -558,6 +558,9 @@ impl<'a> FlowConstructor<'a> {
 
         // Concatenate all the boxes of our kids, creating {ib} splits as necessary.
         for kid in node.children() {
+            if kid.get_element_type() != Normal {
+                self.process(&kid);
+            }
             match kid.swap_out_construction_result() {
                 NoConstructionResult => {}
                 FlowConstructionResult(flow, kid_abs_descendants) => {
