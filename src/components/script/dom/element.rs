@@ -28,10 +28,10 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
-use servo_util::attr::{AttrValue, StringAttrValue, UIntAttrValue};
+use servo_util::attr::{AttrValue, StringAttrValue, TokenListAttrValue, UIntAttrValue};
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
-use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
+use servo_util::str::{DOMString, DOMStringVec, HTML_SPACE_CHARACTERS, null_str_as_empty_ref, split_html_space_chars};
 
 use std::ascii::StrAsciiExt;
 use std::cast;
@@ -214,6 +214,8 @@ pub trait AttributeHandlers {
     fn get_string_attribute(&self, name: &str) -> DOMString;
     fn set_string_attribute(&mut self, name: &str, value: DOMString);
     fn set_uint_attribute(&mut self, name: &str, value: u32) -> ErrorResult;
+    fn get_tokenlist_attribute(&self, name: &str) -> DOMStringVec;
+    fn set_tokenlist_attribute(&mut self, name: &str, value: DOMString);
 }
 
 pub trait AfterSetAttrListener {
@@ -514,6 +516,35 @@ impl AttributeHandlers for JS<Element> {
     fn set_uint_attribute(&mut self, name: &str, value: u32) -> ErrorResult {
         assert!(name == name.to_ascii_lower());
         self.set_attribute(Null, name.to_owned(), UIntAttrValue(value.to_str(), value))
+    }
+
+    fn get_tokenlist_attribute(&self, name: &str) -> DOMStringVec {
+        match self.get_attribute(Null, name) {
+            Some(attr) => match attr.get().value_tokenlist_ref() {
+                Some(ref slices) => {
+                    let mut tokens: DOMStringVec = ~[];
+                    for slice in slices.iter() {
+                        tokens.push(slice.to_owned());
+                    }
+                    tokens
+                },
+                None => ~[]
+            },
+            None => ~[]
+        }
+    }
+
+    fn set_tokenlist_attribute(&mut self, name: &str, value: DOMString) {
+        let mut indexes: ~[(uint, uint)] = ~[];
+        let mut last_index: uint = 0;
+        for (index, ch) in value.char_indices() {
+            if HTML_SPACE_CHARACTERS.iter().any(|&space| space == ch) {
+                indexes.push((last_index, index));
+                last_index = index + 1;
+            }
+        }
+        assert!(self.set_attribute(Null, name.to_owned(),
+                                   TokenListAttrValue(value, indexes)).is_ok());
     }
 }
 

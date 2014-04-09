@@ -61,6 +61,10 @@ impl Attr {
         self.value.as_str_slice()
     }
 
+    pub fn value_tokenlist_ref<'a>(&'a self) -> Option<~[&'a str]> {
+        self.value.as_tokenlist()
+    }
+
     pub fn value_uint(&self) -> Option<u32> {
         self.value.as_uint()
     }

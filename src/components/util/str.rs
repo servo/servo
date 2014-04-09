@@ -6,6 +6,7 @@ use std::iter::Filter;
 use std::str::CharSplits;
 
 pub type DOMString = ~str;
+pub type DOMStringVec = ~[DOMString];
 pub type StaticCharVec = &'static [char];
 pub type StaticStringVec = &'static [&'static str];
 

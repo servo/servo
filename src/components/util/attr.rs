@@ -5,6 +5,7 @@
 #[deriving(Eq, Clone, Encodable)]
 pub enum AttrValue {
     StringAttrValue(~str),
+    TokenListAttrValue(~str, ~[(uint, uint)]),
     UIntAttrValue(~str, u32),
 }
 
@@ -12,6 +13,13 @@ impl AttrValue {
     pub fn is_string(&self) -> bool {
         match *self {
             StringAttrValue(..) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_tokenlist(&self) -> bool {
+        match *self {
+            TokenListAttrValue(..) => true,
             _ => false
         }
     }
@@ -28,6 +36,7 @@ impl AttrValue {
     pub fn as_str_slice<'a>(&'a self) -> &'a str {
         match *self {
             StringAttrValue(ref value) => value.as_slice(),
+            TokenListAttrValue(ref value, _) => value.as_slice(),
             UIntAttrValue(ref value, _) => value.as_slice(),
         }
     }
@@ -35,7 +44,19 @@ impl AttrValue {
     pub fn as_owned_str(&self) -> ~str {
         match *self {
             StringAttrValue(ref value) => value.clone(),
+            TokenListAttrValue(ref value, _) => value.clone(),
             UIntAttrValue(ref value, _) => value.clone(),
+        }
+    }
+
+    pub fn as_tokenlist<'a>(&'a self) -> Option<~[&'a str]> {
+        match *self {
+            TokenListAttrValue(ref value, ref indexes) => {
+                let mut slices: ~[&'a str] = ~[];
+                for &(begin, end) in indexes.iter() { slices.push(value.slice_chars(begin, end)); }
+                Some(slices)
+            },
+            _ => None
         }
     }
 
