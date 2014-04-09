@@ -50,7 +50,7 @@ impl ApplicableDeclarations {
 }
 
 #[deriving(Clone)]
-struct ApplicableDeclarationsCacheEntry {
+pub struct ApplicableDeclarationsCacheEntry {
     declarations: SmallVec16<MatchedProperty>,
 }
 
@@ -159,7 +159,7 @@ pub struct StyleSharingCandidateCache {
 }
 
 #[deriving(Clone)]
-struct StyleSharingCandidate {
+pub struct StyleSharingCandidate {
     style: Arc<ComputedValues>,
     parent_style: Arc<ComputedValues>,
 

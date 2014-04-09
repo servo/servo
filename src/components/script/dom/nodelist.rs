@@ -9,7 +9,7 @@ use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 
 #[deriving(Encodable)]
-enum NodeListType {
+pub enum NodeListType {
     Simple(~[JS<Node>]),
     Children(JS<Node>)
 }

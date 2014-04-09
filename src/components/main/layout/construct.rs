@@ -98,7 +98,7 @@ impl ConstructionResult {
 /// Represents the output of flow construction for a DOM node that has not yet resulted in a
 /// complete flow. Construction items bubble up the tree until they find a `Flow` to be
 /// attached to.
-enum ConstructionItem {
+pub enum ConstructionItem {
     /// Inline boxes and associated {ib} splits that have not yet found flows.
     InlineBoxesConstructionItem(InlineBoxesConstructionResult),
     /// Potentially ignorable whitespace.
@@ -124,7 +124,7 @@ impl ConstructionItem {
 }
 
 /// Represents inline boxes and {ib} splits that are bubbling up from an inline.
-struct InlineBoxesConstructionResult {
+pub struct InlineBoxesConstructionResult {
     /// Any {ib} splits that we're bubbling up.
     ///
     /// TODO(pcwalton): Small vector optimization.
@@ -159,7 +159,7 @@ struct InlineBoxesConstructionResult {
 ///         }),~[
 ///             C
 ///         ])
-struct InlineBlockSplit {
+pub struct InlineBlockSplit {
     /// The inline boxes that precede the flow.
     ///
     /// TODO(pcwalton): Small vector optimization.

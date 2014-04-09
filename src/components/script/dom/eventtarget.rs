@@ -26,7 +26,7 @@ pub enum EventTargetTypeId {
 }
 
 #[deriving(Eq,Encodable)]
-struct EventListenerEntry {
+pub struct EventListenerEntry {
     phase: ListenerPhase,
     listener: EventListener
 }
