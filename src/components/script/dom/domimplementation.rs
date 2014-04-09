@@ -8,7 +8,7 @@ use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::error::{Fallible, InvalidCharacter, NamespaceError};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
-use dom::document::{Document, HTMLDocument};
+use dom::document::{Document, HTMLDocument, NonHTMLDocument};
 use dom::documenttype::DocumentType;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -61,6 +61,42 @@ impl DOMImplementation {
             // Step 3.
             QName => Ok(DocumentType::new(qname, Some(pubid), Some(sysid), &self.owner.get().Document()))
         }
+    }
+
+    // http://dom.spec.whatwg.org/#dom-domimplementation-createdocument
+    pub fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
+                          maybe_doctype: Option<JS<DocumentType>>) -> Fallible<JS<Document>> {
+        // Step 1.
+        let doc = Document::new(&self.owner, None, NonHTMLDocument, None);
+        let mut doc_node: JS<Node> = NodeCast::from(&doc);
+
+        // Step 2-3.
+        let maybe_elem = if qname.is_empty() {
+            None
+        } else {
+            match doc.get().CreateElementNS(&doc, namespace, qname) {
+                Err(error) => return Err(error),
+                Ok(elem) => Some(elem)
+            }
+        };
+
+        // Step 4.
+        match maybe_doctype {
+            None => (),
+            Some(ref doctype) => assert!(doc_node.AppendChild(&mut NodeCast::from(doctype)).is_ok())
+        }
+
+        // Step 5.
+        match maybe_elem {
+            None => (),
+            Some(ref elem) => assert!(doc_node.AppendChild(&mut NodeCast::from(elem)).is_ok())
+        }
+
+        // Step 6.
+        // FIXME: https://github.com/mozilla/servo/issues/1522
+
+        // Step 7.
+        Ok(doc)
     }
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
