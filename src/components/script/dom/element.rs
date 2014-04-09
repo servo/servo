@@ -7,9 +7,7 @@
 use dom::attr::Attr;
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::ElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLImageElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
+use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
@@ -19,11 +17,9 @@ use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::htmlimageelement::HTMLImageElement;
-use dom::htmliframeelement::HTMLIFrameElement;
-use dom::htmlobjectelement::HTMLObjectElement;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
 use dom::htmlserializer::serialize;
+use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
@@ -216,14 +212,6 @@ pub trait AttributeHandlers {
     fn set_uint_attribute(&mut self, name: &str, value: u32);
 }
 
-pub trait AfterSetAttrListener {
-    fn AfterSetAttr(&mut self, name: DOMString, value: DOMString);
-}
-
-pub trait BeforeRemoveAttrListener {
-    fn BeforeRemoveAttr(&mut self, name: DOMString);
-}
-
 impl AttributeHandlers for JS<Element> {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<JS<Attr>> {
         if self.get().html_element_in_html_document() {
@@ -397,23 +385,7 @@ impl AttributeHandlers for JS<Element> {
             _ => ()
         }
 
-        //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
-        //       This hardcoding is awful.
-        match node.type_id() {
-            ElementNodeTypeId(HTMLImageElementTypeId) => {
-                let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(self).unwrap();
-                elem.AfterSetAttr(local_name.clone(), value.clone());
-            }
-            ElementNodeTypeId(HTMLIFrameElementTypeId) => {
-                let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(self).unwrap();
-                elem.AfterSetAttr(local_name.clone(), value.clone());
-            }
-            ElementNodeTypeId(HTMLObjectElementTypeId) => {
-                let mut elem: JS<HTMLObjectElement> = HTMLObjectElementCast::to(self).unwrap();
-                elem.AfterSetAttr(local_name.clone(), value.clone());
-            }
-            _ => ()
-        }
+        vtable_for(&node).after_set_attr(local_name.clone(), value.clone());
 
         self.notify_attribute_changed(local_name);
     }
@@ -454,24 +426,12 @@ impl AttributeHandlers for JS<Element> {
                 // "borrowed value does not live long enough"
                 let mut doc = node.get().owner_doc().clone();
                 let doc = doc.get_mut();
-                doc.unregister_named_element(self, old_value);
+                doc.unregister_named_element(self, old_value.clone());
             }
             _ => ()
         }
 
-        //XXXjdm We really need something like a vtable so we can call BeforeRemoveAttr.
-        //       This hardcoding is awful.
-        match node.type_id() {
-            ElementNodeTypeId(HTMLImageElementTypeId) => {
-                let mut elem: JS<HTMLImageElement> = HTMLImageElementCast::to(self).unwrap();
-                elem.BeforeRemoveAttr(local_name.clone());
-            }
-            ElementNodeTypeId(HTMLIFrameElementTypeId) => {
-                let mut elem: JS<HTMLIFrameElement> = HTMLIFrameElementCast::to(self).unwrap();
-                elem.BeforeRemoveAttr(local_name.clone());
-            }
-            _ => ()
-        }
+        vtable_for(&node).before_remove_attr(local_name.clone(), old_value);
 
         self.notify_attribute_changed(local_name);
     }
@@ -756,4 +716,11 @@ pub fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     };
 
     (prefix, local_name)
+}
+
+impl VirtualMethods for JS<Element> {
+    fn super_type(&self) -> Option<~VirtualMethods:> {
+        let node: JS<Node> = NodeCast::from(self);
+        Some(~node as ~VirtualMethods:)
+    }
 }
