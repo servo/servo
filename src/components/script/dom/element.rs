@@ -28,6 +28,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
+use servo_util::attr::{AttrValue, StringAttrValue, UIntAttrValue};
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
@@ -185,17 +186,16 @@ impl Element {
             name == (***attr).local_name && (***attr).namespace == *namespace
        }).map(|attr| {
             let attr: **Attr = cast::transmute(attr);
-            cast::transmute((**attr).value.as_slice())
+            cast::transmute((**attr).value_ref())
         })
     }
 }
 
 pub trait AttributeHandlers {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<JS<Attr>>;
-    fn set_attr(&mut self, name: DOMString, value: DOMString) -> ErrorResult;
     fn set_attribute(&mut self, namespace: Namespace, name: DOMString,
-                     value: DOMString) -> ErrorResult;
-    fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
+                     value: AttrValue) -> ErrorResult;
+    fn do_set_attribute(&mut self, local_name: DOMString, value: AttrValue,
                         name: DOMString, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JS<Attr>| -> bool);
     fn SetAttribute(&mut self, name: DOMString, value: DOMString) -> ErrorResult;
@@ -213,7 +213,7 @@ pub trait AttributeHandlers {
     fn set_url_attribute(&mut self, name: &str, value: DOMString);
     fn get_string_attribute(&self, name: &str) -> DOMString;
     fn set_string_attribute(&mut self, name: &str, value: DOMString);
-    fn set_uint_attribute(&mut self, name: &str, value: u32);
+    fn set_uint_attribute(&mut self, name: &str, value: u32) -> ErrorResult;
 }
 
 pub trait AfterSetAttrListener {
@@ -239,12 +239,8 @@ impl AttributeHandlers for JS<Element> {
         }
     }
 
-    fn set_attr(&mut self, name: DOMString, value: DOMString) -> ErrorResult {
-        self.set_attribute(namespace::Null, name, value)
-    }
-
     fn set_attribute(&mut self, namespace: Namespace, name: DOMString,
-                     value: DOMString) -> ErrorResult {
+                     value: AttrValue) -> ErrorResult {
         let (prefix, local_name) = get_attribute_parts(name.clone());
         match prefix {
             Some(ref prefix_str) => {
@@ -270,7 +266,7 @@ impl AttributeHandlers for JS<Element> {
         Ok(())
     }
 
-    fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
+    fn do_set_attribute(&mut self, local_name: DOMString, value: AttrValue,
                         name: DOMString, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JS<Attr>| -> bool) {
         let idx = self.get().attrs.iter().position(cb);
@@ -293,7 +289,7 @@ impl AttributeHandlers for JS<Element> {
         }
 
         if namespace == namespace::Null {
-            self.after_set_attr(local_name, value);
+            self.after_set_attr(local_name, value.as_owned_str());
         }
     }
 
@@ -316,7 +312,7 @@ impl AttributeHandlers for JS<Element> {
         };
 
         // Step 3-5.
-        self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, |attr| {
+        self.do_set_attribute(name.clone(), StringAttrValue(value), name.clone(), namespace::Null, None, |attr| {
             attr.get().name == name
         });
         Ok(())
@@ -372,7 +368,7 @@ impl AttributeHandlers for JS<Element> {
         }
 
         // Step 9.
-        self.do_set_attribute(local_name.clone(), value, name, namespace.clone(), prefix, |attr| {
+        self.do_set_attribute(local_name.clone(), StringAttrValue(value), name, namespace.clone(), prefix, |attr| {
             attr.get().local_name == local_name &&
             attr.get().namespace == namespace
         });
@@ -498,6 +494,7 @@ impl AttributeHandlers for JS<Element> {
         // XXX Resolve URL.
         self.get_string_attribute(name)
     }
+
     fn set_url_attribute(&mut self, name: &str, value: DOMString) {
         self.set_string_attribute(name, value);
     }
@@ -508,14 +505,15 @@ impl AttributeHandlers for JS<Element> {
             None => ~""
         }
     }
+
     fn set_string_attribute(&mut self, name: &str, value: DOMString) {
         assert!(name == name.to_ascii_lower());
-        assert!(self.set_attribute(Null, name.to_owned(), value).is_ok());
+        assert!(self.set_attribute(Null, name.to_owned(), StringAttrValue(value)).is_ok());
     }
 
-    fn set_uint_attribute(&mut self, name: &str, value: u32) {
+    fn set_uint_attribute(&mut self, name: &str, value: u32) -> ErrorResult {
         assert!(name == name.to_ascii_lower());
-        assert!(self.set_attribute(Null, name.to_owned(), value.to_str()).is_ok());
+        self.set_attribute(Null, name.to_owned(), UIntAttrValue(value.to_str(), value))
     }
 }
 
@@ -596,7 +594,7 @@ impl Element {
                           local_name: DOMString) -> Option<DOMString> {
         let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
         abstract_self.get_attribute(namespace, local_name)
-                     .map(|attr| attr.get().value.clone())
+                     .map(|attr| attr.get().Value())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-setattribute

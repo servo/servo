@@ -7,13 +7,14 @@ use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::namespace::Namespace;
+use servo_util::attr::{AttrValue, StringAttrValue};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct Attr {
     reflector_: Reflector,
     local_name: DOMString,
-    value: DOMString,
+    value: AttrValue,
     name: DOMString,
     namespace: Namespace,
     prefix: Option<DOMString>
@@ -30,7 +31,7 @@ impl Reflectable for Attr {
 }
 
 impl Attr {
-    fn new_inherited(local_name: DOMString, value: DOMString,
+    fn new_inherited(local_name: DOMString, value: AttrValue,
                      name: DOMString, namespace: Namespace,
                      prefix: Option<DOMString>) -> Attr {
         Attr {
@@ -43,39 +44,51 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &JS<Window>, local_name: DOMString, value: DOMString,
+    pub fn new(window: &JS<Window>, local_name: DOMString, value: AttrValue,
                name: DOMString, namespace: Namespace,
                prefix: Option<DOMString>) -> JS<Attr> {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix);
         reflect_dom_object(~attr, window, AttrBinding::Wrap)
     }
+}
 
-    pub fn set_value(&mut self, value: DOMString) {
+impl Attr {
+    pub fn set_value(&mut self, value: AttrValue) {
         self.value = value;
     }
 
     pub fn value_ref<'a>(&'a self) -> &'a str {
-        self.value.as_slice()
+        self.value.as_str_slice()
+    }
+
+    pub fn value_uint(&self) -> Option<u32> {
+        self.value.as_uint()
     }
 }
 
+// http://dom.spec.whatwg.org/#interface-attr
 impl Attr {
+    // http://dom.spec.whatwg.org/#dom-attr-localname
     pub fn LocalName(&self) -> DOMString {
         self.local_name.clone()
     }
 
+    // http://dom.spec.whatwg.org/#dom-attr-value
     pub fn Value(&self) -> DOMString {
-        self.value.clone()
+        self.value.as_owned_str()
     }
 
+    // http://dom.spec.whatwg.org/#dom-attr-value
     pub fn SetValue(&mut self, value: DOMString) {
-        self.value = value;
+        self.value = StringAttrValue(value);
     }
 
+    // http://dom.spec.whatwg.org/#dom-attr-name
     pub fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
+    // http://dom.spec.whatwg.org/#dom-attr-namespaceuri
     pub fn GetNamespaceURI(&self) -> Option<DOMString> {
         match self.namespace.to_str() {
             "" => None,
@@ -83,6 +96,7 @@ impl Attr {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-attr-prefix
     pub fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix.clone()
     }

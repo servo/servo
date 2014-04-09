@@ -338,8 +338,7 @@ pub fn parse_html(page: &Page,
             for attr in tag.attributes.iter() {
                 //FIXME: this should have proper error handling or explicitly drop
                 //       exceptions on the ground
-                assert!(element.set_attr(attr.name.clone(),
-                                         attr.value.clone()).is_ok());
+                element.set_string_attribute(attr.name.clone(), attr.value.clone());
             }
 
             // Spawn additional parsing, network loads, etc. from tag and attrs
