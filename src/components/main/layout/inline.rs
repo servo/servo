@@ -50,7 +50,7 @@ use style::computed_values::{text_align, vertical_align, white_space};
 /// with a float or a horizontal wall of the containing block. The top
 /// left corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
-struct LineBox {
+pub struct LineBox {
     range: Range,
     bounds: Rect<Au>,
     green_zone: Size2D<Au>

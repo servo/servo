@@ -52,7 +52,7 @@ pub struct Constellation {
 }
 
 /// Stores the Id of the outermost frame's pipeline, along with a vector of children frames
-struct FrameTree {
+pub struct FrameTree {
     pipeline: RefCell<Rc<Pipeline>>,
     parent: RefCell<Option<Rc<Pipeline>>>,
     children: RefCell<~[ChildFrameTree]>,
@@ -74,7 +74,7 @@ impl Clone for FrameTree {
     }
 }
 
-struct ChildFrameTree {
+pub struct ChildFrameTree {
     frame_tree: Rc<FrameTree>,
     /// Clipping rect representing the size and position, in page coordinates, of the visible
     /// region of the child frame relative to the parent.
@@ -176,14 +176,14 @@ impl Iterator<Rc<FrameTree>> for FrameTreeIterator {
 }
 
 /// Represents the portion of a page that is changing in navigating.
-struct FrameChange {
+pub struct FrameChange {
     before: Option<PipelineId>,
     after: Rc<FrameTree>,
     navigation_type: NavigationType,
 }
 
 /// Stores the Id's of the pipelines previous and next in the browser's history
-struct NavigationContext {
+pub struct NavigationContext {
     previous: ~[Rc<FrameTree>],
     next: ~[Rc<FrameTree>],
     current: Option<Rc<FrameTree>>,

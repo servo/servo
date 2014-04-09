@@ -573,7 +573,7 @@ impl NodeHelpers for JS<Node> {
 // Iteration and traversal
 //
 
-type ChildElementIterator<'a> = Map<'a, JS<Node>,
+pub type ChildElementIterator<'a> = Map<'a, JS<Node>,
                                     JS<Element>,
                                     Filter<'a, JS<Node>, AbstractNodeChildrenIterator>>;
 

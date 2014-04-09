@@ -718,9 +718,9 @@ impl Descendants {
 
 pub type AbsDescendants = Descendants;
 
-type DescendantIter<'a> = MutItems<'a, Rawlink>;
+pub type DescendantIter<'a> = MutItems<'a, Rawlink>;
 
-type DescendantOffsetIter<'a> = Zip<MutItems<'a, Rawlink>, MutItems<'a, Au>>;
+pub type DescendantOffsetIter<'a> = Zip<MutItems<'a, Rawlink>, MutItems<'a, Au>>;
 
 /// Data common to all flows.
 pub struct BaseFlow {
