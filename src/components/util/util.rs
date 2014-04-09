@@ -22,6 +22,7 @@ extern crate sync;
 extern crate std_time = "time";
 extern crate std_url = "url";
 
+pub mod attr;
 pub mod cache;
 pub mod concurrentmap;
 pub mod cowarc;
