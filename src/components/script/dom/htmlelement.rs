@@ -23,6 +23,7 @@ pub struct HTMLElement {
 impl HTMLElementDerived for EventTarget {
     fn is_htmlelement(&self) -> bool {
         match self.type_id {
+            NodeTargetTypeId(ElementNodeTypeId(ElementTypeId)) => false,
             NodeTargetTypeId(ElementNodeTypeId(_)) => true,
             _ => false
         }
