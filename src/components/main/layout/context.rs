@@ -9,6 +9,7 @@ use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use geom::size::Size2D;
 use gfx::display_list::OpaqueNode;
 use gfx::font_context::{FontContext, FontContextInfo};
+#[cfg(not(target_os="android"))]
 use green::task::GreenTask;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::ConstellationChan;
@@ -16,24 +17,43 @@ use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 use servo_util::opts::Opts;
 use std::cast;
+#[cfg(not(target_os="android"))]
 use std::ptr;
+#[cfg(not(target_os="android"))]
 use std::rt::Runtime;
+#[cfg(not(target_os="android"))]
 use std::rt::local::Local;
+#[cfg(not(target_os="android"))]
 use std::rt::task::Task;
 use style::{ComputedValues, Stylist};
 use sync::{Arc, MutexArc};
 use url::Url;
 
+#[cfg(target_os="android")]
+use std::local_data;
+
+#[cfg(not(target_os="android"))]
 #[thread_local]
 static mut FONT_CONTEXT: *mut FontContext = 0 as *mut FontContext;
 
+#[cfg(target_os="android")]
+local_data_key!(font_context: *mut FontContext)
+
+#[cfg(not(target_os="android"))]
 #[thread_local]
 static mut APPLICABLE_DECLARATIONS_CACHE: *mut ApplicableDeclarationsCache =
     0 as *mut ApplicableDeclarationsCache;
 
+#[cfg(target_os="android")]
+local_data_key!(applicable_declarations_cache: *mut ApplicableDeclarationsCache)
+
+#[cfg(not(target_os="android"))]
 #[thread_local]
 static mut STYLE_SHARING_CANDIDATE_CACHE: *mut StyleSharingCandidateCache =
     0 as *mut StyleSharingCandidateCache;
+
+#[cfg(target_os="android")]
+local_data_key!(style_sharing_candidate_cache: *mut StyleSharingCandidateCache)
 
 /// Data shared by all layout workers.
 #[deriving(Clone)]
@@ -71,6 +91,7 @@ pub struct LayoutContext {
     opts: Opts,
 }
 
+#[cfg(not(target_os="android"))]
 impl LayoutContext {
     pub fn font_context<'a>(&'a mut self) -> &'a mut FontContext {
         // Sanity check.
@@ -135,6 +156,60 @@ impl LayoutContext {
                 STYLE_SHARING_CANDIDATE_CACHE = cast::transmute(cache)
             }
             cast::transmute(STYLE_SHARING_CANDIDATE_CACHE)
+        }
+    }
+}
+
+
+// On Android, we don't have the __tls_* functions emitted by rustc, so we
+// need to use the slower local_data functions.
+// Making matters worse, the local_data functions are very particular about
+// enforcing the lifetimes associated with objects that they hold onto,
+// which causes us some trouble we work around as below.
+#[cfg(target_os="android")]
+impl LayoutContext {
+    pub fn font_context<'a>(&'a mut self) -> &'a mut FontContext {
+        unsafe {
+            let opt = local_data::pop(font_context);
+            let mut context;
+            match opt {
+                Some(c) => context = cast::transmute(c),
+                None => {
+                    context = cast::transmute(~FontContext::new(self.font_context_info.clone()))
+                }
+            }
+            local_data::set(font_context, context);
+            cast::transmute(context)
+        }
+    }
+
+    pub fn applicable_declarations_cache<'a>(&'a self) -> &'a mut ApplicableDeclarationsCache {
+        unsafe {
+            let opt = local_data::pop(applicable_declarations_cache);
+            let mut cache;
+            match opt {
+                Some(c) => cache = cast::transmute(c),
+                None => {
+                    cache = cast::transmute(~ApplicableDeclarationsCache::new());
+                }
+            }
+            local_data::set(applicable_declarations_cache, cache);
+            cast::transmute(cache)
+        }
+    }
+
+    pub fn style_sharing_candidate_cache<'a>(&'a self) -> &'a mut StyleSharingCandidateCache {
+        unsafe {
+            let opt = local_data::pop(style_sharing_candidate_cache);
+            let mut cache;
+            match opt {
+                Some(c) => cache = cast::transmute(c),
+                None => {
+                    cache = cast::transmute(~StyleSharingCandidateCache::new());
+                }
+            }
+            local_data::set(style_sharing_candidate_cache, cache);
+            cast::transmute(cache)
         }
     }
 }

@@ -67,7 +67,8 @@ use servo_util::opts;
 #[cfg(not(test))]
 use servo_util::url::parse_url;
 
-#[cfg(not(test))]
+
+#[cfg(not(test), not(target_os="android"))]
 use std::os;
 #[cfg(not(test), target_os="android")]
 use std::str;
