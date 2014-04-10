@@ -166,16 +166,12 @@ impl Flow for TableWrapperFlow {
 
         // The position was set to the containing block by the flow's parent.
         let containing_block_width = self.block_flow.base.position.size.width;
-        let mut left_content_edge = Au::new(0);
-        let mut content_width = containing_block_width;
 
         let width_computer = TableWrapper;
         width_computer.compute_used_width_table_wrapper(self, ctx, containing_block_width);
 
-        for box_ in self.block_flow.box_.iter() {
-            left_content_edge = box_.border_box.get().origin.x;
-            content_width = box_.border_box.get().size.width;
-        }
+        let left_content_edge = self.block_flow.box_.border_box.get().origin.x;
+        let content_width = self.block_flow.box_.border_box.get().size.width;
 
         match self.table_layout {
             FixedLayout | _ if self.is_float() =>
@@ -221,10 +217,7 @@ impl Flow for TableWrapperFlow {
         } else {
             ~"TableWrapperFlow: "
         };
-        txt.append(match self.block_flow.box_ {
-            Some(ref rb) => rb.debug_str(),
-            None => ~"",
-        })
+        txt.append(self.block_flow.box_.debug_str())
     }
 }
 
@@ -258,23 +251,21 @@ impl TableWrapper {
                                                                              |sum, width| sum.add(width));
 
                 let mut computed_width = input.computed_width.specified_or_zero();
-                for box_ in table_wrapper.block_flow.box_.iter() {
-                    let style = box_.style();
+                let style = table_wrapper.block_flow.box_.style();
 
-                    // Get left and right paddings, borders for table.
-                    // We get these values from the box's style since table_wrapper doesn't have it's own border or padding.
-                    // input.available_width is same as containing_block_width in table_wrapper.
-                    let padding_left = specified(style.Padding.get().padding_left,
-                                                 input.available_width);
-                    let padding_right = specified(style.Padding.get().padding_right,
-                                                  input.available_width);
-                    let border_left = style.Border.get().border_left_width;
-                    let border_right = style.Border.get().border_right_width;
-                    let padding_and_borders = padding_left + padding_right + border_left + border_right;
-                    // Compare border-edge widths. Because fixed_cells_width indicates content-width,
-                    // padding and border values are added to fixed_cells_width.
-                    computed_width = geometry::max(fixed_cells_width + padding_and_borders, computed_width);
-                }
+                // Get left and right paddings, borders for table.
+                // We get these values from the box's style since table_wrapper doesn't have it's own border or padding.
+                // input.available_width is same as containing_block_width in table_wrapper.
+                let padding_left = specified(style.Padding.get().padding_left,
+                                             input.available_width);
+                let padding_right = specified(style.Padding.get().padding_right,
+                                              input.available_width);
+                let border_left = style.Border.get().border_left_width;
+                let border_right = style.Border.get().border_right_width;
+                let padding_and_borders = padding_left + padding_right + border_left + border_right;
+                // Compare border-edge widths. Because fixed_cells_width indicates content-width,
+                // padding and border values are added to fixed_cells_width.
+                computed_width = geometry::max(fixed_cells_width + padding_and_borders, computed_width);
                 computed_width
             },
             AutoLayout => {

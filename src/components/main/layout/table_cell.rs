@@ -35,7 +35,7 @@ impl TableCellFlow {
         self.block_flow.teardown()
     }
 
-    pub fn box_<'a>(&'a mut self) -> &'a Option<Box>{
+    pub fn box_<'a>(&'a mut self) -> &'a Box {
         &self.block_flow.box_
     }
 
@@ -77,17 +77,15 @@ impl Flow for TableCellFlow {
     /// Minimum/preferred widths set by this function are used in automatic table layout calculation.
     fn bubble_widths(&mut self, ctx: &mut LayoutContext) {
         self.block_flow.bubble_widths(ctx);
-        for box_ in self.block_flow.box_.iter() {
-            let specified_width = MaybeAuto::from_style(box_.style().Box.get().width,
-                                                        Au::new(0)).specified_or_zero();
-            if self.block_flow.base.intrinsic_widths.minimum_width < specified_width {
-                self.block_flow.base.intrinsic_widths.minimum_width = specified_width;
-            }
-            if self.block_flow.base.intrinsic_widths.preferred_width <
-                    self.block_flow.base.intrinsic_widths.minimum_width {
-                self.block_flow.base.intrinsic_widths.preferred_width =
-                    self.block_flow.base.intrinsic_widths.minimum_width;
-            }
+        let specified_width = MaybeAuto::from_style(self.block_flow.box_.style().Box.get().width,
+                                                    Au::new(0)).specified_or_zero();
+        if self.block_flow.base.intrinsic_widths.minimum_width < specified_width {
+            self.block_flow.base.intrinsic_widths.minimum_width = specified_width;
+        }
+        if self.block_flow.base.intrinsic_widths.preferred_width <
+            self.block_flow.base.intrinsic_widths.minimum_width {
+            self.block_flow.base.intrinsic_widths.preferred_width =
+                self.block_flow.base.intrinsic_widths.minimum_width;
         }
     }
 
@@ -98,18 +96,14 @@ impl Flow for TableCellFlow {
 
         // The position was set to the column width by the parent flow, table row flow.
         let containing_block_width = self.block_flow.base.position.size.width;
-        let mut left_content_edge = Au::new(0);
-        let mut content_width = containing_block_width;
 
         let width_computer = InternalTable;
         width_computer.compute_used_width(&mut self.block_flow, ctx, containing_block_width);
 
-        for box_ in self.block_flow.box_.iter() {
-            left_content_edge = box_.border_box.get().origin.x + box_.padding.get().left + box_.border.get().left;
-            let padding_and_borders = box_.padding.get().left + box_.padding.get().right +
-                                      box_.border.get().left + box_.border.get().right;
-            content_width = box_.border_box.get().size.width - padding_and_borders;
-        }
+        let left_content_edge = self.block_flow.box_.border_box.get().origin.x + self.block_flow.box_.padding.get().left + self.block_flow.box_.border.get().left;
+        let padding_and_borders = self.block_flow.box_.padding.get().left + self.block_flow.box_.padding.get().right +
+                                  self.block_flow.box_.border.get().left + self.block_flow.box_.border.get().right;
+        let content_width = self.block_flow.box_.border_box.get().size.width - padding_and_borders;
 
         self.block_flow.propagate_assigned_width_to_children(left_content_edge, content_width, None);
     }
@@ -130,10 +124,7 @@ impl Flow for TableCellFlow {
 
     fn debug_str(&self) -> ~str {
         let txt = ~"TableCellFlow: ";
-        txt.append(match self.block_flow.box_ {
-            Some(ref rb) => rb.debug_str(),
-            None => ~"",
-        })
+        txt.append(self.block_flow.box_.debug_str())
     }
 }
 

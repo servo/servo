@@ -241,9 +241,7 @@ impl Flow for TableFlow {
             let child_base = flow::mut_base(kid);
             num_floats = num_floats + child_base.num_floats;
         }
-        for box_ in self.block_flow.box_.iter() {
-            box_.compute_borders(box_.style());
-        }
+        self.block_flow.box_.compute_borders(self.block_flow.box_.style());
         self.block_flow.base.num_floats = num_floats;
         self.block_flow.base.intrinsic_widths.minimum_width = min_width;
         self.block_flow.base.intrinsic_widths.preferred_width = geometry::max(min_width, pref_width);
@@ -256,8 +254,6 @@ impl Flow for TableFlow {
 
         // The position was set to the containing block by the flow's parent.
         let containing_block_width = self.block_flow.base.position.size.width;
-        let mut left_content_edge = Au::new(0);
-        let mut content_width = containing_block_width;
 
         let mut num_unspecified_widths = 0;
         let mut total_column_width = Au::new(0);
@@ -272,12 +268,10 @@ impl Flow for TableFlow {
         let width_computer = InternalTable;
         width_computer.compute_used_width(&mut self.block_flow, ctx, containing_block_width);
 
-        for box_ in self.block_flow.box_.iter() {
-            left_content_edge = box_.padding.get().left + box_.border.get().left;
-            let padding_and_borders = box_.padding.get().left + box_.padding.get().right +
-                                      box_.border.get().left + box_.border.get().right;
-            content_width = box_.border_box.get().size.width - padding_and_borders;
-        }
+        let left_content_edge = self.block_flow.box_.padding.get().left + self.block_flow.box_.border.get().left;
+        let padding_and_borders = self.block_flow.box_.padding.get().left + self.block_flow.box_.padding.get().right +
+                                  self.block_flow.box_.border.get().left + self.block_flow.box_.border.get().right;
+        let content_width = self.block_flow.box_.border_box.get().size.width - padding_and_borders;
 
         match self.table_layout {
             FixedLayout => {
@@ -319,10 +313,7 @@ impl Flow for TableFlow {
 
     fn debug_str(&self) -> ~str {
         let txt = ~"TableFlow: ";
-        txt.append(match self.block_flow.box_ {
-            Some(ref rb) => rb.debug_str(),
-            None => ~"",
-        })
+        txt.append(self.block_flow.box_.debug_str())
     }
 }
 

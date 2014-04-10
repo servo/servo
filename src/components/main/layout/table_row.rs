@@ -64,7 +64,7 @@ impl TableRowFlow {
         self.col_pref_widths = ~[];
     }
 
-    pub fn box_<'a>(&'a mut self) -> &'a Option<Box>{
+    pub fn box_<'a>(&'a mut self) -> &'a Box {
         &self.block_flow.box_
     }
 
@@ -93,7 +93,8 @@ impl TableRowFlow {
                 kid.assign_height_inorder(layout_context)
             }
 
-            for child_box in kid.as_table_cell().box_().iter() {
+            {
+                let child_box = kid.as_table_cell().box_();
                 // TODO: Percentage height
                 let child_specified_height = MaybeAuto::from_style(child_box.style().Box.get().height,
                                                                    Au::new(0)).specified_or_zero();
@@ -105,28 +106,25 @@ impl TableRowFlow {
         }
 
         let mut height = max_y;
-        for box_ in self.block_flow.box_.iter() {
-            // TODO: Percentage height
-            height = match MaybeAuto::from_style(box_.style().Box.get().height, Au(0)) {
-                Auto => height,
-                Specified(value) => geometry::max(value, height)
-            };
-        }
+        // TODO: Percentage height
+        height = match MaybeAuto::from_style(self.block_flow.box_.style().Box.get().height, Au(0)) {
+            Auto => height,
+            Specified(value) => geometry::max(value, height)
+        };
         // cur_y = cur_y + height;
 
         // Assign the height of own box
         //
         // FIXME(pcwalton): Take `cur_y` into account.
-        for box_ in self.block_flow.box_.iter() {
-            let mut position = box_.border_box.get();
-            position.size.height = height;
-            box_.border_box.set(position);
-        }
+        let mut position = self.block_flow.box_.border_box.get();
+        position.size.height = height;
+        self.block_flow.box_.border_box.set(position);
         self.block_flow.base.position.size.height = height;
 
         // Assign the height of kid boxes, which is the same value as own height.
         for kid in self.block_flow.base.child_iter() {
-            for kid_box_ in kid.as_table_cell().box_().iter() {
+            {
+                let kid_box_ = kid.as_table_cell().box_();
                 let mut position = kid_box_.border_box.get();
                 position.size.height = height;
                 kid_box_.border_box.set(position);
@@ -185,7 +183,8 @@ impl Flow for TableRowFlow {
             assert!(kid.is_table_cell());
 
             // collect the specified column widths of cells. These are used in fixed table layout calculation.
-            for child_box in kid.as_table_cell().box_().iter() {
+            {
+                let child_box = kid.as_table_cell().box_();
                 let child_specified_width = MaybeAuto::from_style(child_box.style().Box.get().width,
                                                                   Au::new(0)).specified_or_zero();
                 self.col_widths.push(child_specified_width);
@@ -237,10 +236,7 @@ impl Flow for TableRowFlow {
 
     fn debug_str(&self) -> ~str {
         let txt = ~"TableRowFlow: ";
-        txt.append(match self.block_flow.box_ {
-            Some(ref rb) => rb.debug_str(),
-            None => ~"",
-        })
+        txt.append(self.block_flow.box_.debug_str())
     }
 }
 
