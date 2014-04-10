@@ -385,7 +385,6 @@ case ${TARGET_OSTYPE} in
         probe CFG_RANLIB	       arm-linux-androideabi-ranlib
 
         export PATH=${OLD_PATH}
-        CFG_RUSTC_FLAGS="--target=${CFG_TARGET_TRIPLES} -C android-cross-path=${CFG_ANDROID_CROSS_PATH}"
         ;;
     *)
         CFG_PATH=$PATH
