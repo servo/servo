@@ -83,13 +83,6 @@ impl RenderListener for CompositorChan {
         self.chan.send(Paint(pipeline_id, layer_id, layer_buffer_set, epoch))
     }
 
-    fn create_layer_group_for_pipeline(&self, id: PipelineId, page_size: Size2D<uint>) {
-        let Size2D { width, height } = page_size;
-        self.chan.send(CreateRootCompositorLayerIfNecessary(id,
-                                                            LayerId::null(),
-                                                            Size2D(width as f32, height as f32)))
-    }
-
     fn initialize_layers_for_pipeline(&self,
                                       pipeline_id: PipelineId,
                                       metadata: ~[LayerMetadata],
