@@ -37,6 +37,7 @@ exceptions = [
     "src/compiler", # Upstream
     "src/components/main/dom/bindings/codegen", # Generated and upstream code combined with our own. Could use cleanup
     "src/components/script/dom/bindings/codegen", # Generated and upstream code combined with our own. Could use cleanup
+    "src/test/wpt/web-platform-tests", # Upstream
 ]
 
 def should_check(name):

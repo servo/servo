@@ -119,3 +119,6 @@
 [submodule "src/platform/android/servo-android-glue"]
 	path = src/platform/android/servo-android-glue
 	url = https://github.com/mozilla-servo/servo-android-glue.git
+[submodule "src/test/wpt/web-platform-tests"]
+	path = src/test/wpt/web-platform-tests
+	url = https://github.com/mozilla-servo/web-platform-tests.git
