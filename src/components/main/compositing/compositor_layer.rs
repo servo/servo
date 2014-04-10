@@ -879,7 +879,7 @@ impl CompositorLayer {
                 }
 
                 // Send back all tiles to renderer.
-                child.get_mut_ref().child.clear();
+                child.get_mut_ref().child.clear_all_tiles();
 
                 self.build_layer_tree(graphics_context);
                 true
@@ -948,6 +948,15 @@ impl CompositorLayer {
 
                 self.pipeline.render_chan.try_send(UnusedBufferMsg(tiles));
             }
+        }
+    }
+
+    /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
+    /// renderer to be destroyed or reused.
+    pub fn clear_all_tiles(&mut self) {
+        self.clear();
+        for kid in self.children.mut_iter() {
+            kid.child.clear_all_tiles();
         }
     }
 

@@ -394,6 +394,11 @@ impl IOCompositor {
 
             ContainerLayer::add_child_start(self.root_layer.clone(),
                                             ContainerLayerKind(new_layer.root_layer.clone()));
+
+            // Release all tiles from the layer before dropping it.
+            for layer in self.compositor_layer.mut_iter() {
+                layer.clear_all_tiles();
+            }
             self.compositor_layer = Some(new_layer);
         }
 
