@@ -69,7 +69,7 @@ impl Attr {
     }
 
     pub fn SetValue(&mut self, value: DOMString) {
-        self.value = value;
+        self.set_value(value);
     }
 
     pub fn Name(&self) -> DOMString {
