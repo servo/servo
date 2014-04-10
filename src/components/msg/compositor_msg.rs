@@ -121,7 +121,6 @@ pub struct LayerMetadata {
 /// submit them to be drawn to the display.
 pub trait RenderListener {
     fn get_graphics_metadata(&self) -> Option<NativeGraphicsMetadata>;
-    fn create_layer_group_for_pipeline(&self, PipelineId, Size2D<uint>);
 
     /// Informs the compositor of the layers for the given pipeline. The compositor responds by
     /// creating and/or destroying render layers as necessary.
