@@ -5312,19 +5312,19 @@ class CallbackOperationBase(CallbackMethod):
             "methodName": self.methodName
             }
         getCallableFromProp = string.Template(
-                'if "${methodName}".to_c_str().with_ref(|name| !self.parent.GetCallableProperty(cx, name, &mut callable)) {\n'
-                '  return${errorReturn};\n'
-                '}\n').substitute(replacements)
+                'match self.parent.GetCallableProperty(cx, "${methodName}") {\n'
+                '  Err(_) => return${errorReturn},\n'
+                '  Ok(callable) => callable,\n'
+                '}').substitute(replacements)
         if not self.singleOperation:
             return 'JS::Rooted<JS::Value> callable(cx);\n' + getCallableFromProp
         return (
             'let isCallable = unsafe { JS_ObjectIsCallable(cx, self.parent.callback) != 0 };\n'
-            'let mut callable = UndefinedValue();\n'
-            'if isCallable {\n'
-            '  callable = unsafe { ObjectValue(&*self.parent.callback) };\n'
-            '} else {\n'
-            '%s'
-            '}\n' % CGIndenter(CGGeneric(getCallableFromProp)).define())
+            'let callable =\n' +
+            CGIndenter(
+                CGIfElseWrapper('isCallable',
+                                CGGeneric('unsafe { ObjectValue(&*self.parent.callback) }'),
+                                CGGeneric(getCallableFromProp))).define() + ';\n')
 
 class CallbackOperation(CallbackOperationBase):
     """
