@@ -354,16 +354,15 @@ impl IOCompositor {
         self.constellation_chan = new_constellation_chan;
     }
 
-    // FIXME(pcwalton): Take the pipeline ID into account.
     fn create_root_compositor_layer_if_necessary(&mut self,
-                                                 _: PipelineId,
+                                                 id: PipelineId,
                                                  layer_id: LayerId,
                                                  size: Size2D<f32>) {
         let (root_pipeline, root_layer_id) = match self.compositor_layer {
-            Some(ref compositor_layer) => {
+            Some(ref compositor_layer) if compositor_layer.pipeline.id == id => {
                 (compositor_layer.pipeline.clone(), compositor_layer.id_of_first_child())
             }
-            None => {
+            _ => {
                 match self.root_pipeline {
                     Some(ref root_pipeline) => (root_pipeline.clone(), LayerId::null()),
                     None => fail!("Compositor: Received new layer without initialized pipeline"),
