@@ -5,7 +5,7 @@
 use dom::bindings::utils::Reflectable;
 use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable};
 use js::jsapi::{JS_GetProperty, JSTracer, JS_CallTracer};
-use js::jsval::JSVal;
+use js::jsval::{JSVal, UndefinedValue};
 use js::JSTRACE_OBJECT;
 
 use std::cast;
@@ -61,20 +61,20 @@ impl CallbackInterface {
         }
     }
 
-    pub fn GetCallableProperty(&self, cx: *JSContext, name: *libc::c_char, callable: &mut JSVal) -> bool {
+    pub fn GetCallableProperty(&self, cx: *JSContext, name: &str) -> Result<JSVal, ()> {
+        let mut callable = UndefinedValue();
         unsafe {
-            if JS_GetProperty(cx, self.callback, name, &*callable) == 0 {
-                return false;
+            if name.to_c_str().with_ref(|name| JS_GetProperty(cx, self.callback, name, &mut callable as *mut JSVal as *JSVal)) == 0 {
+                return Err(());
             }
 
             if !callable.is_object() ||
                JS_ObjectIsCallable(cx, callable.to_object()) == 0 {
                 //ThrowErrorMessage(cx, MSG_NOT_CALLABLE, description.get());
-                return false;
+                return Err(());
             }
-
-            return true;
         }
+        Ok(callable)
     }
 }
 
