@@ -5,7 +5,7 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{FromJSValConvertible, IDLInterface};
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, Root};
 use dom::bindings::trace::Untraceable;
 use dom::browsercontext;
 use dom::window;
@@ -602,13 +602,16 @@ pub extern fn wrap_for_same_compartment(cx: *JSContext, obj: *JSObject) -> *JSOb
 
 pub extern fn outerize_global(_cx: *JSContext, obj: JSHandleObject) -> *JSObject {
     unsafe {
+        let roots = RootCollection::new();
         debug!("outerizing");
         let obj = *obj.unnamed;
-        let win: JS<window::Window> =
+        let win: Root<window::Window> =
             unwrap_jsmanaged(obj,
                              IDLInterface::get_prototype_id(None::<window::Window>),
-                             IDLInterface::get_prototype_depth(None::<window::Window>)).unwrap();
-        win.get().browser_context.get_ref().window_proxy()
+                             IDLInterface::get_prototype_depth(None::<window::Window>))
+            .unwrap()
+            .root(&roots);
+        win.deref().browser_context.get_ref().window_proxy()
     }
 }
 

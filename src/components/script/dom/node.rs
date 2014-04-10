@@ -11,8 +11,8 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDeri
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::BindingDeclarations::NodeBinding::NodeConstants;
 use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Unrooted, Root};
-use dom::bindings::js::{OptionalAssignable, UnrootedPushable, OptionalRootable};
-use dom::bindings::js::ResultRootable;
+use dom::bindings::js::{OptionalAssignable, UnrootedPushable, OptionalRootedRootable};
+use dom::bindings::js::{ResultRootable, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::bindings::utils;
@@ -479,27 +479,25 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         let child_node = child.get_mut();
         assert!(child_node.parent_node.is_some());
 
-        match child_node.prev_sibling {
+        match child_node.prev_sibling.root(&roots) {
             None => {
                 let next_sibling = child_node.next_sibling.as_ref().map(|next| next.root(&roots));
                 this_node.set_first_child(next_sibling.root_ref());
             }
             Some(ref mut prev_sibling) => {
-                let prev_sibling_node = prev_sibling.get_mut();
                 let next_sibling = child_node.next_sibling.as_ref().map(|next| next.root(&roots));
-                prev_sibling_node.set_next_sibling(next_sibling.root_ref());
+                prev_sibling.set_next_sibling(next_sibling.root_ref());
             }
         }
 
-        match child_node.next_sibling {
+        match child_node.next_sibling.root(&roots) {
             None => {
                 let prev_sibling = child_node.prev_sibling.as_ref().map(|prev| prev.root(&roots));
                 this_node.set_last_child(prev_sibling.root_ref());
             }
             Some(ref mut next_sibling) => {
-                let next_sibling_node = next_sibling.get_mut();
                 let prev_sibling = child_node.prev_sibling.as_ref().map(|prev| prev.root(&roots));
-                next_sibling_node.set_prev_sibling(prev_sibling.root_ref());
+                next_sibling.set_prev_sibling(prev_sibling.root_ref());
             }
         }
 
@@ -916,18 +914,18 @@ impl Node {
     pub fn NodeName(&self, abstract_self: &JSRef<Node>) -> DOMString {
         match self.type_id {
             ElementNodeTypeId(..) => {
-                let elem: JS<Element> = ElementCast::to(&abstract_self.unrooted()).unwrap();
+                let elem: &JSRef<Element> = ElementCast::to_ref(abstract_self).unwrap();
                 elem.get().TagName()
             }
             TextNodeTypeId => ~"#text",
             ProcessingInstructionNodeTypeId => {
-                let processing_instruction: JS<ProcessingInstruction> =
-                    ProcessingInstructionCast::to(&abstract_self.unrooted()).unwrap();
+                let processing_instruction: &JSRef<ProcessingInstruction> =
+                    ProcessingInstructionCast::to_ref(abstract_self).unwrap();
                 processing_instruction.get().Target()
             }
             CommentNodeTypeId => ~"#comment",
             DoctypeNodeTypeId => {
-                let doctype: JS<DocumentType> = DocumentTypeCast::to(&abstract_self.unrooted()).unwrap();
+                let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(abstract_self).unwrap();
                 doctype.get().name.clone()
             },
             DocumentFragmentNodeTypeId => ~"#document-fragment",
@@ -1016,7 +1014,7 @@ impl Node {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
-                let chardata: JS<CharacterData> = CharacterDataCast::to(&abstract_self.unrooted()).unwrap();
+                let chardata: &JSRef<CharacterData> = CharacterDataCast::to_ref(abstract_self).unwrap();
                 Some(chardata.get().Data())
             }
             _ => {
@@ -1091,7 +1089,7 @@ impl Node {
             ProcessingInstructionNodeTypeId => {
                 self.wait_until_safe_to_modify_dom();
 
-                let mut characterdata: JS<CharacterData> = CharacterDataCast::to(&abstract_self.unrooted()).unwrap();
+                let characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(abstract_self).unwrap();
                 characterdata.get_mut().data = value.clone();
 
                 // Notify the document that the content of this node is different
@@ -1482,13 +1480,12 @@ impl Node {
                 // FIXME: https://github.com/mozilla/servo/issues/1737
                 copy_elem.namespace = node_elem.namespace.clone();
                 let window = document.get().window.root(&roots);
-                for attr in node_elem.attrs.iter() {
-                    let attr = attr.get();
+                for attr in node_elem.attrs.iter().map(|attr| attr.root(&roots)) {
                     copy_elem.attrs.push_unrooted(
                         Attr::new(&*window,
-                                  attr.local_name.clone(), attr.value.clone(),
-                                  attr.name.clone(), attr.namespace.clone(),
-                                  attr.prefix.clone(), &copy_elem_alias));
+                                  attr.deref().local_name.clone(), attr.deref().value.clone(),
+                                  attr.deref().name.clone(), attr.deref().namespace.clone(),
+                                  attr.deref().prefix.clone(), &copy_elem_alias));
                 }
             },
             _ => ()
@@ -1703,40 +1700,41 @@ impl Node {
     // http://dom.spec.whatwg.org/#dom-node-isequalnode
     pub fn IsEqualNode(&self, abstract_self: &JSRef<Node>, maybe_node: Option<JSRef<Node>>) -> bool {
         fn is_equal_doctype(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
-            let doctype: JS<DocumentType> = DocumentTypeCast::to(&node.unrooted()).unwrap();
-            let other_doctype: JS<DocumentType> = DocumentTypeCast::to(&other.unrooted()).unwrap();
+            let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
+            let other_doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(other).unwrap();
             (doctype.get().name == other_doctype.get().name) &&
             (doctype.get().public_id == other_doctype.get().public_id) &&
             (doctype.get().system_id == other_doctype.get().system_id)
         }
         fn is_equal_element(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
-            let element: JS<Element> = ElementCast::to(&node.unrooted()).unwrap();
-            let other_element: JS<Element> = ElementCast::to(&other.unrooted()).unwrap();
+            let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
+            let other_element: &JSRef<Element> = ElementCast::to_ref(other).unwrap();
             // FIXME: namespace prefix
             (element.get().namespace == other_element.get().namespace) &&
             (element.get().local_name == other_element.get().local_name) &&
             (element.get().attrs.len() == other_element.get().attrs.len())
         }
         fn is_equal_processinginstruction(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
-            let pi: JS<ProcessingInstruction> = ProcessingInstructionCast::to(&node.unrooted()).unwrap();
-            let other_pi: JS<ProcessingInstruction> = ProcessingInstructionCast::to(&other.unrooted()).unwrap();
+            let pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
+            let other_pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(other).unwrap();
             (pi.get().target == other_pi.get().target) &&
             (pi.get().characterdata.data == other_pi.get().characterdata.data)
         }
         fn is_equal_characterdata(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
-            let characterdata: JS<CharacterData> = CharacterDataCast::to(&node.unrooted()).unwrap();
-            let other_characterdata: JS<CharacterData> = CharacterDataCast::to(&other.unrooted()).unwrap();
+            let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(node).unwrap();
+            let other_characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(other).unwrap();
             characterdata.get().data == other_characterdata.get().data
         }
         fn is_equal_element_attrs(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
-            let element: JS<Element> = ElementCast::to(&node.unrooted()).unwrap();
-            let other_element: JS<Element> = ElementCast::to(&other.unrooted()).unwrap();
+            let roots = RootCollection::new();
+            let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
+            let other_element: &JSRef<Element> = ElementCast::to_ref(other).unwrap();
             assert!(element.get().attrs.len() == other_element.get().attrs.len());
-            element.get().attrs.iter().all(|attr| {
-                other_element.get().attrs.iter().any(|other_attr| {
-                    (attr.get().namespace == other_attr.get().namespace) &&
-                    (attr.get().local_name == other_attr.get().local_name) &&
-                    (attr.get().value == other_attr.get().value)
+            element.get().attrs.iter().map(|attr| attr.root(&roots)).all(|attr| {
+                other_element.get().attrs.iter().map(|attr| attr.root(&roots)).any(|other_attr| {
+                    (attr.namespace == other_attr.namespace) &&
+                    (attr.local_name == other_attr.local_name) &&
+                    (attr.value == other_attr.value)
                 })
             })
         }

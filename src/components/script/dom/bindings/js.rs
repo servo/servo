@@ -106,31 +106,23 @@ impl<T: Reflectable> JS<T> {
     }
 }
 
+//XXXjdm This is disappointing. This only gets called from trace hooks, in theory,
+//       so it's safe to assume that self is rooted and thereby safe to access.
 impl<T: Reflectable> Reflectable for JS<T> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.get().reflector()
+        unsafe {
+            (*self.unsafe_get()).reflector()
+        }
     }
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.get_mut().mut_reflector()
+        unsafe {
+            (*self.unsafe_get()).mut_reflector()
+        }
     }
 }
 
 impl<T: Reflectable> JS<T> {
-    pub fn get<'a>(&'a self) -> &'a T {
-        let borrowed = self.ptr.borrow();
-        unsafe {
-            &**borrowed
-        }
-    }
-
-    pub fn get_mut<'a>(&'a mut self) -> &'a mut T {
-        let mut borrowed = self.ptr.borrow_mut();
-        unsafe {
-            &mut **borrowed
-        }
-    }
-
     /// Returns an unsafe pointer to the interior of this JS object without touching the borrow
     /// flags. This is the only method that be safely accessed from layout. (The fact that this
     /// is unsafe is what necessitates the layout wrappers.)
@@ -210,6 +202,16 @@ pub trait OptionalRootable<T> {
 impl<T: Reflectable> OptionalRootable<T> for Option<Unrooted<T>> {
     fn root<'a, 'b>(self, roots: &'a RootCollection) -> Option<Root<'a, 'b, T>> {
         self.map(|inner| inner.root(roots))
+    }
+}
+
+pub trait OptionalRootedRootable<T> {
+    fn root<'a, 'b>(&self, roots: &'a RootCollection) -> Option<Root<'a, 'b, T>>;
+}
+
+impl<T: Reflectable> OptionalRootedRootable<T> for Option<JS<T>> {
+    fn root<'a, 'b>(&self, roots: &'a RootCollection) -> Option<Root<'a, 'b, T>> {
+        self.as_ref().map(|inner| inner.root(roots))
     }
 }
 

@@ -2243,12 +2243,7 @@ class CGCallGenerator(CGThing):
             self.cgRoot.append(CGGeneric("result = result_fallible.unwrap();"))
 
         if typeRetValNeedsRooting(returnType):
-            rooted_value = CGGeneric("result.root(&roots).root_ref().unrooted()")
-            if returnType.nullable():
-                rooted_value = CGWrapper(rooted_value, pre="result.map(|result| ", post=")")
-            rooted_value = CGWrapper(rooted_value, pre="let result = ", post=";")
-
-            self.cgRoot.append(rooted_value)
+            self.cgRoot.append(CGGeneric("let result = result.root(&roots);"))
 
     def define(self):
         return self.cgRoot.define()
@@ -4321,7 +4316,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
             'dom::types::*',
             'dom::bindings',
-            'dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Unrooted}',
+            'dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Unrooted, OptionalRootable}',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
             'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
@@ -5321,19 +5316,6 @@ class GlobalGenRoots():
 
             cast = [CGGeneric(string.Template('''pub trait ${castTraitName} {
   #[inline(always)]
-  fn from<T: ${fromBound}>(derived: &JS<T>) -> JS<Self> {
-    unsafe { derived.clone().transmute() }
-  }
-
-  #[inline(always)]
-  fn to<T: ${toBound}+Reflectable>(base: &JS<T>) -> Option<JS<Self>> {
-    match base.get().${checkFn}() {
-        true => unsafe { Some(base.clone().transmute()) },
-        false => None
-    }
-  }
-
-  #[inline(always)]
   fn to_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a JSRef<'b, T>) -> Option<&'a JSRef<'b, Self>> {
     match base.get().${checkFn}() {
         true => unsafe { Some(base.transmute()) },
@@ -5350,19 +5332,16 @@ class GlobalGenRoots():
   }
 
   #[inline(always)]
-  unsafe fn to_unchecked<T: ${toBound}+Reflectable>(base: &JS<T>) -> JS<Self> {
-    assert!(base.get().${checkFn}());
-    base.clone().transmute()
-  }
-
   fn from_ref<'a, 'b, T: ${fromBound}>(derived: &'a JSRef<'b, T>) -> &'a JSRef<'b, Self> {
     unsafe { derived.transmute() }
   }
 
+  #[inline(always)]
   fn from_mut_ref<'a, 'b, T: ${fromBound}>(derived: &'a mut JSRef<'b, T>) -> &'a mut JSRef<'b, Self> {
     unsafe { derived.transmute_mut() }
   }
 
+  #[inline(always)]
   fn from_unrooted<T: ${fromBound}+Reflectable>(derived: Unrooted<T>) -> Unrooted<Self> {
     unsafe { derived.transmute() }
   }

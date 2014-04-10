@@ -4,7 +4,7 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::BindingDeclarations::AttrListBinding;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Unrooted, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::window::Window;
@@ -31,11 +31,13 @@ impl AttrList {
     }
 
     pub fn Length(&self) -> u32 {
-        self.owner.get().attrs.len() as u32
+        let roots = RootCollection::new();
+        self.owner.root(&roots).attrs.len() as u32
     }
 
     pub fn Item(&self, index: u32) -> Option<Unrooted<Attr>> {
-        self.owner.get().attrs.as_slice().get(index as uint).map(|x| Unrooted::new(x.clone()))
+        let roots = RootCollection::new();
+        self.owner.root(&roots).attrs.as_slice().get(index as uint).map(|x| Unrooted::new(x.clone()))
     }
 
     pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Attr>> {

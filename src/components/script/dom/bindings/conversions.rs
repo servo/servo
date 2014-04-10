@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::jsstring_to_str;
@@ -316,7 +316,7 @@ impl<T: Reflectable+IDLInterface> FromJSValConvertible<()> for JS<T> {
     }
 }
 
-impl<T: Reflectable> ToJSValConvertible for JS<T> {
+impl<'a, 'b, T: Reflectable> ToJSValConvertible for Root<'a, 'b, T> {
     fn to_jsval(&self, cx: *JSContext) -> JSVal {
         self.reflector().to_jsval(cx)
     }

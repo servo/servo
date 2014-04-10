@@ -660,8 +660,9 @@ impl Document {
 
     pub fn Location(&mut self, _abstract_self: &JSRef<Document>) -> Unrooted<Location> {
         let roots = RootCollection::new();
-        let window = self.window.root(&roots);
-        self.window.get_mut().Location(&*window)
+        let mut window = self.window.root(&roots);
+        let window_alias = self.window.root(&roots);
+        window.get_mut().Location(&*window_alias)
     }
 
     pub fn Children(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
@@ -695,11 +696,13 @@ impl Document {
     }
 
     pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
-        self.window.get().damage_and_reflow(damage);
+        let roots = RootCollection::new();
+        self.window.root(&roots).damage_and_reflow(damage);
     }
 
     pub fn wait_until_safe_to_modify_dom(&self) {
-        self.window.get().wait_until_safe_to_modify_dom();
+        let roots = RootCollection::new();
+        self.window.root(&roots).wait_until_safe_to_modify_dom();
     }
 
 

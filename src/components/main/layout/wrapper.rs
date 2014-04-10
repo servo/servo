@@ -242,7 +242,7 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
     fn as_element(&self) -> LayoutElement<'ln> {
         unsafe {
             let elem: JS<Element> = self.node.transmute_copy();
-            let element = elem.get();
+            let element = &*elem.unsafe_get();
             LayoutElement {
                 element: cast::transmute_region(element),
             }
@@ -509,10 +509,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
     unsafe fn next_sibling(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
         if self.pseudo == Before || self.pseudo == BeforeBlock {
-            return self.get().first_child_ref().map(|node| self.new_with_this_lifetime(node))
+            return (*self.get_jsmanaged().unsafe_get()).first_child_ref().map(|node| self.new_with_this_lifetime(node))
         }
 
-        self.node.get().next_sibling_ref().map(|node| self.new_with_this_lifetime(node))
+        (*self.get_jsmanaged().unsafe_get()).next_sibling_ref().map(|node| self.new_with_this_lifetime(node))
     }
 
     /// Returns an iterator over this node's children.

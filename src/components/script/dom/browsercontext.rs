@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JS, JSRef, Unrooted, RootCollection};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
@@ -32,13 +32,14 @@ impl BrowserContext {
         context
     }
 
-    pub fn active_document(&self) -> JS<Document> {
-        self.history.get(self.active_index).document.clone()
+    pub fn active_document(&self) -> Unrooted<Document> {
+        Unrooted::new(self.history.get(self.active_index).document.clone())
     }
 
-    pub fn active_window(&self) -> JS<Window> {
-        let doc = self.active_document();
-        doc.get().window.clone()
+    pub fn active_window(&self) -> Unrooted<Window> {
+        let roots = RootCollection::new();
+        let doc = self.active_document().root(&roots);
+        Unrooted::new(doc.deref().window.clone())
     }
 
     pub fn window_proxy(&self) -> *JSObject {
@@ -47,7 +48,8 @@ impl BrowserContext {
     }
 
     pub fn create_window_proxy(&self) -> *JSObject {
-        let win = self.active_window();
+        let roots = RootCollection::new();
+        let win = self.active_window().root(&roots);
         let page = win.get().page();
         let js_info = page.js_info();
 

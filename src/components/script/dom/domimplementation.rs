@@ -61,9 +61,9 @@ impl DOMImplementation {
             Name => Err(NamespaceError),
             // Step 3.
             QName => {
-                let document = self.owner.get().Document();
-                let document = document.root(&roots);
-                Ok(DocumentType::new(qname, Some(pubid), Some(sysid), &document.root_ref()))
+                let owner = self.owner.root(&roots);
+                let document = owner.deref().Document().root(&roots);
+                Ok(DocumentType::new(qname, Some(pubid), Some(sysid), &*document))
             }
         }
     }

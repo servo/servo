@@ -216,16 +216,15 @@ pub trait AttributeHandlers {
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Unrooted<Attr>> {
+        let roots = RootCollection::new();
         if self.get().html_element_in_html_document() {
-            self.get().attrs.iter().find(|attr| {
-                let attr = attr.get();
+            self.get().attrs.iter().map(|attr| attr.root(&roots)).find(|attr| {
                 name.to_ascii_lower() == attr.local_name && attr.namespace == namespace
-            }).map(|x| Unrooted::new(x.clone()))
+            }).map(|x| Unrooted::new_rooted(&*x))
         } else {
-            self.get().attrs.iter().find(|attr| {
-                let attr = attr.get();
+            self.get().attrs.iter().map(|attr| attr.root(&roots)).find(|attr| {
                 name == attr.local_name && attr.namespace == namespace
-            }).map(|x| Unrooted::new(x.clone()))
+            }).map(|x| Unrooted::new_rooted(&*x))
         }
     }
 
@@ -279,7 +278,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             }
         };
 
-        self.get_mut().attrs.get_mut(idx).get_mut().set_value(set_type, value);
+        self.get_mut().attrs.get(idx).root(&roots).set_value(set_type, value);
     }
 
     // http://dom.spec.whatwg.org/#dom-element-setattribute
@@ -369,21 +368,22 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn remove_attribute(&mut self, namespace: Namespace, name: DOMString) -> ErrorResult {
+        let roots = RootCollection::new();
         let (_, local_name) = get_attribute_parts(name.clone());
 
         let self_alias = self.clone();
         let node: &JSRef<Node> = NodeCast::from_ref(&self_alias);
         node.wait_until_safe_to_modify_dom();
 
-        let idx = self.get().attrs.iter().position(|attr| {
-            attr.get().local_name == local_name
+        let idx = self.get().attrs.iter().map(|attr| attr.root(&roots)).position(|attr| {
+            attr.local_name == local_name
         });
 
         match idx {
             None => (),
             Some(idx) => {
                 if namespace == namespace::Null {
-                    let removed_raw_value = self.get().attrs.get(idx).get().Value();
+                    let removed_raw_value = self.get().attrs.get(idx).root(&roots).Value();
                     vtable_for(node).before_remove_attr(local_name.clone(), removed_raw_value);
                 }
 
@@ -528,11 +528,8 @@ impl Element {
         } else {
             name
         };
-        abstract_self.get_attribute(Null, name)
-                     .map(|s| {
-                         let s = s.root(&roots);
-                         s.deref().Value()
-                     })
+        abstract_self.get_attribute(Null, name).root(&roots)
+                     .map(|s| s.deref().Value())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getattributens
@@ -541,11 +538,8 @@ impl Element {
                           local_name: DOMString) -> Option<DOMString> {
         let roots = RootCollection::new();
         let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
-        abstract_self.get_attribute(namespace, local_name)
-                     .map(|attr| {
-                         let attr = attr.root(&roots);
-                         attr.deref().Value()
-                     })
+        abstract_self.get_attribute(namespace, local_name).root(&roots)
+                     .map(|attr| attr.deref().Value())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-setattribute
@@ -747,9 +741,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             _ => (),
         }
 
-        match self.get_attribute(Null, "id") {
+        match self.get_attribute(Null, "id").root(&roots) {
             Some(attr) => {
-                let attr = attr.root(&roots);
                 let mut doc = document_from_node(self).root(&roots);
                 doc.register_named_element(self, attr.deref().Value());
             }

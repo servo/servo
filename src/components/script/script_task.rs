@@ -277,7 +277,7 @@ impl Page {
         let roots = RootCollection::new();
         let root = match *self.frame() {
             None => return,
-            Some(ref frame) => frame.document.get().GetDocumentElement()
+            Some(ref frame) => frame.document.root(&roots).GetDocumentElement()
         };
         match root.root(&roots) {
             None => {},
@@ -359,7 +359,7 @@ impl Page {
         let root = match *self.frame() {
             None => return,
             Some(ref frame) => {
-                frame.document.get().GetDocumentElement()
+                frame.document.root(&roots).GetDocumentElement()
             }
         };
 
@@ -444,7 +444,7 @@ impl Page {
     pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
         let roots = RootCollection::new();
         let frame = self.frame();
-        let document = frame.get_ref().document.clone();
+        let document = frame.get_ref().document.root(&roots);
         let root = document.get().GetDocumentElement().root(&roots);
         if root.is_none() {
             return None;
@@ -467,7 +467,7 @@ impl Page {
     pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<Vec<UntrustedNodeAddress>> {
         let roots = RootCollection::new();
         let frame = self.frame();
-        let document = frame.get_ref().document.clone();
+        let document = frame.get_ref().document.root(&roots);
         let root = document.get().GetDocumentElement().root(&roots);
         if root.is_none() {
             return None;
@@ -737,11 +737,13 @@ impl ScriptTask {
 
     /// Handles a timer that fired.
     fn handle_fire_timer_msg(&self, id: PipelineId, timer_id: TimerId) {
+        let roots = RootCollection::new();
+
         let mut page_tree = self.page_tree.borrow_mut();
         let page = page_tree.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.").page();
         let frame = page.frame();
-        let mut window = frame.get_ref().window.clone();
+        let mut window = frame.get_ref().window.root(&roots);
 
         let is_interval;
         match window.get().active_timers.find(&timer_id) {
