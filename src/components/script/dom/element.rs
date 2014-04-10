@@ -198,9 +198,7 @@ pub trait AttributeHandlers {
     fn SetAttributeNS(&mut self, namespace_url: Option<DOMString>,
                       name: DOMString, value: DOMString) -> ErrorResult;
 
-    fn after_set_attr_(&mut self, local_name: DOMString, value: DOMString);
     fn remove_attribute(&mut self, namespace: Namespace, name: DOMString) -> ErrorResult;
-    fn before_remove_attr_(&mut self, local_name: DOMString, old_value: DOMString);
     fn notify_attribute_changed(&self, local_name: DOMString);
     fn has_class(&self, name: &str) -> bool;
 
@@ -261,18 +259,18 @@ impl AttributeHandlers for JS<Element> {
     fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
                         name: DOMString, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JS<Attr>| -> bool) {
+        let node: JS<Node> = NodeCast::from(self);
         let idx = self.get().attrs.iter().position(cb);
         match idx {
             Some(idx) => {
                 if namespace == namespace::Null {
                     let old_value = self.get().attrs[idx].get().Value();
-                    self.before_remove_attr_(local_name.clone(), old_value);
+                    vtable_for(&node).before_remove_attr(local_name.clone(), old_value);
                 }
                 self.get_mut().attrs[idx].get_mut().set_value(value.clone());
             }
 
             None => {
-                let node: JS<Node> = NodeCast::from(self);
                 let doc = node.get().owner_doc().get();
                 let new_attr = Attr::new(&doc.window, local_name.clone(), value.clone(),
                                          name, namespace.clone(), prefix);
@@ -281,7 +279,7 @@ impl AttributeHandlers for JS<Element> {
         }
 
         if namespace == namespace::Null {
-            self.after_set_attr_(local_name, value);
+            vtable_for(&node).after_set_attr(local_name, value);
         }
     }
 
@@ -367,29 +365,6 @@ impl AttributeHandlers for JS<Element> {
         Ok(())
     }
 
-    fn after_set_attr_(&mut self, local_name: DOMString, value: DOMString) {
-        let node: JS<Node> = NodeCast::from(self);
-        match local_name.as_slice() {
-            "style" => {
-                let doc = node.get().owner_doc();
-                let base_url = doc.get().url().clone();
-                self.get_mut().style_attribute = Some(style::parse_style_attribute(value, &base_url))
-            }
-            "id" if node.is_in_doc() => {
-                // XXX: this dual declaration are workaround to avoid the compile error:
-                // "borrowed value does not live long enough"
-                let mut doc = node.get().owner_doc().clone();
-                let doc = doc.get_mut();
-                doc.register_named_element(self, value.clone());
-            }
-            _ => ()
-        }
-
-        vtable_for(&node).after_set_attr(local_name.clone(), value.clone());
-
-        self.notify_attribute_changed(local_name);
-    }
-
     fn remove_attribute(&mut self, namespace: Namespace, name: DOMString) -> ErrorResult {
         let (_, local_name) = get_attribute_parts(name.clone());
 
@@ -405,7 +380,7 @@ impl AttributeHandlers for JS<Element> {
             Some(idx) => {
                 if namespace == namespace::Null {
                     let removed_raw_value = self.get().attrs[idx].get().Value();
-                    self.before_remove_attr_(local_name, removed_raw_value);
+                    vtable_for(&node).before_remove_attr(local_name.clone(), removed_raw_value);
                 }
 
                 self.get_mut().attrs.remove(idx);
@@ -413,27 +388,6 @@ impl AttributeHandlers for JS<Element> {
         };
 
         Ok(())
-    }
-
-    fn before_remove_attr_(&mut self, local_name: DOMString, old_value: DOMString) {
-        let node: JS<Node> = NodeCast::from(self);
-        match local_name.as_slice() {
-            "style" => {
-                self.get_mut().style_attribute = None
-            }
-            "id" if node.is_in_doc() => {
-                // XXX: this dual declaration are workaround to avoid the compile error:
-                // "borrowed value does not live long enough"
-                let mut doc = node.get().owner_doc().clone();
-                let doc = doc.get_mut();
-                doc.unregister_named_element(self, old_value.clone());
-            }
-            _ => ()
-        }
-
-        vtable_for(&node).before_remove_attr(local_name.clone(), old_value);
-
-        self.notify_attribute_changed(local_name);
     }
 
     fn notify_attribute_changed(&self, local_name: DOMString) {
@@ -722,5 +676,55 @@ impl VirtualMethods for JS<Element> {
     fn super_type(&self) -> Option<~VirtualMethods:> {
         let node: JS<Node> = NodeCast::from(self);
         Some(~node as ~VirtualMethods:)
+    }
+
+    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref mut s) => s.after_set_attr(name.clone(), value.clone()),
+            _ => (),
+        }
+
+        let node: JS<Node> = NodeCast::from(self);
+        match name.as_slice() {
+            "style" => {
+                let doc = node.get().owner_doc();
+                let base_url = doc.get().url().clone();
+                self.get_mut().style_attribute = Some(style::parse_style_attribute(value, &base_url))
+            }
+            "id" if node.is_in_doc() => {
+                // XXX: this dual declaration are workaround to avoid the compile error:
+                // "borrowed value does not live long enough"
+                let mut doc = node.get().owner_doc().clone();
+                let doc = doc.get_mut();
+                doc.register_named_element(self, value.clone());
+            }
+            _ => ()
+        }
+
+        self.notify_attribute_changed(name);
+    }
+
+    fn before_remove_attr(&mut self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref mut s) => s.before_remove_attr(name.clone(), value.clone()),
+            _ => (),
+        }
+
+        let node: JS<Node> = NodeCast::from(self);
+        match name.as_slice() {
+            "style" => {
+                self.get_mut().style_attribute = None
+            }
+            "id" if node.is_in_doc() => {
+                // XXX: this dual declaration are workaround to avoid the compile error:
+                // "borrowed value does not live long enough"
+                let mut doc = node.get().owner_doc().clone();
+                let doc = doc.get_mut();
+                doc.unregister_named_element(self, value);
+            }
+            _ => ()
+        }
+
+        self.notify_attribute_changed(name);
     }
 }
