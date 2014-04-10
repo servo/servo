@@ -1038,120 +1038,18 @@ class CGArgumentConverter(CGThing):
             self.replacementVariables,
             self.argcAndIndex).define()
 
-def getWrapTemplateForType(type, descriptorProvider, result, successCode,
-                           isCreator, exceptionCode):
+
+def wrapForType(jsvalRef, result='result', successCode='return 1;'):
     """
-    Reflect a C++ value stored in "result", of IDL type "type" into JS.  The
-    "successCode" is the code to run once we have successfully done the
-    conversion.  The resulting string should be used with string.Template, it
-    needs the following keys when substituting: jsvalPtr/jsvalRef/obj.
+    Reflect a Rust value into JS.
 
-    Returns (templateString, infallibility of conversion template)
+      * 'jsvalRef': a Rust reference to the JSVal in which to store the result
+                    of the conversion;
+      * 'result': the name of the variable in which the Rust value is stored;
+      * 'successCode': the code to run once we have done the conversion.
     """
-    haveSuccessCode = successCode is not None
-    if not haveSuccessCode:
-        successCode = "return 1;"
+    return "%s = (%s).to_jsval(cx);\n%s" % (jsvalRef, result, successCode)
 
-    # We often want exceptionCode to be indented, since it often appears in an
-    # if body.
-    exceptionCodeIndented = CGIndenter(CGGeneric(exceptionCode))
-
-    def setValue(value, callWrapValue=False):
-        """
-        Returns the code to set the jsval to value. If "callWrapValue" is true
-        JS_WrapValue will be called on the jsval.
-        """
-        if not callWrapValue:
-            tail = successCode
-        elif haveSuccessCode:
-            tail = ("if JS_WrapValue(cx, ${jsvalPtr}) == 0 {\n" +
-                    "  return 0;\n" +
-                    "}\n" +
-                    successCode)
-        else:
-            tail = "return JS_WrapValue(cx, ${jsvalPtr} as *JSVal);"
-        return ("${jsvalRef} = %s;\n" +
-                tail) % (value)
-
-    if type is None or type.isVoid():
-        return (setValue("UndefinedValue()"), True)
-
-    if type.isArray():
-        raise TypeError("Can't handle array return values yet")
-
-    if type.isSequence():
-        raise TypeError("Can't handle sequence return values yet")
-
-    if type.isGeckoInterface():
-        return (setValue("(%s).to_jsval(cx)" % result), True)
-
-    if type.isString():
-        return (setValue("(%s).to_jsval(cx)" % result), True)
-
-    if type.isEnum():
-        return (setValue("(%s).to_jsval(cx)" % result), True)
-
-    if type.isCallback():
-        assert not type.isInterface()
-        # XXXbz we're going to assume that callback types are always
-        # nullable and always have [TreatNonCallableAsNull] for now.
-        # See comments in WrapNewBindingObject explaining why we need
-        # to wrap here.
-        # NB: setValue(..., True) calls JS_WrapValue(), so is fallible
-        return (setValue("JS::ObjectOrNullValue(%s)" % result, True), False)
-
-    if type.tag() == IDLType.Tags.any:
-        # See comments in WrapNewBindingObject explaining why we need
-        # to wrap here.
-        # NB: setValue(..., True) calls JS_WrapValue(), so is fallible
-        return (setValue(result, True), False)
-
-    if type.isObject() or type.isSpiderMonkeyInterface():
-        # See comments in WrapNewBindingObject explaining why we need
-        # to wrap here.
-        if type.nullable():
-            toValue = "ObjectOrNullValue(%s)"
-        else:
-            toValue = "ObjectValue(&*(%s))"
-        # NB: setValue(..., True) calls JS_WrapValue(), so is fallible
-        return (setValue(toValue % result, True), False)
-
-    if not type.isPrimitive():
-        raise TypeError("Need to learn to wrap %s" % type)
-
-    return (setValue("(%s).to_jsval(cx)" % result), True)
-
-
-def wrapForType(type, descriptorProvider, templateValues):
-    """
-    Reflect a C++ value of IDL type "type" into JS.  TemplateValues is a dict
-    that should contain:
-
-      * 'jsvalRef': a C++ reference to the jsval in which to store the result of
-                    the conversion
-      * 'jsvalPtr': a C++ pointer to the jsval in which to store the result of
-                    the conversion
-      * 'obj' (optional): the name of the variable that contains the JSObject to
-                          use as a scope when wrapping, if not supplied 'obj'
-                          will be used as the name
-      * 'result' (optional): the name of the variable in which the C++ value is
-                             stored, if not supplied 'result' will be used as
-                             the name
-      * 'successCode' (optional): the code to run once we have successfully done
-                                  the conversion, if not supplied 'return true;'
-                                  will be used as the code
-      * 'isCreator' (optional): If true, we're wrapping for the return value of
-                                a [Creator] method.  Assumed false if not set.
-    """
-    wrap = getWrapTemplateForType(type, descriptorProvider,
-                                  templateValues.get('result', 'result'),
-                                  templateValues.get('successCode', None),
-                                  templateValues.get('isCreator', False),
-                                  templateValues.get('exceptionCode',
-                                                     "return 0;"),)[0]
-
-    defaultValues = {'obj': 'obj'}
-    return string.Template(wrap).substitute(defaultValues, **templateValues)
 
 def typeNeedsCx(type, retVal=False):
     if type is None:
@@ -2444,18 +2342,7 @@ class CGPerSignatureCall(CGThing):
         return not 'infallible' in self.extendedAttributes
 
     def wrap_return_value(self):
-        isCreator = memberIsCreator(self.idlNode)
-        resultTemplateValues = { 'jsvalRef': '*vp', 'jsvalPtr': 'vp',
-                                 'isCreator': isCreator}
-        try:
-            return wrapForType(self.returnType, self.descriptor,
-                               resultTemplateValues)
-        except MethodNotCreatorError, err:
-            assert not isCreator
-            raise TypeError("%s being returned from non-creator method or property %s.%s" %
-                            (err.typename,
-                             self.descriptor.interface.identifier.name,
-                             self.idlNode.identifier.name))
+        return wrapForType('*vp')
 
     def getErrorReport(self):
         return CGGeneric(
@@ -2757,19 +2644,6 @@ class CGSpecializedSetter(CGAbstractExternMethod):
                              "  let obj = *obj.unnamed;\n" +
                              "  let this = &mut *this;\n").define()
 
-def infallibleForMember(member, type, descriptorProvider):
-    """
-    Determine the fallibility of changing a C++ value of IDL type "type" into
-    JS for the given attribute. Apart from isCreator, all the defaults are used,
-    since the fallbility does not change based on the boolean values,
-    and the template will be discarded.
-
-    CURRENT ASSUMPTIONS:
-        We assume that successCode for wrapping up return values cannot contain
-        failure conditions.
-    """
-    return getWrapTemplateForType(type, descriptorProvider, 'result', None,\
-                                  memberIsCreator(member), "return false;",)[1]
 
 class CGMemberJITInfo(CGThing):
     """
@@ -2798,7 +2672,6 @@ class CGMemberJITInfo(CGThing):
             getterinfo = ("%s_getterinfo" % self.member.identifier.name)
             getter = ("get_%s" % self.member.identifier.name)
             getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
-            getterinfal = getterinfal and infallibleForMember(self.member, self.member.type, self.descriptor)
             result = self.defineJitInfo(getterinfo, getter, getterinfal)
             if not self.member.readonly:
                 setterinfo = ("%s_setterinfo" % self.member.identifier.name)
@@ -2820,7 +2693,7 @@ class CGMemberJITInfo(CGThing):
                 # Don't handle overloading. If there's more than one signature,
                 # one of them must take arguments.
                 sig = sigs[0]
-                if len(sig[1]) == 0 and infallibleForMember(self.member, sig[0], self.descriptor):
+                if len(sig[1]) == 0:
                     # No arguments and infallible return boxing
                     methodInfal = True
 
@@ -3692,7 +3565,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
         if not self.idlNode.isGetter() or self.templateValues is None:
             return ""
 
-        wrap = CGGeneric(wrapForType(self.returnType, self.descriptor, self.templateValues))
+        wrap = CGGeneric(wrapForType(**self.templateValues))
         wrap = CGIfWrapper(wrap, "found")
         return "\n" + wrap.define()
 
@@ -3760,8 +3633,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         if indexedGetter:
             readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
             fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn 1;" % readonly
-            templateValues = {'jsvalRef': '(*desc).value', 'jsvalPtr': '&mut (*desc).value',
-                              'obj': 'proxy', 'successCode': fillDescriptor}
+            templateValues = {'jsvalRef': '(*desc).value', 'successCode': fillDescriptor}
             get = ("if index.is_some() {\n" +
                    "  let index = index.unwrap();\n" +
                    "  let this: *%s = UnwrapProxy(proxy);\n" +
@@ -3802,8 +3674,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         if namedGetter:
             readonly = toStringBool(self.descriptor.operations['NamedSetter'] is None)
             fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn 1;" % readonly
-            templateValues = {'jsvalRef': '(*desc).value', 'jsvalPtr': '&mut(*desc).value',
-                              'obj': 'proxy', 'successCode': fillDescriptor}
+            templateValues = {'jsvalRef': '(*desc).value', 'successCode': fillDescriptor}
             # Once we start supporting OverrideBuiltins we need to make
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
             # properties that shadow prototype properties.
@@ -3957,7 +3828,7 @@ if expando.is_not_null() {
   }
 }"""
 
-        templateValues = {'jsvalRef': '*vp', 'jsvalPtr': 'vp', 'obj': 'proxy'}
+        templateValues = {'jsvalRef': '*vp'}
 
         indexedGetter = self.descriptor.operations['IndexedGetter']
         if indexedGetter:
@@ -5293,21 +5164,9 @@ class CallbackMember(CGNativeMember):
             result = argval
             prepend = ""
 
-        conversion = prepend + wrapForType(
-            arg.type, self.descriptorProvider,
-            {
-                'result' : result,
-                'successCode' : "continue;" if arg.variadic else "break;",
-                'jsvalRef' : "argv[%s]" % jsvalIndex,
-                'jsvalHandle' : "argv.handleAt(%s)" % jsvalIndex,
-                'jsvalPtr': "&mut argv[%s]" % jsvalIndex,
-                # XXXbz we don't have anything better to use for 'obj',
-                # really...  It's OK to use CallbackPreserveColor because
-                # CallSetup already handled the unmark-gray bits for us.
-                'obj' : 'ptr::null() /*XXXjdm proper scope*/', #XXXjdm 'CallbackPreserveColor()',
-                'returnsNewObject': False,
-                'exceptionCode' : self.exceptionCode
-                })
+        conversion = prepend + wrapForType("argv[%s]" % jsvalIndex,
+                result=result,
+                successCode="continue;" if arg.variadic else "break;")
         if arg.variadic:
             conversion = string.Template(
                 "for (uint32_t idx = 0; idx < ${arg}.Length(); ++idx) {\n" +
