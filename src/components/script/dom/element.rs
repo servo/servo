@@ -632,33 +632,6 @@ impl Element {
     }
 }
 
-pub trait IElement {
-    fn bind_to_tree_impl(&self);
-    fn unbind_from_tree_impl(&self);
-}
-
-impl IElement for JS<Element> {
-    fn bind_to_tree_impl(&self) {
-        match self.get_attribute(Null, "id") {
-            Some(attr) => {
-                let mut doc = document_from_node(self);
-                doc.get_mut().register_named_element(self, attr.get().Value());
-            }
-            _ => ()
-        }
-    }
-
-    fn unbind_from_tree_impl(&self) {
-        match self.get_attribute(Null, "id") {
-            Some(attr) => {
-                let mut doc = document_from_node(self);
-                doc.get_mut().unregister_named_element(self, attr.get().Value());
-            }
-            _ => ()
-        }
-    }
-}
-
 pub fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
@@ -734,7 +707,13 @@ impl VirtualMethods for JS<Element> {
             _ => (),
         }
 
-        self.bind_to_tree_impl();
+        match self.get_attribute(Null, "id") {
+            Some(attr) => {
+                let mut doc = document_from_node(self);
+                doc.get_mut().register_named_element(self, attr.get().Value());
+            }
+            _ => ()
+        }
     }
 
     fn unbind_from_tree(&mut self) {
@@ -743,6 +722,12 @@ impl VirtualMethods for JS<Element> {
             _ => (),
         }
 
-        self.unbind_from_tree_impl();
+        match self.get_attribute(Null, "id") {
+            Some(attr) => {
+                let mut doc = document_from_node(self);
+                doc.get_mut().unregister_named_element(self, attr.get().Value());
+            }
+            _ => ()
+        }
     }
 }
