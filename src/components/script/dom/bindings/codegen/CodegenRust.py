@@ -1048,78 +1048,8 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
 
     Returns (templateString, infallibility of conversion template)
     """
-    haveSuccessCode = successCode is not None
-    if not haveSuccessCode:
-        successCode = "return 1;"
-
-    # We often want exceptionCode to be indented, since it often appears in an
-    # if body.
-    exceptionCodeIndented = CGIndenter(CGGeneric(exceptionCode))
-
-    def setValue(value, callWrapValue=False):
-        """
-        Returns the code to set the jsval to value. If "callWrapValue" is true
-        JS_WrapValue will be called on the jsval.
-        """
-        if not callWrapValue:
-            tail = successCode
-        elif haveSuccessCode:
-            tail = ("if JS_WrapValue(cx, ${jsvalPtr}) == 0 {\n" +
-                    "  return 0;\n" +
-                    "}\n" +
-                    successCode)
-        else:
-            tail = "return JS_WrapValue(cx, ${jsvalPtr} as *JSVal);"
-        return ("${jsvalRef} = %s;\n" +
-                tail) % (value)
-
-    if type is None or type.isVoid():
-        return (setValue("UndefinedValue()"), True)
-
-    if type.isArray():
-        raise TypeError("Can't handle array return values yet")
-
-    if type.isSequence():
-        raise TypeError("Can't handle sequence return values yet")
-
-    if type.isGeckoInterface():
-        return (setValue("(%s).to_jsval(cx)" % result), True)
-
-    if type.isString():
-        return (setValue("(%s).to_jsval(cx)" % result), True)
-
-    if type.isEnum():
-        return (setValue("(%s).to_jsval(cx)" % result), True)
-
-    if type.isCallback():
-        assert not type.isInterface()
-        # XXXbz we're going to assume that callback types are always
-        # nullable and always have [TreatNonCallableAsNull] for now.
-        # See comments in WrapNewBindingObject explaining why we need
-        # to wrap here.
-        # NB: setValue(..., True) calls JS_WrapValue(), so is fallible
-        return (setValue("JS::ObjectOrNullValue(%s)" % result, True), False)
-
-    if type.tag() == IDLType.Tags.any:
-        # See comments in WrapNewBindingObject explaining why we need
-        # to wrap here.
-        # NB: setValue(..., True) calls JS_WrapValue(), so is fallible
-        return (setValue(result, True), False)
-
-    if type.isObject() or type.isSpiderMonkeyInterface():
-        # See comments in WrapNewBindingObject explaining why we need
-        # to wrap here.
-        if type.nullable():
-            toValue = "ObjectOrNullValue(%s)"
-        else:
-            toValue = "ObjectValue(&*(%s))"
-        # NB: setValue(..., True) calls JS_WrapValue(), so is fallible
-        return (setValue(toValue % result, True), False)
-
-    if not type.isPrimitive():
-        raise TypeError("Need to learn to wrap %s" % type)
-
-    return (setValue("(%s).to_jsval(cx)" % result), True)
+    template = "${jsvalRef} = (%s).to_jsval(cx);\n%s" % (result, successCode or "return 1;")
+    return (template, True)
 
 
 def wrapForType(type, descriptorProvider, templateValues):

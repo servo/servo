@@ -14,8 +14,8 @@ use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
 use js::jsapi::{JS_NewUCStringCopyN, JS_ValueToString};
 use js::jsapi::{JS_WrapValue};
 use js::jsval::JSVal;
-use js::jsval::{NullValue, BooleanValue, Int32Value, UInt32Value, StringValue};
-use js::jsval::ObjectValue;
+use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
+use js::jsval::{StringValue, ObjectValue};
 use js::glue::RUST_JS_NumberValue;
 use std::default::Default;
 use std::libc;
@@ -28,6 +28,22 @@ pub trait FromJSValConvertible<T> {
     fn from_jsval(cx: *JSContext, val: JSVal, option: T) -> Result<Self, ()>;
 }
 
+
+impl ToJSValConvertible for () {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
+        UndefinedValue()
+    }
+}
+
+impl ToJSValConvertible for JSVal {
+    fn to_jsval(&self, cx: *JSContext) -> JSVal {
+        let mut value = *self;
+        if unsafe { JS_WrapValue(cx, &mut value as *mut JSVal as *JSVal) } == 0 {
+            fail!("JS_WrapValue failed.");
+        }
+        value
+    }
+}
 
 unsafe fn convert_from_jsval<T: Default>(
     cx: *JSContext, value: JSVal,
