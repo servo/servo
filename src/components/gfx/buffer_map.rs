@@ -83,6 +83,7 @@ impl<T: Tile> BufferMap<T> {
         // memory limit, no need to store this new buffer; just let it drop.
         if self.mem + new_buffer.get_mem() > self.max_mem && self.map.len() == 1 &&
             self.map.contains_key(&new_key) {
+            new_buffer.destroy(graphics_context);
             return;
         }
 
