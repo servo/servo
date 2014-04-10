@@ -8,7 +8,7 @@
 #[comment = "The Servo Parallel Browser Project"];
 #[license = "MPL"];
 
-#[feature(globs, macro_rules, struct_variant, managed_boxes, phase)];
+#[feature(globs, macro_rules, struct_variant, phase)];
 
 #[feature(phase)];
 #[phase(syntax, link)]

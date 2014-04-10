@@ -5,7 +5,7 @@
 #[crate_id = "github.com/mozilla/servo#gfx:0.1"];
 #[crate_type = "lib"];
 
-#[feature(globs, managed_boxes, macro_rules, phase)];
+#[feature(globs, macro_rules, phase)];
 
 #[feature(phase)];
 #[phase(syntax, link)]

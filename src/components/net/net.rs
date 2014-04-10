@@ -5,7 +5,7 @@
 #[crate_id = "github.com/mozilla/servo#net:0.1"];
 #[crate_type = "lib"];
 
-#[feature(globs, managed_boxes)];
+#[feature(globs)];
 
 #[feature(phase)];
 #[phase(syntax, link)]

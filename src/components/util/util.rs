@@ -5,7 +5,7 @@
 #[crate_id = "github.com/mozilla/servo#util:0.1"];
 #[crate_type = "lib"];
 
-#[feature(macro_rules, managed_boxes)];
+#[feature(macro_rules)];
 
 #[feature(phase)];
 #[phase(syntax, link)]

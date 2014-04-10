@@ -5,8 +5,6 @@
 #[crate_id = "github.com/mozilla/servo#msg:0.1"];
 #[crate_type = "lib"];
 
-#[feature(managed_boxes)];
-
 extern crate azure;
 extern crate geom;
 extern crate layers;

@@ -8,7 +8,7 @@
 #[comment = "The Servo Parallel Browser Project"];
 #[license = "MPL"];
 
-#[feature(globs, macro_rules, managed_boxes)];
+#[feature(globs, macro_rules)];
 
 #[feature(phase)];
 #[phase(syntax, link)] extern crate log;
