@@ -1857,12 +1857,6 @@ class CGAbstractMethod(CGThing):
     def definition_body(self):
         assert(False) # Override me!
 
-def DOMObjectPointerType(descriptor):
-    return "~"
-
-def DOMObjectPointerArg(descriptor):
-    return DOMObjectPointerType(descriptor) + descriptor.concreteType
-
 def CreateBindingJSObject(descriptor, parent=None):
     create = "  let mut raw: JS<%s> = JS::from_raw(&mut *aObject);\n" % descriptor.concreteType
     if descriptor.proxy:
@@ -1895,10 +1889,10 @@ class CGWrapMethod(CGAbstractMethod):
         assert descriptor.interface.hasInterfacePrototypeObject()
         if not descriptor.createGlobal:
             args = [Argument('*JSContext', 'aCx'), Argument('&JS<Window>', 'aScope'),
-                    Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
+                    Argument("~" + descriptor.concreteType, 'aObject', mutable=True)]
         else:
             args = [Argument('*JSContext', 'aCx'),
-                    Argument(DOMObjectPointerArg(descriptor), 'aObject', mutable=True)]
+                    Argument("~" + descriptor.concreteType, 'aObject', mutable=True)]
         retval = 'JS<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args, pub=True)
 
@@ -3931,9 +3925,9 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
 def finalizeHook(descriptor, hookName, context):
     release = """let val = JS_GetReservedSlot(obj, dom_object_slot(obj));
-let _: %s %s = cast::transmute(val.to_private());
+let _: ~%s = cast::transmute(val.to_private());
 debug!("%s finalize: {:p}", this);
-""" % (DOMObjectPointerType(descriptor), descriptor.concreteType, descriptor.concreteType)
+""" % (descriptor.concreteType, descriptor.concreteType)
     return release
 
 class CGClassTraceHook(CGAbstractClassHook):
