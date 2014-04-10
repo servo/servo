@@ -484,7 +484,7 @@ pub struct BlockFlow {
     base: BaseFlow,
 
     /// The associated box.
-    box_: Option<Box>,
+    box_: Box,
 
     /// TODO: is_root should be a bit field to conserve memory.
     /// Whether this block flow is the root flow.
@@ -501,7 +501,7 @@ impl BlockFlow {
     pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Some(Box::new(constructor, node)),
+            box_: Box::new(constructor, node),
             is_root: false,
             static_y_offset: Au::new(0),
             float: None
@@ -511,7 +511,7 @@ impl BlockFlow {
     pub fn from_node_and_box(node: &ThreadSafeLayoutNode, box_: Box) -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Some(box_),
+            box_: box_,
             is_root: false,
             static_y_offset: Au::new(0),
             float: None
@@ -524,7 +524,7 @@ impl BlockFlow {
                            -> BlockFlow {
         BlockFlow {
             base: BaseFlow::new((*node).clone()),
-            box_: Some(Box::new(constructor, node)),
+            box_: Box::new(constructor, node),
             is_root: false,
             static_y_offset: Au::new(0),
             float: Some(~FloatedBlockInfo::new(float_kind))
@@ -590,10 +590,7 @@ impl BlockFlow {
 
     /// Return this flow's box.
     pub fn box_<'a>(&'a mut self) -> &'a mut Box {
-        match self.box_ {
-            Some(ref mut box_) => box_,
-            None => fail!("BlockFlow: no principal box found")
-        }
+        &mut self.box_
     }
 
     /// Return the static x offset from the appropriate Containing Block for this flow.
@@ -694,22 +691,14 @@ impl BlockFlow {
     /// The only two types of replaced boxes currently are text boxes and
     /// image boxes.
     fn is_replaced_content(&self) -> bool {
-        match self.box_ {
-            Some(ref box_) => {
-                match box_.specific {
-                    ScannedTextBox(_) | ImageBox(_) => true,
-                    _ => false,
-                }
-            }
-            None => false,
+        match self.box_.specific {
+            ScannedTextBox(_) | ImageBox(_) => true,
+            _ => false,
         }
     }
 
     pub fn teardown(&mut self) {
-        for box_ in self.box_.iter() {
-            box_.teardown();
-        }
-        self.box_ = None;
+        self.box_.teardown();
         self.float = None;
     }
 
@@ -791,11 +780,9 @@ impl BlockFlow {
         self.base.position.size.height = self.base.position.size.height + top_margin_value +
             bottom_margin_value;
 
-        for fragment in self.box_.iter() {
-            let mut position = fragment.border_box.get();
-            position.size.height = position.size.height + top_margin_value + bottom_margin_value;
-            fragment.border_box.set(position);
-        }
+        let mut position = self.box_.border_box.get();
+        position.size.height = position.size.height + top_margin_value + bottom_margin_value;
+        self.box_.border_box.set(position);
     }
 
     /// Assign height for current flow.
@@ -819,9 +806,6 @@ impl BlockFlow {
         // Our current border-box position.
         let mut cur_y = Au(0);
 
-        // The sum of our top border and top padding.
-        let mut top_offset = Au(0);
-
         // Absolute positioning establishes a block formatting context. Don't propagate floats
         // in or out. (But do propagate them between kids.)
         if inorder && self.is_absolutely_positioned() {
@@ -832,20 +816,19 @@ impl BlockFlow {
         }
 
         let mut margin_collapse_info = MarginCollapseInfo::new();
-        for fragment in self.box_.iter() {
-            self.base.floats.translate(Point2D(-fragment.left_offset(), Au(0)));
+        self.base.floats.translate(Point2D(-self.box_.left_offset(), Au(0)));
 
-            top_offset = fragment.border.get().top + fragment.padding.get().top;
-            translate_including_floats(&mut cur_y, top_offset, inorder, &mut self.base.floats);
+        // The sum of our top border and top padding.
+        let top_offset = self.box_.border.get().top + self.box_.padding.get().top;
+        translate_including_floats(&mut cur_y, top_offset, inorder, &mut self.base.floats);
 
-            let can_collapse_top_margin_with_kids =
-                margins_may_collapse == MarginsMayCollapse &&
-                !self.is_absolutely_positioned() &&
-                fragment.border.get().top == Au(0) &&
-                fragment.padding.get().top == Au(0);
-            margin_collapse_info.initialize_top_margin(fragment,
-                                                       can_collapse_top_margin_with_kids);
-        }
+        let can_collapse_top_margin_with_kids =
+            margins_may_collapse == MarginsMayCollapse &&
+            !self.is_absolutely_positioned() &&
+            self.box_.border.get().top == Au(0) &&
+            self.box_.padding.get().top == Au(0);
+        margin_collapse_info.initialize_top_margin(&self.box_,
+                                                   can_collapse_top_margin_with_kids);
 
         // At this point, cur_y is at the content edge of the flow's box.
         let mut floats = self.base.floats.clone();
@@ -954,19 +937,17 @@ impl BlockFlow {
         self.collect_static_y_offsets_from_kids();
 
         // Add in our bottom margin and compute our collapsible margins.
-        for fragment in self.box_.iter() {
-            let can_collapse_bottom_margin_with_kids =
-                margins_may_collapse == MarginsMayCollapse &&
-                !self.is_absolutely_positioned() &&
-                fragment.border.get().bottom == Au(0) &&
-                fragment.padding.get().bottom == Au(0);
-            let (collapsible_margins, delta) =
-                margin_collapse_info.finish_and_compute_collapsible_margins(
-                    fragment,
-                    can_collapse_bottom_margin_with_kids);
-            self.base.collapsible_margins = collapsible_margins;
-            translate_including_floats(&mut cur_y, delta, inorder, &mut floats);
-        }
+        let can_collapse_bottom_margin_with_kids =
+            margins_may_collapse == MarginsMayCollapse &&
+            !self.is_absolutely_positioned() &&
+            self.box_.border.get().bottom == Au(0) &&
+            self.box_.padding.get().bottom == Au(0);
+        let (collapsible_margins, delta) =
+            margin_collapse_info.finish_and_compute_collapsible_margins(
+            &self.box_,
+            can_collapse_bottom_margin_with_kids);
+        self.base.collapsible_margins = collapsible_margins;
+        translate_including_floats(&mut cur_y, delta, inorder, &mut floats);
 
         // FIXME(#2003, pcwalton): The max is taken here so that you can scroll the page, but this
         // is not correct behavior according to CSS 2.1 § 10.5. Instead I think we should treat the
@@ -989,41 +970,37 @@ impl BlockFlow {
 
             // Store the content height for use in calculating the absolute flow's dimensions
             // later.
-            for box_ in self.box_.iter() {
-                let mut temp_position = box_.border_box.get();
-                temp_position.size.height = height;
-                box_.border_box.set(temp_position);
-            }
+            let mut temp_position = self.box_.border_box.get();
+            temp_position.size.height = height;
+            self.box_.border_box.set(temp_position);
             return
         }
 
-        for fragment in self.box_.iter() {
-            let mut candidate_height_iterator = CandidateHeightIterator::new(fragment.style(),
-                                                                             None);
-            for (candidate_height, new_candidate_height) in candidate_height_iterator {
-                *new_candidate_height = match candidate_height {
-                    Auto => height,
-                    Specified(value) => value
-                }
+        let mut candidate_height_iterator = CandidateHeightIterator::new(self.box_.style(),
+                                                                         None);
+        for (candidate_height, new_candidate_height) in candidate_height_iterator {
+            *new_candidate_height = match candidate_height {
+                Auto => height,
+                Specified(value) => value
             }
-
-            // Adjust `cur_y` as necessary to account for the explicitly-specified height.
-            height = candidate_height_iterator.candidate_value;
-            let delta = height - (cur_y - top_offset);
-            translate_including_floats(&mut cur_y, delta, inorder, &mut floats);
-
-            // Compute content height and noncontent height.
-            let bottom_offset = fragment.border.get().bottom + fragment.padding.get().bottom;
-            translate_including_floats(&mut cur_y, bottom_offset, inorder, &mut floats);
-
-            // Now that `cur_y` is at the bottom of the border box, compute the final border box
-            // position.
-            let mut border_box = fragment.border_box.get();
-            border_box.size.height = cur_y;
-            border_box.origin.y = Au(0);
-            fragment.border_box.set(border_box);
-            self.base.position.size.height = cur_y;
         }
+
+        // Adjust `cur_y` as necessary to account for the explicitly-specified height.
+        height = candidate_height_iterator.candidate_value;
+        let delta = height - (cur_y - top_offset);
+        translate_including_floats(&mut cur_y, delta, inorder, &mut floats);
+
+        // Compute content height and noncontent height.
+        let bottom_offset = self.box_.border.get().bottom + self.box_.padding.get().bottom;
+        translate_including_floats(&mut cur_y, bottom_offset, inorder, &mut floats);
+
+        // Now that `cur_y` is at the bottom of the border box, compute the final border box
+        // position.
+        let mut border_box = self.box_.border_box.get();
+        border_box.size.height = cur_y;
+        border_box.origin.y = Au(0);
+        self.box_.border_box.set(border_box);
+        self.base.position.size.height = cur_y;
 
         self.base.floats = floats.clone();
         self.adjust_boxes_for_collapsed_margins_if_root();
@@ -1054,25 +1031,18 @@ impl BlockFlow {
     /// Therefore, assign_height_float was already called on this kid flow by
     /// the traversal function. So, the values used are well-defined.
     pub fn assign_height_float_inorder(&mut self) {
-        let mut height = Au(0);
-        let mut clearance = Au(0);
-        let mut full_noncontent_width = Au(0);
-        let mut margin_height = Au(0);
+        let height = self.box_.border_box.get().size.height;
+        let clearance = match self.box_.clear() {
+            None => Au(0),
+            Some(clear) => self.base.floats.clearance(clear),
+        };
 
-        for box_ in self.box_.iter() {
-            height = box_.border_box.get().size.height;
-            clearance = match box_.clear() {
-                None => Au(0),
-                Some(clear) => self.base.floats.clearance(clear),
-            };
+        let noncontent_width = self.box_.padding.get().left + self.box_.padding.get().right +
+            self.box_.border.get().left + self.box_.border.get().right;
 
-            let noncontent_width = box_.padding.get().left + box_.padding.get().right +
-                box_.border.get().left + box_.border.get().right;
-
-            full_noncontent_width = noncontent_width + box_.margin.get().left +
-                box_.margin.get().right;
-            margin_height = box_.margin.get().top + box_.margin.get().bottom;
-        }
+        let full_noncontent_width = noncontent_width + self.box_.margin.get().left +
+            self.box_.margin.get().right;
+        let margin_height = self.box_.margin.get().top + self.box_.margin.get().bottom;
 
         let info = PlacementInfo {
             size: Size2D(self.base.position.size.width + full_noncontent_width,
@@ -1112,12 +1082,9 @@ impl BlockFlow {
             drop(floats);
         }
         let mut cur_y = Au(0);
-        let mut top_offset = Au(0);
 
-        for box_ in self.box_.iter() {
-            top_offset = box_.margin.get().top + box_.border.get().top + box_.padding.get().top;
-            cur_y = cur_y + top_offset;
-        }
+        let top_offset = self.box_.margin.get().top + self.box_.border.get().top + self.box_.padding.get().top;
+        cur_y = cur_y + top_offset;
 
         // cur_y is now at the top content edge
 
@@ -1131,18 +1098,17 @@ impl BlockFlow {
         let content_height = cur_y - top_offset;
 
         let mut noncontent_height;
-        let box_ = self.box_.as_ref().unwrap();
-        let mut position = box_.border_box.get();
+        let mut position = self.box_.border_box.get();
 
         // The associated box is the border box of this flow.
-        position.origin.y = box_.margin.get().top;
+        position.origin.y = self.box_.margin.get().top;
 
-        noncontent_height = box_.padding.get().top + box_.padding.get().bottom +
-            box_.border.get().top + box_.border.get().bottom;
+        noncontent_height = self.box_.padding.get().top + self.box_.padding.get().bottom +
+            self.box_.border.get().top + self.box_.border.get().bottom;
 
         // Calculate content height, taking `min-height` and `max-height` into account.
 
-        let mut candidate_height_iterator = CandidateHeightIterator::new(box_.style(), None);
+        let mut candidate_height_iterator = CandidateHeightIterator::new(self.box_.style(), None);
         for (candidate_height, new_candidate_height) in candidate_height_iterator {
             *new_candidate_height = match candidate_height {
                 Auto => content_height,
@@ -1155,7 +1121,7 @@ impl BlockFlow {
         debug!("assign_height_float -- height: {}", content_height + noncontent_height);
 
         position.size.height = content_height + noncontent_height;
-        box_.border_box.set(position);
+        self.box_.border_box.set(position);
     }
 
     fn build_display_list_block_common(&mut self,
@@ -1165,28 +1131,25 @@ impl BlockFlow {
                                        offset: Point2D<Au>,
                                        background_border_level: BackgroundAndBorderLevel) {
         let mut info = *info;
-        let mut rel_offset = Point2D(Au(0), Au(0));
-        for fragment in self.box_.iter() {
-            rel_offset = fragment.relative_position(&info.relative_containing_block_size);
+        let rel_offset = self.box_.relative_position(&info.relative_containing_block_size);
 
-            // Add the box that starts the block context.
-            fragment.build_display_list(stacking_context,
-                                        builder,
-                                        &info,
-                                        self.base.abs_position + rel_offset + offset,
-                                        (&*self) as &Flow,
-                                        background_border_level);
+        // Add the box that starts the block context.
+        self.box_.build_display_list(stacking_context,
+                                     builder,
+                                     &info,
+                                     self.base.abs_position + rel_offset + offset,
+                                     (&*self) as &Flow,
+                                     background_border_level);
 
-            // For relatively-positioned descendants, the containing block formed by a block is
-            // just the content box. The containing block for absolutely-positioned descendants,
-            // on the other hand, only established if we are positioned.
-            info.relative_containing_block_size = fragment.content_box_size();
-            if self.is_positioned() {
-                info.absolute_containing_block_position =
-                    self.base.abs_position +
-                    self.generated_cb_position() +
-                    fragment.relative_position(&info.relative_containing_block_size)
-            }
+        // For relatively-positioned descendants, the containing block formed by a block is
+        // just the content box. The containing block for absolutely-positioned descendants,
+        // on the other hand, only established if we are positioned.
+        info.relative_containing_block_size = self.box_.content_box_size();
+        if self.is_positioned() {
+            info.absolute_containing_block_position =
+                self.base.abs_position +
+                self.generated_cb_position() +
+                self.box_.relative_position(&info.relative_containing_block_size)
         }
 
         let this_position = self.base.abs_position;
@@ -1268,40 +1231,54 @@ impl BlockFlow {
         let containing_block_height = self.containing_block_size(ctx.screen_size).height;
         let static_y_offset = self.static_y_offset;
 
-        for box_ in self.box_.iter() {
-            // This is the stored content height value from assign-height
-            let content_height = box_.border_box.get().size.height - box_.noncontent_height();
+        // This is the stored content height value from assign-height
+        let content_height = self.box_.border_box.get().size.height - self.box_.noncontent_height();
 
-            let style = box_.style();
+        let style = self.box_.style();
 
-            // Non-auto margin-top and margin-bottom values have already been
-            // calculated during assign-width.
-            let margin = box_.margin.get();
-            let margin_top = match MaybeAuto::from_style(style.Margin.get().margin_top, Au(0)) {
-                Auto => Auto,
-                _ => Specified(margin.top)
-            };
-            let margin_bottom = match MaybeAuto::from_style(style.Margin.get().margin_bottom, Au(0)) {
-                Auto => Auto,
-                _ => Specified(margin.bottom)
-            };
+        // Non-auto margin-top and margin-bottom values have already been
+        // calculated during assign-width.
+        let margin = self.box_.margin.get();
+        let margin_top = match MaybeAuto::from_style(style.Margin.get().margin_top, Au(0)) {
+            Auto => Auto,
+            _ => Specified(margin.top)
+        };
+        let margin_bottom = match MaybeAuto::from_style(style.Margin.get().margin_bottom, Au(0)) {
+            Auto => Auto,
+            _ => Specified(margin.bottom)
+        };
 
-            let (top, bottom) =
-                (MaybeAuto::from_style(style.PositionOffsets.get().top, containing_block_height),
-                 MaybeAuto::from_style(style.PositionOffsets.get().bottom, containing_block_height));
-            let available_height = containing_block_height - box_.noncontent_height();
+        let (top, bottom) =
+            (MaybeAuto::from_style(style.PositionOffsets.get().top, containing_block_height),
+             MaybeAuto::from_style(style.PositionOffsets.get().bottom, containing_block_height));
+        let available_height = containing_block_height - self.box_.noncontent_height();
 
-            let mut solution = None;
-            if self.is_replaced_content() {
-                // Calculate used value of height just like we do for inline replaced elements.
-                // TODO: Pass in the containing block height when Box's
-                // assign-height can handle it correctly.
-                box_.assign_replaced_height_if_necessary();
-                // TODO: Right now, this content height value includes the
-                // margin because of erroneous height calculation in Box_.
-                // Check this when that has been fixed.
-                let height_used_val = box_.border_box.get().size.height;
-                solution = Some(HeightConstraintSolution::solve_vertical_constraints_abs_replaced(
+        let mut solution = None;
+        if self.is_replaced_content() {
+            // Calculate used value of height just like we do for inline replaced elements.
+            // TODO: Pass in the containing block height when Box's
+            // assign-height can handle it correctly.
+            self.box_.assign_replaced_height_if_necessary();
+            // TODO: Right now, this content height value includes the
+            // margin because of erroneous height calculation in Box_.
+            // Check this when that has been fixed.
+            let height_used_val = self.box_.border_box.get().size.height;
+            solution = Some(HeightConstraintSolution::solve_vertical_constraints_abs_replaced(
+                    height_used_val,
+                    margin_top,
+                    margin_bottom,
+                    top,
+                    bottom,
+                    content_height,
+                    available_height,
+                    static_y_offset));
+        } else {
+            let mut candidate_height_iterator =
+                CandidateHeightIterator::new(style, Some(containing_block_height));
+
+            for (height_used_val, new_candidate_height) in candidate_height_iterator {
+                solution =
+                    Some(HeightConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
                         height_used_val,
                         margin_top,
                         margin_bottom,
@@ -1310,43 +1287,27 @@ impl BlockFlow {
                         content_height,
                         available_height,
                         static_y_offset));
-            } else {
-                let mut candidate_height_iterator =
-                    CandidateHeightIterator::new(style, Some(containing_block_height));
 
-                for (height_used_val, new_candidate_height) in candidate_height_iterator {
-                    solution =
-                        Some(HeightConstraintSolution::solve_vertical_constraints_abs_nonreplaced(
-                            height_used_val,
-                            margin_top,
-                            margin_bottom,
-                            top,
-                            bottom,
-                            content_height,
-                            available_height,
-                            static_y_offset));
-
-                    *new_candidate_height = solution.unwrap().height
-                }
+                *new_candidate_height = solution.unwrap().height
             }
-
-            let solution = solution.unwrap();
-
-            let mut margin = box_.margin.get();
-            margin.top = solution.margin_top;
-            margin.bottom = solution.margin_bottom;
-            box_.margin.set(margin);
-
-            let mut position = box_.border_box.get();
-            position.origin.y = Au(0);
-            // Border box height
-            let border_and_padding = box_.noncontent_height();
-            position.size.height = solution.height + border_and_padding;
-            box_.border_box.set(position);
-
-            self.base.position.origin.y = solution.top + margin.top;
-            self.base.position.size.height = solution.height + border_and_padding;
         }
+
+        let solution = solution.unwrap();
+
+        let mut margin = self.box_.margin.get();
+        margin.top = solution.margin_top;
+        margin.bottom = solution.margin_bottom;
+        self.box_.margin.set(margin);
+
+        let mut position = self.box_.border_box.get();
+        position.origin.y = Au(0);
+        // Border box height
+        let border_and_padding = self.box_.noncontent_height();
+        position.size.height = solution.height + border_and_padding;
+        self.box_.border_box.set(position);
+
+        self.base.position.origin.y = solution.top + margin.top;
+        self.base.position.size.height = solution.height + border_and_padding;
     }
 
     /// Add display items for Absolutely Positioned flow.
@@ -1439,15 +1400,10 @@ impl BlockFlow {
 
         let kid_abs_cb_x_offset;
         if self.is_positioned() {
-            match self.box_ {
-                Some(ref box_) => {
-                    // Pass yourself as a new Containing Block
-                    // The static x offset for any immediate kid flows will be the
-                    // left padding
-                    kid_abs_cb_x_offset = box_.padding.get().left;
-                }
-                None => fail!("BlockFlow: no principal box found"),
-            }
+            // Pass yourself as a new Containing Block
+            // The static x offset for any immediate kid flows will be the
+            // left padding
+            kid_abs_cb_x_offset = self.box_.padding.get().left;
         } else {
             // For kids, the left margin edge will be at our left content edge.
             // The current static offset is at our left margin
@@ -1565,19 +1521,17 @@ impl Flow for BlockFlow {
         }
 
         // Add in borders, padding, and margins.
-        for box_ in self.box_.iter() {
-            {
-                // Can compute border width here since it doesn't depend on anything.
-                box_.compute_borders(box_.style())
-            }
-
-            let box_intrinsic_widths = box_.intrinsic_widths();
-            intrinsic_widths.minimum_width = geometry::max(intrinsic_widths.minimum_width,
-                                                           box_intrinsic_widths.minimum_width);
-            intrinsic_widths.preferred_width = geometry::max(intrinsic_widths.preferred_width,
-                                                             box_intrinsic_widths.preferred_width);
-            intrinsic_widths.surround_width = box_intrinsic_widths.surround_width
+        {
+            // Can compute border width here since it doesn't depend on anything.
+            self.box_.compute_borders(self.box_.style())
         }
+
+        let box_intrinsic_widths = self.box_.intrinsic_widths();
+        intrinsic_widths.minimum_width = geometry::max(intrinsic_widths.minimum_width,
+                                                       box_intrinsic_widths.minimum_width);
+        intrinsic_widths.preferred_width = geometry::max(intrinsic_widths.preferred_width,
+                                                         box_intrinsic_widths.preferred_width);
+        intrinsic_widths.surround_width = box_intrinsic_widths.surround_width;
 
         self.base.intrinsic_widths = intrinsic_widths
     }
@@ -1606,25 +1560,21 @@ impl Flow for BlockFlow {
 
         // The position was set to the containing block by the flow's parent.
         let containing_block_width = self.base.position.size.width;
-        let mut left_content_edge = Au::new(0);
-        let mut content_width = containing_block_width;
 
         self.set_containing_width_if_float(containing_block_width);
 
         self.compute_used_width(ctx, containing_block_width);
 
-        for box_ in self.box_.iter() {
-            // Assign `clear` now so that the assign-heights pass will have the correct value for
-            // it.
-            self.base.clear = box_.style().Box.get().clear;
+        // Assign `clear` now so that the assign-heights pass will have the correct value for
+        // it.
+        self.base.clear = self.box_.style().Box.get().clear;
 
-            // Move in from the left border edge
-            left_content_edge = box_.border_box.get().origin.x
-                + box_.padding.get().left + box_.border.get().left;
-            let padding_and_borders = box_.padding.get().left + box_.padding.get().right +
-                box_.border.get().left + box_.border.get().right;
-            content_width = box_.border_box.get().size.width - padding_and_borders;
-        }
+        // Move in from the left border edge
+        let left_content_edge = self.box_.border_box.get().origin.x
+            + self.box_.padding.get().left + self.box_.border.get().left;
+        let padding_and_borders = self.box_.padding.get().left + self.box_.padding.get().right +
+            self.box_.border.get().left + self.box_.border.get().right;
+        let content_width = self.box_.border_box.get().size.width - padding_and_borders;
 
         if self.is_float() {
             self.base.position.size.width = content_width;
@@ -1649,9 +1599,7 @@ impl Flow for BlockFlow {
 
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         // Assign height for box if it is an image box.
-        for box_ in self.box_.iter() {
-            box_.assign_replaced_height_if_necessary();
-        }
+        self.box_.assign_replaced_height_if_necessary();
 
         if self.is_float() {
             debug!("assign_height_float: assigning height for float");
@@ -1689,12 +1637,7 @@ impl Flow for BlockFlow {
 
     /// The 'position' property of this flow.
     fn positioning(&self) -> position::T {
-        match self.box_ {
-            Some(ref box_) => {
-                box_.style.get().Box.get().position
-            }
-            None => fail!("BlockFlow does not have a box_")
-        }
+        self.box_.style.get().Box.get().position
     }
 
     /// Return true if this is the root of an Absolute flow tree.
@@ -1708,34 +1651,20 @@ impl Flow for BlockFlow {
     ///
     /// For Blocks, this will be the padding box.
     fn generated_cb_size(&self) -> Size2D<Au> {
-        match self.box_ {
-            Some(ref box_) => {
-                box_.padding_box_size()
-            }
-            None => fail!("Containing Block must have a box")
-        }
+        self.box_.padding_box_size()
     }
 
     /// Return position of the CB generated by this flow from the start of this flow.
     fn generated_cb_position(&self) -> Point2D<Au> {
-        match self.box_ {
-            Some(ref box_) => {
-                // Border box y coordinate + border top
-                box_.border_box.get().origin + Point2D(box_.border.get().left, box_.border.get().top)}
-            None => fail!("Containing Block must have a box")
-        }
+        // Border box y coordinate + border top
+        self.box_.border_box.get().origin + Point2D(self.box_.border.get().left, self.box_.border.get().top)
     }
 
     fn layer_id(&self, fragment_index: uint) -> LayerId {
         // FIXME(#2010, pcwalton): This is a hack and is totally bogus in the presence of pseudo-
         // elements. But until we have incremental reflow we can't do better--we recreate the flow
         // for every DOM node so otherwise we nuke layers on every reflow.
-        match self.box_ {
-            Some(ref box_) => {
-                LayerId(box_.node.id(), fragment_index)
-            }
-            None => fail!("can't make a layer ID for a flow with no box"),
-        }
+        LayerId(self.box_.node.id(), fragment_index)
     }
 
     fn debug_str(&self) -> ~str {
@@ -1746,10 +1675,7 @@ impl Flow for BlockFlow {
         } else {
             ~"BlockFlow: "
         };
-        txt.append(match self.box_ {
-            Some(ref rb) => rb.debug_str(),
-            None => ~"",
-        })
+        txt.append(self.box_.debug_str())
     }
 
     fn is_absolute_containing_block(&self) -> bool {
@@ -1841,35 +1767,32 @@ pub trait WidthAndMarginsComputer {
                        -> WidthConstraintInput {
         let containing_block_width = self.containing_block_width(block, parent_flow_width, ctx);
         let computed_width = self.initial_computed_width(block, parent_flow_width, ctx);
-        for box_ in block.box_.iter() {
-            let style = box_.style();
+        let style = block.box_.style();
 
-            // The text alignment of a block flow is the text alignment of its box's style.
-            block.base.flags_info.flags.set_text_align(style.InheritedText.get().text_align);
+        // The text alignment of a block flow is the text alignment of its box's style.
+        block.base.flags_info.flags.set_text_align(style.InheritedText.get().text_align);
 
-            box_.compute_padding(style, containing_block_width);
+        block.box_.compute_padding(style, containing_block_width);
 
-            // We calculate and set margin-top and margin-bottom here
-            // because CSS 2.1 defines % on this wrt CB *width*.
-            box_.compute_margin_top_bottom(containing_block_width);
+        // We calculate and set margin-top and margin-bottom here
+        // because CSS 2.1 defines % on this wrt CB *width*.
+        block.box_.compute_margin_top_bottom(containing_block_width);
 
-            let (margin_left, margin_right) =
-                (MaybeAuto::from_style(style.Margin.get().margin_left, containing_block_width),
-                 MaybeAuto::from_style(style.Margin.get().margin_right, containing_block_width));
+        let (margin_left, margin_right) =
+            (MaybeAuto::from_style(style.Margin.get().margin_left, containing_block_width),
+             MaybeAuto::from_style(style.Margin.get().margin_right, containing_block_width));
 
-            let (left, right) =
-                (MaybeAuto::from_style(style.PositionOffsets.get().left, containing_block_width),
-                 MaybeAuto::from_style(style.PositionOffsets.get().right, containing_block_width));
-            let available_width = containing_block_width - box_.noncontent_width();
-            return WidthConstraintInput::new(computed_width,
-                                             margin_left,
-                                             margin_right,
-                                             left,
-                                             right,
-                                             available_width,
-                                             block.static_x_offset());
-        }
-        fail!("Block doesn't have a principal box")
+        let (left, right) =
+            (MaybeAuto::from_style(style.PositionOffsets.get().left, containing_block_width),
+             MaybeAuto::from_style(style.PositionOffsets.get().right, containing_block_width));
+        let available_width = containing_block_width - block.box_.noncontent_width();
+        return WidthConstraintInput::new(computed_width,
+                                         margin_left,
+                                         margin_right,
+                                         left,
+                                         right,
+                                         available_width,
+                                         block.static_x_offset());
     }
 
     /// Set the used values for width and margins got from the relevant constraint equation.

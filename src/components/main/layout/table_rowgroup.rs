@@ -63,7 +63,7 @@ impl TableRowGroupFlow {
         self.col_pref_widths = ~[];
     }
 
-    pub fn box_<'a>(&'a mut self) -> &'a Option<Box>{
+    pub fn box_<'a>(&'a mut self) -> &'a Box {
         &self.block_flow.box_
     }
 
@@ -93,11 +93,9 @@ impl TableRowGroupFlow {
 
         let height = cur_y - top_offset;
 
-        for box_ in self.block_flow.box_.iter() {
-            let mut position = box_.border_box.get();
-            position.size.height = height;
-            box_.border_box.set(position);
-        }
+        let mut position = self.block_flow.box_.border_box.get();
+        position.size.height = height;
+        self.block_flow.box_.border_box.set(position);
         self.block_flow.base.position.size.height = height;
     }
 
@@ -219,10 +217,7 @@ impl Flow for TableRowGroupFlow {
 
     fn debug_str(&self) -> ~str {
         let txt = ~"TableRowGroupFlow: ";
-        txt.append(match self.block_flow.box_ {
-            Some(ref rb) => rb.debug_str(),
-            None => ~"",
-        })
+        txt.append(self.block_flow.box_.debug_str())
     }
 }
 
