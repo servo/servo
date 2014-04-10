@@ -879,7 +879,7 @@ impl CompositorLayer {
                 }
 
                 // Send back all tiles to renderer.
-                child.get_mut_ref().child.clear(); // XXX should this be clear_all_tiles?
+                child.get_mut_ref().child.clear_all_tiles();
 
                 self.build_layer_tree(graphics_context);
                 true
