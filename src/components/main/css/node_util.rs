@@ -25,7 +25,7 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
     fn get_css_select_results<'a>(&'a self) -> &'a Arc<ComputedValues> {
         unsafe {
             let layout_data_ref = self.borrow_layout_data();
-            match self.get_element_type() {
+            match self.get_pseudo_element_type() {
                 Before | BeforeBlock => {
                      cast::transmute_region(layout_data_ref.as_ref()
                                                            .unwrap()

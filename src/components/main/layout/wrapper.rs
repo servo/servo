@@ -396,7 +396,7 @@ fn get_content(content_list: &content::T) -> ~str {
 }
 
 #[deriving(Eq, Clone)]
-pub enum ElementType {
+pub enum PseudoElementType {
     Normal,
     Before,
     After,
@@ -411,7 +411,7 @@ pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
     priv node: LayoutNode<'ln>,
 
-    priv pseudo: ElementType,
+    priv pseudo: PseudoElementType,
 }
 
 impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
@@ -497,19 +497,19 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    pub fn new_with_pseudo_without_self<'a>(node: &LayoutNode<'a>, element_type: ElementType) -> ThreadSafeLayoutNode<'a> {
+    pub fn new_with_pseudo_without_self<'a>(node: &LayoutNode<'a>, pseudo: PseudoElementType) -> ThreadSafeLayoutNode<'a> {
          ThreadSafeLayoutNode {
              node: node.clone(),
-             pseudo: element_type,
+             pseudo: pseudo,
          }
     }
 
 
     /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
-    pub fn new_with_pseudo<'a>(&'a self, element_type: ElementType) -> ThreadSafeLayoutNode<'a> {
+    pub fn new_with_pseudo<'a>(&'a self, pseudo: PseudoElementType) -> ThreadSafeLayoutNode<'a> {
         ThreadSafeLayoutNode {
             node: self.node.clone(),
-            pseudo: element_type,
+            pseudo: pseudo,
         }
     }
 
@@ -544,11 +544,11 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    pub fn get_element_type(&self) ->  ElementType {
+    pub fn get_pseudo_element_type(&self) ->  PseudoElementType {
         self.pseudo
     }
 
-    pub fn is_block(&self, kind: ElementType) -> bool {
+    pub fn is_block(&self, kind: PseudoElementType) -> bool {
         let mut layout_data_ref = self.mutate_layout_data();
         let node_layout_data_wrapper = layout_data_ref.get_mut_ref();
 
