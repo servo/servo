@@ -406,6 +406,7 @@ pub enum ElementType {
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
+#[deriving(Clone)]
 pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
     priv node: LayoutNode<'ln>,
@@ -486,14 +487,6 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     }
 }
 
-impl<'ln> Clone for ThreadSafeLayoutNode<'ln> {
-    fn clone(&self) -> ThreadSafeLayoutNode<'ln> {
-        ThreadSafeLayoutNode {
-            node: self.node.clone(),
-            pseudo: self.pseudo,
-        }
-    }
-}
 
 impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
@@ -533,7 +526,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn children(&self) -> ThreadSafeLayoutNodeChildrenIterator<'ln> {
         ThreadSafeLayoutNodeChildrenIterator {
             current_node: self.first_child(),
-            parent_node: Some(ThreadSafeLayoutNode::new_with_pseudo_without_self(&self.node, self.pseudo)),
+            parent_node: Some(self.clone()),
         }
     }
 
