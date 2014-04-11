@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLElementBinding;
+use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementDerived;
 use dom::bindings::js::JS;
 use dom::bindings::error::{ErrorResult, Fallible};
@@ -10,6 +11,7 @@ use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, ElementNodeTypeId};
+use dom::virtualmethods::VirtualMethods;
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use servo_util::namespace;
@@ -159,5 +161,12 @@ impl HTMLElement {
 
     pub fn OffsetHeight(&self) -> i32 {
         0
+    }
+}
+
+impl VirtualMethods for JS<HTMLElement> {
+    fn super_type(&self) -> Option<~VirtualMethods:> {
+        let element: JS<Element> = ElementCast::from(self);
+        Some(~element as ~VirtualMethods:)
     }
 }

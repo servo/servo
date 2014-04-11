@@ -8,7 +8,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTypeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
-use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
+use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::NodeBinding::NodeConstants;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -19,11 +19,12 @@ use dom::comment::Comment;
 use dom::document::{Document, HTMLDocument, NonHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementTypeId, HTMLAnchorElementTypeId, IElement};
+use dom::element::{Element, ElementTypeId, HTMLAnchorElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
-use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
+use dom::text::Text;
+use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use html::hubbub_html_parser::build_element_from_tag;
 use layout_interface::{LayoutChan, ReapLayoutDataMsg, UntrustedNodeAddress};
@@ -403,10 +404,7 @@ impl NodeHelpers for JS<Node> {
 
         if self.is_in_doc() {
             for node in self.traverse_preorder() {
-                if node.is_element() {
-                    let element: JS<Element> = ElementCast::to(&node).unwrap();
-                    element.bind_to_tree_impl();
-                }
+                vtable_for(&node).bind_to_tree();
             }
         }
 
@@ -419,10 +417,8 @@ impl NodeHelpers for JS<Node> {
         let document = document_from_node(self);
 
         for node in self.traverse_preorder() {
-            if node.is_element() {
-                let element: JS<Element> = ElementCast::to(&node).unwrap();
-                element.unbind_from_tree_impl();
-            }
+            // XXX how about if the node wasn't in the tree in the first place?
+            vtable_for(&node).unbind_from_tree();
         }
 
         document.get().content_changed();
@@ -1833,4 +1829,11 @@ pub fn document_from_node<T: NodeBase>(derived: &JS<T>) -> JS<Document> {
 pub fn window_from_node<T: NodeBase>(derived: &JS<T>) -> JS<Window> {
     let document: JS<Document> = document_from_node(derived);
     document.get().window.clone()
+}
+
+impl VirtualMethods for JS<Node> {
+    fn super_type(&self) -> Option<~VirtualMethods:> {
+        let eventtarget: JS<EventTarget> = EventTargetCast::from(self);
+        Some(~eventtarget as ~VirtualMethods:)
+    }
 }

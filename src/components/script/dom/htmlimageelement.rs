@@ -4,15 +4,16 @@
 
 use dom::bindings::codegen::HTMLImageElementBinding;
 use dom::bindings::codegen::InheritTypes::{NodeCast, HTMLImageElementDerived};
-use dom::bindings::codegen::InheritTypes::{ElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLImageElementTypeId};
-use dom::element::{AttributeHandlers, AfterSetAttrListener, BeforeRemoveAttrListener};
+use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
+use dom::virtualmethods::VirtualMethods;
 use servo_util::geometry::to_px;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
@@ -226,18 +227,31 @@ impl HTMLImageElement {
     }
 }
 
-impl AfterSetAttrListener for JS<HTMLImageElement> {
-    fn AfterSetAttr(&mut self, name: DOMString, value: DOMString) {
+impl VirtualMethods for JS<HTMLImageElement> {
+    fn super_type(&self) -> Option<~VirtualMethods:> {
+        let htmlelement: JS<HTMLElement> = HTMLElementCast::from(self);
+        Some(~htmlelement as ~VirtualMethods:)
+    }
+
+    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref mut s) => s.after_set_attr(name.clone(), value.clone()),
+            _ => (),
+        }
+
         if "src" == name {
             let window = window_from_node(self);
             let url = Some(window.get().get_url());
             self.get_mut().update_image(Some(value), url);
         }
     }
-}
 
-impl BeforeRemoveAttrListener for JS<HTMLImageElement> {
-    fn BeforeRemoveAttr(&mut self, name: DOMString) {
+    fn before_remove_attr(&mut self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref mut s) => s.before_remove_attr(name.clone(), value.clone()),
+            _ => (),
+        }
+
         if "src" == name {
             self.get_mut().update_image(None, None);
         }
