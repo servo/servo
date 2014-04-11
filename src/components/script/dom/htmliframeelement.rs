@@ -3,15 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLIFrameElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
-use dom::element::{AttributeHandlers, AfterSetAttrListener, BeforeRemoveAttrListener};
+use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId};
+use dom::virtualmethods::VirtualMethods;
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
@@ -210,8 +211,18 @@ impl HTMLIFrameElement {
     }
 }
 
-impl AfterSetAttrListener for JS<HTMLIFrameElement> {
-    fn AfterSetAttr(&mut self, name: DOMString, value: DOMString) {
+impl VirtualMethods for JS<HTMLIFrameElement> {
+    fn super_type(&self) -> Option<~VirtualMethods:> {
+        let htmlelement: JS<HTMLElement> = HTMLElementCast::from(self);
+        Some(~htmlelement as ~VirtualMethods:)
+    }
+
+    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref mut s) => s.after_set_attr(name.clone(), value.clone()),
+            _ => (),
+        }
+
         if "sandbox" == name {
             let mut modes = AllowNothing as u8;
             for word in value.split(' ') {
@@ -230,10 +241,13 @@ impl AfterSetAttrListener for JS<HTMLIFrameElement> {
             self.get_mut().sandbox = Some(modes);
         }
     }
-}
 
-impl BeforeRemoveAttrListener for JS<HTMLIFrameElement> {
-    fn BeforeRemoveAttr(&mut self, name: DOMString) {
+    fn before_remove_attr(&mut self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref mut s) => s.before_remove_attr(name.clone(), value),
+            _ => (),
+        }
+
         if "sandbox" == name {
             self.get_mut().sandbox = None;
         }

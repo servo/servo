@@ -4,17 +4,18 @@
 
 use dom::bindings::codegen::HTMLObjectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
-use dom::bindings::codegen::InheritTypes::ElementCast;
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLObjectElementTypeId};
-use dom::element::{AttributeHandlers, AfterSetAttrListener};
+use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::HTMLFormElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::validitystate::ValidityState;
+use dom::virtualmethods::VirtualMethods;
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
@@ -244,8 +245,18 @@ impl HTMLObjectElement {
     }
 }
 
-impl AfterSetAttrListener for JS<HTMLObjectElement> {
-    fn AfterSetAttr(&mut self, name: DOMString, _value: DOMString) {
+impl VirtualMethods for JS<HTMLObjectElement> {
+    fn super_type(&self) -> Option<~VirtualMethods:> {
+        let htmlelement: JS<HTMLElement> = HTMLElementCast::from(self);
+        Some(~htmlelement as ~VirtualMethods:)
+    }
+
+    fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
+        match self.super_type() {
+            Some(ref mut s) => s.after_set_attr(name.clone(), value),
+            _ => (),
+        }
+
         if "data" == name {
             let window = window_from_node(self);
             let url = Some(window.get().get_url());
