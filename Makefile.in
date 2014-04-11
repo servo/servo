@@ -341,6 +341,12 @@ ifneq ($(CFG_OSTYPE),linux-androideabi)
 servo:	$(DEPS_servo)
 	@$(call E, compile: $@)
 	$(Q)$(RUSTC) $(RFLAGS_servo) -o $@ $<
+
+libservo.dummy: $(DEPS_servo)
+	@$(call E, compile: $@)
+	$(Q)$(RUSTC) $(RFLAGS_servo) $< --crate-type dylib,rlib
+	touch libservo.dummy
+
 else
 servo:  $(DEPS_servo)
 	@$(call E, compile: $@)
