@@ -33,7 +33,7 @@ use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::uievent::UIEvent;
-use dom::window::Window;
+use dom::window::{Window, WindowMethods};
 use dom::location::Location;
 use html::hubbub_html_parser::build_element_from_tag;
 use hubbub::hubbub::{QuirksMode, NoQuirks, LimitedQuirks, FullQuirks};
@@ -122,22 +122,108 @@ impl Document {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-document
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Unrooted<Document>> {
+        Ok(Document::new(owner, None, NonHTMLDocument, None))
+    }
+
     pub fn new(window: &JSRef<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> Unrooted<Document> {
         let document = Document::new_inherited(window.unrooted(), url, doctype, content_type);
         Document::reflect_document(~document, window, DocumentBinding::Wrap)
     }
-}
 
-impl Document {
     pub fn url<'a>(&'a self) -> &'a Url {
         &*self.url
     }
-}
 
-impl Document {
-    // http://dom.spec.whatwg.org/#dom-document
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Unrooted<Document>> {
-        Ok(Document::new(owner, None, NonHTMLDocument, None))
+    pub fn quirks_mode(&self) -> QuirksMode {
+        *self.quirks_mode
+    }
+
+    pub fn set_quirks_mode(&mut self, mode: QuirksMode) {
+        *self.quirks_mode = mode;
+    }
+
+    pub fn set_encoding_name(&mut self, name: DOMString) {
+        self.encoding_name = name;
+    }
+
+    pub fn content_changed(&self) {
+        self.damage_and_reflow(ContentChangedDocumentDamage);
+    }
+
+    pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
+        let roots = RootCollection::new();
+        self.window.root(&roots).damage_and_reflow(damage);
+    }
+
+    pub fn wait_until_safe_to_modify_dom(&self) {
+        let roots = RootCollection::new();
+        self.window.root(&roots).wait_until_safe_to_modify_dom();
+    }
+
+
+    /// Remove any existing association between the provided id and any elements in this document.
+    pub fn unregister_named_element(&mut self,
+                                    abstract_self: &JSRef<Element>,
+                                    id: DOMString) {
+        let roots = RootCollection::new();
+        let mut is_empty = false;
+        match self.idmap.find_mut(&id) {
+            None => {},
+            Some(elements) => {
+                let position = elements.iter()
+                                       .map(|elem| elem.root(&roots))
+                                       .position(|element| &*element == abstract_self)
+                                       .expect("This element should be in registered.");
+                elements.remove(position);
+                is_empty = elements.is_empty();
+            }
+        }
+        if is_empty {
+            self.idmap.remove(&id);
+        }
+    }
+
+    /// Associate an element present in this document with the provided id.
+    pub fn register_named_element(&mut self,
+                                  abstract_self: &JSRef<Document>,
+                                  element: &JSRef<Element>,
+                                  id: DOMString) {
+        let roots = RootCollection::new();
+        assert!({
+            let node: &JSRef<Node> = NodeCast::from_ref(element);
+            node.is_in_doc()
+        });
+
+        // FIXME https://github.com/mozilla/rust/issues/13195
+        //       Use mangle() when it exists again.
+        let root = abstract_self.GetDocumentElement().expect("The element is in the document, so there must be a document element.").root(&roots);
+        match self.idmap.find_mut(&id) {
+            Some(elements) => {
+                let new_node: &JSRef<Node> = NodeCast::from_ref(element);
+                let mut head : uint = 0u;
+                let root: &JSRef<Node> = NodeCast::from_ref(&*root);
+                for node in root.traverse_preorder(&roots) {
+                    let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
+                    match elem {
+                        Some(elem) => {
+                            if elements.get(head) == &elem.unrooted() {
+                                head = head + 1;
+                            }
+                            if new_node == &node || head == elements.len() {
+                                break;
+                            }
+                        }
+                        None => {}
+                    }
+                }
+                elements.insert(head, element.unrooted());
+                return;
+            },
+            None => (),
+        }
+        self.idmap.insert(id, vec!(element.unrooted()));
     }
 }
 
@@ -151,9 +237,87 @@ impl Reflectable for Document {
     }
 }
 
-impl Document {
+trait DocumentHelpers {
+    fn createNodeList(&self, callback: |node: &JSRef<Node>| -> bool) -> Unrooted<NodeList>;
+    fn get_html_element(&self) -> Option<Unrooted<HTMLHtmlElement>>;
+}
+
+impl<'a> DocumentHelpers for JSRef<'a, Document> {
+    fn createNodeList(&self, callback: |node: &JSRef<Node>| -> bool) -> Unrooted<NodeList> {
+        let roots = RootCollection::new();
+        let window = self.window.root(&roots);
+
+        let mut nodes = vec!();
+        match self.GetDocumentElement().root(&roots) {
+            None => {},
+            Some(root) => {
+                let root: &JSRef<Node> = NodeCast::from_ref(&*root);
+                for child in root.traverse_preorder(&roots) {
+                    if callback(&child) {
+                        nodes.push(child);
+                    }
+                }
+            }
+        }
+
+        NodeList::new_simple_list(&*window, nodes)
+    }
+
+    fn get_html_element(&self) -> Option<Unrooted<HTMLHtmlElement>> {
+        let roots = RootCollection::new();
+        self.GetDocumentElement().root(&roots).filtered(|root| {
+            root.node.type_id == ElementNodeTypeId(HTMLHtmlElementTypeId)
+        }).map(|elem| {
+            Unrooted::new_rooted(HTMLHtmlElementCast::to_ref(&*elem).unwrap())
+        })
+    }
+}
+
+pub trait DocumentMethods {
+    fn Implementation(&mut self) -> Unrooted<DOMImplementation>;
+    fn URL(&self) -> DOMString;
+    fn DocumentURI(&self) -> DOMString;
+    fn CompatMode(&self) -> DOMString;
+    fn CharacterSet(&self) -> DOMString;
+    fn ContentType(&self) -> DOMString;
+    fn GetDoctype(&self) -> Option<Unrooted<DocumentType>>;
+    fn GetDocumentElement(&self) -> Option<Unrooted<Element>>;
+    fn GetElementsByTagName(&self, abstract_self: &JSRef<Document>, tag_name: DOMString) -> Unrooted<HTMLCollection>;
+    fn GetElementsByTagNameNS(&self, abstract_self: &JSRef<Document>, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Unrooted<HTMLCollection>;
+    fn GetElementsByClassName(&self, abstract_self: &JSRef<Document>, classes: DOMString) -> Unrooted<HTMLCollection>;
+    fn GetElementById(&self, id: DOMString) -> Option<Unrooted<Element>>;
+    fn CreateElement(&self, abstract_self: &JSRef<Document>, local_name: DOMString) -> Fallible<Unrooted<Element>>;
+    fn CreateElementNS(&self, abstract_self: &JSRef<Document>,
+                       namespace: Option<DOMString>,
+                       qualified_name: DOMString) -> Fallible<Unrooted<Element>>;
+    fn CreateDocumentFragment(&self, abstract_self: &JSRef<Document>) -> Unrooted<DocumentFragment>;
+    fn CreateTextNode(&self, abstract_self: &JSRef<Document>, data: DOMString) -> Unrooted<Text>;
+    fn CreateComment(&self, abstract_self: &JSRef<Document>, data: DOMString) -> Unrooted<Comment>;
+    fn CreateProcessingInstruction(&self, abstract_self: &JSRef<Document>, target: DOMString, data: DOMString) -> Fallible<Unrooted<ProcessingInstruction>>;
+    fn ImportNode(&self, abstract_self: &JSRef<Document>, node: &JSRef<Node>, deep: bool) -> Fallible<Unrooted<Node>>;
+    fn AdoptNode(&self, abstract_self: &JSRef<Document>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
+    fn CreateEvent(&self, interface: DOMString) -> Fallible<Unrooted<Event>>;
+    fn Title(&self, _: &JSRef<Document>) -> DOMString;
+    fn SetTitle(&self, abstract_self: &JSRef<Document>, title: DOMString) -> ErrorResult;
+    fn GetHead(&self) -> Option<Unrooted<HTMLHeadElement>>;
+    fn GetBody(&self, _: &JSRef<Document>) -> Option<Unrooted<HTMLElement>>;
+    fn SetBody(&self, abstract_self: &JSRef<Document>, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult;
+    fn GetElementsByName(&self, name: DOMString) -> Unrooted<NodeList>;
+    fn Images(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
+    fn Embeds(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
+    fn Plugins(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
+    fn Links(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
+    fn Forms(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
+    fn Scripts(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
+    fn Anchors(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
+    fn Applets(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
+    fn Location(&mut self, _abstract_self: &JSRef<Document>) -> Unrooted<Location>;
+    fn Children(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
+}
+
+impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-implementation
-    pub fn Implementation(&mut self) -> Unrooted<DOMImplementation> {
+    fn Implementation(&mut self) -> Unrooted<DOMImplementation> {
         if self.implementation.is_none() {
             let roots = RootCollection::new();
             let window = self.window.root(&roots);
@@ -163,47 +327,35 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-url
-    pub fn URL(&self) -> DOMString {
+    fn URL(&self) -> DOMString {
         self.url().to_str()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-documenturi
-    pub fn DocumentURI(&self) -> DOMString {
+    fn DocumentURI(&self) -> DOMString {
         self.URL()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-compatmode
-    pub fn CompatMode(&self) -> DOMString {
+    fn CompatMode(&self) -> DOMString {
         match *self.quirks_mode {
             NoQuirks => ~"CSS1Compat",
             LimitedQuirks | FullQuirks => ~"BackCompat"
         }
     }
 
-    pub fn quirks_mode(&self) -> QuirksMode {
-        *self.quirks_mode
-    }
-
-    pub fn set_quirks_mode(&mut self, mode: QuirksMode) {
-        *self.quirks_mode = mode;
-    }
-
     // http://dom.spec.whatwg.org/#dom-document-characterset
-    pub fn CharacterSet(&self) -> DOMString {
+    fn CharacterSet(&self) -> DOMString {
         self.encoding_name.to_ascii_lower()
     }
 
-    pub fn set_encoding_name(&mut self, name: DOMString) {
-        self.encoding_name = name;
-    }
-
     // http://dom.spec.whatwg.org/#dom-document-content_type
-    pub fn ContentType(&self) -> DOMString {
+    fn ContentType(&self) -> DOMString {
         self.content_type.clone()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-doctype
-    pub fn GetDoctype(&self) -> Option<Unrooted<DocumentType>> {
+    fn GetDoctype(&self) -> Option<Unrooted<DocumentType>> {
         self.node.children().find(|child| {
             child.is_doctype()
         }).map(|node| {
@@ -213,19 +365,19 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-documentelement
-    pub fn GetDocumentElement(&self) -> Option<Unrooted<Element>> {
+    fn GetDocumentElement(&self) -> Option<Unrooted<Element>> {
         self.node.child_elements().next().map(|elem| Unrooted::new_rooted(&elem))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
-    pub fn GetElementsByTagName(&self, abstract_self: &JSRef<Document>, tag_name: DOMString) -> Unrooted<HTMLCollection> {
+    fn GetElementsByTagName(&self, abstract_self: &JSRef<Document>, tag_name: DOMString) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
         HTMLCollection::by_tag_name(&*window, NodeCast::from_ref(abstract_self), tag_name)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
-    pub fn GetElementsByTagNameNS(&self, abstract_self: &JSRef<Document>, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Unrooted<HTMLCollection> {
+    fn GetElementsByTagNameNS(&self, abstract_self: &JSRef<Document>, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -237,7 +389,7 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
-    pub fn GetElementsByClassName(&self, abstract_self: &JSRef<Document>, classes: DOMString) -> Unrooted<HTMLCollection> {
+    fn GetElementsByClassName(&self, abstract_self: &JSRef<Document>, classes: DOMString) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -245,7 +397,7 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
-    pub fn GetElementById(&self, id: DOMString) -> Option<Unrooted<Element>> {
+    fn GetElementById(&self, id: DOMString) -> Option<Unrooted<Element>> {
         match self.idmap.find_equiv(&id) {
             None => None,
             Some(ref elements) => Some(Unrooted::new(elements.get(0).clone())),
@@ -253,7 +405,7 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelement
-    pub fn CreateElement(&self, abstract_self: &JSRef<Document>, local_name: DOMString)
+    fn CreateElement(&self, abstract_self: &JSRef<Document>, local_name: DOMString)
                          -> Fallible<Unrooted<Element>> {
         if xml_name_type(local_name) == InvalidXMLName {
             debug!("Not a valid element name");
@@ -264,9 +416,9 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
-    pub fn CreateElementNS(&self, abstract_self: &JSRef<Document>,
-                           namespace: Option<DOMString>,
-                           qualified_name: DOMString) -> Fallible<Unrooted<Element>> {
+    fn CreateElementNS(&self, abstract_self: &JSRef<Document>,
+                       namespace: Option<DOMString>,
+                       qualified_name: DOMString) -> Fallible<Unrooted<Element>> {
         let ns = Namespace::from_str(null_str_as_empty_ref(&namespace));
         match xml_name_type(qualified_name) {
             InvalidXMLName => {
@@ -310,23 +462,23 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createdocumentfragment
-    pub fn CreateDocumentFragment(&self, abstract_self: &JSRef<Document>) -> Unrooted<DocumentFragment> {
+    fn CreateDocumentFragment(&self, abstract_self: &JSRef<Document>) -> Unrooted<DocumentFragment> {
         DocumentFragment::new(abstract_self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createtextnode
-    pub fn CreateTextNode(&self, abstract_self: &JSRef<Document>, data: DOMString)
+    fn CreateTextNode(&self, abstract_self: &JSRef<Document>, data: DOMString)
                           -> Unrooted<Text> {
         Text::new(data, abstract_self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createcomment
-    pub fn CreateComment(&self, abstract_self: &JSRef<Document>, data: DOMString) -> Unrooted<Comment> {
+    fn CreateComment(&self, abstract_self: &JSRef<Document>, data: DOMString) -> Unrooted<Comment> {
         Comment::new(data, abstract_self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
-    pub fn CreateProcessingInstruction(&self, abstract_self: &JSRef<Document>, target: DOMString,
+    fn CreateProcessingInstruction(&self, abstract_self: &JSRef<Document>, target: DOMString,
                                        data: DOMString) -> Fallible<Unrooted<ProcessingInstruction>> {
         // Step 1.
         if xml_name_type(target) == InvalidXMLName {
@@ -343,7 +495,7 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-importnode
-    pub fn ImportNode(&self, abstract_self: &JSRef<Document>, node: &JSRef<Node>, deep: bool) -> Fallible<Unrooted<Node>> {
+    fn ImportNode(&self, abstract_self: &JSRef<Document>, node: &JSRef<Node>, deep: bool) -> Fallible<Unrooted<Node>> {
         // Step 1.
         if node.is_document() {
             return Err(NotSupported);
@@ -359,7 +511,7 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-adoptnode
-    pub fn AdoptNode(&self, abstract_self: &JSRef<Document>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
+    fn AdoptNode(&self, abstract_self: &JSRef<Document>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
         // Step 1.
         if node.is_document() {
             return Err(NotSupported);
@@ -373,7 +525,7 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createevent
-    pub fn CreateEvent(&self, interface: DOMString) -> Fallible<Unrooted<Event>> {
+    fn CreateEvent(&self, interface: DOMString) -> Fallible<Unrooted<Event>> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -387,7 +539,7 @@ impl Document {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
-    pub fn Title(&self, _: &JSRef<Document>) -> DOMString {
+    fn Title(&self, _: &JSRef<Document>) -> DOMString {
         let mut title = ~"";
         let roots = RootCollection::new();
         self.GetDocumentElement().root(&roots).map(|root| {
@@ -409,7 +561,7 @@ impl Document {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
-    pub fn SetTitle(&self, abstract_self: &JSRef<Document>, title: DOMString) -> ErrorResult {
+    fn SetTitle(&self, abstract_self: &JSRef<Document>, title: DOMString) -> ErrorResult {
         let roots = RootCollection::new();
 
         self.GetDocumentElement().root(&roots).map(|root| {
@@ -446,17 +598,8 @@ impl Document {
         Ok(())
     }
 
-    fn get_html_element(&self) -> Option<Unrooted<HTMLHtmlElement>> {
-        let roots = RootCollection::new();
-        self.GetDocumentElement().root(&roots).filtered(|root| {
-            root.node.type_id == ElementNodeTypeId(HTMLHtmlElementTypeId)
-        }).map(|elem| {
-            Unrooted::new_rooted(HTMLHtmlElementCast::to_ref(&*elem).unwrap())
-        })
-    }
-
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-head
-    pub fn GetHead(&self) -> Option<Unrooted<HTMLHeadElement>> {
+    fn GetHead(&self) -> Option<Unrooted<HTMLHeadElement>> {
         let roots = RootCollection::new();
         self.get_html_element().and_then(|root| {
             let root = root.root(&roots);
@@ -470,7 +613,7 @@ impl Document {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
-    pub fn GetBody(&self, _: &JSRef<Document>) -> Option<Unrooted<HTMLElement>> {
+    fn GetBody(&self, _: &JSRef<Document>) -> Option<Unrooted<HTMLElement>> {
         let roots = RootCollection::new();
         self.get_html_element().and_then(|root| {
             let root = root.root(&roots);
@@ -488,7 +631,7 @@ impl Document {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
-    pub fn SetBody(&self, abstract_self: &JSRef<Document>, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult {
+    fn SetBody(&self, abstract_self: &JSRef<Document>, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult {
         let roots = RootCollection::new();
 
         // Step 1.
@@ -532,7 +675,7 @@ impl Document {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
-    pub fn GetElementsByName(&self, name: DOMString) -> Unrooted<NodeList> {
+    fn GetElementsByName(&self, name: DOMString) -> Unrooted<NodeList> {
         let roots = RootCollection::new();
 
         self.createNodeList(|node| {
@@ -547,7 +690,7 @@ impl Document {
         })
     }
 
-    pub fn Images(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Images(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -562,7 +705,7 @@ impl Document {
         HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Embeds(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Embeds(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -577,12 +720,12 @@ impl Document {
         HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Plugins(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Plugins(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
         self.Embeds(abstract_self)
     }
 
-    pub fn Links(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Links(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -598,7 +741,7 @@ impl Document {
         HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Forms(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Forms(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -613,7 +756,7 @@ impl Document {
         HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Scripts(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Scripts(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -628,7 +771,7 @@ impl Document {
         HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Anchors(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Anchors(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -643,7 +786,7 @@ impl Document {
         HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Applets(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Applets(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -658,113 +801,16 @@ impl Document {
         HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
     }
 
-    pub fn Location(&mut self, _abstract_self: &JSRef<Document>) -> Unrooted<Location> {
+    fn Location(&mut self, _abstract_self: &JSRef<Document>) -> Unrooted<Location> {
         let roots = RootCollection::new();
         let mut window = self.window.root(&roots);
         let window_alias = self.window.root(&roots);
-        window.get_mut().Location(&*window_alias)
+        window.Location(&*window_alias)
     }
 
-    pub fn Children(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Children(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
         HTMLCollection::children(&*window, NodeCast::from_ref(abstract_self))
-    }
-
-    pub fn createNodeList(&self, callback: |node: &JSRef<Node>| -> bool) -> Unrooted<NodeList> {
-        let roots = RootCollection::new();
-        let window = self.window.root(&roots);
-
-        let mut nodes = vec!();
-        match self.GetDocumentElement().root(&roots) {
-            None => {},
-            Some(root) => {
-                let root: &JSRef<Node> = NodeCast::from_ref(&*root);
-                for child in root.traverse_preorder(&roots) {
-                    if callback(&child) {
-                        nodes.push(child);
-                    }
-                }
-            }
-        }
-
-        NodeList::new_simple_list(&*window, nodes)
-    }
-
-    pub fn content_changed(&self) {
-        self.damage_and_reflow(ContentChangedDocumentDamage);
-    }
-
-    pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
-        let roots = RootCollection::new();
-        self.window.root(&roots).damage_and_reflow(damage);
-    }
-
-    pub fn wait_until_safe_to_modify_dom(&self) {
-        let roots = RootCollection::new();
-        self.window.root(&roots).wait_until_safe_to_modify_dom();
-    }
-
-
-    /// Remove any existing association between the provided id and any elements in this document.
-    pub fn unregister_named_element(&mut self,
-                                    abstract_self: &JSRef<Element>,
-                                    id: DOMString) {
-        let roots = RootCollection::new();
-        let mut is_empty = false;
-        match self.idmap.find_mut(&id) {
-            None => {},
-            Some(elements) => {
-                let position = elements.iter()
-                                       .map(|elem| elem.root(&roots))
-                                       .position(|element| &*element == abstract_self)
-                                       .expect("This element should be in registered.");
-                elements.remove(position);
-                is_empty = elements.is_empty();
-            }
-        }
-        if is_empty {
-            self.idmap.remove(&id);
-        }
-    }
-
-    /// Associate an element present in this document with the provided id.
-    pub fn register_named_element(&mut self,
-                                  element: &JSRef<Element>,
-                                  id: DOMString) {
-        let roots = RootCollection::new();
-        assert!({
-            let node: &JSRef<Node> = NodeCast::from_ref(element);
-            node.is_in_doc()
-        });
-
-        // FIXME https://github.com/mozilla/rust/issues/13195
-        //       Use mangle() when it exists again.
-        let root = self.GetDocumentElement().expect("The element is in the document, so there must be a document element.").root(&roots);
-        match self.idmap.find_mut(&id) {
-            Some(elements) => {
-                let new_node: &JSRef<Node> = NodeCast::from_ref(element);
-                let mut head : uint = 0u;
-                let root: &JSRef<Node> = NodeCast::from_ref(&*root);
-                for node in root.traverse_preorder(&roots) {
-                    let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
-                    match elem {
-                        Some(elem) => {
-                            if elements.get(head) == &elem.unrooted() {
-                                head = head + 1;
-                            }
-                            if new_node == &node || head == elements.len() {
-                                break;
-                            }
-                        }
-                        None => {}
-                    }
-                }
-                elements.insert(head, element.unrooted());
-                return;
-            },
-            None => (),
-        }
-        self.idmap.insert(id, vec!(element.unrooted()));
     }
 }

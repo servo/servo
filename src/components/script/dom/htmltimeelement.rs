@@ -40,12 +40,18 @@ impl HTMLTimeElement {
     }
 }
 
-impl HTMLTimeElement {
-    pub fn DateTime(&self) -> DOMString {
+pub trait HTMLTimeElementMethods {
+    fn DateTime(&self) -> DOMString;
+    fn SetDateTime(&mut self, _dateTime: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLTimeElementMethods for JSRef<'a, HTMLTimeElement> {
+    fn DateTime(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetDateTime(&mut self, _dateTime: DOMString) -> ErrorResult {
+    fn SetDateTime(&mut self, _dateTime: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

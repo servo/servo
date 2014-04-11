@@ -40,12 +40,18 @@ impl HTMLParagraphElement {
     }
 }
 
-impl HTMLParagraphElement {
-    pub fn Align(&self) -> DOMString {
+pub trait HTMLParagraphElementMethods {
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLParagraphElementMethods for JSRef<'a, HTMLParagraphElement> {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

@@ -51,11 +51,17 @@ impl HTMLHeadingElement {
     }
 }
 
-impl HTMLHeadingElement {
-    pub fn Align(&self) -> DOMString {
+pub trait HTMLHeadingElementMethods {
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString);
+}
+
+impl<'a> HTMLHeadingElementMethods for JSRef<'a, HTMLHeadingElement> {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) {
+    fn SetAlign(&mut self, _align: DOMString) {
     }
 }
+

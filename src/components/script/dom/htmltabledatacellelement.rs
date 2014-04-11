@@ -38,3 +38,6 @@ impl HTMLTableDataCellElement {
         Node::reflect_node(~element, document, HTMLTableDataCellElementBinding::Wrap)
     }
 }
+
+pub trait HTMLTableDataCellElementMethods {
+}

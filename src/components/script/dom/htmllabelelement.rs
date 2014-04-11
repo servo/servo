@@ -39,11 +39,17 @@ impl HTMLLabelElement {
     }
 }
 
-impl HTMLLabelElement {
-    pub fn HtmlFor(&self) -> DOMString {
+pub trait HTMLLabelElementMethods {
+    fn HtmlFor(&self) -> DOMString;
+    fn SetHtmlFor(&mut self, _html_for: DOMString);
+}
+
+impl<'a> HTMLLabelElementMethods for JSRef<'a, HTMLLabelElement> {
+    fn HtmlFor(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHtmlFor(&mut self, _html_for: DOMString) {
+    fn SetHtmlFor(&mut self, _html_for: DOMString) {
     }
 }
+

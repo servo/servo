@@ -38,3 +38,6 @@ impl HTMLMainElement {
         Node::reflect_node(~element, document, HTMLMainElementBinding::Wrap)
     }
 }
+
+pub trait HTMLMainElementMethods {
+}

@@ -38,3 +38,6 @@ impl HTMLUnknownElement {
         Node::reflect_node(~element, document, HTMLUnknownElementBinding::Wrap)
     }
 }
+
+pub trait HTMLUnknownElementMethods {
+}

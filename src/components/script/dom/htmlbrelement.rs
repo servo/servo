@@ -40,12 +40,18 @@ impl HTMLBRElement {
     }
 }
 
-impl HTMLBRElement {
-    pub fn Clear(&self) -> DOMString {
+pub trait HTMLBRElementMethods {
+    fn Clear(&self) -> DOMString;
+    fn SetClear(&mut self, _text: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLBRElementMethods for JSRef<'a, HTMLBRElement> {
+    fn Clear(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetClear(&mut self, _text: DOMString) -> ErrorResult {
+    fn SetClear(&mut self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

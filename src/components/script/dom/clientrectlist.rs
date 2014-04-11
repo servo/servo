@@ -30,12 +30,20 @@ impl ClientRectList {
         reflect_dom_object(~ClientRectList::new_inherited(window.unrooted(), rects),
                            window, ClientRectListBinding::Wrap)
     }
+}
 
-    pub fn Length(&self) -> u32 {
+pub trait ClientRectListMethods {
+    fn Length(&self) -> u32;
+    fn Item(&self, index: u32) -> Option<Unrooted<ClientRect>>;
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<ClientRect>>;
+}
+
+impl<'a> ClientRectListMethods for JSRef<'a, ClientRectList> {
+    fn Length(&self) -> u32 {
         self.rects.len() as u32
     }
 
-    pub fn Item(&self, index: u32) -> Option<Unrooted<ClientRect>> {
+    fn Item(&self, index: u32) -> Option<Unrooted<ClientRect>> {
         if index < self.rects.len() as u32 {
             Some(Unrooted::new(self.rects.get(index as uint).clone()))
         } else {
@@ -43,7 +51,7 @@ impl ClientRectList {
         }
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<ClientRect>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<ClientRect>> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
     }

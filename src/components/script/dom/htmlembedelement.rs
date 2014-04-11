@@ -40,56 +40,73 @@ impl HTMLEmbedElement {
     }
 }
 
-impl HTMLEmbedElement {
-    pub fn Src(&self) -> DOMString {
+pub trait HTMLEmbedElementMethods {
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn Width(&self) -> DOMString;
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+    fn Height(&self) -> DOMString;
+    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult;
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _type: DOMString) -> ErrorResult;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _type: DOMString) -> ErrorResult;
+    fn GetSVGDocument(&self) -> Option<Unrooted<Document>>;
+}
+
+impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
+    fn Src(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> DOMString {
+    fn Width(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> DOMString {
+    fn Height(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
+    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Align(&self) -> DOMString {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetSVGDocument(&self) -> Option<Unrooted<Document>> {
+    fn GetSVGDocument(&self) -> Option<Unrooted<Document>> {
         None
     }
 }
+

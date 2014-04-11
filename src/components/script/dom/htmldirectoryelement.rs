@@ -40,12 +40,18 @@ impl HTMLDirectoryElement {
     }
 }
 
-impl HTMLDirectoryElement {
-    pub fn Compact(&self) -> bool {
+pub trait HTMLDirectoryElementMethods {
+    fn Compact(&self) -> bool;
+    fn SetCompact(&mut self, _compact: bool) -> ErrorResult;
+}
+
+impl<'a> HTMLDirectoryElementMethods for JSRef<'a, HTMLDirectoryElement> {
+    fn Compact(&self) -> bool {
         false
     }
 
-    pub fn SetCompact(&mut self, _compact: bool) -> ErrorResult {
+    fn SetCompact(&mut self, _compact: bool) -> ErrorResult {
         Ok(())
     }
 }
+

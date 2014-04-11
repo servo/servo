@@ -40,12 +40,18 @@ impl HTMLDataElement {
     }
 }
 
-impl HTMLDataElement {
-    pub fn Value(&self) -> DOMString {
+pub trait HTMLDataElementMethods {
+    fn Value(&self) -> DOMString;
+    fn SetValue(&mut self, _value: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLDataElementMethods for JSRef<'a, HTMLDataElement> {
+    fn Value(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
+    fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

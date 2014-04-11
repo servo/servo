@@ -40,12 +40,18 @@ impl HTMLDivElement {
     }
 }
 
-impl HTMLDivElement {
-    pub fn Align(&self) -> DOMString {
+pub trait HTMLDivElementMethods {
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLDivElementMethods for JSRef<'a, HTMLDivElement> {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

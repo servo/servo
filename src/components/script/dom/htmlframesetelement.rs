@@ -40,20 +40,28 @@ impl HTMLFrameSetElement {
     }
 }
 
-impl HTMLFrameSetElement {
-    pub fn Cols(&self) -> DOMString {
+pub trait HTMLFrameSetElementMethods {
+    fn Cols(&self) -> DOMString;
+    fn SetCols(&mut self, _cols: DOMString) -> ErrorResult;
+    fn Rows(&self) -> DOMString;
+    fn SetRows(&mut self, _rows: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLFrameSetElementMethods for JSRef<'a, HTMLFrameSetElement> {
+    fn Cols(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCols(&mut self, _cols: DOMString) -> ErrorResult {
+    fn SetCols(&mut self, _cols: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Rows(&self) -> DOMString {
+    fn Rows(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetRows(&mut self, _rows: DOMString) -> ErrorResult {
+    fn SetRows(&mut self, _rows: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

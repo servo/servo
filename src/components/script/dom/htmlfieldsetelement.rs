@@ -43,33 +43,48 @@ impl HTMLFieldSetElement {
     }
 }
 
-impl HTMLFieldSetElement {
-    pub fn Disabled(&self) -> bool {
+pub trait HTMLFieldSetElementMethods {
+    fn Disabled(&self) -> bool;
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>>;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn Elements(&self, abstract_self: &JSRef<HTMLFieldSetElement>) -> Unrooted<HTMLCollection>;
+    fn WillValidate(&self) -> bool;
+    fn Validity(&self) -> Unrooted<ValidityState>;
+    fn ValidationMessage(&self) -> DOMString;
+    fn CheckValidity(&self) -> bool;
+    fn SetCustomValidity(&mut self, _error: DOMString);
+}
+
+impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
+    fn Disabled(&self) -> bool {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
         None
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
     // http://www.whatwg.org/html/#dom-fieldset-elements
-    pub fn Elements(&self, abstract_self: &JSRef<HTMLFieldSetElement>) -> Unrooted<HTMLCollection> {
+    fn Elements(&self, abstract_self: &JSRef<HTMLFieldSetElement>) -> Unrooted<HTMLCollection> {
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
             fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool {
@@ -86,25 +101,26 @@ impl HTMLFieldSetElement {
         HTMLCollection::create(&*window, node, filter)
     }
 
-    pub fn WillValidate(&self) -> bool {
+    fn WillValidate(&self) -> bool {
         false
     }
 
-    pub fn Validity(&self) -> Unrooted<ValidityState> {
+    fn Validity(&self) -> Unrooted<ValidityState> {
         let roots = RootCollection::new();
         let doc = self.htmlelement.element.node.owner_doc().root(&roots);
         let window = doc.deref().window.root(&roots);
         ValidityState::new(&*window)
     }
 
-    pub fn ValidationMessage(&self) -> DOMString {
+    fn ValidationMessage(&self) -> DOMString {
         ~""
     }
 
-    pub fn CheckValidity(&self) -> bool {
+    fn CheckValidity(&self) -> bool {
         false
     }
 
-    pub fn SetCustomValidity(&mut self, _error: DOMString) {
+    fn SetCustomValidity(&mut self, _error: DOMString) {
     }
 }
+

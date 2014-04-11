@@ -10,7 +10,7 @@ use dom::document::Document;
 use dom::element::HTMLStyleElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeMethods, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use html::cssparse::parse_inline_css;
 use layout_interface::{AddStylesheetMsg, LayoutChan};
@@ -43,35 +43,46 @@ impl HTMLStyleElement {
     }
 }
 
-impl HTMLStyleElement {
-    pub fn Disabled(&self) -> bool {
+pub trait HTMLStyleElementMethods {
+    fn Disabled(&self) -> bool;
+    fn SetDisabled(&self, _disabled: bool);
+    fn Media(&self) -> DOMString;
+    fn SetMedia(&mut self, _media: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn Scoped(&self) -> bool;
+    fn SetScoped(&self, _scoped: bool) -> ErrorResult;
+}
+
+impl<'a> HTMLStyleElementMethods for JSRef<'a, HTMLStyleElement> {
+    fn Disabled(&self) -> bool {
         false
     }
 
-    pub fn SetDisabled(&self, _disabled: bool) {
+    fn SetDisabled(&self, _disabled: bool) {
     }
 
-    pub fn Media(&self) -> DOMString {
+    fn Media(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetMedia(&mut self, _media: DOMString) -> ErrorResult {
+    fn SetMedia(&mut self, _media: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Scoped(&self) -> bool {
+    fn Scoped(&self) -> bool {
         false
     }
 
-    pub fn SetScoped(&self, _scoped: bool) -> ErrorResult {
+    fn SetScoped(&self, _scoped: bool) -> ErrorResult {
         Ok(())
     }
 }
@@ -87,7 +98,7 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         let win = window_from_node(node).root(&roots);
         let url = win.get().page().get_url();
 
-        let data = node.get().GetTextContent(node).expect("Element.textContent must be a string");
+        let data = node.GetTextContent(node).expect("Element.textContent must be a string");
         let sheet = parse_inline_css(url, data);
         let LayoutChan(ref layout_chan) = *win.get().page().layout_chan;
         layout_chan.send(AddStylesheetMsg(sheet));

@@ -40,52 +40,68 @@ impl HTMLBodyElement {
     }
 }
 
-impl HTMLBodyElement {
-    pub fn Text(&self) -> DOMString {
+pub trait HTMLBodyElementMethods {
+    fn Text(&self) -> DOMString;
+    fn SetText(&mut self, _text: DOMString) -> ErrorResult;
+    fn Link(&self) -> DOMString;
+    fn SetLink(&self, _link: DOMString) -> ErrorResult;
+    fn VLink(&self) -> DOMString;
+    fn SetVLink(&self, _v_link: DOMString) -> ErrorResult;
+    fn ALink(&self) -> DOMString;
+    fn SetALink(&self, _a_link: DOMString) -> ErrorResult;
+    fn BgColor(&self) -> DOMString;
+    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult;
+    fn Background(&self) -> DOMString;
+    fn SetBackground(&self, _background: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
+    fn Text(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetText(&mut self, _text: DOMString) -> ErrorResult {
+    fn SetText(&mut self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Link(&self) -> DOMString {
+    fn Link(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetLink(&self, _link: DOMString) -> ErrorResult {
+    fn SetLink(&self, _link: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn VLink(&self) -> DOMString {
+    fn VLink(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetVLink(&self, _v_link: DOMString) -> ErrorResult {
+    fn SetVLink(&self, _v_link: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ALink(&self) -> DOMString {
+    fn ALink(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetALink(&self, _a_link: DOMString) -> ErrorResult {
+    fn SetALink(&self, _a_link: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn BgColor(&self) -> DOMString {
+    fn BgColor(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
+    fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Background(&self) -> DOMString {
+    fn Background(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetBackground(&self, _background: DOMString) -> ErrorResult {
+    fn SetBackground(&self, _background: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

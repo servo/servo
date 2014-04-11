@@ -40,52 +40,68 @@ impl HTMLTableColElement {
     }
 }
 
-impl HTMLTableColElement {
-    pub fn Span(&self) -> u32 {
+pub trait HTMLTableColElementMethods {
+    fn Span(&self) -> u32;
+    fn SetSpan(&mut self, _span: u32) -> ErrorResult;
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn Ch(&self) -> DOMString;
+    fn SetCh(&mut self, _ch: DOMString) -> ErrorResult;
+    fn ChOff(&self) -> DOMString;
+    fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult;
+    fn VAlign(&self) -> DOMString;
+    fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult;
+    fn Width(&self) -> DOMString;
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
+    fn Span(&self) -> u32 {
         0
     }
 
-    pub fn SetSpan(&mut self, _span: u32) -> ErrorResult {
+    fn SetSpan(&mut self, _span: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Align(&self) -> DOMString {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Ch(&self) -> DOMString {
+    fn Ch(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCh(&mut self, _ch: DOMString) -> ErrorResult {
+    fn SetCh(&mut self, _ch: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ChOff(&self) -> DOMString {
+    fn ChOff(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult {
+    fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn VAlign(&self) -> DOMString {
+    fn VAlign(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult {
+    fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Width(&self) -> DOMString {
+    fn Width(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

@@ -6,7 +6,7 @@ use dom::bindings::callback::ReportExceptions;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
 use dom::bindings::js::{JSRef, OptionalAssignable, RootCollection, Root};
 use dom::eventtarget::{Capturing, Bubbling, EventTarget};
-use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing};
+use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing, EventMethods};
 use dom::node::{Node, NodeHelpers};
 
 // See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
@@ -119,7 +119,6 @@ pub fn dispatch_event<'a>(target: &JSRef<'a, EventTarget>,
         let _ = chain.pop();
     }
 
-    let event = event.get_mut();
     event.dispatching = false;
     event.phase = PhaseNone;
     event.current_target = None;

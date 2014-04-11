@@ -41,8 +41,13 @@ impl ProcessingInstruction {
     }
 }
 
-impl ProcessingInstruction {
-    pub fn Target(&self) -> DOMString {
+pub trait ProcessingInstructionMethods {
+    fn Target(&self) -> DOMString;
+}
+
+impl<'a> ProcessingInstructionMethods for JSRef<'a, ProcessingInstruction> {
+    fn Target(&self) -> DOMString {
         self.target.clone()
     }
 }
+

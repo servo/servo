@@ -5,17 +5,18 @@
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 //! and layout tasks.
 
+use dom::attr::AttrMethods;
 use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCast, EventCast};
 use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, OptionalAssignable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, GlobalStaticData, wrap_for_same_compartment};
-use dom::document::{Document, HTMLDocument};
+use dom::document::{Document, HTMLDocument, DocumentMethods};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
-use dom::event::Event;
-use dom::uievent::UIEvent;
+use dom::event::{Event, EventMethods};
+use dom::uievent::{UIEvent, UIEventMethods};
 use dom::eventtarget::EventTarget;
 use dom::node;
 use dom::node::{Node, NodeHelpers};
@@ -409,7 +410,7 @@ impl Page {
     fn find_fragment_node(&self, fragid: ~str) -> Option<Unrooted<Element>> {
         let roots = RootCollection::new();
         let document = self.frame().get_ref().document.root(&roots);
-        match document.get().GetElementById(fragid.to_owned()) {
+        match document.deref().GetElementById(fragid.to_owned()) {
             Some(node) => Some(node),
             None => {
                 let doc_node: &JSRef<Node> = NodeCast::from_ref(&*document);
@@ -445,7 +446,7 @@ impl Page {
         let roots = RootCollection::new();
         let frame = self.frame();
         let document = frame.get_ref().document.root(&roots);
-        let root = document.get().GetDocumentElement().root(&roots);
+        let root = document.deref().GetDocumentElement().root(&roots);
         if root.is_none() {
             return None;
         }
@@ -468,7 +469,7 @@ impl Page {
         let roots = RootCollection::new();
         let frame = self.frame();
         let document = frame.get_ref().document.root(&roots);
-        let root = document.get().GetDocumentElement().root(&roots);
+        let root = document.deref().GetDocumentElement().root(&roots);
         if root.is_none() {
             return None;
         }
@@ -985,7 +986,7 @@ impl ScriptTask {
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
         let mut event = Event::new(&*window).root(&roots);
-        event.get_mut().InitEvent(~"load", false, false);
+        event.InitEvent(~"load", false, false);
         let doctarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*document);
         let wintarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(&mut *window);
         let wintarget_alias = wintarget.clone();
@@ -1055,8 +1056,8 @@ impl ScriptTask {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
                         let mut uievent = UIEvent::new(&*window).root(&roots);
-                        uievent.get_mut().InitUIEvent(~"resize", false, false,
-                                                      Some((*window).clone()), 0i32);
+                        uievent.InitUIEvent(~"resize", false, false,
+                                            Some((*window).clone()), 0i32);
                         let event: &mut JSRef<Event> = EventCast::from_mut_ref(&mut *uievent);
 
                         let wintarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(&mut *window);
@@ -1194,7 +1195,7 @@ impl ScriptTask {
         // if the node's element is "a," load url from href attr
         let attr = element.get_attribute(Null, "href");
         for href in attr.root(&roots).iter() {
-            debug!("ScriptTask: clicked on link to {:s}", href.get().Value());
+            debug!("ScriptTask: clicked on link to {:s}", href.Value());
             let click_frag = href.get().value_ref().starts_with("#");
             let base_url = Some(page.get_url());
             debug!("ScriptTask: current url is {:?}", base_url);

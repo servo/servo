@@ -26,71 +26,93 @@ impl Navigator {
                            window,
                            NavigatorBinding::Wrap)
     }
+}
 
-    pub fn DoNotTrack(&self) -> DOMString {
+pub trait NavigatorMethods {
+    fn DoNotTrack(&self) -> DOMString;
+    fn Vendor(&self) -> DOMString;
+    fn VendorSub(&self) -> DOMString;
+    fn Product(&self) -> DOMString;
+    fn ProductSub(&self) -> DOMString;
+    fn CookieEnabled(&self) -> bool;
+    fn GetBuildID(&self) -> Fallible<DOMString>;
+    fn JavaEnabled(&self) -> Fallible<bool>;
+    fn TaintEnabled(&self) -> bool;
+    fn AppName(&self) -> DOMString;
+    fn GetAppCodeName(&self) -> Fallible<DOMString>;
+    fn GetAppVersion(&self) -> Fallible<DOMString>;
+    fn GetPlatform(&self) -> Fallible<DOMString>;
+    fn GetUserAgent(&self) -> Fallible<DOMString>;
+    fn GetLanguage(&self) -> Option<DOMString>;
+    fn OnLine(&self) -> bool;
+}
+
+impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
+    fn DoNotTrack(&self) -> DOMString {
         ~"unspecified"
     }
 
-    pub fn Vendor(&self) -> DOMString {
+    fn Vendor(&self) -> DOMString {
         ~"" // Like Gecko
     }
 
-    pub fn VendorSub(&self) -> DOMString {
+    fn VendorSub(&self) -> DOMString {
         ~"" // Like Gecko
     }
 
-    pub fn Product(&self) -> DOMString {
+    fn Product(&self) -> DOMString {
         ~"Gecko"
     }
 
-    pub fn ProductSub(&self) -> DOMString {
+    fn ProductSub(&self) -> DOMString {
         ~""
     }
 
-    pub fn CookieEnabled(&self) -> bool {
+    fn CookieEnabled(&self) -> bool {
         false
     }
 
-    pub fn GetBuildID(&self) -> Fallible<DOMString> {
+    fn GetBuildID(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 
-    pub fn JavaEnabled(&self) -> Fallible<bool> {
+    fn JavaEnabled(&self) -> Fallible<bool> {
         Ok(false)
     }
 
-    pub fn TaintEnabled(&self) -> bool {
+    fn TaintEnabled(&self) -> bool {
         false
     }
 
-    pub fn AppName(&self) -> DOMString {
+    fn AppName(&self) -> DOMString {
         ~"Netscape" // Like Gecko/Webkit
     }
 
-    pub fn GetAppCodeName(&self) -> Fallible<DOMString> {
+    fn GetAppCodeName(&self) -> Fallible<DOMString> {
         Ok(~"Mozilla") // Like Gecko/Webkit
     }
 
-    pub fn GetAppVersion(&self) -> Fallible<DOMString> {
+    fn GetAppVersion(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 
-    pub fn GetPlatform(&self) -> Fallible<DOMString> {
+    fn GetPlatform(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 
-    pub fn GetUserAgent(&self) -> Fallible<DOMString> {
+    fn GetUserAgent(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 
-    pub fn GetLanguage(&self) -> Option<DOMString> {
+    fn GetLanguage(&self) -> Option<DOMString> {
         None
     }
 
-    pub fn OnLine(&self) -> bool {
+    fn OnLine(&self) -> bool {
         true
     }
 }
+
 
 impl Reflectable for Navigator {
     fn reflector<'a>(&'a self) -> &'a Reflector {

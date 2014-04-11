@@ -30,43 +30,56 @@ impl ValidityState {
     }
 }
 
-impl ValidityState {
-    pub fn ValueMissing(&self) -> bool {
+pub trait ValidityStateMethods {
+    fn ValueMissing(&self) -> bool;
+    fn TypeMismatch(&self) -> bool;
+    fn PatternMismatch(&self) -> bool;
+    fn TooLong(&self) -> bool;
+    fn RangeUnderflow(&self) -> bool;
+    fn RangeOverflow(&self) -> bool;
+    fn StepMismatch(&self) -> bool;
+    fn CustomError(&self) -> bool;
+    fn Valid(&self) -> bool;
+}
+
+impl<'a> ValidityStateMethods for JSRef<'a, ValidityState> {
+    fn ValueMissing(&self) -> bool {
         false
     }
 
-    pub fn TypeMismatch(&self) -> bool {
+    fn TypeMismatch(&self) -> bool {
         false
     }
 
-    pub fn PatternMismatch(&self) -> bool {
+    fn PatternMismatch(&self) -> bool {
         false
     }
 
-    pub fn TooLong(&self) -> bool {
+    fn TooLong(&self) -> bool {
         false
     }
 
-    pub fn RangeUnderflow(&self) -> bool {
+    fn RangeUnderflow(&self) -> bool {
         false
     }
 
-    pub fn RangeOverflow(&self) -> bool {
+    fn RangeOverflow(&self) -> bool {
         false
     }
 
-    pub fn StepMismatch(&self) -> bool {
+    fn StepMismatch(&self) -> bool {
         false
     }
 
-    pub fn CustomError(&self) -> bool {
+    fn CustomError(&self) -> bool {
         false
     }
 
-    pub fn Valid(&self) -> bool {
+    fn Valid(&self) -> bool {
         true
     }
 }
+
 
 impl Reflectable for ValidityState {
     fn reflector<'a>(&'a self) -> &'a Reflector {

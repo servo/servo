@@ -10,7 +10,7 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, TextNodeTypeId};
-use dom::window::Window;
+use dom::window::{Window, WindowMethods};
 use servo_util::str::DOMString;
 
 /// An HTML text node.
@@ -42,16 +42,23 @@ impl Text {
 
     pub fn Constructor(owner: &JSRef<Window>, text: DOMString) -> Fallible<Unrooted<Text>> {
         let roots = RootCollection::new();
-        let document = owner.get().Document();
-        let document = document.root(&roots);
-        Ok(Text::new(text.clone(), &document.root_ref()))
+        let document = owner.Document().root(&roots);
+        Ok(Text::new(text.clone(), &*document))
     }
+}
 
-    pub fn SplitText(&self, _offset: u32) -> Fallible<Unrooted<Text>> {
+pub trait TextMethods {
+    fn SplitText(&self, _offset: u32) -> Fallible<Unrooted<Text>>;
+    fn GetWholeText(&self) -> Fallible<DOMString>;
+}
+
+impl<'a> TextMethods for JSRef<'a, Text> {
+    fn SplitText(&self, _offset: u32) -> Fallible<Unrooted<Text>> {
         fail!("unimplemented")
     }
 
-    pub fn GetWholeText(&self) -> Fallible<DOMString> {
+    fn GetWholeText(&self) -> Fallible<DOMString> {
         Ok(~"")
     }
 }
+

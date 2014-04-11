@@ -45,121 +45,154 @@ impl HTMLElement {
     }
 }
 
-impl HTMLElement {
-    pub fn Title(&self) -> DOMString {
+pub trait HTMLElementMethods {
+    fn Title(&self) -> DOMString;
+    fn SetTitle(&mut self, _title: DOMString);
+    fn Lang(&self) -> DOMString;
+    fn SetLang(&mut self, _lang: DOMString);
+    fn Dir(&self) -> DOMString;
+    fn SetDir(&mut self, _dir: DOMString) -> ErrorResult;
+    fn GetItemValue(&self, _cx: *JSContext) -> Fallible<JSVal>;
+    fn SetItemValue(&mut self, _cx: *JSContext, _val: JSVal) -> ErrorResult;
+    fn Hidden(&self) -> bool;
+    fn SetHidden(&mut self, _hidden: bool) -> ErrorResult;
+    fn Click(&self);
+    fn TabIndex(&self) -> i32;
+    fn SetTabIndex(&mut self, _index: i32) -> ErrorResult;
+    fn Focus(&self) -> ErrorResult;
+    fn Blur(&self) -> ErrorResult;
+    fn AccessKey(&self) -> DOMString;
+    fn SetAccessKey(&self, _key: DOMString) -> ErrorResult;
+    fn AccessKeyLabel(&self) -> DOMString;
+    fn Draggable(&self) -> bool;
+    fn SetDraggable(&mut self, _draggable: bool) -> ErrorResult;
+    fn ContentEditable(&self) -> DOMString;
+    fn SetContentEditable(&mut self, _val: DOMString) -> ErrorResult;
+    fn IsContentEditable(&self) -> bool;
+    fn Spellcheck(&self) -> bool;
+    fn SetSpellcheck(&self, _val: bool) -> ErrorResult;
+    fn GetOffsetParent(&self) -> Option<Unrooted<Element>>;
+    fn OffsetTop(&self) -> i32;
+    fn OffsetLeft(&self) -> i32;
+    fn OffsetWidth(&self) -> i32;
+    fn OffsetHeight(&self) -> i32;
+}
+
+impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
+    fn Title(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetTitle(&mut self, _title: DOMString) {
+    fn SetTitle(&mut self, _title: DOMString) {
     }
 
-    pub fn Lang(&self) -> DOMString {
+    fn Lang(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetLang(&mut self, _lang: DOMString) {
+    fn SetLang(&mut self, _lang: DOMString) {
     }
 
-    pub fn Dir(&self) -> DOMString {
+    fn Dir(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetDir(&mut self, _dir: DOMString) -> ErrorResult {
+    fn SetDir(&mut self, _dir: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetItemValue(&self, _cx: *JSContext) -> Fallible<JSVal> {
+    fn GetItemValue(&self, _cx: *JSContext) -> Fallible<JSVal> {
         Ok(NullValue())
     }
 
-    pub fn SetItemValue(&mut self, _cx: *JSContext, _val: JSVal) -> ErrorResult {
+    fn SetItemValue(&mut self, _cx: *JSContext, _val: JSVal) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Hidden(&self) -> bool {
+    fn Hidden(&self) -> bool {
         false
     }
 
-    pub fn SetHidden(&mut self, _hidden: bool) -> ErrorResult {
+    fn SetHidden(&mut self, _hidden: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Click(&self) {
+    fn Click(&self) {
     }
 
-    pub fn TabIndex(&self) -> i32 {
+    fn TabIndex(&self) -> i32 {
         0
     }
 
-    pub fn SetTabIndex(&mut self, _index: i32) -> ErrorResult {
+    fn SetTabIndex(&mut self, _index: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Focus(&self) -> ErrorResult {
+    fn Focus(&self) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Blur(&self) -> ErrorResult {
+    fn Blur(&self) -> ErrorResult {
         Ok(())
     }
 
-    pub fn AccessKey(&self) -> DOMString {
+    fn AccessKey(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAccessKey(&self, _key: DOMString) -> ErrorResult {
+    fn SetAccessKey(&self, _key: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn AccessKeyLabel(&self) -> DOMString {
+    fn AccessKeyLabel(&self) -> DOMString {
         ~""
     }
 
-    pub fn Draggable(&self) -> bool {
+    fn Draggable(&self) -> bool {
         false
     }
 
-    pub fn SetDraggable(&mut self, _draggable: bool) -> ErrorResult {
+    fn SetDraggable(&mut self, _draggable: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ContentEditable(&self) -> DOMString {
+    fn ContentEditable(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetContentEditable(&mut self, _val: DOMString) -> ErrorResult {
+    fn SetContentEditable(&mut self, _val: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn IsContentEditable(&self) -> bool {
+    fn IsContentEditable(&self) -> bool {
         false
     }
 
-    pub fn Spellcheck(&self) -> bool {
+    fn Spellcheck(&self) -> bool {
         false
     }
 
-    pub fn SetSpellcheck(&self, _val: bool) -> ErrorResult {
+    fn SetSpellcheck(&self, _val: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetOffsetParent(&self) -> Option<Unrooted<Element>> {
+    fn GetOffsetParent(&self) -> Option<Unrooted<Element>> {
         None
     }
 
-    pub fn OffsetTop(&self) -> i32 {
+    fn OffsetTop(&self) -> i32 {
         0
     }
 
-    pub fn OffsetLeft(&self) -> i32 {
+    fn OffsetLeft(&self) -> i32 {
         0
     }
 
-    pub fn OffsetWidth(&self) -> i32 {
+    fn OffsetWidth(&self) -> i32 {
         0
     }
 
-    pub fn OffsetHeight(&self) -> i32 {
+    fn OffsetHeight(&self) -> i32 {
         0
     }
 }

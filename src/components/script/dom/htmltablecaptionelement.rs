@@ -40,12 +40,18 @@ impl HTMLTableCaptionElement {
     }
 }
 
-impl HTMLTableCaptionElement {
-    pub fn Align(&self) -> DOMString {
+pub trait HTMLTableCaptionElementMethods {
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLTableCaptionElementMethods for JSRef<'a, HTMLTableCaptionElement> {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

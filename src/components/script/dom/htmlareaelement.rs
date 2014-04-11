@@ -40,68 +40,87 @@ impl HTMLAreaElement {
     }
 }
 
-impl HTMLAreaElement {
-    pub fn Alt(&self) -> DOMString {
+pub trait HTMLAreaElementMethods {
+    fn Alt(&self) -> DOMString;
+    fn SetAlt(&self, _alt: DOMString) -> ErrorResult;
+    fn Coords(&self) -> DOMString;
+    fn SetCoords(&self, _coords: DOMString) -> ErrorResult;
+    fn Shape(&self) -> DOMString;
+    fn SetShape(&self, _shape: DOMString) -> ErrorResult;
+    fn Href(&self) -> DOMString;
+    fn SetHref(&self, _href: DOMString) -> ErrorResult;
+    fn Target(&self) -> DOMString;
+    fn SetTarget(&self, _target: DOMString) -> ErrorResult;
+    fn Download(&self) -> DOMString;
+    fn SetDownload(&self, _download: DOMString) -> ErrorResult;
+    fn Ping(&self) -> DOMString;
+    fn SetPing(&self, _ping: DOMString) -> ErrorResult;
+    fn NoHref(&self) -> bool;
+    fn SetNoHref(&mut self, _no_href: bool) -> ErrorResult;
+}
+
+impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
+    fn Alt(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlt(&self, _alt: DOMString) -> ErrorResult {
+    fn SetAlt(&self, _alt: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Coords(&self) -> DOMString {
+    fn Coords(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCoords(&self, _coords: DOMString) -> ErrorResult {
+    fn SetCoords(&self, _coords: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Shape(&self) -> DOMString {
+    fn Shape(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetShape(&self, _shape: DOMString) -> ErrorResult {
+    fn SetShape(&self, _shape: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Href(&self) -> DOMString {
+    fn Href(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHref(&self, _href: DOMString) -> ErrorResult {
+    fn SetHref(&self, _href: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Target(&self) -> DOMString {
+    fn Target(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetTarget(&self, _target: DOMString) -> ErrorResult {
+    fn SetTarget(&self, _target: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Download(&self) -> DOMString {
+    fn Download(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetDownload(&self, _download: DOMString) -> ErrorResult {
+    fn SetDownload(&self, _download: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Ping(&self) -> DOMString {
+    fn Ping(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetPing(&self, _ping: DOMString) -> ErrorResult {
+    fn SetPing(&self, _ping: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn NoHref(&self) -> bool {
+    fn NoHref(&self) -> bool {
         false
     }
 
-    pub fn SetNoHref(&mut self, _no_href: bool) -> ErrorResult {
+    fn SetNoHref(&mut self, _no_href: bool) -> ErrorResult {
         Ok(())
     }
 }

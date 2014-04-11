@@ -38,29 +38,39 @@ impl ClientRect {
         let rect = ClientRect::new_inherited(window.unrooted(), top, bottom, left, right);
         reflect_dom_object(~rect, window, ClientRectBinding::Wrap)
     }
+}
 
+pub trait ClientRectMethods {
+    fn Top(&self) -> f32;
+    fn Bottom(&self) -> f32;
+    fn Left(&self) -> f32;
+    fn Right(&self) -> f32;
+    fn Width(&self) -> f32;
+    fn Height(&self) -> f32;
+}
 
-    pub fn Top(&self) -> f32 {
+impl<'a> ClientRectMethods for JSRef<'a, ClientRect> {
+    fn Top(&self) -> f32 {
         self.top
     }
 
-    pub fn Bottom(&self) -> f32 {
+    fn Bottom(&self) -> f32 {
         self.bottom
     }
 
-    pub fn Left(&self) -> f32 {
+    fn Left(&self) -> f32 {
         self.left
     }
 
-    pub fn Right(&self) -> f32 {
+    fn Right(&self) -> f32 {
         self.right
     }
 
-    pub fn Width(&self) -> f32 {
+    fn Width(&self) -> f32 {
         (self.right - self.left).abs()
     }
 
-    pub fn Height(&self) -> f32 {
+    fn Height(&self) -> f32 {
         (self.bottom - self.top).abs()
     }
 }

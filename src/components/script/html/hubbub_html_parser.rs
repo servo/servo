@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::AttrMethods;
 use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, OptionalRootable};
@@ -476,7 +477,7 @@ pub fn parse_html(page: &Page,
                 let script: &JSRef<Element> = &*from_hubbub_node(script, None).root(&roots);
                 match script.get_attribute(Null, "src").root(&roots) {
                     Some(src) => {
-                        debug!("found script: {:s}", src.get().Value());
+                        debug!("found script: {:s}", src.deref().Value());
                         let new_url = parse_url(src.get().value_ref(), Some(url3.clone()));
                         js_chan2.send(JSTaskNewFile(new_url));
                     }

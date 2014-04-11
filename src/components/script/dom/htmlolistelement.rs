@@ -40,36 +40,48 @@ impl HTMLOListElement {
     }
 }
 
-impl HTMLOListElement {
-    pub fn Reversed(&self) -> bool {
+pub trait HTMLOListElementMethods {
+    fn Reversed(&self) -> bool;
+    fn SetReversed(&self, _reversed: bool) -> ErrorResult;
+    fn Start(&self) -> i32;
+    fn SetStart(&mut self, _start: i32) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn Compact(&self) -> bool;
+    fn SetCompact(&self, _compact: bool) -> ErrorResult;
+}
+
+impl<'a> HTMLOListElementMethods for JSRef<'a, HTMLOListElement> {
+    fn Reversed(&self) -> bool {
         false
     }
 
-    pub fn SetReversed(&self, _reversed: bool) -> ErrorResult {
+    fn SetReversed(&self, _reversed: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Start(&self) -> i32 {
+    fn Start(&self) -> i32 {
         0
     }
 
-    pub fn SetStart(&mut self, _start: i32) -> ErrorResult {
+    fn SetStart(&mut self, _start: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Compact(&self) -> bool {
+    fn Compact(&self) -> bool {
         false
     }
 
-    pub fn SetCompact(&self, _compact: bool) -> ErrorResult {
+    fn SetCompact(&self, _compact: bool) -> ErrorResult {
         Ok(())
     }
 }
+

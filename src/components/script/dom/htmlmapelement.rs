@@ -41,16 +41,22 @@ impl HTMLMapElement {
     }
 }
 
-impl HTMLMapElement {
-    pub fn Name(&self) -> DOMString {
+pub trait HTMLMapElementMethods {
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn Areas(&self) -> Unrooted<HTMLCollection>;
+}
+
+impl<'a> HTMLMapElementMethods for JSRef<'a, HTMLMapElement> {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Areas(&self) -> Unrooted<HTMLCollection> {
+    fn Areas(&self) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         // FIXME: https://github.com/mozilla/servo/issues/1845
         let doc = self.htmlelement.element.node.owner_doc().root(&roots);
@@ -58,3 +64,4 @@ impl HTMLMapElement {
         HTMLCollection::new(&*window, Static(vec!()))
     }
 }
+

@@ -40,12 +40,18 @@ impl HTMLQuoteElement {
     }
 }
 
-impl HTMLQuoteElement {
-    pub fn Cite(&self) -> DOMString {
+pub trait HTMLQuoteElementMethods {
+    fn Cite(&self) -> DOMString;
+    fn SetCite(&self, _cite: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLQuoteElementMethods for JSRef<'a, HTMLQuoteElement> {
+    fn Cite(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCite(&self, _cite: DOMString) -> ErrorResult {
+    fn SetCite(&self, _cite: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

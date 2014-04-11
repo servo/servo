@@ -40,40 +40,53 @@ impl HTMLTableSectionElement {
     }
 }
 
-impl HTMLTableSectionElement {
-    pub fn DeleteRow(&mut self, _index: i32) -> ErrorResult {
+pub trait HTMLTableSectionElementMethods {
+    fn DeleteRow(&mut self, _index: i32) -> ErrorResult;
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn Ch(&self) -> DOMString;
+    fn SetCh(&mut self, _ch: DOMString) -> ErrorResult;
+    fn ChOff(&self) -> DOMString;
+    fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult;
+    fn VAlign(&self) -> DOMString;
+    fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
+    fn DeleteRow(&mut self, _index: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Align(&self) -> DOMString {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Ch(&self) -> DOMString {
+    fn Ch(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCh(&mut self, _ch: DOMString) -> ErrorResult {
+    fn SetCh(&mut self, _ch: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ChOff(&self) -> DOMString {
+    fn ChOff(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult {
+    fn SetChOff(&mut self, _ch_off: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn VAlign(&self) -> DOMString {
+    fn VAlign(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult {
+    fn SetVAlign(&mut self, _v_align: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

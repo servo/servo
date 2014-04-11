@@ -41,76 +41,98 @@ impl HTMLFrameElement {
     }
 }
 
-impl HTMLFrameElement {
-    pub fn Name(&self) -> DOMString {
+pub trait HTMLFrameElementMethods {
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn Scrolling(&self) -> DOMString;
+    fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult;
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn FrameBorder(&self) -> DOMString;
+    fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult;
+    fn LongDesc(&self) -> DOMString;
+    fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult;
+    fn NoResize(&self) -> bool;
+    fn SetNoResize(&mut self, _no_resize: bool) -> ErrorResult;
+    fn GetContentDocument(&self) -> Option<Unrooted<Document>>;
+    fn GetContentWindow(&self) -> Option<Unrooted<Window>>;
+    fn MarginHeight(&self) -> DOMString;
+    fn SetMarginHeight(&mut self, _height: DOMString) -> ErrorResult;
+    fn MarginWidth(&self) -> DOMString;
+    fn SetMarginWidth(&mut self, _height: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLFrameElementMethods for JSRef<'a, HTMLFrameElement> {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Scrolling(&self) -> DOMString {
+    fn Scrolling(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult {
+    fn SetScrolling(&mut self, _scrolling: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Src(&self) -> DOMString {
+    fn Src(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FrameBorder(&self) -> DOMString {
+    fn FrameBorder(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult {
+    fn SetFrameBorder(&mut self, _frameborder: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn LongDesc(&self) -> DOMString {
+    fn LongDesc(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
+    fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn NoResize(&self) -> bool {
+    fn NoResize(&self) -> bool {
         false
     }
 
-    pub fn SetNoResize(&mut self, _no_resize: bool) -> ErrorResult {
+    fn SetNoResize(&mut self, _no_resize: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetContentDocument(&self) -> Option<Unrooted<Document>> {
+    fn GetContentDocument(&self) -> Option<Unrooted<Document>> {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<Unrooted<Window>> {
+    fn GetContentWindow(&self) -> Option<Unrooted<Window>> {
         None
     }
 
-    pub fn MarginHeight(&self) -> DOMString {
+    fn MarginHeight(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetMarginHeight(&mut self, _height: DOMString) -> ErrorResult {
+    fn SetMarginHeight(&mut self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn MarginWidth(&self) -> DOMString {
+    fn MarginWidth(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetMarginWidth(&mut self, _height: DOMString) -> ErrorResult {
+    fn SetMarginWidth(&mut self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

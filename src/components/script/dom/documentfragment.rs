@@ -10,7 +10,7 @@ use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{DocumentFragmentNodeTypeId, Node, window_from_node};
-use dom::window::Window;
+use dom::window::{Window, WindowMethods};
 
 #[deriving(Encodable)]
 pub struct DocumentFragment {
@@ -38,20 +38,22 @@ impl DocumentFragment {
         let node = DocumentFragment::new_inherited(document.unrooted());
         Node::reflect_node(~node, document, DocumentFragmentBinding::Wrap)
     }
-}
 
-impl DocumentFragment {
     pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Unrooted<DocumentFragment>> {
         let roots = RootCollection::new();
-        let document = owner.get().Document();
+        let document = owner.Document();
         let document = document.root(&roots);
 
         Ok(DocumentFragment::new(&document.root_ref()))
     }
 }
 
-impl DocumentFragment {
-    pub fn Children(&self, abstract_self: &JSRef<DocumentFragment>) -> Unrooted<HTMLCollection> {
+pub trait DocumentFragmentMethods {
+    fn Children(&self, abstract_self: &JSRef<DocumentFragment>) -> Unrooted<HTMLCollection>;
+}
+
+impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
+    fn Children(&self, abstract_self: &JSRef<DocumentFragment>) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = window_from_node(abstract_self).root(&roots);
         HTMLCollection::children(&window.root_ref(), NodeCast::from_ref(abstract_self))

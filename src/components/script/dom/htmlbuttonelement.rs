@@ -42,119 +42,152 @@ impl HTMLButtonElement {
     }
 }
 
-impl HTMLButtonElement {
-    pub fn Autofocus(&self) -> bool {
+pub trait HTMLButtonElementMethods {
+    fn Autofocus(&self) -> bool;
+    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult;
+    fn Disabled(&self) -> bool;
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>>;
+    fn FormAction(&self) -> DOMString;
+    fn SetFormAction(&mut self, _formaction: DOMString) -> ErrorResult;
+    fn FormEnctype(&self) -> DOMString;
+    fn SetFormEnctype(&mut self, _formenctype: DOMString) -> ErrorResult;
+    fn FormMethod(&self) -> DOMString;
+    fn SetFormMethod(&mut self, _formmethod: DOMString) -> ErrorResult;
+    fn FormNoValidate(&self) -> bool;
+    fn SetFormNoValidate(&mut self, _novalidate: bool) -> ErrorResult;
+    fn FormTarget(&self) -> DOMString;
+    fn SetFormTarget(&mut self, _formtarget: DOMString) -> ErrorResult;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn Value(&self) -> DOMString;
+    fn SetValue(&mut self, _value: DOMString) -> ErrorResult;
+    fn WillValidate(&self) -> bool;
+    fn SetWillValidate(&mut self, _will_validate: bool);
+    fn Validity(&self) -> Unrooted<ValidityState>;
+    fn SetValidity(&mut self, _validity: JS<ValidityState>);
+    fn ValidationMessage(&self) -> DOMString;
+    fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult;
+    fn CheckValidity(&self) -> bool;
+    fn SetCustomValidity(&mut self, _error: DOMString);
+}
+
+impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
+    fn Autofocus(&self) -> bool {
         false
     }
 
-    pub fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
+    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Disabled(&self) -> bool {
+    fn Disabled(&self) -> bool {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
         None
     }
 
-    pub fn FormAction(&self) -> DOMString {
+    fn FormAction(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFormAction(&mut self, _formaction: DOMString) -> ErrorResult {
+    fn SetFormAction(&mut self, _formaction: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FormEnctype(&self) -> DOMString {
+    fn FormEnctype(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFormEnctype(&mut self, _formenctype: DOMString) -> ErrorResult {
+    fn SetFormEnctype(&mut self, _formenctype: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FormMethod(&self) -> DOMString {
+    fn FormMethod(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFormMethod(&mut self, _formmethod: DOMString) -> ErrorResult {
+    fn SetFormMethod(&mut self, _formmethod: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FormNoValidate(&self) -> bool {
+    fn FormNoValidate(&self) -> bool {
         false
     }
 
-    pub fn SetFormNoValidate(&mut self, _novalidate: bool) -> ErrorResult {
+    fn SetFormNoValidate(&mut self, _novalidate: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn FormTarget(&self) -> DOMString {
+    fn FormTarget(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFormTarget(&mut self, _formtarget: DOMString) -> ErrorResult {
+    fn SetFormTarget(&mut self, _formtarget: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Value(&self) -> DOMString {
+    fn Value(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
+    fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn WillValidate(&self) -> bool {
+    fn WillValidate(&self) -> bool {
         false
     }
 
-    pub fn SetWillValidate(&mut self, _will_validate: bool) {
+    fn SetWillValidate(&mut self, _will_validate: bool) {
     }
 
-    pub fn Validity(&self) -> Unrooted<ValidityState> {
+    fn Validity(&self) -> Unrooted<ValidityState> {
         let roots = RootCollection::new();
         let doc = self.htmlelement.element.node.owner_doc().root(&roots);
         ValidityState::new(&*doc.deref().window.root(&roots))
     }
 
-    pub fn SetValidity(&mut self, _validity: JS<ValidityState>) {
+    fn SetValidity(&mut self, _validity: JS<ValidityState>) {
     }
 
-    pub fn ValidationMessage(&self) -> DOMString {
+    fn ValidationMessage(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {
+    fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CheckValidity(&self) -> bool {
+    fn CheckValidity(&self) -> bool {
         true
     }
 
-    pub fn SetCustomValidity(&mut self, _error: DOMString) {
+    fn SetCustomValidity(&mut self, _error: DOMString) {
     }
 }
+

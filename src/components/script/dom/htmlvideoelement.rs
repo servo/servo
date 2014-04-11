@@ -40,36 +40,48 @@ impl HTMLVideoElement {
     }
 }
 
-impl HTMLVideoElement {
-    pub fn Width(&self) -> u32 {
+pub trait HTMLVideoElementMethods {
+    fn Width(&self) -> u32;
+    fn SetWidth(&mut self, _width: u32) -> ErrorResult;
+    fn Height(&self) -> u32;
+    fn SetHeight(&mut self, _height: u32) -> ErrorResult;
+    fn VideoWidth(&self) -> u32;
+    fn VideoHeight(&self) -> u32;
+    fn Poster(&self) -> DOMString;
+    fn SetPoster(&mut self, _poster: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLVideoElementMethods for JSRef<'a, HTMLVideoElement> {
+    fn Width(&self) -> u32 {
         0
     }
 
-    pub fn SetWidth(&mut self, _width: u32) -> ErrorResult {
+    fn SetWidth(&mut self, _width: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> u32 {
+    fn Height(&self) -> u32 {
         0
     }
 
-    pub fn SetHeight(&mut self, _height: u32) -> ErrorResult {
+    fn SetHeight(&mut self, _height: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn VideoWidth(&self) -> u32 {
+    fn VideoWidth(&self) -> u32 {
         0
     }
 
-    pub fn VideoHeight(&self) -> u32 {
+    fn VideoHeight(&self) -> u32 {
         0
     }
 
-    pub fn Poster(&self) -> DOMString {
+    fn Poster(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetPoster(&mut self, _poster: DOMString) -> ErrorResult {
+    fn SetPoster(&mut self, _poster: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

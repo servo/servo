@@ -10,7 +10,7 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{CommentNodeTypeId, Node};
-use dom::window::Window;
+use dom::window::{Window, WindowMethods};
 use servo_util::str::DOMString;
 
 /// An HTML comment.
@@ -42,9 +42,10 @@ impl Comment {
 
     pub fn Constructor(owner: &JSRef<Window>, data: DOMString) -> Fallible<Unrooted<Comment>> {
         let roots = RootCollection::new();
-        let document = owner.get().Document();
-        let document = document.root(&roots);
-
-        Ok(Comment::new(data, &document.root_ref()))
+        let document = owner.Document().root(&roots);
+        Ok(Comment::new(data, &*document))
     }
+}
+
+pub trait CommentMethods {
 }

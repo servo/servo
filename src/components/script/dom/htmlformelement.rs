@@ -41,80 +41,107 @@ impl HTMLFormElement {
     }
 }
 
-impl HTMLFormElement {
-    pub fn AcceptCharset(&self) -> DOMString {
+pub trait HTMLFormElementMethods {
+    fn AcceptCharset(&self) -> DOMString;
+    fn SetAcceptCharset(&mut self, _accept_charset: DOMString) -> ErrorResult;
+    fn Action(&self) -> DOMString;
+    fn SetAction(&mut self, _action: DOMString) -> ErrorResult;
+    fn Autocomplete(&self) -> DOMString;
+    fn SetAutocomplete(&mut self, _autocomplete: DOMString) -> ErrorResult;
+    fn Enctype(&self) -> DOMString;
+    fn SetEnctype(&mut self, _enctype: DOMString) -> ErrorResult;
+    fn Encoding(&self) -> DOMString;
+    fn SetEncoding(&mut self, _encoding: DOMString) -> ErrorResult;
+    fn Method(&self) -> DOMString;
+    fn SetMethod(&mut self, _method: DOMString) -> ErrorResult;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn NoValidate(&self) -> bool;
+    fn SetNoValidate(&mut self, _no_validate: bool) -> ErrorResult;
+    fn Target(&self) -> DOMString;
+    fn SetTarget(&mut self, _target: DOMString) -> ErrorResult;
+    fn Elements(&self) -> Unrooted<HTMLCollection>;
+    fn Length(&self) -> i32;
+    fn Submit(&self) -> ErrorResult;
+    fn Reset(&self);
+    fn CheckValidity(&self) -> bool;
+    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Unrooted<Element>;
+}
+
+impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
+    fn AcceptCharset(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAcceptCharset(&mut self, _accept_charset: DOMString) -> ErrorResult {
+    fn SetAcceptCharset(&mut self, _accept_charset: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Action(&self) -> DOMString {
+    fn Action(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAction(&mut self, _action: DOMString) -> ErrorResult {
+    fn SetAction(&mut self, _action: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Autocomplete(&self) -> DOMString {
+    fn Autocomplete(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAutocomplete(&mut self, _autocomplete: DOMString) -> ErrorResult {
+    fn SetAutocomplete(&mut self, _autocomplete: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Enctype(&self) -> DOMString {
+    fn Enctype(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetEnctype(&mut self, _enctype: DOMString) -> ErrorResult {
+    fn SetEnctype(&mut self, _enctype: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Encoding(&self) -> DOMString {
+    fn Encoding(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetEncoding(&mut self, _encoding: DOMString) -> ErrorResult {
+    fn SetEncoding(&mut self, _encoding: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Method(&self) -> DOMString {
+    fn Method(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetMethod(&mut self, _method: DOMString) -> ErrorResult {
+    fn SetMethod(&mut self, _method: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn NoValidate(&self) -> bool {
+    fn NoValidate(&self) -> bool {
         false
     }
 
-    pub fn SetNoValidate(&mut self, _no_validate: bool) -> ErrorResult {
+    fn SetNoValidate(&mut self, _no_validate: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Target(&self) -> DOMString {
+    fn Target(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetTarget(&mut self, _target: DOMString) -> ErrorResult {
+    fn SetTarget(&mut self, _target: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Elements(&self) -> Unrooted<HTMLCollection> {
+    fn Elements(&self) -> Unrooted<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1844
         let roots = RootCollection::new();
         let doc = self.htmlelement.element.node.owner_doc().root(&roots);
@@ -122,22 +149,23 @@ impl HTMLFormElement {
         HTMLCollection::new(&*window, Static(vec!()))
     }
 
-    pub fn Length(&self) -> i32 {
+    fn Length(&self) -> i32 {
         0
     }
 
-    pub fn Submit(&self) -> ErrorResult {
+    fn Submit(&self) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Reset(&self) {
+    fn Reset(&self) {
     }
 
-    pub fn CheckValidity(&self) -> bool {
+    fn CheckValidity(&self) -> bool {
         false
     }
 
-    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Unrooted<Element> {
+    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Unrooted<Element> {
         fail!("Not implemented.")
     }
 }
+

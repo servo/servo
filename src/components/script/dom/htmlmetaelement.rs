@@ -40,36 +40,48 @@ impl HTMLMetaElement {
     }
 }
 
-impl HTMLMetaElement {
-    pub fn Name(&self) -> DOMString {
+pub trait HTMLMetaElementMethods {
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn HttpEquiv(&self) -> DOMString;
+    fn SetHttpEquiv(&mut self, _http_equiv: DOMString) -> ErrorResult;
+    fn Content(&self) -> DOMString;
+    fn SetContent(&mut self, _content: DOMString) -> ErrorResult;
+    fn Scheme(&self) -> DOMString;
+    fn SetScheme(&mut self, _scheme: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn HttpEquiv(&self) -> DOMString {
+    fn HttpEquiv(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHttpEquiv(&mut self, _http_equiv: DOMString) -> ErrorResult {
+    fn SetHttpEquiv(&mut self, _http_equiv: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Content(&self) -> DOMString {
+    fn Content(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetContent(&mut self, _content: DOMString) -> ErrorResult {
+    fn SetContent(&mut self, _content: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Scheme(&self) -> DOMString {
+    fn Scheme(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetScheme(&mut self, _scheme: DOMString) -> ErrorResult {
+    fn SetScheme(&mut self, _scheme: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

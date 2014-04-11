@@ -40,12 +40,18 @@ impl HTMLPreElement {
     }
 }
 
-impl HTMLPreElement {
-    pub fn Width(&self) -> i32 {
+pub trait HTMLPreElementMethods {
+    fn Width(&self) -> i32;
+    fn SetWidth(&mut self, _width: i32) -> ErrorResult;
+}
+
+impl<'a> HTMLPreElementMethods for JSRef<'a, HTMLPreElement> {
+    fn Width(&self) -> i32 {
         0
     }
 
-    pub fn SetWidth(&mut self, _width: i32) -> ErrorResult {
+    fn SetWidth(&mut self, _width: i32) -> ErrorResult {
         Ok(())
     }
 }
+

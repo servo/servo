@@ -40,20 +40,28 @@ impl HTMLUListElement {
     }
 }
 
-impl HTMLUListElement {
-    pub fn Compact(&self) -> bool {
+pub trait HTMLUListElementMethods {
+    fn Compact(&self) -> bool;
+    fn SetCompact(&mut self, _compact: bool) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLUListElementMethods for JSRef<'a, HTMLUListElement> {
+    fn Compact(&self) -> bool {
         false
     }
 
-    pub fn SetCompact(&mut self, _compact: bool) -> ErrorResult {
+    fn SetCompact(&mut self, _compact: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

@@ -33,11 +33,17 @@ impl DOMParser {
     pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Unrooted<DOMParser>> {
         Ok(DOMParser::new(owner))
     }
+}
 
-    pub fn ParseFromString(&self,
-                           _s: DOMString,
-                           ty: DOMParserBinding::SupportedType)
-                           -> Fallible<Unrooted<Document>> {
+pub trait DOMParserMethods {
+    fn ParseFromString(&self, _s: DOMString, ty: DOMParserBinding::SupportedType) -> Fallible<Unrooted<Document>>;
+}
+
+impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
+    fn ParseFromString(&self,
+                       _s: DOMString,
+                       ty: DOMParserBinding::SupportedType)
+                       -> Fallible<Unrooted<Document>> {
         let roots = RootCollection::new();
         let owner = self.owner.root(&roots);
         match ty {

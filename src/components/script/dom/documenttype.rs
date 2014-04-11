@@ -55,16 +55,23 @@ impl DocumentType {
     }
 }
 
-impl DocumentType {
-    pub fn Name(&self) -> DOMString {
+pub trait DocumentTypeMethods {
+    fn Name(&self) -> DOMString;
+    fn PublicId(&self) -> DOMString;
+    fn SystemId(&self) -> DOMString;
+}
+
+impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
+    fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
-    pub fn PublicId(&self) -> DOMString {
+    fn PublicId(&self) -> DOMString {
         self.public_id.clone()
     }
 
-    pub fn SystemId(&self) -> DOMString {
+    fn SystemId(&self) -> DOMString {
         self.system_id.clone()
     }
 }
+

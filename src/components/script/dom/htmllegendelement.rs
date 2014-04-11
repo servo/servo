@@ -40,12 +40,18 @@ impl HTMLLegendElement {
     }
 }
 
-impl HTMLLegendElement {
-    pub fn Align(&self) -> DOMString {
+pub trait HTMLLegendElementMethods {
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLLegendElementMethods for JSRef<'a, HTMLLegendElement> {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

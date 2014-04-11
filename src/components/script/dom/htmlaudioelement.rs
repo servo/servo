@@ -38,3 +38,6 @@ impl HTMLAudioElement {
         Node::reflect_node(~element, document, HTMLAudioElementBinding::Wrap)
     }
 }
+
+pub trait HTMLAudioElementMethods {
+}

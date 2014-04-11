@@ -28,28 +28,35 @@ impl Blob {
                            window,
                            BlobBinding::Wrap)
     }
-}
 
-impl Blob {
     pub fn Constructor(window: &JSRef<Window>) -> Fallible<Unrooted<Blob>> {
         Ok(Blob::new(window))
     }
+}
 
-    pub fn Size(&self) -> u64 {
+pub trait BlobMethods {
+    fn Size(&self) -> u64;
+    fn Type(&self) -> DOMString;
+    fn Slice(&self, _start: Option<i64>, _end: Option<i64>, _contentType: Option<DOMString>) -> Unrooted<Blob>;
+    fn Close(&self);
+}
+
+impl<'a> BlobMethods for JSRef<'a, Blob> {
+    fn Size(&self) -> u64 {
         0
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn Slice(&self, _start: Option<i64>, _end: Option<i64>, _contentType: Option<DOMString>) -> Unrooted<Blob> {
+    fn Slice(&self, _start: Option<i64>, _end: Option<i64>, _contentType: Option<DOMString>) -> Unrooted<Blob> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
         Blob::new(&window.root_ref())
     }
 
-    pub fn Close(&self) {}
+    fn Close(&self) {}
 }
 
 impl Reflectable for Blob {

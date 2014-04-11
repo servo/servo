@@ -40,28 +40,38 @@ impl HTMLFontElement {
     }
 }
 
-impl HTMLFontElement {
-    pub fn Color(&self) -> DOMString {
+pub trait HTMLFontElementMethods {
+    fn Color(&self) -> DOMString;
+    fn SetColor(&mut self, _color: DOMString) -> ErrorResult;
+    fn Face(&self) -> DOMString;
+    fn SetFace(&mut self, _face: DOMString) -> ErrorResult;
+    fn Size(&self) -> DOMString;
+    fn SetSize(&mut self, _size: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
+    fn Color(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetColor(&mut self, _color: DOMString) -> ErrorResult {
+    fn SetColor(&mut self, _color: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Face(&self) -> DOMString {
+    fn Face(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetFace(&mut self, _face: DOMString) -> ErrorResult {
+    fn SetFace(&mut self, _face: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Size(&self) -> DOMString {
+    fn Size(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSize(&mut self, _size: DOMString) -> ErrorResult {
+    fn SetSize(&mut self, _size: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

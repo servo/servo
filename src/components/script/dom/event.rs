@@ -86,54 +86,81 @@ impl Event {
                            EventBinding::Wrap)
     }
 
-    pub fn EventPhase(&self) -> u16 {
+    pub fn Constructor(global: &JSRef<Window>,
+                       type_: DOMString,
+                       init: &EventBinding::EventInit) -> Fallible<Unrooted<Event>> {
+        let roots = RootCollection::new();
+        let mut ev = Event::new(global).root(&roots);
+        ev.InitEvent(type_, init.bubbles, init.cancelable);
+        Ok(Unrooted::new_rooted(&*ev))
+    }
+}
+
+pub trait EventMethods {
+    fn EventPhase(&self) -> u16;
+    fn Type(&self) -> DOMString;
+    fn GetTarget(&self) -> Option<Unrooted<EventTarget>>;
+    fn GetCurrentTarget(&self) -> Option<Unrooted<EventTarget>>;
+    fn DefaultPrevented(&self) -> bool;
+    fn PreventDefault(&mut self);
+    fn StopPropagation(&mut self);
+    fn StopImmediatePropagation(&mut self);
+    fn Bubbles(&self) -> bool;
+    fn Cancelable(&self) -> bool;
+    fn TimeStamp(&self) -> u64;
+    fn InitEvent(&mut self, type_: DOMString, bubbles: bool, cancelable: bool);
+    fn IsTrusted(&self) -> bool;
+}
+
+impl<'a> EventMethods for JSRef<'a, Event> {
+    fn EventPhase(&self) -> u16 {
         self.phase as u16
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         self.type_.clone()
     }
 
-    pub fn GetTarget(&self) -> Option<Unrooted<EventTarget>> {
+    fn GetTarget(&self) -> Option<Unrooted<EventTarget>> {
         self.target.as_ref().map(|target| Unrooted::new(target.clone()))
     }
 
-    pub fn GetCurrentTarget(&self) -> Option<Unrooted<EventTarget>> {
+    fn GetCurrentTarget(&self) -> Option<Unrooted<EventTarget>> {
         self.current_target.as_ref().map(|target| Unrooted::new(target.clone()))
     }
 
-    pub fn DefaultPrevented(&self) -> bool {
+    fn DefaultPrevented(&self) -> bool {
         self.canceled
     }
 
-    pub fn PreventDefault(&mut self) {
+    fn PreventDefault(&mut self) {
         if self.cancelable {
             self.canceled = true
         }
     }
 
-    pub fn StopPropagation(&mut self) {
+    fn StopPropagation(&mut self) {
         self.stop_propagation = true;
     }
 
-    pub fn StopImmediatePropagation(&mut self) {
+    fn StopImmediatePropagation(&mut self) {
         self.stop_immediate = true;
         self.stop_propagation = true;
     }
 
-    pub fn Bubbles(&self) -> bool {
+    fn Bubbles(&self) -> bool {
         self.bubbles
     }
 
-    pub fn Cancelable(&self) -> bool {
+    fn Cancelable(&self) -> bool {
         self.cancelable
     }
 
-    pub fn TimeStamp(&self) -> u64 {
+    fn TimeStamp(&self) -> u64 {
         self.timestamp
     }
 
-    pub fn InitEvent(&mut self,
+    fn InitEvent(&mut self,
                      type_: DOMString,
                      bubbles: bool,
                      cancelable: bool) {
@@ -151,17 +178,8 @@ impl Event {
         self.cancelable = cancelable;
     }
 
-    pub fn IsTrusted(&self) -> bool {
+    fn IsTrusted(&self) -> bool {
         self.trusted
-    }
-
-    pub fn Constructor(global: &JSRef<Window>,
-                       type_: DOMString,
-                       init: &EventBinding::EventInit) -> Fallible<Unrooted<Event>> {
-        let roots = RootCollection::new();
-        let mut ev = Event::new(global).root(&roots);
-        ev.InitEvent(type_, init.bubbles, init.cancelable);
-        Ok(Unrooted::new_rooted(&*ev))
     }
 }
 

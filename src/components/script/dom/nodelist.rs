@@ -44,8 +44,16 @@ impl NodeList {
     pub fn new_child_list(window: &JSRef<Window>, node: &JSRef<Node>) -> Unrooted<NodeList> {
         NodeList::new(window, Children(node.unrooted()))
     }
+}
 
-    pub fn Length(&self) -> u32 {
+pub trait NodeListMethods {
+    fn Length(&self) -> u32;
+    fn Item(&self, index: u32) -> Option<Unrooted<Node>>;
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Node>>;
+}
+
+impl<'a> NodeListMethods for JSRef<'a, NodeList> {
+    fn Length(&self) -> u32 {
         let roots = RootCollection::new();
         match self.list_type {
             Simple(ref elems) => elems.len() as u32,
@@ -56,7 +64,7 @@ impl NodeList {
         }
     }
 
-    pub fn Item(&self, index: u32) -> Option<Unrooted<Node>> {
+    fn Item(&self, index: u32) -> Option<Unrooted<Node>> {
         let roots = RootCollection::new();
         match self.list_type {
             _ if index >= self.Length() => None,
@@ -69,7 +77,7 @@ impl NodeList {
         }
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Node>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Node>> {
         let item = self.Item(index);
         *found = item.is_some();
         item

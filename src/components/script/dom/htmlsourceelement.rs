@@ -40,28 +40,38 @@ impl HTMLSourceElement {
     }
 }
 
-impl HTMLSourceElement {
-    pub fn Src(&self) -> DOMString {
+pub trait HTMLSourceElementMethods {
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn Media(&self) -> DOMString;
+    fn SetMedia(&mut self, _media: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLSourceElementMethods for JSRef<'a, HTMLSourceElement> {
+    fn Src(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Media(&self) -> DOMString {
+    fn Media(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetMedia(&mut self, _media: DOMString) -> ErrorResult {
+    fn SetMedia(&mut self, _media: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

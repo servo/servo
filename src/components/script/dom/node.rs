@@ -16,15 +16,15 @@ use dom::bindings::js::{ResultRootable, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::bindings::utils;
-use dom::characterdata::CharacterData;
+use dom::characterdata::{CharacterData, CharacterDataMethods};
 use dom::comment::Comment;
-use dom::document::{Document, HTMLDocument, NonHTMLDocument};
+use dom::document::{Document, DocumentMethods, HTMLDocument, NonHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementTypeId, HTMLAnchorElementTypeId};
+use dom::element::{Element, ElementMethods, ElementTypeId, HTMLAnchorElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::nodelist::{NodeList};
-use dom::processinginstruction::ProcessingInstruction;
+use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionMethods};
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
@@ -226,17 +226,17 @@ pub enum NodeTypeId {
 
 pub fn AppendChild<'a>(self_: &mut JSRef<'a, Node>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
     let mut self_alias = self_.clone();
-    self_.get_mut().AppendChild(&mut self_alias, node)
+    self_.AppendChild(&mut self_alias, node)
 }
 
 pub fn ReplaceChild<'a>(self_: &mut JSRef<'a, Node>, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
     let mut self_alias = self_.clone();
-    self_.get_mut().ReplaceChild(&mut self_alias, node, child)
+    self_.ReplaceChild(&mut self_alias, node, child)
 }
 
 pub fn RemoveChild<'a>(self_: &mut JSRef<'a, Node>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
     let mut self_alias = self_.clone();
-    self_.get_mut().RemoveChild(&mut self_alias, node)
+    self_.RemoveChild(&mut self_alias, node)
 }
 
 pub trait NodeHelpers {
@@ -839,6 +839,12 @@ impl Node {
             })
     }
 
+    pub fn wait_until_safe_to_modify_dom(&self) {
+        let roots = RootCollection::new();
+        let document = self.owner_doc().root(&roots);
+        document.get().wait_until_safe_to_modify_dom();
+    }
+
     pub fn reflect_node<N: Reflectable+NodeBase>
             (node:      ~N,
              document:  &JSRef<Document>,
@@ -895,211 +901,6 @@ impl Node {
                 },
             }
         }
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-nodetype
-    pub fn NodeType(&self) -> u16 {
-        match self.type_id {
-            ElementNodeTypeId(_)            => NodeConstants::ELEMENT_NODE,
-            TextNodeTypeId                  => NodeConstants::TEXT_NODE,
-            ProcessingInstructionNodeTypeId => NodeConstants::PROCESSING_INSTRUCTION_NODE,
-            CommentNodeTypeId               => NodeConstants::COMMENT_NODE,
-            DocumentNodeTypeId              => NodeConstants::DOCUMENT_NODE,
-            DoctypeNodeTypeId               => NodeConstants::DOCUMENT_TYPE_NODE,
-            DocumentFragmentNodeTypeId      => NodeConstants::DOCUMENT_FRAGMENT_NODE,
-        }
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-nodename
-    pub fn NodeName(&self, abstract_self: &JSRef<Node>) -> DOMString {
-        match self.type_id {
-            ElementNodeTypeId(..) => {
-                let elem: &JSRef<Element> = ElementCast::to_ref(abstract_self).unwrap();
-                elem.get().TagName()
-            }
-            TextNodeTypeId => ~"#text",
-            ProcessingInstructionNodeTypeId => {
-                let processing_instruction: &JSRef<ProcessingInstruction> =
-                    ProcessingInstructionCast::to_ref(abstract_self).unwrap();
-                processing_instruction.get().Target()
-            }
-            CommentNodeTypeId => ~"#comment",
-            DoctypeNodeTypeId => {
-                let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(abstract_self).unwrap();
-                doctype.get().name.clone()
-            },
-            DocumentFragmentNodeTypeId => ~"#document-fragment",
-            DocumentNodeTypeId => ~"#document"
-        }
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-baseuri
-    pub fn GetBaseURI(&self) -> Option<DOMString> {
-        // FIXME (#1824) implement.
-        None
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-ownerdocument
-    pub fn GetOwnerDocument(&self) -> Option<Unrooted<Document>> {
-        match self.type_id {
-            ElementNodeTypeId(..) |
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId |
-            DoctypeNodeTypeId |
-            DocumentFragmentNodeTypeId => Some(self.owner_doc()),
-            DocumentNodeTypeId => None
-        }
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-parentnode
-    pub fn GetParentNode(&self) -> Option<Unrooted<Node>> {
-        self.parent_node.clone().map(|node| Unrooted::new(node))
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-parentelement
-    pub fn GetParentElement(&self) -> Option<Unrooted<Element>> {
-        let roots = RootCollection::new();
-        self.parent_node.clone()
-                        .and_then(|parent| {
-                            let parent = parent.root(&roots);
-                            ElementCast::to_ref(&*parent).map(|elem| {
-                                Unrooted::new_rooted(elem)
-                            })
-                        })
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-haschildnodes
-    pub fn HasChildNodes(&self) -> bool {
-        self.first_child.is_some()
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-childnodes
-    pub fn ChildNodes(&mut self, abstract_self: &JSRef<Node>) -> Unrooted<NodeList> {
-        let roots = RootCollection::new();
-        match self.child_list {
-            None => {
-                let doc = self.owner_doc().root(&roots);
-                let window = doc.deref().window.root(&roots);
-                self.child_list.assign(Some(NodeList::new_child_list(&*window, abstract_self)));
-                Unrooted::new(self.child_list.get_ref().clone())
-            }
-            Some(ref list) => Unrooted::new(list.clone())
-        }
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-firstchild
-    pub fn GetFirstChild(&self) -> Option<Unrooted<Node>> {
-        self.first_child.clone().map(|node| Unrooted::new(node))
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-lastchild
-    pub fn GetLastChild(&self) -> Option<Unrooted<Node>> {
-        self.last_child.clone().map(|node| Unrooted::new(node))
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-previoussibling
-    pub fn GetPreviousSibling(&self) -> Option<Unrooted<Node>> {
-        self.prev_sibling.clone().map(|node| Unrooted::new(node))
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-nextsibling
-    pub fn GetNextSibling(&self) -> Option<Unrooted<Node>> {
-        self.next_sibling.clone().map(|node| Unrooted::new(node))
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-nodevalue
-    pub fn GetNodeValue(&self, abstract_self: &JSRef<Node>) -> Option<DOMString> {
-        match self.type_id {
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId => {
-                let chardata: &JSRef<CharacterData> = CharacterDataCast::to_ref(abstract_self).unwrap();
-                Some(chardata.get().Data())
-            }
-            _ => {
-                None
-            }
-        }
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-nodevalue
-    pub fn SetNodeValue(&mut self, abstract_self: &mut JSRef<Node>, val: Option<DOMString>)
-                        -> ErrorResult {
-        match self.type_id {
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId => {
-                self.SetTextContent(abstract_self, val)
-            }
-            _ => Ok(())
-        }
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-textcontent
-    pub fn GetTextContent(&self, abstract_self: &JSRef<Node>) -> Option<DOMString> {
-        let roots = RootCollection::new();
-        match self.type_id {
-            DocumentFragmentNodeTypeId |
-            ElementNodeTypeId(..) => {
-                let mut content = ~"";
-                for node in abstract_self.traverse_preorder(&roots) {
-                    if node.is_text() {
-                        let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();
-                        content.push_str(text.get().characterdata.data.as_slice());
-                    }
-                }
-                Some(content)
-            }
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId => {
-                let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(abstract_self).unwrap();
-                Some(characterdata.get().Data())
-            }
-            DoctypeNodeTypeId |
-            DocumentNodeTypeId => {
-                None
-            }
-        }
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-textcontent
-    pub fn SetTextContent(&mut self, abstract_self: &mut JSRef<Node>, value: Option<DOMString>)
-                          -> ErrorResult {
-        let roots = RootCollection::new();
-        let value = null_str_as_empty(&value);
-        match self.type_id {
-            DocumentFragmentNodeTypeId |
-            ElementNodeTypeId(..) => {
-                // Step 1-2.
-                let node = if value.len() == 0 {
-                    None
-                } else {
-                    let document = self.owner_doc();
-                    let document = document.root(&roots);
-                    Some(NodeCast::from_unrooted(document.deref().CreateTextNode(&*document, value)))
-                }.root(&roots);
-                
-                // Step 3.
-                Node::replace_all(node.root_ref(), abstract_self);
-            }
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId => {
-                self.wait_until_safe_to_modify_dom();
-
-                let characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(abstract_self).unwrap();
-                characterdata.get_mut().data = value.clone();
-
-                // Notify the document that the content of this node is different
-                let document = self.owner_doc().root(&roots);
-                document.get().content_changed();
-            }
-            DoctypeNodeTypeId |
-            DocumentNodeTypeId => {}
-        }
-        Ok(())
     }
 
     // http://dom.spec.whatwg.org/#concept-node-adopt
@@ -1505,26 +1306,334 @@ impl Node {
         Unrooted::new_rooted(&*copy)
     }
 
+    //
+    // Low-level pointer stitching
+    //
+
+    pub fn set_parent_node(&mut self, new_parent_node: Option<JSRef<Node>>) {
+        let roots = RootCollection::new();
+        let doc = self.owner_doc().root(&roots);
+        doc.get().wait_until_safe_to_modify_dom();
+        self.parent_node.assign(new_parent_node);
+    }
+
+    pub fn set_first_child(&mut self, new_first_child: Option<JSRef<Node>>) {
+        let roots = RootCollection::new();
+        let doc = self.owner_doc().root(&roots);
+        doc.get().wait_until_safe_to_modify_dom();
+        self.first_child.assign(new_first_child);
+    }
+
+    pub fn set_last_child(&mut self, new_last_child: Option<JSRef<Node>>) {
+        let roots = RootCollection::new();
+        let doc = self.owner_doc().root(&roots);
+        doc.get().wait_until_safe_to_modify_dom();
+        self.last_child.assign(new_last_child);
+    }
+
+    pub fn set_prev_sibling(&mut self, new_prev_sibling: Option<JSRef<Node>>) {
+        let roots = RootCollection::new();
+        let doc = self.owner_doc().root(&roots);
+        doc.get().wait_until_safe_to_modify_dom();
+        self.prev_sibling.assign(new_prev_sibling);
+    }
+
+    pub fn set_next_sibling(&mut self, new_next_sibling: Option<JSRef<Node>>) {
+        let roots = RootCollection::new();
+        let doc = self.owner_doc().root(&roots);
+        doc.get().wait_until_safe_to_modify_dom();
+        self.next_sibling.assign(new_next_sibling);
+    }
+
+    pub fn get_hover_state(&self) -> bool {
+        self.flags.get_in_hover_state()
+    }
+
+    pub fn set_hover_state(&mut self, state: bool) {
+        self.flags.set_is_in_hover_state(state);
+    }
+
+    #[inline]
+    pub fn parent_node_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        self.parent_node.as_ref()
+    }
+
+    #[inline]
+    pub fn first_child_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        self.first_child.as_ref()
+    }
+
+    #[inline]
+    pub fn last_child_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        self.last_child.as_ref()
+    }
+
+    #[inline]
+    pub fn prev_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        self.prev_sibling.as_ref()
+    }
+
+    #[inline]
+    pub fn next_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        self.next_sibling.as_ref()
+    }
+
+    pub unsafe fn get_hover_state_for_layout(&self) -> bool {
+        let unsafe_this: *Node = cast::transmute::<&Node,*Node>(self);
+        (*unsafe_this).flags.get_in_hover_state()
+    }
+}
+
+pub trait NodeMethods {
+    fn NodeType(&self) -> u16;
+    fn NodeName(&self, abstract_self: &JSRef<Node>) -> DOMString;
+    fn GetBaseURI(&self) -> Option<DOMString>;
+    fn GetOwnerDocument(&self) -> Option<Unrooted<Document>>;
+    fn GetParentNode(&self) -> Option<Unrooted<Node>>;
+    fn GetParentElement(&self) -> Option<Unrooted<Element>>;
+    fn HasChildNodes(&self) -> bool;
+    fn ChildNodes(&mut self, abstract_self: &JSRef<Node>) -> Unrooted<NodeList>;
+    fn GetFirstChild(&self) -> Option<Unrooted<Node>>;
+    fn GetLastChild(&self) -> Option<Unrooted<Node>>;
+    fn GetPreviousSibling(&self) -> Option<Unrooted<Node>>;
+    fn GetNextSibling(&self) -> Option<Unrooted<Node>>;
+    fn GetNodeValue(&self, abstract_self: &JSRef<Node>) -> Option<DOMString>;
+    fn SetNodeValue(&mut self, abstract_self: &mut JSRef<Node>, val: Option<DOMString>) -> ErrorResult;
+    fn GetTextContent(&self, abstract_self: &JSRef<Node>) -> Option<DOMString>;
+    fn SetTextContent(&mut self, abstract_self: &mut JSRef<Node>, value: Option<DOMString>) -> ErrorResult;
+    fn InsertBefore(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Unrooted<Node>>;
+    fn AppendChild(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
+    fn ReplaceChild(&self, parent: &mut JSRef<Node>, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
+    fn RemoveChild(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
+    fn Normalize(&mut self, abstract_self: &mut JSRef<Node>);
+    fn CloneNode(&self, abstract_self: &mut JSRef<Node>, deep: bool) -> Unrooted<Node>;
+    fn IsEqualNode(&self, abstract_self: &JSRef<Node>, maybe_node: Option<JSRef<Node>>) -> bool;
+    fn CompareDocumentPosition(&self, abstract_self: &JSRef<Node>, other: &JSRef<Node>) -> u16;
+    fn Contains(&self, abstract_self: &JSRef<Node>, maybe_other: Option<JSRef<Node>>) -> bool;
+    fn LookupPrefix(&self, _prefix: Option<DOMString>) -> Option<DOMString>;
+    fn LookupNamespaceURI(&self, _namespace: Option<DOMString>) -> Option<DOMString>;
+    fn IsDefaultNamespace(&self, _namespace: Option<DOMString>) -> bool;
+}
+
+impl<'a> NodeMethods for JSRef<'a, Node> {
+    // http://dom.spec.whatwg.org/#dom-node-nodetype
+    fn NodeType(&self) -> u16 {
+        match self.type_id {
+            ElementNodeTypeId(_)            => NodeConstants::ELEMENT_NODE,
+            TextNodeTypeId                  => NodeConstants::TEXT_NODE,
+            ProcessingInstructionNodeTypeId => NodeConstants::PROCESSING_INSTRUCTION_NODE,
+            CommentNodeTypeId               => NodeConstants::COMMENT_NODE,
+            DocumentNodeTypeId              => NodeConstants::DOCUMENT_NODE,
+            DoctypeNodeTypeId               => NodeConstants::DOCUMENT_TYPE_NODE,
+            DocumentFragmentNodeTypeId      => NodeConstants::DOCUMENT_FRAGMENT_NODE,
+        }
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-nodename
+    fn NodeName(&self, abstract_self: &JSRef<Node>) -> DOMString {
+        match self.type_id {
+            ElementNodeTypeId(..) => {
+                let elem: &JSRef<Element> = ElementCast::to_ref(abstract_self).unwrap();
+                elem.TagName()
+            }
+            TextNodeTypeId => ~"#text",
+            ProcessingInstructionNodeTypeId => {
+                let processing_instruction: &JSRef<ProcessingInstruction> =
+                    ProcessingInstructionCast::to_ref(abstract_self).unwrap();
+                processing_instruction.Target()
+            }
+            CommentNodeTypeId => ~"#comment",
+            DoctypeNodeTypeId => {
+                let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(abstract_self).unwrap();
+                doctype.get().name.clone()
+            },
+            DocumentFragmentNodeTypeId => ~"#document-fragment",
+            DocumentNodeTypeId => ~"#document"
+        }
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-baseuri
+    fn GetBaseURI(&self) -> Option<DOMString> {
+        // FIXME (#1824) implement.
+        None
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-ownerdocument
+    fn GetOwnerDocument(&self) -> Option<Unrooted<Document>> {
+        match self.type_id {
+            ElementNodeTypeId(..) |
+            CommentNodeTypeId |
+            TextNodeTypeId |
+            ProcessingInstructionNodeTypeId |
+            DoctypeNodeTypeId |
+            DocumentFragmentNodeTypeId => Some(self.owner_doc()),
+            DocumentNodeTypeId => None
+        }
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-parentnode
+    fn GetParentNode(&self) -> Option<Unrooted<Node>> {
+        self.parent_node.clone().map(|node| Unrooted::new(node))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-parentelement
+    fn GetParentElement(&self) -> Option<Unrooted<Element>> {
+        let roots = RootCollection::new();
+        self.parent_node.clone()
+                        .and_then(|parent| {
+                            let parent = parent.root(&roots);
+                            ElementCast::to_ref(&*parent).map(|elem| {
+                                Unrooted::new_rooted(elem)
+                            })
+                        })
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-haschildnodes
+    fn HasChildNodes(&self) -> bool {
+        self.first_child.is_some()
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-childnodes
+    fn ChildNodes(&mut self, abstract_self: &JSRef<Node>) -> Unrooted<NodeList> {
+        let roots = RootCollection::new();
+        match self.child_list {
+            None => (),
+            Some(ref list) => return Unrooted::new(list.clone()),
+        }
+
+        let doc = self.deref().owner_doc().root(&roots);
+        let window = doc.deref().window.root(&roots);
+        self.child_list.assign(Some(NodeList::new_child_list(&*window, abstract_self)));
+        Unrooted::new(self.child_list.get_ref().clone())
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-firstchild
+    fn GetFirstChild(&self) -> Option<Unrooted<Node>> {
+        self.first_child.clone().map(|node| Unrooted::new(node))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-lastchild
+    fn GetLastChild(&self) -> Option<Unrooted<Node>> {
+        self.last_child.clone().map(|node| Unrooted::new(node))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-previoussibling
+    fn GetPreviousSibling(&self) -> Option<Unrooted<Node>> {
+        self.prev_sibling.clone().map(|node| Unrooted::new(node))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-nextsibling
+    fn GetNextSibling(&self) -> Option<Unrooted<Node>> {
+        self.next_sibling.clone().map(|node| Unrooted::new(node))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-nodevalue
+    fn GetNodeValue(&self, abstract_self: &JSRef<Node>) -> Option<DOMString> {
+        match self.type_id {
+            CommentNodeTypeId |
+            TextNodeTypeId |
+            ProcessingInstructionNodeTypeId => {
+                let chardata: &JSRef<CharacterData> = CharacterDataCast::to_ref(abstract_self).unwrap();
+                Some(chardata.Data())
+            }
+            _ => {
+                None
+            }
+        }
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-nodevalue
+    fn SetNodeValue(&mut self, abstract_self: &mut JSRef<Node>, val: Option<DOMString>)
+                        -> ErrorResult {
+        match self.type_id {
+            CommentNodeTypeId |
+            TextNodeTypeId |
+            ProcessingInstructionNodeTypeId => {
+                self.SetTextContent(abstract_self, val)
+            }
+            _ => Ok(())
+        }
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-textcontent
+    fn GetTextContent(&self, abstract_self: &JSRef<Node>) -> Option<DOMString> {
+        let roots = RootCollection::new();
+        match self.type_id {
+            DocumentFragmentNodeTypeId |
+            ElementNodeTypeId(..) => {
+                let mut content = ~"";
+                for node in abstract_self.traverse_preorder(&roots) {
+                    if node.is_text() {
+                        let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();
+                        content.push_str(text.get().characterdata.data.as_slice());
+                    }
+                }
+                Some(content)
+            }
+            CommentNodeTypeId |
+            TextNodeTypeId |
+            ProcessingInstructionNodeTypeId => {
+                let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(abstract_self).unwrap();
+                Some(characterdata.Data())
+            }
+            DoctypeNodeTypeId |
+            DocumentNodeTypeId => {
+                None
+            }
+        }
+    }
+
+    // http://dom.spec.whatwg.org/#dom-node-textcontent
+    fn SetTextContent(&mut self, abstract_self: &mut JSRef<Node>, value: Option<DOMString>)
+                          -> ErrorResult {
+        let roots = RootCollection::new();
+        let value = null_str_as_empty(&value);
+        match self.type_id {
+            DocumentFragmentNodeTypeId |
+            ElementNodeTypeId(..) => {
+                // Step 1-2.
+                let node = if value.len() == 0 {
+                    None
+                } else {
+                    let document = self.owner_doc().root(&roots);
+                    Some(NodeCast::from_unrooted(document.deref().CreateTextNode(&*document, value)))
+                }.root(&roots);
+                
+                // Step 3.
+                Node::replace_all(node.root_ref(), abstract_self);
+            }
+            CommentNodeTypeId |
+            TextNodeTypeId |
+            ProcessingInstructionNodeTypeId => {
+                self.wait_until_safe_to_modify_dom();
+
+                let characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(abstract_self).unwrap();
+                characterdata.get_mut().data = value.clone();
+
+                // Notify the document that the content of this node is different
+                let document = self.owner_doc().root(&roots);
+                document.get().content_changed();
+            }
+            DoctypeNodeTypeId |
+            DocumentNodeTypeId => {}
+        }
+        Ok(())
+    }
+
     // http://dom.spec.whatwg.org/#dom-node-insertbefore
-    pub fn InsertBefore(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>, child: Option<JSRef<Node>>)
+    fn InsertBefore(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>, child: Option<JSRef<Node>>)
                         -> Fallible<Unrooted<Node>> {
         Node::pre_insert(node, abstract_self, child)
     }
 
-    pub fn wait_until_safe_to_modify_dom(&self) {
-        let roots = RootCollection::new();
-        let document = self.owner_doc().root(&roots);
-        document.get().wait_until_safe_to_modify_dom();
-    }
-
     // http://dom.spec.whatwg.org/#dom-node-appendchild
-    pub fn AppendChild(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>)
+    fn AppendChild(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>)
                        -> Fallible<Unrooted<Node>> {
         Node::pre_insert(node, abstract_self, None)
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace
-    pub fn ReplaceChild(&self, parent: &mut JSRef<Node>, node: &mut JSRef<Node>, child: &mut JSRef<Node>)
+    fn ReplaceChild(&self, parent: &mut JSRef<Node>, node: &mut JSRef<Node>, child: &mut JSRef<Node>)
                         -> Fallible<Unrooted<Node>> {
         let roots = RootCollection::new();
 
@@ -1655,26 +1764,26 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-removechild
-    pub fn RemoveChild(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>)
+    fn RemoveChild(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>)
                        -> Fallible<Unrooted<Node>> {
         Node::pre_remove(node, abstract_self)
     }
 
     // http://dom.spec.whatwg.org/#dom-node-normalize
-    pub fn Normalize(&mut self, abstract_self: &mut JSRef<Node>) {
+    fn Normalize(&mut self, abstract_self: &mut JSRef<Node>) {
         let roots = RootCollection::new();
         let mut prev_text = None;
         for mut child in self.children() {
             if child.is_text() {
                 let mut child_alias = child.clone();
                 let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(&child).unwrap();
-                if characterdata.get().Length() == 0 {
+                if characterdata.Length() == 0 {
                     abstract_self.remove_child(&mut child_alias);
                 } else {
                     match prev_text {
                         Some(ref mut text_node) => {
                             let prev_characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(text_node).unwrap();
-                            let _ = prev_characterdata.get_mut().AppendData(characterdata.get().Data());
+                            let _ = prev_characterdata.AppendData(characterdata.Data());
                             abstract_self.remove_child(&mut child_alias);
                         },
                         None => prev_text = Some(child_alias)
@@ -1682,7 +1791,7 @@ impl Node {
                 }
             } else {
                 let mut c = child.clone();
-                child.get_mut().Normalize(&mut c);
+                child.Normalize(&mut c);
                 prev_text = None;
             }
 
@@ -1690,7 +1799,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-clonenode
-    pub fn CloneNode(&self, abstract_self: &mut JSRef<Node>, deep: bool) -> Unrooted<Node> {
+    fn CloneNode(&self, abstract_self: &mut JSRef<Node>, deep: bool) -> Unrooted<Node> {
         match deep {
             true => Node::clone(abstract_self, None, CloneChildren),
             false => Node::clone(abstract_self, None, DoNotCloneChildren)
@@ -1698,7 +1807,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-isequalnode
-    pub fn IsEqualNode(&self, abstract_self: &JSRef<Node>, maybe_node: Option<JSRef<Node>>) -> bool {
+    fn IsEqualNode(&self, abstract_self: &JSRef<Node>, maybe_node: Option<JSRef<Node>>) -> bool {
         fn is_equal_doctype(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
             let other_doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(other).unwrap();
@@ -1775,7 +1884,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
-    pub fn CompareDocumentPosition(&self, abstract_self: &JSRef<Node>, other: &JSRef<Node>) -> u16 {
+    fn CompareDocumentPosition(&self, abstract_self: &JSRef<Node>, other: &JSRef<Node>) -> u16 {
         let roots = RootCollection::new();
         if abstract_self == other {
             // step 2.
@@ -1830,7 +1939,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-contains
-    pub fn Contains(&self, abstract_self: &JSRef<Node>, maybe_other: Option<JSRef<Node>>) -> bool {
+    fn Contains(&self, abstract_self: &JSRef<Node>, maybe_other: Option<JSRef<Node>>) -> bool {
         match maybe_other {
             None => false,
             Some(ref other) => abstract_self.is_inclusive_ancestor_of(other)
@@ -1838,99 +1947,24 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-lookupprefix
-    pub fn LookupPrefix(&self, _prefix: Option<DOMString>) -> Option<DOMString> {
+    fn LookupPrefix(&self, _prefix: Option<DOMString>) -> Option<DOMString> {
         // FIXME (#1826) implement.
         None
     }
 
     // http://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
-    pub fn LookupNamespaceURI(&self, _namespace: Option<DOMString>) -> Option<DOMString> {
+    fn LookupNamespaceURI(&self, _namespace: Option<DOMString>) -> Option<DOMString> {
         // FIXME (#1826) implement.
         None
     }
 
     // http://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
-    pub fn IsDefaultNamespace(&self, _namespace: Option<DOMString>) -> bool {
+    fn IsDefaultNamespace(&self, _namespace: Option<DOMString>) -> bool {
         // FIXME (#1826) implement.
         false
     }
-
-    //
-    // Low-level pointer stitching
-    //
-
-    pub fn set_parent_node(&mut self, new_parent_node: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
-        doc.get().wait_until_safe_to_modify_dom();
-        self.parent_node.assign(new_parent_node);
-    }
-
-    pub fn set_first_child(&mut self, new_first_child: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
-        doc.get().wait_until_safe_to_modify_dom();
-        self.first_child.assign(new_first_child);
-    }
-
-    pub fn set_last_child(&mut self, new_last_child: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
-        doc.get().wait_until_safe_to_modify_dom();
-        self.last_child.assign(new_last_child);
-    }
-
-    pub fn set_prev_sibling(&mut self, new_prev_sibling: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
-        doc.get().wait_until_safe_to_modify_dom();
-        self.prev_sibling.assign(new_prev_sibling);
-    }
-
-    pub fn set_next_sibling(&mut self, new_next_sibling: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
-        doc.get().wait_until_safe_to_modify_dom();
-        self.next_sibling.assign(new_next_sibling);
-    }
-
-    pub fn get_hover_state(&self) -> bool {
-        self.flags.get_in_hover_state()
-    }
-
-    pub fn set_hover_state(&mut self, state: bool) {
-        self.flags.set_is_in_hover_state(state);
-    }
-
-    #[inline]
-    pub fn parent_node_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
-        self.parent_node.as_ref()
-    }
-
-    #[inline]
-    pub fn first_child_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
-        self.first_child.as_ref()
-    }
-
-    #[inline]
-    pub fn last_child_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
-        self.last_child.as_ref()
-    }
-
-    #[inline]
-    pub fn prev_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
-        self.prev_sibling.as_ref()
-    }
-
-    #[inline]
-    pub fn next_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
-        self.next_sibling.as_ref()
-    }
-
-    pub unsafe fn get_hover_state_for_layout(&self) -> bool {
-        self.flags.get_in_hover_state()
-    }
 }
+
 
 impl Reflectable for Node {
     fn reflector<'a>(&'a self) -> &'a Reflector {

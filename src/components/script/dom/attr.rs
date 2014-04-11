@@ -91,31 +91,40 @@ impl Attr {
     }
 }
 
-impl Attr {
-    pub fn LocalName(&self) -> DOMString {
+pub trait AttrMethods {
+    fn LocalName(&self) -> DOMString;
+    fn Value(&self) -> DOMString;
+    fn SetValue(&mut self, value: DOMString);
+    fn Name(&self) -> DOMString;
+    fn GetNamespaceURI(&self) -> Option<DOMString>;
+    fn GetPrefix(&self) -> Option<DOMString>;
+}
+
+impl<'a> AttrMethods for JSRef<'a, Attr> {
+    fn LocalName(&self) -> DOMString {
         self.local_name.clone()
     }
 
-    pub fn Value(&self) -> DOMString {
+    fn Value(&self) -> DOMString {
         self.value.clone()
     }
 
-    pub fn SetValue(&mut self, value: DOMString) {
+    fn SetValue(&mut self, value: DOMString) {
         self.set_value(ReplacedAttr, value);
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
-    pub fn GetNamespaceURI(&self) -> Option<DOMString> {
+    fn GetNamespaceURI(&self) -> Option<DOMString> {
         match self.namespace.to_str() {
             "" => None,
             url => Some(url.to_owned()),
         }
     }
 
-    pub fn GetPrefix(&self) -> Option<DOMString> {
+    fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix.clone()
     }
 }

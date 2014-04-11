@@ -40,12 +40,18 @@ impl HTMLHtmlElement {
     }
 }
 
-impl HTMLHtmlElement {
-    pub fn Version(&self) -> DOMString {
+pub trait HTMLHtmlElementMethods {
+    fn Version(&self) -> DOMString;
+    fn SetVersion(&mut self, _version: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLHtmlElementMethods for JSRef<'a, HTMLHtmlElement> {
+    fn Version(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetVersion(&mut self, _version: DOMString) -> ErrorResult {
+    fn SetVersion(&mut self, _version: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

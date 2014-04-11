@@ -46,3 +46,6 @@ impl XMLHttpRequestUploadDerived for EventTarget {
         }
     }
 }
+
+pub trait XMLHttpRequestUploadMethods {
+}

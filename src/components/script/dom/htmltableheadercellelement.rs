@@ -38,3 +38,6 @@ impl HTMLTableHeaderCellElement {
         Node::reflect_node(~element, document, HTMLTableHeaderCellElementBinding::Wrap)
     }
 }
+
+pub trait HTMLTableHeaderCellElementMethods {
+}

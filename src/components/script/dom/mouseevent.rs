@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::MouseEventBinding;
-use dom::bindings::codegen::InheritTypes::MouseEventDerived;
+use dom::bindings::codegen::InheritTypes::{UIEventCast, MouseEventDerived};
 use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Unrooted};
 use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, MouseEventTypeId};
 use dom::eventtarget::EventTarget;
-use dom::uievent::UIEvent;
+use dom::uievent::{UIEvent, UIEventMethods};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -64,81 +64,117 @@ impl MouseEvent {
         let mut ev = MouseEvent::new(owner).root(&roots);
         let view = init.view.as_ref().map(|view| view.root(&roots));
         let related_target = init.relatedTarget.as_ref().map(|relatedTarget| relatedTarget.root(&roots));
-        ev.get_mut().InitMouseEvent(type_, init.bubbles, init.cancelable, view.root_ref(),
-                                      init.detail, init.screenX, init.screenY,
-                                      init.clientX, init.clientY, init.ctrlKey,
-                                      init.altKey, init.shiftKey, init.metaKey,
-                                      init.button, related_target.root_ref());
+        ev.InitMouseEvent(type_, init.bubbles, init.cancelable, view.root_ref(),
+                          init.detail, init.screenX, init.screenY,
+                          init.clientX, init.clientY, init.ctrlKey,
+                          init.altKey, init.shiftKey, init.metaKey,
+                          init.button, related_target.root_ref());
         Ok(Unrooted::new_rooted(&*ev))
     }
+}
 
-    pub fn ScreenX(&self) -> i32 {
+pub trait MouseEventMethods {
+    fn ScreenX(&self) -> i32;
+    fn ScreenY(&self) -> i32;
+    fn ClientX(&self) -> i32;
+    fn ClientY(&self) -> i32;
+    fn CtrlKey(&self) -> bool;
+    fn ShiftKey(&self) -> bool;
+    fn AltKey(&self) -> bool;
+    fn MetaKey(&self) -> bool;
+    fn Button(&self) -> u16;
+    fn Buttons(&self)-> u16;
+    fn GetRelatedTarget(&self) -> Option<Unrooted<EventTarget>>;
+    fn GetModifierState(&self, _keyArg: DOMString) -> bool;
+    fn InitMouseEvent(&mut self,
+                      typeArg: DOMString,
+                      canBubbleArg: bool,
+                      cancelableArg: bool,
+                      viewArg: Option<JSRef<Window>>,
+                      detailArg: i32,
+                      screenXArg: i32,
+                      screenYArg: i32,
+                      clientXArg: i32,
+                      clientYArg: i32,
+                      ctrlKeyArg: bool,
+                      altKeyArg: bool,
+                      shiftKeyArg: bool,
+                      metaKeyArg: bool,
+                      buttonArg: u16,
+                      relatedTargetArg: Option<JSRef<EventTarget>>);
+}
+
+impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
+    fn ScreenX(&self) -> i32 {
         self.screen_x
     }
 
-    pub fn ScreenY(&self) -> i32 {
+    fn ScreenY(&self) -> i32 {
         self.screen_y
     }
 
-    pub fn ClientX(&self) -> i32 {
+    fn ClientX(&self) -> i32 {
         self.client_x
     }
 
-    pub fn ClientY(&self) -> i32 {
+    fn ClientY(&self) -> i32 {
         self.client_y
     }
 
-    pub fn CtrlKey(&self) -> bool {
+    fn CtrlKey(&self) -> bool {
         self.ctrl_key
     }
 
-    pub fn ShiftKey(&self) -> bool {
+    fn ShiftKey(&self) -> bool {
         self.shift_key
     }
 
-    pub fn AltKey(&self) -> bool {
+    fn AltKey(&self) -> bool {
         self.alt_key
     }
 
-    pub fn MetaKey(&self) -> bool {
+    fn MetaKey(&self) -> bool {
         self.meta_key
     }
 
-    pub fn Button(&self) -> u16 {
+    fn Button(&self) -> u16 {
         self.button
     }
 
-    pub fn Buttons(&self)-> u16 {
+    fn Buttons(&self)-> u16 {
         //TODO
         0
     }
 
-    pub fn GetRelatedTarget(&self) -> Option<Unrooted<EventTarget>> {
+    fn GetRelatedTarget(&self) -> Option<Unrooted<EventTarget>> {
         self.related_target.clone().map(|target| Unrooted::new(target))
     }
 
-    pub fn GetModifierState(&self, _keyArg: DOMString) -> bool {
+    fn GetModifierState(&self, _keyArg: DOMString) -> bool {
         //TODO
         false
     }
 
-    pub fn InitMouseEvent(&mut self,
-                          typeArg: DOMString,
-                          canBubbleArg: bool,
-                          cancelableArg: bool,
-                          viewArg: Option<JSRef<Window>>,
-                          detailArg: i32,
-                          screenXArg: i32,
-                          screenYArg: i32,
-                          clientXArg: i32,
-                          clientYArg: i32,
-                          ctrlKeyArg: bool,
-                          altKeyArg: bool,
-                          shiftKeyArg: bool,
-                          metaKeyArg: bool,
-                          buttonArg: u16,
-                          relatedTargetArg: Option<JSRef<EventTarget>>) {
-        self.mouseevent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
+    fn InitMouseEvent(&mut self,
+                      typeArg: DOMString,
+                      canBubbleArg: bool,
+                      cancelableArg: bool,
+                      viewArg: Option<JSRef<Window>>,
+                      detailArg: i32,
+                      screenXArg: i32,
+                      screenYArg: i32,
+                      clientXArg: i32,
+                      clientYArg: i32,
+                      ctrlKeyArg: bool,
+                      altKeyArg: bool,
+                      shiftKeyArg: bool,
+                      metaKeyArg: bool,
+                      buttonArg: u16,
+                      relatedTargetArg: Option<JSRef<EventTarget>>) {
+        {
+            let uievent: &mut JSRef<UIEvent> = UIEventCast::from_mut_ref(self);
+            uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
+        }
         self.screen_x = screenXArg;
         self.screen_y = screenYArg;
         self.client_x = clientXArg;
@@ -151,6 +187,7 @@ impl MouseEvent {
         self.related_target = relatedTargetArg.map(|target| target.unrooted());
     }
 }
+
 
 impl Reflectable for MouseEvent {
     fn reflector<'a>(&'a self) -> &'a Reflector {

@@ -105,87 +105,145 @@ pub struct TimerData {
     pub funval: Traceable<JSVal>,
 }
 
-impl Window {
-    pub fn Alert(&self, s: DOMString) {
+pub trait WindowMethods {
+    fn Alert(&self, s: DOMString);
+    fn Close(&self);
+    fn Document(&self) -> Unrooted<Document>;
+    fn Name(&self) -> DOMString;
+    fn SetName(&self, _name: DOMString);
+    fn Status(&self) -> DOMString;
+    fn SetStatus(&self, _status: DOMString);
+    fn Closed(&self) -> bool;
+    fn Stop(&self);
+    fn Focus(&self);
+    fn Blur(&self);
+    fn GetFrameElement(&self) -> Option<Unrooted<Element>>;
+    fn Location(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Location>;
+    fn Console(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Console>;
+    fn Navigator(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Navigator>;
+    fn Confirm(&self, _message: DOMString) -> bool;
+    fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString>;
+    fn Print(&self);
+    fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal;
+    fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32;
+    fn ClearTimeout(&mut self, handle: i32);
+    fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32;
+    fn ClearInterval(&mut self, handle: i32);
+    fn Window(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window>;
+    fn Self(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window>;
+}
+
+impl<'a> WindowMethods for JSRef<'a, Window> {
+    fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
         println!("ALERT: {:s}", s);
     }
 
-    pub fn Close(&self) {
+    fn Close(&self) {
         let ScriptChan(ref chan) = self.script_chan;
         chan.send(ExitWindowMsg(self.page.id.clone()));
     }
 
-    pub fn Document(&self) -> Unrooted<Document> {
+    fn Document(&self) -> Unrooted<Document> {
         let frame = self.page().frame();
         Unrooted::new(frame.get_ref().document.clone())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&self, _name: DOMString) {
+    fn SetName(&self, _name: DOMString) {
     }
 
-    pub fn Status(&self) -> DOMString {
+    fn Status(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetStatus(&self, _status: DOMString) {
+    fn SetStatus(&self, _status: DOMString) {
     }
 
-    pub fn Closed(&self) -> bool {
+    fn Closed(&self) -> bool {
         false
     }
 
-    pub fn Stop(&self) {
+    fn Stop(&self) {
     }
 
-    pub fn Focus(&self) {
+    fn Focus(&self) {
     }
 
-    pub fn Blur(&self) {
+    fn Blur(&self) {
     }
 
-    pub fn GetFrameElement(&self) -> Option<Unrooted<Element>> {
+    fn GetFrameElement(&self) -> Option<Unrooted<Element>> {
         None
     }
 
-    pub fn Location(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Location> {
+    fn Location(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Location> {
         if self.location.is_none() {
-            self.location.assign(Some(Location::new(abstract_self, self.page.clone())));
+            let page = self.deref().page.clone();
+            self.location.assign(Some(Location::new(abstract_self, page)));
         }
         Unrooted::new(self.location.get_ref().clone())
     }
 
-    pub fn Console(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Console> {
+    fn Console(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Console> {
         if self.console.is_none() {
             self.console.assign(Some(Console::new(abstract_self)));
         }
         Unrooted::new(self.console.get_ref().clone())
     }
 
-    pub fn Navigator(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Navigator> {
+    fn Navigator(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Navigator> {
         if self.navigator.is_none() {
             self.navigator.assign(Some(Navigator::new(abstract_self)));
         }
         Unrooted::new(self.navigator.get_ref().clone())
     }
 
-    pub fn Confirm(&self, _message: DOMString) -> bool {
+    fn Confirm(&self, _message: DOMString) -> bool {
         false
     }
 
-    pub fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString> {
+    fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString> {
         None
     }
 
-    pub fn Print(&self) {
+    fn Print(&self) {
     }
 
-    pub fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal {
+    fn ShowModalDialog(&self, _cx: *JSContext, _url: DOMString, _argument: Option<JSVal>) -> JSVal {
         NullValue()
+    }
+
+    fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+        self.set_timeout_or_interval(callback, timeout, false)
+    }
+
+    fn ClearTimeout(&mut self, handle: i32) {
+        let mut timer_handle = self.active_timers.pop(&TimerId(handle));
+        match timer_handle {
+            Some(ref mut handle) => handle.cancel(),
+            None => { }
+        }
+        self.active_timers.remove(&TimerId(handle));
+    }
+
+    fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+        self.set_timeout_or_interval(callback, timeout, true)
+    }
+
+    fn ClearInterval(&mut self, handle: i32) {
+        self.ClearTimeout(handle);
+    }
+
+    fn Window(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window> {
+        Unrooted::new_rooted(abstract_self)
+    }
+
+    fn Self(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window> {
+        self.Window(abstract_self)
     }
 }
 
@@ -256,35 +314,6 @@ impl Window {
         };
         self.active_timers.insert(timer_id, timer);
         handle
-    }
-
-    pub fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
-        self.set_timeout_or_interval(callback, timeout, false)
-    }
-
-    pub fn ClearTimeout(&mut self, handle: i32) {
-        let mut timer_handle = self.active_timers.pop(&TimerId(handle));
-        match timer_handle {
-            Some(ref mut handle) => handle.cancel(),
-            None => { }
-        }
-        self.active_timers.remove(&TimerId(handle));
-    }
-
-    pub fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
-        self.set_timeout_or_interval(callback, timeout, true)
-    }
-
-    pub fn ClearInterval(&mut self, handle: i32) {
-        self.ClearTimeout(handle);
-    }
-
-    pub fn Window(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window> {
-        Unrooted::new_rooted(abstract_self)
-    }
-
-    pub fn Self(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window> {
-        self.Window(abstract_self)
     }
 
     pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {

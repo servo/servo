@@ -38,3 +38,6 @@ impl HTMLSpanElement {
         Node::reflect_node(~element, document, HTMLSpanElementBinding::Wrap)
     }
 }
+
+pub trait HTMLSpanElementMethods {
+}

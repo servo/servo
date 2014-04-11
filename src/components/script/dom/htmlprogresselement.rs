@@ -40,28 +40,38 @@ impl HTMLProgressElement {
     }
 }
 
-impl HTMLProgressElement {
-    pub fn Value(&self) -> f64 {
+pub trait HTMLProgressElementMethods {
+    fn Value(&self) -> f64;
+    fn SetValue(&mut self, _value: f64) -> ErrorResult;
+    fn Max(&self) -> f64;
+    fn SetMax(&mut self, _max: f64) -> ErrorResult;
+    fn Position(&self) -> f64;
+    fn GetPositiom(&self) -> Fallible<f64>;
+}
+
+impl<'a> HTMLProgressElementMethods for JSRef<'a, HTMLProgressElement> {
+    fn Value(&self) -> f64 {
         0f64
     }
 
-    pub fn SetValue(&mut self, _value: f64) -> ErrorResult {
+    fn SetValue(&mut self, _value: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Max(&self) -> f64 {
+    fn Max(&self) -> f64 {
         0f64
     }
 
-    pub fn SetMax(&mut self, _max: f64) -> ErrorResult {
+    fn SetMax(&mut self, _max: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Position(&self) -> f64 {
+    fn Position(&self) -> f64 {
         0f64
     }
 
-    pub fn GetPositiom(&self) -> Fallible<f64> {
+    fn GetPositiom(&self) -> Fallible<f64> {
         Ok(0f64)
     }
 }
+

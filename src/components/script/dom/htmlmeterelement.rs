@@ -40,52 +40,68 @@ impl HTMLMeterElement {
     }
 }
 
-impl HTMLMeterElement {
-    pub fn Value(&self) -> f64 {
+pub trait HTMLMeterElementMethods {
+    fn Value(&self) -> f64;
+    fn SetValue(&mut self, _value: f64) -> ErrorResult;
+    fn Min(&self) -> f64;
+    fn SetMin(&mut self, _min: f64) -> ErrorResult;
+    fn Max(&self) -> f64;
+    fn SetMax(&mut self, _max: f64) -> ErrorResult;
+    fn Low(&self) -> f64;
+    fn SetLow(&mut self, _low: f64) -> ErrorResult;
+    fn High(&self) -> f64;
+    fn SetHigh(&mut self, _high: f64) -> ErrorResult;
+    fn Optimum(&self) -> f64;
+    fn SetOptimum(&mut self, _optimum: f64) -> ErrorResult;
+}
+
+impl<'a> HTMLMeterElementMethods for JSRef<'a, HTMLMeterElement> {
+    fn Value(&self) -> f64 {
         0.0
     }
 
-    pub fn SetValue(&mut self, _value: f64) -> ErrorResult {
+    fn SetValue(&mut self, _value: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Min(&self) -> f64 {
+    fn Min(&self) -> f64 {
         0.0
     }
 
-    pub fn SetMin(&mut self, _min: f64) -> ErrorResult {
+    fn SetMin(&mut self, _min: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Max(&self) -> f64 {
+    fn Max(&self) -> f64 {
         0.0
     }
 
-    pub fn SetMax(&mut self, _max: f64) -> ErrorResult {
+    fn SetMax(&mut self, _max: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Low(&self) -> f64 {
+    fn Low(&self) -> f64 {
         0.0
     }
 
-    pub fn SetLow(&mut self, _low: f64) -> ErrorResult {
+    fn SetLow(&mut self, _low: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn High(&self) -> f64 {
+    fn High(&self) -> f64 {
         0.0
     }
 
-    pub fn SetHigh(&mut self, _high: f64) -> ErrorResult {
+    fn SetHigh(&mut self, _high: f64) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Optimum(&self) -> f64 {
+    fn Optimum(&self) -> f64 {
         0.0
     }
 
-    pub fn SetOptimum(&mut self, _optimum: f64) -> ErrorResult {
+    fn SetOptimum(&mut self, _optimum: f64) -> ErrorResult {
         Ok(())
     }
 }
+

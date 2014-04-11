@@ -40,12 +40,18 @@ impl HTMLTitleElement {
     }
 }
 
-impl HTMLTitleElement {
-    pub fn Text(&self) -> DOMString {
+pub trait HTMLTitleElementMethods {
+    fn Text(&self) -> DOMString;
+    fn SetText(&mut self, _text: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
+    fn Text(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetText(&mut self, _text: DOMString) -> ErrorResult {
+    fn SetText(&mut self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

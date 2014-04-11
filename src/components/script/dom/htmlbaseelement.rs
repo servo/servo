@@ -40,20 +40,28 @@ impl HTMLBaseElement {
     }
 }
 
-impl HTMLBaseElement {
-    pub fn Href(&self) -> DOMString {
+pub trait HTMLBaseElementMethods {
+    fn Href(&self) -> DOMString;
+    fn SetHref(&self, _href: DOMString) -> ErrorResult;
+    fn Target(&self) -> DOMString;
+    fn SetTarget(&self, _target: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLBaseElementMethods for JSRef<'a, HTMLBaseElement> {
+    fn Href(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHref(&self, _href: DOMString) -> ErrorResult {
+    fn SetHref(&self, _href: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Target(&self) -> DOMString {
+    fn Target(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetTarget(&self, _target: DOMString) -> ErrorResult {
+    fn SetTarget(&self, _target: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

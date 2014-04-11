@@ -44,141 +44,180 @@ impl HTMLSelectElement {
     }
 }
 
-impl HTMLSelectElement {
-    pub fn Autofocus(&self) -> bool {
+pub trait HTMLSelectElementMethods {
+    fn Autofocus(&self) -> bool;
+    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult;
+    fn Disabled(&self) -> bool;
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>>;
+    fn Multiple(&self) -> bool;
+    fn SetMultiple(&mut self, _multiple: bool) -> ErrorResult;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn Required(&self) -> bool;
+    fn SetRequired(&mut self, _multiple: bool) -> ErrorResult;
+    fn Size(&self) -> u32;
+    fn SetSize(&mut self, _size: u32) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn Length(&self) -> u32;
+    fn SetLength(&mut self, _length: u32) -> ErrorResult;
+    fn Item(&self, _index: u32) -> Option<Unrooted<Element>>;
+    fn NamedItem(&self, _name: DOMString) -> Option<Unrooted<HTMLOptionElement>>;
+    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Unrooted<Element>>;
+    fn IndexedSetter(&mut self, _index: u32, _option: Option<JSRef<HTMLOptionElement>>) -> ErrorResult;
+    fn Remove_(&self);
+    fn Remove(&self, _index: i32);
+    fn SelectedIndex(&self) -> i32;
+    fn SetSelectedIndex(&mut self, _index: i32) -> ErrorResult;
+    fn Value(&self) -> DOMString;
+    fn SetValue(&mut self, _value: DOMString);
+    fn WillValidate(&self) -> bool;
+    fn SetWillValidate(&mut self, _will_validate: bool);
+    fn Validity(&self) -> Unrooted<ValidityState>;
+    fn SetValidity(&mut self, _validity: JS<ValidityState>);
+    fn ValidationMessage(&self) -> DOMString;
+    fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult;
+    fn CheckValidity(&self) -> bool;
+    fn SetCustomValidity(&mut self, _error: DOMString);
+    fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) -> ErrorResult;
+}
+
+impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
+    fn Autofocus(&self) -> bool {
         false
     }
 
-    pub fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
+    fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Disabled(&self) -> bool {
+    fn Disabled(&self) -> bool {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
         None
     }
 
-    pub fn Multiple(&self) -> bool {
+    fn Multiple(&self) -> bool {
         false
     }
 
-    pub fn SetMultiple(&mut self, _multiple: bool) -> ErrorResult {
+    fn SetMultiple(&mut self, _multiple: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Required(&self) -> bool {
+    fn Required(&self) -> bool {
         false
     }
 
-    pub fn SetRequired(&mut self, _multiple: bool) -> ErrorResult {
+    fn SetRequired(&mut self, _multiple: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Size(&self) -> u32 {
+    fn Size(&self) -> u32 {
         0
     }
 
-    pub fn SetSize(&mut self, _size: u32) -> ErrorResult {
+    fn SetSize(&mut self, _size: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn Length(&self) -> u32 {
+    fn Length(&self) -> u32 {
         0
     }
 
-    pub fn SetLength(&mut self, _length: u32) -> ErrorResult {
+    fn SetLength(&mut self, _length: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Item(&self, _index: u32) -> Option<Unrooted<Element>> {
+    fn Item(&self, _index: u32) -> Option<Unrooted<Element>> {
         None
     }
 
-    pub fn NamedItem(&self, _name: DOMString) -> Option<Unrooted<HTMLOptionElement>> {
+    fn NamedItem(&self, _name: DOMString) -> Option<Unrooted<HTMLOptionElement>> {
         None
     }
 
-    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Unrooted<Element>> {
+    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Unrooted<Element>> {
         None
     }
 
-    pub fn IndexedSetter(&mut self, _index: u32, _option: Option<JSRef<HTMLOptionElement>>) -> ErrorResult {
+    fn IndexedSetter(&mut self, _index: u32, _option: Option<JSRef<HTMLOptionElement>>) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Remove_(&self) {
+    fn Remove_(&self) {
     }
 
-    pub fn Remove(&self, _index: i32) {
+    fn Remove(&self, _index: i32) {
     }
 
-    pub fn SelectedIndex(&self) -> i32 {
+    fn SelectedIndex(&self) -> i32 {
         0
     }
 
-    pub fn SetSelectedIndex(&mut self, _index: i32) -> ErrorResult {
+    fn SetSelectedIndex(&mut self, _index: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Value(&self) -> DOMString {
+    fn Value(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: DOMString) {
+    fn SetValue(&mut self, _value: DOMString) {
     }
 
-    pub fn WillValidate(&self) -> bool {
+    fn WillValidate(&self) -> bool {
         false
     }
 
-    pub fn SetWillValidate(&mut self, _will_validate: bool) {
+    fn SetWillValidate(&mut self, _will_validate: bool) {
     }
 
-    pub fn Validity(&self) -> Unrooted<ValidityState> {
+    fn Validity(&self) -> Unrooted<ValidityState> {
         let roots = RootCollection::new();
         let doc = self.htmlelement.element.node.owner_doc().root(&roots);
         let window = doc.deref().window.root(&roots);
         ValidityState::new(&*window)
     }
 
-    pub fn SetValidity(&mut self, _validity: JS<ValidityState>) {
+    fn SetValidity(&mut self, _validity: JS<ValidityState>) {
     }
 
-    pub fn ValidationMessage(&self) -> DOMString {
+    fn ValidationMessage(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {
+    fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CheckValidity(&self) -> bool {
+    fn CheckValidity(&self) -> bool {
         true
     }
 
-    pub fn SetCustomValidity(&mut self, _error: DOMString) {
+    fn SetCustomValidity(&mut self, _error: DOMString) {
     }
 
-    pub fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) -> ErrorResult {
+    fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) -> ErrorResult {
         Ok(())
     }
 }
+

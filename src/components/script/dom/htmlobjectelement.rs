@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::AttrMethods;
 use dom::bindings::codegen::BindingDeclarations::HTMLObjectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
@@ -79,170 +80,214 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
     }
 }
 
-impl HTMLObjectElement {
-    pub fn Data(&self) -> DOMString {
+pub trait HTMLObjectElementMethods {
+    fn Data(&self) -> DOMString;
+    fn SetData(&mut self, _data: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn UseMap(&self) -> DOMString;
+    fn SetUseMap(&mut self, _use_map: DOMString) -> ErrorResult;
+    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>>;
+    fn Width(&self) -> DOMString;
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
+    fn Height(&self) -> DOMString;
+    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult;
+    fn GetContentDocument(&self) -> Option<Unrooted<Document>>;
+    fn GetContentWindow(&self) -> Option<Unrooted<Window>>;
+    fn WillValidate(&self) -> bool;
+    fn Validity(&self) -> Unrooted<ValidityState>;
+    fn ValidationMessage(&self) -> DOMString;
+    fn CheckValidity(&self) -> bool;
+    fn SetCustomValidity(&mut self, _error: DOMString);
+    fn Align(&self) -> DOMString;
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
+    fn Archive(&self) -> DOMString;
+    fn SetArchive(&mut self, _archive: DOMString) -> ErrorResult;
+    fn Code(&self) -> DOMString;
+    fn SetCode(&mut self, _code: DOMString) -> ErrorResult;
+    fn Declare(&self) -> bool;
+    fn SetDeclare(&mut self, _declare: bool) -> ErrorResult;
+    fn Hspace(&self) -> u32;
+    fn SetHspace(&mut self, _hspace: u32) -> ErrorResult;
+    fn Standby(&self) -> DOMString;
+    fn SetStandby(&mut self, _standby: DOMString) -> ErrorResult;
+    fn Vspace(&self) -> u32;
+    fn SetVspace(&mut self, _vspace: u32) -> ErrorResult;
+    fn CodeBase(&self) -> DOMString;
+    fn SetCodeBase(&mut self, _codebase: DOMString) -> ErrorResult;
+    fn CodeType(&self) -> DOMString;
+    fn SetCodeType(&mut self, _codetype: DOMString) -> ErrorResult;
+    fn Border(&self) -> DOMString;
+    fn SetBorder(&mut self, _border: DOMString) -> ErrorResult;
+    fn GetSVGDocument(&self) -> Option<Unrooted<Document>>;
+}
+
+impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
+    fn Data(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetData(&mut self, _data: DOMString) -> ErrorResult {
+    fn SetData(&mut self, _data: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Name(&self) -> DOMString {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn UseMap(&self) -> DOMString {
+    fn UseMap(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetUseMap(&mut self, _use_map: DOMString) -> ErrorResult {
+    fn SetUseMap(&mut self, _use_map: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
         None
     }
 
-    pub fn Width(&self) -> DOMString {
+    fn Width(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
+    fn SetWidth(&mut self, _width: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Height(&self) -> DOMString {
+    fn Height(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
+    fn SetHeight(&mut self, _height: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetContentDocument(&self) -> Option<Unrooted<Document>> {
+    fn GetContentDocument(&self) -> Option<Unrooted<Document>> {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<Unrooted<Window>> {
+    fn GetContentWindow(&self) -> Option<Unrooted<Window>> {
         None
     }
 
-    pub fn WillValidate(&self) -> bool {
+    fn WillValidate(&self) -> bool {
         false
     }
 
-    pub fn Validity(&self) -> Unrooted<ValidityState> {
+    fn Validity(&self) -> Unrooted<ValidityState> {
         let roots = RootCollection::new();
         let doc = self.htmlelement.element.node.owner_doc().root(&roots);
         let window = doc.deref().window.root(&roots);
         ValidityState::new(&window.root_ref())
     }
 
-    pub fn ValidationMessage(&self) -> DOMString {
+    fn ValidationMessage(&self) -> DOMString {
         ~""
     }
 
-    pub fn CheckValidity(&self) -> bool {
+    fn CheckValidity(&self) -> bool {
         false
     }
 
-    pub fn SetCustomValidity(&mut self, _error: DOMString) {
+    fn SetCustomValidity(&mut self, _error: DOMString) {
     }
 
-    pub fn Align(&self) -> DOMString {
+    fn Align(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
+    fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Archive(&self) -> DOMString {
+    fn Archive(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetArchive(&mut self, _archive: DOMString) -> ErrorResult {
+    fn SetArchive(&mut self, _archive: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Code(&self) -> DOMString {
+    fn Code(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCode(&mut self, _code: DOMString) -> ErrorResult {
+    fn SetCode(&mut self, _code: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Declare(&self) -> bool {
+    fn Declare(&self) -> bool {
         false
     }
 
-    pub fn SetDeclare(&mut self, _declare: bool) -> ErrorResult {
+    fn SetDeclare(&mut self, _declare: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Hspace(&self) -> u32 {
+    fn Hspace(&self) -> u32 {
         0
     }
 
-    pub fn SetHspace(&mut self, _hspace: u32) -> ErrorResult {
+    fn SetHspace(&mut self, _hspace: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Standby(&self) -> DOMString {
+    fn Standby(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetStandby(&mut self, _standby: DOMString) -> ErrorResult {
+    fn SetStandby(&mut self, _standby: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Vspace(&self) -> u32 {
+    fn Vspace(&self) -> u32 {
         0
     }
 
-    pub fn SetVspace(&mut self, _vspace: u32) -> ErrorResult {
+    fn SetVspace(&mut self, _vspace: u32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CodeBase(&self) -> DOMString {
+    fn CodeBase(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCodeBase(&mut self, _codebase: DOMString) -> ErrorResult {
+    fn SetCodeBase(&mut self, _codebase: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CodeType(&self) -> DOMString {
+    fn CodeType(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCodeType(&mut self, _codetype: DOMString) -> ErrorResult {
+    fn SetCodeType(&mut self, _codetype: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Border(&self) -> DOMString {
+    fn Border(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetBorder(&mut self, _border: DOMString) -> ErrorResult {
+    fn SetBorder(&mut self, _border: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn GetSVGDocument(&self) -> Option<Unrooted<Document>> {
+    fn GetSVGDocument(&self) -> Option<Unrooted<Document>> {
         None
     }
 }

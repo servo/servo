@@ -40,20 +40,28 @@ impl HTMLOptGroupElement {
     }
 }
 
-impl HTMLOptGroupElement {
-    pub fn Disabled(&self) -> bool {
+pub trait HTMLOptGroupElementMethods {
+    fn Disabled(&self) -> bool;
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
+    fn Label(&self) -> DOMString;
+    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
+    fn Disabled(&self) -> bool {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+    fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Label(&self) -> DOMString {
+    fn Label(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
+    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

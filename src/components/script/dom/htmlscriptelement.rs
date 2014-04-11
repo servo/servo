@@ -41,77 +41,99 @@ impl HTMLScriptElement {
     }
 }
 
-impl HTMLScriptElement {
-    pub fn Src(&self, abstract_self: &JSRef<HTMLScriptElement>) -> DOMString {
+pub trait HTMLScriptElementMethods {
+    fn Src(&self, abstract_self: &JSRef<HTMLScriptElement>) -> DOMString;
+    fn SetSrc(&mut self, _abstract_self: &JSRef<HTMLScriptElement>, _src: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn Charset(&self) -> DOMString;
+    fn SetCharset(&mut self, _charset: DOMString) -> ErrorResult;
+    fn Async(&self) -> bool;
+    fn SetAsync(&self, _async: bool) -> ErrorResult;
+    fn Defer(&self) -> bool;
+    fn SetDefer(&self, _defer: bool) -> ErrorResult;
+    fn CrossOrigin(&self) -> DOMString;
+    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult;
+    fn Text(&self) -> DOMString;
+    fn SetText(&mut self, _text: DOMString) -> ErrorResult;
+    fn Event(&self) -> DOMString;
+    fn SetEvent(&mut self, _event: DOMString) -> ErrorResult;
+    fn HtmlFor(&self) -> DOMString;
+    fn SetHtmlFor(&mut self, _html_for: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
+    fn Src(&self, abstract_self: &JSRef<HTMLScriptElement>) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         element.get_url_attribute("src")
     }
 
-    pub fn SetSrc(&mut self, _abstract_self: &JSRef<HTMLScriptElement>, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _abstract_self: &JSRef<HTMLScriptElement>, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Charset(&self) -> DOMString {
+    fn Charset(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCharset(&mut self, _charset: DOMString) -> ErrorResult {
+    fn SetCharset(&mut self, _charset: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Async(&self) -> bool {
+    fn Async(&self) -> bool {
         false
     }
 
-    pub fn SetAsync(&self, _async: bool) -> ErrorResult {
+    fn SetAsync(&self, _async: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Defer(&self) -> bool {
+    fn Defer(&self) -> bool {
         false
     }
 
-    pub fn SetDefer(&self, _defer: bool) -> ErrorResult {
+    fn SetDefer(&self, _defer: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn CrossOrigin(&self) -> DOMString {
+    fn CrossOrigin(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
+    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Text(&self) -> DOMString {
+    fn Text(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetText(&mut self, _text: DOMString) -> ErrorResult {
+    fn SetText(&mut self, _text: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Event(&self) -> DOMString {
+    fn Event(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetEvent(&mut self, _event: DOMString) -> ErrorResult {
+    fn SetEvent(&mut self, _event: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn HtmlFor(&self) -> DOMString {
+    fn HtmlFor(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetHtmlFor(&mut self, _html_for: DOMString) -> ErrorResult {
+    fn SetHtmlFor(&mut self, _html_for: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

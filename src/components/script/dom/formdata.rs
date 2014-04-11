@@ -41,12 +41,18 @@ impl FormData {
         reflect_dom_object(~FormData::new_inherited(form, window.unrooted()), window, FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(window: &JSRef<Window>, form: Option<JSRef<HTMLFormElement>>)
-                       -> Fallible<Unrooted<FormData>> {
+    pub fn Constructor(window: &JSRef<Window>, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Unrooted<FormData>> {
         Ok(FormData::new(form, window))
     }
+}
 
-    pub fn Append(&mut self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
+pub trait FormDataMethods {
+    fn Append(&mut self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>);
+    fn Append_(&mut self, name: DOMString, value: DOMString);
+}
+
+impl<'a> FormDataMethods for JSRef<'a, FormData> {
+    fn Append(&mut self, name: DOMString, value: &JSRef<Blob>, filename: Option<DOMString>) {
         let blob = BlobData {
             blob: value.unrooted(),
             name: filename.unwrap_or(~"default")
@@ -54,7 +60,7 @@ impl FormData {
         self.data.insert(name.clone(), blob);
     }
 
-    pub fn Append_(&mut self, name: DOMString, value: DOMString) {
+    fn Append_(&mut self, name: DOMString, value: DOMString) {
         self.data.insert(name, StringData(value));
     }
 }

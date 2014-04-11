@@ -118,9 +118,17 @@ impl HTMLCollection {
     }
 }
 
-impl HTMLCollection {
+pub trait HTMLCollectionMethods {
+    fn Length(&self) -> u32;
+    fn Item(&self, index: u32) -> Option<Unrooted<Element>>;
+    fn NamedItem(&self, key: DOMString) -> Option<Unrooted<Element>>;
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Element>>;
+    fn NamedGetter(&self, maybe_name: Option<DOMString>, found: &mut bool) -> Option<Unrooted<Element>>;
+}
+
+impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
     // http://dom.spec.whatwg.org/#dom-htmlcollection-length
-    pub fn Length(&self) -> u32 {
+    fn Length(&self) -> u32 {
         let roots = RootCollection::new();
         match self.collection {
             Static(ref elems) => elems.len() as u32,
@@ -136,7 +144,7 @@ impl HTMLCollection {
     }
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-item
-    pub fn Item(&self, index: u32) -> Option<Unrooted<Element>> {
+    fn Item(&self, index: u32) -> Option<Unrooted<Element>> {
         let roots = RootCollection::new();
         match self.collection {
             Static(ref elems) => elems
@@ -159,7 +167,7 @@ impl HTMLCollection {
     }
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
-    pub fn NamedItem(&self, key: DOMString) -> Option<Unrooted<Element>> {
+    fn NamedItem(&self, key: DOMString) -> Option<Unrooted<Element>> {
         let roots = RootCollection::new();
 
         // Step 1.
@@ -190,16 +198,14 @@ impl HTMLCollection {
             }
         }
     }
-}
 
-impl HTMLCollection {
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Element>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Element>> {
         let maybe_elem = self.Item(index);
         *found = maybe_elem.is_some();
         maybe_elem
     }
 
-    pub fn NamedGetter(&self, maybe_name: Option<DOMString>, found: &mut bool) -> Option<Unrooted<Element>> {
+    fn NamedGetter(&self, maybe_name: Option<DOMString>, found: &mut bool) -> Option<Unrooted<Element>> {
         match maybe_name {
             Some(name) => {
                 let maybe_elem = self.NamedItem(name);

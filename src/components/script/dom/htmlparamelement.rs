@@ -40,36 +40,48 @@ impl HTMLParamElement {
     }
 }
 
-impl HTMLParamElement {
-    pub fn Name(&self) -> DOMString {
+pub trait HTMLParamElementMethods {
+    fn Name(&self) -> DOMString;
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult;
+    fn Value(&self) -> DOMString;
+    fn SetValue(&mut self, _value: DOMString) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+    fn ValueType(&self) -> DOMString;
+    fn SetValueType(&mut self, _value_type: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLParamElementMethods for JSRef<'a, HTMLParamElement> {
+    fn Name(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
+    fn SetName(&mut self, _name: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Value(&self) -> DOMString {
+    fn Value(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
+    fn SetValue(&mut self, _value: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ValueType(&self) -> DOMString {
+    fn ValueType(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetValueType(&mut self, _value_type: DOMString) -> ErrorResult {
+    fn SetValueType(&mut self, _value_type: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

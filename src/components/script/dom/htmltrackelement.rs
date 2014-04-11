@@ -40,48 +40,63 @@ impl HTMLTrackElement {
     }
 }
 
-impl HTMLTrackElement {
-    pub fn Kind(&self) -> DOMString {
+pub trait HTMLTrackElementMethods {
+    fn Kind(&self) -> DOMString;
+    fn SetKind(&mut self, _kind: DOMString) -> ErrorResult;
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
+    fn Srclang(&self) -> DOMString;
+    fn SetSrclang(&mut self, _srclang: DOMString) -> ErrorResult;
+    fn Label(&self) -> DOMString;
+    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult;
+    fn Default(&self) -> bool;
+    fn SetDefault(&mut self, _default: bool) -> ErrorResult;
+    fn ReadyState(&self) -> u16;
+}
+
+impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
+    fn Kind(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetKind(&mut self, _kind: DOMString) -> ErrorResult {
+    fn SetKind(&mut self, _kind: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Src(&self) -> DOMString {
+    fn Src(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Srclang(&self) -> DOMString {
+    fn Srclang(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetSrclang(&mut self, _srclang: DOMString) -> ErrorResult {
+    fn SetSrclang(&mut self, _srclang: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Label(&self) -> DOMString {
+    fn Label(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
+    fn SetLabel(&mut self, _label: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Default(&self) -> bool {
+    fn Default(&self) -> bool {
         false
     }
 
-    pub fn SetDefault(&mut self, _default: bool) -> ErrorResult {
+    fn SetDefault(&mut self, _default: bool) -> ErrorResult {
         Ok(())
     }
 
-    pub fn ReadyState(&self) -> u16 {
+    fn ReadyState(&self) -> u16 {
         0
     }
 }
+

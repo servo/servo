@@ -66,71 +66,100 @@ impl XMLHttpRequest {
     pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Unrooted<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(owner))
     }
-    pub fn ReadyState(&self) -> u16 {
+}
+
+pub trait XMLHttpRequestMethods {
+    fn ReadyState(&self) -> u16;
+    fn Open(&self, _method: ByteString, _url: DOMString);
+    fn Open_(&self, _method: ByteString, _url: DOMString, _async: bool,
+             _username: Option<DOMString>, _password: Option<DOMString>);
+    fn SetRequestHeader(&self, _name: ByteString, _value: ByteString);
+    fn Timeout(&self) -> u32;
+    fn SetTimeout(&mut self, timeout: u32);
+    fn WithCredentials(&self) -> bool;
+    fn SetWithCredentials(&mut self, with_credentials: bool);
+    fn Upload(&self) -> Unrooted<XMLHttpRequestUpload>;
+    fn Send(&self, _data: Option<DOMString>);
+    fn Abort(&self);
+    fn ResponseURL(&self) -> DOMString;
+    fn Status(&self) -> u16;
+    fn StatusText(&self) -> ByteString;
+    fn GetResponseHeader(&self, _name: ByteString) -> Option<ByteString>;
+    fn GetAllResponseHeaders(&self) -> ByteString;
+    fn OverrideMimeType(&self, _mime: DOMString);
+    fn ResponseType(&self) -> XMLHttpRequestResponseType;
+    fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType);
+    fn Response(&self, _cx: *JSContext) -> JSVal;
+    fn ResponseText(&self) -> DOMString;
+    fn GetResponseXML(&self) -> Option<Unrooted<Document>>;
+}
+
+impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
+    fn ReadyState(&self) -> u16 {
         self.ready_state
     }
-    pub fn Open(&self, _method: ByteString, _url: DOMString) {
+    fn Open(&self, _method: ByteString, _url: DOMString) {
 
     }
-    pub fn Open_(&self, _method: ByteString, _url: DOMString, _async: bool,
+    fn Open_(&self, _method: ByteString, _url: DOMString, _async: bool,
                  _username: Option<DOMString>, _password: Option<DOMString>) {
 
     }
-    pub fn SetRequestHeader(&self, _name: ByteString, _value: ByteString) {
+    fn SetRequestHeader(&self, _name: ByteString, _value: ByteString) {
 
     }
-    pub fn Timeout(&self) -> u32 {
+    fn Timeout(&self) -> u32 {
         self.timeout
     }
-    pub fn SetTimeout(&mut self, timeout: u32) {
+    fn SetTimeout(&mut self, timeout: u32) {
         self.timeout = timeout
     }
-    pub fn WithCredentials(&self) -> bool {
+    fn WithCredentials(&self) -> bool {
         self.with_credentials
     }
-    pub fn SetWithCredentials(&mut self, with_credentials: bool) {
+    fn SetWithCredentials(&mut self, with_credentials: bool) {
         self.with_credentials = with_credentials
     }
-    pub fn Upload(&self) -> Unrooted<XMLHttpRequestUpload> {
+    fn Upload(&self) -> Unrooted<XMLHttpRequestUpload> {
         Unrooted::new(self.upload.get_ref().clone())
     }
-    pub fn Send(&self, _data: Option<DOMString>) {
+    fn Send(&self, _data: Option<DOMString>) {
 
     }
-    pub fn Abort(&self) {
+    fn Abort(&self) {
 
     }
-    pub fn ResponseURL(&self) -> DOMString {
+    fn ResponseURL(&self) -> DOMString {
         self.response_url.clone()
     }
-    pub fn Status(&self) -> u16 {
+    fn Status(&self) -> u16 {
         self.status
     }
-    pub fn StatusText(&self) -> ByteString {
+    fn StatusText(&self) -> ByteString {
         self.status_text.clone()
     }
-    pub fn GetResponseHeader(&self, _name: ByteString) -> Option<ByteString> {
+    fn GetResponseHeader(&self, _name: ByteString) -> Option<ByteString> {
         None
     }
-    pub fn GetAllResponseHeaders(&self) -> ByteString {
+    fn GetAllResponseHeaders(&self) -> ByteString {
         ByteString::new(vec!())
     }
-    pub fn OverrideMimeType(&self, _mime: DOMString) {
+    fn OverrideMimeType(&self, _mime: DOMString) {
 
     }
-    pub fn ResponseType(&self) -> XMLHttpRequestResponseType {
+    fn ResponseType(&self) -> XMLHttpRequestResponseType {
         self.response_type
     }
-    pub fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType) {
+    fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType) {
         self.response_type = response_type
     }
-    pub fn Response(&self, _cx: *JSContext) -> JSVal {
+    fn Response(&self, _cx: *JSContext) -> JSVal {
         NullValue()
     }
-    pub fn ResponseText(&self) -> DOMString {
+    fn ResponseText(&self) -> DOMString {
         self.response_text.clone()
     }
-    pub fn GetResponseXML(&self) -> Option<Unrooted<Document>> {
+    fn GetResponseXML(&self) -> Option<Unrooted<Document>> {
         self.response_xml.clone().map(|response| Unrooted::new(response))
     }
 }

@@ -8,7 +8,7 @@ use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::error::{Fallible, InvalidCharacter, NamespaceError};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
-use dom::document::{Document, HTMLDocument, NonHTMLDocument};
+use dom::document::{Document, HTMLDocument, NonHTMLDocument, DocumentMethods};
 use dom::documenttype::DocumentType;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -16,7 +16,7 @@ use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{Node, AppendChild};
 use dom::text::Text;
-use dom::window::Window;
+use dom::window::{Window, WindowMethods};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -49,10 +49,17 @@ impl Reflectable for DOMImplementation {
     }
 }
 
+pub trait DOMImplementationMethods {
+    fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Unrooted<DocumentType>>;
+    fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
+                      mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Unrooted<Document>>;
+    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Unrooted<Document>;
+}
+
 // http://dom.spec.whatwg.org/#domimplementation
-impl DOMImplementation {
+impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
-    pub fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Unrooted<DocumentType>> {
+    fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Unrooted<DocumentType>> {
         let roots = RootCollection::new();
         match xml_name_type(qname) {
             // Step 1.
@@ -69,8 +76,8 @@ impl DOMImplementation {
     }
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocument
-    pub fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
-                          mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Unrooted<Document>> {
+    fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
+                      mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Unrooted<Document>> {
         let roots = RootCollection::new();
         let win = self.owner.root(&roots);
 
@@ -80,7 +87,7 @@ impl DOMImplementation {
         let mut maybe_elem = if qname.is_empty() {
             None
         } else {
-            match doc.get().CreateElementNS(&*doc, namespace, qname) {
+            match doc.deref().CreateElementNS(&*doc, namespace, qname) {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem)
             }
@@ -114,7 +121,7 @@ impl DOMImplementation {
     }
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-    pub fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Unrooted<Document> {
+    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Unrooted<Document> {
         let roots = RootCollection::new();
         let owner = self.owner.root(&roots);
 

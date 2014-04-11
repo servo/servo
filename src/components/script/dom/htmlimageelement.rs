@@ -47,9 +47,7 @@ impl HTMLImageElement {
         let element = HTMLImageElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLImageElementBinding::Wrap)
     }
-}
 
-impl HTMLImageElement {
     pub fn image<'a>(&'a self) -> &'a Option<Url> {
         &*self.image
     }
@@ -79,145 +77,179 @@ impl HTMLImageElement {
             }
         }
     }
+}
 
-    pub fn Alt(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
+pub trait HTMLImageElementMethods {
+    fn Alt(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString;
+    fn SetAlt(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, alt: DOMString);
+    fn Src(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString;
+    fn SetSrc(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, src: DOMString);
+    fn CrossOrigin(&self) -> DOMString;
+    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult;
+    fn UseMap(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString;
+    fn SetUseMap(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, use_map: DOMString);
+    fn IsMap(&self, abstract_self: &JSRef<HTMLImageElement>) -> bool;
+    fn SetIsMap(&self, abstract_self: &mut JSRef<HTMLImageElement>, is_map: bool);
+    fn Width(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32;
+    fn SetWidth(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, width: u32);
+    fn Height(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32;
+    fn SetHeight(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, height: u32);
+    fn NaturalWidth(&self) -> u32;
+    fn NaturalHeight(&self) -> u32;
+    fn Complete(&self) -> bool;
+    fn Name(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString;
+    fn SetName(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, name: DOMString);
+    fn Align(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString;
+    fn SetAlign(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, align: DOMString);
+    fn Hspace(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32;
+    fn SetHspace(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, hspace: u32);
+    fn Vspace(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32;
+    fn SetVspace(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, vspace: u32);
+    fn LongDesc(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString;
+    fn SetLongDesc(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, longdesc: DOMString);
+    fn Border(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString;
+    fn SetBorder(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, border: DOMString);
+}
+
+impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
+    fn Alt(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         element.get_string_attribute("alt")
     }
 
-    pub fn SetAlt(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, alt: DOMString) {
+    fn SetAlt(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, alt: DOMString) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         element.set_string_attribute("alt", alt)
     }
 
-    pub fn Src(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
+    fn Src(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         element.get_string_attribute("src")
     }
 
-    pub fn SetSrc(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, src: DOMString) {
+    fn SetSrc(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, src: DOMString) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         element.set_url_attribute("src", src)
     }
 
-    pub fn CrossOrigin(&self) -> DOMString {
+    fn CrossOrigin(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
+    fn SetCrossOrigin(&mut self, _cross_origin: DOMString) -> ErrorResult {
         Ok(())
     }
 
-    pub fn UseMap(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
+    fn UseMap(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         element.get_string_attribute("useMap")
     }
 
-    pub fn SetUseMap(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, use_map: DOMString) {
+    fn SetUseMap(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, use_map: DOMString) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         element.set_string_attribute("useMap", use_map)
     }
 
-    pub fn IsMap(&self, abstract_self: &JSRef<HTMLImageElement>) -> bool {
+    fn IsMap(&self, abstract_self: &JSRef<HTMLImageElement>) -> bool {
         let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         from_str::<bool>(element.get_string_attribute("hspace")).unwrap()
     }
 
-    pub fn SetIsMap(&self, abstract_self: &mut JSRef<HTMLImageElement>, is_map: bool) {
+    fn SetIsMap(&self, abstract_self: &mut JSRef<HTMLImageElement>, is_map: bool) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         element.set_string_attribute("isMap", is_map.to_str())
     }
 
-    pub fn Width(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32 {
+    fn Width(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32 {
         let node: &JSRef<Node> = NodeCast::from_ref(abstract_self);
         let rect = node.get_bounding_content_box();
         to_px(rect.size.width) as u32
     }
 
-    pub fn SetWidth(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, width: u32) {
+    fn SetWidth(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, width: u32) {
         let elem: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         elem.set_uint_attribute("width", width)
     }
 
-    pub fn Height(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32 {
+    fn Height(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32 {
         let node: &JSRef<Node> = NodeCast::from_ref(abstract_self);
         let rect = node.get_bounding_content_box();
         to_px(rect.size.height) as u32
     }
 
-    pub fn SetHeight(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, height: u32) {
+    fn SetHeight(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, height: u32) {
         let elem: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         elem.set_uint_attribute("height", height)
     }
 
-    pub fn NaturalWidth(&self) -> u32 {
+    fn NaturalWidth(&self) -> u32 {
         0
     }
 
-    pub fn NaturalHeight(&self) -> u32 {
+    fn NaturalHeight(&self) -> u32 {
         0
     }
 
-    pub fn Complete(&self) -> bool {
+    fn Complete(&self) -> bool {
         false
     }
 
-    pub fn Name(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
+    fn Name(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         element.get_string_attribute("name")
     }
 
-    pub fn SetName(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, name: DOMString) {
+    fn SetName(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, name: DOMString) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         element.set_string_attribute("name", name)
     }
 
-    pub fn Align(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
+    fn Align(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         element.get_string_attribute("longdesc")
     }
 
-    pub fn SetAlign(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, align: DOMString) {
+    fn SetAlign(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, align: DOMString) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         element.set_string_attribute("align", align)
     }
 
-    pub fn Hspace(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32 {
+    fn Hspace(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32 {
         let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         from_str::<u32>(element.get_string_attribute("hspace")).unwrap()
     }
 
-    pub fn SetHspace(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, hspace: u32) {
+    fn SetHspace(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, hspace: u32) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         element.set_uint_attribute("hspace", hspace)
     }
 
-    pub fn Vspace(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32 {
+    fn Vspace(&self, abstract_self: &JSRef<HTMLImageElement>) -> u32 {
         let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         from_str::<u32>(element.get_string_attribute("vspace")).unwrap()
     }
 
-    pub fn SetVspace(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, vspace: u32) {
+    fn SetVspace(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, vspace: u32) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         element.set_uint_attribute("vspace", vspace)
     }
 
-    pub fn LongDesc(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
+    fn LongDesc(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         element.get_string_attribute("longdesc")
     }
 
-    pub fn SetLongDesc(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, longdesc: DOMString) {
+    fn SetLongDesc(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, longdesc: DOMString) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         element.set_string_attribute("longdesc", longdesc)
     }
 
-    pub fn Border(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
+    fn Border(&self, abstract_self: &JSRef<HTMLImageElement>) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
         element.get_string_attribute("border")
     }
 
-    pub fn SetBorder(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, border: DOMString) {
+    fn SetBorder(&mut self, abstract_self: &mut JSRef<HTMLImageElement>, border: DOMString) {
         let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
         element.set_string_attribute("border", border)
     }

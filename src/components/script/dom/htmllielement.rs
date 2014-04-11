@@ -40,20 +40,28 @@ impl HTMLLIElement {
     }
 }
 
-impl HTMLLIElement {
-    pub fn Value(&self) -> i32 {
+pub trait HTMLLIElementMethods {
+    fn Value(&self) -> i32;
+    fn SetValue(&mut self, _value: i32) -> ErrorResult;
+    fn Type(&self) -> DOMString;
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult;
+}
+
+impl<'a> HTMLLIElementMethods for JSRef<'a, HTMLLIElement> {
+    fn Value(&self) -> i32 {
         0
     }
 
-    pub fn SetValue(&mut self, _value: i32) -> ErrorResult {
+    fn SetValue(&mut self, _value: i32) -> ErrorResult {
         Ok(())
     }
 
-    pub fn Type(&self) -> DOMString {
+    fn Type(&self) -> DOMString {
         ~""
     }
 
-    pub fn SetType(&mut self, _type: DOMString) -> ErrorResult {
+    fn SetType(&mut self, _type: DOMString) -> ErrorResult {
         Ok(())
     }
 }
+

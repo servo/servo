@@ -38,3 +38,6 @@ impl HTMLTemplateElement {
         Node::reflect_node(~element, document, HTMLTemplateElementBinding::Wrap)
     }
 }
+
+pub trait HTMLTemplateElementMethods {
+}

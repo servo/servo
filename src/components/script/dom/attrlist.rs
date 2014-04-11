@@ -29,18 +29,26 @@ impl AttrList {
         reflect_dom_object(~AttrList::new_inherited(window.unrooted(), elem.unrooted()),
                            window, AttrListBinding::Wrap)
     }
+}
 
-    pub fn Length(&self) -> u32 {
+pub trait AttrListMethods {
+    fn Length(&self) -> u32;
+    fn Item(&self, index: u32) -> Option<Unrooted<Attr>>;
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Attr>>;
+}
+
+impl<'a> AttrListMethods for JSRef<'a, AttrList> { 
+    fn Length(&self) -> u32 {
         let roots = RootCollection::new();
         self.owner.root(&roots).attrs.len() as u32
     }
 
-    pub fn Item(&self, index: u32) -> Option<Unrooted<Attr>> {
+    fn Item(&self, index: u32) -> Option<Unrooted<Attr>> {
         let roots = RootCollection::new();
         self.owner.root(&roots).attrs.as_slice().get(index as uint).map(|x| Unrooted::new(x.clone()))
     }
 
-    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Attr>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Attr>> {
         let item = self.Item(index);
         *found = item.is_some();
         item
