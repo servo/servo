@@ -27,8 +27,8 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::mouseevent::MouseEvent;
-use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers, AppendChild};
-use dom::node::{CloneChildren, DoNotCloneChildren, RemoveChild, ReplaceChild};
+use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers, NodeMethods};
+use dom::node::{CloneChildren, DoNotCloneChildren};
 use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
@@ -165,7 +165,7 @@ impl Document {
 
     /// Remove any existing association between the provided id and any elements in this document.
     pub fn unregister_named_element(&mut self,
-                                    abstract_self: &JSRef<Element>,
+                                    to_unregister: &JSRef<Element>,
                                     id: DOMString) {
         let roots = RootCollection::new();
         let mut is_empty = false;
@@ -174,7 +174,7 @@ impl Document {
             Some(elements) => {
                 let position = elements.iter()
                                        .map(|elem| elem.root(&roots))
-                                       .position(|element| &*element == abstract_self)
+                                       .position(|element| &*element == to_unregister)
                                        .expect("This element should be in registered.");
                 elements.remove(position);
                 is_empty = elements.is_empty();
@@ -282,37 +282,35 @@ pub trait DocumentMethods {
     fn ContentType(&self) -> DOMString;
     fn GetDoctype(&self) -> Option<Unrooted<DocumentType>>;
     fn GetDocumentElement(&self) -> Option<Unrooted<Element>>;
-    fn GetElementsByTagName(&self, abstract_self: &JSRef<Document>, tag_name: DOMString) -> Unrooted<HTMLCollection>;
-    fn GetElementsByTagNameNS(&self, abstract_self: &JSRef<Document>, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Unrooted<HTMLCollection>;
-    fn GetElementsByClassName(&self, abstract_self: &JSRef<Document>, classes: DOMString) -> Unrooted<HTMLCollection>;
+    fn GetElementsByTagName(&self, tag_name: DOMString) -> Unrooted<HTMLCollection>;
+    fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Unrooted<HTMLCollection>;
+    fn GetElementsByClassName(&self, classes: DOMString) -> Unrooted<HTMLCollection>;
     fn GetElementById(&self, id: DOMString) -> Option<Unrooted<Element>>;
-    fn CreateElement(&self, abstract_self: &JSRef<Document>, local_name: DOMString) -> Fallible<Unrooted<Element>>;
-    fn CreateElementNS(&self, abstract_self: &JSRef<Document>,
-                       namespace: Option<DOMString>,
-                       qualified_name: DOMString) -> Fallible<Unrooted<Element>>;
-    fn CreateDocumentFragment(&self, abstract_self: &JSRef<Document>) -> Unrooted<DocumentFragment>;
-    fn CreateTextNode(&self, abstract_self: &JSRef<Document>, data: DOMString) -> Unrooted<Text>;
-    fn CreateComment(&self, abstract_self: &JSRef<Document>, data: DOMString) -> Unrooted<Comment>;
-    fn CreateProcessingInstruction(&self, abstract_self: &JSRef<Document>, target: DOMString, data: DOMString) -> Fallible<Unrooted<ProcessingInstruction>>;
-    fn ImportNode(&self, abstract_self: &JSRef<Document>, node: &JSRef<Node>, deep: bool) -> Fallible<Unrooted<Node>>;
-    fn AdoptNode(&self, abstract_self: &JSRef<Document>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
+    fn CreateElement(&self, local_name: DOMString) -> Fallible<Unrooted<Element>>;
+    fn CreateElementNS(&self, namespace: Option<DOMString>, qualified_name: DOMString) -> Fallible<Unrooted<Element>>;
+    fn CreateDocumentFragment(&self) -> Unrooted<DocumentFragment>;
+    fn CreateTextNode(&self, data: DOMString) -> Unrooted<Text>;
+    fn CreateComment(&self, data: DOMString) -> Unrooted<Comment>;
+    fn CreateProcessingInstruction(&self, target: DOMString, data: DOMString) -> Fallible<Unrooted<ProcessingInstruction>>;
+    fn ImportNode(&self, node: &JSRef<Node>, deep: bool) -> Fallible<Unrooted<Node>>;
+    fn AdoptNode(&self, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
     fn CreateEvent(&self, interface: DOMString) -> Fallible<Unrooted<Event>>;
-    fn Title(&self, _: &JSRef<Document>) -> DOMString;
-    fn SetTitle(&self, abstract_self: &JSRef<Document>, title: DOMString) -> ErrorResult;
+    fn Title(&self) -> DOMString;
+    fn SetTitle(&self, title: DOMString) -> ErrorResult;
     fn GetHead(&self) -> Option<Unrooted<HTMLHeadElement>>;
-    fn GetBody(&self, _: &JSRef<Document>) -> Option<Unrooted<HTMLElement>>;
-    fn SetBody(&self, abstract_self: &JSRef<Document>, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult;
+    fn GetBody(&self) -> Option<Unrooted<HTMLElement>>;
+    fn SetBody(&self, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult;
     fn GetElementsByName(&self, name: DOMString) -> Unrooted<NodeList>;
-    fn Images(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
-    fn Embeds(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
-    fn Plugins(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
-    fn Links(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
-    fn Forms(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
-    fn Scripts(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
-    fn Anchors(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
-    fn Applets(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
-    fn Location(&mut self, _abstract_self: &JSRef<Document>) -> Unrooted<Location>;
-    fn Children(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection>;
+    fn Images(&self) -> Unrooted<HTMLCollection>;
+    fn Embeds(&self) -> Unrooted<HTMLCollection>;
+    fn Plugins(&self) -> Unrooted<HTMLCollection>;
+    fn Links(&self) -> Unrooted<HTMLCollection>;
+    fn Forms(&self) -> Unrooted<HTMLCollection>;
+    fn Scripts(&self) -> Unrooted<HTMLCollection>;
+    fn Anchors(&self) -> Unrooted<HTMLCollection>;
+    fn Applets(&self) -> Unrooted<HTMLCollection>;
+    fn Location(&mut self) -> Unrooted<Location>;
+    fn Children(&self) -> Unrooted<HTMLCollection>;
 }
 
 impl<'a> DocumentMethods for JSRef<'a, Document> {
@@ -370,14 +368,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
-    fn GetElementsByTagName(&self, abstract_self: &JSRef<Document>, tag_name: DOMString) -> Unrooted<HTMLCollection> {
+    fn GetElementsByTagName(&self, tag_name: DOMString) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
-        HTMLCollection::by_tag_name(&*window, NodeCast::from_ref(abstract_self), tag_name)
+        HTMLCollection::by_tag_name(&*window, NodeCast::from_ref(self), tag_name)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
-    fn GetElementsByTagNameNS(&self, abstract_self: &JSRef<Document>, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Unrooted<HTMLCollection> {
+    fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -385,15 +383,15 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             Some(namespace) => Namespace::from_str(namespace),
             None => Null
         };
-        HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(abstract_self), tag_name, namespace)
+        HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), tag_name, namespace)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
-    fn GetElementsByClassName(&self, abstract_self: &JSRef<Document>, classes: DOMString) -> Unrooted<HTMLCollection> {
+    fn GetElementsByClassName(&self, classes: DOMString) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
-        HTMLCollection::by_class_name(&*window, NodeCast::from_ref(abstract_self), classes)
+        HTMLCollection::by_class_name(&*window, NodeCast::from_ref(self), classes)
     }
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
@@ -405,18 +403,17 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelement
-    fn CreateElement(&self, abstract_self: &JSRef<Document>, local_name: DOMString)
-                         -> Fallible<Unrooted<Element>> {
+    fn CreateElement(&self, local_name: DOMString) -> Fallible<Unrooted<Element>> {
         if xml_name_type(local_name) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(InvalidCharacter);
         }
         let local_name = local_name.to_ascii_lower();
-        Ok(build_element_from_tag(local_name, abstract_self))
+        Ok(build_element_from_tag(local_name, self))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
-    fn CreateElementNS(&self, abstract_self: &JSRef<Document>,
+    fn CreateElementNS(&self,
                        namespace: Option<DOMString>,
                        qualified_name: DOMString) -> Fallible<Unrooted<Element>> {
         let ns = Namespace::from_str(null_str_as_empty_ref(&namespace));
@@ -455,30 +452,30 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         if ns == namespace::HTML {
-            Ok(build_element_from_tag(local_name_from_qname, abstract_self))
+            Ok(build_element_from_tag(local_name_from_qname, self))
         } else {
-            Ok(Element::new(local_name_from_qname, ns, prefix_from_qname, abstract_self))
+            Ok(Element::new(local_name_from_qname, ns, prefix_from_qname, self))
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createdocumentfragment
-    fn CreateDocumentFragment(&self, abstract_self: &JSRef<Document>) -> Unrooted<DocumentFragment> {
-        DocumentFragment::new(abstract_self)
+    fn CreateDocumentFragment(&self) -> Unrooted<DocumentFragment> {
+        DocumentFragment::new(self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createtextnode
-    fn CreateTextNode(&self, abstract_self: &JSRef<Document>, data: DOMString)
+    fn CreateTextNode(&self, data: DOMString)
                           -> Unrooted<Text> {
-        Text::new(data, abstract_self)
+        Text::new(data, self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createcomment
-    fn CreateComment(&self, abstract_self: &JSRef<Document>, data: DOMString) -> Unrooted<Comment> {
-        Comment::new(data, abstract_self)
+    fn CreateComment(&self, data: DOMString) -> Unrooted<Comment> {
+        Comment::new(data, self)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
-    fn CreateProcessingInstruction(&self, abstract_self: &JSRef<Document>, target: DOMString,
+    fn CreateProcessingInstruction(&self, target: DOMString,
                                        data: DOMString) -> Fallible<Unrooted<ProcessingInstruction>> {
         // Step 1.
         if xml_name_type(target) == InvalidXMLName {
@@ -491,11 +488,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         // Step 3.
-        Ok(ProcessingInstruction::new(target, data, abstract_self))
+        Ok(ProcessingInstruction::new(target, data, self))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-importnode
-    fn ImportNode(&self, abstract_self: &JSRef<Document>, node: &JSRef<Node>, deep: bool) -> Fallible<Unrooted<Node>> {
+    fn ImportNode(&self, node: &JSRef<Node>, deep: bool) -> Fallible<Unrooted<Node>> {
         // Step 1.
         if node.is_document() {
             return Err(NotSupported);
@@ -507,18 +504,18 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             false => DoNotCloneChildren
         };
 
-        Ok(Node::clone(node, Some(abstract_self), clone_children))
+        Ok(Node::clone(node, Some(self), clone_children))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-adoptnode
-    fn AdoptNode(&self, abstract_self: &JSRef<Document>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
+    fn AdoptNode(&self, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
         // Step 1.
         if node.is_document() {
             return Err(NotSupported);
         }
 
         // Step 2.
-        Node::adopt(node, abstract_self);
+        Node::adopt(node, self);
 
         // Step 3.
         Ok(Unrooted::new_rooted(node))
@@ -539,7 +536,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
-    fn Title(&self, _: &JSRef<Document>) -> DOMString {
+    fn Title(&self) -> DOMString {
         let mut title = ~"";
         let roots = RootCollection::new();
         self.GetDocumentElement().root(&roots).map(|root| {
@@ -561,7 +558,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
-    fn SetTitle(&self, abstract_self: &JSRef<Document>, title: DOMString) -> ErrorResult {
+    fn SetTitle(&self, title: DOMString) -> ErrorResult {
         let roots = RootCollection::new();
 
         self.GetDocumentElement().root(&roots).map(|root| {
@@ -577,20 +574,20 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 match title_node {
                     Some(ref mut title_node) => {
                         for mut title_child in title_node.children() {
-                            assert!(RemoveChild(&mut *title_node, &mut title_child).is_ok());
+                            assert!(title_node.RemoveChild(&mut title_child).is_ok());
                         }
-                        let mut new_text = self.CreateTextNode(abstract_self, title.clone()).root(&roots);
+                        let mut new_text = self.CreateTextNode(title.clone()).root(&roots);
 
-                        assert!(AppendChild(&mut *title_node, NodeCast::from_mut_ref(&mut *new_text)).is_ok());
+                        assert!(title_node.AppendChild(NodeCast::from_mut_ref(&mut *new_text)).is_ok());
                     },
                     None => {
-                        let mut new_title = HTMLTitleElement::new(~"title", abstract_self).root(&roots);
+                        let mut new_title = HTMLTitleElement::new(~"title", self).root(&roots);
                         let new_title: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut *new_title);
 
-                        let mut new_text = self.CreateTextNode(abstract_self, title.clone()).root(&roots);
+                        let mut new_text = self.CreateTextNode(title.clone()).root(&roots);
 
-                        assert!(AppendChild(&mut *new_title, NodeCast::from_mut_ref(&mut *new_text)).is_ok());
-                        assert!(AppendChild(&mut *head, &mut *new_title).is_ok());
+                        assert!(new_title.AppendChild(NodeCast::from_mut_ref(&mut *new_text)).is_ok());
+                        assert!(head.AppendChild(&mut *new_title).is_ok());
                     },
                 }
             });
@@ -613,7 +610,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
-    fn GetBody(&self, _: &JSRef<Document>) -> Option<Unrooted<HTMLElement>> {
+    fn GetBody(&self) -> Option<Unrooted<HTMLElement>> {
         let roots = RootCollection::new();
         self.get_html_element().and_then(|root| {
             let root = root.root(&roots);
@@ -631,7 +628,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
-    fn SetBody(&self, abstract_self: &JSRef<Document>, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult {
+    fn SetBody(&self, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult {
         let roots = RootCollection::new();
 
         // Step 1.
@@ -646,7 +643,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         // Step 2.
-        let mut old_body = self.GetBody(abstract_self).root(&roots);
+        let mut old_body = self.GetBody().root(&roots);
         //FIXME: covariant lifetime workaround. do not judge.
         if old_body.as_ref().map(|body| body.deref()) == new_body.as_ref().map(|a| &*a) {
             return Ok(());
@@ -665,9 +662,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     Some(ref mut child) => {
                         let child: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut **child);
 
-                        assert!(ReplaceChild(&mut *root, new_body, child).is_ok())
+                        assert!(root.ReplaceChild(new_body, child).is_ok())
                     }
-                    None => assert!(AppendChild(&mut *root, new_body).is_ok())
+                    None => assert!(root.AppendChild(new_body).is_ok())
                 };
             }
         }
@@ -690,7 +687,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         })
     }
 
-    fn Images(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Images(&self) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -702,10 +699,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
         }
         let filter = ~ImagesFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
+        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
-    fn Embeds(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Embeds(&self) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -717,15 +714,15 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
         }
         let filter = ~EmbedsFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
+        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
-    fn Plugins(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Plugins(&self) -> Unrooted<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1847
-        self.Embeds(abstract_self)
+        self.Embeds()
     }
 
-    fn Links(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Links(&self) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -738,10 +735,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
         }
         let filter = ~LinksFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
+        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
-    fn Forms(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Forms(&self) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -753,10 +750,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
         }
         let filter = ~FormsFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
+        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
-    fn Scripts(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Scripts(&self) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -768,10 +765,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
         }
         let filter = ~ScriptsFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
+        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
-    fn Anchors(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Anchors(&self) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -783,10 +780,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
         }
         let filter = ~AnchorsFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
+        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
-    fn Applets(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Applets(&self) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
 
@@ -798,19 +795,18 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             }
         }
         let filter = ~AppletsFilter;
-        HTMLCollection::create(&*window, NodeCast::from_ref(abstract_self), filter)
+        HTMLCollection::create(&*window, NodeCast::from_ref(self), filter)
     }
 
-    fn Location(&mut self, _abstract_self: &JSRef<Document>) -> Unrooted<Location> {
+    fn Location(&mut self) -> Unrooted<Location> {
         let roots = RootCollection::new();
         let mut window = self.window.root(&roots);
-        let window_alias = self.window.root(&roots);
-        window.Location(&*window_alias)
+        window.Location()
     }
 
-    fn Children(&self, abstract_self: &JSRef<Document>) -> Unrooted<HTMLCollection> {
+    fn Children(&self) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
-        HTMLCollection::children(&*window, NodeCast::from_ref(abstract_self))
+        HTMLCollection::children(&*window, NodeCast::from_ref(self))
     }
 }

@@ -41,11 +41,11 @@ impl HTMLDataListElement {
 }
 
 pub trait HTMLDataListElementMethods {
-    fn Options(&self, abstract_self: &JSRef<HTMLDataListElement>) -> Unrooted<HTMLCollection>;
+    fn Options(&self) -> Unrooted<HTMLCollection>;
 }
 
 impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
-    fn Options(&self, abstract_self: &JSRef<HTMLDataListElement>) -> Unrooted<HTMLCollection> {
+    fn Options(&self) -> Unrooted<HTMLCollection> {
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
@@ -53,7 +53,7 @@ impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
             }
         }
         let roots = RootCollection::new();
-        let node: &JSRef<Node> = NodeCast::from_ref(abstract_self);
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
         let filter = ~HTMLDataListOptionsFilter;
         let window = window_from_node(node).root(&roots);
         HTMLCollection::create(&*window, node, filter)

@@ -42,8 +42,8 @@ impl HTMLScriptElement {
 }
 
 pub trait HTMLScriptElementMethods {
-    fn Src(&self, abstract_self: &JSRef<HTMLScriptElement>) -> DOMString;
-    fn SetSrc(&mut self, _abstract_self: &JSRef<HTMLScriptElement>, _src: DOMString) -> ErrorResult;
+    fn Src(&self) -> DOMString;
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
     fn SetType(&mut self, _type: DOMString) -> ErrorResult;
     fn Charset(&self) -> DOMString;
@@ -63,12 +63,12 @@ pub trait HTMLScriptElementMethods {
 }
 
 impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
-    fn Src(&self, abstract_self: &JSRef<HTMLScriptElement>) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
+    fn Src(&self) -> DOMString {
+        let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.get_url_attribute("src")
     }
 
-    fn SetSrc(&mut self, _abstract_self: &JSRef<HTMLScriptElement>, _src: DOMString) -> ErrorResult {
+    fn SetSrc(&mut self, _src: DOMString) -> ErrorResult {
         Ok(())
     }
 

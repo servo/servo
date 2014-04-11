@@ -17,7 +17,7 @@ use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use dom::event::{Event, EventMethods};
 use dom::uievent::{UIEvent, UIEventMethods};
-use dom::eventtarget::EventTarget;
+use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::node;
 use dom::node::{Node, NodeHelpers};
 use dom::window::{TimerId, Window};
@@ -988,11 +988,9 @@ impl ScriptTask {
         let mut event = Event::new(&*window).root(&roots);
         event.InitEvent(~"load", false, false);
         let doctarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*document);
-        let wintarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(&mut *window);
-        let wintarget_alias = wintarget.clone();
-        let _ = wintarget.get_mut().dispatch_event_with_target(&wintarget_alias,
-                                                               Some((*doctarget).clone()),
-                                                               &mut *event);
+        let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
+        let _ = wintarget.dispatch_event_with_target(Some((*doctarget).clone()),
+                                                     &mut *event);
 
         let mut fragment_node = page.fragment_node.deref().borrow_mut();
         (*fragment_node).assign(fragment.map_or(None, |fragid| page.find_fragment_node(fragid)));
@@ -1061,10 +1059,7 @@ impl ScriptTask {
                         let event: &mut JSRef<Event> = EventCast::from_mut_ref(&mut *uievent);
 
                         let wintarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(&mut *window);
-                        let wintarget_alias = wintarget.clone();
-                        let _ = wintarget.get_mut().dispatch_event_with_target(&wintarget_alias,
-                                                                               None,
-                                                                               &mut *event);
+                        let _ = wintarget.dispatch_event_with_target(None, &mut *event);
                     }
                     None => ()
                 }

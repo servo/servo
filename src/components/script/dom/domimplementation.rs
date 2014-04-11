@@ -14,7 +14,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
-use dom::node::{Node, AppendChild};
+use dom::node::{Node, NodeMethods};
 use dom::text::Text;
 use dom::window::{Window, WindowMethods};
 use servo_util::str::DOMString;
@@ -87,7 +87,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         let mut maybe_elem = if qname.is_empty() {
             None
         } else {
-            match doc.deref().CreateElementNS(&*doc, namespace, qname) {
+            match doc.CreateElementNS(namespace, qname) {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem)
             }
@@ -100,7 +100,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
             match maybe_doctype {
                 None => (),
                 Some(ref mut doctype) => {
-                    assert!(AppendChild(doc_node, NodeCast::from_mut_ref(doctype)).is_ok())
+                    assert!(doc_node.AppendChild(NodeCast::from_mut_ref(doctype)).is_ok())
                 }
             }
 
@@ -108,7 +108,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
             match maybe_elem.root(&roots) {
                 None => (),
                 Some(mut elem) => {
-                    assert!(AppendChild(doc_node, NodeCast::from_mut_ref(&mut *elem)).is_ok())
+                    assert!(doc_node.AppendChild(NodeCast::from_mut_ref(&mut *elem)).is_ok())
                 }
             }
         }
@@ -133,18 +133,18 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         {
             // Step 3.
             let mut doc_type = DocumentType::new(~"html", None, None, &*doc).root(&roots);
-            assert!(AppendChild(&mut *doc_node, NodeCast::from_mut_ref(&mut *doc_type)).is_ok());
+            assert!(doc_node.AppendChild(NodeCast::from_mut_ref(&mut *doc_type)).is_ok());
         }
 
         {
             // Step 4.
             let mut doc_html = NodeCast::from_unrooted(HTMLHtmlElement::new(~"html", &*doc)).root(&roots);
-            assert!(AppendChild(&mut *doc_node, &mut *doc_html).is_ok());
+            assert!(doc_node.AppendChild(&mut *doc_html).is_ok());
 
             {
                 // Step 5.
                 let mut doc_head = NodeCast::from_unrooted(HTMLHeadElement::new(~"head", &*doc)).root(&roots);
-                assert!(AppendChild(&mut *doc_html, &mut *doc_head).is_ok());
+                assert!(doc_html.AppendChild(&mut *doc_head).is_ok());
 
                 // Step 6.
                 match title {
@@ -152,18 +152,18 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
                     Some(title_str) => {
                         // Step 6.1.
                         let mut doc_title = NodeCast::from_unrooted(HTMLTitleElement::new(~"title", &*doc)).root(&roots);
-                        assert!(AppendChild(&mut *doc_head, &mut *doc_title).is_ok());
+                        assert!(doc_head.AppendChild(&mut *doc_title).is_ok());
 
                         // Step 6.2.
                         let mut title_text = Text::new(title_str, &*doc).root(&roots);
-                        assert!(AppendChild(&mut *doc_title, NodeCast::from_mut_ref(&mut *title_text)).is_ok());
+                        assert!(doc_title.AppendChild(NodeCast::from_mut_ref(&mut *title_text)).is_ok());
                     }
                 }
             }
 
             // Step 7.
             let mut doc_body = HTMLBodyElement::new(~"body", &*doc).root(&roots);
-            assert!(AppendChild(&mut *doc_html, NodeCast::from_mut_ref(&mut *doc_body)).is_ok());
+            assert!(doc_html.AppendChild(NodeCast::from_mut_ref(&mut *doc_body)).is_ok());
         }
 
         // Step 8.

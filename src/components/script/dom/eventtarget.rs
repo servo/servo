@@ -64,15 +64,22 @@ impl EventTarget {
             filtered.map(|entry| entry.listener).collect()
         })
     }
+}
 
-    pub fn dispatch_event_with_target<'a>(&self,
-                                          abstract_self: &JSRef<'a, EventTarget>,
-                                          abstract_target: Option<JSRef<'a, EventTarget>>,
-                                          event: &mut JSRef<Event>) -> Fallible<bool> {
+pub trait EventTargetHelpers {
+    fn dispatch_event_with_target<'a>(&self,
+                                      target: Option<JSRef<'a, EventTarget>>,
+                                      event: &mut JSRef<Event>) -> Fallible<bool>;
+}
+
+impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
+    fn dispatch_event_with_target<'b>(&self,
+                                      target: Option<JSRef<'b, EventTarget>>,
+                                      event: &mut JSRef<Event>) -> Fallible<bool> {
         if event.get().dispatching || !event.get().initialized {
             return Err(InvalidState);
         }
-        Ok(dispatch_event(abstract_self, abstract_target, event))
+        Ok(dispatch_event(self, target, event))
     }
 }
 
@@ -85,8 +92,7 @@ pub trait EventTargetMethods {
                            ty: DOMString,
                            listener: Option<EventListener>,
                            capture: bool);
-    fn DispatchEvent(&self, abstract_self: &JSRef<EventTarget>,
-                     event: &mut JSRef<Event>) -> Fallible<bool>;
+    fn DispatchEvent(&self, event: &mut JSRef<Event>) -> Fallible<bool>;
 }
 
 impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
@@ -127,9 +133,8 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
         }
     }
 
-    fn DispatchEvent(&self, abstract_self: &JSRef<EventTarget>,
-                     event: &mut JSRef<Event>) -> Fallible<bool> {
-        self.dispatch_event_with_target(abstract_self, None, event)
+    fn DispatchEvent(&self, event: &mut JSRef<Event>) -> Fallible<bool> {
+        self.dispatch_event_with_target(None, event)
     }
 }
 

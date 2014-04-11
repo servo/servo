@@ -50,7 +50,7 @@ pub trait HTMLFieldSetElementMethods {
     fn Name(&self) -> DOMString;
     fn SetName(&mut self, _name: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn Elements(&self, abstract_self: &JSRef<HTMLFieldSetElement>) -> Unrooted<HTMLCollection>;
+    fn Elements(&self) -> Unrooted<HTMLCollection>;
     fn WillValidate(&self) -> bool;
     fn Validity(&self) -> Unrooted<ValidityState>;
     fn ValidationMessage(&self) -> DOMString;
@@ -84,7 +84,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     }
 
     // http://www.whatwg.org/html/#dom-fieldset-elements
-    fn Elements(&self, abstract_self: &JSRef<HTMLFieldSetElement>) -> Unrooted<HTMLCollection> {
+    fn Elements(&self) -> Unrooted<HTMLCollection> {
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
             fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool {
@@ -95,7 +95,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
             }
         }
         let roots = RootCollection::new();
-        let node: &JSRef<Node> = NodeCast::from_ref(abstract_self);
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
         let filter = ~ElementsFilter;
         let window = window_from_node(node).root(&roots);
         HTMLCollection::create(&*window, node, filter)

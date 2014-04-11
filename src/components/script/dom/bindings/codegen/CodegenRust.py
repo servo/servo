@@ -2494,12 +2494,6 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         nativeName = MakeNativeName(name)
         extraPre = ''
         argsPre = []
-        if name in self.descriptor.needsAbstract:
-            abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = """  let mut abstract_this = %s::from_raw(this);
-  let abstract_this = abstract_this.root(&roots);
-""" % abstractName
-            argsPre = ['&mut abstract_this.root_ref()']
         return CGWrapper(CGMethodCall(argsPre, nativeName, self.method.isStatic(),
                                       self.descriptor, self.method),
                          pre=extraPre +
@@ -2552,12 +2546,6 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         infallible = ('infallible' in
                       self.descriptor.getExtendedAttributes(self.attr,
                                                             getter=True))
-        if name in self.descriptor.needsAbstract:
-            abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = """  let mut abstract_this = %s::from_raw(this);
-  let abstract_this = abstract_this.root(&roots);
-""" % abstractName
-            argsPre = ['&mut abstract_this.root_ref()']
         if self.attr.type.nullable() or not infallible:
             nativeName = "Get" + nativeName
         return CGWrapper(CGIndenter(CGGetterCall(argsPre, self.attr.type, nativeName,
@@ -2614,12 +2602,6 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         nativeName = "Set" + MakeNativeName(name)
         argsPre = []
         extraPre = ''
-        if name in self.descriptor.needsAbstract:
-            abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
-            extraPre = """  let mut abstract_this = %s::from_raw(this);
-  let abstract_this = abstract_this.root(&roots);
-""" % abstractName
-            argsPre = ['&mut abstract_this.root_ref()']
         return CGWrapper(CGIndenter(CGSetterCall(argsPre, self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
                          pre=extraPre +

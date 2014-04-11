@@ -224,21 +224,6 @@ pub enum NodeTypeId {
     ProcessingInstructionNodeTypeId,
 }
 
-pub fn AppendChild<'a>(self_: &mut JSRef<'a, Node>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
-    let mut self_alias = self_.clone();
-    self_.AppendChild(&mut self_alias, node)
-}
-
-pub fn ReplaceChild<'a>(self_: &mut JSRef<'a, Node>, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
-    let mut self_alias = self_.clone();
-    self_.ReplaceChild(&mut self_alias, node, child)
-}
-
-pub fn RemoveChild<'a>(self_: &mut JSRef<'a, Node>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
-    let mut self_alias = self_.clone();
-    self_.RemoveChild(&mut self_alias, node)
-}
-
 pub trait NodeHelpers {
     fn ancestors(&self) -> AncestorIterator;
     fn children(&self) -> AbstractNodeChildrenIterator;
@@ -1386,30 +1371,30 @@ impl Node {
 
 pub trait NodeMethods {
     fn NodeType(&self) -> u16;
-    fn NodeName(&self, abstract_self: &JSRef<Node>) -> DOMString;
+    fn NodeName(&self) -> DOMString;
     fn GetBaseURI(&self) -> Option<DOMString>;
     fn GetOwnerDocument(&self) -> Option<Unrooted<Document>>;
     fn GetParentNode(&self) -> Option<Unrooted<Node>>;
     fn GetParentElement(&self) -> Option<Unrooted<Element>>;
     fn HasChildNodes(&self) -> bool;
-    fn ChildNodes(&mut self, abstract_self: &JSRef<Node>) -> Unrooted<NodeList>;
+    fn ChildNodes(&mut self) -> Unrooted<NodeList>;
     fn GetFirstChild(&self) -> Option<Unrooted<Node>>;
     fn GetLastChild(&self) -> Option<Unrooted<Node>>;
     fn GetPreviousSibling(&self) -> Option<Unrooted<Node>>;
     fn GetNextSibling(&self) -> Option<Unrooted<Node>>;
-    fn GetNodeValue(&self, abstract_self: &JSRef<Node>) -> Option<DOMString>;
-    fn SetNodeValue(&mut self, abstract_self: &mut JSRef<Node>, val: Option<DOMString>) -> ErrorResult;
-    fn GetTextContent(&self, abstract_self: &JSRef<Node>) -> Option<DOMString>;
-    fn SetTextContent(&mut self, abstract_self: &mut JSRef<Node>, value: Option<DOMString>) -> ErrorResult;
-    fn InsertBefore(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Unrooted<Node>>;
-    fn AppendChild(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
-    fn ReplaceChild(&self, parent: &mut JSRef<Node>, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
-    fn RemoveChild(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
-    fn Normalize(&mut self, abstract_self: &mut JSRef<Node>);
-    fn CloneNode(&self, abstract_self: &mut JSRef<Node>, deep: bool) -> Unrooted<Node>;
-    fn IsEqualNode(&self, abstract_self: &JSRef<Node>, maybe_node: Option<JSRef<Node>>) -> bool;
-    fn CompareDocumentPosition(&self, abstract_self: &JSRef<Node>, other: &JSRef<Node>) -> u16;
-    fn Contains(&self, abstract_self: &JSRef<Node>, maybe_other: Option<JSRef<Node>>) -> bool;
+    fn GetNodeValue(&self) -> Option<DOMString>;
+    fn SetNodeValue(&mut self, val: Option<DOMString>) -> ErrorResult;
+    fn GetTextContent(&self) -> Option<DOMString>;
+    fn SetTextContent(&mut self, value: Option<DOMString>) -> ErrorResult;
+    fn InsertBefore(&mut self, node: &mut JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Unrooted<Node>>;
+    fn AppendChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
+    fn ReplaceChild(&mut self, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
+    fn RemoveChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
+    fn Normalize(&mut self);
+    fn CloneNode(&self, deep: bool) -> Unrooted<Node>;
+    fn IsEqualNode(&self, maybe_node: Option<JSRef<Node>>) -> bool;
+    fn CompareDocumentPosition(&self, other: &JSRef<Node>) -> u16;
+    fn Contains(&self, maybe_other: Option<JSRef<Node>>) -> bool;
     fn LookupPrefix(&self, _prefix: Option<DOMString>) -> Option<DOMString>;
     fn LookupNamespaceURI(&self, _namespace: Option<DOMString>) -> Option<DOMString>;
     fn IsDefaultNamespace(&self, _namespace: Option<DOMString>) -> bool;
@@ -1430,21 +1415,21 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nodename
-    fn NodeName(&self, abstract_self: &JSRef<Node>) -> DOMString {
+    fn NodeName(&self) -> DOMString {
         match self.type_id {
             ElementNodeTypeId(..) => {
-                let elem: &JSRef<Element> = ElementCast::to_ref(abstract_self).unwrap();
+                let elem: &JSRef<Element> = ElementCast::to_ref(self).unwrap();
                 elem.TagName()
             }
             TextNodeTypeId => ~"#text",
             ProcessingInstructionNodeTypeId => {
                 let processing_instruction: &JSRef<ProcessingInstruction> =
-                    ProcessingInstructionCast::to_ref(abstract_self).unwrap();
+                    ProcessingInstructionCast::to_ref(self).unwrap();
                 processing_instruction.Target()
             }
             CommentNodeTypeId => ~"#comment",
             DoctypeNodeTypeId => {
-                let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(abstract_self).unwrap();
+                let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(self).unwrap();
                 doctype.get().name.clone()
             },
             DocumentFragmentNodeTypeId => ~"#document-fragment",
@@ -1494,7 +1479,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-childnodes
-    fn ChildNodes(&mut self, abstract_self: &JSRef<Node>) -> Unrooted<NodeList> {
+    fn ChildNodes(&mut self) -> Unrooted<NodeList> {
         let roots = RootCollection::new();
         match self.child_list {
             None => (),
@@ -1503,7 +1488,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
         let doc = self.deref().owner_doc().root(&roots);
         let window = doc.deref().window.root(&roots);
-        self.child_list.assign(Some(NodeList::new_child_list(&*window, abstract_self)));
+        let child_list = NodeList::new_child_list(&*window, self);
+        self.child_list.assign(Some(child_list));
         Unrooted::new(self.child_list.get_ref().clone())
     }
 
@@ -1528,12 +1514,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nodevalue
-    fn GetNodeValue(&self, abstract_self: &JSRef<Node>) -> Option<DOMString> {
+    fn GetNodeValue(&self) -> Option<DOMString> {
         match self.type_id {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
-                let chardata: &JSRef<CharacterData> = CharacterDataCast::to_ref(abstract_self).unwrap();
+                let chardata: &JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
                 Some(chardata.Data())
             }
             _ => {
@@ -1543,26 +1529,26 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nodevalue
-    fn SetNodeValue(&mut self, abstract_self: &mut JSRef<Node>, val: Option<DOMString>)
+    fn SetNodeValue(&mut self, val: Option<DOMString>)
                         -> ErrorResult {
         match self.type_id {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
-                self.SetTextContent(abstract_self, val)
+                self.SetTextContent(val)
             }
             _ => Ok(())
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-textcontent
-    fn GetTextContent(&self, abstract_self: &JSRef<Node>) -> Option<DOMString> {
+    fn GetTextContent(&self) -> Option<DOMString> {
         let roots = RootCollection::new();
         match self.type_id {
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => {
                 let mut content = ~"";
-                for node in abstract_self.traverse_preorder(&roots) {
+                for node in self.traverse_preorder(&roots) {
                     if node.is_text() {
                         let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();
                         content.push_str(text.get().characterdata.data.as_slice());
@@ -1573,7 +1559,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
-                let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(abstract_self).unwrap();
+                let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
                 Some(characterdata.Data())
             }
             DoctypeNodeTypeId |
@@ -1584,7 +1570,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-textcontent
-    fn SetTextContent(&mut self, abstract_self: &mut JSRef<Node>, value: Option<DOMString>)
+    fn SetTextContent(&mut self, value: Option<DOMString>)
                           -> ErrorResult {
         let roots = RootCollection::new();
         let value = null_str_as_empty(&value);
@@ -1596,19 +1582,21 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     None
                 } else {
                     let document = self.owner_doc().root(&roots);
-                    Some(NodeCast::from_unrooted(document.deref().CreateTextNode(&*document, value)))
+                    Some(NodeCast::from_unrooted(document.deref().CreateTextNode(value)))
                 }.root(&roots);
                 
                 // Step 3.
-                Node::replace_all(node.root_ref(), abstract_self);
+                Node::replace_all(node.root_ref(), self);
             }
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
                 self.wait_until_safe_to_modify_dom();
 
-                let characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(abstract_self).unwrap();
-                characterdata.get_mut().data = value.clone();
+                {
+                    let characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(self).unwrap();
+                    characterdata.get_mut().data = value.clone();
+                }
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root(&roots);
@@ -1621,24 +1609,21 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-insertbefore
-    fn InsertBefore(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>, child: Option<JSRef<Node>>)
-                        -> Fallible<Unrooted<Node>> {
-        Node::pre_insert(node, abstract_self, child)
+    fn InsertBefore(&mut self, node: &mut JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Unrooted<Node>> {
+        Node::pre_insert(node, self, child)
     }
 
     // http://dom.spec.whatwg.org/#dom-node-appendchild
-    fn AppendChild(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>)
-                       -> Fallible<Unrooted<Node>> {
-        Node::pre_insert(node, abstract_self, None)
+    fn AppendChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
+        Node::pre_insert(node, self, None)
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace
-    fn ReplaceChild(&self, parent: &mut JSRef<Node>, node: &mut JSRef<Node>, child: &mut JSRef<Node>)
-                        -> Fallible<Unrooted<Node>> {
+    fn ReplaceChild(&mut self, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
         let roots = RootCollection::new();
 
         // Step 1.
-        match parent.type_id() {
+        match self.type_id() {
             DocumentNodeTypeId |
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => (),
@@ -1646,19 +1631,19 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 2.
-        if node.is_inclusive_ancestor_of(parent) {
+        if node.is_inclusive_ancestor_of(self) {
             return Err(HierarchyRequest);
         }
 
         // Step 3.
-        if !parent.is_parent_of(child) {
+        if !self.is_parent_of(child) {
             return Err(NotFound);
         }
 
         // Step 4-5.
         match node.type_id() {
-            TextNodeTypeId if parent.is_document() => return Err(HierarchyRequest),
-            DoctypeNodeTypeId if !parent.is_document() => return Err(HierarchyRequest),
+            TextNodeTypeId if self.is_document() => return Err(HierarchyRequest),
+            DoctypeNodeTypeId if !self.is_document() => return Err(HierarchyRequest),
             DocumentFragmentNodeTypeId |
             DoctypeNodeTypeId |
             ElementNodeTypeId(..) |
@@ -1669,7 +1654,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 6.
-        match parent.type_id() {
+        match self.type_id() {
             DocumentNodeTypeId => {
                 match node.type_id() {
                     // Step 6.1
@@ -1682,7 +1667,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                             0 => (),
                             // Step 6.1.2
                             1 => {
-                                if parent.child_elements().any(|c| NodeCast::from_ref(&c) != child) {
+                                if self.child_elements().any(|c| NodeCast::from_ref(&c) != child) {
                                     return Err(HierarchyRequest);
                                 }
                                 if child.following_siblings()
@@ -1696,7 +1681,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     },
                     // Step 6.2
                     ElementNodeTypeId(..) => {
-                        if parent.child_elements().any(|c| NodeCast::from_ref(&c) != child) {
+                        if self.child_elements().any(|c| NodeCast::from_ref(&c) != child) {
                             return Err(HierarchyRequest);
                         }
                         if child.following_siblings()
@@ -1706,10 +1691,10 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     },
                     // Step 6.3
                     DoctypeNodeTypeId => {
-                        if parent.children().any(|c| c.deref().is_doctype() && &c != child) {
+                        if self.children().any(|c| c.deref().is_doctype() && &c != child) {
                             return Err(HierarchyRequest);
                         }
-                        if parent.children()
+                        if self.children()
                             .take_while(|c| c != child)
                             .any(|c| c.deref().is_element()) {
                             return Err(HierarchyRequest);
@@ -1737,15 +1722,15 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         };
 
         // Step 9.
-        let document = document_from_node(parent).root(&roots);
+        let document = document_from_node(self).root(&roots);
         Node::adopt(node, &*document);
 
         {
             // Step 10.
-            Node::remove(child, parent, Suppressed);
+            Node::remove(child, self, Suppressed);
 
             // Step 11.
-            Node::insert(node, parent, reference_child, Suppressed);
+            Node::insert(node, self, reference_child, Suppressed);
         }
 
         // Step 12-14.
@@ -1764,13 +1749,13 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-removechild
-    fn RemoveChild(&self, abstract_self: &mut JSRef<Node>, node: &mut JSRef<Node>)
+    fn RemoveChild(&mut self, node: &mut JSRef<Node>)
                        -> Fallible<Unrooted<Node>> {
-        Node::pre_remove(node, abstract_self)
+        Node::pre_remove(node, self)
     }
 
     // http://dom.spec.whatwg.org/#dom-node-normalize
-    fn Normalize(&mut self, abstract_self: &mut JSRef<Node>) {
+    fn Normalize(&mut self) {
         let roots = RootCollection::new();
         let mut prev_text = None;
         for mut child in self.children() {
@@ -1778,20 +1763,19 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 let mut child_alias = child.clone();
                 let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(&child).unwrap();
                 if characterdata.Length() == 0 {
-                    abstract_self.remove_child(&mut child_alias);
+                    self.remove_child(&mut child_alias);
                 } else {
                     match prev_text {
                         Some(ref mut text_node) => {
                             let prev_characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(text_node).unwrap();
                             let _ = prev_characterdata.AppendData(characterdata.Data());
-                            abstract_self.remove_child(&mut child_alias);
+                            self.remove_child(&mut child_alias);
                         },
                         None => prev_text = Some(child_alias)
                     }
                 }
             } else {
-                let mut c = child.clone();
-                child.Normalize(&mut c);
+                child.Normalize();
                 prev_text = None;
             }
 
@@ -1799,15 +1783,15 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-clonenode
-    fn CloneNode(&self, abstract_self: &mut JSRef<Node>, deep: bool) -> Unrooted<Node> {
+    fn CloneNode(&self, deep: bool) -> Unrooted<Node> {
         match deep {
-            true => Node::clone(abstract_self, None, CloneChildren),
-            false => Node::clone(abstract_self, None, DoNotCloneChildren)
+            true => Node::clone(self, None, CloneChildren),
+            false => Node::clone(self, None, DoNotCloneChildren)
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-isequalnode
-    fn IsEqualNode(&self, abstract_self: &JSRef<Node>, maybe_node: Option<JSRef<Node>>) -> bool {
+    fn IsEqualNode(&self, maybe_node: Option<JSRef<Node>>) -> bool {
         fn is_equal_doctype(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
             let other_doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(other).unwrap();
@@ -1879,20 +1863,20 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             // Step 1.
             None => false,
             // Step 2-6.
-            Some(ref node) => is_equal_node(abstract_self, node)
+            Some(ref node) => is_equal_node(self, node)
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
-    fn CompareDocumentPosition(&self, abstract_self: &JSRef<Node>, other: &JSRef<Node>) -> u16 {
+    fn CompareDocumentPosition(&self, other: &JSRef<Node>) -> u16 {
         let roots = RootCollection::new();
-        if abstract_self == other {
+        if self == other {
             // step 2.
             0
         } else {
-            let mut lastself = abstract_self.clone();
+            let mut lastself = self.clone();
             let mut lastother = other.clone();
-            for ancestor in abstract_self.ancestors() {
+            for ancestor in self.ancestors() {
                 if &ancestor == other {
                     // step 4.
                     return NodeConstants::DOCUMENT_POSITION_CONTAINS +
@@ -1901,7 +1885,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 lastself = ancestor.clone();
             }
             for ancestor in other.ancestors() {
-                if &ancestor == abstract_self {
+                if &ancestor == self {
                     // step 5.
                     return NodeConstants::DOCUMENT_POSITION_CONTAINED_BY +
                            NodeConstants::DOCUMENT_POSITION_FOLLOWING;
@@ -1910,7 +1894,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             }
 
             if lastself != lastother {
-                let abstract_uint: uintptr_t = as_uintptr(&*abstract_self);
+                let abstract_uint: uintptr_t = as_uintptr(&*self);
                 let other_uint: uintptr_t = as_uintptr(&*other);
 
                 let random = if abstract_uint < other_uint {
@@ -1929,7 +1913,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     // step 6.
                     return NodeConstants::DOCUMENT_POSITION_PRECEDING;
                 }
-                if &child == abstract_self {
+                if &child == self {
                     // step 7.
                     return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
                 }
@@ -1939,10 +1923,10 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-contains
-    fn Contains(&self, abstract_self: &JSRef<Node>, maybe_other: Option<JSRef<Node>>) -> bool {
+    fn Contains(&self, maybe_other: Option<JSRef<Node>>) -> bool {
         match maybe_other {
             None => false,
-            Some(ref other) => abstract_self.is_inclusive_ancestor_of(other)
+            Some(ref other) => self.is_inclusive_ancestor_of(other)
         }
     }
 

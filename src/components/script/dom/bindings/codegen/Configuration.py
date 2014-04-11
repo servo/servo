@@ -136,7 +136,6 @@ class Descriptor(DescriptorProvider):
         self.returnType = "Unrooted<%s>" % ifaceName
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
         self.concreteType = desc.get('concreteType', ifaceName)
-        self.needsAbstract = desc.get('needsAbstract', [])
         self.createGlobal = desc.get('createGlobal', False)
         self.register = desc.get('register', True)
         self.outerObjectHook = desc.get('outerObjectHook', 'None')

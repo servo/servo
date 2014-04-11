@@ -10,15 +10,18 @@ use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing,
 use dom::node::{Node, NodeHelpers};
 
 // See http://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
-pub fn dispatch_event<'a>(target: &JSRef<'a, EventTarget>,
-                          pseudo_target: Option<JSRef<'a, EventTarget>>,
-                          event: &mut JSRef<Event>) -> bool {
+pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
+                              pseudo_target: Option<JSRef<'b, EventTarget>>,
+                              event: &mut JSRef<Event>) -> bool {
     let roots = RootCollection::new();
     assert!(!event.get().dispatching);
 
     {
         let event = event.get_mut();
-        event.target.assign(Some(pseudo_target.unwrap_or(target.clone())));
+        match pseudo_target {
+            Some(pseudo_target) => event.target.assign(Some(pseudo_target)),
+            None => event.target.assign(Some(target.clone())),
+        }
         event.dispatching = true;
     }
 

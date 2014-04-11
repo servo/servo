@@ -87,8 +87,8 @@ pub trait HTMLIFrameElementMethods {
     fn SetSrcdoc(&mut self, _srcdoc: DOMString) -> ErrorResult;
     fn Name(&self) -> DOMString;
     fn SetName(&mut self, _name: DOMString) -> ErrorResult;
-    fn Sandbox(&self, abstract_self: &JSRef<HTMLIFrameElement>) -> DOMString;
-    fn SetSandbox(&mut self, abstract_self: &mut JSRef<HTMLIFrameElement>, sandbox: DOMString);
+    fn Sandbox(&self) -> DOMString;
+    fn SetSandbox(&mut self, sandbox: DOMString);
     fn AllowFullscreen(&self) -> bool;
     fn SetAllowFullscreen(&mut self, _allow: bool) -> ErrorResult;
     fn Width(&self) -> DOMString;
@@ -137,13 +137,13 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
         Ok(())
     }
 
-    fn Sandbox(&self, abstract_self: &JSRef<HTMLIFrameElement>) -> DOMString {
-        let element: &JSRef<Element> = ElementCast::from_ref(abstract_self);
+    fn Sandbox(&self) -> DOMString {
+        let element: &JSRef<Element> = ElementCast::from_ref(self);
         element.get_string_attribute("sandbox")
     }
 
-    fn SetSandbox(&mut self, abstract_self: &mut JSRef<HTMLIFrameElement>, sandbox: DOMString) {
-        let element: &mut JSRef<Element> = ElementCast::from_mut_ref(abstract_self);
+    fn SetSandbox(&mut self, sandbox: DOMString) {
+        let element: &mut JSRef<Element> = ElementCast::from_mut_ref(self);
         element.set_string_attribute("sandbox", sandbox);
     }
 

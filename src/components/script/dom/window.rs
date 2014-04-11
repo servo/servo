@@ -118,9 +118,9 @@ pub trait WindowMethods {
     fn Focus(&self);
     fn Blur(&self);
     fn GetFrameElement(&self) -> Option<Unrooted<Element>>;
-    fn Location(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Location>;
-    fn Console(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Console>;
-    fn Navigator(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Navigator>;
+    fn Location(&mut self) -> Unrooted<Location>;
+    fn Console(&mut self) -> Unrooted<Console>;
+    fn Navigator(&mut self) -> Unrooted<Navigator>;
     fn Confirm(&self, _message: DOMString) -> bool;
     fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString>;
     fn Print(&self);
@@ -129,8 +129,8 @@ pub trait WindowMethods {
     fn ClearTimeout(&mut self, handle: i32);
     fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32;
     fn ClearInterval(&mut self, handle: i32);
-    fn Window(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window>;
-    fn Self(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window>;
+    fn Window(&self) -> Unrooted<Window>;
+    fn Self(&self) -> Unrooted<Window>;
 }
 
 impl<'a> WindowMethods for JSRef<'a, Window> {
@@ -180,24 +180,27 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         None
     }
 
-    fn Location(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Location> {
+    fn Location(&mut self) -> Unrooted<Location> {
         if self.location.is_none() {
             let page = self.deref().page.clone();
-            self.location.assign(Some(Location::new(abstract_self, page)));
+            let location = Location::new(self, page);
+            self.location.assign(Some(location));
         }
         Unrooted::new(self.location.get_ref().clone())
     }
 
-    fn Console(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Console> {
+    fn Console(&mut self) -> Unrooted<Console> {
         if self.console.is_none() {
-            self.console.assign(Some(Console::new(abstract_self)));
+            let console = Console::new(self);
+            self.console.assign(Some(console));
         }
         Unrooted::new(self.console.get_ref().clone())
     }
 
-    fn Navigator(&mut self, abstract_self: &JSRef<Window>) -> Unrooted<Navigator> {
+    fn Navigator(&mut self) -> Unrooted<Navigator> {
         if self.navigator.is_none() {
-            self.navigator.assign(Some(Navigator::new(abstract_self)));
+            let navigator = Navigator::new(self);
+            self.navigator.assign(Some(navigator));
         }
         Unrooted::new(self.navigator.get_ref().clone())
     }
@@ -238,12 +241,12 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.ClearTimeout(handle);
     }
 
-    fn Window(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window> {
-        Unrooted::new_rooted(abstract_self)
+    fn Window(&self) -> Unrooted<Window> {
+        Unrooted::new_rooted(self)
     }
 
-    fn Self(&self, abstract_self: &JSRef<Window>) -> Unrooted<Window> {
-        self.Window(abstract_self)
+    fn Self(&self) -> Unrooted<Window> {
+        self.Window()
     }
 }
 

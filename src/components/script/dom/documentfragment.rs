@@ -49,13 +49,13 @@ impl DocumentFragment {
 }
 
 pub trait DocumentFragmentMethods {
-    fn Children(&self, abstract_self: &JSRef<DocumentFragment>) -> Unrooted<HTMLCollection>;
+    fn Children(&self) -> Unrooted<HTMLCollection>;
 }
 
 impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
-    fn Children(&self, abstract_self: &JSRef<DocumentFragment>) -> Unrooted<HTMLCollection> {
+    fn Children(&self) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
-        let window = window_from_node(abstract_self).root(&roots);
-        HTMLCollection::children(&window.root_ref(), NodeCast::from_ref(abstract_self))
+        let window = window_from_node(self).root(&roots);
+        HTMLCollection::children(&window.root_ref(), NodeCast::from_ref(self))
     }
 }

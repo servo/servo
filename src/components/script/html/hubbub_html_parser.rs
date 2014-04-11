@@ -5,7 +5,7 @@
 use dom::attr::AttrMethods;
 use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, OptionalRootable};
+use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, OptionalRootable, Root};
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::{AttributeHandlers, HTMLLinkElementTypeId, HTMLIFrameElementTypeId};
@@ -13,7 +13,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmliframeelement::IFrameSize;
 use dom::htmlformelement::HTMLFormElement;
-use dom::node::{ElementNodeTypeId, NodeHelpers, AppendChild};
+use dom::node::{ElementNodeTypeId, NodeHelpers, NodeMethods};
 use dom::types::*;
 use html::cssparse::{StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use script_task::Page;
@@ -422,8 +422,8 @@ pub fn parse_html(page: &Page,
             unsafe {
                 debug!("append child {:x} {:x}", parent, child);
                 let mut child = from_hubbub_node(child, Some(&roots)).root(&roots);
-                let mut parent = from_hubbub_node(parent, None).root(&roots);
-                assert!(AppendChild(&mut *parent, &mut *child).is_ok());
+                let mut parent: Root<Node> = from_hubbub_node(parent, None).root(&roots);
+                assert!(parent.AppendChild(&mut *child).is_ok());
             }
             child
         },
