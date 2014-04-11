@@ -146,7 +146,7 @@ impl HTMLImageElement {
 
     pub fn SetWidth(&mut self, abstract_self: &JS<HTMLImageElement>, width: u32) {
         let mut elem: JS<Element> = ElementCast::from(abstract_self);
-        elem.set_uint_attribute("width", width)
+        elem.set_uint_attribute("width", width);
     }
 
     pub fn Height(&self, abstract_self: &JS<HTMLImageElement>) -> u32 {
@@ -162,7 +162,7 @@ impl HTMLImageElement {
 
     pub fn SetHeight(&mut self, abstract_self: &JS<HTMLImageElement>, height: u32) {
         let mut elem: JS<Element> = ElementCast::from(abstract_self);
-        elem.set_uint_attribute("height", height)
+        elem.set_uint_attribute("height", height);
     }
 
     pub fn NaturalWidth(&self) -> u32 {

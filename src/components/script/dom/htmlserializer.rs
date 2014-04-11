@@ -132,7 +132,7 @@ fn serialize_attr(attr: &JS<Attr>) -> ~str {
     } else {
         attr.get().name.clone()
     };
-    ~" " + attr_name + "=\"" + escape(attr.get().value, true) + "\""
+    ~" " + attr_name + "=\"" + escape(attr.get().Value(), true) + "\""
 }
 
 fn escape(string: &str, attr_mode: bool) -> ~str {

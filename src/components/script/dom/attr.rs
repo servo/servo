@@ -9,11 +9,75 @@ use dom::window::Window;
 use servo_util::namespace::Namespace;
 use servo_util::str::DOMString;
 
+#[deriving(Eq, Clone, Encodable)]
+pub enum AttrValue {
+    StringAttrValue(DOMString),
+    TokenListAttrValue(DOMString, ~[(uint, uint)]),
+    UIntAttrValue(DOMString, u32),
+}
+
+impl AttrValue {
+    pub fn is_string(&self) -> bool {
+        match *self {
+            StringAttrValue(..) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_tokenlist(&self) -> bool {
+        match *self {
+            TokenListAttrValue(..) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_uint(&self) -> bool {
+        match *self {
+            UIntAttrValue(..) => true,
+            _ => false
+        }
+    }
+}
+
+impl AttrValue {
+    pub fn as_str_slice<'a>(&'a self) -> &'a str {
+        match *self {
+            StringAttrValue(ref value) => value.as_slice(),
+            TokenListAttrValue(ref value, _) => value.as_slice(),
+            UIntAttrValue(ref value, _) => value.as_slice(),
+        }
+    }
+
+    pub fn as_owned_str(&self) -> ~str {
+        match *self {
+            StringAttrValue(ref value) => value.clone(),
+            TokenListAttrValue(ref value, _) => value.clone(),
+            UIntAttrValue(ref value, _) => value.clone(),
+        }
+    }
+
+    pub fn as_tokenlist<'a>(&'a self) -> Option<~[&'a str]> {
+        match *self {
+            TokenListAttrValue(ref value, ref indexes) => {
+                Some(indexes.iter().map(|&(begin, end)| value.slice_chars(begin, end)).collect())
+            },
+            _ => None
+        }
+    }
+
+    pub fn as_uint(&self) -> Option<u32> {
+        match *self {
+            UIntAttrValue(_, value) => Some(value),
+            _ => None
+        }
+    }
+}
+
 #[deriving(Encodable)]
 pub struct Attr {
     reflector_: Reflector,
     local_name: DOMString,
-    value: DOMString,
+    value: AttrValue,
     name: DOMString,
     namespace: Namespace,
     prefix: Option<DOMString>
@@ -30,7 +94,7 @@ impl Reflectable for Attr {
 }
 
 impl Attr {
-    fn new_inherited(local_name: DOMString, value: DOMString,
+    fn new_inherited(local_name: DOMString, value: AttrValue,
                      name: DOMString, namespace: Namespace,
                      prefix: Option<DOMString>) -> Attr {
         Attr {
@@ -43,39 +107,55 @@ impl Attr {
         }
     }
 
-    pub fn new(window: &JS<Window>, local_name: DOMString, value: DOMString,
+    pub fn new(window: &JS<Window>, local_name: DOMString, value: AttrValue,
                name: DOMString, namespace: Namespace,
                prefix: Option<DOMString>) -> JS<Attr> {
         let attr = Attr::new_inherited(local_name, value, name, namespace, prefix);
         reflect_dom_object(~attr, window, AttrBinding::Wrap)
     }
+}
 
-    pub fn set_value(&mut self, value: DOMString) {
+impl Attr {
+    pub fn set_value(&mut self, value: AttrValue) {
         self.value = value;
     }
 
     pub fn value_ref<'a>(&'a self) -> &'a str {
-        self.value.as_slice()
+        self.value.as_str_slice()
+    }
+
+    pub fn value_tokenlist_ref<'a>(&'a self) -> Option<~[&'a str]> {
+        self.value.as_tokenlist()
+    }
+
+    pub fn value_uint(&self) -> Option<u32> {
+        self.value.as_uint()
     }
 }
 
+// http://dom.spec.whatwg.org/#interface-attr
 impl Attr {
+    // http://dom.spec.whatwg.org/#dom-attr-localname
     pub fn LocalName(&self) -> DOMString {
         self.local_name.clone()
     }
 
+    // http://dom.spec.whatwg.org/#dom-attr-value
     pub fn Value(&self) -> DOMString {
-        self.value.clone()
+        self.value.as_owned_str()
     }
 
+    // http://dom.spec.whatwg.org/#dom-attr-value
     pub fn SetValue(&mut self, value: DOMString) {
-        self.value = value;
+        self.value = StringAttrValue(value);
     }
 
+    // http://dom.spec.whatwg.org/#dom-attr-name
     pub fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
+    // http://dom.spec.whatwg.org/#dom-attr-namespaceuri
     pub fn GetNamespaceURI(&self) -> Option<DOMString> {
         match self.namespace.to_str() {
             "" => None,
@@ -83,6 +163,7 @@ impl Attr {
         }
     }
 
+    // http://dom.spec.whatwg.org/#dom-attr-prefix
     pub fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix.clone()
     }
