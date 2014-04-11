@@ -450,10 +450,10 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
 
         if self.has_before_pseudo() {
             if self.is_block(Before) && self.pseudo == Normal {
-                let pseudo_before_node = ThreadSafeLayoutNode::new_with_pseudo_without_self(&self.node, BeforeBlock);
+                let pseudo_before_node = self.with_pseudo(BeforeBlock);
                 return Some(pseudo_before_node)
             } else if self.pseudo == Normal || self.pseudo == BeforeBlock {
-                let pseudo_before_node = ThreadSafeLayoutNode::new_with_pseudo_without_self(&self.node, Before);
+                let pseudo_before_node = self.with_pseudo(Before);
                 return Some(pseudo_before_node)
             }
         }
@@ -497,16 +497,9 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    pub fn new_with_pseudo_without_self<'a>(node: &LayoutNode<'a>, pseudo: PseudoElementType) -> ThreadSafeLayoutNode<'a> {
-         ThreadSafeLayoutNode {
-             node: node.clone(),
-             pseudo: pseudo,
-         }
-    }
-
-
-    /// Creates a new `ThreadSafeLayoutNode` from the given `LayoutNode`.
-    pub fn new_with_pseudo<'a>(&'a self, pseudo: PseudoElementType) -> ThreadSafeLayoutNode<'a> {
+    /// Creates a new `ThreadSafeLayoutNode` for the same `LayoutNode`
+    /// with a differet pseudo-element type.
+    pub fn with_pseudo(&self, pseudo: PseudoElementType) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
             node: self.node.clone(),
             pseudo: pseudo,
@@ -661,10 +654,10 @@ impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIter
                     Some(ref parent_node) => {
                         if parent_node.has_after_pseudo() {
                             let pseudo_after_node = if parent_node.is_block(After) && parent_node.pseudo == Normal {
-                                let pseudo_after_node = ThreadSafeLayoutNode::new_with_pseudo_without_self(&parent_node.node, AfterBlock);
+                                let pseudo_after_node = parent_node.with_pseudo(AfterBlock);
                                 Some(pseudo_after_node)
                             } else if parent_node.pseudo == Normal || parent_node.pseudo == AfterBlock {
-                                let pseudo_after_node = ThreadSafeLayoutNode::new_with_pseudo_without_self(&parent_node.node, After);
+                                let pseudo_after_node = parent_node.with_pseudo(After);
                                 Some(pseudo_after_node)
                             } else {
                                 None
