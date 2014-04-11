@@ -7,8 +7,6 @@
 #[crate_type = "dylib"];
 #[crate_type = "rlib"];
 
-#[feature(managed_boxes)];
-
 extern crate azure;
 extern crate geom;
 extern crate layers;

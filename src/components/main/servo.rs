@@ -6,7 +6,7 @@
 #[comment = "The Servo Parallel Browser Project"];
 #[license = "MPL"];
 
-#[feature(globs, macro_rules, managed_boxes, phase, thread_local)];
+#[feature(globs, macro_rules, phase, thread_local)];
 
 #[feature(phase)];
 #[phase(syntax, link)]
