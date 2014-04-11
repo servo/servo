@@ -498,7 +498,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     /// Creates a new `ThreadSafeLayoutNode` for the same `LayoutNode`
-    /// with a differet pseudo-element type.
+    /// with a different pseudo-element type.
     pub fn with_pseudo(&self, pseudo: PseudoElementType) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
             node: self.node.clone(),
