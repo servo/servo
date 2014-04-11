@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::attr::Attr;
+use dom::attr::{Attr, AttrValue, StringAttrValue, TokenListAttrValue, UIntAttrValue};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::ElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLImageElementCast};
@@ -28,7 +28,6 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
 use layout_interface::{MatchSelectorsDocumentDamage};
 use style;
-use servo_util::attr::{AttrValue, StringAttrValue, TokenListAttrValue, UIntAttrValue};
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, DOMStringVec, HTML_SPACE_CHARACTERS, null_str_as_empty_ref, split_html_space_chars};
@@ -213,7 +212,7 @@ pub trait AttributeHandlers {
     fn set_url_attribute(&mut self, name: &str, value: DOMString);
     fn get_string_attribute(&self, name: &str) -> DOMString;
     fn set_string_attribute(&mut self, name: &str, value: DOMString);
-    fn set_uint_attribute(&mut self, name: &str, value: u32) -> ErrorResult;
+    fn set_uint_attribute(&mut self, name: &str, value: u32);
     fn get_tokenlist_attribute(&self, name: &str) -> DOMStringVec;
     fn set_tokenlist_attribute(&mut self, name: &str, value: DOMString);
 }
@@ -513,23 +512,16 @@ impl AttributeHandlers for JS<Element> {
         assert!(self.set_attribute(Null, name.to_owned(), StringAttrValue(value)).is_ok());
     }
 
-    fn set_uint_attribute(&mut self, name: &str, value: u32) -> ErrorResult {
+    fn set_uint_attribute(&mut self, name: &str, value: u32) {
         assert!(name == name.to_ascii_lower());
-        self.set_attribute(Null, name.to_owned(), UIntAttrValue(value.to_str(), value))
+        assert!(self.set_attribute(Null, name.to_owned(),
+                                   UIntAttrValue(value.to_str(), value)).is_ok());
     }
 
-    fn get_tokenlist_attribute(&self, name: &str) -> DOMStringVec {
+    fn get_tokenlist_attribute<'a>(&self, name: &str) -> DOMStringVec {
         match self.get_attribute(Null, name) {
-            Some(attr) => match attr.get().value_tokenlist_ref() {
-                Some(ref slices) => {
-                    let mut tokens: DOMStringVec = ~[];
-                    for slice in slices.iter() {
-                        tokens.push(slice.to_owned());
-                    }
-                    tokens
-                },
-                None => ~[]
-            },
+            Some(attr) => attr.get().value_tokenlist_ref().unwrap_or(~[]).iter()
+                              .map(|&token| token.to_owned()).collect(),
             None => ~[]
         }
     }

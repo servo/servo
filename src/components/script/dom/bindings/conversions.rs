@@ -6,7 +6,6 @@ use dom::bindings::js::JS;
 use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::jsstring_to_str;
 use servo_util::str::DOMString;
-use servo_util::attr::{AttrValue, StringAttrValue, TokenListAttrValue, UIntAttrValue};
 
 use js::jsapi::{JSBool, JSContext};
 use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
@@ -196,16 +195,6 @@ impl ToJSValConvertible for DOMString {
                 fail!("JS_NewUCStringCopyN failed");
             }
             StringValue(&*jsstr)
-        }
-    }
-}
-
-impl ToJSValConvertible for AttrValue {
-    fn to_jsval(&self, cx: *JSContext) -> JSVal {
-        match *self {
-            StringAttrValue(ref string) => string.to_jsval(cx),
-            TokenListAttrValue(ref string, _) => string.to_jsval(cx),
-            UIntAttrValue(ref string, _) => string.to_jsval(cx)
         }
     }
 }

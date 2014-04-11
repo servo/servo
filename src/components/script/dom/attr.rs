@@ -7,8 +7,71 @@ use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::namespace::Namespace;
-use servo_util::attr::{AttrValue, StringAttrValue};
 use servo_util::str::DOMString;
+
+#[deriving(Eq, Clone, Encodable)]
+pub enum AttrValue {
+    StringAttrValue(DOMString),
+    TokenListAttrValue(DOMString, ~[(uint, uint)]),
+    UIntAttrValue(DOMString, u32),
+}
+
+impl AttrValue {
+    pub fn is_string(&self) -> bool {
+        match *self {
+            StringAttrValue(..) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_tokenlist(&self) -> bool {
+        match *self {
+            TokenListAttrValue(..) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_uint(&self) -> bool {
+        match *self {
+            UIntAttrValue(..) => true,
+            _ => false
+        }
+    }
+}
+
+impl AttrValue {
+    pub fn as_str_slice<'a>(&'a self) -> &'a str {
+        match *self {
+            StringAttrValue(ref value) => value.as_slice(),
+            TokenListAttrValue(ref value, _) => value.as_slice(),
+            UIntAttrValue(ref value, _) => value.as_slice(),
+        }
+    }
+
+    pub fn as_owned_str(&self) -> ~str {
+        match *self {
+            StringAttrValue(ref value) => value.clone(),
+            TokenListAttrValue(ref value, _) => value.clone(),
+            UIntAttrValue(ref value, _) => value.clone(),
+        }
+    }
+
+    pub fn as_tokenlist<'a>(&'a self) -> Option<~[&'a str]> {
+        match *self {
+            TokenListAttrValue(ref value, ref indexes) => {
+                Some(indexes.iter().map(|&(begin, end)| value.slice_chars(begin, end)).collect())
+            },
+            _ => None
+        }
+    }
+
+    pub fn as_uint(&self) -> Option<u32> {
+        match *self {
+            UIntAttrValue(_, value) => Some(value),
+            _ => None
+        }
+    }
+}
 
 #[deriving(Encodable)]
 pub struct Attr {
