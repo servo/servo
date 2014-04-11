@@ -7,7 +7,6 @@ use dom::bindings::codegen::InheritTypes::{DocumentBase, NodeCast, DocumentCast}
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast};
 use dom::bindings::codegen::DocumentBinding;
-use dom::bindings::codegen::NodeBinding::NodeConstants::{DOCUMENT_POSITION_CONTAINS, DOCUMENT_POSITION_PRECEDING};
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest, NamespaceError};
@@ -677,23 +676,26 @@ impl Document {
 
         // FIXME https://github.com/mozilla/rust/issues/13195
         //       Use mangle() when it exists again.
+        let root = self.GetDocumentElement().expect("The element is in the document, so there must be a document element.");
         match self.idmap.find_mut(&id) {
             Some(elements) => {
                 let new_node = NodeCast::from(element);
                 let mut head : uint = 0u;
-                let mut tail : uint = elements.len();
-                while head < tail {
-                    let middle = ((head + tail) / 2) as int;
-                    let elem = &elements[middle];
-                    let js_node = NodeCast::from(elem);
-                    let position = elem.get().node.CompareDocumentPosition(&js_node, &new_node);
-                    if position == DOCUMENT_POSITION_PRECEDING || position == DOCUMENT_POSITION_PRECEDING + DOCUMENT_POSITION_CONTAINS {
-                        tail = middle as uint;
-                    } else {
-                        head = middle as uint + 1u;
+                let root: JS<Node> = NodeCast::from(&root);
+                for node in root.traverse_preorder() {
+                    match ElementCast::to(&node) {
+                        Some(elem) => {
+                            if elements[head] == elem {
+                                head = head + 1;
+                            }
+                            if new_node == node || head == elements.len() {
+                                break;
+                            }
+                        }
+                        None => {}
                     }
                 }
-                elements.insert(tail, element.clone());
+                elements.insert(head, element.clone());
                 return;
             },
             None => (),
