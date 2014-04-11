@@ -7,7 +7,7 @@
 #[crate_type = "dylib"];
 #[crate_type = "rlib"];
 
-#[feature(globs, managed_boxes)];
+#[feature(globs)];
 
 #[feature(phase)];
 #[phase(syntax, link)]

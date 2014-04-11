@@ -7,7 +7,7 @@
 #[crate_type = "dylib"];
 #[crate_type = "rlib"];
 
-#[feature(macro_rules, managed_boxes)];
+#[feature(macro_rules)];
 
 #[feature(phase)];
 #[phase(syntax, link)]

@@ -805,23 +805,6 @@ impl Drop for BaseFlow {
     }
 }
 
-pub struct BoxIterator {
-    priv boxes: ~[@Box],
-    priv index: uint,
-}
-
-impl Iterator<@Box> for BoxIterator {
-    fn next(&mut self) -> Option<@Box> {
-        if self.index >= self.boxes.len() {
-            None
-        } else {
-            let v = self.boxes[self.index].clone();
-            self.index += 1;
-            Some(v)
-        }
-    }
-}
-
 impl BaseFlow {
     #[inline]
     pub fn new(node: ThreadSafeLayoutNode) -> BaseFlow {
