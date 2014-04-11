@@ -76,8 +76,115 @@ impl DocumentDerived for EventTarget {
     }
 }
 
+pub trait DocumentHelpers {
+    fn url<'a>(&'a self) -> &'a Url;
+    fn quirks_mode(&self) -> QuirksMode;
+    fn set_quirks_mode(&mut self, mode: QuirksMode);
+    fn set_encoding_name(&mut self, name: DOMString);
+    fn content_changed(&self);
+    fn damage_and_reflow(&self, damage: DocumentDamageLevel);
+    fn wait_until_safe_to_modify_dom(&self);
+    fn unregister_named_element(&mut self, to_unregister: &JSRef<Element>, id: DOMString);
+    fn register_named_element(&mut self, element: &JSRef<Element>, id: DOMString);
+}
+
+impl<'a> DocumentHelpers for JSRef<'a, Document> {
+    fn url<'a>(&'a self) -> &'a Url {
+        &*self.url
+    }
+
+    fn quirks_mode(&self) -> QuirksMode {
+        *self.quirks_mode
+    }
+
+    fn set_quirks_mode(&mut self, mode: QuirksMode) {
+        *self.quirks_mode = mode;
+    }
+
+    fn set_encoding_name(&mut self, name: DOMString) {
+        self.encoding_name = name;
+    }
+
+    fn content_changed(&self) {
+        self.damage_and_reflow(ContentChangedDocumentDamage);
+    }
+
+    fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
+        let roots = RootCollection::new();
+        self.window.root(&roots).damage_and_reflow(damage);
+    }
+
+    fn wait_until_safe_to_modify_dom(&self) {
+        let roots = RootCollection::new();
+        self.window.root(&roots).wait_until_safe_to_modify_dom();
+    }
+
+
+    /// Remove any existing association between the provided id and any elements in this document.
+    fn unregister_named_element(&mut self,
+                                to_unregister: &JSRef<Element>,
+                                id: DOMString) {
+        let roots = RootCollection::new();
+        let mut is_empty = false;
+        match self.idmap.find_mut(&id) {
+            None => {},
+            Some(elements) => {
+                let position = elements.iter()
+                                       .map(|elem| elem.root(&roots))
+                                       .position(|element| &*element == to_unregister)
+                                       .expect("This element should be in registered.");
+                elements.remove(position);
+                is_empty = elements.is_empty();
+            }
+        }
+        if is_empty {
+            self.idmap.remove(&id);
+        }
+    }
+
+    /// Associate an element present in this document with the provided id.
+    fn register_named_element(&mut self,
+                              element: &JSRef<Element>,
+                              id: DOMString) {
+        let roots = RootCollection::new();
+        assert!({
+            let node: &JSRef<Node> = NodeCast::from_ref(element);
+            node.is_in_doc()
+        });
+
+        // FIXME https://github.com/mozilla/rust/issues/13195
+        //       Use mangle() when it exists again.
+        let root = self.GetDocumentElement().expect("The element is in the document, so there must be a document element.").root(&roots);
+        match self.idmap.find_mut(&id) {
+            Some(elements) => {
+                let new_node: &JSRef<Node> = NodeCast::from_ref(element);
+                let mut head : uint = 0u;
+                let root: &JSRef<Node> = NodeCast::from_ref(&*root);
+                for node in root.traverse_preorder(&roots) {
+                    let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
+                    match elem {
+                        Some(elem) => {
+                            if elements.get(head) == &elem.unrooted() {
+                                head = head + 1;
+                            }
+                            if new_node == &node || head == elements.len() {
+                                break;
+                            }
+                        }
+                        None => {}
+                    }
+                }
+                elements.insert(head, element.unrooted());
+                return;
+            },
+            None => (),
+        }
+        self.idmap.insert(id, vec!(element.unrooted()));
+    }
+}
+
 impl Document {
-    pub fn reflect_document(document: ~Document,
+        pub fn reflect_document(document: ~Document,
                             window:   &JSRef<Window>,
                             wrap_fn:  extern "Rust" fn(*JSContext, &JSRef<Window>, ~Document) -> JS<Document>)
              -> Unrooted<Document> {
@@ -88,7 +195,7 @@ impl Document {
 
         let mut doc_alias = raw_doc.clone();
         let node: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut doc_alias);
-        node.get_mut().set_owner_doc(&*raw_doc);
+        node.set_owner_doc(&*raw_doc);
         Unrooted::new_rooted(&*raw_doc)
     }
 
@@ -131,100 +238,6 @@ impl Document {
         let document = Document::new_inherited(window.unrooted(), url, doctype, content_type);
         Document::reflect_document(~document, window, DocumentBinding::Wrap)
     }
-
-    pub fn url<'a>(&'a self) -> &'a Url {
-        &*self.url
-    }
-
-    pub fn quirks_mode(&self) -> QuirksMode {
-        *self.quirks_mode
-    }
-
-    pub fn set_quirks_mode(&mut self, mode: QuirksMode) {
-        *self.quirks_mode = mode;
-    }
-
-    pub fn set_encoding_name(&mut self, name: DOMString) {
-        self.encoding_name = name;
-    }
-
-    pub fn content_changed(&self) {
-        self.damage_and_reflow(ContentChangedDocumentDamage);
-    }
-
-    pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
-        let roots = RootCollection::new();
-        self.window.root(&roots).damage_and_reflow(damage);
-    }
-
-    pub fn wait_until_safe_to_modify_dom(&self) {
-        let roots = RootCollection::new();
-        self.window.root(&roots).wait_until_safe_to_modify_dom();
-    }
-
-
-    /// Remove any existing association between the provided id and any elements in this document.
-    pub fn unregister_named_element(&mut self,
-                                    to_unregister: &JSRef<Element>,
-                                    id: DOMString) {
-        let roots = RootCollection::new();
-        let mut is_empty = false;
-        match self.idmap.find_mut(&id) {
-            None => {},
-            Some(elements) => {
-                let position = elements.iter()
-                                       .map(|elem| elem.root(&roots))
-                                       .position(|element| &*element == to_unregister)
-                                       .expect("This element should be in registered.");
-                elements.remove(position);
-                is_empty = elements.is_empty();
-            }
-        }
-        if is_empty {
-            self.idmap.remove(&id);
-        }
-    }
-
-    /// Associate an element present in this document with the provided id.
-    pub fn register_named_element(&mut self,
-                                  abstract_self: &JSRef<Document>,
-                                  element: &JSRef<Element>,
-                                  id: DOMString) {
-        let roots = RootCollection::new();
-        assert!({
-            let node: &JSRef<Node> = NodeCast::from_ref(element);
-            node.is_in_doc()
-        });
-
-        // FIXME https://github.com/mozilla/rust/issues/13195
-        //       Use mangle() when it exists again.
-        let root = abstract_self.GetDocumentElement().expect("The element is in the document, so there must be a document element.").root(&roots);
-        match self.idmap.find_mut(&id) {
-            Some(elements) => {
-                let new_node: &JSRef<Node> = NodeCast::from_ref(element);
-                let mut head : uint = 0u;
-                let root: &JSRef<Node> = NodeCast::from_ref(&*root);
-                for node in root.traverse_preorder(&roots) {
-                    let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
-                    match elem {
-                        Some(elem) => {
-                            if elements.get(head) == &elem.unrooted() {
-                                head = head + 1;
-                            }
-                            if new_node == &node || head == elements.len() {
-                                break;
-                            }
-                        }
-                        None => {}
-                    }
-                }
-                elements.insert(head, element.unrooted());
-                return;
-            },
-            None => (),
-        }
-        self.idmap.insert(id, vec!(element.unrooted()));
-    }
 }
 
 impl Reflectable for Document {
@@ -237,12 +250,12 @@ impl Reflectable for Document {
     }
 }
 
-trait DocumentHelpers {
+trait PrivateDocumentHelpers {
     fn createNodeList(&self, callback: |node: &JSRef<Node>| -> bool) -> Unrooted<NodeList>;
     fn get_html_element(&self) -> Option<Unrooted<HTMLHtmlElement>>;
 }
 
-impl<'a> DocumentHelpers for JSRef<'a, Document> {
+impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
     fn createNodeList(&self, callback: |node: &JSRef<Node>| -> bool) -> Unrooted<NodeList> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
@@ -354,7 +367,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-doctype
     fn GetDoctype(&self) -> Option<Unrooted<DocumentType>> {
-        self.node.children().find(|child| {
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.children().find(|child| {
             child.is_doctype()
         }).map(|node| {
             let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(&node).unwrap();
@@ -364,7 +378,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-documentelement
     fn GetDocumentElement(&self) -> Option<Unrooted<Element>> {
-        self.node.child_elements().next().map(|elem| Unrooted::new_rooted(&elem))
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        node.child_elements().next().map(|elem| Unrooted::new_rooted(&elem))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
@@ -544,7 +559,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             root.traverse_preorder(&roots)
                 .find(|node| node.type_id() == ElementNodeTypeId(HTMLTitleElementTypeId))
                 .map(|title_elem| {
-                    for child in title_elem.deref().children() {
+                    for child in title_elem.children() {
                         if child.is_text() {
                             let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
                             title.push_str(text.get().characterdata.data.as_slice());
@@ -633,8 +648,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
         // Step 1.
         match new_body {
-            Some(ref node) => {
-                match node.get().element.node.type_id {
+            Some(ref htmlelem) => {
+                let node: &JSRef<Node> = NodeCast::from_ref(htmlelem);
+                match node.type_id() {
                     ElementNodeTypeId(HTMLBodyElementTypeId) | ElementNodeTypeId(HTMLFrameSetElementTypeId) => {}
                     _ => return Err(HierarchyRequest)
                 }
@@ -676,7 +692,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let roots = RootCollection::new();
 
         self.createNodeList(|node| {
-            if !node.get().is_element() {
+            if !node.is_element() {
                 return false;
             }
 

@@ -11,7 +11,7 @@ use dom::element::HTMLMapElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::{HTMLCollection, Static};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -59,8 +59,7 @@ impl<'a> HTMLMapElementMethods for JSRef<'a, HTMLMapElement> {
     fn Areas(&self) -> Unrooted<HTMLCollection> {
         let roots = RootCollection::new();
         // FIXME: https://github.com/mozilla/servo/issues/1845
-        let doc = self.htmlelement.element.node.owner_doc().root(&roots);
-        let window = doc.deref().window.root(&roots);
+        let window = window_from_node(self).root(&roots);
         HTMLCollection::new(&*window, Static(vec!()))
     }
 }

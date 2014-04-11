@@ -35,29 +35,18 @@ impl HTMLImageElementDerived for EventTarget {
     }
 }
 
-impl HTMLImageElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLImageElement {
-        HTMLImageElement {
-            htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, document),
-            image: Untraceable::new(None),
-        }
-    }
+trait PrivateHTMLImageElementHelpers {
+    fn update_image(&mut self, value: Option<DOMString>, url: Option<Url>);
+}
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLImageElement> {
-        let element = HTMLImageElement::new_inherited(localName, document.unrooted());
-        Node::reflect_node(~element, document, HTMLImageElementBinding::Wrap)
-    }
-
-    pub fn image<'a>(&'a self) -> &'a Option<Url> {
-        &*self.image
-    }
-
+impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(&mut self, value: Option<DOMString>, url: Option<Url>) {
         let roots = RootCollection::new();
-        let elem = &mut self.htmlelement.element;
-        let document = elem.node.owner_doc().root(&roots);
+        let self_alias = self.clone();
+        let node_alias: &JSRef<Node> = NodeCast::from_ref(&self_alias);
+        let document = node_alias.owner_doc().root(&roots);
         let window = document.deref().window.root(&roots);
         let image_cache = &window.image_cache_task;
         match value {
@@ -76,6 +65,30 @@ impl HTMLImageElement {
                 image_cache.send(image_cache_task::Prefetch(img_url));
             }
         }
+    }
+}
+
+impl HTMLImageElement {
+    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLImageElement {
+        HTMLImageElement {
+            htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, document),
+            image: Untraceable::new(None),
+        }
+    }
+
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLImageElement> {
+        let element = HTMLImageElement::new_inherited(localName, document.unrooted());
+        Node::reflect_node(~element, document, HTMLImageElementBinding::Wrap)
+    }
+}
+
+pub trait LayoutHTMLImageElementHelpers {
+    unsafe fn image<'a>(&'a self) -> &'a Option<Url>;
+}
+
+impl LayoutHTMLImageElementHelpers for JS<HTMLImageElement> {
+    unsafe fn image<'a>(&'a self) -> &'a Option<Url> {
+        &*(*self.unsafe_get()).image
     }
 }
 
@@ -271,7 +284,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         if "src" == name {
             let window = window_from_node(self).root(&roots);
             let url = Some(window.get().get_url());
-            self.get_mut().update_image(Some(value), url);
+            self.update_image(Some(value), url);
         }
     }
 
@@ -282,7 +295,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         }
 
         if "src" == name {
-            self.get_mut().update_image(None, None);
+            self.update_image(None, None);
         }
     }
 }

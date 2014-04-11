@@ -7,11 +7,11 @@ use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, TextCast, Element
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, OptionalRootable, Root};
 use dom::bindings::utils::Reflectable;
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, HTMLLinkElementTypeId, HTMLIFrameElementTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
-use dom::htmliframeelement::IFrameSize;
+use dom::htmliframeelement::{IFrameSize, HTMLIFrameElementHelpers};
 use dom::htmlformelement::HTMLFormElement;
 use dom::node::{ElementNodeTypeId, NodeHelpers, NodeMethods};
 use dom::types::*;
@@ -364,7 +364,11 @@ pub fn parse_html(page: &Page,
             };
 
             // Spawn additional parsing, network loads, etc. from tag and attrs
-            match element.get().node.type_id {
+            let type_id = {
+                let node: &JSRef<Node> = NodeCast::from_ref(&*element);
+                node.type_id()
+            };
+            match type_id {
                 // Handle CSS style sheets from <link> elements
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
                     match (rel, href) {
@@ -384,10 +388,10 @@ pub fn parse_html(page: &Page,
                     let iframe_chan = discovery_chan.clone();
                     let iframe_element: &mut JSRef<HTMLIFrameElement> =
                         HTMLIFrameElementCast::to_mut_ref(&mut *element).unwrap();
-                    let sandboxed = iframe_element.get().is_sandboxed();
+                    let sandboxed = iframe_element.is_sandboxed();
                     for src in src_opt.iter() {
                         let iframe_url = parse_url(*src, Some(url2.clone()));
-                        iframe_element.get_mut().set_frame(iframe_url.clone());
+                        iframe_element.set_frame(iframe_url.clone());
 
                         // Subpage Id
                         let subpage_id = *next_subpage_id.borrow();
@@ -463,14 +467,14 @@ pub fn parse_html(page: &Page,
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let mut tmp_borrow = doc_cell.borrow_mut();
             let tmp = &mut *tmp_borrow;
-            tmp.get_mut().set_quirks_mode(mode);
+            tmp.set_quirks_mode(mode);
         },
         encoding_change: |encname| {
             debug!("encoding change");
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let mut tmp_borrow = doc_cell.borrow_mut();
             let tmp = &mut *tmp_borrow;
-            tmp.get_mut().set_encoding_name(encname);
+            tmp.set_encoding_name(encname);
         },
         complete_script: |script| {
             unsafe {

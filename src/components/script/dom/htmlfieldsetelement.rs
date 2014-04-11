@@ -107,8 +107,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
 
     fn Validity(&self) -> Unrooted<ValidityState> {
         let roots = RootCollection::new();
-        let doc = self.htmlelement.element.node.owner_doc().root(&roots);
-        let window = doc.deref().window.root(&roots);
+        let window = window_from_node(self).root(&roots);
         ValidityState::new(&*window)
     }
 

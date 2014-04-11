@@ -11,7 +11,7 @@ use dom::element::HTMLButtonElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::HTMLFormElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use servo_util::str::DOMString;
 
@@ -168,8 +168,8 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
 
     fn Validity(&self) -> Unrooted<ValidityState> {
         let roots = RootCollection::new();
-        let doc = self.htmlelement.element.node.owner_doc().root(&roots);
-        ValidityState::new(&*doc.deref().window.root(&roots))
+        let window = window_from_node(self).root(&roots);
+        ValidityState::new(&*window)
     }
 
     fn SetValidity(&mut self, _validity: JS<ValidityState>) {

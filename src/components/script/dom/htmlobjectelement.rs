@@ -191,9 +191,8 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
 
     fn Validity(&self) -> Unrooted<ValidityState> {
         let roots = RootCollection::new();
-        let doc = self.htmlelement.element.node.owner_doc().root(&roots);
-        let window = doc.deref().window.root(&roots);
-        ValidityState::new(&window.root_ref())
+        let window = window_from_node(self).root(&roots);
+        ValidityState::new(&*window)
     }
 
     fn ValidationMessage(&self) -> DOMString {

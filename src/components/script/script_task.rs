@@ -12,7 +12,7 @@ use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, OptionalAssignable}
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, GlobalStaticData, wrap_for_same_compartment};
-use dom::document::{Document, HTMLDocument, DocumentMethods};
+use dom::document::{Document, HTMLDocument, DocumentMethods, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use dom::event::{Event, EventMethods};
@@ -949,7 +949,7 @@ impl ScriptTask {
         }
 
         // Kick off the initial reflow of the page.
-        document.get().content_changed();
+        document.content_changed();
 
         let fragment = url.fragment.as_ref().map(|ref fragment| fragment.to_owned());
 

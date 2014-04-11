@@ -15,12 +15,12 @@ use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharact
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlserializer::serialize;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
-use dom::node::window_from_node;
+use dom::node::{window_from_node, LayoutNodeHelpers};
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use layout_interface::ContentChangedDocumentDamage;
 use layout_interface::MatchSelectorsDocumentDamage;
@@ -157,36 +157,51 @@ impl Element {
         let element = Element::new_inherited(ElementTypeId, local_name, namespace, prefix, document.unrooted());
         Node::reflect_node(~element, document, ElementBinding::Wrap)
     }
+}
 
-    pub fn html_element_in_html_document(&self) -> bool {
-        let roots = RootCollection::new();
-        self.namespace == namespace::HTML &&
-        self.node.owner_doc().root(&roots).is_html_document
+pub trait RawLayoutElementHelpers {
+    unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str) -> Option<&'static str>;
+}
+
+impl RawLayoutElementHelpers for Element {
+    #[inline]
+    unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str)
+                                      -> Option<&'static str> {
+        self.attrs.iter().find(|attr: & &JS<Attr>| {
+            let attr = attr.unsafe_get();
+            name == (*attr).local_name && (*attr).namespace == *namespace
+       }).map(|attr| {
+            let attr = attr.unsafe_get();
+            cast::transmute((*attr).value.as_slice())
+        })
     }
 }
 
-impl Element {
-    pub unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
-        if self.namespace != namespace::HTML {
+pub trait LayoutElementHelpers {
+    unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
+}
+
+impl LayoutElementHelpers for JS<Element> {
+    unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
+        if (*self.unsafe_get()).namespace != namespace::HTML {
             return false
         }
-        let owner_doc: *JS<Document> = self.node.owner_doc_for_layout();
-        let owner_doc: **Document = owner_doc as **Document;
-        (**owner_doc).is_html_document
+        let node: JS<Node> = self.transmute_copy();
+        let owner_doc = node.owner_doc_for_layout().unsafe_get();
+        (*owner_doc).is_html_document
     }
+}
 
-    #[inline]
-    pub unsafe fn get_attr_val_for_layout(&self, namespace: &Namespace, name: &str)
-                                          -> Option<&'static str> {
-        self.attrs.iter().find(|attr: & &JS<Attr>| {
-            // unsafely avoid a borrow because this is accessed by many tasks
-            // during parallel layout
-            let attr: ***Attr = cast::transmute(attr);
-            name == (***attr).local_name && (***attr).namespace == *namespace
-       }).map(|attr| {
-            let attr: **Attr = cast::transmute(attr);
-            cast::transmute((**attr).value.as_slice())
-        })
+pub trait ElementHelpers {
+    fn html_element_in_html_document(&self) -> bool;
+}
+
+impl<'a> ElementHelpers for JSRef<'a, Element> {
+    fn html_element_in_html_document(&self) -> bool {
+        let roots = RootCollection::new();
+        let is_html = self.namespace == namespace::HTML;
+        let node: &JSRef<Node> = NodeCast::from_ref(self);
+        is_html && node.owner_doc().root(&roots).is_html_document
     }
 }
 
@@ -214,7 +229,7 @@ pub trait AttributeHandlers {
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Unrooted<Attr>> {
         let roots = RootCollection::new();
-        if self.get().html_element_in_html_document() {
+        if self.html_element_in_html_document() {
             self.get().attrs.iter().map(|attr| attr.root(&roots)).find(|attr| {
                 name.to_ascii_lower() == attr.local_name && attr.namespace == namespace
             }).map(|x| Unrooted::new_rooted(&*x))
@@ -248,7 +263,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         node.wait_until_safe_to_modify_dom();
 
         let position: |&JSRef<Attr>| -> bool =
-            if self.get().html_element_in_html_document() {
+            if self.html_element_in_html_document() {
                 |attr| attr.get().local_name.eq_ignore_ascii_case(local_name)
             } else {
                 |attr| attr.get().local_name == local_name
@@ -453,7 +468,10 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             Some(ref list) => return Unrooted::new(list.clone()),
         }
 
-        let doc = self.node.owner_doc().root(&roots);
+        let doc = {
+            let node: &JSRef<Node> = NodeCast::from_ref(self);
+            node.owner_doc()
+        }.root(&roots);
         let window = doc.deref().window.root(&roots);
         let list = AttrList::new(&*window, self);
         self.attr_list.assign(Some(list));
@@ -463,7 +481,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
         let roots = RootCollection::new();
-        let name = if self.get().html_element_in_html_document() {
+        let name = if self.html_element_in_html_document() {
             name.to_ascii_lower()
         } else {
             name
@@ -488,7 +506,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                     value: DOMString) -> ErrorResult {
         {
             let node: &JSRef<Node> = NodeCast::from_ref(self);
-            node.get().wait_until_safe_to_modify_dom();
+            node.wait_until_safe_to_modify_dom();
         }
 
         // Step 1.
@@ -498,7 +516,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         // Step 2.
-        let name = if self.get().html_element_in_html_document() {
+        let name = if self.html_element_in_html_document() {
             name.to_ascii_lower()
         } else {
             name
@@ -518,7 +536,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                       value: DOMString) -> ErrorResult {
         {
             let node: &JSRef<Node> = NodeCast::from_ref(self);
-            node.get().wait_until_safe_to_modify_dom();
+            node.wait_until_safe_to_modify_dom();
         }
 
         // Step 1.
@@ -707,15 +725,14 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         match name.as_slice() {
             "style" => {
                 let doc = document_from_node(self).root(&roots);
-                let base_url = doc.get().url().clone();
+                let base_url = doc.deref().url().clone();
                 self.get_mut().style_attribute = Some(style::parse_style_attribute(value, &base_url))
             }
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
                 if node.is_in_doc() {
                     let mut doc = document_from_node(self).root(&roots);
-                    let doc_alias = (*doc).clone();
-                    doc.register_named_element(&doc_alias, self, value.clone());
+                    doc.register_named_element(self, value.clone());
                 }
             }
             _ => ()
@@ -758,8 +775,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         match self.get_attribute(Null, "id").root(&roots) {
             Some(attr) => {
                 let mut doc = document_from_node(self).root(&roots);
-                let doc_alias = (*doc).clone();
-                doc.register_named_element(&doc_alias, self, attr.deref().Value());
+                doc.register_named_element(self, attr.deref().Value());
             }
             _ => ()
         }

@@ -6,7 +6,7 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTypeCast};
-use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, ElementDerived};
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::BindingDeclarations::NodeBinding::NodeConstants;
@@ -18,7 +18,7 @@ use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::bindings::utils;
 use dom::characterdata::{CharacterData, CharacterDataMethods};
 use dom::comment::Comment;
-use dom::document::{Document, DocumentMethods, HTMLDocument, NonHTMLDocument};
+use dom::document::{Document, DocumentMethods, DocumentHelpers, HTMLDocument, NonHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementMethods, ElementTypeId, HTMLAnchorElementTypeId};
@@ -224,6 +224,174 @@ pub enum NodeTypeId {
     ProcessingInstructionNodeTypeId,
 }
 
+trait PrivateNodeHelpers {
+    fn set_parent_node(&mut self, new_parent_node: Option<JSRef<Node>>);
+    fn set_first_child(&mut self, new_first_child: Option<JSRef<Node>>);
+    fn set_last_child(&mut self, new_last_child: Option<JSRef<Node>>);
+    fn set_prev_sibling(&mut self, new_prev_sibling: Option<JSRef<Node>>);
+    fn set_next_sibling(&mut self, new_next_sibling: Option<JSRef<Node>>);
+
+    fn node_inserted(&self);
+    fn node_removed(&self);
+    fn add_child(&mut self, new_child: &mut JSRef<Node>, before: Option<JSRef<Node>>);
+    fn remove_child(&mut self, child: &mut JSRef<Node>);
+}
+
+impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
+    // http://dom.spec.whatwg.org/#node-is-inserted
+    fn node_inserted(&self) {
+        let roots = RootCollection::new();
+        assert!(self.parent_node().is_some());
+        let document = document_from_node(self).root(&roots);
+
+        if self.is_in_doc() {
+            for node in self.traverse_preorder(&roots) {
+                vtable_for(&node).bind_to_tree();
+            }
+        }
+
+        self.parent_node().root(&roots)
+                          .map(|parent| vtable_for(&*parent).child_inserted(self));
+
+        document.deref().content_changed();
+    }
+
+    // http://dom.spec.whatwg.org/#node-is-removed
+    fn node_removed(&self) {
+        let roots = RootCollection::new();
+        assert!(self.parent_node().is_none());
+        let document = document_from_node(self).root(&roots);
+
+        for node in self.traverse_preorder(&roots) {
+            // XXX how about if the node wasn't in the tree in the first place?
+            vtable_for(&node).unbind_from_tree();
+        }
+
+        document.deref().content_changed();
+    }
+
+    //
+    // Pointer stitching
+    //
+
+    /// Adds a new child to the end of this node's list of children.
+    ///
+    /// Fails unless `new_child` is disconnected from the tree.
+    fn add_child(&mut self, new_child: &mut JSRef<Node>, mut before: Option<JSRef<Node>>) {
+        let roots = RootCollection::new();
+        assert!(new_child.parent_node().is_none());
+        assert!(new_child.prev_sibling().is_none());
+        assert!(new_child.next_sibling().is_none());
+        match before {
+            Some(ref mut before) => {
+                // XXX Should assert that parent is self.
+                assert!(before.parent_node().is_some());
+                match before.prev_sibling() {
+                    None => {
+                        // XXX Should assert that before is the first child of
+                        //     self.
+                        self.set_first_child(Some(new_child.clone()));
+                    },
+                    Some(prev_sibling) => {
+                        let mut prev_sibling = prev_sibling.root(&roots);
+                        prev_sibling.set_next_sibling(Some(new_child.clone()));
+                        new_child.set_prev_sibling(Some((*prev_sibling).clone()));
+                    },
+                }
+                before.set_prev_sibling(Some(new_child.clone()));
+                new_child.set_next_sibling(Some(before.clone()));
+            },
+            None => {
+                match self.last_child().map(|child| child.root(&roots)) {
+                    None => self.set_first_child(Some(new_child.clone())),
+                    Some(mut last_child) => {
+                        assert!(last_child.next_sibling().is_none());
+                        last_child.set_next_sibling(Some(new_child.clone()));
+                        new_child.set_prev_sibling(Some((*last_child).clone()));
+                    }
+                }
+
+                self.set_last_child(Some(new_child.clone()));
+            },
+        }
+
+        new_child.set_parent_node(Some(self.clone()));
+    }
+
+    /// Removes the given child from this node's list of children.
+    ///
+    /// Fails unless `child` is a child of this node. (FIXME: This is not yet checked.)
+    fn remove_child(&mut self, child: &mut JSRef<Node>) {
+        let roots = RootCollection::new();
+        assert!(child.parent_node.is_some());
+
+        match child.prev_sibling.root(&roots) {
+            None => {
+                let next_sibling = child.next_sibling.as_ref().map(|next| next.root(&roots));
+                self.set_first_child(next_sibling.root_ref());
+            }
+            Some(ref mut prev_sibling) => {
+                let next_sibling = child.next_sibling.as_ref().map(|next| next.root(&roots));
+                prev_sibling.set_next_sibling(next_sibling.root_ref());
+            }
+        }
+
+        match child.next_sibling.root(&roots) {
+            None => {
+                let prev_sibling = child.prev_sibling.as_ref().map(|prev| prev.root(&roots));
+                self.set_last_child(prev_sibling.root_ref());
+            }
+            Some(ref mut next_sibling) => {
+                let prev_sibling = child.prev_sibling.as_ref().map(|prev| prev.root(&roots));
+                next_sibling.set_prev_sibling(prev_sibling.root_ref());
+            }
+        }
+
+        child.set_prev_sibling(None);
+        child.set_next_sibling(None);
+        child.set_parent_node(None);
+    }
+
+    //
+    // Low-level pointer stitching
+    //
+
+    fn set_parent_node(&mut self, new_parent_node: Option<JSRef<Node>>) {
+        let roots = RootCollection::new();
+        let doc = self.owner_doc().root(&roots);
+        doc.deref().wait_until_safe_to_modify_dom();
+        self.parent_node.assign(new_parent_node);
+    }
+
+    fn set_first_child(&mut self, new_first_child: Option<JSRef<Node>>) {
+        let roots = RootCollection::new();
+        let doc = self.owner_doc().root(&roots);
+        doc.deref().wait_until_safe_to_modify_dom();
+        self.first_child.assign(new_first_child);
+    }
+
+    fn set_last_child(&mut self, new_last_child: Option<JSRef<Node>>) {
+        let roots = RootCollection::new();
+        let doc = self.owner_doc().root(&roots);
+        doc.deref().wait_until_safe_to_modify_dom();
+        self.last_child.assign(new_last_child);
+    }
+
+    fn set_prev_sibling(&mut self, new_prev_sibling: Option<JSRef<Node>>) {
+        let roots = RootCollection::new();
+        let doc = self.owner_doc().root(&roots);
+        doc.deref().wait_until_safe_to_modify_dom();
+        self.prev_sibling.assign(new_prev_sibling);
+    }
+
+    fn set_next_sibling(&mut self, new_next_sibling: Option<JSRef<Node>>) {
+        let roots = RootCollection::new();
+        let doc = self.owner_doc().root(&roots);
+        doc.deref().wait_until_safe_to_modify_dom();
+        self.next_sibling.assign(new_next_sibling);
+    }
+}
+
 pub trait NodeHelpers {
     fn ancestors(&self) -> AncestorIterator;
     fn children(&self) -> AbstractNodeChildrenIterator;
@@ -241,16 +409,16 @@ pub trait NodeHelpers {
     fn prev_sibling(&self) -> Option<Unrooted<Node>>;
     fn next_sibling(&self) -> Option<Unrooted<Node>>;
 
+    fn owner_doc(&self) -> Unrooted<Document>;
+    fn set_owner_doc(&mut self, document: &JSRef<Document>);
+
+    fn wait_until_safe_to_modify_dom(&self);
+
     fn is_element(&self) -> bool;
     fn is_document(&self) -> bool;
     fn is_doctype(&self) -> bool;
     fn is_text(&self) -> bool;
     fn is_anchor_element(&self) -> bool;
-
-    fn node_inserted(&self);
-    fn node_removed(&self);
-    fn add_child(&mut self, new_child: &mut JSRef<Node>, before: Option<JSRef<Node>>);
-    fn remove_child(&mut self, child: &mut JSRef<Node>);
 
     fn get_hover_state(&self) -> bool;
     fn set_hover_state(&mut self, state: bool);
@@ -296,19 +464,6 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         format!("{:?}", self.type_id())
     }
 
-    /// Iterates over all ancestors of this node.
-    fn ancestors(&self) -> AncestorIterator {
-        self.get().ancestors()
-    }
-
-    fn children(&self) -> AbstractNodeChildrenIterator {
-        self.get().children()
-    }
-
-    fn child_elements(&self) -> ChildElementIterator {
-        self.get().child_elements()
-    }
-
     fn is_in_doc(&self) -> bool {
         self.get().flags.is_in_doc()
     }
@@ -342,7 +497,10 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     #[inline]
     fn is_element(&self) -> bool {
-        self.get().is_element()
+        match self.type_id {
+            ElementNodeTypeId(..) => true,
+            _ => false
+        }
     }
 
     #[inline]
@@ -363,7 +521,10 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     #[inline]
     fn is_doctype(&self) -> bool {
-        self.get().is_doctype()
+        match self.type_id {
+            DoctypeNodeTypeId => true,
+            _ => false
+        }
     }
 
     #[inline]
@@ -376,127 +537,12 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         }
     }
 
-    // http://dom.spec.whatwg.org/#node-is-inserted
-    fn node_inserted(&self) {
-        let roots = RootCollection::new();
-        assert!(self.parent_node().is_some());
-        let document = document_from_node(self).root(&roots);
-
-        if self.is_in_doc() {
-            for node in self.traverse_preorder(&roots) {
-                vtable_for(&node).bind_to_tree();
-            }
-        }
-
-        self.parent_node().root(&roots)
-                          .map(|parent| vtable_for(&*parent).child_inserted(self));
-        document.get().content_changed();
-    }
-
-    // http://dom.spec.whatwg.org/#node-is-removed
-    fn node_removed(&self) {
-        let roots = RootCollection::new();
-        assert!(self.parent_node().is_none());
-        let document = document_from_node(self).root(&roots);
-
-        for node in self.traverse_preorder(&roots) {
-            // XXX how about if the node wasn't in the tree in the first place?
-            vtable_for(&node).unbind_from_tree();
-        }
-
-        document.get().content_changed();
-    }
-
-    //
-    // Pointer stitching
-    //
-
-    /// Adds a new child to the end of this node's list of children.
-    ///
-    /// Fails unless `new_child` is disconnected from the tree.
-    fn add_child(&mut self, new_child: &mut JSRef<Node>, mut before: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        assert!(new_child.parent_node().is_none());
-        assert!(new_child.prev_sibling().is_none());
-        assert!(new_child.next_sibling().is_none());
-        match before {
-            Some(ref mut before) => {
-                // XXX Should assert that parent is self.
-                assert!(before.parent_node().is_some());
-                match before.prev_sibling() {
-                    None => {
-                        // XXX Should assert that before is the first child of
-                        //     self.
-                        self.get_mut().set_first_child(Some(new_child.clone()));
-                    },
-                    Some(prev_sibling) => {
-                        let mut prev_sibling = prev_sibling.root(&roots);
-                        prev_sibling.get_mut().set_next_sibling(Some(new_child.clone()));
-                        new_child.get_mut().set_prev_sibling(Some((*prev_sibling).clone()));
-                    },
-                }
-                before.get_mut().set_prev_sibling(Some(new_child.clone()));
-                new_child.get_mut().set_next_sibling(Some(before.clone()));
-            },
-            None => {
-                match self.last_child().map(|child| child.root(&roots)) {
-                    None => self.get_mut().set_first_child(Some(new_child.clone())),
-                    Some(mut last_child) => {
-                        assert!(last_child.next_sibling().is_none());
-                        last_child.get_mut().set_next_sibling(Some(new_child.clone()));
-                        new_child.get_mut().set_prev_sibling(Some((*last_child).clone()));
-                    }
-                }
-
-                self.get_mut().set_last_child(Some(new_child.clone()));
-            },
-        }
-
-        new_child.get_mut().set_parent_node(Some(self.clone()));
-    }
-
-    /// Removes the given child from this node's list of children.
-    ///
-    /// Fails unless `child` is a child of this node. (FIXME: This is not yet checked.)
-    fn remove_child(&mut self, child: &mut JSRef<Node>) {
-        let roots = RootCollection::new();
-        let this_node = self.get_mut();
-        let child_node = child.get_mut();
-        assert!(child_node.parent_node.is_some());
-
-        match child_node.prev_sibling.root(&roots) {
-            None => {
-                let next_sibling = child_node.next_sibling.as_ref().map(|next| next.root(&roots));
-                this_node.set_first_child(next_sibling.root_ref());
-            }
-            Some(ref mut prev_sibling) => {
-                let next_sibling = child_node.next_sibling.as_ref().map(|next| next.root(&roots));
-                prev_sibling.set_next_sibling(next_sibling.root_ref());
-            }
-        }
-
-        match child_node.next_sibling.root(&roots) {
-            None => {
-                let prev_sibling = child_node.prev_sibling.as_ref().map(|prev| prev.root(&roots));
-                this_node.set_last_child(prev_sibling.root_ref());
-            }
-            Some(ref mut next_sibling) => {
-                let prev_sibling = child_node.prev_sibling.as_ref().map(|prev| prev.root(&roots));
-                next_sibling.set_prev_sibling(prev_sibling.root_ref());
-            }
-        }
-
-        child_node.set_prev_sibling(None);
-        child_node.set_next_sibling(None);
-        child_node.set_parent_node(None);
-    }
-
     fn get_hover_state(&self) -> bool {
-        self.get().flags.get_in_hover_state()
+        self.flags.get_in_hover_state()
     }
 
     fn set_hover_state(&mut self, state: bool) {
-        self.get_mut().flags.set_is_in_hover_state(state);
+        self.flags.set_is_in_hover_state(state);
     }
 
     /// Iterates over this node and all its descendants, in preorder.
@@ -563,6 +609,48 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         let ContentBoxesResponse(rects) = page.query_layout(ContentBoxesQuery(addr, chan), port);
         rects
     }
+
+    fn ancestors(&self) -> AncestorIterator {
+        let roots = RootCollection::new();
+        AncestorIterator {
+            current: self.parent_node.clone().map(|node| (*node.root(&roots)).clone()),
+            roots: roots,
+        }
+    }
+
+    fn owner_doc(&self) -> Unrooted<Document> {
+        Unrooted::new(self.owner_doc.get_ref().clone())
+    }
+
+    fn set_owner_doc(&mut self, document: &JSRef<Document>) {
+        self.owner_doc = Some(document.unrooted());
+    }
+
+    fn children(&self) -> AbstractNodeChildrenIterator {
+        let roots = RootCollection::new();
+        AbstractNodeChildrenIterator {
+            current_node: self.first_child.clone().map(|node| (*node.root(&roots)).clone()),
+            roots: roots,
+        }
+    }
+
+    fn child_elements(&self) -> ChildElementIterator {
+        self.children()
+            .filter(|node| {
+                node.is_element()
+            })
+            .map(|node| {
+                let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
+                elem.clone()
+            })
+    }
+
+    fn wait_until_safe_to_modify_dom(&self) {
+        let roots = RootCollection::new();
+        let document = self.owner_doc().root(&roots);
+        document.deref().wait_until_safe_to_modify_dom();
+    }
+
 }
 
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
@@ -582,18 +670,68 @@ pub fn from_untrusted_node_address(runtime: *JSRuntime, candidate: UntrustedNode
 }
 
 pub trait LayoutNodeHelpers {
-    fn type_id_for_layout(&self) -> NodeTypeId;
+    unsafe fn type_id_for_layout(&self) -> NodeTypeId;
+
+    unsafe fn parent_node_ref<'a>(&'a self) -> Option<&'a JS<Node>>;
+    unsafe fn first_child_ref<'a>(&'a self) -> Option<&'a JS<Node>>;
+    unsafe fn last_child_ref<'a>(&'a self) -> Option<&'a JS<Node>>;
+    unsafe fn prev_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>>;
+    unsafe fn next_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>>;
+
+    unsafe fn owner_doc_for_layout<'a>(&'a self) -> &'a JS<Document>;
+
+    unsafe fn is_element_for_layout(&self) -> bool;
 }
 
 impl LayoutNodeHelpers for JS<Node> {
-    fn type_id_for_layout(&self) -> NodeTypeId {
-        unsafe {
-            let node: **Node = cast::transmute::<*JS<Node>,
-                                                 **Node>(self);
-            (**node).type_id
-        }
+    unsafe fn type_id_for_layout(&self) -> NodeTypeId {
+        (*self.unsafe_get()).type_id
+    }
+
+    unsafe fn is_element_for_layout(&self) -> bool {
+        (*self.unsafe_get()).is_element()
+    }
+
+    #[inline]
+    unsafe fn parent_node_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        (*self.unsafe_get()).parent_node.as_ref()
+    }
+
+    #[inline]
+    unsafe fn first_child_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        (*self.unsafe_get()).first_child.as_ref()
+    }
+
+    #[inline]
+    unsafe fn last_child_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        (*self.unsafe_get()).last_child.as_ref()
+    }
+
+    #[inline]
+    unsafe fn prev_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        (*self.unsafe_get()).prev_sibling.as_ref()
+    }
+
+    #[inline]
+    unsafe fn next_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
+        (*self.unsafe_get()).next_sibling.as_ref()
+    }
+
+    unsafe fn owner_doc_for_layout<'a>(&'a self) -> &'a JS<Document> {
+        (*self.unsafe_get()).owner_doc.get_ref()
     }
 }
+
+pub trait RawLayoutNodeHelpers {
+    unsafe fn get_hover_state_for_layout(&self) -> bool;
+}
+
+impl RawLayoutNodeHelpers for Node {
+    unsafe fn get_hover_state_for_layout(&self) -> bool {
+        self.flags.get_in_hover_state()
+    }
+}
+
 
 //
 // Iteration and traversal
@@ -689,7 +827,7 @@ impl<'a> NodeIterator<'a> {
     }
 
     fn next_child<'b>(&self, node: &JSRef<'b, Node>) -> Option<JSRef<Node>> {
-        if !self.include_descendants_of_void && node.get().is_element() {
+        if !self.include_descendants_of_void && node.is_element() {
             let elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
             if elem.get().is_void() {
                 None
@@ -771,65 +909,6 @@ pub enum CloneChildrenFlag {
 fn as_uintptr<T>(t: &T) -> uintptr_t { t as *T as uintptr_t }
 
 impl Node {
-    pub fn ancestors(&self) -> AncestorIterator {
-        let roots = RootCollection::new();
-        AncestorIterator {
-            current: self.parent_node.clone().map(|node| (*node.root(&roots)).clone()),
-            roots: roots,
-        }
-    }
-
-    pub fn is_element(&self) -> bool {
-        match self.type_id {
-            ElementNodeTypeId(..) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_doctype(&self) -> bool {
-        match self.type_id {
-            DoctypeNodeTypeId => true,
-            _ => false
-        }
-    }
-
-    pub fn owner_doc(&self) -> Unrooted<Document> {
-        Unrooted::new(self.owner_doc.get_ref().clone())
-    }
-
-    pub fn owner_doc_for_layout<'a>(&'a self) -> &'a JS<Document> {
-        self.owner_doc.get_ref()
-    }
-
-    pub fn set_owner_doc(&mut self, document: &JSRef<Document>) {
-        self.owner_doc = Some(document.unrooted());
-    }
-
-    pub fn children(&self) -> AbstractNodeChildrenIterator {
-        let roots = RootCollection::new();
-        AbstractNodeChildrenIterator {
-            current_node: self.first_child.clone().map(|node| (*node.root(&roots)).clone()),
-            roots: roots,
-        }
-    }
-
-    pub fn child_elements(&self) -> ChildElementIterator {
-        self.children()
-            .filter(|node| {
-                node.is_element()
-            })
-            .map(|node| {
-                let elem: &JSRef<Element> = ElementCast::to_ref(&node).unwrap();
-                elem.clone()
-            })
-    }
-
-    pub fn wait_until_safe_to_modify_dom(&self) {
-        let roots = RootCollection::new();
-        let document = self.owner_doc().root(&roots);
-        document.get().wait_until_safe_to_modify_dom();
-    }
-
     pub fn reflect_node<N: Reflectable+NodeBase>
             (node:      ~N,
              document:  &JSRef<Document>,
@@ -873,21 +952,6 @@ impl Node {
         }
     }
 
-    /// Sends layout data, if any, back to the script task to be destroyed.
-    pub unsafe fn reap_layout_data(&mut self) {
-        if self.layout_data.is_present() {
-            let layout_data = mem::replace(&mut self.layout_data, LayoutDataRef::new());
-            let layout_chan = layout_data.take_chan();
-            match layout_chan {
-                None => {}
-                Some(chan) => {
-                    let LayoutChan(chan) = chan;
-                    chan.send(ReapLayoutDataMsg(layout_data))
-                },
-            }
-        }
-    }
-
     // http://dom.spec.whatwg.org/#concept-node-adopt
     pub fn adopt(node: &mut JSRef<Node>, document: &JSRef<Document>) {
         let roots = RootCollection::new();
@@ -903,7 +967,7 @@ impl Node {
         let node_doc = document_from_node(node).root(&roots);
         if &*node_doc != document {
             for mut descendant in node.traverse_preorder(&roots) {
-                descendant.get_mut().set_owner_doc(document);
+                descendant.set_owner_doc(document);
             }
         }
 
@@ -976,7 +1040,7 @@ impl Node {
                                 }
                                 match child {
                                     Some(ref child) if child.inclusively_following_siblings()
-                                                            .any(|child| child.deref().is_doctype()) => {
+                                                            .any(|child| child.is_doctype()) => {
                                         return Err(HierarchyRequest);
                                     }
                                     _ => (),
@@ -995,7 +1059,7 @@ impl Node {
                         }
                         match child {
                             Some(ref child) if child.inclusively_following_siblings()
-                                                    .any(|child| child.deref().is_doctype()) => {
+                                                    .any(|child| child.is_doctype()) => {
                                 return Err(HierarchyRequest);
                             }
                             _ => (),
@@ -1003,14 +1067,14 @@ impl Node {
                     },
                     // Step 6.3
                     DoctypeNodeTypeId => {
-                        if parent.children().any(|c| c.deref().is_doctype()) {
+                        if parent.children().any(|c| c.is_doctype()) {
                             return Err(HierarchyRequest);
                         }
                         match child {
                             Some(ref child) => {
                                 if parent.children()
                                     .take_while(|c| c != child)
-                                    .any(|c| c.deref().is_element()) {
+                                    .any(|c| c.is_element()) {
                                     return Err(HierarchyRequest);
                                 }
                             },
@@ -1092,7 +1156,7 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace-all
-    pub fn replace_all(mut node: Option<JSRef<Node>>, parent: &mut JSRef<Node>) {
+    fn replace_all(mut node: Option<JSRef<Node>>, parent: &mut JSRef<Node>) {
         let roots = RootCollection::new();
 
         // Step 1.
@@ -1178,7 +1242,7 @@ impl Node {
         // Step 1.
         let mut document = match maybe_doc {
             Some(doc) => doc.unrooted().root(&roots),
-            None => node.get().owner_doc().root(&roots)
+            None => node.owner_doc().root(&roots)
         };
 
         // Step 2.
@@ -1204,7 +1268,6 @@ impl Node {
             },
             DocumentNodeTypeId => {
                 let document: &JSRef<Document> = DocumentCast::to_ref(node).unwrap();
-                let document = document.get();
                 let is_html_doc = match document.is_html_document {
                     true => HTMLDocument,
                     false => NonHTMLDocument
@@ -1242,15 +1305,13 @@ impl Node {
         } else {
             document.unrooted().root(&roots)
         };
-        assert!(&*copy.get().owner_doc().root(&roots) == &*document);
+        assert!(&*copy.owner_doc().root(&roots) == &*document);
 
         // Step 4 (some data already copied in step 2).
         match node.get().type_id {
             DocumentNodeTypeId => {
                 let node_doc: &JSRef<Document> = DocumentCast::to_ref(node).unwrap();
-                let node_doc = node_doc.get();
                 let copy_doc: &mut JSRef<Document> = DocumentCast::to_mut_ref(&mut *copy).unwrap();
-                let copy_doc = copy_doc.get_mut();
                 copy_doc.set_encoding_name(node_doc.encoding_name.clone());
                 copy_doc.set_quirks_mode(node_doc.quirks_mode());
             },
@@ -1281,7 +1342,7 @@ impl Node {
 
         // Step 6.
         if clone_children == CloneChildren {
-            for ref child in node.get().children() {
+            for ref child in node.children() {
                 let mut child_copy = Node::clone(&*child, Some(&*document), clone_children).root(&roots);
                 let _inserted_node = Node::pre_insert(&mut *child_copy, &mut *copy, None);
             }
@@ -1291,81 +1352,19 @@ impl Node {
         Unrooted::new_rooted(&*copy)
     }
 
-    //
-    // Low-level pointer stitching
-    //
-
-    pub fn set_parent_node(&mut self, new_parent_node: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
-        doc.get().wait_until_safe_to_modify_dom();
-        self.parent_node.assign(new_parent_node);
-    }
-
-    pub fn set_first_child(&mut self, new_first_child: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
-        doc.get().wait_until_safe_to_modify_dom();
-        self.first_child.assign(new_first_child);
-    }
-
-    pub fn set_last_child(&mut self, new_last_child: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
-        doc.get().wait_until_safe_to_modify_dom();
-        self.last_child.assign(new_last_child);
-    }
-
-    pub fn set_prev_sibling(&mut self, new_prev_sibling: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
-        doc.get().wait_until_safe_to_modify_dom();
-        self.prev_sibling.assign(new_prev_sibling);
-    }
-
-    pub fn set_next_sibling(&mut self, new_next_sibling: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
-        doc.get().wait_until_safe_to_modify_dom();
-        self.next_sibling.assign(new_next_sibling);
-    }
-
-    pub fn get_hover_state(&self) -> bool {
-        self.flags.get_in_hover_state()
-    }
-
-    pub fn set_hover_state(&mut self, state: bool) {
-        self.flags.set_is_in_hover_state(state);
-    }
-
-    #[inline]
-    pub fn parent_node_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
-        self.parent_node.as_ref()
-    }
-
-    #[inline]
-    pub fn first_child_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
-        self.first_child.as_ref()
-    }
-
-    #[inline]
-    pub fn last_child_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
-        self.last_child.as_ref()
-    }
-
-    #[inline]
-    pub fn prev_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
-        self.prev_sibling.as_ref()
-    }
-
-    #[inline]
-    pub fn next_sibling_ref<'a>(&'a self) -> Option<&'a JS<Node>> {
-        self.next_sibling.as_ref()
-    }
-
-    pub unsafe fn get_hover_state_for_layout(&self) -> bool {
-        let unsafe_this: *Node = cast::transmute::<&Node,*Node>(self);
-        (*unsafe_this).flags.get_in_hover_state()
+    /// Sends layout data, if any, back to the script task to be destroyed.
+    unsafe fn reap_layout_data(&mut self) {
+        if self.layout_data.is_present() {
+            let layout_data = mem::replace(&mut self.layout_data, LayoutDataRef::new());
+            let layout_chan = layout_data.take_chan();
+            match layout_chan {
+                None => {}
+                Some(chan) => {
+                    let LayoutChan(chan) = chan;
+                    chan.send(ReapLayoutDataMsg(layout_data))
+                },
+            }
+        }
     }
 }
 
@@ -1486,7 +1485,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             Some(ref list) => return Unrooted::new(list.clone()),
         }
 
-        let doc = self.deref().owner_doc().root(&roots);
+        let doc = self.owner_doc().root(&roots);
         let window = doc.deref().window.root(&roots);
         let child_list = NodeList::new_child_list(&*window, self);
         self.child_list.assign(Some(child_list));
@@ -1600,7 +1599,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root(&roots);
-                document.get().content_changed();
+                document.deref().content_changed();
             }
             DoctypeNodeTypeId |
             DocumentNodeTypeId => {}
@@ -1671,7 +1670,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                                     return Err(HierarchyRequest);
                                 }
                                 if child.following_siblings()
-                                        .any(|child| child.deref().is_doctype()) {
+                                        .any(|child| child.is_doctype()) {
                                     return Err(HierarchyRequest);
                                 }
                             },
@@ -1685,18 +1684,18 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                             return Err(HierarchyRequest);
                         }
                         if child.following_siblings()
-                                .any(|child| child.deref().is_doctype()) {
+                                .any(|child| child.is_doctype()) {
                             return Err(HierarchyRequest);
                         }
                     },
                     // Step 6.3
                     DoctypeNodeTypeId => {
-                        if self.children().any(|c| c.deref().is_doctype() && &c != child) {
+                        if self.children().any(|c| c.is_doctype() && &c != child) {
                             return Err(HierarchyRequest);
                         }
                         if self.children()
                             .take_while(|c| c != child)
-                            .any(|c| c.deref().is_element()) {
+                            .any(|c| c.is_element()) {
                             return Err(HierarchyRequest);
                         }
                     },

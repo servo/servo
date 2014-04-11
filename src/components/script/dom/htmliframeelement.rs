@@ -54,12 +54,17 @@ pub struct IFrameSize {
     pub subpage_id: SubpageId,
 }
 
-impl HTMLIFrameElement {
-    pub fn is_sandboxed(&self) -> bool {
+pub trait HTMLIFrameElementHelpers {
+    fn is_sandboxed(&self) -> bool;
+    fn set_frame(&mut self, frame: Url);
+}
+
+impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
+    fn is_sandboxed(&self) -> bool {
         self.sandbox.is_some()
     }
 
-    pub fn set_frame(&mut self, frame: Url) {
+    fn set_frame(&mut self, frame: Url) {
         *self.frame = Some(frame);
     }
 }
