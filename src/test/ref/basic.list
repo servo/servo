@@ -27,6 +27,7 @@
 # inline_border_a.html inline_border_b.html
 == anon_block_inherit_a.html anon_block_inherit_b.html
 == attr_exists_selector.html attr_exists_selector_ref.html
+!= noteq_attr_exists_selector.html attr_exists_selector_ref.html
 == data_img_a.html data_img_b.html
 == background_style_attr.html background_ref.html
 == background_external_stylesheet.html background_ref.html
