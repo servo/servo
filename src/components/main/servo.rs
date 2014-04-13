@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[crate_id = "github.com/mozilla/servo"];
-#[comment = "The Servo Parallel Browser Project"];
-#[license = "MPL"];
+#![crate_id = "github.com/mozilla/servo"]
+#![comment = "The Servo Parallel Browser Project"]
+#![license = "MPL"]
 
-#[feature(globs, macro_rules, managed_boxes, phase, thread_local)];
+#![feature(globs, macro_rules, managed_boxes, phase, thread_local)]
 
-#[feature(phase)];
+#![feature(phase)]
 #[phase(syntax, link)]
 extern crate log;
 
