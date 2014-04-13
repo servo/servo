@@ -106,7 +106,7 @@ impl RenderChan {
 
 /// If we're using GPU rendering, this provides the metadata needed to create a GL context that
 /// is compatible with that of the main thread.
-enum GraphicsContext {
+pub enum GraphicsContext {
     CpuGraphicsContext,
     GpuGraphicsContext,
 }
@@ -138,7 +138,7 @@ pub struct RenderTask<C> {
     epoch: Epoch,
 
     /// A data structure to store unused LayerBuffers
-    buffer_map: BufferMap<~LayerBuffer>,
+    priv buffer_map: BufferMap<~LayerBuffer>,
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing

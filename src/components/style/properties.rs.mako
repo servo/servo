@@ -4,7 +4,7 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
-#[allow(non_camel_case_types)];
+#[allow(non_camel_case_types, uppercase_variables)];
 
 pub use servo_util::url::parse_url;
 use sync::Arc;
@@ -1332,7 +1332,7 @@ pub enum PropertyDeclaration {
 }
 
 
-enum PropertyDeclarationParseResult {
+pub enum PropertyDeclarationParseResult {
     UnknownProperty,
     InvalidValue,
     ValidDeclaration,

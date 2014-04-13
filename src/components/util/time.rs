@@ -105,7 +105,7 @@ type ProfilerBuckets = TreeMap<ProfilerCategory, ~[f64]>;
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
     port: Receiver<ProfilerMsg>,
-    buckets: ProfilerBuckets,
+    priv buckets: ProfilerBuckets,
     last_msg: Option<ProfilerMsg>,
 }
 

@@ -25,13 +25,13 @@ pub struct MediaQueryList {
 }
 
 // For now, this is a "Level 2 MQ", ie. a media type.
-struct MediaQuery {
+pub struct MediaQuery {
     media_type: MediaQueryType,
     // TODO: Level 3 MQ expressions
 }
 
 
-enum MediaQueryType {
+pub enum MediaQueryType {
     All,  // Always true
     MediaType(MediaType),
 }
