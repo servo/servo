@@ -6,13 +6,13 @@ use image::base::{Image, load_from_memory};
 use resource_task;
 use resource_task::ResourceTask;
 use servo_util::url::{UrlMap, url_map};
+use servo_util::mutexarc::MutexArc;
 
 use std::comm::{channel, Receiver, Sender};
 use std::mem::replace;
 use std::task::spawn;
 use std::to_str::ToStr;
 use std::result;
-use sync::{Arc, Mutex};
 use serialize::{Encoder, Encodable};
 use url::Url;
 
@@ -408,7 +408,7 @@ impl ImageCache {
                     let mut response = Some(response);
                     waiters.lock().push(response.take().unwrap());
                 } else {
-                    self.wait_map.insert(url, Arc::new(Mutex::new(~[response])));
+                    self.wait_map.insert(url, MutexArc::new(~[response]));
                 }
             }
 
@@ -480,7 +480,7 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
 }
 
 
-pub fn spawn_listener<A: Send>(f: proc:Send(Receiver<A>)) -> Sender<A> {
+pub fn spawn_listener<A: Send>(f: proc(Receiver<A>):Send) -> Sender<A> {
     let (setup_chan, setup_port) = channel();
 
     spawn(proc() {
