@@ -499,7 +499,7 @@ pub mod test {
             let chan = chan.clone();
             native::task::spawn(proc() {
                 for j in range(i * 20, (i * 20) + 20) {
-                    m.get().insert(j, j * j);
+                    m.insert(j, j * j);
                 }
                 chan.send(());
             })
@@ -509,7 +509,7 @@ pub mod test {
         }
 
         let mut count = 0;
-        for (&k, &v) in m.get().iter() {
+        for (&k, &v) in m.iter() {
             assert_eq!(k * k, v)
             count += 1;
         }
