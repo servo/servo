@@ -7,14 +7,16 @@ use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
 use dom::bindings::js::JS;
 use dom::element::Element;
 use dom::element::{ElementTypeId, HTMLImageElementTypeId};
-use dom::element::{HTMLIFrameElementTypeId, HTMLObjectElementTypeId};
+use dom::element::{HTMLIFrameElementTypeId, HTMLObjectElementTypeId, HTMLStyleElementTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlobjectelement::HTMLObjectElement;
+use dom::htmlstyleelement::HTMLStyleElement;
 use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
@@ -58,6 +60,14 @@ pub trait VirtualMethods {
             _ => (),
         }
     }
+
+    /// Called on the parent when a node is added to its child list.
+    fn child_inserted(&mut self, child: &JS<Node>) {
+        match self.super_type() {
+            Some(ref mut s) => s.child_inserted(child),
+            _ => (),
+        }
+    }
 }
 
 /// Obtain a VirtualMethods instance for a given Node-derived object. Any
@@ -76,6 +86,10 @@ pub fn vtable_for<'a>(node: &JS<Node>) -> ~VirtualMethods: {
         }
         ElementNodeTypeId(HTMLObjectElementTypeId) => {
             let element: JS<HTMLObjectElement> = HTMLObjectElementCast::to(node).unwrap();
+            ~element as ~VirtualMethods:
+        }
+        ElementNodeTypeId(HTMLStyleElementTypeId) => {
+            let element: JS<HTMLStyleElement> = HTMLStyleElementCast::to(node).unwrap();
             ~element as ~VirtualMethods:
         }
         ElementNodeTypeId(ElementTypeId) => {

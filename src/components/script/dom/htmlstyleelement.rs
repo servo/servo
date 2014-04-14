@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLStyleElementBinding;
-use dom::bindings::codegen::InheritTypes::{HTMLStyleElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
 use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
@@ -11,6 +11,7 @@ use dom::element::HTMLStyleElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
+use dom::virtualmethods::VirtualMethods;
 use html::cssparse::parse_inline_css;
 use layout_interface::{AddStylesheetMsg, LayoutChan};
 use servo_util::str::DOMString;
@@ -89,5 +90,20 @@ impl StyleElementHelpers for JS<HTMLStyleElement> {
         let sheet = parse_inline_css(url, data);
         let LayoutChan(ref layout_chan) = win.get().page().layout_chan;
         layout_chan.send(AddStylesheetMsg(sheet));
+    }
+}
+
+impl VirtualMethods for JS<HTMLStyleElement> {
+    fn super_type(&self) -> Option<~VirtualMethods:> {
+        let htmlelement: JS<HTMLElement> = HTMLElementCast::from(self);
+        Some(~htmlelement as ~VirtualMethods:)
+    }
+
+    fn child_inserted(&mut self, child: &JS<Node>) {
+        match self.super_type() {
+            Some(ref mut s) => s.child_inserted(child),
+            _ => (),
+        }
+        self.parse_own_css();
     }
 }
