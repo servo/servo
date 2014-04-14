@@ -18,34 +18,45 @@ pub enum StylesheetProvenance {
     InlineProvenance(Url, ~str),
 }
 
+// Parses the style data and returns the stylesheet
+pub fn parse_inline_css(url: Url, data: ~str) -> Stylesheet {
+    let resource_task = ResourceTask(); // Resource task is not used for inline parsing
+    parse_css(InlineProvenance(url, data), resource_task)
+}
+
+fn parse_css(provenance: StylesheetProvenance,
+             resource_task: ResourceTask) -> Stylesheet {
+    // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
+    let environment_encoding = UTF_8 as EncodingRef;
+
+    match provenance {
+        UrlProvenance(url) => {
+            debug!("cssparse: loading style sheet at {:s}", url.to_str());
+            let (input_chan, input_port) = channel();
+            resource_task.send(Load(url, input_chan));
+            let LoadResponse { metadata: metadata, progress_port: progress_port }
+                = input_port.recv();
+            let final_url = &metadata.final_url;
+            let protocol_encoding_label = metadata.charset.as_ref().map(|s| s.as_slice());
+            let iter = ProgressMsgPortIterator { progress_port: progress_port };
+            Stylesheet::from_bytes_iter(
+                iter, final_url.clone(),
+                protocol_encoding_label, Some(environment_encoding))
+        }
+        InlineProvenance(base_url, data) => {
+            debug!("cssparse: loading inline stylesheet {:s}", data);
+            Stylesheet::from_str(data, base_url, environment_encoding)
+        }
+    }
+}
+
 pub fn spawn_css_parser(provenance: StylesheetProvenance,
                         resource_task: ResourceTask)
                      -> Receiver<Stylesheet> {
     let (result_chan, result_port) = channel();
 
-    // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
-    let environment_encoding = UTF_8 as EncodingRef;
-
     spawn_named("cssparser", proc() {
-        let sheet = match provenance {
-            UrlProvenance(url) => {
-                debug!("cssparse: loading style sheet at {:s}", url.to_str());
-                let (input_chan, input_port) = channel();
-                resource_task.send(Load(url, input_chan));
-                let LoadResponse { metadata: metadata, progress_port: progress_port }
-                    = input_port.recv();
-                let final_url = &metadata.final_url;
-                let protocol_encoding_label = metadata.charset.as_ref().map(|s| s.as_slice());
-                let iter = ProgressMsgPortIterator { progress_port: progress_port };
-                Stylesheet::from_bytes_iter(
-                    iter, final_url.clone(),
-                    protocol_encoding_label, Some(environment_encoding))
-            }
-            InlineProvenance(base_url, data) => {
-                Stylesheet::from_str(data, base_url, environment_encoding)
-            }
-        };
-        result_chan.send(sheet);
+        result_chan.send(parse_css(provenance, resource_task));
     });
 
     return result_port;
