@@ -7,7 +7,7 @@ use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::jsstring_to_str;
 use servo_util::str::DOMString;
 
-use js::jsapi::{JSBool, JSContext};
+use js::jsapi::{JSBool, JSContext, JSObject};
 use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
 use js::jsapi::{JS_ValueToECMAUint32, JS_ValueToECMAInt32};
 use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
@@ -15,7 +15,7 @@ use js::jsapi::{JS_NewUCStringCopyN, JS_ValueToString};
 use js::jsapi::{JS_WrapValue};
 use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
-use js::jsval::{StringValue, ObjectValue};
+use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
 use js::glue::RUST_JS_NumberValue;
 use std::default::Default;
 use std::libc;
@@ -199,6 +199,12 @@ impl ToJSValConvertible for f64 {
 impl FromJSValConvertible<()> for f64 {
     fn from_jsval(cx: *JSContext, val: JSVal, _option: ()) -> Result<f64, ()> {
         unsafe { convert_from_jsval(cx, val, JS_ValueToNumber) }
+    }
+}
+
+impl ToJSValConvertible for *JSObject {
+    fn to_jsval(&self, _cx: *JSContext) -> JSVal {
+        ObjectOrNullValue(*self)
     }
 }
 

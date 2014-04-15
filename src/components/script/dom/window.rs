@@ -5,12 +5,14 @@
 use dom::bindings::codegen::WindowBinding;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
+use dom::browsercontext::BrowserContext;
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, WindowTypeId};
 use dom::console::Console;
 use dom::location::Location;
 use dom::navigator::Navigator;
+use dom::windowproxy::WindowProxy;
 
 use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
 use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan};
@@ -19,9 +21,8 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
 
-use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JS_PropertyStub, JS_StrictPropertyStub};
-use js::jsval::{NullValue, ObjectValue, JSVal};
-use js::JSPROP_ENUMERATE;
+use js::jsapi::{JSObject, JSContext};
+use js::jsval::{NullValue, JSVal};
 
 use collections::hashmap::HashMap;
 use std::cmp;
@@ -84,6 +85,7 @@ pub struct Window {
     image_cache_task: ImageCacheTask,
     active_timers: ~HashMap<i32, TimerHandle>,
     next_timer_handle: i32,
+    browser_context: Option<BrowserContext>,
     priv extra: Untraceable
 }
 
@@ -267,6 +269,14 @@ impl Window {
         }
     }
 
+    pub fn Window(&mut self) -> WindowProxy {
+        self.browser_context.get_ref().window_proxy()
+    }
+
+    pub fn Self(&mut self) -> WindowProxy {
+        self.Window()
+    }
+
     pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {
         // FIXME This should probably be ReflowForQuery, not Display. All queries currently
         // currently rely on the display list, which means we can't destroy it by
@@ -279,6 +289,10 @@ impl Window {
         // FIXME: This disables concurrent layout while we are modifying the DOM, since
         //        our current architecture is entirely unsafe in the presence of races.
         self.page().join_layout();
+    }
+
+    pub fn init_browser_context(&mut self, doc: &JS<Document>) {
+        self.browser_context = Some(BrowserContext::new(doc));
     }
 
     pub fn new(cx: *JSContext,
@@ -314,25 +328,10 @@ impl Window {
             navigator: None,
             image_cache_task: image_cache_task,
             active_timers: ~HashMap::new(),
-            next_timer_handle: 0
+            next_timer_handle: 0,
+            browser_context: None,
         };
 
-        let global = WindowBinding::Wrap(cx, win);
-        let fn_names = ["window", "self"];
-        for str in fn_names.iter() {
-            (*str).to_c_str().with_ref(|name| {
-                let object = global.reflector().get_jsobject();
-                assert!(object.is_not_null());
-                unsafe {
-                    JS_DefineProperty(cx, object, name,
-                                      ObjectValue(&*object),
-                                      Some(JS_PropertyStub),
-                                      Some(JS_StrictPropertyStub),
-                                      JSPROP_ENUMERATE);
-                }
-            })
-
-        }
-        global
+        WindowBinding::Wrap(cx, win)
     }
 }

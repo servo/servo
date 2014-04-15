@@ -5,7 +5,7 @@
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
 
-use js::jsapi::{JSTracer, JS_CallTracer, JSTRACE_OBJECT};
+use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
 
 use std::cast;
 use std::libc;
@@ -35,14 +35,17 @@ pub trait Traceable {
 }
 
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+    trace_object(tracer, description, reflector.get_jsobject())
+}
+
+pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *JSObject) {
     unsafe {
         description.to_c_str().with_ref(|name| {
             (*tracer).debugPrinter = ptr::null();
             (*tracer).debugPrintIndex = -1;
             (*tracer).debugPrintArg = name as *libc::c_void;
             debug!("tracing {:s}", description);
-            JS_CallTracer(tracer as *JSTracer, reflector.get_jsobject(),
-                          JSTRACE_OBJECT as u32);
+            JS_CallTracer(tracer as *JSTracer, obj, JSTRACE_OBJECT as u32);
         });
     }
 }
