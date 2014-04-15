@@ -1545,7 +1545,8 @@ class CGDOMJSClass(CGThing):
         return """
 static Class_name: [u8, ..%i] = %s;
 static Class: DOMJSClass = DOMJSClass {
-  base: JSClass { name: &Class_name as *u8 as *libc::c_char,
+  base: js::Class {
+    name: &Class_name as *u8 as *libc::c_char,
     flags: JSCLASS_IS_DOMJSCLASS | %s | (((%s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), //JSCLASS_HAS_RESERVED_SLOTS(%s),
     addProperty: Some(JS_PropertyStub),
     delProperty: Some(JS_PropertyStub),
@@ -1560,14 +1561,51 @@ static Class: DOMJSClass = DOMJSClass {
     hasInstance: None,
     construct: None,
     trace: %s,
-    reserved: (0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 05
-                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 10
-                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 15
-                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 20
-                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 25
-                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 30
-                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 35
-                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void)  // 40
+
+    ext: js::ClassExtension {
+      equality: 0 as *u8,
+      outerObject: %s,
+      innerObject: None,
+      iteratorObject: 0 as *u8,
+      unused: 0 as *u8,
+      isWrappedNative: 0 as *u8,
+    },
+
+    ops: js::ObjectOps {
+      lookupGeneric: 0 as *u8,
+      lookupProperty: 0 as *u8,
+      lookupElement: 0 as *u8,
+      lookupSpecial: 0 as *u8,
+      defineGeneric: 0 as *u8,
+      defineProperty: 0 as *u8,
+      defineElement: 0 as *u8,
+      defineSpecial: 0 as *u8,
+      getGeneric: 0 as *u8,
+      getProperty: 0 as *u8,
+      getElement: 0 as *u8,
+      getElementIfPresent: 0 as *u8,
+      getSpecial: 0 as *u8,
+      setGeneric: 0 as *u8,
+      setProperty: 0 as *u8,
+      setElement: 0 as *u8,
+      setSpecial: 0 as *u8,
+      getGenericAttributes: 0 as *u8,
+      getPropertyAttributes: 0 as *u8,
+      getElementAttributes: 0 as *u8,
+      getSpecialAttributes: 0 as *u8,
+      setGenericAttributes: 0 as *u8,
+      setPropertyAttributes: 0 as *u8,
+      setElementAttributes: 0 as *u8,
+      setSpecialAttributes: 0 as *u8,
+      deleteProperty: 0 as *u8,
+      deleteElement: 0 as *u8,
+      deleteSpecial: 0 as *u8,
+
+      enumerate: 0 as *u8,
+      typeOf: 0 as *u8,
+      thisObject: %s,
+      clear: 0 as *u8,
+    },
   },
   dom_class: %s
 };
@@ -1575,6 +1613,8 @@ static Class: DOMJSClass = DOMJSClass {
        str_to_const_array(self.descriptor.interface.identifier.name),
        flags, slots, slots,
        FINALIZE_HOOK_NAME, traceHook,
+       self.descriptor.classHooks['outerObject'],
+       self.descriptor.classHooks['thisObject'],
        CGIndenter(CGGeneric(DOMClass(self.descriptor))).define())
 
 def str_to_const_array(s):
@@ -1893,9 +1933,9 @@ def CreateBindingJSObject(descriptor, parent=None):
 """ % (parent)
     else:
         if descriptor.createGlobal:
-            create += "  let obj = CreateDOMGlobal(aCx, &Class.base);\n"
+            create += "  let obj = CreateDOMGlobal(aCx, &Class.base as *js::Class as *JSClass);\n"
         else:
-            create += "  let obj = JS_NewObject(aCx, &Class.base, proto, %s);\n" % parent
+            create += "  let obj = JS_NewObject(aCx, &Class.base as *js::Class as *JSClass, proto, %s);\n" % parent
         create += """  assert!(obj.is_not_null());
 
   JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
@@ -2162,31 +2202,31 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     getPropertyDescriptor: Some(getPropertyDescriptor),
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
     defineProperty: Some(defineProperty),
-    getOwnPropertyNames: ptr::null(),
-    delete_: ptr::null(),
-    enumerate: ptr::null(),
+    getOwnPropertyNames: 0 as *u8,
+    delete_: None,
+    enumerate: 0 as *u8,
 
     has: None,
     hasOwn: Some(hasOwn),
     get: Some(get),
-    set: ptr::null(),
-    keys: ptr::null(),
-    iterate: ptr::null(),
+    set: None,
+    keys: 0 as *u8,
+    iterate: None,
 
-    call: ptr::null(),
-    construct: ptr::null(),
+    call: None,
+    construct: None,
     nativeCall: ptr::null(),
-    hasInstance: ptr::null(),
-    typeOf: ptr::null(),
-    objectClassIs: ptr::null(),
+    hasInstance: None,
+    typeOf: None,
+    objectClassIs: None,
     obj_toString: Some(obj_toString),
-    fun_toString: ptr::null(),
+    fun_toString: None,
     //regexp_toShared: ptr::null(),
-    defaultValue: ptr::null(),
-    iteratorNext: ptr::null(),
+    defaultValue: None,
+    iteratorNext: None,
     finalize: Some(%s),
-    getElementIfPresent: ptr::null(),
-    getPrototypeOf: ptr::null(),
+    getElementIfPresent: None,
+    getPrototypeOf: None,
     trace: Some(%s)
   };
   js_info.dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
@@ -4472,6 +4512,7 @@ class CGBindingRoot(CGThing):
         #XXXjdm This should only import the namespace for the current binding,
         #       not every binding ever.
         curr = CGImports(curr, [
+            'js',
             'js::{JS_ARGV, JS_CALLEE, JS_THIS_OBJECT}',
             'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS}',
             'js::{JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_SHIFT}',
@@ -4497,6 +4538,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
             'dom::types::*',
+            'dom::bindings',
             'dom::bindings::js::JS',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',

@@ -5,6 +5,7 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::js::JS;
+use dom::browsercontext;
 use dom::window;
 use servo_util::str::DOMString;
 
@@ -44,12 +45,14 @@ use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
 use js;
 
 pub struct GlobalStaticData {
-    proxy_handlers: HashMap<uint, *libc::c_void>
+    proxy_handlers: HashMap<uint, *libc::c_void>,
+    windowproxy_handler: *libc::c_void,
 }
 
 pub fn GlobalStaticData() -> GlobalStaticData {
     GlobalStaticData {
-        proxy_handlers: HashMap::new()
+        proxy_handlers: HashMap::new(),
+        windowproxy_handler: browsercontext::new_window_proxy_handler()
     }
 }
 
@@ -205,7 +208,7 @@ pub struct DOMClass {
 }
 
 pub struct DOMJSClass {
-    base: JSClass,
+    base: js::Class,
     dom_class: DOMClass
 }
 
@@ -558,7 +561,10 @@ pub extern fn wrap_for_same_compartment(cx: *JSContext, obj: *JSObject) -> *JSOb
                 let obj = JSHandleObject { unnamed: &obj };
                 outerize(cx, obj)
             }
-            None => obj
+            None => {
+                debug!("no outerize hook found");
+                obj
+            }
         }
     }
 }

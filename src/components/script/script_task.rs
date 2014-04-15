@@ -804,7 +804,7 @@ impl ScriptTask {
                                      self.image_cache_task.clone());
         page.initialize_js_info(cx.clone(), window.reflector().get_jsobject());
         let mut document = Document::new(&window, Some(url.clone()), HTMLDocument, None);
-        window.get_mut().init_browser_context(document.clone());
+        window.get_mut().init_browser_context(&document);
 
         {
             let mut js_info = page.mut_js_info();

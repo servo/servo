@@ -270,7 +270,7 @@ impl Window {
     }
 
     pub fn Window(&mut self) -> WindowProxy {
-        self.browser_context.get_mut_ref().window_proxy()
+        self.browser_context.get_ref().window_proxy()
     }
 
     pub fn Self(&mut self) -> WindowProxy {
@@ -291,7 +291,7 @@ impl Window {
         self.page().join_layout();
     }
 
-    pub fn init_browser_context(&mut self, doc: JS<Document>) {
+    pub fn init_browser_context(&mut self, doc: &JS<Document>) {
         self.browser_context = Some(BrowserContext::new(doc));
     }
 
