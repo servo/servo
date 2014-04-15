@@ -1365,6 +1365,10 @@ impl Node {
                 let node_elem: JS<Element> = ElementCast::to(node).unwrap();
                 let node_elem = node_elem.get();
                 let mut copy_elem: JS<Element> = ElementCast::to(&copy).unwrap();
+
+                // XXX: to avoid double borrowing compile error. we might be able to fix this after #1854
+                let copy_elem_alias: JS<Element> = copy_elem.clone();
+
                 let copy_elem = copy_elem.get_mut();
                 // FIXME: https://github.com/mozilla/servo/issues/1737
                 copy_elem.namespace = node_elem.namespace.clone();
@@ -1373,7 +1377,7 @@ impl Node {
                     copy_elem.attrs.push(Attr::new(&document.get().window,
                                                    attr.local_name.clone(), attr.value.clone(),
                                                    attr.name.clone(), attr.namespace.clone(),
-                                                   attr.prefix.clone()));
+                                                   attr.prefix.clone(), copy_elem_alias.clone()));
                 }
             },
             _ => ()

@@ -265,23 +265,20 @@ impl AttributeHandlers for JS<Element> {
         let idx = self.get().attrs.iter().position(cb);
         match idx {
             Some(idx) => {
-                if namespace == namespace::Null {
-                    let old_value = self.get().attrs[idx].get().Value();
-                    vtable_for(&node).before_remove_attr(local_name.clone(), old_value);
-                }
                 self.get_mut().attrs[idx].get_mut().set_value(value.clone());
             }
 
             None => {
                 let doc = node.get().owner_doc().get();
                 let new_attr = Attr::new(&doc.window, local_name.clone(), value.clone(),
-                                         name, namespace.clone(), prefix);
+                                         name, namespace.clone(), prefix, self.clone());
                 self.get_mut().attrs.push(new_attr);
-            }
-        }
 
-        if namespace == namespace::Null {
-            vtable_for(&node).after_set_attr(local_name, value);
+                // FIXME: This part should be handled in `Attr`.
+                if namespace == namespace::Null {
+                    vtable_for(&node).after_set_attr(local_name, value);
+                }
+            }
         }
     }
 
