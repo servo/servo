@@ -93,22 +93,24 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn Alt(&self) -> DOMString {
-        ~""
+    pub fn Alt(&self, abstract_self: &JS<HTMLImageElement>) -> DOMString {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        element.get_string_attribute("alt")
     }
 
-    pub fn SetAlt(&mut self, _alt: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    pub fn Src(&self, _abstract_self: &JS<HTMLImageElement>) -> DOMString {
-        ~""
-    }
-
-    pub fn SetSrc(&mut self, abstract_self: &mut JS<HTMLImageElement>, src: DOMString) -> ErrorResult {
+    pub fn SetAlt(&mut self, abstract_self: &JS<HTMLImageElement>, alt: DOMString) {
         let mut element: JS<Element> = ElementCast::from(abstract_self);
-        element.set_url_attribute("src", src);
-        Ok(())
+        element.set_string_attribute("alt", alt)
+    }
+
+    pub fn Src(&self, abstract_self: &JS<HTMLImageElement>) -> DOMString {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        element.get_string_attribute("src")
+    }
+
+    pub fn SetSrc(&mut self, abstract_self: &mut JS<HTMLImageElement>, src: DOMString) {
+        let mut element: JS<Element> = ElementCast::from(abstract_self);
+        element.set_url_attribute("src", src)
     }
 
     pub fn CrossOrigin(&self) -> DOMString {
@@ -119,20 +121,24 @@ impl HTMLImageElement {
         Ok(())
     }
 
-    pub fn UseMap(&self) -> DOMString {
-        ~""
+    pub fn UseMap(&self, abstract_self: &JS<HTMLImageElement>) -> DOMString {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        element.get_string_attribute("useMap")
     }
 
-    pub fn SetUseMap(&mut self, _use_map: DOMString) -> ErrorResult {
-        Ok(())
+    pub fn SetUseMap(&mut self, abstract_self: &mut JS<HTMLImageElement>, use_map: DOMString) {
+        let mut element: JS<Element> = ElementCast::from(abstract_self);
+        element.set_string_attribute("useMap", use_map)
     }
 
-    pub fn IsMap(&self) -> bool {
-        false
+    pub fn IsMap(&self, abstract_self: &JS<HTMLImageElement>) -> bool {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        from_str::<bool>(element.get_string_attribute("hspace")).unwrap()
     }
 
-    pub fn SetIsMap(&self, _is_map: bool) -> ErrorResult {
-        Ok(())
+    pub fn SetIsMap(&self, abstract_self: &mut JS<HTMLImageElement>, is_map: bool) {
+        let mut element: JS<Element> = ElementCast::from(abstract_self);
+        element.set_string_attribute("isMap", is_map.to_str())
     }
 
     pub fn Width(&self, abstract_self: &JS<HTMLImageElement>) -> u32 {
@@ -178,52 +184,64 @@ impl HTMLImageElement {
         false
     }
 
-    pub fn Name(&self) -> DOMString {
-        ~""
+    pub fn Name(&self, abstract_self: &JS<HTMLImageElement>) -> DOMString {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        element.get_string_attribute("name")
     }
 
-    pub fn SetName(&mut self, _name: DOMString) -> ErrorResult {
-        Ok(())
+    pub fn SetName(&mut self, abstract_self: &mut JS<HTMLImageElement>, name: DOMString) {
+        let mut element: JS<Element> = ElementCast::from(abstract_self);
+        element.set_string_attribute("name", name)
     }
 
-    pub fn Align(&self) -> DOMString {
-        ~""
+    pub fn Align(&self, abstract_self: &JS<HTMLImageElement>) -> DOMString {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        element.get_string_attribute("longdesc")
     }
 
-    pub fn SetAlign(&mut self, _align: DOMString) -> ErrorResult {
-        Ok(())
+    pub fn SetAlign(&mut self, abstract_self: &mut JS<HTMLImageElement>, align: DOMString) {
+        let mut element: JS<Element> = ElementCast::from(abstract_self);
+        element.set_string_attribute("align", align)
     }
 
-    pub fn Hspace(&self) -> u32 {
-        0
+    pub fn Hspace(&self, abstract_self: &JS<HTMLImageElement>) -> u32 {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        from_str::<u32>(element.get_string_attribute("hspace")).unwrap()
     }
 
-    pub fn SetHspace(&mut self, _hspace: u32) -> ErrorResult {
-        Ok(())
+    pub fn SetHspace(&mut self, abstract_self: &mut JS<HTMLImageElement>, hspace: u32) {
+        let mut element: JS<Element> = ElementCast::from(abstract_self);
+        element.set_uint_attribute("hspace", hspace)
     }
 
-    pub fn Vspace(&self) -> u32 {
-        0
+    pub fn Vspace(&self, abstract_self: &JS<HTMLImageElement>) -> u32 {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        from_str::<u32>(element.get_string_attribute("vspace")).unwrap()
     }
 
-    pub fn SetVspace(&mut self, _vspace: u32) -> ErrorResult {
-        Ok(())
+    pub fn SetVspace(&mut self, abstract_self: &mut JS<HTMLImageElement>, vspace: u32) {
+        let mut element: JS<Element> = ElementCast::from(abstract_self);
+        element.set_uint_attribute("vspace", vspace)
     }
 
-    pub fn LongDesc(&self) -> DOMString {
-        ~""
+    pub fn LongDesc(&self, abstract_self: &JS<HTMLImageElement>) -> DOMString {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        element.get_string_attribute("longdesc")
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult {
-        Ok(())
+    pub fn SetLongDesc(&mut self, abstract_self: &mut JS<HTMLImageElement>, longdesc: DOMString) {
+        let mut element: JS<Element> = ElementCast::from(abstract_self);
+        element.set_string_attribute("longdesc", longdesc)
     }
 
-    pub fn Border(&self) -> DOMString {
-        ~""
+    pub fn Border(&self, abstract_self: &JS<HTMLImageElement>) -> DOMString {
+        let element: JS<Element> = ElementCast::from(abstract_self);
+        element.get_string_attribute("border")
     }
 
-    pub fn SetBorder(&mut self, _border: DOMString) -> ErrorResult {
-        Ok(())
+    pub fn SetBorder(&mut self, abstract_self: &mut JS<HTMLImageElement>, border: DOMString) {
+        let mut element: JS<Element> = ElementCast::from(abstract_self);
+        element.set_string_attribute("border", border)
     }
 }
 
