@@ -100,12 +100,11 @@ class CastableObjectUnwrapper():
                               "source" : source,
                               "target" : target,
                               "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define(),
-                              "unwrapped_val" : "Some(val)" if isOptional else "val",
-                              "unwrapFn": "unwrap_jsmanaged" if 'JS' in descriptor.nativeType else "unwrap_object"}
+                              "unwrapped_val" : "Some(val)" if isOptional else "val"}
 
     def __str__(self):
         return string.Template(
-"""match ${unwrapFn}(${source}, ${prototype}, ${depth}) {
+"""match unwrap_jsmanaged(${source}, ${prototype}, ${depth}) {
   Ok(val) => ${target} = ${unwrapped_val},
   Err(()) => {
     ${codeOnFailure}
@@ -2496,7 +2495,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let this: *mut %s;" % self.descriptor.concreteType))
+                      "let this: JS<%s>;" % self.descriptor.concreteType))
 
     def generate_code(self):
         assert(False) # Override me
@@ -2513,7 +2512,7 @@ class CGGenericMethod(CGAbstractBindingMethod):
     def generate_code(self):
         return CGIndenter(CGGeneric(
             "let _info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, &*vp));\n"
-            "return CallJitMethodOp(_info, cx, obj, this as *libc::c_void, argc, &*vp);"))
+            "return CallJitMethodOp(_info, cx, obj, this.unsafe_get() as *libc::c_void, argc, &*vp);"))
 
 class CGSpecializedMethod(CGAbstractExternMethod):
     """
@@ -2565,7 +2564,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
         return CGIndenter(CGGeneric(
             "return with_gc_disabled(cx, || {\n"
             "  let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, &*vp));\n"
-            "  CallJitPropertyOp(info, cx, obj, this as *libc::c_void, &*vp)\n"
+            "  CallJitPropertyOp(info, cx, obj, this.unsafe_get() as *libc::c_void, &*vp)\n"
             "});\n"))
 
 class CGSpecializedGetter(CGAbstractExternMethod):
@@ -2625,7 +2624,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
                 "let argv: *JSVal = if argc != 0 { JS_ARGV(cx, vp as *JSVal) } else { &undef as *JSVal };\n"
                 "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp as *JSVal));\n"
                 "let ok = with_gc_disabled(cx, || {\n"
-                "  CallJitPropertyOp(info, cx, obj, this as *libc::c_void, argv)\n"
+                "  CallJitPropertyOp(info, cx, obj, this.unsafe_get() as *libc::c_void, argv)\n"
                 "});\n"
                 "if ok == 0 {\n"
                 "  return 0;\n"
@@ -4514,7 +4513,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::{squirrel_away_unique}',
             'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
-            'dom::bindings::utils::{unwrap_object, VoidVal, with_gc_disabled}',
+            'dom::bindings::utils::{VoidVal, with_gc_disabled}',
             'dom::bindings::utils::{with_gc_enabled}',
             'dom::bindings::trace::Traceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface}',
