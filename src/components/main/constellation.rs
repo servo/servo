@@ -42,17 +42,17 @@ pub struct Constellation {
     resource_task: ResourceTask,
     image_cache_task: ImageCacheTask,
     pipelines: HashMap<PipelineId, Rc<Pipeline>>,
-    navigation_context: NavigationContext,
+    priv navigation_context: NavigationContext,
     priv next_pipeline_id: PipelineId,
-    pending_frames: ~[FrameChange],
-    pending_sizes: HashMap<(PipelineId, SubpageId), Rect<f32>>,
+    priv pending_frames: ~[FrameChange],
+    priv pending_sizes: HashMap<(PipelineId, SubpageId), Rect<f32>>,
     profiler_chan: ProfilerChan,
     window_size: Size2D<uint>,
     opts: Opts,
 }
 
 /// Stores the Id of the outermost frame's pipeline, along with a vector of children frames
-pub struct FrameTree {
+struct FrameTree {
     pipeline: RefCell<Rc<Pipeline>>,
     parent: RefCell<Option<Rc<Pipeline>>>,
     children: RefCell<~[ChildFrameTree]>,
@@ -74,7 +74,7 @@ impl Clone for FrameTree {
     }
 }
 
-pub struct ChildFrameTree {
+struct ChildFrameTree {
     frame_tree: Rc<FrameTree>,
     /// Clipping rect representing the size and position, in page coordinates, of the visible
     /// region of the child frame relative to the parent.
@@ -138,7 +138,7 @@ impl FrameTree {
         sendable_frame_tree
     }
 
-    pub fn iter(&self) -> FrameTreeIterator {
+    fn iter(&self) -> FrameTreeIterator {
         FrameTreeIterator {
             stack: ~[Rc::new(self.clone())],
         }
@@ -157,8 +157,8 @@ impl ChildFrameTree {
 /// An iterator over a frame tree, returning nodes in depth-first order.
 /// Note that this iterator should _not_ be used to mutate nodes _during_
 /// iteration. Mutating nodes once the iterator is out of scope is OK.
-pub struct FrameTreeIterator {
-    priv stack: ~[Rc<FrameTree>],
+struct FrameTreeIterator {
+    stack: ~[Rc<FrameTree>],
 }
 
 impl Iterator<Rc<FrameTree>> for FrameTreeIterator {
@@ -176,21 +176,21 @@ impl Iterator<Rc<FrameTree>> for FrameTreeIterator {
 }
 
 /// Represents the portion of a page that is changing in navigating.
-pub struct FrameChange {
+struct FrameChange {
     before: Option<PipelineId>,
     after: Rc<FrameTree>,
     navigation_type: NavigationType,
 }
 
 /// Stores the Id's of the pipelines previous and next in the browser's history
-pub struct NavigationContext {
+struct NavigationContext {
     previous: ~[Rc<FrameTree>],
     next: ~[Rc<FrameTree>],
     current: Option<Rc<FrameTree>>,
 }
 
 impl NavigationContext {
-    pub fn new() -> NavigationContext {
+    fn new() -> NavigationContext {
         NavigationContext {
             previous: ~[],
             next: ~[],
@@ -201,14 +201,14 @@ impl NavigationContext {
     /* Note that the following two methods can fail. They should only be called  *
      * when it is known that there exists either a previous page or a next page. */
 
-    pub fn back(&mut self) -> Rc<FrameTree> {
+    fn back(&mut self) -> Rc<FrameTree> {
         self.next.push(self.current.take_unwrap());
         let prev = self.previous.pop().unwrap();
         self.current = Some(prev.clone());
         prev
     }
 
-    pub fn forward(&mut self) -> Rc<FrameTree> {
+    fn forward(&mut self) -> Rc<FrameTree> {
         self.previous.push(self.current.take_unwrap());
         let next = self.next.pop().unwrap();
         self.current = Some(next.clone());
@@ -216,7 +216,7 @@ impl NavigationContext {
     }
 
     /// Loads a new set of page frames, returning all evicted frame trees
-    pub fn load(&mut self, frame_tree: Rc<FrameTree>) -> ~[Rc<FrameTree>] {
+    fn load(&mut self, frame_tree: Rc<FrameTree>) -> ~[Rc<FrameTree>] {
         debug!("navigating to {:?}", frame_tree.pipeline.borrow().id);
         let evicted = replace(&mut self.next, ~[]);
         if self.current.is_some() {
@@ -227,7 +227,7 @@ impl NavigationContext {
     }
 
     /// Returns the frame trees whose keys are pipeline_id.
-    pub fn find_all(&mut self, pipeline_id: PipelineId) -> ~[Rc<FrameTree>] {
+    fn find_all(&mut self, pipeline_id: PipelineId) -> ~[Rc<FrameTree>] {
         let from_current = self.current.iter().filter_map(|frame_tree| {
             frame_tree.find(pipeline_id)
         });
@@ -240,7 +240,7 @@ impl NavigationContext {
         from_prev.chain(from_current).chain(from_next).collect()
     }
 
-    pub fn contains(&mut self, pipeline_id: PipelineId) -> bool {
+    fn contains(&mut self, pipeline_id: PipelineId) -> bool {
         let from_current = self.current.iter();
         let from_next = self.next.iter();
         let from_prev = self.previous.iter();
@@ -307,7 +307,7 @@ impl Constellation {
     }
 
     /// Returns both the navigation context and pending frame trees whose keys are pipeline_id.
-    pub fn find_all(&mut self, pipeline_id: PipelineId) -> ~[Rc<FrameTree>] {
+    fn find_all(&mut self, pipeline_id: PipelineId) -> ~[Rc<FrameTree>] {
         let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
         let matching_pending_frames = self.pending_frames.iter().filter_map(|frame_change| {
             frame_change.after.find(pipeline_id)
