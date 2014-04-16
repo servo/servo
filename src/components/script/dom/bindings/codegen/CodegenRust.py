@@ -87,30 +87,28 @@ numericTags = [
 class CastableObjectUnwrapper():
     """
     A class for unwrapping an object named by the "source" argument
-    based on the passed-in descriptor and storing it in a variable
-    called by the name in the "target" argument.
+    based on the passed-in descriptor. Stringifies to a Rust expression of
+    the appropriate type.
 
     codeOnFailure is the code to run if unwrapping fails.
     """
-    def __init__(self, descriptor, source, target, codeOnFailure, isOptional=False):
+    def __init__(self, descriptor, source, codeOnFailure, isOptional=False):
         self.substitution = { "type" : descriptor.nativeType,
                               "depth": descriptor.interface.inheritanceDepth(),
                               "prototype": "PrototypeList::id::" + descriptor.name,
                               "protoID" : "PrototypeList::id::" + descriptor.name + " as uint",
                               "source" : source,
-                              "target" : target,
                               "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define(),
                               "unwrapped_val" : "Some(val)" if isOptional else "val"}
 
     def __str__(self):
         return string.Template(
-"""${target} = match unwrap_jsmanaged(${source}, ${prototype}, ${depth}) {
+"""match unwrap_jsmanaged(${source}, ${prototype}, ${depth}) {
   Ok(val) => ${unwrapped_val},
   Err(()) => {
     ${codeOnFailure}
   }
-};
-""").substitute(self.substitution)
+}""").substitute(self.substitution)
 
 #"""{
 #  nsresult rv = UnwrapObject<${protoID}, ${type}>(cx, ${source}, ${target});
@@ -123,8 +121,8 @@ class FailureFatalCastableObjectUnwrapper(CastableObjectUnwrapper):
     """
     As CastableObjectUnwrapper, but defaulting to throwing if unwrapping fails
     """
-    def __init__(self, descriptor, source, target, isOptional):
-        CastableObjectUnwrapper.__init__(self, descriptor, source, target,
+    def __init__(self, descriptor, source, isOptional):
+        CastableObjectUnwrapper.__init__(self, descriptor, source,
                                          "return 0; //XXXjdm return Throw(cx, rv);",
                                          isOptional)
 
@@ -622,19 +620,20 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             raise TypeError("Consequential interface %s being used as an "
                             "argument" % descriptor.interface.identifier.name)
 
+
+        templateBody = "${declName} = "
         if failureCode is not None:
             templateBody += str(CastableObjectUnwrapper(
                     descriptor,
                     "(${val}).to_object()",
-                    "${declName}",
                     failureCode,
                     isOptional or type.nullable()))
         else:
             templateBody += str(FailureFatalCastableObjectUnwrapper(
                     descriptor,
                     "(${val}).to_object()",
-                    "${declName}",
                     isOptional or type.nullable()))
+        templateBody += ";\n"
 
         templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
                                           type, failureCode)
@@ -2495,9 +2494,9 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
         # know that we're the real deal.  So fake a descriptor here for
         # consumption by FailureFatalCastableObjectUnwrapper.
         unwrapThis = CGIndenter(CGGeneric(
-            str(CastableObjectUnwrapper(
+            "this = " + str(CastableObjectUnwrapper(
                         FakeCastableDescriptor(self.descriptor),
-                        "obj", "this", self.unwrapFailureCode))))
+                        "obj", self.unwrapFailureCode)) + ";\n"))
         return CGList([ self.getThis(), unwrapThis,
                         self.generate_code() ], "\n").define()
 
