@@ -97,29 +97,20 @@ pub unsafe fn get_dom_class(obj: *JSObject) -> Result<DOMClass, ()> {
     return Err(());
 }
 
-pub fn unwrap_object<T>(obj: *JSObject, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<*mut T, ()> {
+pub fn unwrap_jsmanaged<T: Reflectable>(obj: *JSObject,
+                                        proto_id: PrototypeList::id::ID,
+                                        proto_depth: uint) -> Result<JS<T>, ()> {
     unsafe {
         get_dom_class(obj).and_then(|dom_class| {
             if dom_class.interface_chain[proto_depth] == proto_id {
                 debug!("good prototype");
-                Ok(unwrap(obj))
+                Ok(JS::from_raw(unwrap(obj)))
             } else {
                 debug!("bad prototype");
                 Err(())
             }
         })
     }
-}
-
-pub fn unwrap_jsmanaged<T: Reflectable>(obj: *JSObject,
-                                        proto_id: PrototypeList::id::ID,
-                                        proto_depth: uint) -> Result<JS<T>, ()> {
-    let result: Result<*mut T, ()> = unwrap_object(obj, proto_id, proto_depth);
-    result.map(|unwrapped| {
-        unsafe {
-            JS::from_raw(unwrapped)
-        }
-    })
 }
 
 pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *T {
