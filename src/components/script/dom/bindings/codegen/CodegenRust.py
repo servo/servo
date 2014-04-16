@@ -104,12 +104,12 @@ class CastableObjectUnwrapper():
 
     def __str__(self):
         return string.Template(
-"""match unwrap_jsmanaged(${source}, ${prototype}, ${depth}) {
-  Ok(val) => ${target} = ${unwrapped_val},
+"""${target} = match unwrap_jsmanaged(${source}, ${prototype}, ${depth}) {
+  Ok(val) => ${unwrapped_val},
   Err(()) => {
     ${codeOnFailure}
   }
-}
+};
 """).substitute(self.substitution)
 
 #"""{
@@ -586,10 +586,10 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             declType = CGWrapper(declType, pre="Option<", post=" >")
             value = CGWrapper(value, pre="Some(", post=")")
 
-        templateBody = CGGeneric("match %s::from_value(cx, ${val}) {\n"
+        templateBody = CGGeneric("${declName} = match %s::from_value(cx, ${val}) {\n"
                                  "    Err(()) => { %s },\n"
-                                 "    Ok(value) => ${declName} = %s,\n"
-                                 "}" % (type.name, exceptionCode, value.define()))
+                                 "    Ok(value) => %s,\n"
+                                 "};" % (type.name, exceptionCode, value.define()))
 
         if type.nullable():
             templateBody = CGIfElseWrapper(
@@ -668,10 +668,10 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                 strval = "Some(%s)" % strval
 
             conversionCode = (
-                "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
-                "  Ok(strval) => ${declName} = %s,\n"
+                "${declName} = match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
+                "  Ok(strval) => %s,\n"
                 "  Err(_) => { %s },\n"
-                "}" % (nullBehavior, strval, exceptionCode))
+                "};" % (nullBehavior, strval, exceptionCode))
 
             if defaultValue is None:
                 return conversionCode
@@ -837,10 +837,10 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
     #XXXjdm support conversionBehavior here
     template = (
-        "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
-        "  Ok(v) => ${declName} = %s,\n"
+        "${declName} = match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+        "  Ok(v) => %s,\n"
         "  Err(_) => { %s }\n"
-        "}" % (value, exceptionCode))
+        "};" % (value, exceptionCode))
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
