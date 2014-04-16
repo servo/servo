@@ -252,7 +252,7 @@ pub fn parse_html(page: &Page,
                   resource_task: ResourceTask)
                   -> HtmlParserResult {
     debug!("Hubbub: parsing {:?}", url);
-    let next_subpage_id: SubpageId = page.next_subpage_id.get();
+    let next_subpage_id: SubpageId = *page.next_subpage_id.borrow();
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
 
@@ -375,7 +375,7 @@ pub fn parse_html(page: &Page,
                         iframe_element.get_mut().set_frame(iframe_url.clone());
 
                         // Subpage Id
-                        let subpage_id = next_subpage_id.get();
+                        let subpage_id = *next_subpage_id.borrow();
                         let SubpageId(id_num) = subpage_id;
                         next_subpage_id.set(SubpageId(id_num + 1));
 
