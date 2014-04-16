@@ -553,13 +553,13 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             if type.nullable():
                 templateBody += (
                     "} else if (${val}).is_null_or_undefined() {\n"
-                    "  ${declName} = None;\n")
+                    "  None\n")
             templateBody += (
                 "} else {\n" +
                 CGIndenter(onFailureNotAnObject(failureCode)).define() +
                 "}")
             if type.nullable():
-                templateBody = handleDefaultNull(templateBody, "${declName} = None;")
+                templateBody = handleDefaultNull(templateBody, "None")
             else:
                 assert(defaultValue is None)
 
@@ -609,11 +609,11 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
             declType = CGGeneric("Option<%s>" % name);
-            conversion = ("${declName} = Some(%s::new((${val}).to_object()));" % name)
+            conversion = ("Some(%s::new((${val}).to_object()))" % name)
 
             template = wrapObjectTemplate(conversion, isDefinitelyObject, type,
                                           failureCode)
-            return (template, declType, None, isOptional, None)
+            return ("${declName} = " + template + ";", declType, None, isOptional, None)
 
         templateBody = ""
         if descriptor.interface.isConsequential():
@@ -621,19 +621,17 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                             "argument" % descriptor.interface.identifier.name)
 
 
-        templateBody = "${declName} = "
         if failureCode is not None:
-            templateBody += str(CastableObjectUnwrapper(
+            templateBody = str(CastableObjectUnwrapper(
                     descriptor,
                     "(${val}).to_object()",
                     failureCode,
                     isOptional or type.nullable()))
         else:
-            templateBody += str(FailureFatalCastableObjectUnwrapper(
+            templateBody = str(FailureFatalCastableObjectUnwrapper(
                     descriptor,
                     "(${val}).to_object()",
                     isOptional or type.nullable()))
-        templateBody += ";\n"
 
         templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
                                           type, failureCode)
@@ -642,7 +640,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if type.nullable() or isOptional:
             declType = CGWrapper(declType, pre="Option<", post=">")
 
-        return (templateBody, declType, None, isOptional, "None" if isOptional else None)
+        return ("${declName} = " + templateBody + ";", declType, None, isOptional, "None" if isOptional else None)
 
     if type.isSpiderMonkeyInterface():
         raise TypeError("Can't handle SpiderMonkey interface arguments yet")
