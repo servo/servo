@@ -58,22 +58,6 @@ struct FrameTree {
     children: RefCell<~[ChildFrameTree]>,
 }
 
-// Need to clone the FrameTrees, but _not_ the Pipelines
-impl Clone for FrameTree {
-    fn clone(&self) -> FrameTree {
-        let children = self.children
-                           .borrow()
-                           .iter()
-                           .map(|child_frame_tree| child_frame_tree.clone())
-                           .collect();
-        FrameTree {
-            pipeline: self.pipeline.clone(),
-            parent: self.parent.clone(),
-            children: RefCell::new(children),
-        }
-    }
-}
-
 struct ChildFrameTree {
     frame_tree: Rc<FrameTree>,
     /// Clipping rect representing the size and position, in page coordinates, of the visible
@@ -106,6 +90,23 @@ enum ReplaceResult {
 }
 
 impl FrameTree {
+    fn to_sendable(&self) -> SendableFrameTree {
+        let sendable_frame_tree = SendableFrameTree {
+            pipeline: self.pipeline.to_sendable(),
+            children: self.children.borrow().iter().map(|frame_tree| frame_tree.to_sendable()).collect(),
+        };
+        sendable_frame_tree
+    }
+}
+
+trait FrameTreeTraversal {
+    fn contains(&self, id: PipelineId) -> bool;
+    fn find(&self, id: PipelineId) -> Option<Self>;
+    fn replace_child(&self, id: PipelineId, new_child: Self) -> ReplaceResult;
+    fn iter(&self) -> FrameTreeIterator;
+}
+
+impl FrameTreeTraversal for Rc<FrameTree> {
     fn contains(&self, id: PipelineId) -> bool {
         self.iter().any(|frame_tree| id == frame_tree.pipeline.id)
     }
@@ -130,17 +131,9 @@ impl FrameTree {
         OriginalNode(new_child)
     }
 
-    fn to_sendable(&self) -> SendableFrameTree {
-        let sendable_frame_tree = SendableFrameTree {
-            pipeline: self.pipeline.to_sendable(),
-            children: self.children.borrow().iter().map(|frame_tree| frame_tree.to_sendable()).collect(),
-        };
-        sendable_frame_tree
-    }
-
     fn iter(&self) -> FrameTreeIterator {
         FrameTreeIterator {
-            stack: ~[Rc::new(self.clone())],
+            stack: ~[self.clone()],
         }
     }
 }
