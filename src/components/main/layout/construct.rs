@@ -487,7 +487,7 @@ impl<'a> FlowConstructor<'a> {
         // List of absolute descendants, in tree order.
         let mut abs_descendants = Descendants::new();
         for kid in node.children() {
-            if kid.get_element_type() != Normal {
+            if kid.get_pseudo_element_type() != Normal {
                 self.process(&kid);
             }
 
@@ -558,7 +558,7 @@ impl<'a> FlowConstructor<'a> {
 
         // Concatenate all the boxes of our kids, creating {ib} splits as necessary.
         for kid in node.children() {
-            if kid.get_element_type() != Normal {
+            if kid.get_pseudo_element_type() != Normal {
                 self.process(&kid);
             }
             match kid.swap_out_construction_result() {
@@ -1127,7 +1127,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
             &Some(ref mut layout_data) =>{
-                match self.get_element_type() {
+                match self.get_pseudo_element_type() {
                     Before | BeforeBlock => {
                         layout_data.data.before_flow_construction_result = result
                     },
@@ -1146,7 +1146,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
             &Some(ref mut layout_data) => {
-                match self.get_element_type() {
+                match self.get_pseudo_element_type() {
                     Before | BeforeBlock => {
                         mem::replace(&mut layout_data.data.before_flow_construction_result,
                                      NoConstructionResult)
