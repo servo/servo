@@ -145,15 +145,15 @@ fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> R
     setup_port.recv()
 }
 
-pub struct ResourceManager {
+struct ResourceManager {
     from_client: Receiver<ControlMsg>,
     /// Per-scheme resource loaders
     loaders: ~[(~str, LoaderTaskFactory)],
 }
 
 
-pub fn ResourceManager(from_client: Receiver<ControlMsg>,
-                       loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
+fn ResourceManager(from_client: Receiver<ControlMsg>,
+                   loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
     ResourceManager {
         from_client : from_client,
         loaders : loaders,

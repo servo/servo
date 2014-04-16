@@ -26,15 +26,19 @@ extern crate url;
 
 
 // Public API
-pub use stylesheets::Stylesheet;
+pub use stylesheets::{Stylesheet, CSSRule, StyleRule};
 pub use selector_matching::{Stylist, StylesheetOrigin, UserAgentOrigin, AuthorOrigin, UserOrigin};
 pub use selector_matching::{MatchedProperty};
-pub use properties::{cascade, PropertyDeclaration, ComputedValues, computed_values};
+pub use properties::{cascade, PropertyDeclaration, ComputedValues, computed_values, style_structs};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
-pub use properties::{initial_values};
+pub use properties::{initial_values, CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
+pub use properties::longhands;
 pub use errors::with_errors_silenced;
 pub use node::{TElement, TNode};
 pub use selectors::{PseudoElement, Before, After, AttrSelector, SpecificNamespace, AnyNamespace};
+pub use selectors::{NamespaceConstraint, Selector, CompoundSelector, SimpleSelector, Combinator};
+pub use namespaces::NamespaceMap;
+pub use media_queries::{MediaRule, MediaQueryList, MediaQuery, Device, MediaType, MediaQueryType};
 
 mod stylesheets;
 mod errors;
