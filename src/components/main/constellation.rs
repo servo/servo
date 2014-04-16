@@ -123,7 +123,7 @@ impl FrameTree {
             let mut child = children.mut_iter()
                 .find(|child| child.frame_tree.pipeline.id == id);
             for child in child.mut_iter() {
-                new_child.parent.set(child.frame_tree.parent.get());
+                new_child.parent.set(child.frame_tree.parent.borrow().clone());
                 return ReplacedNode(replace(&mut child.frame_tree, new_child));
             }
         }
@@ -556,7 +556,7 @@ impl Constellation {
             source Id of LoadIframeUrlMsg does have an associated pipeline in
             constellation. This should be impossible.").clone();
 
-        let source_url = source_pipeline.url.get().clone().expect("Constellation: LoadUrlIframeMsg's
+        let source_url = source_pipeline.url.borrow().clone().expect("Constellation: LoadUrlIframeMsg's
         source's Url is None. There should never be a LoadUrlIframeMsg from a pipeline
         that was never given a url to load.");
 
@@ -727,12 +727,9 @@ impl Constellation {
             let to_add = frame_change.after.clone();
 
             // Create the next frame tree that will be given to the compositor
-            // NOTE: work around borrowchk issues
-            let tmp = to_add.parent.clone();
-            let next_frame_tree = if tmp.get().is_some() {
+            let next_frame_tree = if to_add.parent.borrow().is_some() {
                 // NOTE: work around borrowchk issues
-                let tmp = self.current_frame().get_ref();
-                tmp.clone()
+                self.current_frame().get_ref().clone()
             } else {
                 to_add.clone()
             };
