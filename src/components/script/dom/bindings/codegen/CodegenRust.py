@@ -1920,6 +1920,32 @@ class CGWrapMethod(CGAbstractMethod):
   raw.mut_reflector().set_jsobject(obj);
   return raw;""" % CreateBindingJSObject(self.descriptor)
 
+
+class CGIDLInterface(CGThing):
+    """
+    Class for codegen of an implementation of the IDLInterface trait.
+    """
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+
+    def define(self):
+        replacer = {
+            'type': self.descriptor.name,
+            'depth': self.descriptor.interface.inheritanceDepth(),
+        }
+        return string.Template("""
+impl IDLInterface for ${type} {
+    fn get_prototype_id(_: Option<${type}>) -> PrototypeList::id::ID {
+        PrototypeList::id::${type}
+    }
+    fn get_prototype_depth(_: Option<${type}>) -> uint {
+        ${depth}
+    }
+}
+""").substitute(replacer)
+
+
 class CGAbstractExternMethod(CGAbstractMethod):
     """
     Abstract base class for codegen of implementation-only (no
@@ -4077,6 +4103,8 @@ class CGDescriptor(CGThing):
 
             cgThings.append(CGWrapMethod(descriptor))
 
+        cgThings.append(CGIDLInterface(descriptor))
+
         cgThings = CGList(cgThings, "\n")
         cgThings = CGWrapper(cgThings, pre='\n', post='\n')
         #self.cgRoot = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
@@ -4493,6 +4521,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::{WrapCallThisObject}',
             'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
+            'dom::bindings::conversions::IDLInterface',
             'dom::bindings::conversions::{Default, Empty}',
             'dom::bindings::codegen::*',
             'dom::bindings::codegen::UnionTypes::*',
