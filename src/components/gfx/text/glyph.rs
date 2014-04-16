@@ -460,7 +460,7 @@ impl GlyphData {
 // through glyphs (either for a particular TextRun offset, or all glyphs).
 // Rather than eagerly assembling and copying glyph data, it only retrieves
 // values as they are needed from the GlyphStore, using provided offsets.
-enum GlyphInfo<'a> {
+pub enum GlyphInfo<'a> {
     SimpleGlyphInfo(&'a GlyphStore, uint),
     DetailGlyphInfo(&'a GlyphStore, uint, u16)
 }
@@ -500,9 +500,9 @@ impl<'a> GlyphInfo<'a> {
 pub struct GlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
-    entry_buffer: ~[GlyphEntry],
+    priv entry_buffer: ~[GlyphEntry],
 
-    detail_store: DetailedGlyphStore,
+    priv detail_store: DetailedGlyphStore,
 
     is_whitespace: bool,
 }

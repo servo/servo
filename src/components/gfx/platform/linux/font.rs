@@ -46,7 +46,7 @@ impl FontTableMethods for FontTable {
     }
 }
 
-enum FontSource {
+pub enum FontSource {
     FontSourceMem(~[u8]),
     FontSourceFile(~str)
 }

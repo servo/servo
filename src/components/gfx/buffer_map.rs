@@ -15,7 +15,7 @@ use std::mem;
 /// needs it.
 pub struct BufferMap<T> {
     /// A HashMap that stores the Buffers.
-    map: HashMap<BufferKey, BufferValue<T>>,
+    priv map: HashMap<BufferKey, BufferValue<T>>,
     /// The current amount of memory stored by the BufferMap's buffers.
     mem: uint,
     /// The maximum allowed memory. Unused buffers will be deleted

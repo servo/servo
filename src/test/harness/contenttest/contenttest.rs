@@ -69,7 +69,7 @@ fn test_options(config: Config) -> TestOpts {
 }
 
 fn find_tests(config: Config) -> Vec<TestDescAndFn> {
-    let mut files_res = fs::readdir(&Path::new(config.source_dir));
+    let files_res = fs::readdir(&Path::new(config.source_dir));
     let mut files = match files_res {
         Ok(files) => files,
         _ => fail!("Error reading directory."),
