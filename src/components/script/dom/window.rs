@@ -128,6 +128,7 @@ impl Drop for Window {
 //      to the function when calling it)
 pub struct TimerData {
     handle: i32,
+    is_interval: bool,
     funval: JSVal,
     args: ~[JSVal],
 }
@@ -226,7 +227,7 @@ impl Reflectable for Window {
 }
 
 impl Window {
-    pub fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn set_timeout_or_interval(&mut self, callback: JSVal, timeout: i32, is_interval: bool) -> i32 {
         let timeout = cmp::max(0, timeout) as u64;
         let handle = self.next_timer_handle;
         self.next_timer_handle += 1;
@@ -236,9 +237,18 @@ impl Window {
         let tm = Timer::new().unwrap();
         let (cancel_chan, cancel_port) = channel();
         let chan = self.extra.timer_chan.clone();
-        spawn_named("Window:SetTimeout", proc() {
+        let spawn_name = if is_interval {
+            "Window:SetInterval"
+        } else {
+            "Window:SetTimeout"
+        };
+        spawn_named(spawn_name, proc() {
             let mut tm = tm;
-            let timeout_port = tm.oneshot(timeout);
+            let timeout_port = if is_interval {
+                tm.periodic(timeout)
+            } else {
+                tm.oneshot(timeout)
+            };
             let cancel_port = cancel_port;
 
             let select = Select::new();
@@ -246,17 +256,31 @@ impl Window {
             unsafe { timeout_handle.add() };
             let mut cancel_handle = select.handle(&cancel_port);
             unsafe { cancel_handle.add() };
-            let id = select.wait();
-            if id == timeout_handle.id() {
-                chan.send(TimerMessageFire(~TimerData {
-                    handle: handle,
-                    funval: callback,
-                    args: ~[],
-                }));
+
+            loop {
+                let id = select.wait();
+                if id == timeout_handle.id() {
+                    timeout_port.recv();
+                    chan.send(TimerMessageFire(~TimerData {
+                        handle: handle,
+                        is_interval: is_interval,
+                        funval: callback,
+                        args: ~[],
+                    }));
+                    if !is_interval {
+                        break;
+                    }
+                } else if id == cancel_handle.id() {
+                    break;
+                }
             }
         });
         self.active_timers.insert(handle, TimerHandle { handle: handle, cancel_chan: Some(cancel_chan) });
         handle
+    }
+
+    pub fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+        self.set_timeout_or_interval(callback, timeout, false)
     }
 
     pub fn ClearTimeout(&mut self, handle: i32) {
@@ -265,6 +289,14 @@ impl Window {
             Some(handle) => handle.cancel(),
             None => { }
         }
+    }
+
+    pub fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+        self.set_timeout_or_interval(callback, timeout, true)
+    }
+
+    pub fn ClearInterval(&mut self, handle: i32) {
+        self.ClearTimeout(handle);
     }
 
     pub fn damage_and_reflow(&self, damage: DocumentDamageLevel) {

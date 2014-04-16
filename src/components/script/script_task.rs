@@ -660,9 +660,15 @@ impl ScriptTask {
         let frame = page.frame();
         let mut window = frame.get_ref().window.clone();
 
-        let timer_handle = window.get_mut().active_timers.pop(&timer_data.handle);
-        if timer_handle.is_none() {
-            return;
+        {
+            let timer_handle = window.get().active_timers.find(&timer_data.handle);
+            if timer_handle.is_none() {
+                return;
+            }
+        }
+
+        if !timer_data.is_interval {
+            window.get_mut().active_timers.remove(&timer_data.handle);
         }
 
         let js_info = page.js_info();
