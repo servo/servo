@@ -27,7 +27,7 @@ pub struct HTMLCanvasElement {
     context: Option<JS<CanvasRenderingContext2D>>,
     width: u32,
     height: u32,
-  }
+}
 
 impl HTMLCanvasElementDerived for EventTarget {
     fn is_htmlcanvaselement(&self) -> bool {
