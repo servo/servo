@@ -36,7 +36,7 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use js::global::DEBUG_FNS;
 use js::jsapi::{JSObject, JS_CallFunctionValue, JS_DefineFunctions};
-use js::jsapi::JS_SetWrapObjectCallbacks;
+use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
 use js::jsval::NullValue;
 use js::rust::{Cx, RtUtils};
 use js;
@@ -431,6 +431,10 @@ impl Page {
 
         // Note that the order that these variables are initialized is _not_ arbitrary. Switching
         // them around can -- and likely will -- lead to things breaking.
+
+        unsafe {
+            JS_SetGCZeal(js_context.deref().ptr, 0, JS_DEFAULT_ZEAL_FREQ);
+        }
 
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
