@@ -855,19 +855,21 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if failureCode is None:
         failureCode = 'return 0'
 
-    #XXXjdm support conversionBehavior here
-    template = (
-        "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
-        "  Ok(v) => ${declName} = v,\n"
-        "  Err(_) => { %s }\n"
-        "}" % exceptionCode)
-
+    value = "v"
     declType = CGGeneric(builtinNames[type.tag()])
     if type.nullable():
         declType = CGWrapper(declType, pre="Option<", post=">")
 
     if isOptional:
+        value = "Some(%s)" % value
         declType = CGWrapper(declType, pre="Option<", post=">")
+
+    #XXXjdm support conversionBehavior here
+    template = (
+        "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+        "  Ok(v) => ${declName} = %s,\n"
+        "  Err(_) => { %s }\n"
+        "}" % (value, exceptionCode))
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
