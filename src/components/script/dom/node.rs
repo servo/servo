@@ -37,6 +37,7 @@ use std::cast::transmute;
 use std::cast;
 use std::cell::{RefCell, Ref, RefMut};
 use std::iter::{Map, Filter};
+use std::libc;
 use std::libc::uintptr_t;
 use std::mem;
 
@@ -562,7 +563,7 @@ impl NodeHelpers for JS<Node> {
     }
 
     fn to_trusted_node_address(&self) -> TrustedNodeAddress {
-        self.get() as *Node as TrustedNodeAddress
+        TrustedNodeAddress(self.get() as *Node as *libc::c_void)
     }
 }
 

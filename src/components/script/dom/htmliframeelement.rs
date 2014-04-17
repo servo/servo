@@ -4,8 +4,9 @@
 
 use dom::bindings::codegen::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
-use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
+use dom::bindings::js::JS;
+use dom::bindings::trace::Untraceable;
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
 use dom::element::AttributeHandlers;
@@ -16,7 +17,6 @@ use dom::virtualmethods::VirtualMethods;
 use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
-use serialize::{Encoder, Encodable};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use std::ascii::StrAsciiExt;
 use url::Url;
@@ -34,18 +34,9 @@ enum SandboxAllowance {
 #[deriving(Encodable)]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
-    priv extra: Untraceable,
+    frame: Untraceable<Option<Url>>,
     size: Option<IFrameSize>,
     sandbox: Option<u8>
-}
-
-struct Untraceable {
-    frame: Option<Url>,
-}
-
-impl<S: Encoder> Encodable<S> for Untraceable {
-    fn encode(&self, _s: &mut S) {
-    }
 }
 
 impl HTMLIFrameElementDerived for EventTarget {
@@ -69,7 +60,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn set_frame(&mut self, frame: Url) {
-        self.extra.frame = Some(frame);
+        *self.frame = Some(frame);
     }
 }
 
@@ -77,9 +68,7 @@ impl HTMLIFrameElement {
     pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, document),
-            extra: Untraceable {
-                frame: None
-            },
+            frame: Untraceable::new(None),
             size: None,
             sandbox: None,
         }
