@@ -143,7 +143,16 @@ pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
                 args.push(str::raw::from_c_str(*argv.offset(i as int) as *i8));
             }
         }
-        opts::from_cmdline_args(args).map(run);
+
+        let mut opts = opts::from_cmdline_args(args);
+        match opts {
+            Some(mut o) => {
+                // Always use CPU rendering on android.
+                o.cpu_painting = true;
+                run(o);
+            },
+            None => {}
+        }
     })
 }
 
