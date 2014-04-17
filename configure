@@ -493,8 +493,6 @@ CFG_SUBMODULES="\
     support/hubbub/libhubbub \
     support/hubbub/rust-hubbub \
     support/libparserutils/libparserutils \
-    support/nss/nspr \
-    support/nss/nss \
     support/skia/skia \
     support/spidermonkey/mozjs \
     support/spidermonkey/rust-mozjs \
@@ -653,23 +651,6 @@ do
     ENABLE_DEBUG="$CFG_ENABLE_DEBUG"
 
     case $i in
-        support/nss/nspr)
-            if [ ${CFG_OSTYPE} = "linux-androideabi" ]; then
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --target=arm-linux-androideabi"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-ndk=${CFG_ANDROID_NDK_PATH}"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-toolchain=${CFG_ANDROID_CROSS_PATH}"
-            else
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-64bit"
-            fi
-            ;;
-        support/nss/nss)
-            if [ ${CFG_OSTYPE} = "linux-androideabi" ]; then
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux-androideabi"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --android-toolchain=${CFG_ANDROID_CROSS_PATH}"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --android-api-version=14"
-            fi
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
-            ;;
         platform/android/libexpat)
             CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/expat/configure"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux-androideabi"

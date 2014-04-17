@@ -7,8 +7,6 @@ SLOW_TESTS += \
 
 # Tests for these submodules do not exist.
 NO_TESTS += \
-	nspr \
-	nss \
 	$(NULL)
 
 # These submodules will not be cleaned by the `make clean-fast` target.
@@ -25,8 +23,6 @@ NATIVE_BUILDS += \
 	libparserutils \
 	mozjs \
 	skia \
-	nss \
-	nspr \
 	glfw \
 	$(NULL)
 
@@ -146,10 +142,6 @@ DEPS_rust-layers += \
 	$(NULL)
 
 endif
-
-DEPS_nss += \
-	nspr \
-	$(NULL)
 
 ifeq ($(CFG_OSTYPE),unknown-linux-gnu)
 
