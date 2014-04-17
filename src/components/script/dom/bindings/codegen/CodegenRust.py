@@ -826,10 +826,10 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
     #XXXjdm support conversionBehavior here
     template = (
-        "${declName} = match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+        "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
         "  Ok(v) => %s,\n"
         "  Err(_) => { %s }\n"
-        "};" % (value, exceptionCode))
+        "}" % (value, exceptionCode))
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
@@ -838,7 +838,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         else:
             tag = defaultValue.type.tag()
             if tag in numericTags:
-                defaultStr = defaultValue.value
+                defaultStr = str(defaultValue.value)
             else:
                 assert(tag == IDLType.Tags.bool)
                 defaultStr = toStringBool(defaultValue.value)
@@ -848,9 +848,9 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
         template = CGIfElseWrapper("${haveValue}",
                                    CGGeneric(template),
-                                   CGGeneric("${declName} = %s;" % defaultStr)).define()
+                                   CGGeneric(defaultStr)).define()
 
-    return (template, declType, None, isOptional, "None" if isOptional else None)
+    return ("${declName} = " + template + ";", declType, None, isOptional, "None" if isOptional else None)
 
 def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                                             argcAndIndex=None):
