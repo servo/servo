@@ -13,6 +13,7 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use geom::size::Size2D;
 use servo_util::str::DOMString;
 
 use std::num;
@@ -79,7 +80,8 @@ impl HTMLCanvasElement {
 
         if self.context.is_none() {
             let window = window_from_node(abstract_self);
-            self.context = Some(CanvasRenderingContext2D::new(&window));
+            let (w, h) = (self.width as i32, self.height as i32);
+            self.context = Some(CanvasRenderingContext2D::new(&window, Size2D(w, h)));
         }
         self.context.clone()
      }
@@ -110,9 +112,9 @@ impl VirtualMethods for JS<HTMLCanvasElement> {
         };
 
         if recreate {
-            let (width, height) = (self.get().width, self.get().height);
+            let (w, h) = (self.get().width as i32, self.get().height as i32);
             match self.get_mut().context {
-                Some(ref mut context) => context.get_mut().recreate(width, height),
+                Some(ref mut context) => context.get_mut().recreate(Size2D(w, h)),
                 None => ()
             }
         }
@@ -137,9 +139,9 @@ impl VirtualMethods for JS<HTMLCanvasElement> {
         };
 
         if recreate {
-            let (width, height) = (self.get().width, self.get().height);
+            let (w, h) = (self.get().width as i32, self.get().height as i32);
             match self.get_mut().context {
-                Some(ref mut context) => context.get_mut().recreate(width, height),
+                Some(ref mut context) => context.get_mut().recreate(Size2D(w, h)),
                 None => ()
             }
         }
