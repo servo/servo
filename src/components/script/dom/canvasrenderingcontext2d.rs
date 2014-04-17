@@ -17,8 +17,8 @@ use serialize::{Encodable, Encoder};
 
 #[deriving(Encodable)]
 pub struct CanvasRenderingContext2D {
-    owner: JS<Window>,
-    reflector_: Reflector,
+    priv owner: JS<Window>,
+    priv reflector_: Reflector,
     priv extra: Untraceable,
 }
 
@@ -52,23 +52,23 @@ impl CanvasRenderingContext2D {
     }
 
     pub fn FillRect(&self, x: f32, y: f32, width: f32, height: f32) {
-      let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
-      let rect = Rect(Point2D(x, y), Size2D(width, height));
-      let drawopts = DrawOptions(1.0, 0);
-      self.extra.drawtarget.fill_rect(&rect, &colorpattern, Some(&drawopts));
+        let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
+        let rect = Rect(Point2D(x, y), Size2D(width, height));
+        let drawopts = DrawOptions(1.0, 0);
+        self.extra.drawtarget.fill_rect(&rect, &colorpattern, Some(&drawopts));
     }
 
     pub fn ClearRect(&self, x: f32, y: f32, width: f32, height: f32) {
-      let rect = Rect(Point2D(x, y), Size2D(width, height));
-      self.extra.drawtarget.clear_rect(&rect);
+        let rect = Rect(Point2D(x, y), Size2D(width, height));
+        self.extra.drawtarget.clear_rect(&rect);
     }
 
     pub fn StrokeRect(&self, x: f32, y: f32, width: f32, height: f32) {
-      let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
-      let rect = Rect(Point2D(x, y), Size2D(width, height));
-      let strokeopts = StrokeOptions(10.0, 10.0);
-      let drawopts = DrawOptions(1.0, 0);
-      self.extra.drawtarget.stroke_rect(&rect, &colorpattern, &strokeopts, &drawopts);
+        let colorpattern = ColorPattern(Color(1.0, 0.0, 0.0, 0.0));
+        let rect = Rect(Point2D(x, y), Size2D(width, height));
+        let strokeopts = StrokeOptions(10.0, 10.0);
+        let drawopts = DrawOptions(1.0, 0);
+        self.extra.drawtarget.stroke_rect(&rect, &colorpattern, &strokeopts, &drawopts);
     }
 }
 

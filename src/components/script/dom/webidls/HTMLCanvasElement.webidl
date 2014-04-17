@@ -10,15 +10,11 @@
  * and create derivative works of this document.
  */
 
-// import from http://mxr.mozilla.org/mozilla-central/source/dom/webidl/HTMLCanvasElement.webidl
-
-typedef CanvasRenderingContext2D RenderingContext;
-
 interface HTMLCanvasElement : HTMLElement {
   [Pure]
            attribute unsigned long width;
   [Pure]
            attribute unsigned long height;
 
-  RenderingContext? getContext(DOMString contextId);
+  CanvasRenderingContext2D? getContext(DOMString contextId);
 };
