@@ -29,6 +29,20 @@ sudo apt-get install autoconf2.13 curl freeglut3-dev libtool \
     msttcorefonts gperf g++
 ```
 
+On Fedora Core:
+
+``` sh
+sudo yum install autoconf213 curl freeglut-devel libtool \
+    freetype-devel mesa-libGL-devel glib2-devel libX11-devel \
+    gperf gcc-c++ rpm-build cabextract ttmkfdir
+pushd .
+cd /tmp
+wget http://corefonts.sourceforge.net/msttcorefonts-2.5-1.spec
+rpmbuild -bb msttcorefonts-2.5-1.spec
+sudo yum install $HOME/rpmbuild/RPMS/noarch/msttcorefonts-2.5-1.noarch.rpm 
+popd
+```
+
 On Debian-based Linuxes (cross-compilation for Android):
 
 ``` sh
