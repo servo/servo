@@ -88,7 +88,7 @@ impl StyleElementHelpers for JS<HTMLStyleElement> {
 
         let data = node.get().GetTextContent(&node).expect("Element.textContent must be a string");
         let sheet = parse_inline_css(url, data);
-        let LayoutChan(ref layout_chan) = win.get().page().layout_chan;
+        let LayoutChan(ref layout_chan) = *win.get().page().layout_chan;
         layout_chan.send(AddStylesheetMsg(sheet));
     }
 }

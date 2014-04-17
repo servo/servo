@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::WindowBinding;
 use dom::bindings::js::JS;
+use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::Element;
@@ -84,29 +85,19 @@ pub struct Window {
     image_cache_task: ImageCacheTask,
     active_timers: ~HashMap<i32, TimerHandle>,
     next_timer_handle: i32,
-    priv extra: Untraceable
-}
-
-struct Untraceable {
+    compositor: Untraceable<~ScriptListener>,
+    timer_chan: Untraceable<Sender<TimerControlMsg>>,
     page: Rc<Page>,
-    compositor: ~ScriptListener,
-    timer_chan: Sender<TimerControlMsg>,
-}
-
-impl<S: Encoder> Encodable<S> for Untraceable {
-    fn encode(&self, s: &mut S) {
-        self.page.encode(s);
-    }
 }
 
 impl Window {
     pub fn get_cx(&self) -> *JSObject {
         let js_info = self.page().js_info();
-        js_info.get_ref().js_compartment.cx.deref().ptr
+        js_info.get_ref().js_compartment.deref().cx.deref().ptr
     }
 
     pub fn page<'a>(&'a self) -> &'a Page {
-        &*self.extra.page
+        &*self.page
     }
     pub fn get_url(&self) -> Url {
         self.page().get_url()
@@ -116,7 +107,7 @@ impl Window {
 #[unsafe_destructor]
 impl Drop for Window {
     fn drop(&mut self) {
-        self.extra.timer_chan.send(TimerMessageClose);
+        self.timer_chan.send(TimerMessageClose);
         for timer_handle in self.active_timers.values() {
             timer_handle.cancel();
         }
@@ -140,7 +131,7 @@ impl Window {
     }
 
     pub fn Close(&self) {
-        self.extra.timer_chan.send(TimerMessageTriggerExit);
+        self.timer_chan.deref().send(TimerMessageTriggerExit);
     }
 
     pub fn Document(&self) -> JS<Document> {
@@ -181,7 +172,7 @@ impl Window {
 
     pub fn Location(&mut self, abstract_self: &JS<Window>) -> JS<Location> {
         if self.location.is_none() {
-            self.location = Some(Location::new(abstract_self, self.extra.page.clone()));
+            self.location = Some(Location::new(abstract_self, self.page.clone()));
         }
         self.location.get_ref().clone()
     }
@@ -236,7 +227,7 @@ impl Window {
         // to the relevant script handler that will deal with it.
         let tm = Timer::new().unwrap();
         let (cancel_chan, cancel_port) = channel();
-        let chan = self.extra.timer_chan.clone();
+        let chan = self.timer_chan.clone();
         let spawn_name = if is_interval {
             "Window:SetInterval"
         } else {
@@ -304,7 +295,7 @@ impl Window {
         // currently rely on the display list, which means we can't destroy it by
         // doing a query reflow.
         self.page().damage(damage);
-        self.page().reflow(ReflowForDisplay, self.script_chan.clone(), self.extra.compositor);
+        self.page().reflow(ReflowForDisplay, self.script_chan.clone(), *self.compositor);
     }
 
     pub fn wait_until_safe_to_modify_dom(&self) {
@@ -319,29 +310,27 @@ impl Window {
                compositor: ~ScriptListener,
                image_cache_task: ImageCacheTask)
                -> JS<Window> {
+        let script_chan_clone = script_chan.clone();
+        let (timer_chan, timer_port): (Sender<TimerControlMsg>, Receiver<TimerControlMsg>) = channel();
+        let id = page.id.clone();
+        spawn_named("timer controller", proc() {
+            let ScriptChan(script_chan) = script_chan;
+            loop {
+                match timer_port.recv() {
+                    TimerMessageClose => break,
+                    TimerMessageFire(td) => script_chan.send(FireTimerMsg(id, td)),
+                    TimerMessageTriggerExit => script_chan.send(ExitWindowMsg(id)),
+                }
+            }
+        });
+
         let win = ~Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
-            script_chan: script_chan.clone(),
+            script_chan: script_chan_clone,
             console: None,
-            extra: Untraceable {
-                compositor: compositor,
-                page: page.clone(),
-                timer_chan: {
-                    let (timer_chan, timer_port): (Sender<TimerControlMsg>, Receiver<TimerControlMsg>) = channel();
-                    let id = page.id.clone();
-                    spawn_named("timer controller", proc() {
-                        let ScriptChan(script_chan) = script_chan;
-                        loop {
-                            match timer_port.recv() {
-                                TimerMessageClose => break,
-                                TimerMessageFire(td) => script_chan.send(FireTimerMsg(id, td)),
-                                TimerMessageTriggerExit => script_chan.send(ExitWindowMsg(id)),
-                            }
-                        }
-                    });
-                    timer_chan
-                }
-            },
+            compositor: Untraceable::new(compositor),
+            timer_chan: Untraceable::new(timer_chan),
+            page: page.clone(),
             location: None,
             navigator: None,
             image_cache_task: image_cache_task,

@@ -6,6 +6,7 @@ use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::JS;
+use dom::bindings::trace::Untraceable;
 use dom::window;
 use servo_util::str::DOMString;
 
@@ -42,13 +43,14 @@ use js::JSPROP_PERMANENT;
 use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
 use js;
 
+#[deriving(Encodable)]
 pub struct GlobalStaticData {
-    proxy_handlers: HashMap<uint, *libc::c_void>
+    proxy_handlers: Untraceable<HashMap<uint, *libc::c_void>>
 }
 
 pub fn GlobalStaticData() -> GlobalStaticData {
     GlobalStaticData {
-        proxy_handlers: HashMap::new()
+        proxy_handlers: Untraceable::new(HashMap::new())
     }
 }
 
@@ -533,7 +535,7 @@ fn cx_for_dom_reflector(obj: *JSObject) -> *JSContext {
     let win = global_object_for_js_object(obj);
     let js_info = win.get().page().js_info();
     match *js_info {
-        Some(ref info) => info.js_context.deref().ptr,
+        Some(ref info) => info.js_context.deref().deref().ptr,
         None => fail!("no JS context for DOM global")
     }
 }
