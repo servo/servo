@@ -584,21 +584,21 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             declType = CGWrapper(declType, pre="Option<", post=" >")
             value = CGWrapper(value, pre="Some(", post=")")
 
-        templateBody = CGGeneric("${declName} = match %s::from_value(cx, ${val}) {\n"
+        templateBody = CGGeneric("match %s::from_value(cx, ${val}) {\n"
                                  "    Err(()) => { %s },\n"
                                  "    Ok(value) => %s,\n"
-                                 "};" % (type.name, exceptionCode, value.define()))
+                                 "}" % (type.name, exceptionCode, value.define()))
 
         if type.nullable():
             templateBody = CGIfElseWrapper(
                 "(${val}).is_null_or_undefined()",
-                CGGeneric("${declName} = None;"),
+                CGGeneric("None"),
                 templateBody)
 
         templateBody = handleDefaultNull(templateBody.define(),
-                                         "${declName} = None;")
+                                         "None")
 
-        return (templateBody, declType, None, isOptional, "None" if isOptional else None)
+        return ("${declName} = " + templateBody + ";", declType, None, isOptional, "None" if isOptional else None)
 
     if type.isGeckoInterface():
         assert not isEnforceRange and not isClamp
