@@ -6,6 +6,8 @@
 
 #[allow(non_camel_case_types, uppercase_variables)];
 
+pub use std::ascii::StrAsciiExt;
+
 pub use servo_util::url::parse_url;
 use sync::Arc;
 pub use url::Url;
@@ -226,15 +228,12 @@ pub mod longhands {
         match component_value {
             &Ident(ref value) => {
                 // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                unsafe {
-                    let tmp_for_lifetime = value.to_ascii_nocheck().to_lower();
-                    let value_lower = tmp_for_lifetime.as_str_ascii();
-                    match value_lower.as_slice() {
-                        "thin" => Some(specified::Length::from_px(1.)),
-                        "medium" => Some(specified::Length::from_px(3.)),
-                        "thick" => Some(specified::Length::from_px(5.)),
-                        _ => None
-                    }
+                let value_lower = value.to_ascii_lower();
+                match value_lower.as_slice() {
+                    "thin" => Some(specified::Length::from_px(1.)),
+                    "medium" => Some(specified::Length::from_px(3.)),
+                    "thick" => Some(specified::Length::from_px(5.)),
+                    _ => None
                 }
             },
             _ => specified::Length::parse_non_negative(component_value)
@@ -373,7 +372,7 @@ pub mod longhands {
                 &Dimension(ref value, ref unit) if value.value >= 0.
                 => specified::Length::parse_dimension(value.value, unit.as_slice())
                     .map(SpecifiedLength),
-                &Ident(ref value) if unsafe { value.to_ascii_nocheck().eq_ignore_case("normal".to_ascii_nocheck())}
+                &Ident(ref value) if value.eq_ignore_ascii_case("normal")
                 => Some(SpecifiedNormal),
                 _ => None,
             }
@@ -453,15 +452,12 @@ pub mod longhands {
             match input {
                 &Ident(ref value) => {
                     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                    unsafe {
-                        let tmp_for_lifetime = value.to_ascii_nocheck().to_lower();
-                        let value_lower = tmp_for_lifetime.as_str_ascii();
-                        match value_lower.as_slice() {
-                            % for keyword in vertical_align_keywords:
-                            "${keyword}" => Some(Specified_${to_rust_ident(keyword)}),
-                            % endfor
-                            _ => None,
-                        }
+                    let value_lower = value.to_ascii_lower();
+                    match value_lower.as_slice() {
+                        % for keyword in vertical_align_keywords:
+                        "${keyword}" => Some(Specified_${to_rust_ident(keyword)}),
+                        % endfor
+                        _ => None,
                     }
                 },
                 _ => specified::LengthOrPercentage::parse_non_negative(input)
@@ -532,15 +528,13 @@ pub mod longhands {
             pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Option<SpecifiedValue> {
                 match one_component_value(input) {
                     Some(&Ident(ref keyword)) => {
-                        unsafe {
-                            let tmp_for_lifetime = keyword.to_ascii_nocheck().to_lower();
-                            let keyword_lower = tmp_for_lifetime.as_str_ascii();
-                            match keyword_lower.as_slice() {
+                        // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
+                        let keyword_lower = keyword.to_ascii_lower();
+                        match keyword_lower.as_slice() {
 
-                                "normal" => return Some(normal),
-                                "none" => return Some(none),
-                                _ => ()
-                            }
+                            "normal" => return Some(normal),
+                            "none" => return Some(none),
+                            _ => ()
                         }
                     },
                     _ => ()
@@ -581,7 +575,7 @@ pub mod longhands {
                         let image_url = parse_url(url.as_slice(), Some(base_url.clone()));
                         Some(Some(image_url))
                     },
-                    &ast::Ident(ref value) if unsafe {value.to_ascii_nocheck()}.eq_ignore_case(unsafe {"none".to_ascii_nocheck()})  => Some(None),
+                    &ast::Ident(ref value) if value.eq_ignore_ascii_case("none") => Some(None),
                     _ => None,
                 }
             }
@@ -731,10 +725,7 @@ pub mod longhands {
                     Some(&String(ref value)) => add!(FamilyName(value.to_owned()), break 'outer),
                     Some(&Ident(ref value)) => {
                         // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                        let value = value.as_slice();
-                        unsafe {
-                        let tmp_for_lifetime = value.to_ascii_nocheck().to_lower();
-                        let value_lower = tmp_for_lifetime.as_str_ascii();
+                        let value_lower = value.to_ascii_lower();
                         match value_lower.as_slice() {
 //                            "serif" => add!(Serif, break 'outer),
 //                            "sans-serif" => add!(SansSerif, break 'outer),
@@ -742,7 +733,7 @@ pub mod longhands {
 //                            "fantasy" => add!(Fantasy, break 'outer),
 //                            "monospace" => add!(Monospace, break 'outer),
                             _ => {
-                                let mut idents = ~[value];
+                                let mut idents = ~[value.as_slice()];
                                 loop {
                                     match iter.next() {
                                         Some(&Ident(ref value)) => idents.push(value.as_slice()),
@@ -758,7 +749,7 @@ pub mod longhands {
                                     }
                                 }
                             }
-                        }}
+                        }
                     }
                     _ => return None,
                 }
@@ -786,16 +777,13 @@ pub mod longhands {
             match input {
                 &Ident(ref value) => {
                     // FIXME: Workaround for https://github.com/mozilla/rust/issues/10683
-                    unsafe {
-                        let tmp_for_lifetime = value.to_ascii_nocheck().to_lower();
-                        let value_lower = tmp_for_lifetime.as_str_ascii();
-                        match value_lower.as_slice() {
-                            "bold" => Some(SpecifiedWeight700),
-                            "normal" => Some(SpecifiedWeight400),
-                            "bolder" => Some(Bolder),
-                            "lighter" => Some(Lighter),
-                            _ => None,
-                        }
+                    let value_lower = value.to_ascii_lower();
+                    match value_lower.as_slice() {
+                        "bold" => Some(SpecifiedWeight700),
+                        "normal" => Some(SpecifiedWeight400),
+                        "bolder" => Some(Bolder),
+                        "lighter" => Some(Lighter),
+                        _ => None,
                     }
                 },
                 &Number(ref value) => match value.int_value {
@@ -1190,10 +1178,12 @@ pub mod shorthands {
             // Special-case 'normal' because it is valid in each of
             // font-style, font-weight and font-variant.
             // Leaves the values to None, 'normal' is the initial value for each of them.
-            if get_ident_lower(component_value).filtered(
-                    |v| unsafe { v.to_ascii_nocheck() }.eq_ignore_case(unsafe {"normal".to_ascii_nocheck()})).is_some() {
-                nb_normals += 1;
-                continue;
+            match get_ident_lower(component_value) {
+                Some(ref ident) if ident.eq_ignore_ascii_case("normal") => {
+                    nb_normals += 1;
+                    continue;
+                }
+                _ => {}
             }
             if style.is_none() {
                 match font_style::from_component_value(component_value, base_url) {
@@ -1344,8 +1334,7 @@ impl PropertyDeclaration {
                  result_list: &mut ~[PropertyDeclaration],
                  base_url: &Url) -> PropertyDeclarationParseResult {
         // FIXME: local variable to work around Rust #10683
-        let tmp_for_lifetime = unsafe {name.to_ascii_nocheck()}.to_lower();
-        let name_lower = tmp_for_lifetime.as_str_ascii();
+        let name_lower = name.to_ascii_lower();
         match name_lower.as_slice() {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
