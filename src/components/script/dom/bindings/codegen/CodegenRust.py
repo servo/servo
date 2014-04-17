@@ -665,17 +665,17 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                 strval = "Some(%s)" % strval
 
             conversionCode = (
-                "${declName} = match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
+                "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
                 "  Ok(strval) => %s,\n"
                 "  Err(_) => { %s },\n"
-                "};" % (nullBehavior, strval, exceptionCode))
+                "}" % (nullBehavior, strval, exceptionCode))
 
             if defaultValue is None:
                 return conversionCode
 
             if isinstance(defaultValue, IDLNullValue):
                 assert(type.nullable())
-                return handleDefault(conversionCode, "${declName} = None;")
+                return handleDefault(conversionCode, "None")
 
             value = "str::from_utf8(data).unwrap().to_owned()"
             if type.nullable():
@@ -683,7 +683,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
             default = (
                 "static data: [u8, ..%s] = [ %s ];\n"
-                "${declName} = %s;" %
+                "%s" %
                 (len(defaultValue.value) + 1,
                  ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
                  value))
@@ -700,8 +700,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             initialValue = "None"
 
         return (
-            "%s\n" %
-            (getConversionCode(isOptional)),
+            "${declName} = %s;" % getConversionCode(isOptional),
             CGGeneric(declType), None, #CGGeneric("FakeDependentString"),
             False,
             initialValue)
