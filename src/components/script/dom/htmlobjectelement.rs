@@ -6,7 +6,7 @@ use dom::attr::AttrMethods;
 use dom::bindings::codegen::BindingDeclarations::HTMLObjectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLObjectElementTypeId};
@@ -48,7 +48,7 @@ impl HTMLObjectElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLObjectElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLObjectElement> {
         let element = HTMLObjectElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLObjectElementBinding::Wrap)
     }
@@ -89,15 +89,15 @@ pub trait HTMLObjectElementMethods {
     fn SetName(&mut self, _name: DOMString) -> ErrorResult;
     fn UseMap(&self) -> DOMString;
     fn SetUseMap(&mut self, _use_map: DOMString) -> ErrorResult;
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>>;
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn Width(&self) -> DOMString;
     fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
     fn Height(&self) -> DOMString;
     fn SetHeight(&mut self, _height: DOMString) -> ErrorResult;
-    fn GetContentDocument(&self) -> Option<Unrooted<Document>>;
-    fn GetContentWindow(&self) -> Option<Unrooted<Window>>;
+    fn GetContentDocument(&self) -> Option<Temporary<Document>>;
+    fn GetContentWindow(&self) -> Option<Temporary<Window>>;
     fn WillValidate(&self) -> bool;
-    fn Validity(&self) -> Unrooted<ValidityState>;
+    fn Validity(&self) -> Temporary<ValidityState>;
     fn ValidationMessage(&self) -> DOMString;
     fn CheckValidity(&self) -> bool;
     fn SetCustomValidity(&mut self, _error: DOMString);
@@ -121,7 +121,7 @@ pub trait HTMLObjectElementMethods {
     fn SetCodeType(&mut self, _codetype: DOMString) -> ErrorResult;
     fn Border(&self) -> DOMString;
     fn SetBorder(&mut self, _border: DOMString) -> ErrorResult;
-    fn GetSVGDocument(&self) -> Option<Unrooted<Document>>;
+    fn GetSVGDocument(&self) -> Option<Temporary<Document>>;
 }
 
 impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
@@ -157,7 +157,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         Ok(())
     }
 
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>> {
         None
     }
 
@@ -177,11 +177,11 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         Ok(())
     }
 
-    fn GetContentDocument(&self) -> Option<Unrooted<Document>> {
+    fn GetContentDocument(&self) -> Option<Temporary<Document>> {
         None
     }
 
-    fn GetContentWindow(&self) -> Option<Unrooted<Window>> {
+    fn GetContentWindow(&self) -> Option<Temporary<Window>> {
         None
     }
 
@@ -189,7 +189,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         false
     }
 
-    fn Validity(&self) -> Unrooted<ValidityState> {
+    fn Validity(&self) -> Temporary<ValidityState> {
         let roots = RootCollection::new();
         let window = window_from_node(self).root(&roots);
         ValidityState::new(&*window)
@@ -286,7 +286,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
         Ok(())
     }
 
-    fn GetSVGDocument(&self) -> Option<Unrooted<Document>> {
+    fn GetSVGDocument(&self) -> Option<Temporary<Document>> {
         None
     }
 }

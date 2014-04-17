@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTableElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLTableElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLTableElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLTableElementBinding::Wrap)
     }

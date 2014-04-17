@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLDataListElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::document::Document;
 use dom::element::{Element, HTMLDataListElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -34,18 +34,18 @@ impl HTMLDataListElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLDataListElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDataListElement> {
         let element = HTMLDataListElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLDataListElementBinding::Wrap)
     }
 }
 
 pub trait HTMLDataListElementMethods {
-    fn Options(&self) -> Unrooted<HTMLCollection>;
+    fn Options(&self) -> Temporary<HTMLCollection>;
 }
 
 impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
-    fn Options(&self) -> Unrooted<HTMLCollection> {
+    fn Options(&self) -> Temporary<HTMLCollection> {
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {

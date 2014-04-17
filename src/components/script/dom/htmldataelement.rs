@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLDataElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDataElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLDataElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLDataElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLDataElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDataElement> {
         let element = HTMLDataElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLDataElementBinding::Wrap)
     }

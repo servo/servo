@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLOptionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOptionElementTypeId;
@@ -35,7 +35,7 @@ impl HTMLOptionElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLOptionElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLOptionElement> {
         let element = HTMLOptionElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLOptionElementBinding::Wrap)
     }
@@ -44,7 +44,7 @@ impl HTMLOptionElement {
 pub trait HTMLOptionElementMethods {
     fn Disabled(&self) -> bool;
     fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>>;
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn Label(&self) -> DOMString;
     fn SetLabel(&mut self, _label: DOMString) -> ErrorResult;
     fn DefaultSelected(&self) -> bool;
@@ -67,7 +67,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         Ok(())
     }
 
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>> {
         None
     }
 

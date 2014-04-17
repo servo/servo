@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFormElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLFormElementTypeId};
@@ -35,7 +35,7 @@ impl HTMLFormElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLFormElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFormElement> {
         let element = HTMLFormElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLFormElementBinding::Wrap)
     }
@@ -60,12 +60,12 @@ pub trait HTMLFormElementMethods {
     fn SetNoValidate(&mut self, _no_validate: bool) -> ErrorResult;
     fn Target(&self) -> DOMString;
     fn SetTarget(&mut self, _target: DOMString) -> ErrorResult;
-    fn Elements(&self) -> Unrooted<HTMLCollection>;
+    fn Elements(&self) -> Temporary<HTMLCollection>;
     fn Length(&self) -> i32;
     fn Submit(&self) -> ErrorResult;
     fn Reset(&self);
     fn CheckValidity(&self) -> bool;
-    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Unrooted<Element>;
+    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Temporary<Element>;
 }
 
 impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
@@ -141,7 +141,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         Ok(())
     }
 
-    fn Elements(&self) -> Unrooted<HTMLCollection> {
+    fn Elements(&self) -> Temporary<HTMLCollection> {
         // FIXME: https://github.com/mozilla/servo/issues/1844
         let roots = RootCollection::new();
         let window = window_from_node(self).root(&roots);
@@ -163,7 +163,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         false
     }
 
-    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Unrooted<Element> {
+    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Temporary<Element> {
         fail!("Not implemented.")
     }
 }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::MouseEventBinding;
 use dom::bindings::codegen::InheritTypes::{UIEventCast, MouseEventDerived};
-use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Temporary};
 use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, MouseEventTypeId};
@@ -51,7 +51,7 @@ impl MouseEvent {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> Unrooted<MouseEvent> {
+    pub fn new(window: &JSRef<Window>) -> Temporary<MouseEvent> {
         reflect_dom_object(~MouseEvent::new_inherited(),
                            window,
                            MouseEventBinding::Wrap)
@@ -59,7 +59,7 @@ impl MouseEvent {
 
     pub fn Constructor(owner: &JSRef<Window>,
                        type_: DOMString,
-                       init: &MouseEventBinding::MouseEventInit) -> Fallible<Unrooted<MouseEvent>> {
+                       init: &MouseEventBinding::MouseEventInit) -> Fallible<Temporary<MouseEvent>> {
         let roots = RootCollection::new();
         let mut ev = MouseEvent::new(owner).root(&roots);
         let view = init.view.as_ref().map(|view| view.root(&roots));
@@ -69,7 +69,7 @@ impl MouseEvent {
                           init.clientX, init.clientY, init.ctrlKey,
                           init.altKey, init.shiftKey, init.metaKey,
                           init.button, related_target.root_ref());
-        Ok(Unrooted::new_rooted(&*ev))
+        Ok(Temporary::new_rooted(&*ev))
     }
 }
 
@@ -84,7 +84,7 @@ pub trait MouseEventMethods {
     fn MetaKey(&self) -> bool;
     fn Button(&self) -> u16;
     fn Buttons(&self)-> u16;
-    fn GetRelatedTarget(&self) -> Option<Unrooted<EventTarget>>;
+    fn GetRelatedTarget(&self) -> Option<Temporary<EventTarget>>;
     fn GetModifierState(&self, _keyArg: DOMString) -> bool;
     fn InitMouseEvent(&mut self,
                       typeArg: DOMString,
@@ -146,8 +146,8 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
         0
     }
 
-    fn GetRelatedTarget(&self) -> Option<Unrooted<EventTarget>> {
-        self.related_target.clone().map(|target| Unrooted::new(target))
+    fn GetRelatedTarget(&self) -> Option<Temporary<EventTarget>> {
+        self.related_target.clone().map(|target| Temporary::new(target))
     }
 
     fn GetModifierState(&self, _keyArg: DOMString) -> bool {

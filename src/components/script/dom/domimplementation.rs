@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::DOMImplementationBinding;
 use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, OptionalRootable};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::error::{Fallible, InvalidCharacter, NamespaceError};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
@@ -33,7 +33,7 @@ impl DOMImplementation {
         }
     }
 
-    pub fn new(owner: &JSRef<Window>) -> Unrooted<DOMImplementation> {
+    pub fn new(owner: &JSRef<Window>) -> Temporary<DOMImplementation> {
         reflect_dom_object(~DOMImplementation::new_inherited(owner.unrooted()), owner,
                            DOMImplementationBinding::Wrap)
     }
@@ -50,16 +50,16 @@ impl Reflectable for DOMImplementation {
 }
 
 pub trait DOMImplementationMethods {
-    fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Unrooted<DocumentType>>;
+    fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Temporary<DocumentType>>;
     fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
-                      mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Unrooted<Document>>;
-    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Unrooted<Document>;
+                      mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Temporary<Document>>;
+    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Temporary<Document>;
 }
 
 // http://dom.spec.whatwg.org/#domimplementation
 impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
-    fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Unrooted<DocumentType>> {
+    fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Temporary<DocumentType>> {
         let roots = RootCollection::new();
         match xml_name_type(qname) {
             // Step 1.
@@ -77,7 +77,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocument
     fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
-                      mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Unrooted<Document>> {
+                      mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Temporary<Document>> {
         let roots = RootCollection::new();
         let win = self.owner.root(&roots);
 
@@ -117,11 +117,11 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         // FIXME: https://github.com/mozilla/servo/issues/1522
 
         // Step 7.
-        Ok(Unrooted::new_rooted(&*doc))
+        Ok(Temporary::new_rooted(&*doc))
     }
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Unrooted<Document> {
+    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Temporary<Document> {
         let roots = RootCollection::new();
         let owner = self.owner.root(&roots);
 
@@ -170,6 +170,6 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         // FIXME: https://github.com/mozilla/servo/issues/1522
 
         // Step 9.
-        Unrooted::new_rooted(&*doc)
+        Temporary::new_rooted(&*doc)
     }
 }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::BindingDeclarations::HTMLCollectionBinding;
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::{Node, NodeHelpers};
@@ -46,19 +46,19 @@ impl HTMLCollection {
         }
     }
 
-    pub fn new(window: &JSRef<Window>, collection: CollectionTypeId) -> Unrooted<HTMLCollection> {
+    pub fn new(window: &JSRef<Window>, collection: CollectionTypeId) -> Temporary<HTMLCollection> {
         reflect_dom_object(~HTMLCollection::new_inherited(window.unrooted(), collection),
                            window, HTMLCollectionBinding::Wrap)
     }
 }
 
 impl HTMLCollection {
-    pub fn create(window: &JSRef<Window>, root: &JSRef<Node>, filter: ~CollectionFilter) -> Unrooted<HTMLCollection> {
+    pub fn create(window: &JSRef<Window>, root: &JSRef<Node>, filter: ~CollectionFilter) -> Temporary<HTMLCollection> {
         HTMLCollection::new(window, Live(root.unrooted(), filter))
     }
 
     pub fn by_tag_name(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString)
-                       -> Unrooted<HTMLCollection> {
+                       -> Temporary<HTMLCollection> {
         struct TagNameFilter {
             tag: DOMString
         }
@@ -74,7 +74,7 @@ impl HTMLCollection {
     }
 
     pub fn by_tag_name_ns(window: &JSRef<Window>, root: &JSRef<Node>, tag: DOMString,
-                          namespace: Namespace) -> Unrooted<HTMLCollection> {
+                          namespace: Namespace) -> Temporary<HTMLCollection> {
         struct TagNameNSFilter {
             tag: DOMString,
             namespace: Namespace
@@ -92,7 +92,7 @@ impl HTMLCollection {
     }
 
     pub fn by_class_name(window: &JSRef<Window>, root: &JSRef<Node>, classes: DOMString)
-                         -> Unrooted<HTMLCollection> {
+                         -> Temporary<HTMLCollection> {
         struct ClassNameFilter {
             classes: Vec<DOMString>
         }
@@ -107,7 +107,7 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, ~filter)
     }
 
-    pub fn children(window: &JSRef<Window>, root: &JSRef<Node>) -> Unrooted<HTMLCollection> {
+    pub fn children(window: &JSRef<Window>, root: &JSRef<Node>) -> Temporary<HTMLCollection> {
         struct ElementChildFilter;
         impl CollectionFilter for ElementChildFilter {
             fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool {
@@ -120,10 +120,10 @@ impl HTMLCollection {
 
 pub trait HTMLCollectionMethods {
     fn Length(&self) -> u32;
-    fn Item(&self, index: u32) -> Option<Unrooted<Element>>;
-    fn NamedItem(&self, key: DOMString) -> Option<Unrooted<Element>>;
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Element>>;
-    fn NamedGetter(&self, maybe_name: Option<DOMString>, found: &mut bool) -> Option<Unrooted<Element>>;
+    fn Item(&self, index: u32) -> Option<Temporary<Element>>;
+    fn NamedItem(&self, key: DOMString) -> Option<Temporary<Element>>;
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Element>>;
+    fn NamedGetter(&self, maybe_name: Option<DOMString>, found: &mut bool) -> Option<Temporary<Element>>;
 }
 
 impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
@@ -144,13 +144,13 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
     }
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-item
-    fn Item(&self, index: u32) -> Option<Unrooted<Element>> {
+    fn Item(&self, index: u32) -> Option<Temporary<Element>> {
         let roots = RootCollection::new();
         match self.collection {
             Static(ref elems) => elems
                 .as_slice()
                 .get(index as uint)
-                .map(|elem| Unrooted::new(elem.clone())),
+                .map(|elem| Temporary::new(elem.clone())),
             Live(ref root, ref filter) => {
                 let root = root.root(&roots);
                 root.deref().traverse_preorder(&roots)
@@ -161,13 +161,13 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                     })
                     .nth(index as uint)
                     .clone()
-                    .map(|elem| Unrooted::new_rooted(&elem))
+                    .map(|elem| Temporary::new_rooted(&elem))
             }
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
-    fn NamedItem(&self, key: DOMString) -> Option<Unrooted<Element>> {
+    fn NamedItem(&self, key: DOMString) -> Option<Temporary<Element>> {
         let roots = RootCollection::new();
 
         // Step 1.
@@ -182,7 +182,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 .find(|elem| {
                     elem.get_string_attribute("name") == key ||
                     elem.get_string_attribute("id") == key })
-                .map(|maybe_elem| Unrooted::new_rooted(&*maybe_elem)),
+                .map(|maybe_elem| Temporary::new_rooted(&*maybe_elem)),
             Live(ref root, ref filter) => {
                 let root = root.root(&roots);
                 root.deref().traverse_preorder(&roots)
@@ -194,18 +194,18 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                     .find(|elem| {
                         elem.get_string_attribute("name") == key ||
                         elem.get_string_attribute("id") == key })
-                    .map(|maybe_elem| Unrooted::new_rooted(&maybe_elem))
+                    .map(|maybe_elem| Temporary::new_rooted(&maybe_elem))
             }
         }
     }
 
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Element>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Element>> {
         let maybe_elem = self.Item(index);
         *found = maybe_elem.is_some();
         maybe_elem
     }
 
-    fn NamedGetter(&self, maybe_name: Option<DOMString>, found: &mut bool) -> Option<Unrooted<Element>> {
+    fn NamedGetter(&self, maybe_name: Option<DOMString>, found: &mut bool) -> Option<Temporary<Element>> {
         match maybe_name {
             Some(name) => {
                 let maybe_elem = self.NamedItem(name);

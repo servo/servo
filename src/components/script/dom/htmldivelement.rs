@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLDivElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDivElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLDivElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLDivElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLDivElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDivElement> {
         let element = HTMLDivElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLDivElementBinding::Wrap)
     }

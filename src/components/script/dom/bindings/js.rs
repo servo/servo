@@ -14,27 +14,27 @@ use std::cell::RefCell;
 /// Importantly, it requires rooting in order to interact with the value in any way.
 /// Can be assigned into JS-owned member fields (ie. JS<T> types) safely via the
 /// `JS<T>::assign` method or `OptionalAssignable::assign` (for Option<JS<T>> fields).
-pub struct Unrooted<T> {
+pub struct Temporary<T> {
     inner: JS<T>
 }
 
-impl<T> Eq for Unrooted<T> {
-    fn eq(&self, other: &Unrooted<T>) -> bool {
+impl<T> Eq for Temporary<T> {
+    fn eq(&self, other: &Temporary<T>) -> bool {
         self.inner == other.inner
     }
 }
 
-impl<T: Reflectable> Unrooted<T> {
-    /// Create a new Unrooted value from a JS-owned value.
-    pub fn new(inner: JS<T>) -> Unrooted<T> {
-        Unrooted {
+impl<T: Reflectable> Temporary<T> {
+    /// Create a new Temporary value from a JS-owned value.
+    pub fn new(inner: JS<T>) -> Temporary<T> {
+        Temporary {
             inner: inner
         }
     }
 
-    /// Create a new Unrooted value from a rooted value.
-    pub fn new_rooted<'a>(root: &JSRef<'a, T>) -> Unrooted<T> {
-        Unrooted {
+    /// Create a new Temporary value from a rooted value.
+    pub fn new_rooted<'a>(root: &JSRef<'a, T>) -> Temporary<T> {
+        Temporary {
             inner: root.unrooted()
         }
     }
@@ -49,7 +49,7 @@ impl<T: Reflectable> Unrooted<T> {
     }
 
     //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute<To>(self) -> Unrooted<To> {
+    pub unsafe fn transmute<To>(self) -> Temporary<To> {
         cast::transmute(self)
     }
 }
@@ -75,12 +75,12 @@ impl <T> Clone for JS<T> {
 }
 
 impl<T: Reflectable> JS<T> {
-    /// Create a new JS-reflected DOM object; returns an Unrooted type because the new value
+    /// Create a new JS-reflected DOM object; returns an Temporary type because the new value
     /// is not safe to use until it is rooted.
     pub fn new(obj: ~T,
                window:  &JSRef<Window>,
-               wrap_fn: extern "Rust" fn(*JSContext, &JSRef<Window>, ~T) -> JS<T>) -> Unrooted<T> {
-        Unrooted::new(wrap_fn(window.get().get_cx(), window, obj))
+               wrap_fn: extern "Rust" fn(*JSContext, &JSRef<Window>, ~T) -> JS<T>) -> Temporary<T> {
+        Temporary::new(wrap_fn(window.get().get_cx(), window, obj))
     }
 
     /// Create a new JS-owned value wrapped from a raw Rust pointer.
@@ -132,7 +132,7 @@ impl<T: Reflectable> JS<T> {
     /// Store an unrooted value in this field. This is safe under the assumption that JS<T>
     /// values are only used as fields in DOM types that are reachable in the GC graph,
     /// so this unrooted value becomes transitively rooted for the lifetime of its new owner.
-    pub fn assign(&mut self, val: Unrooted<T>) {
+    pub fn assign(&mut self, val: Temporary<T>) {
         *self = unsafe { val.inner() };
     }
 }
@@ -178,7 +178,7 @@ impl<'a, T> Assignable<T> for JSRef<'a, T> {
 
 // Assignable should not be exposed publically, since it's used to
 // extract unrooted values in a safe way WHEN USED CORRECTLY.
-impl<T: Reflectable> Assignable<T> for Unrooted<T> {
+impl<T: Reflectable> Assignable<T> for Temporary<T> {
     fn get_js(&self) -> JS<T> {
         unsafe { self.inner() }
     }
@@ -198,7 +198,7 @@ pub trait OptionalRootable<T> {
     fn root<'a, 'b>(self, roots: &'a RootCollection) -> Option<Root<'a, 'b, T>>;
 }
 
-impl<T: Reflectable> OptionalRootable<T> for Option<Unrooted<T>> {
+impl<T: Reflectable> OptionalRootable<T> for Option<Temporary<T>> {
     fn root<'a, 'b>(self, roots: &'a RootCollection) -> Option<Root<'a, 'b, T>> {
         self.map(|inner| inner.root(roots))
     }
@@ -218,7 +218,7 @@ pub trait ResultRootable<T,U> {
     fn root<'a, 'b>(self, roots: &'a RootCollection) -> Result<Root<'a, 'b, T>, U>;
 }
 
-impl<T: Reflectable, U> ResultRootable<T, U> for Result<Unrooted<T>, U> {
+impl<T: Reflectable, U> ResultRootable<T, U> for Result<Temporary<T>, U> {
     fn root<'a, 'b>(self, roots: &'a RootCollection) -> Result<Root<'a, 'b, T>, U> {
         self.map(|inner| inner.root(roots))
     }
@@ -227,12 +227,12 @@ impl<T: Reflectable, U> ResultRootable<T, U> for Result<Unrooted<T>, U> {
 /// Provides a facility to push unrooted values onto lists of rooted values. This is safe
 /// under the assumption that said lists are reachable via the GC graph, and therefore the
 /// new values are transitively rooted for the lifetime of their new owner.
-pub trait UnrootedPushable<T> {
-    fn push_unrooted(&mut self, val: Unrooted<T>);
+pub trait TemporaryPushable<T> {
+    fn push_unrooted(&mut self, val: Temporary<T>);
 }
 
-impl<T: Reflectable> UnrootedPushable<T> for Vec<JS<T>> {
-    fn push_unrooted(&mut self, val: Unrooted<T>) {
+impl<T: Reflectable> TemporaryPushable<T> for Vec<JS<T>> {
+    fn push_unrooted(&mut self, val: Temporary<T>) {
         unsafe { self.push(val.inner()) };
     }
 }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLMapElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMapElementDerived;
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLMapElementTypeId;
@@ -35,7 +35,7 @@ impl HTMLMapElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLMapElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLMapElement> {
         let element = HTMLMapElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLMapElementBinding::Wrap)
     }
@@ -44,7 +44,7 @@ impl HTMLMapElement {
 pub trait HTMLMapElementMethods {
     fn Name(&self) -> DOMString;
     fn SetName(&mut self, _name: DOMString) -> ErrorResult;
-    fn Areas(&self) -> Unrooted<HTMLCollection>;
+    fn Areas(&self) -> Temporary<HTMLCollection>;
 }
 
 impl<'a> HTMLMapElementMethods for JSRef<'a, HTMLMapElement> {
@@ -56,7 +56,7 @@ impl<'a> HTMLMapElementMethods for JSRef<'a, HTMLMapElement> {
         Ok(())
     }
 
-    fn Areas(&self) -> Unrooted<HTMLCollection> {
+    fn Areas(&self) -> Temporary<HTMLCollection> {
         let roots = RootCollection::new();
         // FIXME: https://github.com/mozilla/servo/issues/1845
         let window = window_from_node(self).root(&roots);

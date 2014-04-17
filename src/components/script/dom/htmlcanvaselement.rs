@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLCanvasElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::{ErrorResult};
 use dom::document::Document;
 use dom::element::HTMLCanvasElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLCanvasElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLCanvasElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLCanvasElement> {
         let element = HTMLCanvasElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLCanvasElementBinding::Wrap)
     }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFieldSetElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLFieldSetElementTypeId};
@@ -37,7 +37,7 @@ impl HTMLFieldSetElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLFieldSetElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFieldSetElement> {
         let element = HTMLFieldSetElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLFieldSetElementBinding::Wrap)
     }
@@ -46,13 +46,13 @@ impl HTMLFieldSetElement {
 pub trait HTMLFieldSetElementMethods {
     fn Disabled(&self) -> bool;
     fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>>;
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn Name(&self) -> DOMString;
     fn SetName(&mut self, _name: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
-    fn Elements(&self) -> Unrooted<HTMLCollection>;
+    fn Elements(&self) -> Temporary<HTMLCollection>;
     fn WillValidate(&self) -> bool;
-    fn Validity(&self) -> Unrooted<ValidityState>;
+    fn Validity(&self) -> Temporary<ValidityState>;
     fn ValidationMessage(&self) -> DOMString;
     fn CheckValidity(&self) -> bool;
     fn SetCustomValidity(&mut self, _error: DOMString);
@@ -67,7 +67,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
         Ok(())
     }
 
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>> {
         None
     }
 
@@ -84,7 +84,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     }
 
     // http://www.whatwg.org/html/#dom-fieldset-elements
-    fn Elements(&self) -> Unrooted<HTMLCollection> {
+    fn Elements(&self) -> Temporary<HTMLCollection> {
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
             fn filter(&self, elem: &JSRef<Element>, root: &JSRef<Node>) -> bool {
@@ -105,7 +105,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
         false
     }
 
-    fn Validity(&self) -> Unrooted<ValidityState> {
+    fn Validity(&self) -> Temporary<ValidityState> {
         let roots = RootCollection::new();
         let window = window_from_node(self).root(&roots);
         ValidityState::new(&*window)

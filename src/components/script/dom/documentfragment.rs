@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
 use dom::bindings::codegen::BindingDeclarations::DocumentFragmentBinding;
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::error::Fallible;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -34,12 +34,12 @@ impl DocumentFragment {
         }
     }
 
-    pub fn new(document: &JSRef<Document>) -> Unrooted<DocumentFragment> {
+    pub fn new(document: &JSRef<Document>) -> Temporary<DocumentFragment> {
         let node = DocumentFragment::new_inherited(document.unrooted());
         Node::reflect_node(~node, document, DocumentFragmentBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Unrooted<DocumentFragment>> {
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Temporary<DocumentFragment>> {
         let roots = RootCollection::new();
         let document = owner.Document();
         let document = document.root(&roots);
@@ -49,11 +49,11 @@ impl DocumentFragment {
 }
 
 pub trait DocumentFragmentMethods {
-    fn Children(&self) -> Unrooted<HTMLCollection>;
+    fn Children(&self) -> Temporary<HTMLCollection>;
 }
 
 impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
-    fn Children(&self) -> Unrooted<HTMLCollection> {
+    fn Children(&self) -> Temporary<HTMLCollection> {
         let roots = RootCollection::new();
         let window = window_from_node(self).root(&roots);
         HTMLCollection::children(&window.root_ref(), NodeCast::from_ref(self))

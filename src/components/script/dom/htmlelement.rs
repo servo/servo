@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLElementBinding;
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
@@ -39,7 +39,7 @@ impl HTMLElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLElement> {
         let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLElementBinding::Wrap)
     }
@@ -71,7 +71,7 @@ pub trait HTMLElementMethods {
     fn IsContentEditable(&self) -> bool;
     fn Spellcheck(&self) -> bool;
     fn SetSpellcheck(&self, _val: bool) -> ErrorResult;
-    fn GetOffsetParent(&self) -> Option<Unrooted<Element>>;
+    fn GetOffsetParent(&self) -> Option<Temporary<Element>>;
     fn OffsetTop(&self) -> i32;
     fn OffsetLeft(&self) -> i32;
     fn OffsetWidth(&self) -> i32;
@@ -176,7 +176,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         Ok(())
     }
 
-    fn GetOffsetParent(&self) -> Option<Unrooted<Element>> {
+    fn GetOffsetParent(&self) -> Option<Temporary<Element>> {
         None
     }
 

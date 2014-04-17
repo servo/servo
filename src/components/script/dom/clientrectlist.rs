@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::ClientRectListBinding;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::clientrect::ClientRect;
 use dom::window::Window;
@@ -26,7 +26,7 @@ impl ClientRectList {
     }
 
     pub fn new(window: &JSRef<Window>,
-               rects: Vec<JSRef<ClientRect>>) -> Unrooted<ClientRectList> {
+               rects: Vec<JSRef<ClientRect>>) -> Temporary<ClientRectList> {
         reflect_dom_object(~ClientRectList::new_inherited(window.unrooted(), rects),
                            window, ClientRectListBinding::Wrap)
     }
@@ -34,8 +34,8 @@ impl ClientRectList {
 
 pub trait ClientRectListMethods {
     fn Length(&self) -> u32;
-    fn Item(&self, index: u32) -> Option<Unrooted<ClientRect>>;
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<ClientRect>>;
+    fn Item(&self, index: u32) -> Option<Temporary<ClientRect>>;
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<ClientRect>>;
 }
 
 impl<'a> ClientRectListMethods for JSRef<'a, ClientRectList> {
@@ -43,15 +43,15 @@ impl<'a> ClientRectListMethods for JSRef<'a, ClientRectList> {
         self.rects.len() as u32
     }
 
-    fn Item(&self, index: u32) -> Option<Unrooted<ClientRect>> {
+    fn Item(&self, index: u32) -> Option<Temporary<ClientRect>> {
         if index < self.rects.len() as u32 {
-            Some(Unrooted::new(self.rects.get(index as uint).clone()))
+            Some(Temporary::new(self.rects.get(index as uint).clone()))
         } else {
             None
         }
     }
 
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<ClientRect>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<ClientRect>> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
     }

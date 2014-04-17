@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTableCaptionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableCaptionElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableCaptionElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLTableCaptionElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLTableCaptionElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableCaptionElement> {
         let element = HTMLTableCaptionElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLTableCaptionElementBinding::Wrap)
     }

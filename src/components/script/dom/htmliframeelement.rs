@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Untraceable;
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
@@ -79,7 +79,7 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLIFrameElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLIFrameElement> {
         let element = HTMLIFrameElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLIFrameElementBinding::Wrap)
     }
@@ -100,8 +100,8 @@ pub trait HTMLIFrameElementMethods {
     fn SetWidth(&mut self, _width: DOMString) -> ErrorResult;
     fn Height(&self) -> DOMString;
     fn SetHeight(&mut self, _height: DOMString) -> ErrorResult;
-    fn GetContentDocument(&self) -> Option<Unrooted<Document>>;
-    fn GetContentWindow(&self) -> Option<Unrooted<Window>>;
+    fn GetContentDocument(&self) -> Option<Temporary<Document>>;
+    fn GetContentWindow(&self) -> Option<Temporary<Window>>;
     fn Align(&self) -> DOMString;
     fn SetAlign(&mut self, _align: DOMString) -> ErrorResult;
     fn Scrolling(&self) -> DOMString;
@@ -114,7 +114,7 @@ pub trait HTMLIFrameElementMethods {
     fn SetMarginHeight(&mut self, _marginheight: DOMString) -> ErrorResult;
     fn MarginWidth(&self) -> DOMString;
     fn SetMarginWidth(&mut self, _marginwidth: DOMString) -> ErrorResult;
-    fn GetSVGDocument(&self) -> Option<Unrooted<Document>>;
+    fn GetSVGDocument(&self) -> Option<Temporary<Document>>;
 }
 
 impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
@@ -176,11 +176,11 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
         Ok(())
     }
 
-    fn GetContentDocument(&self) -> Option<Unrooted<Document>> {
+    fn GetContentDocument(&self) -> Option<Temporary<Document>> {
         None
     }
 
-    fn GetContentWindow(&self) -> Option<Unrooted<Window>> {
+    fn GetContentWindow(&self) -> Option<Temporary<Window>> {
         None
     }
 
@@ -232,7 +232,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
         Ok(())
     }
 
-    fn GetSVGDocument(&self) -> Option<Unrooted<Document>> {
+    fn GetSVGDocument(&self) -> Option<Temporary<Document>> {
         None
     }
 }

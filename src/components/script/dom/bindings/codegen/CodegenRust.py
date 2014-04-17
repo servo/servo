@@ -4323,7 +4323,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
             'dom::types::*',
             'dom::bindings',
-            'dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Unrooted, OptionalRootable}',
+            'dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Temporary, OptionalRootable}',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
             'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
@@ -5294,7 +5294,7 @@ class GlobalGenRoots():
         descriptors = config.getDescriptors(register=True, hasInterfaceObject=True)
         allprotos = [CGGeneric("#![allow(unused_imports)]\n"),
                      CGGeneric("use dom::types::*;\n"),
-                     CGGeneric("use dom::bindings::js::{JS, JSRef, Unrooted};\n"),
+                     CGGeneric("use dom::bindings::js::{JS, JSRef, Temporary};\n"),
                      CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
                      CGGeneric("use dom::bindings::utils::Reflectable;\n"),
                      CGGeneric("use serialize::{Encodable, Encoder};\n"),
@@ -5349,7 +5349,7 @@ class GlobalGenRoots():
   }
 
   #[inline(always)]
-  fn from_unrooted<T: ${fromBound}+Reflectable>(derived: Unrooted<T>) -> Unrooted<Self> {
+  fn from_unrooted<T: ${fromBound}+Reflectable>(derived: Temporary<T>) -> Temporary<Self> {
     unsafe { derived.transmute() }
   }
 }

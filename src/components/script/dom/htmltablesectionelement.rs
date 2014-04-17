@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTableSectionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableSectionElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLTableSectionElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLTableSectionElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableSectionElement> {
         let element = HTMLTableSectionElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLTableSectionElementBinding::Wrap)
     }

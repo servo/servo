@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLButtonElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementDerived;
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLButtonElementTypeId;
@@ -36,7 +36,7 @@ impl HTMLButtonElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLButtonElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLButtonElement> {
         let element = HTMLButtonElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLButtonElementBinding::Wrap)
     }
@@ -47,7 +47,7 @@ pub trait HTMLButtonElementMethods {
     fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult;
     fn Disabled(&self) -> bool;
     fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>>;
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn FormAction(&self) -> DOMString;
     fn SetFormAction(&mut self, _formaction: DOMString) -> ErrorResult;
     fn FormEnctype(&self) -> DOMString;
@@ -66,7 +66,7 @@ pub trait HTMLButtonElementMethods {
     fn SetValue(&mut self, _value: DOMString) -> ErrorResult;
     fn WillValidate(&self) -> bool;
     fn SetWillValidate(&mut self, _will_validate: bool);
-    fn Validity(&self) -> Unrooted<ValidityState>;
+    fn Validity(&self) -> Temporary<ValidityState>;
     fn SetValidity(&mut self, _validity: JS<ValidityState>);
     fn ValidationMessage(&self) -> DOMString;
     fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult;
@@ -91,7 +91,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         Ok(())
     }
 
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>> {
         None
     }
 
@@ -166,7 +166,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     fn SetWillValidate(&mut self, _will_validate: bool) {
     }
 
-    fn Validity(&self) -> Unrooted<ValidityState> {
+    fn Validity(&self) -> Temporary<ValidityState> {
         let roots = RootCollection::new();
         let window = window_from_node(self).root(&roots);
         ValidityState::new(&*window)

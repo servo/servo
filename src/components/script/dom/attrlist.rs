@@ -4,7 +4,7 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::BindingDeclarations::AttrListBinding;
-use dom::bindings::js::{JS, JSRef, Unrooted, RootCollection};
+use dom::bindings::js::{JS, JSRef, Temporary, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::window::Window;
@@ -25,7 +25,7 @@ impl AttrList {
         }
     }
 
-    pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> Unrooted<AttrList> {
+    pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> Temporary<AttrList> {
         reflect_dom_object(~AttrList::new_inherited(window.unrooted(), elem.unrooted()),
                            window, AttrListBinding::Wrap)
     }
@@ -33,8 +33,8 @@ impl AttrList {
 
 pub trait AttrListMethods {
     fn Length(&self) -> u32;
-    fn Item(&self, index: u32) -> Option<Unrooted<Attr>>;
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Attr>>;
+    fn Item(&self, index: u32) -> Option<Temporary<Attr>>;
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Attr>>;
 }
 
 impl<'a> AttrListMethods for JSRef<'a, AttrList> { 
@@ -43,12 +43,12 @@ impl<'a> AttrListMethods for JSRef<'a, AttrList> {
         self.owner.root(&roots).attrs.len() as u32
     }
 
-    fn Item(&self, index: u32) -> Option<Unrooted<Attr>> {
+    fn Item(&self, index: u32) -> Option<Temporary<Attr>> {
         let roots = RootCollection::new();
-        self.owner.root(&roots).attrs.as_slice().get(index as uint).map(|x| Unrooted::new(x.clone()))
+        self.owner.root(&roots).attrs.as_slice().get(index as uint).map(|x| Temporary::new(x.clone()))
     }
 
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Unrooted<Attr>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Attr>> {
         let item = self.Item(index);
         *found = item.is_some();
         item

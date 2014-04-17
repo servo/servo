@@ -5,7 +5,7 @@
 use dom::attr::AttrMethods;
 use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, OptionalRootable, Root};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable, Root};
 use dom::bindings::utils::Reflectable;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, HTMLLinkElementTypeId, HTMLIFrameElementTypeId};
@@ -87,10 +87,10 @@ impl<'a, T: NodeBase+Reflectable> NodeWrapping<T> for JSRef<'a, T> {
 }
 
 unsafe fn from_hubbub_node<T: Reflectable>(n: hubbub::NodeDataPtr,
-                                           roots: Option<&RootCollection>) -> Unrooted<T> {
+                                           roots: Option<&RootCollection>) -> Temporary<T> {
     let js = JS::from_raw(cast::transmute(n));
     let _ = roots.map(|roots| roots.unroot_raw(js.reflector().get_jsobject()));
-    Unrooted::new(js)
+    Temporary::new(js)
 }
 
 /**
@@ -165,7 +165,7 @@ fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-pub fn build_element_from_tag(tag: DOMString, document: &JSRef<Document>) -> Unrooted<Element> {
+pub fn build_element_from_tag(tag: DOMString, document: &JSRef<Document>) -> Temporary<Element> {
     // TODO (Issue #85): use atoms
     handle_element!(document, tag, "a",         HTMLAnchorElement);
     handle_element!(document, tag, "applet",    HTMLAppletElement);

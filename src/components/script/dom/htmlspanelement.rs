@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLSpanElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSpanElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLSpanElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -33,7 +33,7 @@ impl HTMLSpanElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLSpanElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLSpanElement> {
         let element = HTMLSpanElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLSpanElementBinding::Wrap)
     }

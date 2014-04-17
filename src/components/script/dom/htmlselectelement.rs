@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLSelectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementDerived;
 use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement};
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLSelectElementTypeId};
@@ -38,7 +38,7 @@ impl HTMLSelectElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLSelectElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLSelectElement> {
         let element = HTMLSelectElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLSelectElementBinding::Wrap)
     }
@@ -49,7 +49,7 @@ pub trait HTMLSelectElementMethods {
     fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult;
     fn Disabled(&self) -> bool;
     fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult;
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>>;
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn Multiple(&self) -> bool;
     fn SetMultiple(&mut self, _multiple: bool) -> ErrorResult;
     fn Name(&self) -> DOMString;
@@ -61,9 +61,9 @@ pub trait HTMLSelectElementMethods {
     fn Type(&self) -> DOMString;
     fn Length(&self) -> u32;
     fn SetLength(&mut self, _length: u32) -> ErrorResult;
-    fn Item(&self, _index: u32) -> Option<Unrooted<Element>>;
-    fn NamedItem(&self, _name: DOMString) -> Option<Unrooted<HTMLOptionElement>>;
-    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Unrooted<Element>>;
+    fn Item(&self, _index: u32) -> Option<Temporary<Element>>;
+    fn NamedItem(&self, _name: DOMString) -> Option<Temporary<HTMLOptionElement>>;
+    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Temporary<Element>>;
     fn IndexedSetter(&mut self, _index: u32, _option: Option<JSRef<HTMLOptionElement>>) -> ErrorResult;
     fn Remove_(&self);
     fn Remove(&self, _index: i32);
@@ -73,7 +73,7 @@ pub trait HTMLSelectElementMethods {
     fn SetValue(&mut self, _value: DOMString);
     fn WillValidate(&self) -> bool;
     fn SetWillValidate(&mut self, _will_validate: bool);
-    fn Validity(&self) -> Unrooted<ValidityState>;
+    fn Validity(&self) -> Temporary<ValidityState>;
     fn SetValidity(&mut self, _validity: JS<ValidityState>);
     fn ValidationMessage(&self) -> DOMString;
     fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult;
@@ -99,7 +99,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         Ok(())
     }
 
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>> {
         None
     }
 
@@ -147,15 +147,15 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         Ok(())
     }
 
-    fn Item(&self, _index: u32) -> Option<Unrooted<Element>> {
+    fn Item(&self, _index: u32) -> Option<Temporary<Element>> {
         None
     }
 
-    fn NamedItem(&self, _name: DOMString) -> Option<Unrooted<HTMLOptionElement>> {
+    fn NamedItem(&self, _name: DOMString) -> Option<Temporary<HTMLOptionElement>> {
         None
     }
 
-    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Unrooted<Element>> {
+    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Temporary<Element>> {
         None
     }
 
@@ -191,7 +191,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     fn SetWillValidate(&mut self, _will_validate: bool) {
     }
 
-    fn Validity(&self) -> Unrooted<ValidityState> {
+    fn Validity(&self) -> Temporary<ValidityState> {
         let roots = RootCollection::new();
         let window = window_from_node(self).root(&roots);
         ValidityState::new(&*window)

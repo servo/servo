@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLLIElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLIElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLLIElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLLIElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLLIElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLLIElement> {
         let element = HTMLLIElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLLIElementBinding::Wrap)
     }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::codegen::BindingDeclarations::TestBindingBinding;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use self::TestBindingBinding::TestEnum;
@@ -51,7 +51,7 @@ pub trait TestBindingMethods {
     fn SetByteStringAttribute(&self, _: ByteString);
     fn EnumAttribute(&self) -> TestEnum;
     fn SetEnumAttribute(&self, _: TestEnum);
-    fn InterfaceAttribute(&self) -> Unrooted<Blob>;
+    fn InterfaceAttribute(&self) -> Temporary<Blob>;
     fn SetInterfaceAttribute(&self, _: &JSRef<Blob>);
     fn AnyAttribute(&self, _: *JSContext) -> JSVal;
     fn SetAnyAttribute(&self, _: *JSContext, _: JSVal);
@@ -83,7 +83,7 @@ pub trait TestBindingMethods {
     fn GetStringAttributeNullable(&self) -> Option<DOMString>;
     fn SetStringAttributeNullable(&self, _: Option<DOMString>);
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum>;
-    fn GetInterfaceAttributeNullable(&self) -> Option<Unrooted<Blob>>;
+    fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>>;
     fn SetInterfaceAttributeNullable(&self, _: Option<JSRef<Blob>>);
 
     fn PassBoolean(&self, _: bool);
@@ -231,7 +231,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetByteStringAttribute(&self, _: ByteString) {}
     fn EnumAttribute(&self) -> TestEnum { _empty }
     fn SetEnumAttribute(&self, _: TestEnum) {}
-    fn InterfaceAttribute(&self) -> Unrooted<Blob> {
+    fn InterfaceAttribute(&self) -> Temporary<Blob> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
         Blob::new(&*window)
@@ -267,7 +267,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some(~"") }
     fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
-    fn GetInterfaceAttributeNullable(&self) -> Option<Unrooted<Blob>> {
+    fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>> {
         let roots = RootCollection::new();
         let window = self.window.root(&roots);
         Some(Blob::new(&(*window)))

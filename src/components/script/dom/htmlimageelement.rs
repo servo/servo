@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLImageElementBinding;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JS, JSRef, Unrooted, RootCollection};
+use dom::bindings::js::{JS, JSRef, Temporary, RootCollection};
 use dom::bindings::trace::Untraceable;
 use dom::document::Document;
 use dom::element::{Element, HTMLImageElementTypeId};
@@ -76,7 +76,7 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLImageElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLImageElement> {
         let element = HTMLImageElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLImageElementBinding::Wrap)
     }

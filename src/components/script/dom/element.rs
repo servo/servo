@@ -8,7 +8,7 @@ use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::BindingDeclarations::ElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, UnrootedPushable};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalAssignable, OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
@@ -153,7 +153,7 @@ impl Element {
         }
     }
 
-    pub fn new(local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: &JSRef<Document>) -> Unrooted<Element> {
+    pub fn new(local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: &JSRef<Document>) -> Temporary<Element> {
         let element = Element::new_inherited(ElementTypeId, local_name, namespace, prefix, document.unrooted());
         Node::reflect_node(~element, document, ElementBinding::Wrap)
     }
@@ -206,7 +206,7 @@ impl<'a> ElementHelpers for JSRef<'a, Element> {
 }
 
 pub trait AttributeHandlers {
-    fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Unrooted<Attr>>;
+    fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Temporary<Attr>>;
     fn set_attr(&mut self, name: DOMString, value: DOMString) -> ErrorResult;
     fn set_attribute(&mut self, namespace: Namespace, name: DOMString,
                      value: DOMString) -> ErrorResult;
@@ -227,16 +227,16 @@ pub trait AttributeHandlers {
 }
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
-    fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Unrooted<Attr>> {
+    fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Temporary<Attr>> {
         let roots = RootCollection::new();
         if self.html_element_in_html_document() {
             self.get().attrs.iter().map(|attr| attr.root(&roots)).find(|attr| {
                 name.to_ascii_lower() == attr.local_name && attr.namespace == namespace
-            }).map(|x| Unrooted::new_rooted(&*x))
+            }).map(|x| Temporary::new_rooted(&*x))
         } else {
             self.get().attrs.iter().map(|attr| attr.root(&roots)).find(|attr| {
                 name == attr.local_name && attr.namespace == namespace
-            }).map(|x| Unrooted::new_rooted(&*x))
+            }).map(|x| Temporary::new_rooted(&*x))
         }
     }
 
@@ -394,7 +394,7 @@ pub trait ElementMethods {
     fn SetId(&mut self, id: DOMString);
     fn ClassName(&self) -> DOMString;
     fn SetClassName(&mut self, class: DOMString);
-    fn Attributes(&mut self) -> Unrooted<AttrList>;
+    fn Attributes(&mut self) -> Temporary<AttrList>;
     fn GetAttribute(&self, name: DOMString) -> Option<DOMString>;
     fn GetAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> Option<DOMString>;
     fn SetAttribute(&mut self, name: DOMString, value: DOMString) -> ErrorResult;
@@ -403,14 +403,14 @@ pub trait ElementMethods {
     fn RemoveAttributeNS(&mut self, namespace: Option<DOMString>, localname: DOMString) -> ErrorResult;
     fn HasAttribute(&self, name: DOMString) -> bool;
     fn HasAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> bool;
-    fn GetElementsByTagName(&self, localname: DOMString) -> Unrooted<HTMLCollection>;
-    fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, localname: DOMString) -> Unrooted<HTMLCollection>;
-    fn GetElementsByClassName(&self, classes: DOMString) -> Unrooted<HTMLCollection>;
-    fn GetClientRects(&self) -> Unrooted<ClientRectList>;
-    fn GetBoundingClientRect(&self) -> Unrooted<ClientRect>;
+    fn GetElementsByTagName(&self, localname: DOMString) -> Temporary<HTMLCollection>;
+    fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, localname: DOMString) -> Temporary<HTMLCollection>;
+    fn GetElementsByClassName(&self, classes: DOMString) -> Temporary<HTMLCollection>;
+    fn GetClientRects(&self) -> Temporary<ClientRectList>;
+    fn GetBoundingClientRect(&self) -> Temporary<ClientRect>;
     fn GetInnerHTML(&self) -> Fallible<DOMString>;
     fn GetOuterHTML(&self) -> Fallible<DOMString>;
-    fn Children(&self) -> Unrooted<HTMLCollection>;
+    fn Children(&self) -> Temporary<HTMLCollection>;
 }
 
 impl<'a> ElementMethods for JSRef<'a, Element> {
@@ -461,11 +461,11 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dom.spec.whatwg.org/#dom-element-attributes
-    fn Attributes(&mut self) -> Unrooted<AttrList> {
+    fn Attributes(&mut self) -> Temporary<AttrList> {
         let roots = RootCollection::new();
         match self.attr_list {
             None => (),
-            Some(ref list) => return Unrooted::new(list.clone()),
+            Some(ref list) => return Temporary::new(list.clone()),
         }
 
         let doc = {
@@ -475,7 +475,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         let window = doc.deref().window.root(&roots);
         let list = AttrList::new(&*window, self);
         self.attr_list.assign(Some(list));
-        Unrooted::new(self.attr_list.get_ref().clone())
+        Temporary::new(self.attr_list.get_ref().clone())
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getattribute
@@ -623,14 +623,14 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         self.GetAttributeNS(namespace, local_name).is_some()
     }
 
-    fn GetElementsByTagName(&self, localname: DOMString) -> Unrooted<HTMLCollection> {
+    fn GetElementsByTagName(&self, localname: DOMString) -> Temporary<HTMLCollection> {
         let roots = RootCollection::new();
         let window = window_from_node(self).root(&roots);
         HTMLCollection::by_tag_name(&*window, NodeCast::from_ref(self), localname)
     }
 
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>,
-                              localname: DOMString) -> Unrooted<HTMLCollection> {
+                              localname: DOMString) -> Temporary<HTMLCollection> {
         let roots = RootCollection::new();
         let namespace = match maybe_ns {
             Some(namespace) => Namespace::from_str(namespace),
@@ -640,14 +640,14 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), localname, namespace)
     }
 
-    fn GetElementsByClassName(&self, classes: DOMString) -> Unrooted<HTMLCollection> {
+    fn GetElementsByClassName(&self, classes: DOMString) -> Temporary<HTMLCollection> {
         let roots = RootCollection::new();
         let window = window_from_node(self).root(&roots);
         HTMLCollection::by_class_name(&*window, NodeCast::from_ref(self), classes)
     }
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getclientrects
-    fn GetClientRects(&self) -> Unrooted<ClientRectList> {
+    fn GetClientRects(&self) -> Temporary<ClientRectList> {
         let roots = RootCollection::new();
         let win = window_from_node(self).root(&roots);
         let node: &JSRef<Node> = NodeCast::from_ref(self);
@@ -665,7 +665,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getboundingclientrect
-    fn GetBoundingClientRect(&self) -> Unrooted<ClientRect> {
+    fn GetBoundingClientRect(&self) -> Temporary<ClientRect> {
         let roots = RootCollection::new();
         let win = window_from_node(self).root(&roots);
         let node: &JSRef<Node> = NodeCast::from_ref(self);
@@ -689,7 +689,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         Ok(serialize(&mut NodeIterator::new(&roots, NodeCast::from_ref(self), true, false)))
     }
 
-    fn Children(&self) -> Unrooted<HTMLCollection> {
+    fn Children(&self) -> Temporary<HTMLCollection> {
         let roots = RootCollection::new();
         let window = window_from_node(self).root(&roots);
         HTMLCollection::children(&*window, NodeCast::from_ref(self))

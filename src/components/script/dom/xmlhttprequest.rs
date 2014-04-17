@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::XMLHttpRequestDerived;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, XMLHttpRequestTargetTypeId};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{JS, JSRef, Unrooted, OptionalAssignable};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalAssignable};
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -58,12 +58,12 @@ impl XMLHttpRequest {
         xhr.upload.assign(Some(XMLHttpRequestUpload::new(owner)));
         xhr
     }
-    pub fn new(window: &JSRef<Window>) -> Unrooted<XMLHttpRequest> {
+    pub fn new(window: &JSRef<Window>) -> Temporary<XMLHttpRequest> {
         reflect_dom_object(~XMLHttpRequest::new_inherited(window),
                            window,
                            XMLHttpRequestBinding::Wrap)
     }
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Unrooted<XMLHttpRequest>> {
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Temporary<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(owner))
     }
 }
@@ -78,7 +78,7 @@ pub trait XMLHttpRequestMethods {
     fn SetTimeout(&mut self, timeout: u32);
     fn WithCredentials(&self) -> bool;
     fn SetWithCredentials(&mut self, with_credentials: bool);
-    fn Upload(&self) -> Unrooted<XMLHttpRequestUpload>;
+    fn Upload(&self) -> Temporary<XMLHttpRequestUpload>;
     fn Send(&self, _data: Option<DOMString>);
     fn Abort(&self);
     fn ResponseURL(&self) -> DOMString;
@@ -91,7 +91,7 @@ pub trait XMLHttpRequestMethods {
     fn SetResponseType(&mut self, response_type: XMLHttpRequestResponseType);
     fn Response(&self, _cx: *JSContext) -> JSVal;
     fn ResponseText(&self) -> DOMString;
-    fn GetResponseXML(&self) -> Option<Unrooted<Document>>;
+    fn GetResponseXML(&self) -> Option<Temporary<Document>>;
 }
 
 impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
@@ -120,8 +120,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     fn SetWithCredentials(&mut self, with_credentials: bool) {
         self.with_credentials = with_credentials
     }
-    fn Upload(&self) -> Unrooted<XMLHttpRequestUpload> {
-        Unrooted::new(self.upload.get_ref().clone())
+    fn Upload(&self) -> Temporary<XMLHttpRequestUpload> {
+        Temporary::new(self.upload.get_ref().clone())
     }
     fn Send(&self, _data: Option<DOMString>) {
 
@@ -159,8 +159,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     fn ResponseText(&self) -> DOMString {
         self.response_text.clone()
     }
-    fn GetResponseXML(&self) -> Option<Unrooted<Document>> {
-        self.response_xml.clone().map(|response| Unrooted::new(response))
+    fn GetResponseXML(&self) -> Option<Temporary<Document>> {
+        self.response_xml.clone().map(|response| Temporary::new(response))
     }
 }
 

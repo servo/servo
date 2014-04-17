@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::LocationBinding;
-use dom::bindings::js::{JSRef, Unrooted};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::window::Window;
@@ -29,7 +29,7 @@ impl Location {
         }
     }
 
-    pub fn new(window: &JSRef<Window>, page: Rc<Page>) -> Unrooted<Location> {
+    pub fn new(window: &JSRef<Window>, page: Rc<Page>) -> Temporary<Location> {
         reflect_dom_object(~Location::new_inherited(page),
                            window,
                            LocationBinding::Wrap)

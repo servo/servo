@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::WindowBinding;
-use dom::bindings::js::{JS, JSRef, Unrooted, OptionalAssignable};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalAssignable};
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
@@ -108,7 +108,7 @@ pub struct TimerData {
 pub trait WindowMethods {
     fn Alert(&self, s: DOMString);
     fn Close(&self);
-    fn Document(&self) -> Unrooted<Document>;
+    fn Document(&self) -> Temporary<Document>;
     fn Name(&self) -> DOMString;
     fn SetName(&self, _name: DOMString);
     fn Status(&self) -> DOMString;
@@ -117,10 +117,10 @@ pub trait WindowMethods {
     fn Stop(&self);
     fn Focus(&self);
     fn Blur(&self);
-    fn GetFrameElement(&self) -> Option<Unrooted<Element>>;
-    fn Location(&mut self) -> Unrooted<Location>;
-    fn Console(&mut self) -> Unrooted<Console>;
-    fn Navigator(&mut self) -> Unrooted<Navigator>;
+    fn GetFrameElement(&self) -> Option<Temporary<Element>>;
+    fn Location(&mut self) -> Temporary<Location>;
+    fn Console(&mut self) -> Temporary<Console>;
+    fn Navigator(&mut self) -> Temporary<Navigator>;
     fn Confirm(&self, _message: DOMString) -> bool;
     fn Prompt(&self, _message: DOMString, _default: DOMString) -> Option<DOMString>;
     fn Print(&self);
@@ -129,8 +129,8 @@ pub trait WindowMethods {
     fn ClearTimeout(&mut self, handle: i32);
     fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32;
     fn ClearInterval(&mut self, handle: i32);
-    fn Window(&self) -> Unrooted<Window>;
-    fn Self(&self) -> Unrooted<Window>;
+    fn Window(&self) -> Temporary<Window>;
+    fn Self(&self) -> Temporary<Window>;
 }
 
 impl<'a> WindowMethods for JSRef<'a, Window> {
@@ -144,9 +144,9 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         chan.send(ExitWindowMsg(self.page.id.clone()));
     }
 
-    fn Document(&self) -> Unrooted<Document> {
+    fn Document(&self) -> Temporary<Document> {
         let frame = self.page().frame();
-        Unrooted::new(frame.get_ref().document.clone())
+        Temporary::new(frame.get_ref().document.clone())
     }
 
     fn Name(&self) -> DOMString {
@@ -176,33 +176,33 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     fn Blur(&self) {
     }
 
-    fn GetFrameElement(&self) -> Option<Unrooted<Element>> {
+    fn GetFrameElement(&self) -> Option<Temporary<Element>> {
         None
     }
 
-    fn Location(&mut self) -> Unrooted<Location> {
+    fn Location(&mut self) -> Temporary<Location> {
         if self.location.is_none() {
             let page = self.deref().page.clone();
             let location = Location::new(self, page);
             self.location.assign(Some(location));
         }
-        Unrooted::new(self.location.get_ref().clone())
+        Temporary::new(self.location.get_ref().clone())
     }
 
-    fn Console(&mut self) -> Unrooted<Console> {
+    fn Console(&mut self) -> Temporary<Console> {
         if self.console.is_none() {
             let console = Console::new(self);
             self.console.assign(Some(console));
         }
-        Unrooted::new(self.console.get_ref().clone())
+        Temporary::new(self.console.get_ref().clone())
     }
 
-    fn Navigator(&mut self) -> Unrooted<Navigator> {
+    fn Navigator(&mut self) -> Temporary<Navigator> {
         if self.navigator.is_none() {
             let navigator = Navigator::new(self);
             self.navigator.assign(Some(navigator));
         }
-        Unrooted::new(self.navigator.get_ref().clone())
+        Temporary::new(self.navigator.get_ref().clone())
     }
 
     fn Confirm(&self, _message: DOMString) -> bool {
@@ -241,11 +241,11 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.ClearTimeout(handle);
     }
 
-    fn Window(&self) -> Unrooted<Window> {
-        Unrooted::new_rooted(self)
+    fn Window(&self) -> Temporary<Window> {
+        Temporary::new_rooted(self)
     }
 
-    fn Self(&self) -> Unrooted<Window> {
+    fn Self(&self) -> Temporary<Window> {
         self.Window()
     }
 }
@@ -342,7 +342,7 @@ impl Window {
                script_chan: ScriptChan,
                compositor: ~ScriptListener,
                image_cache_task: ImageCacheTask)
-               -> Unrooted<Window> {
+               -> Temporary<Window> {
         let win = ~Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
             script_chan: script_chan,
@@ -357,6 +357,6 @@ impl Window {
             browser_context: None,
         };
 
-        Unrooted::new(WindowBinding::Wrap(cx, win))
+        Temporary::new(WindowBinding::Wrap(cx, win))
     }
 }

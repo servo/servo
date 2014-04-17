@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLEmbedElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLEmbedElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLEmbedElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLEmbedElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLEmbedElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLEmbedElement> {
         let element = HTMLEmbedElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLEmbedElementBinding::Wrap)
     }
@@ -53,7 +53,7 @@ pub trait HTMLEmbedElementMethods {
     fn SetAlign(&mut self, _type: DOMString) -> ErrorResult;
     fn Name(&self) -> DOMString;
     fn SetName(&mut self, _type: DOMString) -> ErrorResult;
-    fn GetSVGDocument(&self) -> Option<Unrooted<Document>>;
+    fn GetSVGDocument(&self) -> Option<Temporary<Document>>;
 }
 
 impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
@@ -105,7 +105,7 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
         Ok(())
     }
 
-    fn GetSVGDocument(&self) -> Option<Unrooted<Document>> {
+    fn GetSVGDocument(&self) -> Option<Temporary<Document>> {
         None
     }
 }

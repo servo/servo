@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::DocumentTypeDerived;
 use dom::bindings::codegen::BindingDeclarations::DocumentTypeBinding;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, DoctypeNodeTypeId};
@@ -46,7 +46,7 @@ impl DocumentType {
                public_id: Option<DOMString>,
                system_id: Option<DOMString>,
                document: &JSRef<Document>)
-               -> Unrooted<DocumentType> {
+               -> Temporary<DocumentType> {
         let documenttype = DocumentType::new_inherited(name,
                                                        public_id,
                                                        system_id,

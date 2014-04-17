@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLStyleElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLStyleElementTypeId;
@@ -37,7 +37,7 @@ impl HTMLStyleElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLStyleElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLStyleElement> {
         let element = HTMLStyleElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLStyleElementBinding::Wrap)
     }

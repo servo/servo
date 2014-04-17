@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::DOMParserBinding;
 use dom::bindings::codegen::BindingDeclarations::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::error::{Fallible, FailureUnknown};
 use dom::document::{Document, HTMLDocument, NonHTMLDocument};
@@ -25,25 +25,25 @@ impl DOMParser {
         }
     }
 
-    pub fn new(owner: &JSRef<Window>) -> Unrooted<DOMParser> {
+    pub fn new(owner: &JSRef<Window>) -> Temporary<DOMParser> {
         reflect_dom_object(~DOMParser::new_inherited(owner.unrooted()), owner,
                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Unrooted<DOMParser>> {
+    pub fn Constructor(owner: &JSRef<Window>) -> Fallible<Temporary<DOMParser>> {
         Ok(DOMParser::new(owner))
     }
 }
 
 pub trait DOMParserMethods {
-    fn ParseFromString(&self, _s: DOMString, ty: DOMParserBinding::SupportedType) -> Fallible<Unrooted<Document>>;
+    fn ParseFromString(&self, _s: DOMString, ty: DOMParserBinding::SupportedType) -> Fallible<Temporary<Document>>;
 }
 
 impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
     fn ParseFromString(&self,
                        _s: DOMString,
                        ty: DOMParserBinding::SupportedType)
-                       -> Fallible<Unrooted<Document>> {
+                       -> Fallible<Temporary<Document>> {
         let roots = RootCollection::new();
         let owner = self.owner.root(&roots);
         match ty {

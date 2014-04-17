@@ -133,7 +133,7 @@ class Descriptor(DescriptorProvider):
         else:
             nativeTypeDefault = 'JS<%s>' % ifaceName
 
-        self.returnType = "Unrooted<%s>" % ifaceName
+        self.returnType = "Temporary<%s>" % ifaceName
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
         self.concreteType = desc.get('concreteType', ifaceName)
         self.createGlobal = desc.get('createGlobal', False)

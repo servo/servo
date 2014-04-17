@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLOutputElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOutputElementTypeId;
@@ -36,14 +36,14 @@ impl HTMLOutputElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLOutputElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLOutputElement> {
         let element = HTMLOutputElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLOutputElementBinding::Wrap)
     }
 }
 
 pub trait HTMLOutputElementMethods {
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>>;
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>>;
     fn Name(&self) -> DOMString;
     fn SetName(&mut self, _name: DOMString) -> ErrorResult;
     fn Type(&self) -> DOMString;
@@ -53,7 +53,7 @@ pub trait HTMLOutputElementMethods {
     fn SetValue(&mut self, _value: DOMString) -> ErrorResult;
     fn WillValidate(&self) -> bool;
     fn SetWillValidate(&mut self, _will_validate: bool);
-    fn Validity(&self) -> Unrooted<ValidityState>;
+    fn Validity(&self) -> Temporary<ValidityState>;
     fn SetValidity(&mut self, _validity: JS<ValidityState>);
     fn ValidationMessage(&self) -> DOMString;
     fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult;
@@ -62,7 +62,7 @@ pub trait HTMLOutputElementMethods {
 }
 
 impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
-    fn GetForm(&self) -> Option<Unrooted<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<Temporary<HTMLFormElement>> {
         None
     }
 
@@ -101,7 +101,7 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
     fn SetWillValidate(&mut self, _will_validate: bool) {
     }
 
-    fn Validity(&self) -> Unrooted<ValidityState> {
+    fn Validity(&self) -> Temporary<ValidityState> {
         let roots = RootCollection::new();
         let window = window_from_node(self).root(&roots);
         ValidityState::new(&*window)

@@ -10,8 +10,8 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, Elem
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::BindingDeclarations::NodeBinding::NodeConstants;
-use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Unrooted, Root};
-use dom::bindings::js::{OptionalAssignable, UnrootedPushable, OptionalRootedRootable};
+use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Temporary, Root};
+use dom::bindings::js::{OptionalAssignable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest};
@@ -403,13 +403,13 @@ pub trait NodeHelpers {
 
     fn type_id(&self) -> NodeTypeId;
 
-    fn parent_node(&self) -> Option<Unrooted<Node>>;
-    fn first_child(&self) -> Option<Unrooted<Node>>;
-    fn last_child(&self) -> Option<Unrooted<Node>>;
-    fn prev_sibling(&self) -> Option<Unrooted<Node>>;
-    fn next_sibling(&self) -> Option<Unrooted<Node>>;
+    fn parent_node(&self) -> Option<Temporary<Node>>;
+    fn first_child(&self) -> Option<Temporary<Node>>;
+    fn last_child(&self) -> Option<Temporary<Node>>;
+    fn prev_sibling(&self) -> Option<Temporary<Node>>;
+    fn next_sibling(&self) -> Option<Temporary<Node>>;
 
-    fn owner_doc(&self) -> Unrooted<Document>;
+    fn owner_doc(&self) -> Temporary<Document>;
     fn set_owner_doc(&mut self, document: &JSRef<Document>);
 
     fn wait_until_safe_to_modify_dom(&self);
@@ -473,26 +473,26 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         self.get().type_id
     }
 
-    fn parent_node(&self) -> Option<Unrooted<Node>> {
-        self.get().parent_node.clone().map(|node| Unrooted::new(node))
+    fn parent_node(&self) -> Option<Temporary<Node>> {
+        self.get().parent_node.clone().map(|node| Temporary::new(node))
     }
 
-    fn first_child(&self) -> Option<Unrooted<Node>> {
-        self.get().first_child.clone().map(|node| Unrooted::new(node))
+    fn first_child(&self) -> Option<Temporary<Node>> {
+        self.get().first_child.clone().map(|node| Temporary::new(node))
     }
 
-    fn last_child(&self) -> Option<Unrooted<Node>> {
-        self.get().last_child.clone().map(|node| Unrooted::new(node))
+    fn last_child(&self) -> Option<Temporary<Node>> {
+        self.get().last_child.clone().map(|node| Temporary::new(node))
     }
 
     /// Returns the previous sibling of this node. Fails if this node is borrowed mutably.
-    fn prev_sibling(&self) -> Option<Unrooted<Node>> {
-        self.get().prev_sibling.clone().map(|node| Unrooted::new(node))
+    fn prev_sibling(&self) -> Option<Temporary<Node>> {
+        self.get().prev_sibling.clone().map(|node| Temporary::new(node))
     }
 
     /// Returns the next sibling of this node. Fails if this node is borrowed mutably.
-    fn next_sibling(&self) -> Option<Unrooted<Node>> {
-        self.get().next_sibling.clone().map(|node| Unrooted::new(node))
+    fn next_sibling(&self) -> Option<Temporary<Node>> {
+        self.get().next_sibling.clone().map(|node| Temporary::new(node))
     }
 
     #[inline]
@@ -581,7 +581,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     fn is_parent_of(&self, child: &JSRef<Node>) -> bool {
         match child.parent_node() {
-            Some(ref parent) if *parent == Unrooted::new_rooted(self) => true,
+            Some(ref parent) if *parent == Temporary::new_rooted(self) => true,
             _ => false
         }
     }
@@ -618,8 +618,8 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         }
     }
 
-    fn owner_doc(&self) -> Unrooted<Document> {
-        Unrooted::new(self.owner_doc.get_ref().clone())
+    fn owner_doc(&self) -> Temporary<Document> {
+        Temporary::new(self.owner_doc.get_ref().clone())
     }
 
     fn set_owner_doc(&mut self, document: &JSRef<Document>) {
@@ -656,7 +656,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
 /// returns it.
 pub fn from_untrusted_node_address(runtime: *JSRuntime, candidate: UntrustedNodeAddress)
-    -> Unrooted<Node> {
+    -> Temporary<Node> {
     unsafe {
         let candidate: uintptr_t = cast::transmute(candidate);
         let object: *JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
@@ -665,7 +665,7 @@ pub fn from_untrusted_node_address(runtime: *JSRuntime, candidate: UntrustedNode
             fail!("Attempted to create a `JS<Node>` from an invalid pointer!")
         }
         let boxed_node: *mut Node = utils::unwrap(object);
-        Unrooted::new(JS::from_raw(boxed_node))
+        Temporary::new(JS::from_raw(boxed_node))
     }
 }
 
@@ -913,13 +913,13 @@ impl Node {
             (node:      ~N,
              document:  &JSRef<Document>,
              wrap_fn:   extern "Rust" fn(*JSContext, &JSRef<Window>, ~N) -> JS<N>)
-             -> Unrooted<N> {
+             -> Temporary<N> {
         let roots = RootCollection::new();
         assert!(node.reflector().get_jsobject().is_null());
         let window = document.get().window.root(&roots);
         let node = reflect_dom_object(node, &window.root_ref(), wrap_fn).root(&roots);
         assert!(node.reflector().get_jsobject().is_not_null());
-        Unrooted::new_rooted(&*node)
+        Temporary::new_rooted(&*node)
     }
 
     pub fn new_inherited(type_id: NodeTypeId, doc: JS<Document>) -> Node {
@@ -977,7 +977,7 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#concept-node-pre-insert
     fn pre_insert(node: &mut JSRef<Node>, parent: &mut JSRef<Node>, child: Option<JSRef<Node>>)
-                  -> Fallible<Unrooted<Node>> {
+                  -> Fallible<Temporary<Node>> {
         let roots = RootCollection::new();
         // Step 1.
         match parent.type_id() {
@@ -1110,7 +1110,7 @@ impl Node {
         Node::insert(node, parent, referenceChild, Unsuppressed);
 
         // Step 11.
-        return Ok(Unrooted::new_rooted(node))
+        return Ok(Temporary::new_rooted(node))
     }
 
     // http://dom.spec.whatwg.org/#concept-node-insert
@@ -1203,10 +1203,10 @@ impl Node {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-pre-remove
-    fn pre_remove(child: &mut JSRef<Node>, parent: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
+    fn pre_remove(child: &mut JSRef<Node>, parent: &mut JSRef<Node>) -> Fallible<Temporary<Node>> {
         // Step 1.
         match child.parent_node() {
-            Some(ref node) if *node != Unrooted::new_rooted(parent) => return Err(NotFound),
+            Some(ref node) if *node != Temporary::new_rooted(parent) => return Err(NotFound),
             _ => ()
         }
 
@@ -1214,12 +1214,12 @@ impl Node {
         Node::remove(child, parent, Unsuppressed);
 
         // Step 3.
-        Ok(Unrooted::new_rooted(child))
+        Ok(Temporary::new_rooted(child))
     }
 
     // http://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: &mut JSRef<Node>, parent: &mut JSRef<Node>, suppress_observers: SuppressObserver) {
-        assert!(node.parent_node().map_or(false, |node_parent| node_parent == Unrooted::new_rooted(parent)));
+        assert!(node.parent_node().map_or(false, |node_parent| node_parent == Temporary::new_rooted(parent)));
 
         // Step 1-5: ranges.
         // Step 6-7: mutation observers.
@@ -1236,7 +1236,7 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#concept-node-clone
     pub fn clone(node: &JSRef<Node>, maybe_doc: Option<&JSRef<Document>>,
-                 clone_children: CloneChildrenFlag) -> Unrooted<Node> {
+                 clone_children: CloneChildrenFlag) -> Temporary<Node> {
         let roots = RootCollection::new();
 
         // Step 1.
@@ -1349,7 +1349,7 @@ impl Node {
         }
 
         // Step 7.
-        Unrooted::new_rooted(&*copy)
+        Temporary::new_rooted(&*copy)
     }
 
     /// Sends layout data, if any, back to the script task to be destroyed.
@@ -1372,25 +1372,25 @@ pub trait NodeMethods {
     fn NodeType(&self) -> u16;
     fn NodeName(&self) -> DOMString;
     fn GetBaseURI(&self) -> Option<DOMString>;
-    fn GetOwnerDocument(&self) -> Option<Unrooted<Document>>;
-    fn GetParentNode(&self) -> Option<Unrooted<Node>>;
-    fn GetParentElement(&self) -> Option<Unrooted<Element>>;
+    fn GetOwnerDocument(&self) -> Option<Temporary<Document>>;
+    fn GetParentNode(&self) -> Option<Temporary<Node>>;
+    fn GetParentElement(&self) -> Option<Temporary<Element>>;
     fn HasChildNodes(&self) -> bool;
-    fn ChildNodes(&mut self) -> Unrooted<NodeList>;
-    fn GetFirstChild(&self) -> Option<Unrooted<Node>>;
-    fn GetLastChild(&self) -> Option<Unrooted<Node>>;
-    fn GetPreviousSibling(&self) -> Option<Unrooted<Node>>;
-    fn GetNextSibling(&self) -> Option<Unrooted<Node>>;
+    fn ChildNodes(&mut self) -> Temporary<NodeList>;
+    fn GetFirstChild(&self) -> Option<Temporary<Node>>;
+    fn GetLastChild(&self) -> Option<Temporary<Node>>;
+    fn GetPreviousSibling(&self) -> Option<Temporary<Node>>;
+    fn GetNextSibling(&self) -> Option<Temporary<Node>>;
     fn GetNodeValue(&self) -> Option<DOMString>;
     fn SetNodeValue(&mut self, val: Option<DOMString>) -> ErrorResult;
     fn GetTextContent(&self) -> Option<DOMString>;
     fn SetTextContent(&mut self, value: Option<DOMString>) -> ErrorResult;
-    fn InsertBefore(&mut self, node: &mut JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Unrooted<Node>>;
-    fn AppendChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
-    fn ReplaceChild(&mut self, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
-    fn RemoveChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>>;
+    fn InsertBefore(&mut self, node: &mut JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>>;
+    fn AppendChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Temporary<Node>>;
+    fn ReplaceChild(&mut self, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Temporary<Node>>;
+    fn RemoveChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Temporary<Node>>;
     fn Normalize(&mut self);
-    fn CloneNode(&self, deep: bool) -> Unrooted<Node>;
+    fn CloneNode(&self, deep: bool) -> Temporary<Node>;
     fn IsEqualNode(&self, maybe_node: Option<JSRef<Node>>) -> bool;
     fn CompareDocumentPosition(&self, other: &JSRef<Node>) -> u16;
     fn Contains(&self, maybe_other: Option<JSRef<Node>>) -> bool;
@@ -1443,7 +1443,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-ownerdocument
-    fn GetOwnerDocument(&self) -> Option<Unrooted<Document>> {
+    fn GetOwnerDocument(&self) -> Option<Temporary<Document>> {
         match self.type_id {
             ElementNodeTypeId(..) |
             CommentNodeTypeId |
@@ -1456,18 +1456,18 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-parentnode
-    fn GetParentNode(&self) -> Option<Unrooted<Node>> {
-        self.parent_node.clone().map(|node| Unrooted::new(node))
+    fn GetParentNode(&self) -> Option<Temporary<Node>> {
+        self.parent_node.clone().map(|node| Temporary::new(node))
     }
 
     // http://dom.spec.whatwg.org/#dom-node-parentelement
-    fn GetParentElement(&self) -> Option<Unrooted<Element>> {
+    fn GetParentElement(&self) -> Option<Temporary<Element>> {
         let roots = RootCollection::new();
         self.parent_node.clone()
                         .and_then(|parent| {
                             let parent = parent.root(&roots);
                             ElementCast::to_ref(&*parent).map(|elem| {
-                                Unrooted::new_rooted(elem)
+                                Temporary::new_rooted(elem)
                             })
                         })
     }
@@ -1478,38 +1478,38 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-childnodes
-    fn ChildNodes(&mut self) -> Unrooted<NodeList> {
+    fn ChildNodes(&mut self) -> Temporary<NodeList> {
         let roots = RootCollection::new();
         match self.child_list {
             None => (),
-            Some(ref list) => return Unrooted::new(list.clone()),
+            Some(ref list) => return Temporary::new(list.clone()),
         }
 
         let doc = self.owner_doc().root(&roots);
         let window = doc.deref().window.root(&roots);
         let child_list = NodeList::new_child_list(&*window, self);
         self.child_list.assign(Some(child_list));
-        Unrooted::new(self.child_list.get_ref().clone())
+        Temporary::new(self.child_list.get_ref().clone())
     }
 
     // http://dom.spec.whatwg.org/#dom-node-firstchild
-    fn GetFirstChild(&self) -> Option<Unrooted<Node>> {
-        self.first_child.clone().map(|node| Unrooted::new(node))
+    fn GetFirstChild(&self) -> Option<Temporary<Node>> {
+        self.first_child.clone().map(|node| Temporary::new(node))
     }
 
     // http://dom.spec.whatwg.org/#dom-node-lastchild
-    fn GetLastChild(&self) -> Option<Unrooted<Node>> {
-        self.last_child.clone().map(|node| Unrooted::new(node))
+    fn GetLastChild(&self) -> Option<Temporary<Node>> {
+        self.last_child.clone().map(|node| Temporary::new(node))
     }
 
     // http://dom.spec.whatwg.org/#dom-node-previoussibling
-    fn GetPreviousSibling(&self) -> Option<Unrooted<Node>> {
-        self.prev_sibling.clone().map(|node| Unrooted::new(node))
+    fn GetPreviousSibling(&self) -> Option<Temporary<Node>> {
+        self.prev_sibling.clone().map(|node| Temporary::new(node))
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nextsibling
-    fn GetNextSibling(&self) -> Option<Unrooted<Node>> {
-        self.next_sibling.clone().map(|node| Unrooted::new(node))
+    fn GetNextSibling(&self) -> Option<Temporary<Node>> {
+        self.next_sibling.clone().map(|node| Temporary::new(node))
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nodevalue
@@ -1608,17 +1608,17 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-insertbefore
-    fn InsertBefore(&mut self, node: &mut JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Unrooted<Node>> {
+    fn InsertBefore(&mut self, node: &mut JSRef<Node>, child: Option<JSRef<Node>>) -> Fallible<Temporary<Node>> {
         Node::pre_insert(node, self, child)
     }
 
     // http://dom.spec.whatwg.org/#dom-node-appendchild
-    fn AppendChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
+    fn AppendChild(&mut self, node: &mut JSRef<Node>) -> Fallible<Temporary<Node>> {
         Node::pre_insert(node, self, None)
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace
-    fn ReplaceChild(&mut self, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Unrooted<Node>> {
+    fn ReplaceChild(&mut self, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Temporary<Node>> {
         let roots = RootCollection::new();
 
         // Step 1.
@@ -1710,7 +1710,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
         // Ok if not caught by previous error checks.
         if node.unrooted() == child.unrooted() {
-            return Ok(Unrooted::new_rooted(child));
+            return Ok(Temporary::new_rooted(child));
         }
 
         // Step 7-8.
@@ -1744,12 +1744,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 15.
-        Ok(Unrooted::new_rooted(child))
+        Ok(Temporary::new_rooted(child))
     }
 
     // http://dom.spec.whatwg.org/#dom-node-removechild
     fn RemoveChild(&mut self, node: &mut JSRef<Node>)
-                       -> Fallible<Unrooted<Node>> {
+                       -> Fallible<Temporary<Node>> {
         Node::pre_remove(node, self)
     }
 
@@ -1782,7 +1782,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-node-clonenode
-    fn CloneNode(&self, deep: bool) -> Unrooted<Node> {
+    fn CloneNode(&self, deep: bool) -> Temporary<Node> {
         match deep {
             true => Node::clone(self, None, CloneChildren),
             false => Node::clone(self, None, DoNotCloneChildren)
@@ -1959,15 +1959,15 @@ impl Reflectable for Node {
     }
 }
 
-pub fn document_from_node<T: NodeBase>(derived: &JSRef<T>) -> Unrooted<Document> {
+pub fn document_from_node<T: NodeBase>(derived: &JSRef<T>) -> Temporary<Document> {
     let node: &JSRef<Node> = NodeCast::from_ref(derived);
     node.owner_doc()
 }
 
-pub fn window_from_node<T: NodeBase>(derived: &JSRef<T>) -> Unrooted<Window> {
+pub fn window_from_node<T: NodeBase>(derived: &JSRef<T>) -> Temporary<Window> {
     let roots = RootCollection::new();
     let document = document_from_node(derived).root(&roots);
-    Unrooted::new(document.deref().window.clone())
+    Temporary::new(document.deref().window.clone())
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Node> {

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFrameElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFrameElementTypeId;
@@ -35,7 +35,7 @@ impl HTMLFrameElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLFrameElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFrameElement> {
         let element = HTMLFrameElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLFrameElementBinding::Wrap)
     }
@@ -54,8 +54,8 @@ pub trait HTMLFrameElementMethods {
     fn SetLongDesc(&mut self, _longdesc: DOMString) -> ErrorResult;
     fn NoResize(&self) -> bool;
     fn SetNoResize(&mut self, _no_resize: bool) -> ErrorResult;
-    fn GetContentDocument(&self) -> Option<Unrooted<Document>>;
-    fn GetContentWindow(&self) -> Option<Unrooted<Window>>;
+    fn GetContentDocument(&self) -> Option<Temporary<Document>>;
+    fn GetContentWindow(&self) -> Option<Temporary<Window>>;
     fn MarginHeight(&self) -> DOMString;
     fn SetMarginHeight(&mut self, _height: DOMString) -> ErrorResult;
     fn MarginWidth(&self) -> DOMString;
@@ -111,11 +111,11 @@ impl<'a> HTMLFrameElementMethods for JSRef<'a, HTMLFrameElement> {
         Ok(())
     }
 
-    fn GetContentDocument(&self) -> Option<Unrooted<Document>> {
+    fn GetContentDocument(&self) -> Option<Temporary<Document>> {
         None
     }
 
-    fn GetContentWindow(&self) -> Option<Unrooted<Window>> {
+    fn GetContentWindow(&self) -> Option<Temporary<Window>> {
         None
     }
 

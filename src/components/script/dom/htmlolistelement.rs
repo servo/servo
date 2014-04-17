@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLOListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOListElementDerived;
-use dom::bindings::js::{JS, JSRef, Unrooted};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOListElementTypeId;
@@ -34,7 +34,7 @@ impl HTMLOListElement {
         }
     }
 
-    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Unrooted<HTMLOListElement> {
+    pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLOListElement> {
         let element = HTMLOListElement::new_inherited(localName, document.unrooted());
         Node::reflect_node(~element, document, HTMLOListElementBinding::Wrap)
     }

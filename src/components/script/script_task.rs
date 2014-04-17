@@ -8,7 +8,7 @@
 use dom::attr::AttrMethods;
 use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCast, EventCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Unrooted, OptionalAssignable};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalAssignable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, GlobalStaticData, wrap_for_same_compartment};
@@ -407,7 +407,7 @@ impl Page {
         }
     }
 
-    fn find_fragment_node(&self, fragid: ~str) -> Option<Unrooted<Element>> {
+    fn find_fragment_node(&self, fragid: ~str) -> Option<Temporary<Element>> {
         let roots = RootCollection::new();
         let document = self.frame().get_ref().document.root(&roots);
         match document.deref().GetElementById(fragid.to_owned()) {
@@ -421,7 +421,7 @@ impl Page {
                     elem.get_attribute(Null, "name").root(&roots).map_or(false, |attr| {
                         attr.get().value_ref() == fragid
                     })
-                }).map(|node| Unrooted::new_rooted(ElementCast::to_ref(&node).unwrap()))
+                }).map(|node| Temporary::new_rooted(ElementCast::to_ref(&node).unwrap()))
             }
         }
     }
@@ -1050,7 +1050,7 @@ impl ScriptTask {
                         None => {}
                     }
 
-                    frame.as_ref().map(|frame| Unrooted::new(frame.window.clone()))
+                    frame.as_ref().map(|frame| Temporary::new(frame.window.clone()))
                 };
 
                 match window.root(&roots) {

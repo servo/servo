@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::EventBinding;
 use dom::bindings::codegen::BindingDeclarations::EventBinding::EventConstants;
-use dom::bindings::js::{JS, JSRef, Unrooted, RootCollection};
+use dom::bindings::js::{JS, JSRef, Temporary, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::eventtarget::EventTarget;
@@ -80,7 +80,7 @@ impl Event {
         }
     }
 
-    pub fn new(window: &JSRef<Window>) -> Unrooted<Event> {
+    pub fn new(window: &JSRef<Window>) -> Temporary<Event> {
         reflect_dom_object(~Event::new_inherited(HTMLEventTypeId),
                            window,
                            EventBinding::Wrap)
@@ -88,19 +88,19 @@ impl Event {
 
     pub fn Constructor(global: &JSRef<Window>,
                        type_: DOMString,
-                       init: &EventBinding::EventInit) -> Fallible<Unrooted<Event>> {
+                       init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
         let roots = RootCollection::new();
         let mut ev = Event::new(global).root(&roots);
         ev.InitEvent(type_, init.bubbles, init.cancelable);
-        Ok(Unrooted::new_rooted(&*ev))
+        Ok(Temporary::new_rooted(&*ev))
     }
 }
 
 pub trait EventMethods {
     fn EventPhase(&self) -> u16;
     fn Type(&self) -> DOMString;
-    fn GetTarget(&self) -> Option<Unrooted<EventTarget>>;
-    fn GetCurrentTarget(&self) -> Option<Unrooted<EventTarget>>;
+    fn GetTarget(&self) -> Option<Temporary<EventTarget>>;
+    fn GetCurrentTarget(&self) -> Option<Temporary<EventTarget>>;
     fn DefaultPrevented(&self) -> bool;
     fn PreventDefault(&mut self);
     fn StopPropagation(&mut self);
@@ -121,12 +121,12 @@ impl<'a> EventMethods for JSRef<'a, Event> {
         self.type_.clone()
     }
 
-    fn GetTarget(&self) -> Option<Unrooted<EventTarget>> {
-        self.target.as_ref().map(|target| Unrooted::new(target.clone()))
+    fn GetTarget(&self) -> Option<Temporary<EventTarget>> {
+        self.target.as_ref().map(|target| Temporary::new(target.clone()))
     }
 
-    fn GetCurrentTarget(&self) -> Option<Unrooted<EventTarget>> {
-        self.current_target.as_ref().map(|target| Unrooted::new(target.clone()))
+    fn GetCurrentTarget(&self) -> Option<Temporary<EventTarget>> {
+        self.current_target.as_ref().map(|target| Temporary::new(target.clone()))
     }
 
     fn DefaultPrevented(&self) -> bool {
