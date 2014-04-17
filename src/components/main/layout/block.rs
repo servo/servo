@@ -467,12 +467,12 @@ pub enum MarginsMayCollapseFlag {
 fn propagate_layer_flag_from_child(layers_needed_for_descendants: &mut bool, kid: &mut Flow) {
     if kid.is_absolute_containing_block() {
         let kid_base = flow::mut_base(kid);
-        if kid_base.flags_info.flags.needs_layer() {
+        if kid_base.flags.needs_layer() {
             *layers_needed_for_descendants = true
         }
     } else {
         let kid_base = flow::mut_base(kid);
-        if kid_base.flags_info.flags.layers_needed_for_descendants() {
+        if kid_base.flags.layers_needed_for_descendants() {
             *layers_needed_for_descendants = true
         }
     }
@@ -929,10 +929,7 @@ impl BlockFlow {
             translate_including_floats(&mut cur_y, delta, inorder, &mut floats);
         }
 
-        self.base
-            .flags_info
-            .flags
-            .set_layers_needed_for_descendants(layers_needed_for_descendants);
+        self.base.flags.set_layers_needed_for_descendants(layers_needed_for_descendants);
 
         self.collect_static_y_offsets_from_kids();
 
@@ -965,7 +962,7 @@ impl BlockFlow {
 
             // Fixed position layers get layers.
             if self.is_fixed() {
-                self.base.flags_info.flags.set_needs_layer(true)
+                self.base.flags.set_needs_layer(true)
             }
 
             // Store the content height for use in calculating the absolute flow's dimensions
@@ -1138,7 +1135,6 @@ impl BlockFlow {
                                      builder,
                                      &info,
                                      self.base.abs_position + rel_offset + offset,
-                                     (&*self) as &Flow,
                                      background_border_level);
 
         // For relatively-positioned descendants, the containing block formed by a block is
@@ -1171,7 +1167,7 @@ impl BlockFlow {
         // Process absolute descendant links.
         let mut absolute_info = info;
         absolute_info.layers_needed_for_positioned_flows =
-            self.base.flags_info.flags.layers_needed_for_descendants();
+            self.base.flags.layers_needed_for_descendants();
         for abs_descendant_link in self.base.abs_descendants.iter() {
             match abs_descendant_link.resolve() {
                 Some(flow) => {
@@ -1337,7 +1333,7 @@ impl BlockFlow {
                                              Point2D(Au(0), Au(0)),
                                              RootOfStackingContextLevel);
 
-        if !info.layers_needed_for_positioned_flows && !self.base.flags_info.flags.needs_layer() {
+        if !info.layers_needed_for_positioned_flows && !self.base.flags.needs_layer() {
             // We didn't need a layer.
             //
             // TODO(#781, pcwalton): `z-index`.
@@ -1383,7 +1379,7 @@ impl BlockFlow {
             self.float.get_mut_ref().containing_width = containing_block_width;
 
             // Parent usually sets this, but floats are never inorder
-            self.base.flags_info.flags.set_inorder(false);
+            self.base.flags.set_inorder(false)
         }
     }
 
@@ -1395,7 +1391,7 @@ impl BlockFlow {
         let has_inorder_children = if self.is_float() {
             self.base.num_floats > 0
         } else {
-            self.base.flags_info.flags.inorder() || self.base.num_floats > 0
+            self.base.flags.inorder() || self.base.num_floats > 0
         };
 
         let kid_abs_cb_x_offset;
@@ -1415,7 +1411,7 @@ impl BlockFlow {
         // This value is used only for table cells.
         let mut kid_left_margin_edge = left_content_edge;
 
-        let flags_info = self.base.flags_info.clone();
+        let flags = self.base.flags.clone();
         for (i, kid) in self.base.child_iter().enumerate() {
             if kid.is_block_flow() {
                 let kid_block = kid.as_block();
@@ -1429,9 +1425,9 @@ impl BlockFlow {
                 child_base.position.origin.x = left_content_edge;
                 // Width of kid flow is our content width
                 child_base.position.size.width = content_width;
-                child_base.flags_info.flags.set_inorder(has_inorder_children);
+                child_base.flags.set_inorder(has_inorder_children);
 
-                if !child_base.flags_info.flags.inorder() {
+                if !child_base.flags.inorder() {
                     child_base.floats = Floats::new();
                 }
             }
@@ -1469,12 +1465,10 @@ impl BlockFlow {
                 None => {}
             }
 
-            // Per CSS 2.1 § 16.3.1, text decoration propagates to all children in flow.
+            // Per CSS 2.1 § 16.3.1, text alignment propagates to all children in flow.
             //
             // TODO(#2018, pcwalton): Do this in the cascade instead.
-            let child_base = flow::mut_base(kid);
-            child_base.flags_info.propagate_text_decoration_from_parent(&flags_info);
-            child_base.flags_info.propagate_text_alignment_from_parent(&flags_info)
+            flow::mut_base(kid).flags.propagate_text_alignment_from_parent(flags.clone())
         }
     }
 }
@@ -1555,7 +1549,7 @@ impl Flow for BlockFlow {
             self.base.position.size.width = ctx.screen_size.width;
             self.base.floats = Floats::new();
             // Root element is not floated
-            self.base.flags_info.flags.set_inorder(false);
+            self.base.flags.set_inorder(false);
         }
 
         // The position was set to the containing block by the flow's parent.
@@ -1770,7 +1764,7 @@ pub trait WidthAndMarginsComputer {
         let style = block.box_.style();
 
         // The text alignment of a block flow is the text alignment of its box's style.
-        block.base.flags_info.flags.set_text_align(style.InheritedText.get().text_align);
+        block.base.flags.set_text_align(style.InheritedText.get().text_align);
 
         block.box_.compute_padding(style, containing_block_width);
 

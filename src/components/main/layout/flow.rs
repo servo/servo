@@ -30,7 +30,7 @@ use layout::block::BlockFlow;
 use layout::box_::{Box, TableRowBox, TableCellBox};
 use layout::construct::OptVector;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo, ToGfxColor};
+use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
 use layout::floats::Floats;
 use layout::flow_list::{FlowList, Link, Rawlink, FlowListIterator, MutFlowListIterator};
 use layout::incremental::RestyleDamage;
@@ -51,7 +51,6 @@ use collections::Deque;
 use geom::Size2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
-use gfx::color::Color;
 use gfx::display_list::StackingContext;
 use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
@@ -60,7 +59,6 @@ use std::cast;
 use std::iter::Zip;
 use std::sync::atomics::Relaxed;
 use std::slice::MutItems;
-use style::ComputedValues;
 use style::computed_values::{clear, position, text_align};
 
 /// Virtual methods that make up a float context.
@@ -439,29 +437,9 @@ pub trait PostorderFlowTraversal {
     }
 }
 
-#[deriving(Clone)]
-pub struct FlowFlagsInfo {
-    flags: FlowFlags,
-
-    /// text-decoration colors
-    rare_flow_flags: Option<~RareFlowFlags>,
-}
-
-#[deriving(Clone)]
-pub struct RareFlowFlags {
-    underline_color: Color,
-    overline_color: Color,
-    line_through_color: Color,
-}
-
 /// Flags used in flows, tightly packed to save space.
 #[deriving(Clone)]
 pub struct FlowFlags(u8);
-
-/// The bitmask of flags that represent text decoration fields that get propagated downward.
-///
-/// NB: If you update this field, you must update the bitfields below.
-static TEXT_DECORATION_OVERRIDE_BITMASK: u8 = 0b0000_1110;
 
 /// The bitmask of flags that represent the text alignment field.
 ///
@@ -473,154 +451,8 @@ static TEXT_ALIGN_BITMASK: u8 = 0b0011_0000;
 /// NB: If you update this field, you must update the bitfields below.
 static TEXT_ALIGN_SHIFT: u8 = 4;
 
-impl FlowFlagsInfo {
-    /// Creates a new set of flow flags from the given style.
-    pub fn new(style: &ComputedValues) -> FlowFlagsInfo {
-        let text_decoration = style.Text.get().text_decoration;
-        let mut flags = FlowFlags(0);
-        flags.set_override_underline(text_decoration.underline);
-        flags.set_override_overline(text_decoration.overline);
-        flags.set_override_line_through(text_decoration.line_through);
-
-        // TODO(ksh8281) compute text-decoration-color,style,line
-        let rare_flow_flags = if flags.is_text_decoration_enabled() {
-            Some(~RareFlowFlags {
-                underline_color: style.Color.get().color.to_gfx_color(),
-                overline_color: style.Color.get().color.to_gfx_color(),
-                line_through_color: style.Color.get().color.to_gfx_color(),
-            })
-        } else {
-            None
-        };
-
-        FlowFlagsInfo {
-            flags: flags,
-            rare_flow_flags: rare_flow_flags,
-        }
-    }
-
-    pub fn underline_color(&self, default_color: Color) -> Color {
-        match self.rare_flow_flags {
-            Some(ref data) => {
-                data.underline_color
-            },
-            None => {
-                default_color
-            }
-        }
-    }
-
-    pub fn overline_color(&self, default_color: Color) -> Color {
-        match self.rare_flow_flags {
-            Some(ref data) => {
-                data.overline_color
-            },
-            None => {
-                default_color
-            }
-        }
-    }
-
-    pub fn line_through_color(&self, default_color: Color) -> Color {
-        match self.rare_flow_flags {
-            Some(ref data) => {
-                data.line_through_color
-            },
-            None => {
-                default_color
-            }
-        }
-    }
-
-    /// Propagates text decoration flags from an appropriate parent flow per CSS 2.1 § 16.3.1.
-    pub fn propagate_text_decoration_from_parent(&mut self, parent: &FlowFlagsInfo) {
-        if !parent.flags.is_text_decoration_enabled() {
-            return ;
-        }
-
-        if !self.flags.is_text_decoration_enabled() && parent.flags.is_text_decoration_enabled() {
-            self.rare_flow_flags = parent.rare_flow_flags.clone();
-            self.flags.set_text_decoration_override(parent.flags);
-            return ;
-        }
-
-        if !self.flags.override_underline() && parent.flags.override_underline() {
-            match parent.rare_flow_flags {
-                Some(ref parent_data) => {
-                    match self.rare_flow_flags {
-                        Some(ref mut data) => {
-                            data.underline_color = parent_data.underline_color;
-                        },
-                        None => {
-                            fail!("if flow has text-decoration, it must have rare_flow_flags");
-                        }
-                    }
-                },
-                None => {
-                    fail!("if flow has text-decoration, it must have rare_flow_flags");
-                }
-            }
-        }
-        if !self.flags.override_overline() && parent.flags.override_overline() {
-            match parent.rare_flow_flags {
-                Some(ref parent_data) => {
-                    match self.rare_flow_flags {
-                        Some(ref mut data) => {
-                            data.overline_color = parent_data.overline_color;
-                        },
-                        None => {
-                            fail!("if flow has text-decoration, it must have rare_flow_flags");
-                        }
-                    }
-                },
-                None => {
-                    fail!("if flow has text-decoration, it must have rare_flow_flags");
-                }
-            }
-        }
-        if !self.flags.override_line_through() && parent.flags.override_line_through() {
-            match parent.rare_flow_flags {
-                Some(ref parent_data) => {
-                    match self.rare_flow_flags {
-                        Some(ref mut data) => {
-                            data.line_through_color = parent_data.line_through_color;
-                        },
-                        None => {
-                            fail!("if flow has text-decoration, it must have rare_flow_flags");
-                        }
-                    }
-                },
-                None => {
-                    fail!("if flow has text-decoration, it must have rare_flow_flags");
-                }
-            }
-        }
-        self.flags.set_text_decoration_override(parent.flags);
-    }
-
-    /// Propagates text alignment flags from an appropriate parent flow per CSS 2.1.
-    pub fn propagate_text_alignment_from_parent(&mut self, parent: &FlowFlagsInfo) {
-        self.flags.set_text_align_override(parent.flags);
-    }
-}
-
 // Whether we need an in-order traversal.
 bitfield!(FlowFlags, inorder, set_inorder, 0b0000_0001)
-
-// Whether this flow forces `text-decoration: underline` on.
-//
-// NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
-bitfield!(FlowFlags, override_underline, set_override_underline, 0b0000_0010)
-
-// Whether this flow forces `text-decoration: overline` on.
-//
-// NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
-bitfield!(FlowFlags, override_overline, set_override_overline, 0b0000_0100)
-
-// Whether this flow forces `text-decoration: line-through` on.
-//
-// NB: If you update this, you need to update TEXT_DECORATION_OVERRIDE_BITMASK.
-bitfield!(FlowFlags, override_line_through, set_override_line_through, 0b0000_1000)
 
 // Whether this flow contains a flow that has its own layer within the same absolute containing
 // block.
@@ -633,8 +465,20 @@ bitfield!(FlowFlags,
 // layer if it's deemed to be likely to overlap flows with their own layer.
 bitfield!(FlowFlags, needs_layer, set_needs_layer, 0b1000_0000)
 
-// The text alignment for this flow.
 impl FlowFlags {
+    /// Creates a new set of flow flags.
+    pub fn new() -> FlowFlags {
+        FlowFlags(0)
+    }
+
+    /// Propagates text alignment flags from an appropriate parent flow per CSS 2.1.
+    ///
+    /// FIXME(pcwalton): It would be cleaner and faster to make this a derived CSS property
+    /// `-servo-text-align-in-effect`.
+    pub fn propagate_text_alignment_from_parent(&mut self, parent_flags: FlowFlags) {
+        self.set_text_align_override(parent_flags);
+    }
+
     #[inline]
     pub fn text_align(self) -> text_align::T {
         let FlowFlags(ff) = self;
@@ -652,19 +496,6 @@ impl FlowFlags {
         let FlowFlags(ff) = *self;
         let FlowFlags(pff) = parent;
         *self = FlowFlags(ff | (pff & TEXT_ALIGN_BITMASK))
-    }
-
-    #[inline]
-    pub fn set_text_decoration_override(&mut self, parent: FlowFlags) {
-        let FlowFlags(ff) = *self;
-        let FlowFlags(pff) = parent;
-        *self = FlowFlags(ff | (pff & TEXT_DECORATION_OVERRIDE_BITMASK));
-    }
-
-    #[inline]
-    pub fn is_text_decoration_enabled(&self) -> bool {
-        let FlowFlags(ref ff) = *self;
-        (*ff & TEXT_DECORATION_OVERRIDE_BITMASK) != 0
     }
 }
 
@@ -793,8 +624,8 @@ pub struct BaseFlow {
     /// flag can have memory safety implications.
     priv destroyed: bool,
 
-    /// Various flags for flows and some info
-    flags_info: FlowFlagsInfo,
+    /// Various flags for flows, tightly packed to save space.
+    flags: FlowFlags,
 }
 
 impl Drop for BaseFlow {
@@ -808,7 +639,6 @@ impl Drop for BaseFlow {
 impl BaseFlow {
     #[inline]
     pub fn new(node: ThreadSafeLayoutNode) -> BaseFlow {
-        let style = node.style();
         BaseFlow {
             restyle_damage: node.restyle_damage(),
 
@@ -834,7 +664,7 @@ impl BaseFlow {
 
             destroyed: false,
 
-            flags_info: FlowFlagsInfo::new(style.get()),
+            flags: FlowFlags::new(),
         }
     }
 

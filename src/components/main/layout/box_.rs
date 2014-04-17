@@ -9,8 +9,7 @@ use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo, ToGfxColor};
 use layout::floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
-use layout::flow::{Flow, FlowFlagsInfo};
-use layout::flow;
+use layout::flow::Flow;
 use layout::model::{Auto, IntrinsicWidths, MaybeAuto, Specified, specified};
 use layout::model;
 use layout::util::OpaqueNodeMethods;
@@ -24,8 +23,8 @@ use gfx::display_list::{BackgroundAndBorderLevel, BaseDisplayItem, BorderDisplay
 use gfx::display_list::{BorderDisplayItemClass, ClipDisplayItem, ClipDisplayItemClass};
 use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem};
 use gfx::display_list::{LineDisplayItemClass, OpaqueNode, SolidColorDisplayItem};
-use gfx::display_list::{SolidColorDisplayItemClass, StackingContext, TextDisplayItem};
-use gfx::display_list::{TextDisplayItemClass, TextDisplayItemFlags};
+use gfx::display_list::{SolidColorDisplayItemClass, StackingContext, TextDecorations};
+use gfx::display_list::{TextDisplayItem, TextDisplayItemClass};
 use gfx::font::FontStyle;
 use gfx::text::text_run::TextRun;
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
@@ -1183,13 +1182,11 @@ impl Box {
     /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
     /// * `flow_origin`: Position of the origin of the owning flow wrt the display list root flow.
     ///   box.
-    /// * `flow`: The flow that this box belongs to.
     pub fn build_display_list(&self,
                               stacking_context: &mut StackingContext,
                               builder: &DisplayListBuilder,
                               _: &DisplayListBuildingInfo,
                               flow_origin: Point2D<Au>,
-                              flow: &Flow,
                               background_and_border_level: BackgroundAndBorderLevel) {
         // Box position wrt to the owning flow.
         let box_bounds = self.border_box.get();
@@ -1235,25 +1232,21 @@ impl Box {
             UnscannedTextBox(_) => fail!("Shouldn't see unscanned boxes here."),
             TableColumnBox(_) => fail!("Shouldn't see table column boxes here."),
             ScannedTextBox(ref text_box) => {
+                // Compute text color.
                 let text_color = self.style().Color.get().color.to_gfx_color();
 
-                // Set the various text display item flags.
-                let mut flow_flags = flow::base(flow).flags_info.clone();
-
-                let inline_info = self.inline_info.borrow();
-                match &*inline_info {
-                    &Some(ref info) => {
-                        for data in info.parent_info.as_slice().rev_iter() {
-                            let parent_info = FlowFlagsInfo::new(data.style.get());
-                            flow_flags.propagate_text_decoration_from_parent(&parent_info);
-                        }
-                    },
-                    &None => {}
-                }
-                let mut text_flags = TextDisplayItemFlags::new();
-                text_flags.set_override_underline(flow_flags.flags.override_underline());
-                text_flags.set_override_overline(flow_flags.flags.override_overline());
-                text_flags.set_override_line_through(flow_flags.flags.override_line_through());
+                // Compute text decorations.
+                let style_text_decoration = self.style().Text.get().text_decoration;
+                let text_decorations_in_effect = self.style()
+                                                     .InheritedText
+                                                     .get()
+                                                     ._servo_text_decorations_in_effect;
+                let mut text_decorations = TextDecorations {
+                    underline: text_decorations_in_effect.underline.map(|c| c.to_gfx_color()),
+                    overline: text_decorations_in_effect.overline.map(|c| c.to_gfx_color()),
+                    line_through: text_decorations_in_effect.line_through
+                                                            .map(|c| c.to_gfx_color()),
+                };
 
                 let mut bounds = absolute_box_bounds.clone();
                 bounds.origin.x = bounds.origin.x + self.noncontent_left()
@@ -1271,10 +1264,7 @@ impl Box {
                     text_run: text_box.run.clone(),
                     range: text_box.range,
                     text_color: text_color,
-                    overline_color: flow_flags.overline_color(text_color),
-                    underline_color: flow_flags.underline_color(text_color),
-                    line_through_color: flow_flags.line_through_color(text_color),
-                    flags: text_flags,
+                    text_decorations: text_decorations,
                 };
 
                 stacking_context.content.push(TextDisplayItemClass(text_display_item));
