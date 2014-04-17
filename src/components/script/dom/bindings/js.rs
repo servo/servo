@@ -8,8 +8,7 @@ use js::jsapi::{JSObject, JSContext};
 use layout_interface::TrustedNodeAddress;
 
 use std::cast;
-use std::cell::{Cell, RefCell};
-use std::ptr;
+use std::cell::RefCell;
 
 /// A type that represents a JS-owned value that may or may not be rooted.
 /// Importantly, it requires rooting in order to interact with the value in any way.
@@ -238,32 +237,15 @@ impl<T: Reflectable> UnrootedPushable<T> for Vec<JS<T>> {
     }
 }
 
-#[deriving(Eq, Clone)]
-struct RootReference(*JSObject);
-
-impl RootReference {
-    fn new<'a, 'b, T: Reflectable>(unrooted: &Root<'a, 'b, T>) -> RootReference {
-        RootReference(unrooted.rooted())
-    }
-
-    fn null() -> RootReference {
-        RootReference(ptr::null())
-    }
-}
-
-static MAX_STACK_ROOTS: uint = 10;
-
 /// An opaque, LIFO rooting mechanism.
 pub struct RootCollection {
-    roots: [Cell<RootReference>, ..MAX_STACK_ROOTS],
-    current: Cell<uint>,
+    roots: RefCell<~[*JSObject]>,
 }
 
 impl RootCollection {
     pub fn new() -> RootCollection {
         RootCollection {
-            roots: [Cell::new(RootReference::null()), ..MAX_STACK_ROOTS],
-            current: Cell::new(0),
+            roots: RefCell::new(~[]),
         }
     }
 
@@ -271,40 +253,27 @@ impl RootCollection {
         Root::new(self, unrooted)
     }
 
-    fn root_impl(&self, unrooted: RootReference) {
-        let current = self.current.get();
-        assert!(current < MAX_STACK_ROOTS);
-        self.roots[current].set(unrooted);
-        debug!("  rooting {:?}", unrooted);
-        self.current.set(current + 1);
-    }
-
     fn root<'a, 'b, T: Reflectable>(&self, unrooted: &Root<'a, 'b, T>) {
-        self.root_impl(RootReference::new(unrooted));
+        self.root_raw(unrooted.js_ptr);
     }
 
     /// Root a raw JS pointer.
     pub fn root_raw(&self, unrooted: *JSObject) {
-        self.root_impl(RootReference(unrooted));
-    }
-
-    fn unroot_impl(&self, rooted: RootReference) {
-        let mut current = self.current.get();
-        assert!(current != 0);
-        current -= 1;
-        debug!("unrooting {:?} (expecting {:?}", self.roots[current].get(), rooted);
-        assert!(self.roots[current].get() == rooted);
-        self.roots[current].set(RootReference::null());
-        self.current.set(current);
+        let mut roots = self.roots.borrow_mut();
+        roots.push(unrooted);
+        debug!("  rooting {:?}", unrooted);
     }
 
     fn unroot<'a, 'b, T: Reflectable>(&self, rooted: &Root<'a, 'b, T>) {
-        self.unroot_impl(RootReference::new(rooted));
+        self.unroot_raw(rooted.js_ptr);
     }
 
     /// Unroot a raw JS pointer. Must occur in reverse order to its rooting.
     pub fn unroot_raw(&self, rooted: *JSObject) {
-        self.unroot_impl(RootReference(rooted));
+        let mut roots = self.roots.borrow_mut();
+        debug!("unrooting {:?} (expecting {:?}", roots.last().unwrap(), rooted);
+        assert!(*roots.last().unwrap() == rooted);
+        roots.pop().unwrap();
     }
 }
 
@@ -314,9 +283,14 @@ impl RootCollection {
 /// Attempts to transfer ownership of a Root via moving will trigger dynamic unrooting
 /// failures due to incorrect ordering.
 pub struct Root<'a, 'b, T> {
+    /// List that ensures correct dynamic root ordering
     root_list: &'a RootCollection,
+    /// Reference to rooted value that must not outlive this container
     jsref: JSRef<'b, T>,
+    /// Pointer to underlying Rust data
     ptr: RefCell<*mut T>,
+    /// On-stack JS pointer to assuage conservative stack scanner
+    js_ptr: *JSObject,
 }
 
 impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
@@ -325,9 +299,10 @@ impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
             root_list: roots,
             jsref: JSRef {
                 ptr: unrooted.ptr.clone(),
-                chain: unsafe { ::std::cast::transmute_region(&()) },
+                chain: unsafe { cast::transmute_region(&()) },
             },
-            ptr: unrooted.ptr.clone()
+            ptr: unrooted.ptr.clone(),
+            js_ptr: unrooted.reflector().get_jsobject(),
         };
         roots.root(&root);
         root
@@ -347,20 +322,8 @@ impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
         }
     }
 
-    fn rooted(&self) -> *JSObject {
-        self.reflector().get_jsobject()
-    }
-
-    fn internal_root_ref<'a>(&'a self) -> &'a JSRef<'b, T> {
-        &'a self.jsref
-    }
-
-    fn mut_internal_root_ref<'a>(&'a mut self) -> &'a mut JSRef<'b, T> {
-        &'a mut self.jsref
-    }
-
     pub fn root_ref<'b>(&'b self) -> JSRef<'b,T> {
-        self.internal_root_ref().clone()
+        self.jsref.clone()
     }
 }
 
@@ -383,13 +346,13 @@ impl<'a, 'b, T: Reflectable> Reflectable for Root<'a, 'b, T> {
 
 impl<'a, 'b, T: Reflectable> Deref<JSRef<'b, T>> for Root<'a, 'b, T> {
     fn deref<'c>(&'c self) -> &'c JSRef<'b, T> {
-        self.internal_root_ref()
+        &'a self.jsref
     }
 }
 
 impl<'a, 'b, T: Reflectable> DerefMut<JSRef<'b, T>> for Root<'a, 'b, T> {
     fn deref_mut<'c>(&'c mut self) -> &'c mut JSRef<'b, T> {
-        self.mut_internal_root_ref()
+        &'a mut self.jsref
     }
 }
 
