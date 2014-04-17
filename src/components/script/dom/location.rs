@@ -18,26 +18,14 @@ use serialize::{Encoder, Encodable};
 #[deriving(Encodable)]
 pub struct Location {
     reflector_: Reflector, //XXXjdm cycle: window->Location->window
-    priv extra: Untraceable,
-}
-
-struct Untraceable {
     page: Rc<Page>,
-}
-
-impl<S: Encoder> Encodable<S> for Untraceable {
-    fn encode(&self, s: &mut S) {
-        self.page.encode(s);
-    }
 }
 
 impl Location {
     pub fn new_inherited(page: Rc<Page>) -> Location {
         Location {
             reflector_: Reflector::new(),
-            extra: Untraceable {
-                page: page
-            }
+            page: page
         }
     }
 
@@ -60,7 +48,7 @@ impl Location {
     }
 
     pub fn Href(&self) -> DOMString {
-        self.extra.page.get_url().to_str()
+        self.page.get_url().to_str()
     }
 
     pub fn SetHref(&self, _href: DOMString) -> Fallible<()> {

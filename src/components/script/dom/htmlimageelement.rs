@@ -5,8 +5,9 @@
 use dom::bindings::codegen::HTMLImageElementBinding;
 use dom::bindings::codegen::InheritTypes::{NodeCast, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
+use dom::bindings::js::JS;
+use dom::bindings::trace::Untraceable;
 use dom::document::Document;
 use dom::element::{Element, HTMLImageElementTypeId};
 use dom::element::AttributeHandlers;
@@ -21,21 +22,10 @@ use servo_util::url::parse_url;
 use servo_util::str::DOMString;
 use url::Url;
 
-use serialize::{Encoder, Encodable};
-
 #[deriving(Encodable)]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
-    priv extra: Untraceable,
-}
-
-struct Untraceable {
-    image: Option<Url>,
-}
-
-impl<S: Encoder> Encodable<S> for Untraceable {
-    fn encode(&self, _s: &mut S) {
-    }
+    image: Untraceable<Option<Url>>,
 }
 
 impl HTMLImageElementDerived for EventTarget {
@@ -51,9 +41,7 @@ impl HTMLImageElement {
     pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, document),
-            extra: Untraceable {
-                image: None,
-            }
+            image: Untraceable::new(None),
         }
     }
 
@@ -65,7 +53,7 @@ impl HTMLImageElement {
 
 impl HTMLImageElement {
     pub fn image<'a>(&'a self) -> &'a Option<Url> {
-        &self.extra.image
+        &*self.image
     }
 
     /// Makes the local `image` member match the status of the `src` attribute and starts
@@ -77,11 +65,11 @@ impl HTMLImageElement {
         let image_cache = &window.image_cache_task;
         match value {
             None => {
-                self.extra.image = None;
+                *self.image = None;
             }
             Some(src) => {
                 let img_url = parse_url(src, url);
-                self.extra.image = Some(img_url.clone());
+                *self.image = Some(img_url.clone());
 
                 // inform the image cache to load this, but don't store a
                 // handle.

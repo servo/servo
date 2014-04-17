@@ -44,8 +44,9 @@ impl<T: Reflectable> JS<T> {
 
 
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<T> {
+        let TrustedNodeAddress(addr) = inner;
         JS {
-            ptr: RefCell::new(inner as *mut T)
+            ptr: RefCell::new(addr as *mut T)
         }
     }
 }

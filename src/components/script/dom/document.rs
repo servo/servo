@@ -8,6 +8,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, Elemen
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast};
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::js::JS;
+use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest, NamespaceError};
 use dom::bindings::utils::{xml_name_type, InvalidXMLName, Name, QName};
@@ -46,8 +47,6 @@ use js::jsapi::JSContext;
 use std::ascii::StrAsciiExt;
 use url::{Url, from_str};
 
-use serialize::{Encoder, Encodable};
-
 #[deriving(Eq,Encodable)]
 pub enum IsHTMLDocument {
     HTMLDocument,
@@ -64,17 +63,8 @@ pub struct Document {
     content_type: DOMString,
     encoding_name: DOMString,
     is_html_document: bool,
-    priv extra: Untraceable,
-}
-
-struct Untraceable {
-    url: Url,
-    quirks_mode: QuirksMode,
-}
-
-impl<S: Encoder> Encodable<S> for Untraceable {
-    fn encode(&self, _: &mut S) {
-    }
+    url: Untraceable<Url>,
+    quirks_mode: Untraceable<QuirksMode>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -106,6 +96,8 @@ impl Document {
                          url: Option<Url>,
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>) -> Document {
+        let url = url.unwrap_or_else(|| from_str("about:blank").unwrap());
+
         Document {
             node: Node::new_without_doc(DocumentNodeTypeId),
             reflector_: Reflector::new(),
@@ -121,14 +113,9 @@ impl Document {
                     NonHTMLDocument => ~"application/xml"
                 }
             },
-            extra: Untraceable {
-                url: match url {
-                    None => from_str("about:blank").unwrap(),
-                    Some(_url) => _url
-                },
-                // http://dom.spec.whatwg.org/#concept-document-quirks
-                quirks_mode: NoQuirks,
-            },
+            url: Untraceable::new(url),
+            // http://dom.spec.whatwg.org/#concept-document-quirks
+            quirks_mode: Untraceable::new(NoQuirks),
             // http://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: ~"utf-8",
             is_html_document: is_html_document == HTMLDocument,
@@ -143,7 +130,7 @@ impl Document {
 
 impl Document {
     pub fn url<'a>(&'a self) -> &'a Url {
-        &self.extra.url
+        &*self.url
     }
 }
 
@@ -185,18 +172,18 @@ impl Document {
 
     // http://dom.spec.whatwg.org/#dom-document-compatmode
     pub fn CompatMode(&self) -> DOMString {
-        match self.extra.quirks_mode {
+        match *self.quirks_mode {
             NoQuirks => ~"CSS1Compat",
             LimitedQuirks | FullQuirks => ~"BackCompat"
         }
     }
 
     pub fn quirks_mode(&self) -> QuirksMode {
-        self.extra.quirks_mode
+        *self.quirks_mode
     }
 
     pub fn set_quirks_mode(&mut self, mode: QuirksMode) {
-        self.extra.quirks_mode = mode;
+        *self.quirks_mode = mode;
     }
 
     // http://dom.spec.whatwg.org/#dom-document-characterset

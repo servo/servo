@@ -1864,7 +1864,7 @@ def CreateBindingJSObject(descriptor, parent=None):
         assert not descriptor.createGlobal
         handler = """
   let js_info = aScope.get().page().js_info();
-  let handler = js_info.get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
+  let handler = js_info.get_ref().dom_static.proxy_handlers.deref().get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
         create += handler + """  let obj = NewProxyObject(aCx, *handler,
                            &PrivateValue(squirrel_away_unique(aObject) as *libc::c_void),
@@ -2204,7 +2204,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
        ('Some(%s)' % TRACE_HOOK_NAME),
        self.descriptor.name)
 
-        return (body + """  let cx = js_info.js_context.deref().ptr;
+        return (body + """  let cx = (*js_info.js_context).deref().ptr;
   let receiver = js_info.js_compartment.global_obj;
   let global: *JSObject = JS_GetGlobalForObject(cx, receiver);
   assert!(%s(cx, global, receiver).is_not_null());""" % (getter))
@@ -4517,7 +4517,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
             'dom::bindings::utils::{VoidVal, with_gc_disabled}',
             'dom::bindings::utils::{with_gc_enabled}',
-            'dom::bindings::trace::Traceable',
+            'dom::bindings::trace::JSTraceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::{WrapCallThisObject}',
@@ -5472,7 +5472,7 @@ class GlobalGenRoots():
         allprotos = [CGGeneric("#[allow(unused_imports)];\n"),
                      CGGeneric("use dom::types::*;\n"),
                      CGGeneric("use dom::bindings::js::JS;\n"),
-                     CGGeneric("use dom::bindings::trace::Traceable;\n"),
+                     CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
                      CGGeneric("use serialize::{Encodable, Encoder};\n"),
                      CGGeneric("use js::jsapi::JSTracer;\n\n")]
         for descriptor in descriptors:
@@ -5523,7 +5523,7 @@ class GlobalGenRoots():
                  'toBound': name + 'Derived'})),
                     CGGeneric("impl %s for %s {}\n\n" % (name + 'Cast', name))]
 
-            trace = [CGGeneric(string.Template('''impl Traceable for ${name} {
+            trace = [CGGeneric(string.Template('''impl JSTraceable for ${name} {
     fn trace(&self, tracer: *mut JSTracer) {
         unsafe {
             self.encode(&mut *tracer);

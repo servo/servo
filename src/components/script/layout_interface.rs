@@ -6,7 +6,8 @@
 /// coupling between these two components, and enables the DOM to be placed in a separate crate
 /// from layout.
 
-use dom::node::LayoutDataRef;
+use dom::bindings::js::JS;
+use dom::node::{Node, LayoutDataRef};
 
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -18,6 +19,8 @@ use std::comm::{channel, Receiver, Sender};
 use std::libc::c_void;
 use style::Stylesheet;
 use url::Url;
+
+use serialize::{Encodable, Encoder};
 
 /// Asynchronous messages that script can send to layout.
 ///
@@ -62,7 +65,17 @@ pub enum LayoutQuery {
 
 /// The address of a node known to be valid. These must only be sent from content -> layout,
 /// because we do not trust layout.
-pub type TrustedNodeAddress = *c_void;
+pub struct TrustedNodeAddress(*c_void);
+
+impl<S: Encoder> Encodable<S> for TrustedNodeAddress {
+    fn encode(&self, s: &mut S) {
+        let TrustedNodeAddress(addr) = *self;
+        let node = addr as *Node as *mut Node;
+        unsafe {
+            JS::from_raw(node).encode(s)
+        }
+    }
+}
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -74,7 +87,7 @@ pub struct HitTestResponse(UntrustedNodeAddress);
 pub struct MouseOverResponse(~[UntrustedNodeAddress]);
 
 /// Determines which part of the
-#[deriving(Eq, Ord, TotalEq, TotalOrd)]
+#[deriving(Eq, Ord, TotalEq, TotalOrd, Encodable)]
 pub enum DocumentDamageLevel {
     /// Reflow, but do not perform CSS selector matching.
     ReflowDocumentDamage,
@@ -94,6 +107,7 @@ impl DocumentDamageLevel {
 /// What parts of the document have changed, as far as the script task can tell.
 ///
 /// Note that this is fairly coarse-grained and is separate from layout's notion of the document
+#[deriving(Encodable)]
 pub struct DocumentDamage {
     /// The topmost node in the tree that has changed.
     root: TrustedNodeAddress,
