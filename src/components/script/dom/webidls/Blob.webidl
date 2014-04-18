@@ -16,8 +16,8 @@ interface Blob {
   readonly attribute unsigned long long size;
   readonly attribute DOMString type;
 
-  Blob slice([Clamp] optional long long start,
-             [Clamp] optional long long end,
+  Blob slice(/*[Clamp]*/ optional long long start,
+             /*[Clamp]*/ optional long long end,
              optional DOMString contentType);
   void close();
 };
