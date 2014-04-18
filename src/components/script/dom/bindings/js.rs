@@ -6,9 +6,11 @@ use dom::bindings::utils::{Reflector, Reflectable, cx_for_dom_object};
 use dom::window::Window;
 use js::jsapi::{JSObject, JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot};
 use layout_interface::TrustedNodeAddress;
+use script_task::StackRoots;
 
 use std::cast;
 use std::cell::RefCell;
+use std::local_data;
 
 /// A type that represents a JS-owned value that is rooted for the lifetime of this value.
 /// Importantly, it requires explicit rooting in order to interact with the inner value.
@@ -52,8 +54,13 @@ impl<T: Reflectable> Temporary<T> {
     }
 
     /// Root this unrooted value.
-    pub fn root<'a, 'b>(self, collection: &'a RootCollection) -> Root<'a, 'b, T> {
-        collection.new_root(&self.inner)
+    pub fn root<'a, 'b>(self, _collection: &'a RootCollection) -> Root<'a, 'b, T> {
+        local_data::get(StackRoots, |opt| {
+            let collection = opt.unwrap();
+            unsafe {
+                (**collection).new_root(&self.inner)
+            }
+        })
     }
 
     unsafe fn inner(&self) -> JS<T> {

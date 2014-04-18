@@ -55,6 +55,7 @@ use servo_util::namespace::Null;
 use std::cast;
 use std::cell::{RefCell, Ref, RefMut};
 use std::comm::{channel, Sender, Receiver, Empty, Disconnected, Data};
+use std::local_data;
 use std::mem::replace;
 use std::ptr;
 use std::rc::Rc;
@@ -62,6 +63,8 @@ use std::task;
 use url::Url;
 
 use serialize::{Encoder, Encodable};
+
+local_data_key!(pub StackRoots: *RootCollection)
 
 /// Messages used to control the script task.
 pub enum ScriptMsg {
@@ -510,6 +513,21 @@ pub struct JSPageInfo {
     pub js_context: Untraceable<Rc<Cx>>,
 }
 
+struct StackRootTLS;
+
+impl StackRootTLS {
+    fn new(roots: &RootCollection) -> StackRootTLS {
+        local_data::set(StackRoots, roots as *RootCollection);
+        StackRootTLS
+    }
+}
+
+impl Drop for StackRootTLS {
+    fn drop(&mut self) {
+        let _ = local_data::pop(StackRoots);
+    }
+}
+
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
 ///
@@ -653,6 +671,9 @@ impl ScriptTask {
 
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
+        let roots = RootCollection::new();
+        let _stack_roots_tls = StackRootTLS::new(&roots);
+
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
         let mut resizes = vec!();
