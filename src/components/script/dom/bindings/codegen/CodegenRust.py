@@ -558,15 +558,6 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             else:
                 assert(defaultValue is None)
 
-            #if type.isGeckoInterface() and not type.unroll().inner.isCallback():
-            #    if type.nullable() or isOptional:
-            #        
-            #    else:
-            #        
-            #    templateBody = CGList([CGGeneric(templateBody),
-            #                           CGGeneric("\n"),
-            #                           CGGeneric(rootBody)]).define()
-
         return templateBody
 
     assert not (isEnforceRange and isClamp) # These are mutually exclusive
@@ -901,12 +892,7 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
 
     type = declType.define() if declType else None
     if type and 'JS<' in type:
-        if dealWithOptional or 'Option<' in type:
-            rootBody = """let ${simpleDeclName} = ${declName}.as_ref().map(|inner| {
-  inner.root() //second root code
-});"""
-        else:
-            rootBody = "let ${simpleDeclName} = ${declName}.root(); //third root code"
+        rootBody = "let ${simpleDeclName} = ${declName}.root();"
         result.append(CGGeneric(string.Template(rootBody).substitute(replacements)))
         result.append(CGGeneric(""))
 
@@ -1725,8 +1711,6 @@ class Argument():
     A class for outputting the type and name of an argument
     """
     def __init__(self, argType, name, default=None, mutable=False):
-        if argType and 'JS<' in argType:
-            argType = argType.replace('JS<', 'JSRef<')
         self.argType = argType
         self.name = name
         self.default = default
@@ -4321,7 +4305,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
             'dom::types::*',
             'dom::bindings',
-            'dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalRootable}',
+            'dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalRootable, OptionalRootedRootable}',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
             'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
@@ -4603,7 +4587,7 @@ class CGNativeMember(ClassMethod):
                 else:
                     typeDecl = "%s"
             descriptor = self.descriptorProvider.getDescriptor(iface.identifier.name)
-            return (typeDecl % descriptor.nativeType,
+            return (typeDecl % descriptor.argumentType,
                     False, False)
 
         if type.isSpiderMonkeyInterface():

@@ -16,15 +16,15 @@ pub struct Blob {
 }
 
 impl Blob {
-    pub fn new_inherited(window: JS<Window>) -> Blob {
+    pub fn new_inherited(window: &JSRef<Window>) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            window: window
+            window: window.unrooted()
         }
     }
 
     pub fn new(window: &JSRef<Window>) -> Temporary<Blob> {
-        reflect_dom_object(~Blob::new_inherited(window.unrooted()),
+        reflect_dom_object(~Blob::new_inherited(window),
                            window,
                            BlobBinding::Wrap)
     }

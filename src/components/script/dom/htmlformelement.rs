@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFormElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLFormElementTypeId};
@@ -29,14 +29,14 @@ impl HTMLFormElementDerived for EventTarget {
 }
 
 impl HTMLFormElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLFormElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(HTMLFormElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFormElement> {
-        let element = HTMLFormElement::new_inherited(localName, document.unrooted());
+        let element = HTMLFormElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLFormElementBinding::Wrap)
     }
 }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLDirectoryElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDirectoryElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLDirectoryElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLDirectoryElementDerived for EventTarget {
 }
 
 impl HTMLDirectoryElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLDirectoryElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLDirectoryElement {
         HTMLDirectoryElement {
             htmlelement: HTMLElement::new_inherited(HTMLDirectoryElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDirectoryElement> {
-        let element = HTMLDirectoryElement::new_inherited(localName, document.unrooted());
+        let element = HTMLDirectoryElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLDirectoryElementBinding::Wrap)
     }
 }

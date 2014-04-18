@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::{JSRef};
 use dom::bindings::codegen::InheritTypes::HTMLMediaElementDerived;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
@@ -28,7 +28,7 @@ impl HTMLMediaElementDerived for EventTarget {
 }
 
 impl HTMLMediaElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: JS<Document>) -> HTMLMediaElement {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: &JSRef<Document>) -> HTMLMediaElement {
         HTMLMediaElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, document)
         }

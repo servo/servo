@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLParagraphElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLParagraphElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLParagraphElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLParagraphElementDerived for EventTarget {
 }
 
 impl HTMLParagraphElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLParagraphElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLParagraphElement {
         HTMLParagraphElement {
             htmlelement: HTMLElement::new_inherited(HTMLParagraphElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLParagraphElement> {
-        let element = HTMLParagraphElement::new_inherited(localName, document.unrooted());
+        let element = HTMLParagraphElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLParagraphElementBinding::Wrap)
     }
 }

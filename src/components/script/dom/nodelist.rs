@@ -22,18 +22,18 @@ pub struct NodeList {
 }
 
 impl NodeList {
-    pub fn new_inherited(window: JS<Window>,
+    pub fn new_inherited(window: &JSRef<Window>,
                          list_type: NodeListType) -> NodeList {
         NodeList {
             list_type: list_type,
             reflector_: Reflector::new(),
-            window: window
+            window: window.unrooted()
         }
     }
 
     pub fn new(window: &JSRef<Window>,
                list_type: NodeListType) -> Temporary<NodeList> {
-        reflect_dom_object(~NodeList::new_inherited(window.unrooted(), list_type),
+        reflect_dom_object(~NodeList::new_inherited(window, list_type),
                            window, NodeListBinding::Wrap)
     }
 
@@ -70,7 +70,7 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
             Children(ref node) => {
                 let node = node.root();
                 node.deref().children().nth(index as uint)
-                                       .map(|child| Temporary::new_rooted(&child))
+                                       .map(|child| Temporary::from_rooted(&child))
             }
         }
     }

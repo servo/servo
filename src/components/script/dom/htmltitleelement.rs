@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTitleElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTitleElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTitleElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLTitleElementDerived for EventTarget {
 }
 
 impl HTMLTitleElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTitleElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTitleElement {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(HTMLTitleElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTitleElement> {
-        let element = HTMLTitleElement::new_inherited(localName, document.unrooted());
+        let element = HTMLTitleElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLTitleElementBinding::Wrap)
     }
 }

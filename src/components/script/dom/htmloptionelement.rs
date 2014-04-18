@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLOptionElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOptionElementTypeId;
@@ -29,14 +29,14 @@ impl HTMLOptionElementDerived for EventTarget {
 }
 
 impl HTMLOptionElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLOptionElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement: HTMLElement::new_inherited(HTMLOptionElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLOptionElement> {
-        let element = HTMLOptionElement::new_inherited(localName, document.unrooted());
+        let element = HTMLOptionElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLOptionElementBinding::Wrap)
     }
 }

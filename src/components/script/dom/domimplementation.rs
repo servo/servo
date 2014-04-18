@@ -26,15 +26,15 @@ pub struct DOMImplementation {
 }
 
 impl DOMImplementation {
-    pub fn new_inherited(owner: JS<Window>) -> DOMImplementation {
+    pub fn new_inherited(owner: &JSRef<Window>) -> DOMImplementation {
         DOMImplementation {
-            owner: owner,
+            owner: owner.unrooted(),
             reflector_: Reflector::new(),
         }
     }
 
     pub fn new(owner: &JSRef<Window>) -> Temporary<DOMImplementation> {
-        reflect_dom_object(~DOMImplementation::new_inherited(owner.unrooted()), owner,
+        reflect_dom_object(~DOMImplementation::new_inherited(owner), owner,
                            DOMImplementationBinding::Wrap)
     }
 }
@@ -115,7 +115,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         // FIXME: https://github.com/mozilla/servo/issues/1522
 
         // Step 7.
-        Ok(Temporary::new_rooted(&*doc))
+        Ok(Temporary::from_rooted(&*doc))
     }
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
@@ -167,6 +167,6 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         // FIXME: https://github.com/mozilla/servo/issues/1522
 
         // Step 9.
-        Temporary::new_rooted(&*doc)
+        Temporary::from_rooted(&*doc)
     }
 }

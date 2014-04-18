@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLSourceElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSourceElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLSourceElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLSourceElementDerived for EventTarget {
 }
 
 impl HTMLSourceElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLSourceElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLSourceElement {
         HTMLSourceElement {
             htmlelement: HTMLElement::new_inherited(HTMLSourceElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLSourceElement> {
-        let element = HTMLSourceElement::new_inherited(localName, document.unrooted());
+        let element = HTMLSourceElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLSourceElementBinding::Wrap)
     }
 }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLInputElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLInputElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::HTMLInputElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLInputElementDerived for EventTarget {
 }
 
 impl HTMLInputElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLInputElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLInputElement {
         HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLInputElement> {
-        let element = HTMLInputElement::new_inherited(localName, document.unrooted());
+        let element = HTMLInputElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLInputElementBinding::Wrap)
     }
 }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLButtonElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLButtonElementTypeId;
@@ -30,14 +30,14 @@ impl HTMLButtonElementDerived for EventTarget {
 }
 
 impl HTMLButtonElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLButtonElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement: HTMLElement::new_inherited(HTMLButtonElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLButtonElement> {
-        let element = HTMLButtonElement::new_inherited(localName, document.unrooted());
+        let element = HTMLButtonElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLButtonElementBinding::Wrap)
     }
 }
@@ -67,7 +67,6 @@ pub trait HTMLButtonElementMethods {
     fn WillValidate(&self) -> bool;
     fn SetWillValidate(&mut self, _will_validate: bool);
     fn Validity(&self) -> Temporary<ValidityState>;
-    fn SetValidity(&mut self, _validity: JS<ValidityState>);
     fn ValidationMessage(&self) -> DOMString;
     fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult;
     fn CheckValidity(&self) -> bool;
@@ -169,9 +168,6 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     fn Validity(&self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
         ValidityState::new(&*window)
-    }
-
-    fn SetValidity(&mut self, _validity: JS<ValidityState>) {
     }
 
     fn ValidationMessage(&self) -> DOMString {

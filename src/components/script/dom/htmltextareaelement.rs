@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::HTMLTextAreaElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLTextAreaElementDerived for EventTarget {
 }
 
 impl HTMLTextAreaElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTextAreaElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTextAreaElement> {
-        let element = HTMLTextAreaElement::new_inherited(localName, document.unrooted());
+        let element = HTMLTextAreaElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLTextAreaElementBinding::Wrap)
     }
 }

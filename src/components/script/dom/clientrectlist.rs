@@ -16,18 +16,18 @@ pub struct ClientRectList {
 }
 
 impl ClientRectList {
-    pub fn new_inherited(window: JS<Window>,
+    pub fn new_inherited(window: &JSRef<Window>,
                          rects: Vec<JSRef<ClientRect>>) -> ClientRectList {
         ClientRectList {
             reflector_: Reflector::new(),
             rects: rects.iter().map(|rect| rect.unrooted()).collect(),
-            window: window,
+            window: window.unrooted(),
         }
     }
 
     pub fn new(window: &JSRef<Window>,
                rects: Vec<JSRef<ClientRect>>) -> Temporary<ClientRectList> {
-        reflect_dom_object(~ClientRectList::new_inherited(window.unrooted(), rects),
+        reflect_dom_object(~ClientRectList::new_inherited(window, rects),
                            window, ClientRectListBinding::Wrap)
     }
 }

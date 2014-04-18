@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::HTMLTableCellElementDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::JSRef;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{ElementTypeId, HTMLTableDataCellElementTypeId, HTMLTableHeaderCellElementTypeId};
@@ -28,7 +28,7 @@ impl HTMLTableCellElementDerived for EventTarget {
 }
 
 impl HTMLTableCellElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: JS<Document>) -> HTMLTableCellElement {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: &JSRef<Document>) -> HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, document)
         }

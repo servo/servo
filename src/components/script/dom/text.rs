@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::TextBinding;
 use dom::bindings::codegen::InheritTypes::TextDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -29,14 +29,14 @@ impl TextDerived for EventTarget {
 }
 
 impl Text {
-    pub fn new_inherited(text: DOMString, document: JS<Document>) -> Text {
+    pub fn new_inherited(text: DOMString, document: &JSRef<Document>) -> Text {
         Text {
             characterdata: CharacterData::new_inherited(TextNodeTypeId, text, document)
         }
     }
 
     pub fn new(text: DOMString, document: &JSRef<Document>) -> Temporary<Text> {
-        let node = Text::new_inherited(text, document.unrooted());
+        let node = Text::new_inherited(text, document);
         Node::reflect_node(~node, document, TextBinding::Wrap)
     }
 

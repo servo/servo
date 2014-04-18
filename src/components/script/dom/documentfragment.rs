@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
 use dom::bindings::codegen::BindingDeclarations::DocumentFragmentBinding;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -28,14 +28,14 @@ impl DocumentFragmentDerived for EventTarget {
 
 impl DocumentFragment {
     /// Creates a new DocumentFragment.
-    pub fn new_inherited(document: JS<Document>) -> DocumentFragment {
+    pub fn new_inherited(document: &JSRef<Document>) -> DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(DocumentFragmentNodeTypeId, document),
         }
     }
 
     pub fn new(document: &JSRef<Document>) -> Temporary<DocumentFragment> {
-        let node = DocumentFragment::new_inherited(document.unrooted());
+        let node = DocumentFragment::new_inherited(document);
         Node::reflect_node(~node, document, DocumentFragmentBinding::Wrap)
     }
 

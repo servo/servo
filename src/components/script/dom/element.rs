@@ -9,7 +9,7 @@ use dom::attrlist::AttrList;
 use dom::bindings::codegen::BindingDeclarations::ElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
 use dom::bindings::js::{JS, JSRef, Temporary, TemporaryPushable};
-use dom::bindings::js::{OptionalAssignable, OptionalRootable, Root};
+use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
@@ -141,7 +141,7 @@ pub enum ElementTypeId {
 //
 
 impl Element {
-    pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: JS<Document>) -> Element {
+    pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: &JSRef<Document>) -> Element {
         Element {
             node: Node::new_inherited(ElementNodeTypeId(type_id), document),
             local_name: local_name,
@@ -154,7 +154,7 @@ impl Element {
     }
 
     pub fn new(local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: &JSRef<Document>) -> Temporary<Element> {
-        let element = Element::new_inherited(ElementTypeId, local_name, namespace, prefix, document.unrooted());
+        let element = Element::new_inherited(ElementTypeId, local_name, namespace, prefix, document);
         Node::reflect_node(~element, document, ElementBinding::Wrap)
     }
 }
@@ -230,11 +230,11 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         if self.html_element_in_html_document() {
             self.get().attrs.iter().map(|attr| attr.root()).find(|attr| {
                 name.to_ascii_lower() == attr.local_name && attr.namespace == namespace
-            }).map(|x| Temporary::new_rooted(&*x))
+            }).map(|x| Temporary::from_rooted(&*x))
         } else {
             self.get().attrs.iter().map(|attr| attr.root()).find(|attr| {
                 name == attr.local_name && attr.namespace == namespace
-            }).map(|x| Temporary::new_rooted(&*x))
+            }).map(|x| Temporary::from_rooted(&*x))
         }
     }
 
@@ -282,7 +282,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 let window = window_from_node(self).root();
                 let attr = Attr::new(&*window, local_name.clone(), value.clone(),
                                      name, namespace.clone(), prefix, self);
-                self.get_mut().attrs.push_unrooted(attr);
+                self.get_mut().attrs.push_unrooted(&attr);
                 (self.get().attrs.len() - 1, FirstSetAttr)
             }
         };

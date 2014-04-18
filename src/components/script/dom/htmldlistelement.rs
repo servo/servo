@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLDListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDListElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLDListElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLDListElementDerived for EventTarget {
 }
 
 impl HTMLDListElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLDListElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLDListElement {
         HTMLDListElement {
             htmlelement: HTMLElement::new_inherited(HTMLDListElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDListElement> {
-        let element = HTMLDListElement::new_inherited(localName, document.unrooted());
+        let element = HTMLDListElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLDListElementBinding::Wrap)
     }
 }

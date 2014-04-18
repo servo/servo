@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLEmbedElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLEmbedElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLEmbedElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLEmbedElementDerived for EventTarget {
 }
 
 impl HTMLEmbedElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLEmbedElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLEmbedElement {
         HTMLEmbedElement {
             htmlelement: HTMLElement::new_inherited(HTMLEmbedElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLEmbedElement> {
-        let element = HTMLEmbedElement::new_inherited(localName, document.unrooted());
+        let element = HTMLEmbedElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLEmbedElementBinding::Wrap)
     }
 }

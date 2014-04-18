@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLIFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementDerived, HTMLElementCast};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::trace::Untraceable;
 use dom::document::Document;
 use dom::element::{HTMLIFrameElementTypeId, Element};
@@ -70,7 +70,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 }
 
 impl HTMLIFrameElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLIFrameElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, document),
             frame: Untraceable::new(None),
@@ -80,7 +80,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLIFrameElement> {
-        let element = HTMLIFrameElement::new_inherited(localName, document.unrooted());
+        let element = HTMLIFrameElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLIFrameElementBinding::Wrap)
     }
 }

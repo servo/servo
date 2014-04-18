@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLSelectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementDerived;
 use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLSelectElementTypeId};
@@ -32,14 +32,14 @@ impl HTMLSelectElementDerived for EventTarget {
 }
 
 impl HTMLSelectElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLSelectElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement: HTMLElement::new_inherited(HTMLSelectElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLSelectElement> {
-        let element = HTMLSelectElement::new_inherited(localName, document.unrooted());
+        let element = HTMLSelectElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLSelectElementBinding::Wrap)
     }
 }
@@ -74,7 +74,6 @@ pub trait HTMLSelectElementMethods {
     fn WillValidate(&self) -> bool;
     fn SetWillValidate(&mut self, _will_validate: bool);
     fn Validity(&self) -> Temporary<ValidityState>;
-    fn SetValidity(&mut self, _validity: JS<ValidityState>);
     fn ValidationMessage(&self) -> DOMString;
     fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult;
     fn CheckValidity(&self) -> bool;
@@ -194,9 +193,6 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     fn Validity(&self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
         ValidityState::new(&*window)
-    }
-
-    fn SetValidity(&mut self, _validity: JS<ValidityState>) {
     }
 
     fn ValidationMessage(&self) -> DOMString {

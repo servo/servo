@@ -6,7 +6,7 @@ use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLEleme
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
 use dom::bindings::codegen::BindingDeclarations::DocumentBinding;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalAssignable};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -160,7 +160,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
                     let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
                     match elem {
                         Some(elem) => {
-                            if elements.get(head) == &elem.unrooted() {
+                            if &*elements.get(head).root() == elem {
                                 head = head + 1;
                             }
                             if new_node == &node || head == elements.len() {
@@ -170,19 +170,21 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
                         None => {}
                     }
                 }
-                elements.insert(head, element.unrooted());
+                elements.insert_unrooted(head, element);
                 return;
             },
             None => (),
         }
-        self.idmap.insert(id, vec!(element.unrooted()));
+        let mut elements = vec!();
+        elements.push_unrooted(element);
+        self.idmap.insert(id, elements);
     }
 }
 
 impl Document {
         pub fn reflect_document(document: ~Document,
-                            window:   &JSRef<Window>,
-                            wrap_fn:  extern "Rust" fn(*JSContext, &JSRef<Window>, ~Document) -> JS<Document>)
+                            window: &JSRef<Window>,
+                            wrap_fn: extern "Rust" fn(*JSContext, &JSRef<Window>, ~Document) -> JS<Document>)
              -> Temporary<Document> {
         assert!(document.reflector().get_jsobject().is_null());
         let mut raw_doc = reflect_dom_object(document, window, wrap_fn).root();
@@ -191,10 +193,10 @@ impl Document {
         let mut doc_alias = raw_doc.clone();
         let node: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut doc_alias);
         node.set_owner_doc(&*raw_doc);
-        Temporary::new_rooted(&*raw_doc)
+        Temporary::from_rooted(&*raw_doc)
     }
 
-    pub fn new_inherited(window: JS<Window>,
+    pub fn new_inherited(window: &JSRef<Window>,
                          url: Option<Url>,
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>) -> Document {
@@ -203,7 +205,7 @@ impl Document {
         Document {
             node: Node::new_without_doc(DocumentNodeTypeId),
             reflector_: Reflector::new(),
-            window: window,
+            window: window.unrooted(),
             idmap: HashMap::new(),
             implementation: None,
             content_type: match content_type {
@@ -230,7 +232,7 @@ impl Document {
     }
 
     pub fn new(window: &JSRef<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> Temporary<Document> {
-        let document = Document::new_inherited(window.unrooted(), url, doctype, content_type);
+        let document = Document::new_inherited(window, url, doctype, content_type);
         Document::reflect_document(~document, window, DocumentBinding::Wrap)
     }
 }
@@ -274,7 +276,7 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
         self.GetDocumentElement().root().filtered(|root| {
             root.node.type_id == ElementNodeTypeId(HTMLHtmlElementTypeId)
         }).map(|elem| {
-            Temporary::new_rooted(HTMLHtmlElementCast::to_ref(&*elem).unwrap())
+            Temporary::from_rooted(HTMLHtmlElementCast::to_ref(&*elem).unwrap())
         })
     }
 }
@@ -364,14 +366,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             child.is_doctype()
         }).map(|node| {
             let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(&node).unwrap();
-            Temporary::new(doctype.unrooted())
+            Temporary::from_rooted(doctype)
         })
     }
 
     // http://dom.spec.whatwg.org/#dom-document-documentelement
     fn GetDocumentElement(&self) -> Option<Temporary<Element>> {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
-        node.child_elements().next().map(|elem| Temporary::new_rooted(&elem))
+        node.child_elements().next().map(|elem| Temporary::from_rooted(&elem))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
@@ -522,7 +524,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Node::adopt(node, self);
 
         // Step 3.
-        Ok(Temporary::new_rooted(node))
+        Ok(Temporary::from_rooted(node))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createevent
@@ -604,7 +606,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             node.children().find(|child| {
                 child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
             }).map(|node| {
-                Temporary::new_rooted(HTMLHeadElementCast::to_ref(&node).unwrap())
+                Temporary::from_rooted(HTMLHeadElementCast::to_ref(&node).unwrap())
             })
         })
     }
@@ -621,7 +623,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     _ => false
                 }
             }).map(|node| {
-                Temporary::new_rooted(HTMLElementCast::to_ref(&node).unwrap())
+                Temporary::from_rooted(HTMLElementCast::to_ref(&node).unwrap())
             })
         })
     }

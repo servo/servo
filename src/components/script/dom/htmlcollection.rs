@@ -38,16 +38,16 @@ pub struct HTMLCollection {
 }
 
 impl HTMLCollection {
-    pub fn new_inherited(window: JS<Window>, collection: CollectionTypeId) -> HTMLCollection {
+    pub fn new_inherited(window: &JSRef<Window>, collection: CollectionTypeId) -> HTMLCollection {
         HTMLCollection {
             collection: collection,
             reflector_: Reflector::new(),
-            window: window,
+            window: window.unrooted(),
         }
     }
 
     pub fn new(window: &JSRef<Window>, collection: CollectionTypeId) -> Temporary<HTMLCollection> {
-        reflect_dom_object(~HTMLCollection::new_inherited(window.unrooted(), collection),
+        reflect_dom_object(~HTMLCollection::new_inherited(window, collection),
                            window, HTMLCollectionBinding::Wrap)
     }
 }
@@ -159,7 +159,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                     })
                     .nth(index as uint)
                     .clone()
-                    .map(|elem| Temporary::new_rooted(&elem))
+                    .map(|elem| Temporary::from_rooted(&elem))
             }
         }
     }
@@ -179,7 +179,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 .find(|elem| {
                     elem.get_string_attribute("name") == key ||
                     elem.get_string_attribute("id") == key })
-                .map(|maybe_elem| Temporary::new_rooted(&*maybe_elem)),
+                .map(|maybe_elem| Temporary::from_rooted(&*maybe_elem)),
             Live(ref root, ref filter) => {
                 let root = root.root();
                 root.deref().traverse_preorder()
@@ -191,7 +191,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                     .find(|elem| {
                         elem.get_string_attribute("name") == key ||
                         elem.get_string_attribute("id") == key })
-                    .map(|maybe_elem| Temporary::new_rooted(&maybe_elem))
+                    .map(|maybe_elem| Temporary::from_rooted(&maybe_elem))
             }
         }
     }

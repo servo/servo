@@ -28,17 +28,17 @@ pub struct FormData {
 }
 
 impl FormData {
-    pub fn new_inherited(form: Option<JSRef<HTMLFormElement>>, window: JS<Window>) -> FormData {
+    pub fn new_inherited(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> FormData {
         FormData {
             data: HashMap::new(),
             reflector_: Reflector::new(),
-            window: window,
+            window: window.unrooted(),
             form: form.map(|form| form.unrooted())
         }
     }
 
     pub fn new(form: Option<JSRef<HTMLFormElement>>, window: &JSRef<Window>) -> Temporary<FormData> {
-        reflect_dom_object(~FormData::new_inherited(form, window.unrooted()), window, FormDataBinding::Wrap)
+        reflect_dom_object(~FormData::new_inherited(form, window), window, FormDataBinding::Wrap)
     }
 
     pub fn Constructor(window: &JSRef<Window>, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {

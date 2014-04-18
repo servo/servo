@@ -17,16 +17,16 @@ pub struct AttrList {
 }
 
 impl AttrList {
-    pub fn new_inherited(window: JS<Window>, elem: JS<Element>) -> AttrList {
+    pub fn new_inherited(window: &JSRef<Window>, elem: &JSRef<Element>) -> AttrList {
         AttrList {
             reflector_: Reflector::new(),
-            window: window,
-            owner: elem
+            window: window.unrooted(),
+            owner: elem.unrooted(),
         }
     }
 
     pub fn new(window: &JSRef<Window>, elem: &JSRef<Element>) -> Temporary<AttrList> {
-        reflect_dom_object(~AttrList::new_inherited(window.unrooted(), elem.unrooted()),
+        reflect_dom_object(~AttrList::new_inherited(window, elem),
                            window, AttrListBinding::Wrap)
     }
 }
@@ -37,7 +37,7 @@ pub trait AttrListMethods {
     fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Attr>>;
 }
 
-impl<'a> AttrListMethods for JSRef<'a, AttrList> { 
+impl<'a> AttrListMethods for JSRef<'a, AttrList> {
     fn Length(&self) -> u32 {
         self.owner.root().attrs.len() as u32
     }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFrameElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFrameElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLFrameElementTypeId;
@@ -29,14 +29,14 @@ impl HTMLFrameElementDerived for EventTarget {
 }
 
 impl HTMLFrameElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLFrameElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLFrameElement {
         HTMLFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLFrameElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFrameElement> {
-        let element = HTMLFrameElement::new_inherited(localName, document.unrooted());
+        let element = HTMLFrameElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLFrameElementBinding::Wrap)
     }
 }

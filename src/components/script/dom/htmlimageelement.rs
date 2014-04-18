@@ -68,7 +68,7 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
 }
 
 impl HTMLImageElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLImageElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, document),
             image: Untraceable::new(None),
@@ -76,7 +76,7 @@ impl HTMLImageElement {
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLImageElement> {
-        let element = HTMLImageElement::new_inherited(localName, document.unrooted());
+        let element = HTMLImageElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLImageElementBinding::Wrap)
     }
 }

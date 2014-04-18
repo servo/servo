@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::UIEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
-use dom::bindings::js::{JS, JSRef, RootedReference, Temporary};
+use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventMethods, EventTypeId, UIEventTypeId};
@@ -49,7 +49,7 @@ impl UIEvent {
         let view = init.view.as_ref().map(|view| view.root());
         ev.InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
                        view.root_ref(), init.detail);
-        Ok(Temporary::new_rooted(&*ev))
+        Ok(Temporary::from_rooted(&*ev))
     }
 }
 
@@ -93,7 +93,7 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
             let event: &mut JSRef<Event> = EventCast::from_mut_ref(self);
             event.InitEvent(type_, can_bubble, cancelable);
         }
-        self.view = view.map(|view| view.unrooted());
+        self.view.assign(view);
         self.detail = detail;
     }
 

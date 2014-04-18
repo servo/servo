@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::XMLHttpRequestDerived;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, XMLHttpRequestTargetTypeId};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalAssignable};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};

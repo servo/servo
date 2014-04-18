@@ -11,7 +11,7 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDeri
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::BindingDeclarations::NodeBinding::NodeConstants;
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};
-use dom::bindings::js::{OptionalAssignable, TemporaryPushable, OptionalRootedRootable};
+use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest};
@@ -566,7 +566,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     fn is_parent_of(&self, child: &JSRef<Node>) -> bool {
         match child.parent_node() {
-            Some(ref parent) if *parent == Temporary::new_rooted(self) => true,
+            Some(ref parent) if *parent == Temporary::from_rooted(self) => true,
             _ => false
         }
     }
@@ -604,7 +604,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn set_owner_doc(&mut self, document: &JSRef<Document>) {
-        self.owner_doc = Some(document.unrooted());
+        self.owner_doc.assign(Some(document.clone()));
     }
 
     fn children(&self) -> AbstractNodeChildrenIterator {
@@ -891,12 +891,11 @@ impl Node {
         let window = document.get().window.root();
         let node = reflect_dom_object(node, &window.root_ref(), wrap_fn).root();
         assert!(node.reflector().get_jsobject().is_not_null());
-        Temporary::new_rooted(&*node)
+        Temporary::from_rooted(&*node)
     }
 
-    pub fn new_inherited(type_id: NodeTypeId, doc: JS<Document>) -> Node {
-        let doc = doc.root();
-        Node::new_(type_id, Some(doc.root_ref()))
+    pub fn new_inherited(type_id: NodeTypeId, doc: &JSRef<Document>) -> Node {
+        Node::new_(type_id, Some(doc.clone()))
     }
 
     pub fn new_without_doc(type_id: NodeTypeId) -> Node {
@@ -1079,7 +1078,7 @@ impl Node {
         Node::insert(node, parent, referenceChild, Unsuppressed);
 
         // Step 11.
-        return Ok(Temporary::new_rooted(node))
+        return Ok(Temporary::from_rooted(node))
     }
 
     // http://dom.spec.whatwg.org/#concept-node-insert
@@ -1174,7 +1173,7 @@ impl Node {
     fn pre_remove(child: &mut JSRef<Node>, parent: &mut JSRef<Node>) -> Fallible<Temporary<Node>> {
         // Step 1.
         match child.parent_node() {
-            Some(ref node) if *node != Temporary::new_rooted(parent) => return Err(NotFound),
+            Some(ref node) if *node != Temporary::from_rooted(parent) => return Err(NotFound),
             _ => ()
         }
 
@@ -1182,12 +1181,12 @@ impl Node {
         Node::remove(child, parent, Unsuppressed);
 
         // Step 3.
-        Ok(Temporary::new_rooted(child))
+        Ok(Temporary::from_rooted(child))
     }
 
     // http://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: &mut JSRef<Node>, parent: &mut JSRef<Node>, suppress_observers: SuppressObserver) {
-        assert!(node.parent_node().map_or(false, |node_parent| node_parent == Temporary::new_rooted(parent)));
+        assert!(node.parent_node().map_or(false, |node_parent| node_parent == Temporary::from_rooted(parent)));
 
         // Step 1-5: ranges.
         // Step 6-7: mutation observers.
@@ -1296,10 +1295,10 @@ impl Node {
                 let window = document.get().window.root();
                 for attr in node_elem.attrs.iter().map(|attr| attr.root()) {
                     copy_elem.attrs.push_unrooted(
-                        Attr::new(&*window,
-                                  attr.deref().local_name.clone(), attr.deref().value.clone(),
-                                  attr.deref().name.clone(), attr.deref().namespace.clone(),
-                                  attr.deref().prefix.clone(), &copy_elem_alias));
+                        &Attr::new(&*window,
+                                   attr.deref().local_name.clone(), attr.deref().value.clone(),
+                                   attr.deref().name.clone(), attr.deref().namespace.clone(),
+                                   attr.deref().prefix.clone(), &copy_elem_alias));
                 }
             },
             _ => ()
@@ -1316,7 +1315,7 @@ impl Node {
         }
 
         // Step 7.
-        Temporary::new_rooted(&*copy)
+        Temporary::from_rooted(&*copy)
     }
 
     /// Sends layout data, if any, back to the script task to be destroyed.
@@ -1433,7 +1432,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                         .and_then(|parent| {
                             let parent = parent.root();
                             ElementCast::to_ref(&*parent).map(|elem| {
-                                Temporary::new_rooted(elem)
+                                Temporary::from_rooted(elem)
                             })
                         })
     }
@@ -1546,7 +1545,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     let document = self.owner_doc().root();
                     Some(NodeCast::from_unrooted(document.deref().CreateTextNode(value)))
                 }.root();
-                
+
                 // Step 3.
                 Node::replace_all(node.root_ref(), self);
             }
@@ -1671,8 +1670,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Ok if not caught by previous error checks.
-        if node.unrooted() == child.unrooted() {
-            return Ok(Temporary::new_rooted(child));
+        if *node == *child {
+            return Ok(Temporary::from_rooted(child));
         }
 
         // Step 7-8.
@@ -1706,7 +1705,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 15.
-        Ok(Temporary::new_rooted(child))
+        Ok(Temporary::from_rooted(child))
     }
 
     // http://dom.spec.whatwg.org/#dom-node-removechild

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFieldSetElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLFieldSetElementTypeId};
@@ -31,14 +31,14 @@ impl HTMLFieldSetElementDerived for EventTarget {
 }
 
 impl HTMLFieldSetElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLFieldSetElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement: HTMLElement::new_inherited(HTMLFieldSetElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLFieldSetElement> {
-        let element = HTMLFieldSetElement::new_inherited(localName, document.unrooted());
+        let element = HTMLFieldSetElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLFieldSetElementBinding::Wrap)
     }
 }

@@ -5,7 +5,7 @@
 //! DOM bindings for `CharacterData`.
 
 use dom::bindings::codegen::InheritTypes::CharacterDataDerived;
-use dom::bindings::js::{JS, JSRef};
+use dom::bindings::js::JSRef;
 use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
@@ -31,7 +31,7 @@ impl CharacterDataDerived for EventTarget {
 }
 
 impl CharacterData {
-    pub fn new_inherited(id: NodeTypeId, data: DOMString, document: JS<Document>) -> CharacterData {
+    pub fn new_inherited(id: NodeTypeId, data: DOMString, document: &JSRef<Document>) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(id, document),
             data: data

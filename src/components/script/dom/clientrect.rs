@@ -19,7 +19,7 @@ pub struct ClientRect {
 }
 
 impl ClientRect {
-    pub fn new_inherited(window: JS<Window>,
+    pub fn new_inherited(window: &JSRef<Window>,
                          top: Au, bottom: Au,
                          left: Au, right: Au) -> ClientRect {
         ClientRect {
@@ -28,14 +28,14 @@ impl ClientRect {
             left: left.to_nearest_px() as f32,
             right: right.to_nearest_px() as f32,
             reflector_: Reflector::new(),
-            window: window,
+            window: window.unrooted(),
         }
     }
 
     pub fn new(window: &JSRef<Window>,
                top: Au, bottom: Au,
                left: Au, right: Au) -> Temporary<ClientRect> {
-        let rect = ClientRect::new_inherited(window.unrooted(), top, bottom, left, right);
+        let rect = ClientRect::new_inherited(window, top, bottom, left, right);
         reflect_dom_object(~rect, window, ClientRectBinding::Wrap)
     }
 }

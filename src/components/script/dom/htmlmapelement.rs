@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLMapElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMapElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLMapElementTypeId;
@@ -29,14 +29,14 @@ impl HTMLMapElementDerived for EventTarget {
 }
 
 impl HTMLMapElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLMapElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLMapElement {
         HTMLMapElement {
             htmlelement: HTMLElement::new_inherited(HTMLMapElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLMapElement> {
-        let element = HTMLMapElement::new_inherited(localName, document.unrooted());
+        let element = HTMLMapElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLMapElementBinding::Wrap)
     }
 }

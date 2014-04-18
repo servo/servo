@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::MouseEventBinding;
 use dom::bindings::codegen::InheritTypes::{UIEventCast, MouseEventDerived};
-use dom::bindings::js::{JS, JSRef, RootedReference, Temporary};
+use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, MouseEventTypeId};
@@ -68,7 +68,7 @@ impl MouseEvent {
                           init.clientX, init.clientY, init.ctrlKey,
                           init.altKey, init.shiftKey, init.metaKey,
                           init.button, related_target.root_ref());
-        Ok(Temporary::new_rooted(&*ev))
+        Ok(Temporary::from_rooted(&*ev))
     }
 }
 
@@ -183,7 +183,7 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
         self.shift_key = shiftKeyArg;
         self.meta_key = metaKeyArg;
         self.button = buttonArg;
-        self.related_target = relatedTargetArg.map(|target| target.unrooted());
+        self.related_target.assign(relatedTargetArg);
     }
 }
 

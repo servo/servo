@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLMeterElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMeterElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLMeterElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLMeterElementDerived for EventTarget {
 }
 
 impl HTMLMeterElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLMeterElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLMeterElement {
         HTMLMeterElement {
             htmlelement: HTMLElement::new_inherited(HTMLMeterElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLMeterElement> {
-        let element = HTMLMeterElement::new_inherited(localName, document.unrooted());
+        let element = HTMLMeterElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLMeterElementBinding::Wrap)
     }
 }

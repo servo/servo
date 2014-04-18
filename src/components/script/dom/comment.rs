@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::CommentDerived;
 use dom::bindings::codegen::BindingDeclarations::CommentBinding;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -29,14 +29,14 @@ impl CommentDerived for EventTarget {
 }
 
 impl Comment {
-    pub fn new_inherited(text: DOMString, document: JS<Document>) -> Comment {
+    pub fn new_inherited(text: DOMString, document: &JSRef<Document>) -> Comment {
         Comment {
             characterdata: CharacterData::new_inherited(CommentNodeTypeId, text, document)
         }
     }
 
     pub fn new(text: DOMString, document: &JSRef<Document>) -> Temporary<Comment> {
-        let node = Comment::new_inherited(text, document.unrooted());
+        let node = Comment::new_inherited(text, document);
         Node::reflect_node(~node, document, CommentBinding::Wrap)
     }
 

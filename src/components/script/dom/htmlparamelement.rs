@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLParamElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLParamElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLParamElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLParamElementDerived for EventTarget {
 }
 
 impl HTMLParamElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLParamElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLParamElement {
         HTMLParamElement {
             htmlelement: HTMLElement::new_inherited(HTMLParamElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLParamElement> {
-        let element = HTMLParamElement::new_inherited(localName, document.unrooted());
+        let element = HTMLParamElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLParamElementBinding::Wrap)
     }
 }

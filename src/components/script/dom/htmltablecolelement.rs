@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTableColElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableColElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableColElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLTableColElementDerived for EventTarget {
 }
 
 impl HTMLTableColElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTableColElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTableColElement {
         HTMLTableColElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableColElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableColElement> {
-        let element = HTMLTableColElement::new_inherited(localName, document.unrooted());
+        let element = HTMLTableColElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLTableColElementBinding::Wrap)
     }
 }

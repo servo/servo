@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLLinkElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLLinkElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLLinkElementDerived for EventTarget {
 }
 
 impl HTMLLinkElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLLinkElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(HTMLLinkElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLLinkElement> {
-        let element = HTMLLinkElement::new_inherited(localName, document.unrooted());
+        let element = HTMLLinkElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLLinkElementBinding::Wrap)
     }
 }

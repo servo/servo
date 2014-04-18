@@ -91,7 +91,7 @@ impl Event {
                        init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
         let mut ev = Event::new(global).root();
         ev.InitEvent(type_, init.bubbles, init.cancelable);
-        Ok(Temporary::new_rooted(&*ev))
+        Ok(Temporary::from_rooted(&*ev))
     }
 }
 

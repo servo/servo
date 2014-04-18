@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLBodyElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBodyElementDerived;
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::HTMLBodyElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -28,14 +28,14 @@ impl HTMLBodyElementDerived for EventTarget {
 }
 
 impl HTMLBodyElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLBodyElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(HTMLBodyElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLBodyElement> {
-        let element = HTMLBodyElement::new_inherited(localName, document.unrooted());
+        let element = HTMLBodyElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLBodyElementBinding::Wrap)
     }
 }

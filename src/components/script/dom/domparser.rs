@@ -18,15 +18,15 @@ pub struct DOMParser {
 }
 
 impl DOMParser {
-    pub fn new_inherited(owner: JS<Window>) -> DOMParser {
+    pub fn new_inherited(owner: &JSRef<Window>) -> DOMParser {
         DOMParser {
-            owner: owner,
+            owner: owner.unrooted(),
             reflector_: Reflector::new()
         }
     }
 
     pub fn new(owner: &JSRef<Window>) -> Temporary<DOMParser> {
-        reflect_dom_object(~DOMParser::new_inherited(owner.unrooted()), owner,
+        reflect_dom_object(~DOMParser::new_inherited(owner), owner,
                            DOMParserBinding::Wrap)
     }
 

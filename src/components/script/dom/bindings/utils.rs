@@ -412,6 +412,9 @@ impl Reflector {
         self.object = object;
     }
 
+    /// Return a pointer to the memory location at which the JS reflector object is stored.
+    /// Used by Temporary values to root the reflector, as required by the JSAPI rooting
+    /// APIs.
     pub fn rootable(&self) -> **JSObject {
         &self.object as **JSObject
     }

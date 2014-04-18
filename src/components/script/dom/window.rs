@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::WindowBinding;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalAssignable};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
@@ -242,7 +242,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Window(&self) -> Temporary<Window> {
-        Temporary::new_rooted(self)
+        Temporary::from_rooted(self)
     }
 
     fn Self(&self) -> Temporary<Window> {

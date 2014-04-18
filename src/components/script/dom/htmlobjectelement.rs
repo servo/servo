@@ -6,7 +6,7 @@ use dom::attr::AttrMethods;
 use dom::bindings::codegen::BindingDeclarations::HTMLObjectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLObjectElementTypeId};
@@ -42,14 +42,14 @@ impl HTMLObjectElementDerived for EventTarget {
 }
 
 impl HTMLObjectElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLObjectElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLObjectElement {
         HTMLObjectElement {
             htmlelement: HTMLElement::new_inherited(HTMLObjectElementTypeId, localName, document),
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLObjectElement> {
-        let element = HTMLObjectElement::new_inherited(localName, document.unrooted());
+        let element = HTMLObjectElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLObjectElementBinding::Wrap)
     }
 }

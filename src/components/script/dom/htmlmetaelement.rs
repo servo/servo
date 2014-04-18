@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLMetaElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMetaElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLMetaElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLMetaElementDerived for EventTarget {
 }
 
 impl HTMLMetaElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLMetaElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(HTMLMetaElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLMetaElement> {
-        let element = HTMLMetaElement::new_inherited(localName, document.unrooted());
+        let element = HTMLMetaElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLMetaElementBinding::Wrap)
     }
 }

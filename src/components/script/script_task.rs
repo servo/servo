@@ -8,7 +8,7 @@
 use dom::attr::AttrMethods;
 use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCast, EventCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalAssignable};
+use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalSettable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, GlobalStaticData, wrap_for_same_compartment};
@@ -421,7 +421,7 @@ impl Page {
                     elem.get_attribute(Null, "name").root().map_or(false, |attr| {
                         attr.get().value_ref() == fragid
                     })
-                }).map(|node| Temporary::new_rooted(ElementCast::to_ref(&node).unwrap()))
+                }).map(|node| Temporary::from_rooted(ElementCast::to_ref(&node).unwrap()))
             }
         }
     }
@@ -907,7 +907,7 @@ impl ScriptTask {
 
         {
             let mut js_info = page.mut_js_info();
-            RegisterBindings::Register(&*window, js_info.get_mut_ref());
+            RegisterBindings::Register(&window.unrooted(), js_info.get_mut_ref());
         }
 
         self.compositor.set_ready_state(Loading);

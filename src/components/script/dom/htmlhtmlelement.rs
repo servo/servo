@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLHtmlElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHtmlElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLHtmlElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLHtmlElementDerived for EventTarget {
 }
 
 impl HTMLHtmlElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLHtmlElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLHtmlElement {
         HTMLHtmlElement {
             htmlelement: HTMLElement::new_inherited(HTMLHtmlElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLHtmlElement> {
-        let element = HTMLHtmlElement::new_inherited(localName, document.unrooted());
+        let element = HTMLHtmlElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLHtmlElementBinding::Wrap)
     }
 }

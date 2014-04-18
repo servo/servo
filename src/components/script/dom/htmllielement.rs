@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLLIElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLIElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLLIElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLLIElementDerived for EventTarget {
 }
 
 impl HTMLLIElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLLIElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLLIElement {
         HTMLLIElement {
             htmlelement: HTMLElement::new_inherited(HTMLLIElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLLIElement> {
-        let element = HTMLLIElement::new_inherited(localName, document.unrooted());
+        let element = HTMLLIElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLLIElementBinding::Wrap)
     }
 }

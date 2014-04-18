@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLDataListElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::{Element, HTMLDataListElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -28,14 +28,14 @@ impl HTMLDataListElementDerived for EventTarget {
 }
 
 impl HTMLDataListElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLDataListElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLDataListElement {
         HTMLDataListElement {
             htmlelement: HTMLElement::new_inherited(HTMLDataListElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLDataListElement> {
-        let element = HTMLDataListElement::new_inherited(localName, document.unrooted());
+        let element = HTMLDataListElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLDataListElementBinding::Wrap)
     }
 }

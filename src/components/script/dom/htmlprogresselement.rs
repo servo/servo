@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLProgressElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLProgressElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::HTMLProgressElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLProgressElementDerived for EventTarget {
 }
 
 impl HTMLProgressElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLProgressElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLProgressElement {
         HTMLProgressElement {
             htmlelement: HTMLElement::new_inherited(HTMLProgressElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLProgressElement> {
-        let element = HTMLProgressElement::new_inherited(localName, document.unrooted());
+        let element = HTMLProgressElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLProgressElementBinding::Wrap)
     }
 }

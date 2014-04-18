@@ -4,7 +4,7 @@
 
 use dom::bindings::callback::ReportExceptions;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
-use dom::bindings::js::{JSRef, OptionalAssignable, Root};
+use dom::bindings::js::{JSRef, OptionalSettable, Root};
 use dom::eventtarget::{Capturing, Bubbling, EventTarget};
 use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing, EventMethods};
 use dom::node::{Node, NodeHelpers};

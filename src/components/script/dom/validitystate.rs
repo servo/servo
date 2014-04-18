@@ -15,16 +15,16 @@ pub struct ValidityState {
 }
 
 impl ValidityState {
-    pub fn new_inherited(window: JS<Window>) -> ValidityState {
+    pub fn new_inherited(window: &JSRef<Window>) -> ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
-            window: window,
+            window: window.unrooted(),
             state: 0,
         }
     }
 
     pub fn new(window: &JSRef<Window>) -> Temporary<ValidityState> {
-        reflect_dom_object(~ValidityState::new_inherited(window.unrooted()),
+        reflect_dom_object(~ValidityState::new_inherited(window),
                            window,
                            ValidityStateBinding::Wrap)
     }

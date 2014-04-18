@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLOutputElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLOutputElementTypeId;
@@ -30,14 +30,14 @@ impl HTMLOutputElementDerived for EventTarget {
 }
 
 impl HTMLOutputElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLOutputElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLOutputElement {
         HTMLOutputElement {
             htmlelement: HTMLElement::new_inherited(HTMLOutputElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLOutputElement> {
-        let element = HTMLOutputElement::new_inherited(localName, document.unrooted());
+        let element = HTMLOutputElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLOutputElementBinding::Wrap)
     }
 }
@@ -54,7 +54,6 @@ pub trait HTMLOutputElementMethods {
     fn WillValidate(&self) -> bool;
     fn SetWillValidate(&mut self, _will_validate: bool);
     fn Validity(&self) -> Temporary<ValidityState>;
-    fn SetValidity(&mut self, _validity: JS<ValidityState>);
     fn ValidationMessage(&self) -> DOMString;
     fn SetValidationMessage(&mut self, _message: DOMString) -> ErrorResult;
     fn CheckValidity(&self) -> bool;
@@ -104,9 +103,6 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
     fn Validity(&self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
         ValidityState::new(&*window)
-    }
-
-    fn SetValidity(&mut self, _validity: JS<ValidityState>) {
     }
 
     fn ValidationMessage(&self) -> DOMString {

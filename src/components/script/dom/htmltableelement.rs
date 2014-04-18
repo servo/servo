@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLTableElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableElementDerived;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLTableElementTypeId;
@@ -28,14 +28,14 @@ impl HTMLTableElementDerived for EventTarget {
 }
 
 impl HTMLTableElement {
-    pub fn new_inherited(localName: DOMString, document: JS<Document>) -> HTMLTableElement {
+    pub fn new_inherited(localName: DOMString, document: &JSRef<Document>) -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(HTMLTableElementTypeId, localName, document)
         }
     }
 
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLTableElement> {
-        let element = HTMLTableElement::new_inherited(localName, document.unrooted());
+        let element = HTMLTableElement::new_inherited(localName, document);
         Node::reflect_node(~element, document, HTMLTableElementBinding::Wrap)
     }
 }
