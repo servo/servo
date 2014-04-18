@@ -52,7 +52,11 @@ fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
 
         redirected_to.insert(url.clone());
 
-        assert!("http" == url.scheme);
+        if "http" != url.scheme {
+            info!("{:s} request, but we don't support that scheme", url.scheme);
+            send_error(url, start_chan);
+            return;
+        }
 
         info!("requesting {:s}", url.to_str());
 
