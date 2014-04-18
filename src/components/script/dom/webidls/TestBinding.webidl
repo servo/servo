@@ -4,6 +4,54 @@
 
 enum TestEnum { "", "foo", "bar" };
 
+/* dictionary TestDictionary {
+  // boolean booleanValue;
+  // byte byteValue;
+  // octet octetValue;
+  // short shortValue;
+  // unsigned short unsignedShortValue;
+  // long longValue;
+  // unsigned long unsignedLongValue;
+  // long long longLongValue;
+  // unsigned long long unsignedLongLongValue;
+  // float floatValue;
+  // double doubleValue;
+  // DOMString stringValue;
+  // TestEnum enumValue;
+  // Blob interfaceValue;
+  // any anyValue;
+}; */
+
+dictionary TestDictionaryDefaults {
+  // boolean booleanValue = false;
+  // byte byteValue = 7;
+  // octet octetValue = 7;
+  short shortValue = 7;
+  unsigned short unsignedShortValue = 7;
+  long longValue = 7;
+  unsigned long unsignedLongValue = 7;
+  // long long longLongValue = 7;
+  // unsigned long long unsignedLongLongValue = 7;
+  // float floatValue = 7.0;
+  // double doubleValue = 7.0;
+  DOMString stringValue = "";
+  // TestEnum enumValue = "bar";
+
+  // boolean? nullableBooleanValue = false;
+  // byte? nullableByteValue = 7;
+  // octet? nullableOctetValue = 7;
+  short? nullableShortValue = 7;
+  unsigned short? nullableUnsignedShortValue = 7;
+  long? nullableLongValue = 7;
+  unsigned long? nullableUnsignedLongValue = 7;
+  // long long? nullableLongLongValue = 7;
+  // unsigned long long? nullableUnsignedLongLongValue = 7;
+  // float? nullableFloatValue = 7.0;
+  // double? nullableDoubleValue = 7.0;
+  DOMString? nullableStringValue = "";
+  // TestEnum? nullableEnumValue = "bar";
+};
+
 interface TestBinding {
            attribute boolean booleanAttribute;
            attribute byte byteAttribute;
