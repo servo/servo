@@ -14,6 +14,11 @@ use servo_util::namespace;
 use servo_util::namespace::Namespace;
 use servo_util::str::DOMString;
 
+pub enum AttrSettingType {
+    FirstSetAttr,
+    ReplacedAttr,
+}
+
 #[deriving(Encodable)]
 pub struct Attr {
     reflector_: Reflector,
@@ -59,12 +64,17 @@ impl Attr {
         reflect_dom_object(~attr, window, AttrBinding::Wrap)
     }
 
-    pub fn set_value(&mut self, value: DOMString) {
+    pub fn set_value(&mut self, set_type: AttrSettingType, value: DOMString) {
         let node: JS<Node> = NodeCast::from(&self.owner);
         let namespace_is_null = self.namespace == namespace::Null;
 
-        if namespace_is_null {
-            vtable_for(&node).before_remove_attr(self.local_name.clone(), self.value.clone());
+        match set_type {
+            ReplacedAttr => {
+                if namespace_is_null {
+                    vtable_for(&node).before_remove_attr(self.local_name.clone(), self.value.clone());
+                }
+            }
+            FirstSetAttr => {}
         }
 
         self.value = value;
@@ -89,7 +99,7 @@ impl Attr {
     }
 
     pub fn SetValue(&mut self, value: DOMString) {
-        self.set_value(value);
+        self.set_value(ReplacedAttr, value);
     }
 
     pub fn Name(&self) -> DOMString {
