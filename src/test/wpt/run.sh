@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-cd $2
+cd $2/..
 
 test -d _virtualenv || virtualenv _virtualenv
 test -d $1/src/test/wpt/metadata || mkdir -p $1/src/test/wpt/metadata
