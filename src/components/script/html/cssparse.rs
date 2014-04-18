@@ -14,23 +14,21 @@ use url::Url;
 
 /// Where a style sheet comes from.
 pub enum StylesheetProvenance {
-    UrlProvenance(Url),
+    UrlProvenance(Url, ResourceTask),
     InlineProvenance(Url, ~str),
 }
 
 // Parses the style data and returns the stylesheet
 pub fn parse_inline_css(url: Url, data: ~str) -> Stylesheet {
-    let resource_task = ResourceTask(); // Resource task is not used for inline parsing
-    parse_css(InlineProvenance(url, data), resource_task)
+    parse_css(InlineProvenance(url, data))
 }
 
-fn parse_css(provenance: StylesheetProvenance,
-             resource_task: ResourceTask) -> Stylesheet {
+fn parse_css(provenance: StylesheetProvenance) -> Stylesheet {
     // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
     let environment_encoding = UTF_8 as EncodingRef;
 
     match provenance {
-        UrlProvenance(url) => {
+        UrlProvenance(url, resource_task) => {
             debug!("cssparse: loading style sheet at {:s}", url.to_str());
             let (input_chan, input_port) = channel();
             resource_task.send(Load(url, input_chan));
@@ -50,13 +48,11 @@ fn parse_css(provenance: StylesheetProvenance,
     }
 }
 
-pub fn spawn_css_parser(provenance: StylesheetProvenance,
-                        resource_task: ResourceTask)
-                     -> Receiver<Stylesheet> {
+pub fn spawn_css_parser(provenance: StylesheetProvenance) -> Receiver<Stylesheet> {
     let (result_chan, result_port) = channel();
 
     spawn_named("cssparser", proc() {
-        result_chan.send(parse_css(provenance, resource_task));
+        result_chan.send(parse_css(provenance));
     });
 
     return result_port;
