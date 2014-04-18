@@ -111,7 +111,7 @@ fn css_link_listener(to_parent: Sender<HtmlDiscoveryMessage>,
     loop {
         match from_parent.recv_opt() {
             Some(CSSTaskNewFile(provenance)) => {
-                result_vec.push(spawn_css_parser(provenance, resource_task.clone()));
+                result_vec.push(spawn_css_parser(provenance));
             }
             Some(CSSTaskExit) | None => {
                 break;
@@ -357,7 +357,7 @@ pub fn parse_html(page: &Page,
                                 }) => {
                             debug!("found CSS stylesheet: {:s}", href.get().value_ref());
                             let url = parse_url(href.get().value_ref(), Some(url2.clone()));
-                            css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
+                            css_chan2.send(CSSTaskNewFile(UrlProvenance(url, resource_task.clone())));
                         }
                         _ => {}
                     }
