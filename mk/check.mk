@@ -91,6 +91,10 @@ check-content: contenttest
 	@$(call E, check: contenttests)
 	$(Q)./contenttest --source-dir=$(S)src/test/content $(TESTNAME)
 
+.PHONY: check-wpt
+check-wpt:
+	bash $(S)src/test/wpt/run.sh $(S)
+
 .PHONY: tidy
 tidy:
 	@$(call E, check: tidy)
