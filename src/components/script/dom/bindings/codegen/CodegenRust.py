@@ -4204,18 +4204,18 @@ class CGDictionary(CGThing):
             "\n".join("      %s: %s," % (self.makeMemberName(m[0].identifier.name), defaultValue(self.getMemberType(m))) for m in self.memberInfo) + "\n"
             "    };\n"
             "\n"
+            "    let object = if val.is_null_or_undefined() {\n"
+            "        ptr::null()\n"
+            "    } else if val.is_object() {\n"
+            "        val.to_object()\n"
+            "    } else {\n"
+            "        //XXXjdm throw properly here\n"
+            "        return Err(());\n"
+            "    };\n"
             "    unsafe {\n"
-            "      let mut found: JSBool = 0;\n"
-            "      let temp: JSVal = NullValue();\n"
-            "      let isNull = val.is_null_or_undefined();\n"
-            "      if !isNull && val.is_primitive() {\n"
-            "        return Err(()); //XXXjdm throw properly here\n"
-            "        //return Throw(cx, NS_ERROR_XPC_BAD_CONVERT_JS);\n"
-            "      }\n"
-            "\n"
             "${initMembers}\n"
-            "      Ok(result)\n"
             "    }\n"
+            "    Ok(result)\n"
             "  }\n"
             "}").substitute({
                 "selfName": self.makeClassName(d),
@@ -4251,8 +4251,7 @@ class CGDictionary(CGThing):
     def getMemberConversion(self, memberInfo):
         (member, (templateBody, declType,
                   holderType, dealWithOptional, initialValue)) = memberInfo
-        replacements = { "val": "temp",
-                         "valPtr": "&temp",
+        replacements = { "val": "value.unwrap()",
                          "declName": ("result.%s" % self.makeMemberName(member.identifier.name)),
                          # We need a holder name for external interfaces, but
                          # it's scoped down to the conversion so we can just use
@@ -4263,48 +4262,25 @@ class CGDictionary(CGThing):
         if dealWithOptional:
             replacements["declName"] = "(" + replacements["declName"] + ".Value())"
         if member.defaultValue:
-            replacements["haveValue"] = "found != 0"
+            replacements["haveValue"] = "value.is_some()"
 
         propName = member.identifier.name
-        propCheck = ('"%s".to_c_str().with_ref(|s| { JS_HasProperty(cx, val.to_object(), s, &found) })' %
-                     propName)
-        propGet = ('"%s".to_c_str().with_ref(|s| { JS_GetProperty(cx, val.to_object(), s, &temp) })' %
-                   propName)
+        conversion = CGIndenter(
+            CGGeneric(string.Template(templateBody).substitute(replacements)),
+            8).define()
+        if not member.defaultValue:
+            raise TypeError("We don't support dictionary members without a "
+                            "default value.")
 
-        conversionReplacements = {
-            "prop": "(this->%s)" % member.identifier.name,
-            "convert": string.Template(templateBody).substitute(replacements),
-            "propCheck": propCheck,
-            "propGet": propGet
-            }
-        conversion = ("if isNull {\n"
-                      "  found = 0;\n"
-                      "} else if ${propCheck} == 0 {\n"
-                      "  return Err(());\n"
-                      "}\n")
-        if member.defaultValue:
-            conversion += (
-                "if found != 0 {\n"
-                "  if ${propGet} == 0 {\n"
-                "    return Err(());\n"
-                "  }\n"
-                "}\n"
-                "${convert}")
-        else:
-            conversion += (
-                "if found != 0 {\n"
-                "  ${prop}.Construct();\n"
-                "  if ${propGet} == 0 {\n"
-                "    return Err(());\n"
-                "  }\n"
-                "${convert}\n"
-                "}")
-            conversionReplacements["convert"] = CGIndenter(
-                CGGeneric(conversionReplacements["convert"])).define()
+        conversion = (
+            "match get_dictionary_property(cx, object, \"%s\") {\n"
+            "    Err(()) => return Err(()),\n"
+            "    Ok(value) => {\n"
+            "%s\n"
+            "    },\n"
+            "}\n") % (propName, conversion)
 
-        return CGGeneric(
-            string.Template(conversion).substitute(conversionReplacements)
-            )
+        return CGGeneric(conversion)
 
     @staticmethod
     def makeIdName(name):
@@ -4448,6 +4424,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
             'dom::bindings::utils::{VoidVal, with_gc_disabled}',
             'dom::bindings::utils::{with_gc_enabled}',
+            'dom::bindings::utils::get_dictionary_property',
             'dom::bindings::trace::JSTraceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
