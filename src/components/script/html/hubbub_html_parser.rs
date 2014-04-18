@@ -104,8 +104,7 @@ spawned, collates them, and sends them to the given result channel.
 
 */
 fn css_link_listener(to_parent: Sender<HtmlDiscoveryMessage>,
-                     from_parent: Receiver<CSSMessage>,
-                     resource_task: ResourceTask) {
+                     from_parent: Receiver<CSSMessage>) {
     let mut result_vec = ~[];
 
     loop {
@@ -254,13 +253,12 @@ pub fn parse_html(page: &Page,
     debug!("Hubbub: parsing {:?}", url);
     let next_subpage_id: SubpageId = *page.next_subpage_id.deref().borrow();
     // Spawn a CSS parser to receive links to CSS style sheets.
-    let resource_task2 = resource_task.clone();
 
     let (discovery_chan, discovery_port) = channel();
     let stylesheet_chan = discovery_chan.clone();
     let (css_chan, css_msg_port) = channel();
     spawn_named("parse_html:css", proc() {
-        css_link_listener(stylesheet_chan, css_msg_port, resource_task2.clone());
+        css_link_listener(stylesheet_chan, css_msg_port);
     });
 
     // Spawn a JS parser to receive JavaScript.
