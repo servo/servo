@@ -363,10 +363,11 @@ impl Document {
 
     // http://dom.spec.whatwg.org/#dom-document-createevent
     pub fn CreateEvent(&self, interface: DOMString) -> Fallible<JS<Event>> {
-        match interface.as_slice() {
-            "UIEvents" => Ok(EventCast::from(&UIEvent::new(&self.window))),
-            "MouseEvents" => Ok(EventCast::from(&MouseEvent::new(&self.window))),
-            "HTMLEvents" => Ok(Event::new(&self.window)),
+        match interface.to_ascii_lower().as_slice() {
+            // FIXME: Implement CustomEvent (http://dom.spec.whatwg.org/#customevent)
+            "uievents" | "uievent" => Ok(EventCast::from(&UIEvent::new(&self.window))),
+            "mouseevents" | "mouseevent" => Ok(EventCast::from(&MouseEvent::new(&self.window))),
+            "htmlevents" | "events" | "event" => Ok(Event::new(&self.window)),
             _ => Err(NotSupported)
         }
     }
