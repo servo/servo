@@ -4175,9 +4175,6 @@ class CGDictionary(CGThing):
                 "pub struct ${selfName} {\n" +
                 "${inheritance}" +
                 "\n".join(memberDecls) + "\n" +
-                "\n".join("  //static jsid " +
-                          self.makeIdName(m.identifier.name) + ";" for
-                          m in d.members) + "\n"
                 "}").substitute( { "selfName": self.makeClassName(d),
                                     "inheritance": inheritance }))
 
@@ -4193,15 +4190,6 @@ class CGDictionary(CGThing):
 
         memberInits = [CGIndenter(self.getMemberConversion(m), indentLevel=6).define()
                        for m in self.memberInfo]
-        idinit = [CGGeneric('!InternJSString(cx, %s, "%s")' %
-                            (m.identifier.name + "_id", m.identifier.name))
-                  for m in d.members]
-        idinit = CGList(idinit, " ||\n")
-        idinit = CGWrapper(idinit, pre="if (",
-                           post=(") {\n"
-                                 "  return false;\n"
-                                 "}"),
-                           reindent=True)
 
         def defaultValue(ty):
             if ty is "bool":
@@ -4216,11 +4204,6 @@ class CGDictionary(CGThing):
                 return "/* uh oh: %s */" % ty
 
         return string.Template(
-            "static initedIds: bool = false;\n" +
-            "\n".join("static %s: jsid = JSID_VOID;" %
-                      self.makeIdName(m.identifier.name)
-                      for m in d.members) + "\n"
-            "\n"
             "impl ${selfName} {\n"
             "  pub fn new() -> ${selfName} {\n"
             "    ${selfName} {\n" +
@@ -4230,18 +4213,8 @@ class CGDictionary(CGThing):
             "    }\n"
             "  }\n"
             "\n"
-            "  pub fn InitIds(&mut self, cx: *JSContext) -> bool {\n"
-            "    //MOZ_ASSERT(!initedIds);\n"
-            "  /*${idInit}\n"
-            "    initedIds = true;*/ //XXXjdm\n"
-            "    return true;\n"
-            "  }\n"
-            "\n"
             "  pub fn Init(&mut self, cx: *JSContext, val: JSVal) -> JSBool {\n"
             "    unsafe {\n"
-            "      if !initedIds && !self.InitIds(cx) {\n"
-            "        return 0;\n"
-            "      }\n"
             "${initParent}"
             "      let mut found: JSBool = 0;\n"
             "      let temp: JSVal = NullValue();\n"
@@ -4259,7 +4232,6 @@ class CGDictionary(CGThing):
                 "selfName": self.makeClassName(d),
                 "initParent": CGIndenter(CGGeneric(initParent), indentLevel=6).define(),
                 "initMembers": "\n\n".join(memberInits),
-                "idInit": CGIndenter(idinit).define(),
                 })
 
     @staticmethod
@@ -4304,18 +4276,11 @@ class CGDictionary(CGThing):
         if member.defaultValue:
             replacements["haveValue"] = "found != 0"
 
-        if True: #XXXjdm hack until 'static mut' exists for global jsids
-            propName = member.identifier.name
-            propCheck = ('"%s".to_c_str().with_ref(|s| { JS_HasProperty(cx, val.to_object(), s, &found) })' %
-                         propName)
-            propGet = ('"%s".to_c_str().with_ref(|s| { JS_GetProperty(cx, val.to_object(), s, &temp) })' %
-                       propName)
-        else:
-            propId = self.makeIdName(member.identifier.name);
-            propCheck = ("JS_HasPropertyById(cx, val.to_object(), %s, &found)" %
-                         propId)
-            propGet = ("JS_GetPropertyById(cx, val.to_object(), %s, &temp)" %
-                       propId)
+        propName = member.identifier.name
+        propCheck = ('"%s".to_c_str().with_ref(|s| { JS_HasProperty(cx, val.to_object(), s, &found) })' %
+                     propName)
+        propGet = ('"%s".to_c_str().with_ref(|s| { JS_GetProperty(cx, val.to_object(), s, &temp) })' %
+                   propName)
 
         conversionReplacements = {
             "prop": "(this->%s)" % member.identifier.name,
