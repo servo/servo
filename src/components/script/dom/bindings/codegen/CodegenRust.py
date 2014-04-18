@@ -670,8 +670,8 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             conversionCode = (
                 "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
                 "  Ok(strval) => ${declName} = %s,\n"
-                "  Err(_) => return 0,\n"
-                "}" % (nullBehavior, strval))
+                "  Err(_) => { %s },\n"
+                "}" % (nullBehavior, strval, exceptionCode))
 
             if defaultValue is None:
                 return conversionCode
@@ -794,7 +794,6 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         assert not isOptional
 
         typeName = CGDictionary.makeDictionaryName(type.inner)
-        selfRef = "${declName}"
 
         declType = CGGeneric(typeName)
 
@@ -806,10 +805,10 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         else:
             val = "${val}"
 
-        template = ("%s = %s::new();\n"
-                    "if %s.Init(cx, %s) == 0 {\n"
-                    "  return 0;\n"
-                    "}" % (selfRef, typeName, selfRef, val))
+        template = ("${declName} = match %s::new(cx, %s) {\n"
+                    "  Ok(dictionary) => dictionary,\n"
+                    "  Err(_) => return 0,\n"
+                    "};" % (typeName, val))
 
         return (template, declType, None, False, None)
 
@@ -4143,7 +4142,9 @@ class CGDictionary(CGThing):
                                              descriptorProvider,
                                              isMember=True,
                                              isOptional=(not member.defaultValue),
-                                             defaultValue=member.defaultValue))
+                                             defaultValue=member.defaultValue,
+                                             failureCode="return Err(());",
+                                             exceptionCode="return Err(());"))
             for member in dictionary.members ]
 
     def define(self):
@@ -4172,10 +4173,11 @@ class CGDictionary(CGThing):
     def impl(self):
         d = self.dictionary
         if d.parent:
-            initParent = ("// Per spec, we init the parent's members first\n"
-                          "if self.parent.Init(cx, val) == 0 {\n"
-                          "  return 0;\n"
-                          "}\n")
+            initParent = ("parent: match %s::%s::new(cx, val) {\n"
+                          "  Ok(parent) => parent,\n"
+                          "  Err(_) => return Err(()),\n"
+                          "},\n") % (self.makeModuleName(d.parent),
+                                     self.makeClassName(d.parent))
         else:
             initParent = ""
 
@@ -4196,27 +4198,23 @@ class CGDictionary(CGThing):
 
         return string.Template(
             "impl ${selfName} {\n"
-            "  pub fn new() -> ${selfName} {\n"
-            "    ${selfName} {\n" +
-            (("      parent: %s::%s::new(),\n" % (self.makeModuleName(d.parent),
-                                                  self.makeClassName(d.parent))) if d.parent else "") +
+            "  pub fn new(cx: *JSContext, val: JSVal) -> Result<${selfName}, ()> {\n"
+            "    let mut result = ${selfName} {\n"
+            "${initParent}" +
             "\n".join("      %s: %s," % (self.makeMemberName(m[0].identifier.name), defaultValue(self.getMemberType(m))) for m in self.memberInfo) + "\n"
-            "    }\n"
-            "  }\n"
+            "    };\n"
             "\n"
-            "  pub fn Init(&mut self, cx: *JSContext, val: JSVal) -> JSBool {\n"
             "    unsafe {\n"
-            "${initParent}"
             "      let mut found: JSBool = 0;\n"
             "      let temp: JSVal = NullValue();\n"
             "      let isNull = val.is_null_or_undefined();\n"
             "      if !isNull && val.is_primitive() {\n"
-            "        return 0; //XXXjdm throw properly here\n"
+            "        return Err(()); //XXXjdm throw properly here\n"
             "        //return Throw(cx, NS_ERROR_XPC_BAD_CONVERT_JS);\n"
             "      }\n"
             "\n"
             "${initMembers}\n"
-            "      return 1;\n"
+            "      Ok(result)\n"
             "    }\n"
             "  }\n"
             "}").substitute({
@@ -4255,7 +4253,7 @@ class CGDictionary(CGThing):
                   holderType, dealWithOptional, initialValue)) = memberInfo
         replacements = { "val": "temp",
                          "valPtr": "&temp",
-                         "declName": ("self.%s" % self.makeMemberName(member.identifier.name)),
+                         "declName": ("result.%s" % self.makeMemberName(member.identifier.name)),
                          # We need a holder name for external interfaces, but
                          # it's scoped down to the conversion so we can just use
                          # anything we want.
@@ -4282,13 +4280,13 @@ class CGDictionary(CGThing):
         conversion = ("if isNull {\n"
                       "  found = 0;\n"
                       "} else if ${propCheck} == 0 {\n"
-                      "  return 0;\n"
+                      "  return Err(());\n"
                       "}\n")
         if member.defaultValue:
             conversion += (
                 "if found != 0 {\n"
                 "  if ${propGet} == 0 {\n"
-                "    return 0;\n"
+                "    return Err(());\n"
                 "  }\n"
                 "}\n"
                 "${convert}")
@@ -4297,7 +4295,7 @@ class CGDictionary(CGThing):
                 "if found != 0 {\n"
                 "  ${prop}.Construct();\n"
                 "  if ${propGet} == 0 {\n"
-                "    return 0;\n"
+                "    return Err(());\n"
                 "  }\n"
                 "${convert}\n"
                 "}")
