@@ -670,8 +670,8 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             conversionCode = (
                 "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
                 "  Ok(strval) => ${declName} = %s,\n"
-                "  Err(_) => return 0,\n"
-                "}" % (nullBehavior, strval))
+                "  Err(_) => { %s },\n"
+                "}" % (nullBehavior, strval, exceptionCode))
 
             if defaultValue is None:
                 return conversionCode
