@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::AttrBinding;
 use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::js::{JS, JSRef, Temporary, RootCollection};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::node::Node;
@@ -65,8 +65,7 @@ impl Attr {
     }
 
     pub fn set_value(&mut self, set_type: AttrSettingType, value: DOMString) {
-        let roots = RootCollection::new();
-        let owner = self.owner.root(&roots);
+        let owner = self.owner.root();
         let node: &JSRef<Node> = NodeCast::from_ref(&*owner);
         let namespace_is_null = self.namespace == namespace::Null;
 

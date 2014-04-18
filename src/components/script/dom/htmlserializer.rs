@@ -7,7 +7,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, CommentCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, CharacterDataCast};
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
-use dom::bindings::js::{JSRef, RootCollection};
+use dom::bindings::js::JSRef;
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::documenttype::DocumentType;
@@ -70,9 +70,8 @@ fn serialize_comment(comment: &JSRef<Comment>) -> ~str {
 }
 
 fn serialize_text(text: &JSRef<Text>) -> ~str {
-    let roots = RootCollection::new();
     let text_node: &JSRef<Node> = NodeCast::from_ref(text);
-    match text_node.parent_node().map(|node| node.root(&roots)) {
+    match text_node.parent_node().map(|node| node.root()) {
         Some(ref parent) if parent.is_element() => {
             let elem: &JSRef<Element> = ElementCast::to_ref(&**parent).unwrap();
             match elem.get().local_name.as_slice() {
@@ -97,17 +96,16 @@ fn serialize_doctype(doctype: &JSRef<DocumentType>) -> ~str {
 }
 
 fn serialize_elem(elem: &JSRef<Element>, open_elements: &mut Vec<~str>) -> ~str {
-    let roots = RootCollection::new();
     let mut rv = ~"<" + elem.get().local_name;
     for attr in elem.get().attrs.iter() {
-        let attr = attr.root(&roots);
+        let attr = attr.root();
         rv.push_str(serialize_attr(&*attr));
     };
     rv.push_str(">");
     match elem.get().local_name.as_slice() {
         "pre" | "listing" | "textarea" if elem.get().namespace == namespace::HTML => {
             let node: &JSRef<Node> = NodeCast::from_ref(elem);
-            match node.first_child().map(|child| child.root(&roots)) {
+            match node.first_child().map(|child| child.root()) {
                 Some(ref child) if child.is_text() => {
                     let text: &JSRef<CharacterData> = CharacterDataCast::to_ref(&**child).unwrap();
                     if text.get().data.len() > 0 && text.get().data[0] == 0x0A as u8 {

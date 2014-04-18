@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::UIEventBinding;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
-use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Temporary};
+use dom::bindings::js::{JS, JSRef, RootedReference, Temporary};
 use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventMethods, EventTypeId, UIEventTypeId};
@@ -45,9 +45,8 @@ impl UIEvent {
     pub fn Constructor(owner: &JSRef<Window>,
                        type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<Temporary<UIEvent>> {
-        let roots = RootCollection::new();
-        let mut ev = UIEvent::new(owner).root(&roots);
-        let view = init.view.as_ref().map(|view| view.root(&roots));
+        let mut ev = UIEvent::new(owner).root();
+        let view = init.view.as_ref().map(|view| view.root());
         ev.InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
                        view.root_ref(), init.detail);
         Ok(Temporary::new_rooted(&*ev))

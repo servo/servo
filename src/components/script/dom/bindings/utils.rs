@@ -5,7 +5,7 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::{FromJSValConvertible, IDLInterface};
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, Root};
+use dom::bindings::js::{JS, JSRef, Temporary, Root};
 use dom::bindings::trace::Untraceable;
 use dom::browsercontext;
 use dom::window;
@@ -606,7 +606,6 @@ pub extern fn wrap_for_same_compartment(cx: *JSContext, obj: *JSObject) -> *JSOb
 
 pub extern fn outerize_global(_cx: *JSContext, obj: JSHandleObject) -> *JSObject {
     unsafe {
-        let roots = RootCollection::new();
         debug!("outerizing");
         let obj = *obj.unnamed;
         let win: Root<window::Window> =
@@ -614,7 +613,7 @@ pub extern fn outerize_global(_cx: *JSContext, obj: JSHandleObject) -> *JSObject
                              IDLInterface::get_prototype_id(None::<window::Window>),
                              IDLInterface::get_prototype_depth(None::<window::Window>))
             .unwrap()
-            .root(&roots);
+            .root();
         win.deref().browser_context.get_ref().window_proxy()
     }
 }
@@ -631,8 +630,7 @@ pub fn global_object_for_js_object(obj: *JSObject) -> JS<window::Window> {
 }
 
 fn cx_for_dom_reflector(obj: *JSObject) -> *JSContext {
-    let roots = RootCollection::new();
-    let win = global_object_for_js_object(obj).root(&roots);
+    let win = global_object_for_js_object(obj).root();
     let js_info = win.get().page().js_info();
     match *js_info {
         Some(ref info) => info.js_context.deref().deref().ptr,

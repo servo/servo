@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::codegen::BindingDeclarations::TestBindingBinding;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use self::TestBindingBinding::TestEnum;
@@ -232,8 +232,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn EnumAttribute(&self) -> TestEnum { _empty }
     fn SetEnumAttribute(&self, _: TestEnum) {}
     fn InterfaceAttribute(&self) -> Temporary<Blob> {
-        let roots = RootCollection::new();
-        let window = self.window.root(&roots);
+        let window = self.window.root();
         Blob::new(&*window)
     }
     fn SetInterfaceAttribute(&self, _: &JSRef<Blob>) {}
@@ -268,8 +267,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
     fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>> {
-        let roots = RootCollection::new();
-        let window = self.window.root(&roots);
+        let window = self.window.root();
         Some(Blob::new(&(*window)))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<JSRef<Blob>>) {}

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFieldSetElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLFieldSetElementTypeId};
@@ -94,10 +94,9 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
                 elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.get().local_name)
             }
         }
-        let roots = RootCollection::new();
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         let filter = ~ElementsFilter;
-        let window = window_from_node(node).root(&roots);
+        let window = window_from_node(node).root();
         HTMLCollection::create(&*window, node, filter)
     }
 
@@ -106,8 +105,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     }
 
     fn Validity(&self) -> Temporary<ValidityState> {
-        let roots = RootCollection::new();
-        let window = window_from_node(self).root(&roots);
+        let window = window_from_node(self).root();
         ValidityState::new(&*window)
     }
 

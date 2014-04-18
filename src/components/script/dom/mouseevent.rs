@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::MouseEventBinding;
 use dom::bindings::codegen::InheritTypes::{UIEventCast, MouseEventDerived};
-use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Temporary};
+use dom::bindings::js::{JS, JSRef, RootedReference, Temporary};
 use dom::bindings::error::Fallible;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, MouseEventTypeId};
@@ -60,10 +60,9 @@ impl MouseEvent {
     pub fn Constructor(owner: &JSRef<Window>,
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Temporary<MouseEvent>> {
-        let roots = RootCollection::new();
-        let mut ev = MouseEvent::new(owner).root(&roots);
-        let view = init.view.as_ref().map(|view| view.root(&roots));
-        let related_target = init.relatedTarget.as_ref().map(|relatedTarget| relatedTarget.root(&roots));
+        let mut ev = MouseEvent::new(owner).root();
+        let view = init.view.as_ref().map(|view| view.root());
+        let related_target = init.relatedTarget.as_ref().map(|relatedTarget| relatedTarget.root());
         ev.InitMouseEvent(type_, init.bubbles, init.cancelable, view.root_ref(),
                           init.detail, init.screenX, init.screenY,
                           init.clientX, init.clientY, init.ctrlKey,

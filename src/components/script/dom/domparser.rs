@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::DOMParserBinding;
 use dom::bindings::codegen::BindingDeclarations::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::error::{Fallible, FailureUnknown};
 use dom::document::{Document, HTMLDocument, NonHTMLDocument};
@@ -44,8 +44,7 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                        _s: DOMString,
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Temporary<Document>> {
-        let roots = RootCollection::new();
-        let owner = self.owner.root(&roots);
+        let owner = self.owner.root();
         match ty {
             Text_html => {
                 Ok(Document::new(&owner.root_ref(), None, HTMLDocument, Some(~"text/html")))

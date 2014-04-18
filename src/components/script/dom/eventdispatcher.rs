@@ -4,7 +4,7 @@
 
 use dom::bindings::callback::ReportExceptions;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
-use dom::bindings::js::{JSRef, OptionalAssignable, RootCollection, Root};
+use dom::bindings::js::{JSRef, OptionalAssignable, Root};
 use dom::eventtarget::{Capturing, Bubbling, EventTarget};
 use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing, EventMethods};
 use dom::node::{Node, NodeHelpers};
@@ -13,7 +13,6 @@ use dom::node::{Node, NodeHelpers};
 pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
                               pseudo_target: Option<JSRef<'b, EventTarget>>,
                               event: &mut JSRef<Event>) -> bool {
-    let roots = RootCollection::new();
     assert!(!event.get().dispatching);
 
     {
@@ -32,7 +31,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
         let target_node: &JSRef<Node> = NodeCast::to_ref(target).unwrap();
         target_node.ancestors().map(|ancestor| {
             let ancestor_target: &JSRef<EventTarget> = EventTargetCast::from_ref(&ancestor);
-            ancestor_target.unrooted().root(&roots)
+            ancestor_target.unrooted().root()
         }).collect()
     } else {
         vec!()

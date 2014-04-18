@@ -903,10 +903,10 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
     if type and 'JS<' in type:
         if dealWithOptional or 'Option<' in type:
             rootBody = """let ${simpleDeclName} = ${declName}.as_ref().map(|inner| {
-  inner.root(&roots) //second root code
+  inner.root() //second root code
 });"""
         else:
-            rootBody = "let ${simpleDeclName} = ${declName}.root(&roots); //third root code"
+            rootBody = "let ${simpleDeclName} = ${declName}.root(); //third root code"
         result.append(CGGeneric(string.Template(rootBody).substitute(replacements)))
         result.append(CGGeneric(""))
 
@@ -1799,7 +1799,7 @@ class CGAbstractMethod(CGThing):
     def _returnType(self):
         return (" -> %s" % self.returnType) if self.returnType != "void" else ""
     def _unsafe_open(self):
-        return "\n  unsafe {\n  let roots = RootCollection::new();\n" if self.unsafe else ""
+        return "\n  unsafe {\n" if self.unsafe else ""
     def _unsafe_close(self):
         return "\n  }\n" if self.unsafe else ""
 
@@ -2247,7 +2247,7 @@ class CGCallGenerator(CGThing):
             self.cgRoot.append(CGGeneric("result = result_fallible.unwrap();"))
 
         if typeRetValNeedsRooting(returnType):
-            self.cgRoot.append(CGGeneric("let result = result.root(&roots);"))
+            self.cgRoot.append(CGGeneric("let result = result.root();"))
 
     def define(self):
         return self.cgRoot.define()
@@ -2498,7 +2498,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
                                       self.descriptor, self.method),
                          pre=extraPre +
                              "  let this = JS::from_raw(this);\n" +
-                             "  let mut this = this.root(&roots);\n").define()
+                             "  let mut this = this.root();\n").define()
 
 class CGGenericGetter(CGAbstractBindingMethod):
     """
@@ -2552,7 +2552,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
                              "  let this = JS::from_raw(this);\n" +
-                             "  let mut this = this.root(&roots);\n").define()
+                             "  let mut this = this.root();\n").define()
 
 class CGGenericSetter(CGAbstractBindingMethod):
     """
@@ -2606,7 +2606,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
                              "  let this = JS::from_raw(this);\n" +
-                             "  let mut this = this.root(&roots);\n").define()
+                             "  let mut this = this.root();\n").define()
 
 
 class CGMemberJITInfo(CGThing):
@@ -3531,7 +3531,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                    "  let index = index.unwrap();\n" +
                    "  let this = UnwrapProxy(proxy);\n" +
                    "  let this = JS::from_raw(this);\n" +
-                   "  let mut this = this.root(&roots);\n" +
+                   "  let mut this = this.root();\n" +
                    CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define() + "\n" +
                    "}\n")
 
@@ -3578,7 +3578,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                         "  let name = Some(jsid_to_str(cx, id));\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         "  let this = JS::from_raw(this);\n" +
-                        "  let mut this = this.root(&roots);\n" +
+                        "  let mut this = this.root();\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() + "\n" +
                         "}\n")
         else:
@@ -3623,7 +3623,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  let index = index.unwrap();\n" +
                     "  let this = UnwrapProxy(proxy);\n" +
                     "  let this = JS::from_raw(this);\n" +
-                    "  let mut this = this.root(&roots);\n" +
+                    "  let mut this = this.root();\n" +
                     CGIndenter(CGProxyIndexedSetter(self.descriptor)).define() +
                     "  return 1;\n" +
                     "}\n")
@@ -3641,7 +3641,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  let name = Some(jsid_to_str(cx, id));\n" +
                     "  let this = UnwrapProxy(proxy);\n" +
                     "  let this = JS::from_raw(this);\n" +
-                    "  let mut this = this.root(&roots);\n" +
+                    "  let mut this = this.root();\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() + "\n" +
                     "}\n")
         elif self.descriptor.operations['NamedGetter']:
@@ -3649,7 +3649,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  let name = Some(jsid_to_str(cx, id));\n" +
                     "  let this = UnwrapProxy(proxy);\n" +
                     "  let this = JS::from_raw(this);\n" +
-                    "  let mut this = this.root(&roots);\n" +
+                    "  let mut this = this.root();\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "  if (found) {\n"
                     "    return 0;\n" +
@@ -3676,7 +3676,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                        "  let index = index.unwrap();\n" +
                        "  let this = UnwrapProxy(proxy);\n" +
                        "  let this = JS::from_raw(this);\n" +
-                       "  let mut this = this.root(&roots);\n" +
+                       "  let mut this = this.root();\n" +
                        CGIndenter(CGProxyIndexedGetter(self.descriptor)).define() + "\n" +
                        "  *bp = found as JSBool;\n" +
                        "  return 1;\n" +
@@ -3690,7 +3690,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                      "  let name = Some(jsid_to_str(cx, id));\n" +
                      "  let this = UnwrapProxy(proxy);\n" +
                      "  let this = JS::from_raw(this);\n" +
-                     "  let mut this = this.root(&roots);\n" +
+                     "  let mut this = this.root();\n" +
                      CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +
                      "  *bp = found as JSBool;\n"
                      "  return 1;\n"
@@ -3744,7 +3744,7 @@ if expando.is_not_null() {
                                    "  let index = index.unwrap();\n" +
                                    "  let this = UnwrapProxy(proxy);\n" +
                                    "  let this = JS::from_raw(this);\n" +
-                                   "  let mut this = this.root(&roots);\n" +
+                                   "  let mut this = this.root();\n" +
                                    CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define())
             getIndexedOrExpando += """
   // Even if we don't have this index, we don't forward the
@@ -3762,7 +3762,7 @@ if expando.is_not_null() {
                         "  let name = Some(jsid_to_str(cx, id));\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         "  let this = JS::from_raw(this);\n" +
-                        "  let mut this = this.root(&roots);\n" +
+                        "  let mut this = this.root();\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
                         "}\n") % (self.descriptor.concreteType)
         else:
@@ -3879,9 +3879,8 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def generate_code(self):
         preamble = """
-  let roots = RootCollection::new();
   let global = global_object_for_js_object(JS_CALLEE(cx, &*vp).to_object());
-  let global = global.root(&roots);
+  let global = global.root();
   let obj = global.reflector().get_jsobject();
 """
         nativeName = MakeNativeName(self._ctor.identifier.name)
@@ -4123,7 +4122,6 @@ class CGDictionary(CGThing):
         return string.Template(
             "impl ${selfName} {\n"
             "  pub fn new(cx: *JSContext, val: JSVal) -> Result<${selfName}, ()> {\n"
-            "    let roots = RootCollection::new();\n" # XXXjdm need to root dict members outside of Init
             "    let object = if val.is_null_or_undefined() {\n"
             "        ptr::null()\n"
             "    } else if val.is_object() {\n"
@@ -4323,7 +4321,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
             'dom::types::*',
             'dom::bindings',
-            'dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Temporary, OptionalRootable}',
+            'dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalRootable}',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
             'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',

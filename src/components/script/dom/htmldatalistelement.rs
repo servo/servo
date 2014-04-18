@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLDataListElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::document::Document;
 use dom::element::{Element, HTMLDataListElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -52,10 +52,9 @@ impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
                 elem.get().local_name == ~"option"
             }
         }
-        let roots = RootCollection::new();
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         let filter = ~HTMLDataListOptionsFilter;
-        let window = window_from_node(node).root(&roots);
+        let window = window_from_node(node).root();
         HTMLCollection::create(&*window, node, filter)
     }
 }

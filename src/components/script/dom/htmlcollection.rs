@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::BindingDeclarations::HTMLCollectionBinding;
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::{Node, NodeHelpers};
@@ -129,12 +129,11 @@ pub trait HTMLCollectionMethods {
 impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
     // http://dom.spec.whatwg.org/#dom-htmlcollection-length
     fn Length(&self) -> u32 {
-        let roots = RootCollection::new();
         match self.collection {
             Static(ref elems) => elems.len() as u32,
             Live(ref root, ref filter) => {
-                let root = root.root(&roots);
-                root.deref().traverse_preorder(&roots)
+                let root = root.root();
+                root.deref().traverse_preorder()
                     .count(|child| {
                         let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&child);
                         elem.map_or(false, |elem| filter.filter(elem, &*root))
@@ -145,15 +144,14 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-item
     fn Item(&self, index: u32) -> Option<Temporary<Element>> {
-        let roots = RootCollection::new();
         match self.collection {
             Static(ref elems) => elems
                 .as_slice()
                 .get(index as uint)
                 .map(|elem| Temporary::new(elem.clone())),
             Live(ref root, ref filter) => {
-                let root = root.root(&roots);
-                root.deref().traverse_preorder(&roots)
+                let root = root.root();
+                root.deref().traverse_preorder()
                     .filter_map(|node| {
                         let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
                         elem.filtered(|&elem| filter.filter(elem, &*root))
@@ -168,7 +166,6 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
     fn NamedItem(&self, key: DOMString) -> Option<Temporary<Element>> {
-        let roots = RootCollection::new();
 
         // Step 1.
         if key.is_empty() {
@@ -178,14 +175,14 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
         // Step 2.
         match self.collection {
             Static(ref elems) => elems.iter()
-                .map(|elem| elem.root(&roots))
+                .map(|elem| elem.root())
                 .find(|elem| {
                     elem.get_string_attribute("name") == key ||
                     elem.get_string_attribute("id") == key })
                 .map(|maybe_elem| Temporary::new_rooted(&*maybe_elem)),
             Live(ref root, ref filter) => {
-                let root = root.root(&roots);
-                root.deref().traverse_preorder(&roots)
+                let root = root.root();
+                root.deref().traverse_preorder()
                     .filter_map(|node| {
                         let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
                         elem.filtered(|&elem| filter.filter(elem, &*root))

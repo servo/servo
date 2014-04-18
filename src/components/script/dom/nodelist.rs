@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::NodeListBinding;
-use dom::bindings::js::{JS, JSRef, Temporary, RootCollection};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
@@ -54,23 +54,21 @@ pub trait NodeListMethods {
 
 impl<'a> NodeListMethods for JSRef<'a, NodeList> {
     fn Length(&self) -> u32 {
-        let roots = RootCollection::new();
         match self.list_type {
             Simple(ref elems) => elems.len() as u32,
             Children(ref node) => {
-                let node = node.root(&roots);
+                let node = node.root();
                 node.deref().children().len() as u32
             }
         }
     }
 
     fn Item(&self, index: u32) -> Option<Temporary<Node>> {
-        let roots = RootCollection::new();
         match self.list_type {
             _ if index >= self.Length() => None,
             Simple(ref elems) => Some(Temporary::new(elems.get(index as uint).clone())),
             Children(ref node) => {
-                let node = node.root(&roots);
+                let node = node.root();
                 node.deref().children().nth(index as uint)
                                        .map(|child| Temporary::new_rooted(&child))
             }

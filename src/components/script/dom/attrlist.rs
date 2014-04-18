@@ -4,7 +4,7 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::BindingDeclarations::AttrListBinding;
-use dom::bindings::js::{JS, JSRef, Temporary, RootCollection};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::window::Window;
@@ -39,13 +39,11 @@ pub trait AttrListMethods {
 
 impl<'a> AttrListMethods for JSRef<'a, AttrList> { 
     fn Length(&self) -> u32 {
-        let roots = RootCollection::new();
-        self.owner.root(&roots).attrs.len() as u32
+        self.owner.root().attrs.len() as u32
     }
 
     fn Item(&self, index: u32) -> Option<Temporary<Attr>> {
-        let roots = RootCollection::new();
-        self.owner.root(&roots).attrs.as_slice().get(index as uint).map(|x| Temporary::new(x.clone()))
+        self.owner.root().attrs.as_slice().get(index as uint).map(|x| Temporary::new(x.clone()))
     }
 
     fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Temporary<Attr>> {

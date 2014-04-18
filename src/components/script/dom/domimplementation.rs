@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::DOMImplementationBinding;
 use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::error::{Fallible, InvalidCharacter, NamespaceError};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
@@ -60,7 +60,6 @@ pub trait DOMImplementationMethods {
 impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
     fn CreateDocumentType(&self, qname: DOMString, pubid: DOMString, sysid: DOMString) -> Fallible<Temporary<DocumentType>> {
-        let roots = RootCollection::new();
         match xml_name_type(qname) {
             // Step 1.
             InvalidXMLName => Err(InvalidCharacter),
@@ -68,8 +67,8 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
             Name => Err(NamespaceError),
             // Step 3.
             QName => {
-                let owner = self.owner.root(&roots);
-                let document = owner.deref().Document().root(&roots);
+                let owner = self.owner.root();
+                let document = owner.deref().Document().root();
                 Ok(DocumentType::new(qname, Some(pubid), Some(sysid), &*document))
             }
         }
@@ -78,11 +77,10 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocument
     fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
                       mut maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Temporary<Document>> {
-        let roots = RootCollection::new();
-        let win = self.owner.root(&roots);
+        let win = self.owner.root();
 
         // Step 1.
-        let mut doc = Document::new(&win.root_ref(), None, NonHTMLDocument, None).root(&roots);
+        let mut doc = Document::new(&win.root_ref(), None, NonHTMLDocument, None).root();
         // Step 2-3.
         let mut maybe_elem = if qname.is_empty() {
             None
@@ -105,7 +103,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
             }
 
             // Step 5.
-            match maybe_elem.root(&roots) {
+            match maybe_elem.root() {
                 None => (),
                 Some(mut elem) => {
                     assert!(doc_node.AppendChild(NodeCast::from_mut_ref(&mut *elem)).is_ok())
@@ -122,28 +120,27 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Temporary<Document> {
-        let roots = RootCollection::new();
-        let owner = self.owner.root(&roots);
+        let owner = self.owner.root();
 
         // Step 1-2.
-        let mut doc = Document::new(&owner.root_ref(), None, HTMLDocument, None).root(&roots);
+        let mut doc = Document::new(&owner.root_ref(), None, HTMLDocument, None).root();
         let mut doc_alias = doc.clone();
         let doc_node: &mut JSRef<Node> = NodeCast::from_mut_ref(&mut doc_alias);
 
         {
             // Step 3.
-            let mut doc_type = DocumentType::new(~"html", None, None, &*doc).root(&roots);
+            let mut doc_type = DocumentType::new(~"html", None, None, &*doc).root();
             assert!(doc_node.AppendChild(NodeCast::from_mut_ref(&mut *doc_type)).is_ok());
         }
 
         {
             // Step 4.
-            let mut doc_html = NodeCast::from_unrooted(HTMLHtmlElement::new(~"html", &*doc)).root(&roots);
+            let mut doc_html = NodeCast::from_unrooted(HTMLHtmlElement::new(~"html", &*doc)).root();
             assert!(doc_node.AppendChild(&mut *doc_html).is_ok());
 
             {
                 // Step 5.
-                let mut doc_head = NodeCast::from_unrooted(HTMLHeadElement::new(~"head", &*doc)).root(&roots);
+                let mut doc_head = NodeCast::from_unrooted(HTMLHeadElement::new(~"head", &*doc)).root();
                 assert!(doc_html.AppendChild(&mut *doc_head).is_ok());
 
                 // Step 6.
@@ -151,18 +148,18 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
                     None => (),
                     Some(title_str) => {
                         // Step 6.1.
-                        let mut doc_title = NodeCast::from_unrooted(HTMLTitleElement::new(~"title", &*doc)).root(&roots);
+                        let mut doc_title = NodeCast::from_unrooted(HTMLTitleElement::new(~"title", &*doc)).root();
                         assert!(doc_head.AppendChild(&mut *doc_title).is_ok());
 
                         // Step 6.2.
-                        let mut title_text = Text::new(title_str, &*doc).root(&roots);
+                        let mut title_text = Text::new(title_str, &*doc).root();
                         assert!(doc_title.AppendChild(NodeCast::from_mut_ref(&mut *title_text)).is_ok());
                     }
                 }
             }
 
             // Step 7.
-            let mut doc_body = HTMLBodyElement::new(~"body", &*doc).root(&roots);
+            let mut doc_body = HTMLBodyElement::new(~"body", &*doc).root();
             assert!(doc_html.AppendChild(NodeCast::from_mut_ref(&mut *doc_body)).is_ok());
         }
 

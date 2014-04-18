@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, Elem
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::BindingDeclarations::NodeBinding::NodeConstants;
-use dom::bindings::js::{JS, JSRef, RootCollection, RootedReference, Temporary, Root};
+use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};
 use dom::bindings::js::{OptionalAssignable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -240,29 +240,26 @@ trait PrivateNodeHelpers {
 impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#node-is-inserted
     fn node_inserted(&self) {
-        let roots = RootCollection::new();
         assert!(self.parent_node().is_some());
-        let document = document_from_node(self).root(&roots);
+        let document = document_from_node(self).root();
 
         if self.is_in_doc() {
-            for node in self.traverse_preorder(&roots) {
+            for node in self.traverse_preorder() {
                 vtable_for(&node).bind_to_tree();
             }
         }
 
-        self.parent_node().root(&roots)
-                          .map(|parent| vtable_for(&*parent).child_inserted(self));
+        self.parent_node().root().map(|parent| vtable_for(&*parent).child_inserted(self));
 
         document.deref().content_changed();
     }
 
     // http://dom.spec.whatwg.org/#node-is-removed
     fn node_removed(&self) {
-        let roots = RootCollection::new();
         assert!(self.parent_node().is_none());
-        let document = document_from_node(self).root(&roots);
+        let document = document_from_node(self).root();
 
-        for node in self.traverse_preorder(&roots) {
+        for node in self.traverse_preorder() {
             // XXX how about if the node wasn't in the tree in the first place?
             vtable_for(&node).unbind_from_tree();
         }
@@ -278,7 +275,6 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     ///
     /// Fails unless `new_child` is disconnected from the tree.
     fn add_child(&mut self, new_child: &mut JSRef<Node>, mut before: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
         assert!(new_child.parent_node().is_none());
         assert!(new_child.prev_sibling().is_none());
         assert!(new_child.next_sibling().is_none());
@@ -286,14 +282,13 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
             Some(ref mut before) => {
                 // XXX Should assert that parent is self.
                 assert!(before.parent_node().is_some());
-                match before.prev_sibling() {
+                match before.prev_sibling().root() {
                     None => {
                         // XXX Should assert that before is the first child of
                         //     self.
                         self.set_first_child(Some(new_child.clone()));
                     },
-                    Some(prev_sibling) => {
-                        let mut prev_sibling = prev_sibling.root(&roots);
+                    Some(mut prev_sibling) => {
                         prev_sibling.set_next_sibling(Some(new_child.clone()));
                         new_child.set_prev_sibling(Some((*prev_sibling).clone()));
                     },
@@ -302,7 +297,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
                 new_child.set_next_sibling(Some(before.clone()));
             },
             None => {
-                match self.last_child().map(|child| child.root(&roots)) {
+                match self.last_child().root() {
                     None => self.set_first_child(Some(new_child.clone())),
                     Some(mut last_child) => {
                         assert!(last_child.next_sibling().is_none());
@@ -322,27 +317,26 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     ///
     /// Fails unless `child` is a child of this node. (FIXME: This is not yet checked.)
     fn remove_child(&mut self, child: &mut JSRef<Node>) {
-        let roots = RootCollection::new();
         assert!(child.parent_node.is_some());
 
-        match child.prev_sibling.root(&roots) {
+        match child.prev_sibling.root() {
             None => {
-                let next_sibling = child.next_sibling.as_ref().map(|next| next.root(&roots));
+                let next_sibling = child.next_sibling.root();
                 self.set_first_child(next_sibling.root_ref());
             }
             Some(ref mut prev_sibling) => {
-                let next_sibling = child.next_sibling.as_ref().map(|next| next.root(&roots));
+                let next_sibling = child.next_sibling.root();
                 prev_sibling.set_next_sibling(next_sibling.root_ref());
             }
         }
 
-        match child.next_sibling.root(&roots) {
+        match child.next_sibling.root() {
             None => {
-                let prev_sibling = child.prev_sibling.as_ref().map(|prev| prev.root(&roots));
+                let prev_sibling = child.prev_sibling.root();
                 self.set_last_child(prev_sibling.root_ref());
             }
             Some(ref mut next_sibling) => {
-                let prev_sibling = child.prev_sibling.as_ref().map(|prev| prev.root(&roots));
+                let prev_sibling = child.prev_sibling.root();
                 next_sibling.set_prev_sibling(prev_sibling.root_ref());
             }
         }
@@ -357,36 +351,31 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     //
 
     fn set_parent_node(&mut self, new_parent_node: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
+        let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
         self.parent_node.assign(new_parent_node);
     }
 
     fn set_first_child(&mut self, new_first_child: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
+        let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
         self.first_child.assign(new_first_child);
     }
 
     fn set_last_child(&mut self, new_last_child: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
+        let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
         self.last_child.assign(new_last_child);
     }
 
     fn set_prev_sibling(&mut self, new_prev_sibling: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
+        let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
         self.prev_sibling.assign(new_prev_sibling);
     }
 
     fn set_next_sibling(&mut self, new_next_sibling: Option<JSRef<Node>>) {
-        let roots = RootCollection::new();
-        let doc = self.owner_doc().root(&roots);
+        let doc = self.owner_doc().root();
         doc.deref().wait_until_safe_to_modify_dom();
         self.next_sibling.assign(new_next_sibling);
     }
@@ -427,8 +416,8 @@ pub trait NodeHelpers {
     fn dump_indent(&self, indent: uint);
     fn debug_str(&self) -> ~str;
 
-    fn traverse_preorder<'a>(&self, roots: &'a RootCollection) -> TreeIterator<'a>;
-    fn sequential_traverse_postorder<'a>(&self, roots: &'a RootCollection) -> TreeIterator<'a>;
+    fn traverse_preorder<'a>(&self) -> TreeIterator<'a>;
+    fn sequential_traverse_postorder<'a>(&self) -> TreeIterator<'a>;
     fn inclusively_following_siblings(&self) -> AbstractNodeChildrenIterator;
 
     fn to_trusted_node_address(&self) -> TrustedNodeAddress;
@@ -546,24 +535,22 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    fn traverse_preorder<'a>(&self, roots: &'a RootCollection) -> TreeIterator<'a> {
+    fn traverse_preorder<'a>(&self) -> TreeIterator<'a> {
         let mut nodes = vec!();
-        gather_abstract_nodes(self, roots, &mut nodes, false);
+        gather_abstract_nodes(self, &mut nodes, false);
         TreeIterator::new(nodes)
     }
 
     /// Iterates over this node and all its descendants, in postorder.
-    fn sequential_traverse_postorder<'a>(&self, roots: &'a RootCollection) -> TreeIterator<'a> {
+    fn sequential_traverse_postorder<'a>(&self) -> TreeIterator<'a> {
         let mut nodes = vec!();
-        gather_abstract_nodes(self, roots, &mut nodes, true);
+        gather_abstract_nodes(self, &mut nodes, true);
         TreeIterator::new(nodes)
     }
 
     fn inclusively_following_siblings(&self) -> AbstractNodeChildrenIterator {
-        let roots = RootCollection::new();
         AbstractNodeChildrenIterator {
-            current_node: Some((*self.unrooted().root(&roots)).clone()),
-            roots: roots,
+            current_node: Some((*self.unrooted().root()).clone()),
         }
     }
 
@@ -572,10 +559,8 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn following_siblings(&self) -> AbstractNodeChildrenIterator {
-        let roots = RootCollection::new();
         AbstractNodeChildrenIterator {
-            current_node: self.next_sibling().map(|node| (*node.root(&roots)).clone()),
-            roots: roots,
+            current_node: self.next_sibling().map(|node| (*node.root()).clone()),
         }
     }
 
@@ -591,8 +576,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn get_bounding_content_box(&self) -> Rect<Au> {
-        let roots = RootCollection::new();
-        let window = window_from_node(self).root(&roots);
+        let window = window_from_node(self).root();
         let page = window.get().page();
         let (chan, port) = channel();
         let addr = self.to_trusted_node_address();
@@ -601,8 +585,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn get_content_boxes(&self) -> Vec<Rect<Au>> {
-        let roots = RootCollection::new();
-        let window = window_from_node(self).root(&roots);
+        let window = window_from_node(self).root();
         let page = window.get().page();
         let (chan, port) = channel();
         let addr = self.to_trusted_node_address();
@@ -611,10 +594,8 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn ancestors(&self) -> AncestorIterator {
-        let roots = RootCollection::new();
         AncestorIterator {
-            current: self.parent_node.clone().map(|node| (*node.root(&roots)).clone()),
-            roots: roots,
+            current: self.parent_node.clone().map(|node| (*node.root()).clone()),
         }
     }
 
@@ -627,10 +608,8 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn children(&self) -> AbstractNodeChildrenIterator {
-        let roots = RootCollection::new();
         AbstractNodeChildrenIterator {
-            current_node: self.first_child.clone().map(|node| (*node.root(&roots)).clone()),
-            roots: roots,
+            current_node: self.first_child.clone().map(|node| (*node.root()).clone()),
         }
     }
 
@@ -646,8 +625,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn wait_until_safe_to_modify_dom(&self) {
-        let roots = RootCollection::new();
-        let document = self.owner_doc().root(&roots);
+        let document = self.owner_doc().root();
         document.deref().wait_until_safe_to_modify_dom();
     }
 
@@ -743,14 +721,13 @@ pub type ChildElementIterator<'a, 'b> = Map<'a, JSRef<'b, Node>,
 
 pub struct AbstractNodeChildrenIterator<'a> {
     current_node: Option<JSRef<'a, Node>>,
-    roots: RootCollection,
 }
 
 impl<'a> Iterator<JSRef<'a, Node>> for AbstractNodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let node = self.current_node.clone();
         self.current_node = node.clone().and_then(|node| {
-            node.next_sibling().map(|node| (*node.root(&self.roots)).clone())
+            node.next_sibling().map(|node| (*node.root()).clone())
         });
         node
     }
@@ -758,7 +735,6 @@ impl<'a> Iterator<JSRef<'a, Node>> for AbstractNodeChildrenIterator<'a> {
 
 pub struct AncestorIterator<'a> {
     current: Option<JSRef<'a, Node>>,
-    roots: RootCollection,
 }
 
 impl<'a> Iterator<JSRef<'a, Node>> for AncestorIterator<'a> {
@@ -769,7 +745,7 @@ impl<'a> Iterator<JSRef<'a, Node>> for AncestorIterator<'a> {
 
         // FIXME: Do we need two clones here?
         let x = self.current.get_ref().clone();
-        self.current = x.parent_node().map(|node| (*node.root(&self.roots)).clone());
+        self.current = x.parent_node().map(|node| (*node.root()).clone());
         Some(x)
     }
 }
@@ -802,8 +778,7 @@ impl<'a> Iterator<JSRef<'a, Node>> for TreeIterator<'a> {
     }
 }
 
-pub struct NodeIterator<'a> {
-    roots: &'a RootCollection,
+pub struct NodeIterator {
     pub start_node: JS<Node>,
     pub current_node: Option<JS<Node>>,
     pub depth: uint,
@@ -811,13 +786,11 @@ pub struct NodeIterator<'a> {
     include_descendants_of_void: bool
 }
 
-impl<'a> NodeIterator<'a> {
-    pub fn new<'a, 'b>(roots: &'a RootCollection,
-                       start_node: &JSRef<'b, Node>,
-                       include_start: bool,
-                       include_descendants_of_void: bool) -> NodeIterator<'a> {
+impl NodeIterator {
+    pub fn new<'a>(start_node: &JSRef<'a, Node>,
+                   include_start: bool,
+                   include_descendants_of_void: bool) -> NodeIterator {
         NodeIterator {
-            roots: roots,
             start_node: start_node.unrooted(),
             current_node: None,
             depth: 0,
@@ -832,22 +805,22 @@ impl<'a> NodeIterator<'a> {
             if elem.get().is_void() {
                 None
             } else {
-                node.first_child().map(|child| (*child.root(self.roots)).clone())
+                node.first_child().map(|child| (*child.root()).clone())
             }
         } else {
-            node.first_child().map(|child| (*child.root(self.roots)).clone())
+            node.first_child().map(|child| (*child.root()).clone())
         }
     }
 }
 
-impl<'a, 'b> Iterator<JSRef<'b, Node>> for NodeIterator<'a> {
+impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
     fn next(&mut self) -> Option<JSRef<Node>> {
-        self.current_node = match self.current_node.as_ref().map(|node| node.root(self.roots)) {
+        self.current_node = match self.current_node.as_ref().map(|node| node.root()) {
             None => {
                 if self.include_start {
                     Some(self.start_node.clone())
                 } else {
-                    self.next_child(&*self.start_node.root(self.roots))
+                    self.next_child(&*self.start_node.root())
                         .map(|child| child.unrooted())
                 }
             },
@@ -859,21 +832,21 @@ impl<'a, 'b> Iterator<JSRef<'b, Node>> for NodeIterator<'a> {
                     },
                     None if node.deref().unrooted() == self.start_node => None,
                     None => {
-                        match node.deref().next_sibling().root(self.roots) {
+                        match node.deref().next_sibling().root() {
                             Some(sibling) => Some(sibling.deref().unrooted()),
                             None => {
                                 let mut candidate = node.deref().clone();
                                 while candidate.next_sibling().is_none() {
                                     candidate = (*candidate.parent_node()
                                                           .expect("Got to root without reaching start node")
-                                                          .root(self.roots)).clone();
+                                                          .root()).clone();
                                     self.depth -= 1;
                                     if candidate.unrooted() == self.start_node {
                                         break;
                                     }
                                 }
                                 if candidate.unrooted() != self.start_node {
-                                    candidate.next_sibling().map(|node| node.root(self.roots).unrooted())
+                                    candidate.next_sibling().map(|node| node.root().unrooted())
                                 } else {
                                     None
                                 }
@@ -883,19 +856,19 @@ impl<'a, 'b> Iterator<JSRef<'b, Node>> for NodeIterator<'a> {
                 }
             }
         };
-        self.current_node.clone().map(|node| (*node.root(self.roots)).clone())
+        self.current_node.clone().map(|node| (*node.root()).clone())
     }
 }
 
-fn gather_abstract_nodes<'a>(cur: &JSRef<Node>, roots: &'a RootCollection, refs: &mut Vec<JSRef<Node>>, postorder: bool) {
+fn gather_abstract_nodes<'a>(cur: &JSRef<Node>, refs: &mut Vec<JSRef<Node>>, postorder: bool) {
     if !postorder {
-        refs.push((*cur.unrooted().root(roots)).clone());
+        refs.push((*cur.unrooted().root()).clone());
     }
     for kid in cur.children() {
-        gather_abstract_nodes(&kid, roots, refs, postorder)
+        gather_abstract_nodes(&kid, refs, postorder)
     }
     if postorder {
-        refs.push((*cur.unrooted().root(roots)).clone());
+        refs.push((*cur.unrooted().root()).clone());
     }
 }
 
@@ -914,17 +887,15 @@ impl Node {
              document:  &JSRef<Document>,
              wrap_fn:   extern "Rust" fn(*JSContext, &JSRef<Window>, ~N) -> JS<N>)
              -> Temporary<N> {
-        let roots = RootCollection::new();
         assert!(node.reflector().get_jsobject().is_null());
-        let window = document.get().window.root(&roots);
-        let node = reflect_dom_object(node, &window.root_ref(), wrap_fn).root(&roots);
+        let window = document.get().window.root();
+        let node = reflect_dom_object(node, &window.root_ref(), wrap_fn).root();
         assert!(node.reflector().get_jsobject().is_not_null());
         Temporary::new_rooted(&*node)
     }
 
     pub fn new_inherited(type_id: NodeTypeId, doc: JS<Document>) -> Node {
-        let roots = RootCollection::new();
-        let doc = doc.root(&roots);
+        let doc = doc.root();
         Node::new_(type_id, Some(doc.root_ref()))
     }
 
@@ -954,9 +925,8 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#concept-node-adopt
     pub fn adopt(node: &mut JSRef<Node>, document: &JSRef<Document>) {
-        let roots = RootCollection::new();
         // Step 1.
-        match node.parent_node().root(&roots) {
+        match node.parent_node().root() {
             Some(mut parent) => {
                 Node::remove(node, &mut *parent, Unsuppressed);
             }
@@ -964,9 +934,9 @@ impl Node {
         }
 
         // Step 2.
-        let node_doc = document_from_node(node).root(&roots);
+        let node_doc = document_from_node(node).root();
         if &*node_doc != document {
-            for mut descendant in node.traverse_preorder(&roots) {
+            for mut descendant in node.traverse_preorder() {
                 descendant.set_owner_doc(document);
             }
         }
@@ -978,7 +948,6 @@ impl Node {
     // http://dom.spec.whatwg.org/#concept-node-pre-insert
     fn pre_insert(node: &mut JSRef<Node>, parent: &mut JSRef<Node>, child: Option<JSRef<Node>>)
                   -> Fallible<Temporary<Node>> {
-        let roots = RootCollection::new();
         // Step 1.
         match parent.type_id() {
             DocumentNodeTypeId |
@@ -1001,13 +970,13 @@ impl Node {
         // Step 4-5.
         match node.type_id() {
             TextNodeTypeId => {
-                match node.parent_node().root(&roots) {
+                match node.parent_node().root() {
                     Some(ref parent) if parent.is_document() => return Err(HierarchyRequest),
                     _ => ()
                 }
             }
             DoctypeNodeTypeId => {
-                match node.parent_node().root(&roots) {
+                match node.parent_node().root() {
                     Some(ref parent) if !parent.is_document() => return Err(HierarchyRequest),
                     _ => ()
                 }
@@ -1098,12 +1067,12 @@ impl Node {
 
         // Step 7-8.
         let referenceChild = match child {
-            Some(ref child) if child == node => node.next_sibling().map(|node| (*node.root(&roots)).clone()),
+            Some(ref child) if child == node => node.next_sibling().map(|node| (*node.root()).clone()),
             _ => child
         };
 
         // Step 9.
-        let document = document_from_node(parent).root(&roots);
+        let document = document_from_node(parent).root();
         Node::adopt(node, &*document);
 
         // Step 10.
@@ -1157,12 +1126,11 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#concept-node-replace-all
     fn replace_all(mut node: Option<JSRef<Node>>, parent: &mut JSRef<Node>) {
-        let roots = RootCollection::new();
 
         // Step 1.
         match node {
             Some(ref mut node) => {
-                let document = document_from_node(parent).root(&roots);
+                let document = document_from_node(parent).root();
                 Node::adopt(node, &*document);
             }
             None => (),
@@ -1237,12 +1205,11 @@ impl Node {
     // http://dom.spec.whatwg.org/#concept-node-clone
     pub fn clone(node: &JSRef<Node>, maybe_doc: Option<&JSRef<Document>>,
                  clone_children: CloneChildrenFlag) -> Temporary<Node> {
-        let roots = RootCollection::new();
 
         // Step 1.
         let mut document = match maybe_doc {
-            Some(doc) => doc.unrooted().root(&roots),
-            None => node.owner_doc().root(&roots)
+            Some(doc) => doc.unrooted().root(),
+            None => node.owner_doc().root()
         };
 
         // Step 2.
@@ -1272,7 +1239,7 @@ impl Node {
                     true => HTMLDocument,
                     false => NonHTMLDocument
                 };
-                let window = document.window.root(&roots);
+                let window = document.window.root();
                 let document = Document::new(&*window, Some(document.url().clone()),
                                              is_html_doc, None);
                 NodeCast::from_unrooted(document)
@@ -1296,16 +1263,16 @@ impl Node {
                                                     pi.characterdata.data.clone(), &*document);
                 NodeCast::from_unrooted(pi)
             },
-        }.root(&roots);
+        }.root();
 
         // Step 3.
         let document = if copy.is_document() {
             let doc: &JSRef<Document> = DocumentCast::to_ref(&*copy).unwrap();
-            doc.unrooted().root(&roots)
+            doc.unrooted().root()
         } else {
-            document.unrooted().root(&roots)
+            document.unrooted().root()
         };
-        assert!(&*copy.owner_doc().root(&roots) == &*document);
+        assert!(&*copy.owner_doc().root() == &*document);
 
         // Step 4 (some data already copied in step 2).
         match node.get().type_id {
@@ -1326,8 +1293,8 @@ impl Node {
                 let copy_elem = copy_elem.get_mut();
                 // FIXME: https://github.com/mozilla/servo/issues/1737
                 copy_elem.namespace = node_elem.namespace.clone();
-                let window = document.get().window.root(&roots);
-                for attr in node_elem.attrs.iter().map(|attr| attr.root(&roots)) {
+                let window = document.get().window.root();
+                for attr in node_elem.attrs.iter().map(|attr| attr.root()) {
                     copy_elem.attrs.push_unrooted(
                         Attr::new(&*window,
                                   attr.deref().local_name.clone(), attr.deref().value.clone(),
@@ -1343,7 +1310,7 @@ impl Node {
         // Step 6.
         if clone_children == CloneChildren {
             for ref child in node.children() {
-                let mut child_copy = Node::clone(&*child, Some(&*document), clone_children).root(&roots);
+                let mut child_copy = Node::clone(&*child, Some(&*document), clone_children).root();
                 let _inserted_node = Node::pre_insert(&mut *child_copy, &mut *copy, None);
             }
         }
@@ -1462,10 +1429,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#dom-node-parentelement
     fn GetParentElement(&self) -> Option<Temporary<Element>> {
-        let roots = RootCollection::new();
         self.parent_node.clone()
                         .and_then(|parent| {
-                            let parent = parent.root(&roots);
+                            let parent = parent.root();
                             ElementCast::to_ref(&*parent).map(|elem| {
                                 Temporary::new_rooted(elem)
                             })
@@ -1479,14 +1445,13 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#dom-node-childnodes
     fn ChildNodes(&mut self) -> Temporary<NodeList> {
-        let roots = RootCollection::new();
         match self.child_list {
             None => (),
             Some(ref list) => return Temporary::new(list.clone()),
         }
 
-        let doc = self.owner_doc().root(&roots);
-        let window = doc.deref().window.root(&roots);
+        let doc = self.owner_doc().root();
+        let window = doc.deref().window.root();
         let child_list = NodeList::new_child_list(&*window, self);
         self.child_list.assign(Some(child_list));
         Temporary::new(self.child_list.get_ref().clone())
@@ -1542,12 +1507,11 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#dom-node-textcontent
     fn GetTextContent(&self) -> Option<DOMString> {
-        let roots = RootCollection::new();
         match self.type_id {
             DocumentFragmentNodeTypeId |
             ElementNodeTypeId(..) => {
                 let mut content = ~"";
-                for node in self.traverse_preorder(&roots) {
+                for node in self.traverse_preorder() {
                     if node.is_text() {
                         let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();
                         content.push_str(text.get().characterdata.data.as_slice());
@@ -1571,7 +1535,6 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-node-textcontent
     fn SetTextContent(&mut self, value: Option<DOMString>)
                           -> ErrorResult {
-        let roots = RootCollection::new();
         let value = null_str_as_empty(&value);
         match self.type_id {
             DocumentFragmentNodeTypeId |
@@ -1580,9 +1543,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 let node = if value.len() == 0 {
                     None
                 } else {
-                    let document = self.owner_doc().root(&roots);
+                    let document = self.owner_doc().root();
                     Some(NodeCast::from_unrooted(document.deref().CreateTextNode(value)))
-                }.root(&roots);
+                }.root();
                 
                 // Step 3.
                 Node::replace_all(node.root_ref(), self);
@@ -1598,7 +1561,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 }
 
                 // Notify the document that the content of this node is different
-                let document = self.owner_doc().root(&roots);
+                let document = self.owner_doc().root();
                 document.deref().content_changed();
             }
             DoctypeNodeTypeId |
@@ -1619,7 +1582,6 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#concept-node-replace
     fn ReplaceChild(&mut self, node: &mut JSRef<Node>, child: &mut JSRef<Node>) -> Fallible<Temporary<Node>> {
-        let roots = RootCollection::new();
 
         // Step 1.
         match self.type_id() {
@@ -1714,14 +1676,14 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 7-8.
-        let next_sibling = child.next_sibling().map(|node| (*node.root(&roots)).clone());
+        let next_sibling = child.next_sibling().map(|node| (*node.root()).clone());
         let reference_child = match next_sibling {
-            Some(ref sibling) if sibling == node => node.next_sibling().map(|node| (*node.root(&roots)).clone()),
+            Some(ref sibling) if sibling == node => node.next_sibling().map(|node| (*node.root()).clone()),
             _ => next_sibling
         };
 
         // Step 9.
-        let document = document_from_node(self).root(&roots);
+        let document = document_from_node(self).root();
         Node::adopt(node, &*document);
 
         {
@@ -1755,7 +1717,6 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#dom-node-normalize
     fn Normalize(&mut self) {
-        let roots = RootCollection::new();
         let mut prev_text = None;
         for mut child in self.children() {
             if child.is_text() {
@@ -1818,12 +1779,11 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             characterdata.get().data == other_characterdata.get().data
         }
         fn is_equal_element_attrs(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
-            let roots = RootCollection::new();
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
             let other_element: &JSRef<Element> = ElementCast::to_ref(other).unwrap();
             assert!(element.get().attrs.len() == other_element.get().attrs.len());
-            element.get().attrs.iter().map(|attr| attr.root(&roots)).all(|attr| {
-                other_element.get().attrs.iter().map(|attr| attr.root(&roots)).any(|other_attr| {
+            element.get().attrs.iter().map(|attr| attr.root()).all(|attr| {
+                other_element.get().attrs.iter().map(|attr| attr.root()).any(|other_attr| {
                     (attr.namespace == other_attr.namespace) &&
                     (attr.local_name == other_attr.local_name) &&
                     (attr.value == other_attr.value)
@@ -1868,7 +1828,6 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#dom-node-comparedocumentposition
     fn CompareDocumentPosition(&self, other: &JSRef<Node>) -> u16 {
-        let roots = RootCollection::new();
         if self == other {
             // step 2.
             0
@@ -1907,7 +1866,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                     NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
             }
 
-            for child in lastself.traverse_preorder(&roots) {
+            for child in lastself.traverse_preorder() {
                 if &child == other {
                     // step 6.
                     return NodeConstants::DOCUMENT_POSITION_PRECEDING;
@@ -1965,8 +1924,7 @@ pub fn document_from_node<T: NodeBase>(derived: &JSRef<T>) -> Temporary<Document
 }
 
 pub fn window_from_node<T: NodeBase>(derived: &JSRef<T>) -> Temporary<Window> {
-    let roots = RootCollection::new();
-    let document = document_from_node(derived).root(&roots);
+    let document = document_from_node(derived).root();
     Temporary::new(document.deref().window.clone())
 }
 

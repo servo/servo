@@ -6,7 +6,7 @@ use dom::attr::AttrMethods;
 use dom::bindings::codegen::BindingDeclarations::HTMLObjectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLObjectElementTypeId};
@@ -62,12 +62,11 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
     fn process_data_url(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
-        let roots = RootCollection::new();
         let elem: &JSRef<Element> = ElementCast::from_ref(self);
 
         // TODO: support other values
-        match (elem.get_attribute(Null, "type").map(|x| x.root(&roots).Value()),
-               elem.get_attribute(Null, "data").map(|x| x.root(&roots).Value())) {
+        match (elem.get_attribute(Null, "type").map(|x| x.root().Value()),
+               elem.get_attribute(Null, "data").map(|x| x.root().Value())) {
             (None, Some(uri)) => {
                 if is_image_data(uri) {
                     let data_url = parse_url(uri, url);
@@ -190,8 +189,7 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn Validity(&self) -> Temporary<ValidityState> {
-        let roots = RootCollection::new();
-        let window = window_from_node(self).root(&roots);
+        let window = window_from_node(self).root();
         ValidityState::new(&*window)
     }
 
@@ -298,14 +296,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
-        let roots = RootCollection::new();
         match self.super_type() {
             Some(ref mut s) => s.after_set_attr(name.clone(), value),
             _ => (),
         }
 
         if "data" == name {
-            let window = window_from_node(self).root(&roots);
+            let window = window_from_node(self).root();
             let url = Some(window.get().get_url());
             self.process_data_url(window.get().image_cache_task.clone(), url);
         }

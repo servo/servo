@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::EventBinding;
 use dom::bindings::codegen::BindingDeclarations::EventBinding::EventConstants;
-use dom::bindings::js::{JS, JSRef, Temporary, RootCollection};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::eventtarget::EventTarget;
@@ -89,8 +89,7 @@ impl Event {
     pub fn Constructor(global: &JSRef<Window>,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
-        let roots = RootCollection::new();
-        let mut ev = Event::new(global).root(&roots);
+        let mut ev = Event::new(global).root();
         ev.InitEvent(type_, init.bubbles, init.cancelable);
         Ok(Temporary::new_rooted(&*ev))
     }

@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLSelectElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementDerived;
 use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement};
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::{Element, HTMLSelectElementTypeId};
@@ -192,8 +192,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     }
 
     fn Validity(&self) -> Temporary<ValidityState> {
-        let roots = RootCollection::new();
-        let window = window_from_node(self).root(&roots);
+        let window = window_from_node(self).root();
         ValidityState::new(&*window)
     }
 

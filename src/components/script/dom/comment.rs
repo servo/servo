@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::InheritTypes::CommentDerived;
 use dom::bindings::codegen::BindingDeclarations::CommentBinding;
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -41,8 +41,7 @@ impl Comment {
     }
 
     pub fn Constructor(owner: &JSRef<Window>, data: DOMString) -> Fallible<Temporary<Comment>> {
-        let roots = RootCollection::new();
-        let document = owner.Document().root(&roots);
+        let document = owner.Document().root();
         Ok(Comment::new(data, &*document))
     }
 }

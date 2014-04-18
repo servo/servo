@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLMapElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMapElementDerived;
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLMapElementTypeId;
@@ -57,9 +57,8 @@ impl<'a> HTMLMapElementMethods for JSRef<'a, HTMLMapElement> {
     }
 
     fn Areas(&self) -> Temporary<HTMLCollection> {
-        let roots = RootCollection::new();
         // FIXME: https://github.com/mozilla/servo/issues/1845
-        let window = window_from_node(self).root(&roots);
+        let window = window_from_node(self).root();
         HTMLCollection::new(&*window, Static(vec!()))
     }
 }

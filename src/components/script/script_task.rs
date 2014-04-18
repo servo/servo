@@ -278,12 +278,11 @@ impl Page {
 
     /// Adds the given damage.
     pub fn damage(&self, level: DocumentDamageLevel) {
-        let roots = RootCollection::new();
         let root = match *self.frame() {
             None => return,
-            Some(ref frame) => frame.document.root(&roots).GetDocumentElement()
+            Some(ref frame) => frame.document.root().GetDocumentElement()
         };
-        match root.root(&roots) {
+        match root.root() {
             None => {},
             Some(root) => {
                 let root: &JSRef<Node> = NodeCast::from_ref(&*root);
@@ -358,16 +357,15 @@ impl Page {
                   goal: ReflowGoal,
                   script_chan: ScriptChan,
                   compositor: &ScriptListener) {
-        let roots = RootCollection::new();
 
         let root = match *self.frame() {
             None => return,
             Some(ref frame) => {
-                frame.document.root(&roots).GetDocumentElement()
+                frame.document.root().GetDocumentElement()
             }
         };
 
-        match root.root(&roots) {
+        match root.root() {
             None => {},
             Some(root) => {
                 debug!("script: performing reflow for goal {:?}", goal);
@@ -411,17 +409,16 @@ impl Page {
     }
 
     fn find_fragment_node(&self, fragid: ~str) -> Option<Temporary<Element>> {
-        let roots = RootCollection::new();
-        let document = self.frame().get_ref().document.root(&roots);
+        let document = self.frame().get_ref().document.root();
         match document.deref().GetElementById(fragid.to_owned()) {
             Some(node) => Some(node),
             None => {
                 let doc_node: &JSRef<Node> = NodeCast::from_ref(&*document);
-                let mut anchors = doc_node.traverse_preorder(&roots)
+                let mut anchors = doc_node.traverse_preorder()
                                           .filter(|node| node.is_anchor_element());
                 anchors.find(|node| {
                     let elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-                    elem.get_attribute(Null, "name").root(&roots).map_or(false, |attr| {
+                    elem.get_attribute(Null, "name").root().map_or(false, |attr| {
                         attr.get().value_ref() == fragid
                     })
                 }).map(|node| Temporary::new_rooted(ElementCast::to_ref(&node).unwrap()))
@@ -450,10 +447,9 @@ impl Page {
     }
 
     pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
-        let roots = RootCollection::new();
         let frame = self.frame();
-        let document = frame.get_ref().document.root(&roots);
-        let root = document.deref().GetDocumentElement().root(&roots);
+        let document = frame.get_ref().document.root();
+        let root = document.deref().GetDocumentElement().root();
         if root.is_none() {
             return None;
         }
@@ -473,10 +469,9 @@ impl Page {
     }
 
     pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<Vec<UntrustedNodeAddress>> {
-        let roots = RootCollection::new();
         let frame = self.frame();
-        let document = frame.get_ref().document.root(&roots);
-        let root = document.deref().GetDocumentElement().root(&roots);
+        let document = frame.get_ref().document.root();
+        let root = document.deref().GetDocumentElement().root();
         if root.is_none() {
             return None;
         }
@@ -763,13 +758,12 @@ impl ScriptTask {
 
     /// Handles a timer that fired.
     fn handle_fire_timer_msg(&self, id: PipelineId, timer_id: TimerId) {
-        let roots = RootCollection::new();
 
         let mut page_tree = self.page_tree.borrow_mut();
         let page = page_tree.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.").page();
         let frame = page.frame();
-        let mut window = frame.get_ref().window.root(&roots);
+        let mut window = frame.get_ref().window.root();
 
         let is_interval;
         match window.get().active_timers.find(&timer_id) {
@@ -880,7 +874,6 @@ impl ScriptTask {
     fn load(&self, pipeline_id: PipelineId, url: Url) {
         debug!("ScriptTask: loading {:?} on page {:?}", url, pipeline_id);
 
-        let roots = RootCollection::new();
 
         let mut page_tree = self.page_tree.borrow_mut();
         let page_tree = page_tree.find(pipeline_id).expect("ScriptTask: received a load
@@ -907,9 +900,9 @@ impl ScriptTask {
                                      page_tree.page.clone(),
                                      self.chan.clone(),
                                      self.compositor.dup(),
-                                     self.image_cache_task.clone()).root(&roots);
+                                     self.image_cache_task.clone()).root();
         page.initialize_js_info(cx.clone(), window.reflector().get_jsobject());
-        let mut document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root(&roots);
+        let mut document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
         window.get_mut().init_browser_context(&*document);
 
         {
@@ -1010,7 +1003,7 @@ impl ScriptTask {
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
-        let mut event = Event::new(&*window).root(&roots);
+        let mut event = Event::new(&*window).root();
         event.InitEvent(~"load", false, false);
         let doctarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*document);
         let wintarget: &JSRef<EventTarget> = EventTargetCast::from_ref(&*window);
@@ -1048,7 +1041,6 @@ impl ScriptTask {
 
         match event {
             ResizeEvent(new_width, new_height) => {
-                let roots = RootCollection::new();
                 debug!("script got resize event: {:u}, {:u}", new_width, new_height);
 
                 let window = {
@@ -1066,7 +1058,7 @@ impl ScriptTask {
                     }
 
                     let mut fragment_node = page.fragment_node.deref().borrow_mut();
-                    match fragment_node.take().map(|node| node.root(&roots)) {
+                    match fragment_node.take().map(|node| node.root()) {
                         Some(node) => self.scroll_fragment_point(pipeline_id, &*node),
                         None => {}
                     }
@@ -1074,11 +1066,11 @@ impl ScriptTask {
                     frame.as_ref().map(|frame| Temporary::new(frame.window.clone()))
                 };
 
-                match window.root(&roots) {
+                match window.root() {
                     Some(mut window) => {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                        let mut uievent = UIEvent::new(&*window).root(&roots);
+                        let mut uievent = UIEvent::new(&*window).root();
                         uievent.InitUIEvent(~"resize", false, false,
                                             Some((*window).clone()), 0i32);
                         let event: &mut JSRef<Event> = EventCast::from_mut_ref(&mut *uievent);
@@ -1104,7 +1096,6 @@ impl ScriptTask {
             }
 
             ClickEvent(_button, point) => {
-                let roots = RootCollection::new();
                 debug!("ClickEvent: clicked at {:?}", point);
                 let mut page_tree = self.page_tree.borrow_mut();
                 let page = get_page(&mut *page_tree, pipeline_id);
@@ -1113,14 +1104,14 @@ impl ScriptTask {
                         debug!("node address is {:?}", node_address);
                         let mut node =
                             node::from_untrusted_node_address(self.js_runtime.deref().ptr,
-                                                              node_address).root(&roots);
+                                                              node_address).root();
                         debug!("clicked on {:s}", node.deref().debug_str());
 
                         // Traverse node generations until a node that is an element is
                         // found.
                         while !node.deref().is_element() {
                             match node.deref().parent_node() {
-                                Some(parent) => node = parent.root(&roots),
+                                Some(parent) => node = parent.root(),
                                 None => break,
                             }
                         }
@@ -1139,7 +1130,6 @@ impl ScriptTask {
             MouseDownEvent(..) => {}
             MouseUpEvent(..) => {}
             MouseMoveEvent(point) => {
-                let roots = RootCollection::new();
                 let mut page_tree = self.page_tree.borrow_mut();
                 let page = get_page(&mut *page_tree, pipeline_id);
                 match page.get_nodes_under_mouse(&point) {
@@ -1152,7 +1142,7 @@ impl ScriptTask {
                         match *mouse_over_targets {
                             Some(ref mut mouse_over_targets) => {
                                 for node in mouse_over_targets.mut_iter() {
-                                    let mut node = node.root(&roots);
+                                    let mut node = node.root();
                                     node.set_hover_state(false);
                                 }
                             }
@@ -1162,12 +1152,12 @@ impl ScriptTask {
                         for node_address in node_address.iter() {
                             let mut node =
                                 node::from_untrusted_node_address(
-                                    self.js_runtime.deref().ptr, *node_address).root(&roots);
+                                    self.js_runtime.deref().ptr, *node_address).root();
                             // Traverse node generations until a node that is an element is
                             // found.
                             while !node.is_element() {
                                 match node.parent_node() {
-                                    Some(parent) => node = parent.root(&roots),
+                                    Some(parent) => node = parent.root(),
                                     None => break,
                                 }
                             }
@@ -1211,10 +1201,9 @@ impl ScriptTask {
     }
 
     fn load_url_from_element(&self, page: &Page, element: &JSRef<Element>) {
-        let roots = RootCollection::new();
         // if the node's element is "a," load url from href attr
         let attr = element.get_attribute(Null, "href");
-        for href in attr.root(&roots).iter() {
+        for href in attr.root().iter() {
             debug!("ScriptTask: clicked on link to {:s}", href.Value());
             let click_frag = href.get().value_ref().starts_with("#");
             let base_url = Some(page.get_url());
@@ -1222,7 +1211,7 @@ impl ScriptTask {
             let url = parse_url(href.get().value_ref(), base_url);
 
             if click_frag {
-                match page.find_fragment_node(url.fragment.unwrap()).root(&roots) {
+                match page.find_fragment_node(url.fragment.unwrap()).root() {
                     Some(node) => self.scroll_fragment_point(page.id, &*node),
                     None => {}
                 }

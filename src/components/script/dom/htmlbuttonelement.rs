@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLButtonElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementDerived;
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLButtonElementTypeId;
@@ -167,8 +167,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     fn Validity(&self) -> Temporary<ValidityState> {
-        let roots = RootCollection::new();
-        let window = window_from_node(self).root(&roots);
+        let window = window_from_node(self).root();
         ValidityState::new(&*window)
     }
 

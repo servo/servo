@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JS, JSRef, Temporary, RootCollection};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Traceable;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
@@ -37,8 +37,7 @@ impl BrowserContext {
     }
 
     pub fn active_window(&self) -> Temporary<Window> {
-        let roots = RootCollection::new();
-        let doc = self.active_document().root(&roots);
+        let doc = self.active_document().root();
         Temporary::new(doc.deref().window.clone())
     }
 
@@ -48,8 +47,7 @@ impl BrowserContext {
     }
 
     pub fn create_window_proxy(&self) -> *JSObject {
-        let roots = RootCollection::new();
-        let win = self.active_window().root(&roots);
+        let win = self.active_window().root();
         let page = win.get().page();
         let js_info = page.js_info();
 

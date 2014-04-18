@@ -8,7 +8,7 @@ use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrMethods};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::BindingDeclarations::ElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, TemporaryPushable};
+use dom::bindings::js::{JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalAssignable, OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
@@ -198,10 +198,9 @@ pub trait ElementHelpers {
 
 impl<'a> ElementHelpers for JSRef<'a, Element> {
     fn html_element_in_html_document(&self) -> bool {
-        let roots = RootCollection::new();
         let is_html = self.namespace == namespace::HTML;
         let node: &JSRef<Node> = NodeCast::from_ref(self);
-        is_html && node.owner_doc().root(&roots).is_html_document
+        is_html && node.owner_doc().root().is_html_document
     }
 }
 
@@ -228,13 +227,12 @@ pub trait AttributeHandlers {
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Temporary<Attr>> {
-        let roots = RootCollection::new();
         if self.html_element_in_html_document() {
-            self.get().attrs.iter().map(|attr| attr.root(&roots)).find(|attr| {
+            self.get().attrs.iter().map(|attr| attr.root()).find(|attr| {
                 name.to_ascii_lower() == attr.local_name && attr.namespace == namespace
             }).map(|x| Temporary::new_rooted(&*x))
         } else {
-            self.get().attrs.iter().map(|attr| attr.root(&roots)).find(|attr| {
+            self.get().attrs.iter().map(|attr| attr.root()).find(|attr| {
                 name == attr.local_name && attr.namespace == namespace
             }).map(|x| Temporary::new_rooted(&*x))
         }
@@ -275,14 +273,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
                         name: DOMString, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JSRef<Attr>| -> bool) {
-        let roots = RootCollection::new();
         let idx = self.get().attrs.iter()
-                                  .map(|attr| attr.root(&roots))
+                                  .map(|attr| attr.root())
                                   .position(|attr| cb(&*attr));
         let (idx, set_type) = match idx {
             Some(idx) => (idx, ReplacedAttr),
             None => {
-                let window = window_from_node(self).root(&roots);
+                let window = window_from_node(self).root();
                 let attr = Attr::new(&*window, local_name.clone(), value.clone(),
                                      name, namespace.clone(), prefix, self);
                 self.get_mut().attrs.push_unrooted(attr);
@@ -290,14 +287,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             }
         };
 
-        self.get_mut().attrs.get(idx).root(&roots).set_value(set_type, value);
+        self.get_mut().attrs.get(idx).root().set_value(set_type, value);
     }
 
     fn remove_attribute(&mut self, namespace: Namespace, name: DOMString) -> ErrorResult {
-        let roots = RootCollection::new();
         let (_, local_name) = get_attribute_parts(name.clone());
 
-        let idx = self.get().attrs.iter().map(|attr| attr.root(&roots)).position(|attr| {
+        let idx = self.get().attrs.iter().map(|attr| attr.root()).position(|attr| {
             attr.local_name == local_name
         });
 
@@ -310,7 +306,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 }
 
                 if namespace == namespace::Null {
-                    let removed_raw_value = self.get().attrs.get(idx).root(&roots).Value();
+                    let removed_raw_value = self.get().attrs.get(idx).root().Value();
                     vtable_for(NodeCast::from_ref(self)).before_remove_attr(local_name.clone(), removed_raw_value);
                 }
 
@@ -322,14 +318,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn notify_attribute_changed(&self, local_name: DOMString) {
-        let roots = RootCollection::new();
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         if node.is_in_doc() {
             let damage = match local_name.as_slice() {
                 "style" | "id" | "class" => MatchSelectorsDocumentDamage,
                 _ => ContentChangedDocumentDamage
             };
-            let document = node.owner_doc().root(&roots);
+            let document = node.owner_doc().root();
             document.deref().damage_and_reflow(damage);
         }
     }
@@ -349,10 +344,9 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_string_attribute(&self, name: &str) -> DOMString {
-        let roots = RootCollection::new();
         match self.get_attribute(Null, name) {
             Some(x) => {
-                let x = x.root(&roots);
+                let x = x.root();
                 x.deref().Value()
             }
             None => ~""
@@ -462,7 +456,6 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-attributes
     fn Attributes(&mut self) -> Temporary<AttrList> {
-        let roots = RootCollection::new();
         match self.attr_list {
             None => (),
             Some(ref list) => return Temporary::new(list.clone()),
@@ -470,9 +463,9 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
         let doc = {
             let node: &JSRef<Node> = NodeCast::from_ref(self);
-            node.owner_doc()
-        }.root(&roots);
-        let window = doc.deref().window.root(&roots);
+            node.owner_doc().root()
+        };
+        let window = doc.deref().window.root();
         let list = AttrList::new(&*window, self);
         self.attr_list.assign(Some(list));
         Temporary::new(self.attr_list.get_ref().clone())
@@ -480,13 +473,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
-        let roots = RootCollection::new();
         let name = if self.html_element_in_html_document() {
             name.to_ascii_lower()
         } else {
             name
         };
-        self.get_attribute(Null, name).root(&roots)
+        self.get_attribute(Null, name).root()
                      .map(|s| s.deref().Value())
     }
 
@@ -494,9 +486,8 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn GetAttributeNS(&self,
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
-        let roots = RootCollection::new();
         let namespace = Namespace::from_str(null_str_as_empty_ref(&namespace));
-        self.get_attribute(namespace, local_name).root(&roots)
+        self.get_attribute(namespace, local_name).root()
                      .map(|attr| attr.deref().Value())
     }
 
@@ -624,32 +615,28 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     }
 
     fn GetElementsByTagName(&self, localname: DOMString) -> Temporary<HTMLCollection> {
-        let roots = RootCollection::new();
-        let window = window_from_node(self).root(&roots);
+        let window = window_from_node(self).root();
         HTMLCollection::by_tag_name(&*window, NodeCast::from_ref(self), localname)
     }
 
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>,
                               localname: DOMString) -> Temporary<HTMLCollection> {
-        let roots = RootCollection::new();
         let namespace = match maybe_ns {
             Some(namespace) => Namespace::from_str(namespace),
             None => Null
         };
-        let window = window_from_node(self).root(&roots);
+        let window = window_from_node(self).root();
         HTMLCollection::by_tag_name_ns(&*window, NodeCast::from_ref(self), localname, namespace)
     }
 
     fn GetElementsByClassName(&self, classes: DOMString) -> Temporary<HTMLCollection> {
-        let roots = RootCollection::new();
-        let window = window_from_node(self).root(&roots);
+        let window = window_from_node(self).root();
         HTMLCollection::by_class_name(&*window, NodeCast::from_ref(self), classes)
     }
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getclientrects
     fn GetClientRects(&self) -> Temporary<ClientRectList> {
-        let roots = RootCollection::new();
-        let win = window_from_node(self).root(&roots);
+        let win = window_from_node(self).root();
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         let rects = node.get_content_boxes();
         let rects: ~[Root<ClientRect>] = rects.iter().map(|r| {
@@ -658,7 +645,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
                 r.origin.y,
                 r.origin.y + r.size.height,
                 r.origin.x,
-                r.origin.x + r.size.width).root(&roots)
+                r.origin.x + r.size.width).root()
         }).collect();
 
         ClientRectList::new(&*win, rects.iter().map(|rect| rect.deref().clone()).collect())
@@ -666,8 +653,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dev.w3.org/csswg/cssom-view/#dom-element-getboundingclientrect
     fn GetBoundingClientRect(&self) -> Temporary<ClientRect> {
-        let roots = RootCollection::new();
-        let win = window_from_node(self).root(&roots);
+        let win = window_from_node(self).root();
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         ClientRect::new(
@@ -680,18 +666,15 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     fn GetInnerHTML(&self) -> Fallible<DOMString> {
         //XXX TODO: XML case
-        let roots = RootCollection::new();
-        Ok(serialize(&mut NodeIterator::new(&roots, NodeCast::from_ref(self), false, false)))
+        Ok(serialize(&mut NodeIterator::new(NodeCast::from_ref(self), false, false)))
     }
 
     fn GetOuterHTML(&self) -> Fallible<DOMString> {
-        let roots = RootCollection::new();
-        Ok(serialize(&mut NodeIterator::new(&roots, NodeCast::from_ref(self), true, false)))
+        Ok(serialize(&mut NodeIterator::new(NodeCast::from_ref(self), true, false)))
     }
 
     fn Children(&self) -> Temporary<HTMLCollection> {
-        let roots = RootCollection::new();
-        let window = window_from_node(self).root(&roots);
+        let window = window_from_node(self).root();
         HTMLCollection::children(&*window, NodeCast::from_ref(self))
     }
 }
@@ -716,7 +699,6 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     }
 
     fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
-        let roots = RootCollection::new();
         match self.super_type() {
             Some(ref mut s) => s.after_set_attr(name.clone(), value.clone()),
             _ => (),
@@ -724,14 +706,14 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         match name.as_slice() {
             "style" => {
-                let doc = document_from_node(self).root(&roots);
+                let doc = document_from_node(self).root();
                 let base_url = doc.deref().url().clone();
                 self.get_mut().style_attribute = Some(style::parse_style_attribute(value, &base_url))
             }
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
                 if node.is_in_doc() {
-                    let mut doc = document_from_node(self).root(&roots);
+                    let mut doc = document_from_node(self).root();
                     doc.register_named_element(self, value.clone());
                 }
             }
@@ -742,7 +724,6 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     }
 
     fn before_remove_attr(&mut self, name: DOMString, value: DOMString) {
-        let roots = RootCollection::new();
         match self.super_type() {
             Some(ref mut s) => s.before_remove_attr(name.clone(), value.clone()),
             _ => (),
@@ -755,7 +736,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
                 if node.is_in_doc() {
-                    let mut doc = document_from_node(self).root(&roots);
+                    let mut doc = document_from_node(self).root();
                     doc.unregister_named_element(self, value);
                 }
             }
@@ -766,15 +747,14 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     }
 
     fn bind_to_tree(&mut self) {
-        let roots = RootCollection::new();
         match self.super_type() {
             Some(ref mut s) => s.bind_to_tree(),
             _ => (),
         }
 
-        match self.get_attribute(Null, "id").root(&roots) {
+        match self.get_attribute(Null, "id").root() {
             Some(attr) => {
-                let mut doc = document_from_node(self).root(&roots);
+                let mut doc = document_from_node(self).root();
                 doc.register_named_element(self, attr.deref().Value());
             }
             _ => ()
@@ -782,15 +762,14 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     }
 
     fn unbind_from_tree(&mut self) {
-        let roots = RootCollection::new();
         match self.super_type() {
             Some(ref mut s) => s.unbind_from_tree(),
             _ => (),
         }
 
-        match self.get_attribute(Null, "id").root(&roots) {
+        match self.get_attribute(Null, "id").root() {
             Some(attr) => {
-                let mut doc = document_from_node(self).root(&roots);
+                let mut doc = document_from_node(self).root();
                 doc.unregister_named_element(self, attr.deref().Value());
             }
             _ => ()

@@ -5,7 +5,7 @@
 use dom::bindings::codegen::BindingDeclarations::HTMLImageElementBinding;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JS, JSRef, Temporary, RootCollection};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::Untraceable;
 use dom::document::Document;
 use dom::element::{Element, HTMLImageElementTypeId};
@@ -43,11 +43,10 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(&mut self, value: Option<DOMString>, url: Option<Url>) {
-        let roots = RootCollection::new();
         let self_alias = self.clone();
         let node_alias: &JSRef<Node> = NodeCast::from_ref(&self_alias);
-        let document = node_alias.owner_doc().root(&roots);
-        let window = document.deref().window.root(&roots);
+        let document = node_alias.owner_doc().root();
+        let window = document.deref().window.root();
         let image_cache = &window.image_cache_task;
         match value {
             None => {
@@ -275,14 +274,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
     }
 
     fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
-        let roots = RootCollection::new();
         match self.super_type() {
             Some(ref mut s) => s.after_set_attr(name.clone(), value.clone()),
             _ => (),
         }
 
         if "src" == name {
-            let window = window_from_node(self).root(&roots);
+            let window = window_from_node(self).root();
             let url = Some(window.get().get_url());
             self.update_image(Some(value), url);
         }

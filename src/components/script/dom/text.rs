@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::TextBinding;
 use dom::bindings::codegen::InheritTypes::TextDerived;
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -41,8 +41,7 @@ impl Text {
     }
 
     pub fn Constructor(owner: &JSRef<Window>, text: DOMString) -> Fallible<Temporary<Text>> {
-        let roots = RootCollection::new();
-        let document = owner.Document().root(&roots);
+        let document = owner.Document().root();
         Ok(Text::new(text.clone(), &*document))
     }
 }

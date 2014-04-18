@@ -5,7 +5,7 @@
 use dom::attr::AttrMethods;
 use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable, Root};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::bindings::utils::Reflectable;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, HTMLLinkElementTypeId, HTMLIFrameElementTypeId};
@@ -76,21 +76,17 @@ pub struct HtmlParserResult {
 }
 
 trait NodeWrapping<T> {
-    unsafe fn to_hubbub_node(&self, roots: &RootCollection) -> hubbub::NodeDataPtr;
+    unsafe fn to_hubbub_node(&self) -> hubbub::NodeDataPtr;
 }
 
 impl<'a, T: NodeBase+Reflectable> NodeWrapping<T> for JSRef<'a, T> {
-    unsafe fn to_hubbub_node(&self, roots: &RootCollection) -> hubbub::NodeDataPtr {
-        roots.root_raw(self.reflector().get_jsobject());
+    unsafe fn to_hubbub_node(&self) -> hubbub::NodeDataPtr {
         cast::transmute(self.get())
     }
 }
 
-unsafe fn from_hubbub_node<T: Reflectable>(n: hubbub::NodeDataPtr,
-                                           roots: Option<&RootCollection>) -> Temporary<T> {
-    let js = JS::from_raw(cast::transmute(n));
-    let _ = roots.map(|roots| roots.unroot_raw(js.reflector().get_jsobject()));
-    Temporary::new(js)
+unsafe fn from_hubbub_node<T: Reflectable>(n: hubbub::NodeDataPtr) -> Temporary<T> {
+    Temporary::new(JS::from_raw(cast::transmute(n)))
 }
 
 /**
@@ -297,9 +293,8 @@ pub fn parse_html(page: &Page,
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
 
-    let roots = RootCollection::new();
 
-    parser.set_document_node(unsafe { document.to_hubbub_node(&roots) });
+    parser.set_document_node(unsafe { document.to_hubbub_node() });
     parser.enable_scripting(true);
     parser.enable_styling(true);
 
@@ -315,9 +310,9 @@ pub fn parse_html(page: &Page,
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
-            let comment = Comment::new(data, *tmp).root(&roots);
+            let comment = Comment::new(data, *tmp).root();
             let comment: &JSRef<Node> = NodeCast::from_ref(&*comment);
-            unsafe { comment.to_hubbub_node(&roots) }
+            unsafe { comment.to_hubbub_node() }
         },
         create_doctype: |doctype: ~hubbub::Doctype| {
             debug!("create doctype");
@@ -328,9 +323,9 @@ pub fn parse_html(page: &Page,
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
-            let doctype_node = DocumentType::new(name, public_id, system_id, *tmp).root(&roots);
+            let doctype_node = DocumentType::new(name, public_id, system_id, *tmp).root();
             unsafe {
-                doctype_node.deref().to_hubbub_node(&roots)
+                doctype_node.deref().to_hubbub_node()
             }
         },
         create_element: |tag: ~hubbub::Tag| {
@@ -338,7 +333,7 @@ pub fn parse_html(page: &Page,
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
-            let mut element = build_element_from_tag(tag.name.clone(), *tmp).root(&roots);
+            let mut element = build_element_from_tag(tag.name.clone(), *tmp).root();
 
             debug!("-- attach attrs");
             for attr in tag.attributes.iter() {
@@ -351,15 +346,15 @@ pub fn parse_html(page: &Page,
             //FIXME: workaround for https://github.com/mozilla/rust/issues/13246;
             //       we get unrooting order failures if these are inside the match.
             let rel = {
-                let rel = element.get_attribute(Null, "rel").root(&roots);
+                let rel = element.get_attribute(Null, "rel").root();
                 rel.map(|a| a.deref().Value())
             };
             let href = {
-                let href= element.get_attribute(Null, "href").root(&roots);
+                let href= element.get_attribute(Null, "href").root();
                 href.map(|a| a.deref().Value())
             };
             let src_opt = {
-                let src_opt = element.get_attribute(Null, "src").root(&roots);
+                let src_opt = element.get_attribute(Null, "src").root();
                  src_opt.map(|a| a.deref().Value())
             };
 
@@ -410,23 +405,23 @@ pub fn parse_html(page: &Page,
                 _ => {}
             }
 
-            unsafe { element.to_hubbub_node(&roots) }
+            unsafe { element.to_hubbub_node() }
         },
         create_text: |data: ~str| {
             debug!("create text");
             // NOTE: tmp vars are workaround for lifetime issues. Both required.
             let tmp_borrow = doc_cell.borrow();
             let tmp = &*tmp_borrow;
-            let text = Text::new(data, *tmp).root(&roots);
-            unsafe { text.deref().to_hubbub_node(&roots) }
+            let text = Text::new(data, *tmp).root();
+            unsafe { text.deref().to_hubbub_node() }
         },
         ref_node: |_| {},
         unref_node: |_| {},
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
             unsafe {
                 debug!("append child {:x} {:x}", parent, child);
-                let mut child = from_hubbub_node(child, Some(&roots)).root(&roots);
-                let mut parent: Root<Node> = from_hubbub_node(parent, None).root(&roots);
+                let mut child = from_hubbub_node(child).root();
+                let mut parent: Root<Node> = from_hubbub_node(parent).root();
                 assert!(parent.AppendChild(&mut *child).is_ok());
             }
             child
@@ -478,8 +473,8 @@ pub fn parse_html(page: &Page,
         },
         complete_script: |script| {
             unsafe {
-                let script: &JSRef<Element> = &*from_hubbub_node(script, None).root(&roots);
-                match script.get_attribute(Null, "src").root(&roots) {
+                let script: &JSRef<Element> = &*from_hubbub_node(script).root();
+                match script.get_attribute(Null, "src").root() {
                     Some(src) => {
                         debug!("found script: {:s}", src.deref().Value());
                         let new_url = parse_url(src.get().value_ref(), Some(url3.clone()));

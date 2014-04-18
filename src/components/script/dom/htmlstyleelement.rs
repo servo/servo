@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::BindingDeclarations::HTMLStyleElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
 use dom::element::HTMLStyleElementTypeId;
@@ -93,9 +93,8 @@ pub trait StyleElementHelpers {
 
 impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
     fn parse_own_css(&self) {
-        let roots = RootCollection::new();
         let node: &JSRef<Node> = NodeCast::from_ref(self);
-        let win = window_from_node(node).root(&roots);
+        let win = window_from_node(node).root();
         let url = win.get().page().get_url();
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");

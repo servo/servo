@@ -54,7 +54,7 @@ impl<T: Reflectable> Temporary<T> {
     }
 
     /// Root this unrooted value.
-    pub fn root<'a, 'b>(self, _collection: &'a RootCollection) -> Root<'a, 'b, T> {
+    pub fn root<'a, 'b>(self) -> Root<'a, 'b, T> {
         local_data::get(StackRoots, |opt| {
             let collection = opt.unwrap();
             unsafe {
@@ -119,8 +119,13 @@ impl<T: Reflectable> JS<T> {
     }
 
     /// Root this JS-owned value to prevent its collection as garbage.
-    pub fn root<'a, 'b>(&self, collection: &'a RootCollection) -> Root<'a, 'b, T> {
-        collection.new_root(self)
+    pub fn root<'a, 'b>(&self) -> Root<'a, 'b, T> {
+        local_data::get(StackRoots, |opt| {
+            let collection = opt.unwrap();
+            unsafe {
+                (**collection).new_root(self)
+            }
+        })
     }
 }
 
@@ -214,32 +219,32 @@ impl<T: Assignable<U>, U: Reflectable> OptionalAssignable<T> for Option<JS<U>> {
 }
 
 pub trait OptionalRootable<T> {
-    fn root<'a, 'b>(self, roots: &'a RootCollection) -> Option<Root<'a, 'b, T>>;
+    fn root<'a, 'b>(self) -> Option<Root<'a, 'b, T>>;
 }
 
 impl<T: Reflectable> OptionalRootable<T> for Option<Temporary<T>> {
-    fn root<'a, 'b>(self, roots: &'a RootCollection) -> Option<Root<'a, 'b, T>> {
-        self.map(|inner| inner.root(roots))
+    fn root<'a, 'b>(self) -> Option<Root<'a, 'b, T>> {
+        self.map(|inner| inner.root())
     }
 }
 
 pub trait OptionalRootedRootable<T> {
-    fn root<'a, 'b>(&self, roots: &'a RootCollection) -> Option<Root<'a, 'b, T>>;
+    fn root<'a, 'b>(&self) -> Option<Root<'a, 'b, T>>;
 }
 
 impl<T: Reflectable> OptionalRootedRootable<T> for Option<JS<T>> {
-    fn root<'a, 'b>(&self, roots: &'a RootCollection) -> Option<Root<'a, 'b, T>> {
-        self.as_ref().map(|inner| inner.root(roots))
+    fn root<'a, 'b>(&self) -> Option<Root<'a, 'b, T>> {
+        self.as_ref().map(|inner| inner.root())
     }
 }
 
 pub trait ResultRootable<T,U> {
-    fn root<'a, 'b>(self, roots: &'a RootCollection) -> Result<Root<'a, 'b, T>, U>;
+    fn root<'a, 'b>(self) -> Result<Root<'a, 'b, T>, U>;
 }
 
 impl<T: Reflectable, U> ResultRootable<T, U> for Result<Temporary<T>, U> {
-    fn root<'a, 'b>(self, roots: &'a RootCollection) -> Result<Root<'a, 'b, T>, U> {
-        self.map(|inner| inner.root(roots))
+    fn root<'a, 'b>(self) -> Result<Root<'a, 'b, T>, U> {
+        self.map(|inner| inner.root())
     }
 }
 
