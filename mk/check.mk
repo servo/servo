@@ -93,7 +93,7 @@ check-content: contenttest
 
 .PHONY: check-wpt
 check-wpt:
-	bash $(S)src/test/wpt/run.sh $(S)
+	bash $(S)src/test/wpt/run.sh $(S) $(B)
 
 .PHONY: tidy
 tidy:
