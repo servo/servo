@@ -470,29 +470,25 @@ pub fn InitIds(cx: *JSContext, specs: &[JSPropertySpec], ids: &mut [jsid]) -> bo
 
 pub fn FindEnumStringIndex(cx: *JSContext,
                            v: JSVal,
-                           values: &[&'static str]) -> Result<uint, ()> {
+                           values: &[&'static str]) -> Result<Option<uint>, ()> {
     unsafe {
         let jsstr = JS_ValueToString(cx, v);
         if jsstr.is_null() {
             return Err(());
         }
+
         let length = 0;
         let chars = JS_GetStringCharsAndLength(cx, jsstr, &length);
         if chars.is_null() {
             return Err(());
         }
-        for (i, value) in values.iter().enumerate() {
-            let equal = value.len() == length as uint &&
-                        range(0, length as int).all(|j| {
-                            value[j] as u16 == *chars.offset(j)
-                        });
 
-            if equal {
-                return Ok(i);
-            }
-        }
-
-        return Err(()); //XXX pass in behaviour for value not found
+        Ok(values.iter().enumerate().find(|&(_, value)| {
+            value.len() == length as uint &&
+            range(0, length as int).all(|j| {
+                value[j] as u16 == *chars.offset(j)
+            })
+        }).map(|(i, _)| i))
     }
 }
 
