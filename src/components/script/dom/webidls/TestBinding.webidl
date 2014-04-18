@@ -36,6 +36,20 @@ dictionary TestDictionaryDefaults {
   // double doubleValue = 7.0;
   DOMString stringValue = "";
   // TestEnum enumValue = "bar";
+
+  // boolean? nullableBooleanValue = false;
+  // byte? nullableByteValue = 7;
+  // octet? nullableOctetValue = 7;
+  short? nullableShortValue = 7;
+  unsigned short? nullableUnsignedShortValue = 7;
+  long? nullableLongValue = 7;
+  unsigned long? nullableUnsignedLongValue = 7;
+  // long long? nullableLongLongValue = 7;
+  // unsigned long long? nullableUnsignedLongLongValue = 7;
+  // float? nullableFloatValue = 7.0;
+  // double? nullableDoubleValue = 7.0;
+  DOMString? nullableStringValue = "";
+  // TestEnum? nullableEnumValue = "bar";
 };
 
 interface TestBinding {
