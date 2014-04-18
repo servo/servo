@@ -751,11 +751,11 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
         if defaultValue is not None:
             assert(defaultValue.type.tag() == IDLType.Tags.domstring)
-            template = "" #XXXjdm unfinished
-            #template = handleDefault(template,
-            #                         ("${declName} = %sValues::%s;" %
-            #                          (enum,
-            #                           getEnumValueName(defaultValue.value))))
+            template = handleDefault(template,
+                                     ("${declName} = %sValues::%s;" %
+                                      (enum,
+                                       getEnumValueName(defaultValue.value))))
+
         return (template, CGGeneric(enum), None, isOptional, None)
 
     if type.isCallback():

@@ -120,7 +120,7 @@ impl TestBinding {
     pub fn PassOptionalLongLongWithDefault(&self, _: i64) {}
     pub fn PassOptionalUnsignedLongLongWithDefault(&self, _: u64) {}
     pub fn PassOptionalStringWithDefault(&self, _: DOMString) {}
-    // pub fn PassOptionalEnumWithDefault(&self, _: TestEnum) {}
+    pub fn PassOptionalEnumWithDefault(&self, _: TestEnum) {}
 
     pub fn PassOptionalNullableBooleanWithDefault(&self, _: Option<bool>) {}
     pub fn PassOptionalNullableByteWithDefault(&self, _: Option<i8>) {}

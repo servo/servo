@@ -77,7 +77,7 @@ interface TestBinding {
   void passOptionalLongLongWithDefault(optional long long arg = -12);
   void passOptionalUnsignedLongLongWithDefault(optional unsigned long long arg = 17);
   void passOptionalStringWithDefault(optional DOMString arg = "");
-  // void passOptionalEnumWithDefault(optional TestEnum arg = "foo");
+  void passOptionalEnumWithDefault(optional TestEnum arg = "foo");
 
   void passOptionalNullableBooleanWithDefault(optional boolean? arg = null);
   void passOptionalNullableByteWithDefault(optional byte? arg = null);
