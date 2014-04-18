@@ -412,6 +412,10 @@ impl Reflector {
         self.object = object;
     }
 
+    pub fn rootable(&self) -> **JSObject {
+        &self.object as **JSObject
+    }
+
     pub fn new() -> Reflector {
         Reflector {
             object: ptr::null(),
@@ -616,14 +620,13 @@ pub extern fn outerize_global(_cx: *JSContext, obj: JSHandleObject) -> *JSObject
 }
 
 /// Returns the global object of the realm that the given JS object was created in.
-pub fn global_object_for_js_object(obj: *JSObject) -> Temporary<window::Window> {
+pub fn global_object_for_js_object(obj: *JSObject) -> JS<window::Window> {
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        Temporary::new(
-            FromJSValConvertible::from_jsval(ptr::null(), ObjectOrNullValue(global), ())
-                .ok().expect("found DOM global that doesn't unwrap to Window"))
+        FromJSValConvertible::from_jsval(ptr::null(), ObjectOrNullValue(global), ())
+            .ok().expect("found DOM global that doesn't unwrap to Window")
     }
 }
 

@@ -342,7 +342,7 @@ impl Window {
                script_chan: ScriptChan,
                compositor: ~ScriptListener,
                image_cache_task: ImageCacheTask)
-               -> Temporary<Window> {
+               -> JS<Window> {
         let win = ~Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
             script_chan: script_chan,
@@ -357,6 +357,6 @@ impl Window {
             browser_context: None,
         };
 
-        Temporary::new(WindowBinding::Wrap(cx, win))
+        WindowBinding::Wrap(cx, win)
     }
 }

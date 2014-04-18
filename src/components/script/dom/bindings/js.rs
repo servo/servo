@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflector, Reflectable};
+use dom::bindings::utils::{Reflector, Reflectable, cx_for_dom_object};
 use dom::window::Window;
-use js::jsapi::{JSObject, JSContext};
+use js::jsapi::{JSObject, JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot};
 use layout_interface::TrustedNodeAddress;
 
 use std::cast;
 use std::cell::RefCell;
 
-/// A type that represents a JS-owned value that may or may not be rooted.
-/// Importantly, it requires rooting in order to interact with the value in any way.
+/// A type that represents a JS-owned value that is rooted for the lifetime of this value.
+/// Importantly, it requires explicit rooting in order to interact with the inner value.
 /// Can be assigned into JS-owned member fields (ie. JS<T> types) safely via the
 /// `JS<T>::assign` method or `OptionalAssignable::assign` (for Option<JS<T>> fields).
 pub struct Temporary<T> {
-    inner: JS<T>
+    inner: JS<T>,
 }
 
 impl<T> Eq for Temporary<T> {
@@ -24,19 +24,31 @@ impl<T> Eq for Temporary<T> {
     }
 }
 
+#[unsafe_destructor]
+impl<T: Reflectable> Drop for Temporary<T> {
+    fn drop(&mut self) {
+        let cx = cx_for_dom_object(&self.inner);
+        unsafe {
+            JS_RemoveObjectRoot(cx, self.inner.reflector().rootable());
+        }
+    }
+}
+
 impl<T: Reflectable> Temporary<T> {
     /// Create a new Temporary value from a JS-owned value.
     pub fn new(inner: JS<T>) -> Temporary<T> {
+        let cx = cx_for_dom_object(&inner);
+        unsafe {
+            JS_AddObjectRoot(cx, inner.reflector().rootable());
+        }
         Temporary {
-            inner: inner
+            inner: inner,
         }
     }
 
     /// Create a new Temporary value from a rooted value.
     pub fn new_rooted<'a>(root: &JSRef<'a, T>) -> Temporary<T> {
-        Temporary {
-            inner: root.unrooted()
-        }
+        Temporary::new(root.unrooted())
     }
 
     /// Root this unrooted value.
