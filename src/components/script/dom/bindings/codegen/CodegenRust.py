@@ -739,13 +739,14 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             
         template = (
             "match FindEnumStringIndex(cx, ${val}, %(values)s) {\n"
-            "  Err(_) => { %(handleInvalidEnumValueCode)s },\n"
+            "  Err(_) => { %(exceptionCode)s },\n"
             "  Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
             "  Ok(Some(index)) => {\n"
             "    //XXXjdm need some range checks up in here.\n"
             "    ${declName} = cast::transmute(index);\n"
             "  },\n"
             "}" % { "values" : enum + "Values::strings",
+             "exceptionCode" : exceptionCode,
 "handleInvalidEnumValueCode" : handleInvalidEnumValueCode })
 
         if defaultValue is not None:
