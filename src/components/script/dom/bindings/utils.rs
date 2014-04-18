@@ -27,6 +27,7 @@ use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAn
 use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate};
 use js::jsapi::{JS_InternString, JS_GetFunctionObject};
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
+use js::jsapi::{JS_GetProperty, JS_HasProperty};
 use js::jsapi::{JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
@@ -490,6 +491,49 @@ pub fn FindEnumStringIndex(cx: *JSContext,
             })
         }).map(|(i, _)| i))
     }
+}
+
+pub fn get_dictionary_property(cx: *JSContext,
+                               object: *JSObject,
+                               property: &str) -> Result<Option<JSVal>, ()> {
+    use std::c_str::CString;
+    fn has_property(cx: *JSContext, object: *JSObject, property: &CString,
+                    found: &mut JSBool) -> bool {
+        unsafe {
+            property.with_ref(|s| {
+                JS_HasProperty(cx, object, s, found as *mut _ as *_) != 0
+            })
+        }
+    }
+    fn get_property(cx: *JSContext, object: *JSObject, property: &CString,
+                    value: &mut JSVal) -> bool {
+        unsafe {
+            property.with_ref(|s| {
+                JS_GetProperty(cx, object, s, value as *mut _ as *_) != 0
+            })
+        }
+    }
+
+    let property = property.to_c_str();
+    if object.is_null() {
+        return Ok(None);
+    }
+
+    let mut found: JSBool = 0;
+    if !has_property(cx, object, &property, &mut found) {
+        return Err(());
+    }
+
+    if found == 0 {
+        return Ok(None);
+    }
+
+    let mut value = NullValue();
+    if !get_property(cx, object, &property, &mut value) {
+        return Err(());
+    }
+
+    Ok(Some(value))
 }
 
 pub fn HasPropertyOnPrototype(cx: *JSContext, proxy: *JSObject, id: jsid) -> bool {
