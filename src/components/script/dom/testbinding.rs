@@ -45,6 +45,7 @@ impl TestBinding {
     pub fn StringAttribute(&self) -> DOMString { ~"" }
     pub fn SetStringAttribute(&self, _: DOMString) {}
     pub fn EnumAttribute(&self) -> TestEnum { _empty }
+    pub fn SetEnumAttribute(&self, _: TestEnum) {}
     pub fn InterfaceAttribute(&self) -> JS<Blob> { Blob::new(&self.window) }
     pub fn SetInterfaceAttribute(&self, _: &JS<Blob>) {}
     pub fn AnyAttribute(&self, _: *JSContext) -> JSVal { NullValue() }
@@ -90,6 +91,7 @@ impl TestBinding {
     pub fn PassOptionalFloat(&self, _: Option<f32>) {}
     pub fn PassOptionalDouble(&self, _: Option<f64>) {}
     pub fn PassOptionalString(&self, _: Option<DOMString>) {}
+    // pub fn PassOptionalEnum(&self, _: Option<TestEnum>) {}
     pub fn PassOptionalInterface(&self, _: Option<JS<Blob>>) {}
     pub fn PassOptionalAny(&self, _: *JSContext, _: Option<JSVal>) {}
 
@@ -105,6 +107,7 @@ impl TestBinding {
     pub fn PassOptionalNullableFloat(&self, _: Option<Option<f32>>) {}
     pub fn PassOptionalNullableDouble(&self, _: Option<Option<f64>>) {}
     pub fn PassOptionalNullableString(&self, _: Option<Option<DOMString>>) {}
+    // pub fn PassOptionalNullableEnum(&self, _: Option<Option<TestEnum>>) {}
     // pub fn PassOptionalNullableInterface(&self, _: Option<Option<JS<Blob>>>) {}
 
     pub fn PassOptionalBooleanWithDefault(&self, _: bool) {}
@@ -117,6 +120,7 @@ impl TestBinding {
     pub fn PassOptionalLongLongWithDefault(&self, _: i64) {}
     pub fn PassOptionalUnsignedLongLongWithDefault(&self, _: u64) {}
     pub fn PassOptionalStringWithDefault(&self, _: DOMString) {}
+    pub fn PassOptionalEnumWithDefault(&self, _: TestEnum) {}
 
     pub fn PassOptionalNullableBooleanWithDefault(&self, _: Option<bool>) {}
     pub fn PassOptionalNullableByteWithDefault(&self, _: Option<i8>) {}
@@ -130,6 +134,7 @@ impl TestBinding {
     pub fn PassOptionalNullableFloatWithDefault(&self, _: Option<f32>) {}
     pub fn PassOptionalNullableDoubleWithDefault(&self, _: Option<f64>) {}
     pub fn PassOptionalNullableStringWithDefault(&self, _: Option<DOMString>) {}
+    // pub fn PassOptionalNullableEnumWithDefault(&self, _: Option<TestEnum>) {}
     pub fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<JS<Blob>>) {}
     pub fn PassOptionalAnyWithDefault(&self, _: *JSContext, _: JSVal) {}
 
@@ -145,6 +150,7 @@ impl TestBinding {
     // pub fn PassOptionalNullableFloatWithNonNullDefault(&self, _: Option<f32>) {}
     // pub fn PassOptionalNullableDoubleWithNonNullDefault(&self, _: Option<f64>) {}
     pub fn PassOptionalNullableStringWithNonNullDefault(&self, _: Option<DOMString>) {}
+    // pub fn PassOptionalNullableEnumWithNonNullDefault(&self, _: Option<TestEnum>) {}
 }
 
 impl Reflectable for TestBinding {

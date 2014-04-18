@@ -17,7 +17,7 @@ interface TestBinding {
            attribute float floatAttribute;
            attribute double doubleAttribute;
            attribute DOMString stringAttribute;
-  readonly attribute TestEnum enumAttribute;
+           attribute TestEnum enumAttribute;
            attribute Blob interfaceAttribute;
            attribute any anyAttribute;
 
@@ -48,6 +48,7 @@ interface TestBinding {
   void passOptionalFloat(optional float arg);
   void passOptionalDouble(optional double arg);
   void passOptionalString(optional DOMString arg);
+  // void passOptionalEnum(optional TestEnum arg);
   void passOptionalInterface(optional Blob arg);
   void passOptionalAny(optional any arg);
 
@@ -63,6 +64,7 @@ interface TestBinding {
   void passOptionalNullableFloat(optional float? arg);
   void passOptionalNullableDouble(optional double? arg);
   void passOptionalNullableString(optional DOMString? arg);
+  // void passOptionalNullableEnum(optional TestEnum? arg);
   // void passOptionalNullableInterface(optional Blob? arg);
 
   void passOptionalBooleanWithDefault(optional boolean arg = false);
@@ -75,6 +77,7 @@ interface TestBinding {
   void passOptionalLongLongWithDefault(optional long long arg = -12);
   void passOptionalUnsignedLongLongWithDefault(optional unsigned long long arg = 17);
   void passOptionalStringWithDefault(optional DOMString arg = "");
+  void passOptionalEnumWithDefault(optional TestEnum arg = "foo");
 
   void passOptionalNullableBooleanWithDefault(optional boolean? arg = null);
   void passOptionalNullableByteWithDefault(optional byte? arg = null);
@@ -86,6 +89,7 @@ interface TestBinding {
   void passOptionalNullableLongLongWithDefault(optional long long? arg = null);
   void passOptionalNullableUnsignedLongLongWithDefault(optional unsigned long long? arg = null);
   void passOptionalNullableStringWithDefault(optional DOMString? arg = null);
+  // void passOptionalNullableEnumWithDefault(optional TestEnum? arg = null);
   void passOptionalNullableInterfaceWithDefault(optional Blob? arg = null);
   void passOptionalAnyWithDefault(optional any arg = null);
 
@@ -101,4 +105,5 @@ interface TestBinding {
   // void passOptionalNullableFloatWithNonNullDefault(optional float? arg = 0.0);
   // void passOptionalNullableDoubleWithNonNullDefault(optional double? arg = 0.0);
   void passOptionalNullableStringWithNonNullDefault(optional DOMString? arg = "");
+  // void passOptionalNullableEnumWithNonNullDefault(optional TestEnum? arg = "foo");
 };

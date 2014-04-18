@@ -733,31 +733,29 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                             "yet")
         enum = type.inner.identifier.name
         if invalidEnumValueFatal:
-            handleInvalidEnumValueCode = "    return 0;\n"
+            handleInvalidEnumValueCode = "return 0;"
         else:
-            handleInvalidEnumValueCode = "    return 1;\n"
+            handleInvalidEnumValueCode = "return 1;"
             
         template = (
-            "{\n"
-            #"  int index = FindEnumStringIndex<%(invalidEnumValueFatal)s>(cx, ${val}, %(values)s, \"%(enumtype)s\", &ok);\n"
-            "  let result = FindEnumStringIndex(cx, ${val}, %(values)s);\n"
-            "  if result.is_err() {\n"
-            "%(handleInvalidEnumValueCode)s"
-            "  }\n"
-            "  let index = result.unwrap();\n"
-            "  ${declName} = cast::transmute(index); //XXXjdm need some range checks up in here\n"
-            "}" % { "enumtype" : enum,
-                      "values" : enum + "Values::strings",
-       "invalidEnumValueFatal" : toStringBool(invalidEnumValueFatal),
-  "handleInvalidEnumValueCode" : handleInvalidEnumValueCode })
+            "match FindEnumStringIndex(cx, ${val}, %(values)s) {\n"
+            "  Err(_) => { %(exceptionCode)s },\n"
+            "  Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
+            "  Ok(Some(index)) => {\n"
+            "    //XXXjdm need some range checks up in here.\n"
+            "    ${declName} = cast::transmute(index);\n"
+            "  },\n"
+            "}" % { "values" : enum + "Values::strings",
+             "exceptionCode" : exceptionCode,
+"handleInvalidEnumValueCode" : handleInvalidEnumValueCode })
 
         if defaultValue is not None:
             assert(defaultValue.type.tag() == IDLType.Tags.domstring)
-            template = "" #XXXjdm unfinished
-            #template = handleDefault(template,
-            #                         ("${declName} = %sValues::%s;" %
-            #                          (enum,
-            #                           getEnumValueName(defaultValue.value))))
+            template = handleDefault(template,
+                                     ("${declName} = %sValues::%s;" %
+                                      (enum,
+                                       getEnumValueName(defaultValue.value))))
+
         return (template, CGGeneric(enum), None, isOptional, None)
 
     if type.isCallback():
