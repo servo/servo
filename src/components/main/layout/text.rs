@@ -225,7 +225,7 @@ impl TextRunScanner {
                 // sequence. If no clump takes ownership, however, it will leak.
                 let clump = self.clump;
                 let run = if clump.length() != 0 && run_str.len() > 0 {
-                    Some(Arc::new(~TextRun::new(&mut *fontgroup.borrow().fonts[0].borrow_mut(),
+                    Some(Arc::new(~TextRun::new(&mut *fontgroup.borrow().fonts.get(0).borrow_mut(),
                                                 run_str.clone(), decoration)))
                 } else {
                     None
@@ -267,7 +267,7 @@ impl TextRunScanner {
 pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: &FontStyle)
                               -> FontMetrics {
     let fontgroup = font_context.get_resolved_font_for_style(font_style);
-    fontgroup.borrow().fonts[0].borrow().metrics.clone()
+    fontgroup.borrow().fonts.get(0).borrow().metrics.clone()
 }
 
 /// Converts a computed style to a font style used for rendering.
