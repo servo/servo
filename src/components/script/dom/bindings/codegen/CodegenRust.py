@@ -145,7 +145,7 @@ class CGMethodCall(CGThing):
     def __init__(self, argsPre, nativeMethodName, static, descriptor, method):
         CGThing.__init__(self)
 
-        methodName = '"%s.%s"' % (descriptor.interface.identifier.name, method.identifier.name)
+        methodName = '\\"%s.%s\\"' % (descriptor.interface.identifier.name, method.identifier.name)
 
         def requiredArgCount(signature):
             arguments = signature[1]
@@ -176,8 +176,8 @@ class CGMethodCall(CGThing):
             if requiredArgs > 0:
                 code = (
                     "if argc < %d {\n"
-                    "  return 0; //XXXjdm throw exception\n"
-                    "  //return ThrowErrorMessage(cx, MSG_MISSING_ARGUMENTS, %s);\n"
+                    "  ThrowTypeError(cx, \"Not enough arguments to %s.\");\n"
+                    "  return 0;\n"
                     "}" % (requiredArgs, methodName))
                 self.cgRoot.prepend(
                     CGWrapper(CGIndenter(CGGeneric(code)), pre="\n", post="\n"))
@@ -4329,6 +4329,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{VoidVal, with_gc_disabled}',
             'dom::bindings::utils::{with_gc_enabled}',
             'dom::bindings::utils::get_dictionary_property',
+            'dom::bindings::utils::ThrowTypeError',
             'dom::bindings::trace::JSTraceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',

@@ -38,6 +38,7 @@ use js::jsapi::{JSFunctionSpec, JSPropertySpec};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsapi::{JSString};
 use js::jsapi::{JS_AllowGC, JS_InhibitGC};
+use js::jsapi::{JS_ReportErrorNumber, JSErrorFormatString, struct_JSErrorFormatString, JSEXN_TYPEERR};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::jsval::JSVal;
 use js::jsval::{PrivateValue, ObjectValue, NullValue, ObjectOrNullValue};
@@ -366,6 +367,33 @@ fn CreateInterfacePrototypeObject(cx: *JSContext, global: *JSObject,
 
         return ourProto;
     }
+}
+
+static ErrorFormatStringString: [libc::c_char, ..4] = [
+    '{' as libc::c_char,
+    '0' as libc::c_char,
+    '}' as libc::c_char,
+    0 as libc::c_char,
+];
+
+static ErrorFormatString: JSErrorFormatString = struct_JSErrorFormatString {
+    format: &ErrorFormatStringString as *libc::c_char,
+    argCount: 1,
+    exnType: JSEXN_TYPEERR as i16,
+};
+
+extern fn GetErrorMessage(_user_ref: *mut libc::c_void, _locale: *libc::c_char,
+                          aErrorNumber: libc::c_uint) -> *JSErrorFormatString
+{
+    assert_eq!(aErrorNumber, 0);
+    &ErrorFormatString as *JSErrorFormatString
+}
+
+pub fn ThrowTypeError(cx: *JSContext, error: &str) {
+    let error = error.to_c_str();
+    error.with_ref(|error| unsafe {
+        JS_ReportErrorNumber(cx, GetErrorMessage, ptr::null(), 0, error);
+    });
 }
 
 pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: c_uint, _vp: *mut JSVal) -> JSBool {
