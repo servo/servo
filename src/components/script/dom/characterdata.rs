@@ -59,18 +59,6 @@ impl CharacterData {
         self.data.push_str(arg);
         Ok(())
     }
-
-    pub fn InsertData(&mut self, _offset: u32, _arg: DOMString) -> ErrorResult {
-        fail!("CharacterData::InsertData() is unimplemented")
-    }
-
-    pub fn DeleteData(&mut self, _offset: u32, _count: u32) -> ErrorResult {
-        fail!("CharacterData::DeleteData() is unimplemented")
-    }
-
-    pub fn ReplaceData(&mut self, _offset: u32, _count: u32, _arg: DOMString) -> ErrorResult {
-        fail!("CharacterData::ReplaceData() is unimplemented")
-    }
 }
 
 impl Reflectable for CharacterData {

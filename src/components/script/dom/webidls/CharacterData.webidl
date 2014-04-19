@@ -17,12 +17,6 @@ interface CharacterData : Node {
   DOMString substringData(unsigned long offset, unsigned long count);
   [Throws]
   void appendData(DOMString data);
-  [Throws]
-  void insertData(unsigned long offset, DOMString data);
-  [Throws]
-  void deleteData(unsigned long offset, unsigned long count);
-  [Throws]
-  void replaceData(unsigned long offset, unsigned long count, DOMString data);
 };
 
 //CharacterData implements ChildNode;
