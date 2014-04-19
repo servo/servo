@@ -23,8 +23,8 @@ def ensure_manifest():
         manifest.update_manifest(wptsubdir("web-platform-tests"), opts)
 
 def run_tests(**kwargs):
-    logger = wptrunner.setup_logging(kwargs, {"raw": sys.stdout})
-    result = wptrunner.run_tests(**kwargs)
+    wptrunner.setup_logging(kwargs, {"raw": sys.stdout})
+    return wptrunner.run_tests(**kwargs)
 
 def set_defaults(args):
     args.metadata_root = args.metadata_root if args.metadata_root else wptsubdir("metadata")
@@ -42,4 +42,4 @@ def main():
     return run_tests(**kwargs)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(0 if main() else 1)
