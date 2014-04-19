@@ -27,4 +27,3 @@ src/components/script/dom/bindings/codegen/RegisterBindings.cpp
 src/components/script/dom/bindings/codegen/PrototypeList.h
 src/components/script/dom/bindings/codegen/UnionTypes.h
 src/components/script/dom/bindings/codegen/UnionConversions.h
-src/test/wpt/metadata/
