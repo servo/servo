@@ -147,7 +147,7 @@ class CGMethodCall(CGThing):
     def __init__(self, argsPre, nativeMethodName, static, descriptor, method):
         CGThing.__init__(self)
 
-        methodName = '"%s.%s"' % (descriptor.interface.identifier.name, method.identifier.name)
+        methodName = '\\"%s.%s\\"' % (descriptor.interface.identifier.name, method.identifier.name)
 
         def requiredArgCount(signature):
             arguments = signature[1]
@@ -178,8 +178,7 @@ class CGMethodCall(CGThing):
             if requiredArgs > 0:
                 code = (
                     "if argc < %d {\n"
-                    "  return 0; //XXXjdm throw exception\n"
-                    "  //return ThrowErrorMessage(cx, MSG_MISSING_ARGUMENTS, %s);\n"
+                    "  return ThrowTypeError(cx, \"Not enough arguments to %s.\");\n"
                     "}" % (requiredArgs, methodName))
                 self.cgRoot.prepend(
                     CGWrapper(CGIndenter(CGGeneric(code)), pre="\n", post="\n"))
@@ -4408,6 +4407,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
             'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
+            'js::rust::ThrowTypeError',
             'dom::types::*',
             'dom::bindings::js::JS',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
