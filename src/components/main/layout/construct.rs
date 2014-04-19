@@ -688,7 +688,7 @@ impl<'a> FlowConstructor<'a> {
         let font_group = self.font_context().get_resolved_font_for_style(&font_style);
         let (font_ascent,font_descent) = {
             let fg = font_group.borrow();
-            let font = fg.fonts[0].borrow();
+            let font = fg.fonts.get(0).borrow();
             (font.metrics.ascent,font.metrics.descent)
         };
 

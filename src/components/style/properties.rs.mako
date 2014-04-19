@@ -695,10 +695,10 @@ pub mod longhands {
 //                Fantasy,
 //                Monospace,
             }
-            pub type T = ~[FontFamily];
+            pub type T = Vec<FontFamily>;
         }
         pub type SpecifiedValue = computed_value::T;
-        #[inline] pub fn get_initial_value() -> computed_value::T { ~[FamilyName(~"serif")] }
+        #[inline] pub fn get_initial_value() -> computed_value::T { vec!(FamilyName(~"serif")) }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
         /// TODO: <generic-familiy>
@@ -706,7 +706,7 @@ pub mod longhands {
             from_iter(input.skip_whitespace())
         }
         pub fn from_iter<'a>(mut iter: SkipWhitespaceIterator<'a>) -> Option<SpecifiedValue> {
-            let mut result = ~[];
+            let mut result = Vec::new();
             macro_rules! add(
                 ($value: expr, $b: expr) => {
                     {
@@ -733,7 +733,7 @@ pub mod longhands {
 //                            "fantasy" => add!(Fantasy, break 'outer),
 //                            "monospace" => add!(Monospace, break 'outer),
                             _ => {
-                                let mut idents = ~[value.as_slice()];
+                                let mut idents = vec!(value.as_slice());
                                 loop {
                                     match iter.next() {
                                         Some(&Ident(ref value)) => idents.push(value.as_slice()),
