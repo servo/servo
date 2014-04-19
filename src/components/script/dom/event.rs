@@ -137,6 +137,7 @@ impl Event {
         self.cancelable = cancelable;
         self.bubbles = bubbles;
         self.initialized = true;
+        self.default_prevented = false;
     }
 
     pub fn IsTrusted(&self) -> bool {
