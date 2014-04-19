@@ -484,12 +484,12 @@ pub fn FindEnumStringIndex(cx: *JSContext,
             return Err(());
         }
 
-        Ok(values.iter().enumerate().find(|&(_, value)| {
+        Ok(values.iter().position(|value| {
             value.len() == length as uint &&
             range(0, length as int).all(|j| {
                 value[j] as u16 == *chars.offset(j)
             })
-        }).map(|(i, _)| i))
+        }))
     }
 }
 
