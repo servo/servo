@@ -112,13 +112,13 @@ type Iter = iter::Peekable<ComponentValue, slice::MoveItems<ComponentValue>>;
 ///
 /// Return the Selectors or None if there is an invalid selector.
 pub fn parse_selector_list(input: ~[ComponentValue], namespaces: &NamespaceMap)
-                           -> Option<~[Selector]> {
+                           -> Option<Vec<Selector>> {
     let iter = &mut input.move_iter().peekable();
     let first = match parse_selector(iter, namespaces) {
         None => return None,
         Some(result) => result
     };
-    let mut results = ~[first];
+    let mut results = vec!(first);
 
     loop {
         skip_whitespace(iter);
