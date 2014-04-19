@@ -68,5 +68,5 @@ partial interface Element {
   readonly attribute DOMString outerHTML;
 };
 
-/*Element implements ChildNode;
-Element implements ParentNode;*/
+//Element implements ChildNode;
+Element implements ParentNode;

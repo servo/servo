@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::InheritTypes::{ElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::HTMLCollectionBinding;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -103,6 +103,16 @@ impl HTMLCollection {
             classes: split_html_space_chars(classes).map(|class| class.into_owned()).to_owned_vec()
         };
         HTMLCollection::create(window, root, ~filter)
+    }
+
+    pub fn children(window: &JS<Window>, root: &JS<Node>) -> JS<HTMLCollection> {
+        struct ElementChildFilter;
+        impl CollectionFilter for ElementChildFilter {
+            fn filter(&self, elem: &JS<Element>, root: &JS<Node>) -> bool {
+                root.is_parent_of(&NodeCast::from(elem))
+            }
+        }
+        HTMLCollection::create(window, root, ~ElementChildFilter)
     }
 }
 

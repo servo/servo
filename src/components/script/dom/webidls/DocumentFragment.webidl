@@ -7,3 +7,5 @@
 [Constructor]
 interface DocumentFragment : Node {
 };
+
+DocumentFragment implements ParentNode;
