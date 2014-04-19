@@ -46,7 +46,7 @@ pub struct Event {
     target: Option<JS<EventTarget>>,
     type_: DOMString,
     phase: EventPhase,
-    default_prevented: bool,
+    canceled: bool,
     stop_propagation: bool,
     stop_immediate: bool,
     cancelable: bool,
@@ -65,7 +65,7 @@ impl Event {
             target: None,
             phase: PhaseNone,
             type_: ~"",
-            default_prevented: false,
+            canceled: false,
             cancelable: true,
             bubbles: true,
             trusted: false,
@@ -99,12 +99,12 @@ impl Event {
     }
 
     pub fn DefaultPrevented(&self) -> bool {
-        self.default_prevented
+        self.canceled
     }
 
     pub fn PreventDefault(&mut self) {
         if self.cancelable {
-            self.default_prevented = true
+            self.canceled = true
         }
     }
 
@@ -137,7 +137,7 @@ impl Event {
         self.cancelable = cancelable;
         self.bubbles = bubbles;
         self.initialized = true;
-        self.default_prevented = false;
+        self.canceled = false;
     }
 
     pub fn IsTrusted(&self) -> bool {
