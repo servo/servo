@@ -371,7 +371,7 @@ impl<'a> FlowConstructor<'a> {
     fn flush_inline_boxes_to_flow_or_list(&mut self,
                                           box_accumulator: InlineBoxAccumulator,
                                           flow: &mut ~Flow:Share,
-                                          flow_list: &mut ~[~Flow:Share],
+                                          flow_list: &mut Vec<~Flow:Share>,
                                           whitespace_stripping: WhitespaceStrippingMode,
                                           node: &ThreadSafeLayoutNode) {
         let mut boxes = box_accumulator.finish();
@@ -411,7 +411,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_block_flow_using_children_construction_result(&mut self,
                                                            flow: &mut ~Flow:Share,
                                                            consecutive_siblings:
-                                                                &mut ~[~Flow:Share],
+                                                                &mut Vec<~Flow:Share>,
                                                            node: &ThreadSafeLayoutNode,
                                                            kid: ThreadSafeLayoutNode,
                                                            inline_box_accumulator:
@@ -450,7 +450,7 @@ impl<'a> FlowConstructor<'a> {
                         whitespace_stripping,
                         node);
                     if !consecutive_siblings.is_empty() {
-                        let consecutive_siblings = mem::replace(consecutive_siblings, ~[]);
+                        let consecutive_siblings = mem::replace(consecutive_siblings, Vec::new());
                         self.generate_anonymous_missing_child(consecutive_siblings,
                                                               flow,
                                                               node);
@@ -536,7 +536,7 @@ impl<'a> FlowConstructor<'a> {
                                  -> ConstructionResult {
         // Gather up boxes for the inline flows we might need to create.
         let mut inline_box_accumulator = InlineBoxAccumulator::new();
-        let mut consecutive_siblings = ~[];
+        let mut consecutive_siblings = Vec::new();
         let mut first_box = true;
 
         // List of absolute descendants, in tree order.
@@ -755,11 +755,11 @@ impl<'a> FlowConstructor<'a> {
     /// Generates an anonymous table flow according to CSS 2.1 § 17.2.1, step 2.
     /// If necessary, generate recursively another anonymous table flow.
     fn generate_anonymous_missing_child(&mut self,
-                                        child_flows: ~[~Flow:Share],
+                                        child_flows: Vec<~Flow:Share>,
                                         flow: &mut ~Flow:Share,
                                         node: &ThreadSafeLayoutNode) {
         let mut anonymous_flow = flow.generate_missing_child_flow(node);
-        let mut consecutive_siblings = ~[];
+        let mut consecutive_siblings = Vec::new();
         for kid_flow in child_flows.move_iter() {
             if anonymous_flow.need_anonymous_flow(kid_flow) {
                 consecutive_siblings.push(kid_flow);
@@ -767,7 +767,7 @@ impl<'a> FlowConstructor<'a> {
             }
             if !consecutive_siblings.is_empty() {
                 self.generate_anonymous_missing_child(consecutive_siblings, &mut anonymous_flow, node);
-                consecutive_siblings = ~[];
+                consecutive_siblings = Vec::new();
             }
             anonymous_flow.add_new_child(kid_flow);
         }
@@ -879,7 +879,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_table_colgroup(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         let box_ = Box::new_from_specific_info(node,
                                                TableColumnBox(TableColumnBoxInfo::new(node)));
-        let mut col_boxes = ~[];
+        let mut col_boxes = Vec::new();
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child boxes of `table-column-group`
             // as `display: none`.

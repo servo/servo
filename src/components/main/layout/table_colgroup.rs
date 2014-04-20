@@ -20,7 +20,7 @@ pub struct TableColGroupFlow {
     pub box_: Option<Box>,
 
     /// The table column boxes
-    pub cols: ~[Box],
+    pub cols: Vec<Box>,
 
     /// The specified widths of table columns
     pub widths: ~[Au],
@@ -29,7 +29,7 @@ pub struct TableColGroupFlow {
 impl TableColGroupFlow {
     pub fn from_node_and_boxes(node: &ThreadSafeLayoutNode,
                                box_: Box,
-                               boxes: ~[Box]) -> TableColGroupFlow {
+                               boxes: Vec<Box>) -> TableColGroupFlow {
         TableColGroupFlow {
             base: BaseFlow::new((*node).clone()),
             box_: Some(box_),
@@ -43,7 +43,7 @@ impl TableColGroupFlow {
             box_.teardown();
         }
         self.box_ = None;
-        self.cols = ~[];
+        self.cols = Vec::new();
         self.widths = ~[];
     }
 }
