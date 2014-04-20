@@ -329,7 +329,7 @@ impl<'a> FlowConstructor<'a> {
     fn flush_inline_boxes_to_flow_or_list(&mut self,
                                           boxes: ~[Box],
                                           flow: &mut ~Flow,
-                                          flow_list: &mut ~[~Flow],
+                                          flow_list: &mut Vec<~Flow>,
                                           node: &ThreadSafeLayoutNode) {
         if boxes.len() == 0 {
             return
@@ -351,7 +351,7 @@ impl<'a> FlowConstructor<'a> {
     fn flush_inline_boxes_to_flow_or_list_if_necessary(&mut self,
                                                        opt_boxes: &mut Option<~[Box]>,
                                                        flow: &mut ~Flow,
-                                                       flow_list: &mut ~[~Flow],
+                                                       flow_list: &mut Vec<~Flow>,
                                                        node: &ThreadSafeLayoutNode) {
         let opt_boxes = mem::replace(opt_boxes, None);
         if opt_boxes.len() > 0 {
@@ -361,7 +361,7 @@ impl<'a> FlowConstructor<'a> {
 
     fn build_block_flow_using_children_construction_result(&mut self,
                                                            flow: &mut ~Flow,
-                                                           consecutive_siblings: &mut ~[~Flow],
+                                                           consecutive_siblings: &mut Vec<~Flow>,
                                                            node: &ThreadSafeLayoutNode,
                                                            kid: ThreadSafeLayoutNode,
                                                            opt_boxes_for_inline_flow: &mut Option<~[Box]>,
@@ -397,7 +397,7 @@ impl<'a> FlowConstructor<'a> {
                         consecutive_siblings,
                         node);
                     if !consecutive_siblings.is_empty() {
-                        let consecutive_siblings = mem::replace(consecutive_siblings, ~[]);
+                        let consecutive_siblings = mem::replace(consecutive_siblings, Vec::new());
                         self.generate_anonymous_missing_child(consecutive_siblings,
                                                               flow,
                                                               node);
@@ -481,7 +481,7 @@ impl<'a> FlowConstructor<'a> {
                                  -> ConstructionResult {
         // Gather up boxes for the inline flows we might need to create.
         let mut opt_boxes_for_inline_flow = None;
-        let mut consecutive_siblings = ~[];
+        let mut consecutive_siblings = Vec::new();
         let mut first_box = true;
 
         // List of absolute descendants, in tree order.
@@ -627,7 +627,7 @@ impl<'a> FlowConstructor<'a> {
                 match opt_box_accumulator {
                     Some(ref boxes) => {
                         // Both
-                        let mut total: ~[&Box] = ~[];
+                        let mut total: Vec<&Box> = Vec::new();
                         for split in splits.iter() {
                             for box_ in split.predecessor_boxes.iter() {
                                 total.push(box_);
@@ -636,28 +636,28 @@ impl<'a> FlowConstructor<'a> {
                         for box_ in boxes.iter() {
                             total.push(box_);
                         }
-                        self.set_inline_info_for_inline_child(total, node);
+                        self.set_inline_info_for_inline_child(&total, node);
 
                     },
                     None => {
-                        let mut total: ~[&Box] = ~[];
+                        let mut total: Vec<&Box> = Vec::new();
                         for split in splits.iter() {
                             for box_ in split.predecessor_boxes.iter() {
                                 total.push(box_);
                             }
                         }
-                        self.set_inline_info_for_inline_child(total, node);
+                        self.set_inline_info_for_inline_child(&total, node);
                     }
                 }
             },
             None => {
                 match opt_box_accumulator {
                     Some(ref boxes) => {
-                        let mut total: ~[&Box] = ~[];
+                        let mut total: Vec<&Box> = Vec::new();
                         for box_ in boxes.iter() {
                             total.push(box_);
                         }
-                        self.set_inline_info_for_inline_child(total, node);
+                        self.set_inline_info_for_inline_child(&total, node);
                     },
                     None => {}
                 }
@@ -681,7 +681,7 @@ impl<'a> FlowConstructor<'a> {
 
     // FIXME(#1999, pcwalton): Why does this function create a box only to throw it away???
     fn set_inline_info_for_inline_child(&mut self,
-                                        boxes: &[&Box],
+                                        boxes: &Vec<&Box>,
                                         parent_node: &ThreadSafeLayoutNode) {
         let parent_box = Box::new(self, parent_node);
         let font_style = parent_box.font_style();
@@ -794,11 +794,11 @@ impl<'a> FlowConstructor<'a> {
     /// Generates an anonymous table flow according to CSS 2.1 § 17.2.1, step 2.
     /// If necessary, generate recursively another anonymous table flow.
     fn generate_anonymous_missing_child(&mut self,
-                                        child_flows: ~[~Flow],
+                                        child_flows: Vec<~Flow>,
                                         flow: &mut ~Flow,
                                         node: &ThreadSafeLayoutNode) {
         let mut anonymous_flow = flow.generate_missing_child_flow(node);
-        let mut consecutive_siblings = ~[];
+        let mut consecutive_siblings = Vec::new();
         for kid_flow in child_flows.move_iter() {
             if anonymous_flow.need_anonymous_flow(kid_flow) {
                 consecutive_siblings.push(kid_flow);
@@ -806,7 +806,7 @@ impl<'a> FlowConstructor<'a> {
             }
             if !consecutive_siblings.is_empty() {
                 self.generate_anonymous_missing_child(consecutive_siblings, &mut anonymous_flow, node);
-                consecutive_siblings = ~[];
+                consecutive_siblings = Vec::new();
             }
             anonymous_flow.add_new_child(kid_flow);
         }
@@ -918,7 +918,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_table_colgroup(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         let box_ = Box::new_from_specific_info(node,
                                                TableColumnBox(TableColumnBoxInfo::new(node)));
-        let mut col_boxes = ~[];
+        let mut col_boxes = Vec::new();
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child boxes of `table-column-group`
             // as `display: none`.
