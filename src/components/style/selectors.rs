@@ -584,11 +584,11 @@ mod tests {
     use namespaces::NamespaceMap;
     use super::*;
 
-    fn parse(input: &str) -> Option<~[Selector]> {
+    fn parse(input: &str) -> Option<Vec<Selector>> {
         parse_ns(input, &NamespaceMap::new())
     }
 
-    fn parse_ns(input: &str, namespaces: &NamespaceMap) -> Option<~[Selector]> {
+    fn parse_ns(input: &str, namespaces: &NamespaceMap) -> Option<Vec<Selector>> {
         parse_selector_list(
             cssparser::tokenize(input).map(|(v, _)| v).collect(),
             namespaces)
@@ -601,31 +601,31 @@ mod tests {
     #[test]
     fn test_parsing() {
         assert!(parse("") == None)
-        assert!(parse("e") == Some(~[Selector{
+        assert!(parse("e") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[LocalNameSelector(~"e")],
                 next: None,
             }),
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
-        }]))
-        assert!(parse(".foo") == Some(~[Selector{
+        })))
+        assert!(parse(".foo") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[ClassSelector(~"foo")],
                 next: None,
             }),
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
-        }]))
-        assert!(parse("#bar") == Some(~[Selector{
+        })))
+        assert!(parse("#bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[IDSelector(~"bar")],
                 next: None,
             }),
             pseudo_element: None,
             specificity: specificity(1, 0, 0),
-        }]))
-        assert!(parse("e.foo#bar") == Some(~[Selector{
+        })))
+        assert!(parse("e.foo#bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[LocalNameSelector(~"e"),
                                     ClassSelector(~"foo"),
@@ -634,8 +634,8 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
-        }]))
-        assert!(parse("e.foo #bar") == Some(~[Selector{
+        })))
+        assert!(parse("e.foo #bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[IDSelector(~"bar")],
                 next: Some((~CompoundSelector {
@@ -646,11 +646,11 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
-        }]))
+        })))
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
         let mut namespaces = NamespaceMap::new();
-        assert!(parse_ns("[Foo]", &namespaces) == Some(~[Selector{
+        assert!(parse_ns("[Foo]", &namespaces) == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[AttrExists(AttrSelector {
                     name: ~"Foo",
@@ -661,11 +661,11 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
-        }]))
+        })))
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
         namespaces.default = Some(namespace::MathML);
-        assert!(parse_ns("[Foo]", &namespaces) == Some(~[Selector{
+        assert!(parse_ns("[Foo]", &namespaces) == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[AttrExists(AttrSelector {
                     name: ~"Foo",
@@ -676,9 +676,9 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
-        }]))
+        })))
         // Default namespace does apply to type selectors
-        assert!(parse_ns("e", &namespaces) == Some(~[Selector{
+        assert!(parse_ns("e", &namespaces) == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[
                     NamespaceSelector(namespace::MathML),
@@ -688,17 +688,17 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
-        }]))
+        })))
         // https://github.com/mozilla/servo/issues/1723
-        assert!(parse("::before") == Some(~[Selector{
+        assert!(parse("::before") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[],
                 next: None,
             }),
             pseudo_element: Some(Before),
             specificity: specificity(0, 0, 1),
-        }]))
-        assert!(parse("div :after") == Some(~[Selector{
+        })))
+        assert!(parse("div :after") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: ~[],
                 next: Some((~CompoundSelector {
@@ -708,6 +708,6 @@ mod tests {
             }),
             pseudo_element: Some(After),
             specificity: specificity(0, 0, 2),
-        }]))
+        })))
     }
 }

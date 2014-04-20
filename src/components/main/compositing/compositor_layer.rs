@@ -841,8 +841,8 @@ impl CompositorLayer {
                 Tree(ref mut quadtree) => quadtree,
             };
 
-            let mut unused_tiles = ~[];
-            for buffer in new_buffers.buffers.move_rev_iter() {
+            let mut unused_tiles = Vec::new();
+            for buffer in new_buffers.buffers.move_iter() {
                 unused_tiles.push_all_move(quadtree.add_tile_pixel(buffer.screen_pos.origin.x,
                                                                    buffer.screen_pos.origin.y,
                                                                    buffer.resolution,

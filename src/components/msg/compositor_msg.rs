@@ -35,7 +35,7 @@ pub struct LayerBuffer {
 /// A set of layer buffers. This is an atomic unit used to switch between the front and back
 /// buffers.
 pub struct LayerBufferSet {
-    pub buffers: ~[~LayerBuffer]
+    pub buffers: Vec<~LayerBuffer>
 }
 
 impl LayerBufferSet {
