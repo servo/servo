@@ -361,7 +361,7 @@ impl Font {
         };
 
         let mut origin = baseline_origin.clone();
-        let mut azglyphs = ~[];
+        let mut azglyphs = Vec::new();
         azglyphs.reserve(range.length());
 
         for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
