@@ -133,11 +133,18 @@ impl Event {
                      type_: DOMString,
                      bubbles: bool,
                      cancelable: bool) {
-        self.type_ = type_;
-        self.cancelable = cancelable;
-        self.bubbles = bubbles;
         self.initialized = true;
+        if self.dispatching {
+            return;
+        }
+        self.stop_propagation = false;
+        self.stop_immediate = false;
         self.canceled = false;
+        self.trusted = false;
+        self.target = None;
+        self.type_ = type_;
+        self.bubbles = bubbles;
+        self.cancelable = cancelable;
     }
 
     pub fn IsTrusted(&self) -> bool {
