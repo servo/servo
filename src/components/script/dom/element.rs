@@ -518,7 +518,7 @@ impl AttributeHandlers for JS<Element> {
                                    UIntAttrValue(value.to_str(), value)).is_ok());
     }
 
-    fn get_tokenlist_attribute<'a>(&self, name: &str) -> DOMStringVec {
+    fn get_tokenlist_attribute(&self, name: &str) -> DOMStringVec {
         match self.get_attribute(Null, name) {
             Some(attr) => attr.get().value_tokenlist_ref().unwrap_or(~[]).iter()
                               .map(|&token| token.to_owned()).collect(),
