@@ -41,6 +41,7 @@ use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::jsval::JSVal;
 use js::jsval::{PrivateValue, ObjectValue, NullValue, ObjectOrNullValue};
 use js::jsval::{Int32Value, UInt32Value, DoubleValue, BooleanValue, UndefinedValue};
+use js::rust::with_compartment;
 use js::{JSPROP_ENUMERATE, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::JSPROP_PERMANENT;
 use js::{JSFUN_CONSTRUCTOR, JSPROP_READONLY};
@@ -583,7 +584,9 @@ pub fn CreateDOMGlobal(cx: *JSContext, class: *JSClass) -> *JSObject {
         if obj.is_null() {
             return ptr::null();
         }
-        JS_InitStandardClasses(cx, obj);
+        with_compartment(cx, obj, || {
+            JS_InitStandardClasses(cx, obj);
+        });
         initialize_global(obj);
         obj
     }
