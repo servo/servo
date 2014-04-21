@@ -20,7 +20,7 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
 
-use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JS_PropertyStub, JS_StrictPropertyStub};
+use js::jsapi::{JSContext, JS_DefineProperty, JS_PropertyStub, JS_StrictPropertyStub};
 use js::jsval::{NullValue, ObjectValue, JSVal};
 use js::JSPROP_ENUMERATE;
 
@@ -91,9 +91,9 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn get_cx(&self) -> *JSObject {
+    pub fn get_cx(&self) -> *JSContext {
         let js_info = self.page().js_info();
-        js_info.get_ref().js_compartment.deref().cx.deref().ptr
+        (**js_info.get_ref().js_context).ptr
     }
 
     pub fn page<'a>(&'a self) -> &'a Page {

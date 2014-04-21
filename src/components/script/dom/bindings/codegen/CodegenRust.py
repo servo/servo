@@ -2118,7 +2118,10 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     a given interface.
     """
     def __init__(self, descriptor):
-        args = [Argument('&mut JSPageInfo', 'js_info')]
+        args = [
+            Argument('&JS<Window>', 'window'),
+            Argument('&mut JSPageInfo', 'js_info'),
+        ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'void', args, pub=True)
 
     def define(self):
@@ -2173,10 +2176,10 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
        ('Some(%s)' % TRACE_HOOK_NAME),
        self.descriptor.name)
 
-        return (body + """  let cx = (*js_info.js_context).deref().ptr;
-  let receiver = js_info.js_compartment.global_obj;
-  let global: *JSObject = JS_GetGlobalForObject(cx, receiver);
-  assert!(%s(cx, global, receiver).is_not_null());""" % (getter))
+        return (body + """  let cx = (**js_info.js_context).ptr;
+  let global = window.reflector().get_jsobject();
+  assert!(global.is_not_null());
+  assert!(%s(cx, global, global).is_not_null());""" % (getter))
 
 def needCx(returnType, arguments, extendedAttributes, considerTypes):
     return (considerTypes and
@@ -4305,13 +4308,16 @@ class CGDictionary(CGThing):
 
 class CGRegisterProtos(CGAbstractMethod):
     def __init__(self, config):
-        CGAbstractMethod.__init__(self, None, 'Register', 'void',
-                                  [Argument('&mut JSPageInfo', 'js_info')],
+        arguments = [
+            Argument('&JS<Window>', 'window'),
+            Argument('&mut JSPageInfo', 'js_info'),
+        ]
+        CGAbstractMethod.__init__(self, None, 'Register', 'void', arguments,
                                   unsafe=False, pub=True)
         self.config = config
 
     def _registerProtos(self):
-        lines = ["  codegen::%sBinding::DefineDOMInterface(js_info);" % desc.name
+        lines = ["  codegen::%sBinding::DefineDOMInterface(window, js_info);" % desc.name
                  for desc in self.config.getDescriptors(hasInterfaceObject=True,
                                                         register=True)]
         return '\n'.join(lines) + '\n'
@@ -5349,6 +5355,8 @@ class GlobalGenRoots():
         # TODO - Generate the methods we want
         return CGImports(CGRegisterProtos(config), [
             'dom::bindings::codegen',
+            'dom::bindings::js::JS',
+            'dom::window::Window',
             'script_task::JSPageInfo',
         ])
 
