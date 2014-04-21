@@ -202,7 +202,8 @@ impl Pipeline {
     }
 
     pub fn reload(&self) {
-        self.url.borrow().clone().map(|url| {
+        let url = self.url.borrow().clone();
+        url.map(|url| {
             self.load(url);
         });
     }
