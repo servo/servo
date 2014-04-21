@@ -269,7 +269,7 @@ impl Document {
         }
 
         let (prefix_from_qname, local_name_from_qname) = get_attribute_parts(qualified_name);
-        match (&ns, prefix_from_qname, local_name_from_qname.as_slice()) {
+        match (&ns, prefix_from_qname.clone(), local_name_from_qname.as_slice()) {
             // throw if prefix is not null and namespace is null
             (&namespace::Null, Some(_), _) => {
                 debug!("Namespace can't be null with a non-null prefix");
@@ -293,7 +293,7 @@ impl Document {
         if ns == namespace::HTML {
             Ok(build_element_from_tag(local_name_from_qname, abstract_self))
         } else {
-            Ok(Element::new(local_name_from_qname, ns, abstract_self))
+            Ok(Element::new(local_name_from_qname, ns, prefix_from_qname, abstract_self))
         }
     }
 

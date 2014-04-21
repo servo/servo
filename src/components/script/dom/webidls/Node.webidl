@@ -76,13 +76,4 @@ interface Node : EventTarget {
   Node replaceChild(Node node, Node child);
   [Throws]
   Node removeChild(Node child);
-
-  // Mozilla-specific stuff
-  // These have been moved to Element in the spec.
-  // If we move prefix and localName to Element they should return
-  // a non-nullable type.
-  [Constant]
-  readonly attribute DOMString? prefix;
-  [Constant]
-  readonly attribute DOMString? localName;
 };

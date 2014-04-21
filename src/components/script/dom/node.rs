@@ -1731,16 +1731,6 @@ impl Node {
         false
     }
 
-    // http://dom.spec.whatwg.org/#dom-node-prefix
-    pub fn GetPrefix(&self) -> Option<DOMString> {
-        None
-    }
-
-    // http://dom.spec.whatwg.org/#dom-node-localname
-    pub fn GetLocalName(&self) -> Option<DOMString> {
-        None
-    }
-
     //
     // Low-level pointer stitching
     //
