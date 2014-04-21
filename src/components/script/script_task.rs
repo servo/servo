@@ -33,9 +33,9 @@ use layout_interface;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use js::global::DEBUG_FNS;
-use js::jsapi::{JSObject, JS_InhibitGC, JS_AllowGC, JS_CallFunctionValue};
+use js::jsapi::{JSObject, JS_InhibitGC, JS_AllowGC, JS_CallFunctionValue, JS_DefineFunctions};
 use js::jsval::NullValue;
-use js::rust::{Compartment, Cx, CxUtils, RtUtils};
+use js::rust::{Cx, RtUtils};
 use js;
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
 use servo_msg::compositor_msg::{ScriptListener};
@@ -426,11 +426,6 @@ impl Page {
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
 
-        let compartment = match js_context.new_compartment_with_global(global) {
-              Ok(c) => c,
-              Err(()) => fail!("Failed to create a compartment"),
-        };
-
         unsafe {
             JS_InhibitGC(js_context.deref().ptr);
         }
@@ -438,7 +433,6 @@ impl Page {
         let mut js_info = self.mut_js_info();
         *js_info = Some(JSPageInfo {
             dom_static: GlobalStaticData(),
-            js_compartment: Untraceable::new(compartment),
             js_context: Untraceable::new(js_context),
         });
     }
@@ -458,8 +452,6 @@ pub struct Frame {
 pub struct JSPageInfo {
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
-    /// The JavaScript compartment for the origin associated with the script task.
-    js_compartment: Untraceable<Rc<Compartment>>,
     /// The JavaScript context.
     js_context: Untraceable<Rc<Cx>>,
 }
@@ -667,15 +659,15 @@ impl ScriptTask {
             window.get_mut().active_timers.remove(&timer_data.handle);
         }
 
-        let js_info = page.js_info();
         let this_value = if timer_data.args.len() > 0 {
             fail!("NYI")
         } else {
-            js_info.get_ref().js_compartment.global_obj
+            window.reflector().get_jsobject()
         };
 
         // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
         let rval = NullValue();
+        let js_info = page.js_info();
         let cx = js_info.get_ref().js_context.deref().deref().ptr;
         with_gc_enabled(cx, || {
             unsafe {
@@ -802,7 +794,7 @@ impl ScriptTask {
 
         {
             let mut js_info = page.mut_js_info();
-            RegisterBindings::Register(js_info.get_mut_ref());
+            RegisterBindings::Register(&window, js_info.get_mut_ref());
         }
 
         self.compositor.set_ready_state(Loading);
@@ -879,22 +871,16 @@ impl ScriptTask {
         debug!("js_scripts: {:?}", js_scripts);
 
         // Define debug functions.
-        let cx = {
-            let js_info = page.js_info();
-            let js_info = js_info.get_ref();
-            assert!(js_info.js_compartment.deref().define_functions(DEBUG_FNS).is_ok());
-
-            js_info.js_context.deref().deref().ptr
-        };
+        unsafe {
+            assert!(JS_DefineFunctions((*cx).ptr,
+                                       window.reflector().get_jsobject(),
+                                       DEBUG_FNS.as_ptr()) != 0);
+        }
 
         // Evaluate every script in the document.
         for file in js_scripts.iter() {
-            with_gc_enabled(cx, || {
-                let (cx, global_obj) = {
-                    let js_info = page.js_info();
-                    (js_info.get_ref().js_context.deref().clone(),
-                     js_info.get_ref().js_compartment.global_obj)
-                };
+            with_gc_enabled((*cx).ptr, || {
+                let global_obj = window.reflector().get_jsobject();
                 //FIXME: this should have some kind of error handling, or explicitly
                 //       drop an exception on the floor.
                 match cx.evaluate_script(global_obj, file.data.clone(), file.url.to_str(), 1) {
