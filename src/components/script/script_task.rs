@@ -35,10 +35,12 @@ use layout_interface;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use js::global::DEBUG_FNS;
-use js::jsapi::{JSObject, JS_CallFunctionValue, JS_DefineFunctions};
+use js::jsapi::{JS_CallFunctionValue, JS_DefineFunctions};
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
+use js::jsapi::{JSContext, JSRuntime};
 use js::jsval::NullValue;
 use js::rust::{Cx, RtUtils};
+use js::rust::with_compartment;
 use js;
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
 use servo_msg::compositor_msg::{ScriptListener};
@@ -426,21 +428,8 @@ impl Page {
         }
     }
 
-    pub fn initialize_js_info(&self, js_context: Rc<Cx>, global: *JSObject) {
-        assert!(global.is_not_null());
-
-        // Note that the order that these variables are initialized is _not_ arbitrary. Switching
-        // them around can -- and likely will -- lead to things breaking.
-
-        unsafe {
-            JS_SetGCZeal(js_context.deref().ptr, 0, JS_DEFAULT_ZEAL_FREQ);
-        }
-
-        js_context.set_default_options_and_version();
-        js_context.set_logging_error_reporter();
-
-        let mut js_info = self.mut_js_info();
-        *js_info = Some(JSPageInfo {
+    pub fn initialize_js_info(&self, js_context: Rc<Cx>) {
+        *self.mut_js_info() = Some(JSPageInfo {
             dom_static: GlobalStaticData(),
             js_context: Untraceable::new(js_context),
         });
@@ -548,6 +537,8 @@ pub struct ScriptTask {
 
     /// The JavaScript runtime.
     pub js_runtime: js::rust::rt,
+    /// The JSContext.
+    pub js_context: RefCell<Option<Rc<Cx>>>,
 
     pub mouse_over_targets: RefCell<Option<Vec<JS<Node>>>>
 }
@@ -581,6 +572,7 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
                 for page in page_tree.iter() {
                     *page.mut_js_info() = None;
                 }
+                *owner.js_context.borrow_mut() = None;
             }
             None => (),
         }
@@ -599,15 +591,7 @@ impl ScriptTask {
                img_cache_task: ImageCacheTask,
                window_size: Size2D<uint>)
                -> Rc<ScriptTask> {
-        let js_runtime = js::rust::rt();
-
-        unsafe {
-            JS_SetWrapObjectCallbacks(js_runtime.deref().ptr,
-                                      ptr::null(),
-                                      wrap_for_same_compartment,
-                                      ptr::null());
-        }
-
+        let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
         Rc::new(ScriptTask {
             page_tree: RefCell::new(PageTree::new(id, layout_chan, window_size)),
 
@@ -620,8 +604,40 @@ impl ScriptTask {
             compositor: compositor,
 
             js_runtime: js_runtime,
+            js_context: RefCell::new(Some(js_context)),
             mouse_over_targets: RefCell::new(None)
         })
+    }
+
+    fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
+        let js_runtime = js::rust::rt();
+        assert!({
+            let ptr: *JSRuntime = (*js_runtime).ptr;
+            ptr.is_not_null()
+        });
+        unsafe {
+            JS_SetWrapObjectCallbacks((*js_runtime).ptr,
+                                      ptr::null(),
+                                      wrap_for_same_compartment,
+                                      ptr::null());
+        }
+
+        let js_context = js_runtime.cx();
+        assert!({
+            let ptr: *JSContext = (*js_context).ptr;
+            ptr.is_not_null()
+        });
+        js_context.set_default_options_and_version();
+        js_context.set_logging_error_reporter();
+        unsafe {
+            JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
+        }
+
+        (js_runtime, js_context)
+    }
+
+    pub fn get_cx(&self) -> *JSContext {
+        (**self.js_context.borrow().get_ref()).ptr
     }
 
     /// Starts the script task. After calling this method, the script task will loop receiving
@@ -772,10 +788,9 @@ impl ScriptTask {
             Some(timer_handle) => {
                 // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
                 let rval = NullValue();
-                let js_info = page.js_info();
-                let cx = js_info.get_ref().js_context.deref().deref().ptr;
                 unsafe {
-                    JS_CallFunctionValue(cx, this_value, *timer_handle.data.funval,
+                    JS_CallFunctionValue(self.get_cx(), this_value,
+                                         *timer_handle.data.funval,
                                          0, ptr::null(), &rval);
                 }
 
@@ -844,6 +859,10 @@ impl ScriptTask {
         // If root is being exited, shut down all pages
         let mut page_tree = self.page_tree.borrow_mut();
         if page_tree.page().id == id {
+            *self.js_context.borrow_mut() = None;
+            for page in page_tree.iter() {
+                *page.mut_js_info() = None;
+            }
             for page in page_tree.iter() {
                 debug!("shutting down layout for root page {:?}", page.id);
                 shut_down_layout(&*page)
@@ -854,6 +873,9 @@ impl ScriptTask {
         // otherwise find just the matching page and exit all sub-pages
         match page_tree.remove(id) {
             Some(ref mut page_tree) => {
+                for page in page_tree.iter() {
+                    *page.mut_js_info() = None;
+                }
                 for page in page_tree.iter() {
                     debug!("shutting down layout for page {:?}", page.id);
                     shut_down_layout(&*page)
@@ -892,21 +914,22 @@ impl ScriptTask {
             }
         }
 
-        let cx = self.js_runtime.cx();
+        let cx = self.js_context.borrow();
+        let cx = cx.get_ref();
         // Create the window and document objects.
         let mut window = Window::new(cx.deref().ptr,
                                      page_tree.page.clone(),
                                      self.chan.clone(),
                                      self.compositor.dup(),
                                      self.image_cache_task.clone()).root();
-        page.initialize_js_info(cx.clone(), window.reflector().get_jsobject());
+        page.initialize_js_info(cx.clone());
         let mut document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
         window.deref_mut().init_browser_context(&*document);
 
-        {
+        with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
             let mut js_info = page.mut_js_info();
             RegisterBindings::Register(&window.unrooted(), js_info.get_mut_ref());
-        }
+        });
 
         self.compositor.set_ready_state(Loading);
         // Parse HTML.
@@ -980,23 +1003,25 @@ impl ScriptTask {
         let js_scripts = js_scripts.take_unwrap();
         debug!("js_scripts: {:?}", js_scripts);
 
-        // Define debug functions.
-        unsafe {
-            assert!(JS_DefineFunctions((*cx).ptr,
-                                       window.reflector().get_jsobject(),
-                                       DEBUG_FNS.as_ptr()) != 0);
-        }
-
-        // Evaluate every script in the document.
-        for file in js_scripts.iter() {
-            let global_obj = window.reflector().get_jsobject();
-            //FIXME: this should have some kind of error handling, or explicitly
-            //       drop an exception on the floor.
-            match cx.evaluate_script(global_obj, file.data.clone(), file.url.to_str(), 1) {
-                Ok(_) => (),
-                Err(_) => println!("evaluate_script failed")
+        with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
+            // Define debug functions.
+            unsafe {
+                assert!(JS_DefineFunctions((**cx).ptr,
+                                           window.reflector().get_jsobject(),
+                                           DEBUG_FNS.as_ptr()) != 0);
             }
-        }
+
+            // Evaluate every script in the document.
+            for file in js_scripts.iter() {
+                let global_obj = window.reflector().get_jsobject();
+                //FIXME: this should have some kind of error handling, or explicitly
+                //       drop an exception on the floor.
+                match cx.evaluate_script(global_obj, file.data.clone(), file.url.to_str(), 1) {
+                    Ok(_) => (),
+                    Err(_) => println!("evaluate_script failed")
+                }
+            }
+        });
 
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
@@ -1234,11 +1259,8 @@ fn shut_down_layout(page: &Page) {
     // Destroy all nodes. Setting frame and js_info to None will trigger our
     // compartment to shutdown, run GC, etc.
 
-    let mut js_info = page.mut_js_info();
-
     let mut frame = page.mut_frame();
     *frame = None;
-    *js_info = None;
 
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
     chan.send(layout_interface::ExitNowMsg);
