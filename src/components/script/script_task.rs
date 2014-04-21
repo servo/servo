@@ -485,6 +485,45 @@ pub struct ScriptTask {
     mouse_over_targets: RefCell<Option<~[JS<Node>]>>
 }
 
+/// In the event of task failure, all data on the stack runs its destructor. However, there
+/// are no reachable, owning pointers to the DOM memory, so it never gets freed by default
+/// when the script task fails. The ScriptMemoryFailsafe uses the destructor bomb pattern
+/// to forcibly tear down the JS compartments for pages associated with the failing ScriptTask.
+struct ScriptMemoryFailsafe<'a> {
+    owner: Option<&'a ScriptTask>,
+}
+
+impl<'a> ScriptMemoryFailsafe<'a> {
+    fn neuter(&mut self) {
+        self.owner = None;
+    }
+
+    fn new(owner: &'a ScriptTask) -> ScriptMemoryFailsafe<'a> {
+        ScriptMemoryFailsafe {
+            owner: Some(owner),
+        }
+    }
+}
+
+#[unsafe_destructor]
+impl<'a> Drop for ScriptMemoryFailsafe<'a> {
+    fn drop(&mut self) {
+        match self.owner {
+            Some(owner) => {
+                let mut page_tree = owner.page_tree.borrow_mut();
+                for page in page_tree.iter() {
+                    let mut js_info = page.mut_js_info();
+                    unsafe {
+                        JS_AllowGC(js_info.get_ref().js_context.deref().deref().ptr);
+                    }
+                    *js_info = None;
+                }
+            }
+            None => (),
+        }
+    }
+}
+
 impl ScriptTask {
     /// Creates a new script task.
     pub fn new(id: PipelineId,
@@ -547,7 +586,11 @@ impl ScriptTask {
                                               resource_task,
                                               image_cache_task,
                                               window_size);
+            let mut failsafe = ScriptMemoryFailsafe::new(&*script_task);
             script_task.start();
+
+            // This must always be the very last operation performed before the task completes
+            failsafe.neuter();
         });
     }
 
