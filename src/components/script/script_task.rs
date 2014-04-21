@@ -172,7 +172,7 @@ impl PageTree {
                 next_subpage_id: Untraceable::new(RefCell::new(SubpageId(0))),
                 resize_event: Untraceable::new(RefCell::new(None)),
                 fragment_node: Traceable::new(RefCell::new(None)),
-                last_reflow_id: Traceable::new(RefCell::new(0))
+                last_reflow_id: Traceable::new(RefCell::new(0)),
             }),
             inner: ~[],
         }
