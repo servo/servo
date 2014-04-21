@@ -17,10 +17,10 @@ interface DOMImplementation {
   [Creator, Throws]
   DocumentType createDocumentType(DOMString qualifiedName, DOMString publicId,
                                   DOMString systemId);
-  /*[Throws]
+  [Creator, Throws]
   Document createDocument(DOMString? namespace,
                           [TreatNullAs=EmptyString] DOMString qualifiedName,
-                          optional DocumentType? doctype = null);*/
+                          optional DocumentType? doctype = null);
   [Creator]
   Document createHTMLDocument(optional DOMString title);
 };
