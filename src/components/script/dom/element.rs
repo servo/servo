@@ -36,6 +36,7 @@ pub struct Element {
     node: Node,
     tag_name: DOMString,     // TODO: This should be an atom, not a DOMString.
     namespace: Namespace,
+    prefix: Option<DOMString>,
     attrs: ~[JS<Attr>],
     style_attribute: Option<style::PropertyDeclarationBlock>,
     attr_list: Option<JS<AttrList>>
@@ -139,19 +140,20 @@ pub enum ElementTypeId {
 //
 
 impl Element {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, namespace: Namespace, document: JS<Document>) -> Element {
+    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: JS<Document>) -> Element {
         Element {
             node: Node::new_inherited(ElementNodeTypeId(type_id), document),
             tag_name: tag_name,
             namespace: namespace,
+            prefix: prefix,
             attrs: ~[],
             attr_list: None,
             style_attribute: None,
         }
     }
 
-    pub fn new(tag_name: DOMString, namespace: Namespace, document: &JS<Document>) -> JS<Element> {
-        let element = Element::new_inherited(ElementTypeId, tag_name, namespace, document.clone());
+    pub fn new(tag_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: &JS<Document>) -> JS<Element> {
+        let element = Element::new_inherited(ElementTypeId, tag_name, namespace, prefix, document.clone());
         Node::reflect_node(~element, document, ElementBinding::Wrap)
     }
 
@@ -455,9 +457,21 @@ impl Element {
         self.namespace.to_str().to_owned()
     }
 
+    // http://dom.spec.whatwg.org/#dom-element-prefix
+    pub fn GetPrefix(&self) -> Option<DOMString> {
+        self.prefix.clone()
+    }
+
     // http://dom.spec.whatwg.org/#dom-element-tagname
     pub fn TagName(&self) -> DOMString {
-        self.tag_name.to_ascii_upper()
+        match self.prefix {
+            None => {
+                self.tag_name.to_ascii_upper()
+            }
+            Some(ref prefix_str) => {
+                (*prefix_str + ":" + self.tag_name).to_ascii_upper()
+            }
+        }
     }
 
     // http://dom.spec.whatwg.org/#dom-element-id

@@ -35,7 +35,7 @@ impl HTMLElementDerived for EventTarget {
 impl HTMLElement {
     pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, document: JS<Document>) -> HTMLElement {
         HTMLElement {
-            element: Element::new_inherited(type_id, tag_name, namespace::HTML, document)
+            element: Element::new_inherited(type_id, tag_name, namespace::HTML, None, document)
         }
     }
 
