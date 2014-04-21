@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::InheritTypes::CharacterDataDerived;
 use dom::bindings::js::JS;
-use dom::bindings::error::{Fallible, ErrorResult};
+use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -57,6 +57,32 @@ impl CharacterData {
 
     pub fn AppendData(&mut self, arg: DOMString) -> ErrorResult {
         self.data.push_str(arg);
+        Ok(())
+    }
+
+    pub fn InsertData(&mut self, offset: u32, arg: DOMString) -> ErrorResult {
+        self.ReplaceData(offset, 0, arg)
+    }
+
+    pub fn DeleteData(&mut self, offset: u32, count: u32) -> ErrorResult {
+        self.ReplaceData(offset, count, ~"")
+    }
+
+    pub fn ReplaceData(&mut self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
+        let length = self.data.len() as u32;
+        if offset > length {
+            return Err(IndexSize);
+        }
+        let count = if offset + count > length {
+            length - offset
+        } else {
+            count
+        };
+        let mut data = self.data.slice(0, offset as uint).to_owned();
+        data.push_str(arg);
+        data.push_str(self.data.slice((offset + count) as uint, length as uint));
+        self.data = data;
+        // FIXME: Once we have `Range`, we should implement step7 to step11
         Ok(())
     }
 }

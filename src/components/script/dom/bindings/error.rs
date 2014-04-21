@@ -9,6 +9,7 @@ use js::glue::{ReportError};
 
 #[deriving(Show)]
 pub enum Error {
+    IndexSize,
     FailureUnknown,
     NotFound,
     HierarchyRequest,
