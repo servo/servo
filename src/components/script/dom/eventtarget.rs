@@ -9,11 +9,12 @@ use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
-use dom::node::NodeTypeId;
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::xmlhttprequest::XMLHttpRequestId;
 use dom::virtualmethods::VirtualMethods;
-use js::jsapi::JSObject;
+use js::jsapi::{JSObject, JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
 use servo_util::str::DOMString;
+use libc::{c_char, size_t};
 use std::ptr;
 
 use collections::hashmap::HashMap;
@@ -90,6 +91,10 @@ pub trait EventTargetHelpers {
                                  ty: DOMString,
                                  listener: Option<EventListener>);
     fn get_inline_event_listener(&self, ty: DOMString) -> Option<EventListener>;
+    fn set_event_handler_uncompiled(&mut self,
+                                    content: &JSRef<Node>,
+                                    ty: &str,
+                                    source: DOMString);
     fn set_event_handler_common(&mut self, ty: &str, listener: *mut JSObject);
     fn get_event_handler_common(&self, ty: &str) -> *mut JSObject;
 }
@@ -143,6 +148,39 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
                 _ => false,
             }
         }).map(|entry| entry.listener.get_listener()))
+    }
+
+    fn set_event_handler_uncompiled(&mut self,
+                                    content: &JSRef<Node>,
+                                    ty: &str,
+                                    source: DOMString) {
+        let win = window_from_node(content).root();
+        let cx = win.deref().get_cx();
+        let url = win.deref().get_url();
+        let url = url.to_str().to_c_str();
+        let name = ty.to_c_str();
+        let lineno = 0; //XXXjdm need to get a real number here
+
+        let nargs = 1; //XXXjdm not true for onerror
+        static arg_name: [c_char, ..6] =
+            ['e' as c_char, 'v' as c_char, 'e' as c_char, 'n' as c_char, 't' as c_char, 0];
+        static arg_names: [*c_char, ..1] = [&arg_name as *c_char];
+
+        let source = source.to_utf16();
+        let handler =
+            name.with_ref(|name| {
+            url.with_ref(|url| { unsafe {
+                let fun = JS_CompileUCFunction(cx, ptr::mut_null(), name,
+                                               nargs, &arg_names as **i8 as *mut *i8, source.as_ptr(),
+                                               source.len() as size_t,
+                                               url, lineno);
+                assert!(fun.is_not_null());
+                JS_GetFunctionObject(fun)
+            }})});
+        let scope = win.deref().reflector().get_jsobject();
+        let funobj = unsafe { JS_CloneFunctionObject(cx, handler, scope) };
+        assert!(funobj.is_not_null());
+        self.set_event_handler_common(ty, funobj)
     }
 
     fn set_event_handler_common(&mut self, ty: &str, listener: *mut JSObject) {

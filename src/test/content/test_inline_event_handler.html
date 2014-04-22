@@ -2,16 +2,8 @@
 <head>
 <script src="harness.js"></script>
 </head>
-<body>
+<body onload="is_a(event, Event); finish()">
 <script>
-  document.getElementsByTagName('body')[0].onload = function(ev) {
-    is_a(ev, Event);
-    ev.preventDefault();
-    is(ev.defaultPrevented, false);
-    is(ev.target, document);
-    is(ev.currentTarget, window);
-    finish();
-  }
 </script>
 </body>
 </html>
