@@ -11,7 +11,7 @@ use dom::element::HTMLFrameElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId};
-use dom::windowproxy::WindowProxy;
+use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -94,7 +94,7 @@ impl HTMLFrameElement {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<JS<WindowProxy>> {
+    pub fn GetContentWindow(&self) -> Option<JS<Window>> {
         None
     }
 

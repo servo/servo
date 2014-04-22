@@ -59,6 +59,7 @@ pub mod dom {
     pub mod attr;
     pub mod attrlist;
     pub mod blob;
+    pub mod browsercontext;
     pub mod characterdata;
     pub mod clientrect;
     pub mod clientrectlist;
@@ -157,7 +158,6 @@ pub mod dom {
     pub mod validitystate;
     pub mod virtualmethods;
     pub mod window;
-    pub mod windowproxy;
 
     pub mod testbinding;
 }

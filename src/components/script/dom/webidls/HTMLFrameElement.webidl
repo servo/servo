@@ -25,7 +25,7 @@ interface HTMLFrameElement : HTMLElement {
            [SetterThrows]
            attribute boolean noResize;
   readonly attribute Document? contentDocument;
-  readonly attribute WindowProxy? contentWindow;
+  readonly attribute Window? contentWindow;
 
   [TreatNullAs=EmptyString, SetterThrows] attribute DOMString marginHeight;
   [TreatNullAs=EmptyString, SetterThrows] attribute DOMString marginWidth;

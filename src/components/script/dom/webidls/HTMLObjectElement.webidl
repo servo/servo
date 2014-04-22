@@ -32,7 +32,7 @@ interface HTMLObjectElement : HTMLElement {
   // Not pure: can trigger about:blank instantiation
   readonly attribute Document? contentDocument;
   // Not pure: can trigger about:blank instantiation
-  readonly attribute WindowProxy? contentWindow;
+  readonly attribute Window? contentWindow;
 
   readonly attribute boolean willValidate;
   readonly attribute ValidityState validity;

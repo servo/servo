@@ -9,7 +9,7 @@ use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, ElementCast, EventCast};
 use dom::bindings::js::JS;
 use dom::bindings::trace::{Traceable, Untraceable};
-use dom::bindings::utils::{Reflectable, GlobalStaticData, with_gc_enabled};
+use dom::bindings::utils::{Reflectable, GlobalStaticData, with_gc_enabled, wrap_for_same_compartment};
 use dom::document::{Document, HTMLDocument};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
@@ -18,7 +18,6 @@ use dom::uievent::UIEvent;
 use dom::eventtarget::EventTarget;
 use dom::node::{Node, NodeHelpers};
 use dom::window::{TimerData, Window};
-use dom::windowproxy::WindowProxy;
 use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
@@ -34,6 +33,7 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use js::global::DEBUG_FNS;
 use js::jsapi::{JSObject, JS_InhibitGC, JS_AllowGC, JS_CallFunctionValue, JS_DefineFunctions};
+use js::jsapi::JS_SetWrapObjectCallbacks;
 use js::jsval::NullValue;
 use js::rust::{Cx, RtUtils};
 use js;
@@ -538,6 +538,13 @@ impl ScriptTask {
                -> Rc<ScriptTask> {
         let js_runtime = js::rust::rt();
 
+        unsafe {
+            JS_SetWrapObjectCallbacks(js_runtime.deref().ptr,
+                                      ptr::null(),
+                                      wrap_for_same_compartment,
+                                      ptr::null());
+        }
+
         Rc::new(ScriptTask {
             page_tree: RefCell::new(PageTree::new(id, layout_chan, window_size)),
 
@@ -828,12 +835,14 @@ impl ScriptTask {
 
         let cx = self.js_runtime.cx();
         // Create the window and document objects.
-        let window = Window::new(cx.deref().ptr,
-                                 page_tree.page.clone(),
-                                 self.chan.clone(),
-                                 self.compositor.dup(),
-                                 self.image_cache_task.clone());
+        let mut window = Window::new(cx.deref().ptr,
+                                     page_tree.page.clone(),
+                                     self.chan.clone(),
+                                     self.compositor.dup(),
+                                     self.image_cache_task.clone());
         page.initialize_js_info(cx.clone(), window.reflector().get_jsobject());
+        let mut document = Document::new(&window, Some(url.clone()), HTMLDocument, None);
+        window.get_mut().init_browser_context(&document);
 
         {
             let mut js_info = page.mut_js_info();
@@ -844,7 +853,6 @@ impl ScriptTask {
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
-        let mut document = Document::new(&window, Some(url.clone()), HTMLDocument, None);
         let html_parsing_result = hubbub_html_parser::parse_html(page,
                                                                  &mut document,
                                                                  url.clone(),
@@ -1001,12 +1009,10 @@ impl ScriptTask {
                     Some(ref frame) => {
                         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                        let window_proxy: JS<WindowProxy> = WindowProxy::new(&frame.window);
                         let mut uievent = UIEvent::new(&frame.window);
-                        uievent.get_mut().InitUIEvent(~"resize", false, false, Some(window_proxy), 0i32);
+                        uievent.get_mut().InitUIEvent(~"resize", false, false, Some(frame.window.clone()), 0i32);
                         let event: &mut JS<Event> = &mut EventCast::from(&uievent);
 
-                        // FIXME: this event should be dispatch on WindowProxy. See #1715
                         let mut wintarget: JS<EventTarget> = EventTargetCast::from(&frame.window);
                         let winclone = wintarget.clone();
                         let _ = wintarget.get_mut().dispatch_event_with_target(&winclone, None, event);
