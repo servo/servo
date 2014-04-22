@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::attr::Attr;
+use dom::attr::{Attr, AttrSettingType, ReplacedAttr, FirstSetAttr};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::ElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
@@ -263,26 +263,22 @@ impl AttributeHandlers for JS<Element> {
                         prefix: Option<DOMString>, cb: |&JS<Attr>| -> bool) {
         let node: JS<Node> = NodeCast::from(self);
         let idx = self.get().attrs.iter().position(cb);
-        match idx {
+        let (mut attr, set_type): (JS<Attr>, AttrSettingType) = match idx {
             Some(idx) => {
-                if namespace == namespace::Null {
-                    let old_value = self.get().attrs[idx].get().Value();
-                    vtable_for(&node).before_remove_attr(local_name.clone(), old_value);
-                }
-                self.get_mut().attrs[idx].get_mut().set_value(value.clone());
+                let attr = self.get_mut().attrs[idx].clone();
+                (attr, ReplacedAttr)
             }
 
             None => {
                 let doc = node.get().owner_doc().get();
-                let new_attr = Attr::new(&doc.window, local_name.clone(), value.clone(),
-                                         name, namespace.clone(), prefix);
-                self.get_mut().attrs.push(new_attr);
+                let attr = Attr::new(&doc.window, local_name.clone(), value.clone(),
+                                         name, namespace.clone(), prefix, self.clone());
+                self.get_mut().attrs.push(attr.clone());
+                (attr, FirstSetAttr)
             }
-        }
+        };
 
-        if namespace == namespace::Null {
-            vtable_for(&node).after_set_attr(local_name, value);
-        }
+        attr.get_mut().set_value(set_type, value);
     }
 
     // http://dom.spec.whatwg.org/#dom-element-setattribute
