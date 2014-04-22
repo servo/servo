@@ -4,8 +4,9 @@
 
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflector, Reflectable};
-use dom::bindings::codegen::TestBindingBinding::TestEnum;
-use dom::bindings::codegen::TestBindingBinding::TestEnumValues::_empty;
+use dom::bindings::codegen::TestBindingBinding;
+use self::TestBindingBinding::TestEnum;
+use self::TestBindingBinding::TestEnumValues::_empty;
 use dom::blob::Blob;
 use dom::window::Window;
 use servo_util::str::DOMString;

@@ -5,7 +5,7 @@
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
 
-use js::jsapi::{JSTracer, JS_CallTracer, JSTRACE_OBJECT};
+use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
 
 use std::cast;
 use std::cell::RefCell;
@@ -19,10 +19,15 @@ use serialize::{Encodable, Encoder};
 //            we are unfortunately required to use generic types everywhere and
 //            unsafely cast to the concrete JSTracer we actually require.
 
+fn get_jstracer<'a, S: Encoder>(s: &'a mut S) -> &'a mut JSTracer {
+    unsafe {
+        cast::transmute(s)
+    }
+}
+
 impl<T: Reflectable+Encodable<S>, S: Encoder> Encodable<S> for JS<T> {
     fn encode(&self, s: &mut S) {
-        let s: &mut JSTracer = unsafe { cast::transmute(s) };
-        trace_reflector(s, "", self.reflector());
+        trace_reflector(get_jstracer(s), "", self.reflector());
     }
 }
 
@@ -36,14 +41,17 @@ pub trait JSTraceable {
 }
 
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+    trace_object(tracer, description, reflector.get_jsobject())
+}
+
+pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *JSObject) {
     unsafe {
         description.to_c_str().with_ref(|name| {
             (*tracer).debugPrinter = ptr::null();
             (*tracer).debugPrintIndex = -1;
             (*tracer).debugPrintArg = name as *libc::c_void;
             debug!("tracing {:s}", description);
-            JS_CallTracer(tracer as *JSTracer, reflector.get_jsobject(),
-                          JSTRACE_OBJECT as u32);
+            JS_CallTracer(tracer as *JSTracer, obj, JSTRACE_OBJECT as u32);
         });
     }
 }
@@ -111,5 +119,11 @@ impl<T> DerefMut<T> for Traceable<T> {
 impl<S: Encoder, T: Encodable<S>> Encodable<S> for Traceable<RefCell<T>> {
     fn encode(&self, s: &mut S) {
         self.borrow().encode(s)
+    }
+}
+
+impl<S: Encoder> Encodable<S> for Traceable<*JSObject> {
+    fn encode(&self, s: &mut S) {
+        trace_object(get_jstracer(s), "object", **self)
     }
 }

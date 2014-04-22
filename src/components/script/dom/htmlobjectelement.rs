@@ -16,7 +16,7 @@ use dom::htmlformelement::HTMLFormElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-use dom::windowproxy::WindowProxy;
+use dom::window::Window;
 use servo_util::str::DOMString;
 
 use servo_net::image_cache_task;
@@ -135,7 +135,7 @@ impl HTMLObjectElement {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<JS<WindowProxy>> {
+    pub fn GetContentWindow(&self) -> Option<JS<Window>> {
         None
     }
 

@@ -138,6 +138,7 @@ class Descriptor(DescriptorProvider):
         self.needsAbstract = desc.get('needsAbstract', [])
         self.createGlobal = desc.get('createGlobal', False)
         self.register = desc.get('register', True)
+        self.outerObjectHook = desc.get('outerObjectHook', 'None')
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.

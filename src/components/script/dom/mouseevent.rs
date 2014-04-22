@@ -11,7 +11,6 @@ use dom::event::{Event, MouseEventTypeId};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
-use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -124,7 +123,7 @@ impl MouseEvent {
                           typeArg: DOMString,
                           canBubbleArg: bool,
                           cancelableArg: bool,
-                          viewArg: Option<JS<WindowProxy>>,
+                          viewArg: Option<JS<Window>>,
                           detailArg: i32,
                           screenXArg: i32,
                           screenYArg: i32,

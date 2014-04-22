@@ -13,12 +13,12 @@
 [Constructor(DOMString type, optional UIEventInit eventInitDict)]
 interface UIEvent : Event
 {
-  readonly attribute WindowProxy? view;
-  readonly attribute long         detail;
+  readonly attribute Window? view;
+  readonly attribute long    detail;
   void initUIEvent(DOMString aType,
                    boolean aCanBubble,
                    boolean aCancelable,
-                   WindowProxy? aView,
+                   Window? aView,
                    long aDetail);
 };
 
@@ -40,6 +40,6 @@ partial interface UIEvent {
 
 dictionary UIEventInit : EventInit
 {
-  WindowProxy? view = null;
-  long         detail = 0;
+  Window? view = null;
+  long    detail = 0;
 };

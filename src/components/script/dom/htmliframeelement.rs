@@ -14,7 +14,7 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId};
 use dom::virtualmethods::VirtualMethods;
-use dom::windowproxy::WindowProxy;
+use dom::window::Window;
 use servo_util::str::DOMString;
 
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
@@ -143,7 +143,7 @@ impl HTMLIFrameElement {
         None
     }
 
-    pub fn GetContentWindow(&self) -> Option<JS<WindowProxy>> {
+    pub fn GetContentWindow(&self) -> Option<JS<Window>> {
         None
     }
 

@@ -10,13 +10,14 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, UIEventTypeId};
 use dom::node::Node;
 use dom::window::Window;
-use dom::windowproxy::WindowProxy;
 use servo_util::str::DOMString;
+
+use serialize::{Encoder, Encodable};
 
 #[deriving(Encodable)]
 pub struct UIEvent {
     event: Event,
-    view: Option<JS<WindowProxy>>,
+    view: Option<JS<Window>>,
     detail: i32
 }
 
@@ -50,7 +51,7 @@ impl UIEvent {
         Ok(ev)
     }
 
-    pub fn GetView(&self) -> Option<JS<WindowProxy>> {
+    pub fn GetView(&self) -> Option<JS<Window>> {
         self.view.clone()
     }
 
@@ -62,7 +63,7 @@ impl UIEvent {
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
-                       view: Option<JS<WindowProxy>>,
+                       view: Option<JS<Window>>,
                        detail: i32) {
         self.event.InitEvent(type_, can_bubble, cancelable);
         self.view = view;
