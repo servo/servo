@@ -26,6 +26,7 @@ use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, Layou
 use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg};
 use layout_interface::{Reflow, ReflowDocumentDamage, ReflowForDisplay, ReflowGoal, ReflowMsg};
 use layout_interface::ContentChangedDocumentDamage;
+use layout_interface::UntrustedNodeAddress;
 use layout_interface;
 
 use geom::point::Point2D;
@@ -434,6 +435,27 @@ impl Page {
             dom_static: GlobalStaticData(),
             js_context: Untraceable::new(js_context),
         });
+    }
+
+    pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
+        let frame = self.frame();
+        let document = frame.get_ref().document.clone();
+        let root = document.get().GetDocumentElement();
+        if root.is_none() {
+            return None;
+        }
+        let root: JS<Node> = NodeCast::from(&root.unwrap());
+        let (chan, port) = channel();
+        let address = match self.query_layout(HitTestQuery(root.to_trusted_node_address(), *point, chan), port) {
+            Ok(HitTestResponse(node_address)) => {
+                Some(node_address)
+            }
+            Err(()) => {
+                debug!("layout query error");
+                None
+            }
+        };
+        address
     }
 }
 
@@ -1031,17 +1053,8 @@ impl ScriptTask {
 
             ClickEvent(_button, point) => {
                 debug!("ClickEvent: clicked at {:?}", point);
-
-                let frame = page.frame();
-                let document = frame.get_ref().document.clone();
-                let root = document.get().GetDocumentElement();
-                if root.is_none() {
-                    return;
-                }
-                let (chan, port) = channel();
-                let root: JS<Node> = NodeCast::from(&root.unwrap());
-                match page.query_layout(HitTestQuery(root.to_trusted_node_address(), point, chan), port) {
-                    Ok(HitTestResponse(node_address)) => {
+                match page.hit_test(&point) {
+                    Some(node_address) => {
                         debug!("node address is {:?}", node_address);
                         let mut node: JS<Node> =
                             NodeHelpers::from_untrusted_node_address(self.js_runtime.deref().ptr,
@@ -1063,8 +1076,8 @@ impl ScriptTask {
                                 self.load_url_from_element(page, &element)
                             }
                         }
-                    },
-                    Err(()) => debug!("layout query error"),
+                    }
+                    None => {}
                 }
             }
             MouseDownEvent(..) => {}
