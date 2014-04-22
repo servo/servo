@@ -22,7 +22,6 @@ use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
 use layout_interface::{AddStylesheetMsg, DocumentDamage};
-use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery, MouseOverQuery, MouseOverResponse};
 use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg};
 use layout_interface::{Reflow, ReflowDocumentDamage, ReflowForDisplay, ReflowGoal, ReflowMsg};
@@ -955,11 +954,9 @@ impl ScriptTask {
         chan.send(LoadCompleteMsg(page.id, url));
     }
 
-    fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &Page, node: JS<Element>) {
-        let (chan, port) = channel();
+    fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JS<Element>) {
         let node: JS<Node> = NodeCast::from(&node);
-        let ContentBoxResponse(rect) =
-            page.query_layout(ContentBoxQuery(node.to_trusted_node_address(), chan), port);
+        let rect = node.get_bounding_content_box();
         let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(),
                             to_frac_px(rect.origin.y).to_f32().unwrap());
         // FIXME(#2003, pcwalton): This is pretty bogus when multiple layers are involved.
@@ -997,7 +994,7 @@ impl ScriptTask {
 
                 let mut fragment_node = page.fragment_node.deref().borrow_mut();
                 match fragment_node.take() {
-                    Some(node) => self.scroll_fragment_point(pipeline_id, page, node),
+                    Some(node) => self.scroll_fragment_point(pipeline_id, node),
                     None => {}
                 }
 
@@ -1156,7 +1153,7 @@ impl ScriptTask {
 
             if click_frag {
                 match page.find_fragment_node(url.fragment.unwrap()) {
-                    Some(node) => self.scroll_fragment_point(page.id, page, node),
+                    Some(node) => self.scroll_fragment_point(page.id, node),
                     None => {}
                 }
             } else {
