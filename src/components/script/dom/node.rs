@@ -28,7 +28,8 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use geom::rect::Rect;
 use html::hubbub_html_parser::build_element_from_tag;
-use layout_interface::{ContentBoxQuery, ContentBoxResponse, LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
+use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery, ContentBoxesResponse,
+                       LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
 
@@ -286,6 +287,7 @@ pub trait NodeHelpers {
     fn to_trusted_node_address(&self) -> TrustedNodeAddress;
 
     fn get_bounding_content_box(&self) -> Rect<Au>;
+    fn get_content_boxes(&self) -> ~[Rect<Au>];
 }
 
 impl NodeHelpers for JS<Node> {
@@ -576,6 +578,15 @@ impl NodeHelpers for JS<Node> {
         let addr = self.to_trusted_node_address();
         let ContentBoxResponse(rect) = page.query_layout(ContentBoxQuery(addr, chan), port);
         rect
+    }
+
+    fn get_content_boxes(&self) -> ~[Rect<Au>] {
+        let window = window_from_node(self);
+        let page = window.get().page();
+        let (chan, port) = channel();
+        let addr = self.to_trusted_node_address();
+        let ContentBoxesResponse(rects) = page.query_layout(ContentBoxesQuery(addr, chan), port);
+        rects
     }
 }
 
