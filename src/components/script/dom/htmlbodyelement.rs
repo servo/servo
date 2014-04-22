@@ -10,7 +10,9 @@ use dom::document::Document;
 use dom::element::HTMLBodyElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, ElementNodeTypeId, window_from_node};
+use dom::window::WindowMethods;
+use js::jsapi::{JSContext, JSObject};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -50,6 +52,8 @@ pub trait HTMLBodyElementMethods {
     fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult;
     fn Background(&self) -> DOMString;
     fn SetBackground(&self, _background: DOMString) -> ErrorResult;
+    fn GetOnunload(&self, cx: *mut JSContext) -> *mut JSObject;
+    fn SetOnunload(&mut self, cx: *mut JSContext, listener: *mut JSObject);
 }
 
 impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
@@ -99,5 +103,15 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
 
     fn SetBackground(&self, _background: DOMString) -> ErrorResult {
         Ok(())
+    }
+
+    fn GetOnunload(&self, cx: *mut JSContext) -> *mut JSObject {
+        let win = window_from_node(self).root();
+        win.deref().GetOnunload(cx)
+    }
+
+    fn SetOnunload(&mut self, cx: *mut JSContext, listener: *mut JSObject) {
+        let mut win = window_from_node(self).root();
+        win.SetOnunload(cx, listener)
     }
 }

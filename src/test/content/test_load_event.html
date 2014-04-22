@@ -17,6 +17,9 @@
   }
 
   window.onload = function(ev) {
+    _fail("this inline handler should be overwritten");
+  }
+  window.onload = function(ev) {
     onloads++;
     check(ev);
   }

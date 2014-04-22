@@ -3,19 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::HTMLElementBinding;
-use dom::bindings::codegen::InheritTypes::ElementCast;
-use dom::bindings::codegen::InheritTypes::HTMLElementDerived;
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use js::jsapi::JSContext;
+use dom::window::WindowMethods;
+use js::jsapi::{JSContext, JSObject};
 use js::jsval::{JSVal, NullValue};
 use servo_util::namespace;
 use servo_util::str::DOMString;
+use std::ptr;
 
 #[deriving(Encodable)]
 pub struct HTMLElement {
@@ -42,6 +45,17 @@ impl HTMLElement {
     pub fn new(localName: DOMString, document: &JSRef<Document>) -> Temporary<HTMLElement> {
         let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
+    }
+}
+
+trait PrivateHTMLElementHelpers {
+    fn is_body_or_frameset(&self) -> bool;
+}
+
+impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
+    fn is_body_or_frameset(&self) -> bool {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
     }
 }
 
@@ -76,6 +90,8 @@ pub trait HTMLElementMethods {
     fn OffsetLeft(&self) -> i32;
     fn OffsetWidth(&self) -> i32;
     fn OffsetHeight(&self) -> i32;
+    fn GetOnload(&self, cx: *mut JSContext) -> *mut JSObject;
+    fn SetOnload(&mut self, cx: *mut JSContext, listener: *mut JSObject);
 }
 
 impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
@@ -194,6 +210,22 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
 
     fn OffsetHeight(&self) -> i32 {
         0
+    }
+
+    fn GetOnload(&self, cx: *mut JSContext) -> *mut JSObject {
+        if self.is_body_or_frameset() {
+            let win = window_from_node(self).root();
+            win.deref().GetOnload(cx)
+        } else {
+            ptr::mut_null()
+        }
+    }
+
+    fn SetOnload(&mut self, cx: *mut JSContext, listener: *mut JSObject) {
+        if self.is_body_or_frameset() {
+            let mut win = window_from_node(self).root();
+            win.SetOnload(cx, listener)
+        }
     }
 }
 
