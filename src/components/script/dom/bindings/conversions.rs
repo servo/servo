@@ -9,7 +9,7 @@ use dom::bindings::utils::jsstring_to_str;
 use dom::bindings::utils::unwrap_jsmanaged;
 use servo_util::str::DOMString;
 
-use js::jsapi::{JSBool, JSContext};
+use js::jsapi::{JSBool, JSContext, JSObject};
 use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
 use js::jsapi::{JS_ValueToECMAUint32, JS_ValueToECMAInt32};
 use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
@@ -18,7 +18,7 @@ use js::jsapi::{JS_NewUCStringCopyN, JS_NewStringCopyN};
 use js::jsapi::{JS_WrapValue};
 use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
-use js::jsval::{StringValue, ObjectValue};
+use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
 use js::glue::RUST_JS_NumberValue;
 use libc;
 use std::default::Default;
@@ -346,5 +346,11 @@ impl<X: Default, T: FromJSValConvertible<X>> FromJSValConvertible<()> for Option
             let result: Result<T, ()> = FromJSValConvertible::from_jsval(cx, value, option);
             result.map(Some)
         }
+    }
+}
+
+impl ToJSValConvertible for *mut JSObject {
+    fn to_jsval(&self, _cx: *mut JSContext) -> JSVal {
+        ObjectOrNullValue(*self)
     }
 }

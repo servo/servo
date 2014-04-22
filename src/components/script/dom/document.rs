@@ -5,6 +5,7 @@
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::BindingDeclarations::DocumentBinding;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
 use dom::bindings::js::OptionalRootable;
@@ -21,7 +22,7 @@ use dom::element::{Element, AttributeHandlers, get_attribute_parts};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::Event;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -44,7 +45,7 @@ use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref};
 
 use collections::hashmap::HashMap;
-use js::jsapi::JSContext;
+use js::jsapi::{JSObject, JSContext};
 use std::ascii::StrAsciiExt;
 use url::{Url, from_str};
 
@@ -325,6 +326,8 @@ pub trait DocumentMethods {
     fn Applets(&self) -> Temporary<HTMLCollection>;
     fn Location(&mut self) -> Temporary<Location>;
     fn Children(&self) -> Temporary<HTMLCollection>;
+    fn GetOnload(&self, _cx: *mut JSContext) -> *mut JSObject;
+    fn SetOnload(&mut self, _cx: *mut JSContext, listener: *mut JSObject);
 }
 
 impl<'a> DocumentMethods for JSRef<'a, Document> {
@@ -803,5 +806,15 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Children(&self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
         HTMLCollection::children(&*window, NodeCast::from_ref(self))
+    }
+
+    fn GetOnload(&self, _cx: *mut JSContext) -> *mut JSObject {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("load")
+    }
+
+    fn SetOnload(&mut self, _cx: *mut JSContext, listener: *mut JSObject) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("load", listener)
     }
 }

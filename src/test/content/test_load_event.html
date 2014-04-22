@@ -4,13 +4,25 @@
 </head>
 <body>
 <script>
-  addEventListener("load", function(ev) {
+  var onloads = 0;
+  function check(ev) {
     is_a(ev, Event);
     ev.preventDefault();
     is(ev.defaultPrevented, false);
     is(ev.target, document);
     is(ev.currentTarget, window);
-    finish();
+    if (onloads == 2) {
+      finish();
+    }
+  }
+
+  window.onload = function(ev) {
+    onloads++;
+    check(ev);
+  }
+  addEventListener("load", function(ev) {
+    onloads++;
+    check(ev);
   });
 </script>
 </body>

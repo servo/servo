@@ -68,3 +68,4 @@ partial interface Document {
 };
 
 Document implements ParentNode;
+Document implements GlobalEventHandlers;

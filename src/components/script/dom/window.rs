@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::WindowBinding;
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::trace::{Traceable, Untraceable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::document::Document;
 use dom::element::Element;
-use dom::eventtarget::{EventTarget, WindowTypeId};
+use dom::eventtarget::{EventTarget, WindowTypeId, EventTargetHelpers};
 use dom::console::Console;
 use dom::location::Location;
 use dom::navigator::Navigator;
@@ -23,7 +24,7 @@ use servo_util::str::DOMString;
 use servo_util::task::{spawn_named};
 use servo_util::url::parse_url;
 
-use js::jsapi::JSContext;
+use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::{NullValue, JSVal};
 
@@ -140,6 +141,12 @@ pub trait WindowMethods {
     fn Window(&self) -> Temporary<Window>;
     fn Self(&self) -> Temporary<Window>;
     fn Performance(&mut self) -> Temporary<Performance>;
+    fn GetOnload(&self, _cx: *mut JSContext) -> *mut JSObject;
+    fn SetOnload(&mut self, _cx: *mut JSContext, listener: *mut JSObject);
+    fn GetOnunload(&self, _cx: *mut JSContext) -> *mut JSObject;
+    fn SetOnunload(&mut self, _cx: *mut JSContext, listener: *mut JSObject);
+    fn GetOnerror(&self, _cx: *mut JSContext) -> *mut JSObject;
+    fn SetOnerror(&mut self, _cx: *mut JSContext, listener: *mut JSObject);
     fn Debug(&self, message: DOMString);
     fn Gc(&self);
 }
@@ -268,6 +275,36 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         Temporary::new(self.performance.get_ref().clone())
     }
 
+    fn GetOnload(&self, _cx: *mut JSContext) -> *mut JSObject {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("load")
+    }
+
+    fn SetOnload(&mut self, _cx: *mut JSContext, listener: *mut JSObject) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("load", listener)
+    }
+
+    fn GetOnunload(&self, _cx: *mut JSContext) -> *mut JSObject {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("unload")
+    }
+
+    fn SetOnunload(&mut self, _cx: *mut JSContext, listener: *mut JSObject) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("unload", listener)
+    }
+
+    fn GetOnerror(&self, _cx: *mut JSContext) -> *mut JSObject {
+        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("error")
+    }
+
+    fn SetOnerror(&mut self, _cx: *mut JSContext, listener: *mut JSObject) {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        eventtarget.set_event_handler_common("error", listener)
+    }
+
     fn Debug(&self, message: DOMString) {
         debug!("{:s}", message);
     }
@@ -392,7 +429,6 @@ impl<'a> PrivateWindowHelpers for JSRef<'a, Window> {
         handle
     }
 }
-
 impl Window {
     pub fn new(cx: *mut JSContext,
                page: Rc<Page>,

@@ -2,16 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::callback::CallbackContainer;
+use dom::bindings::codegen::BindingDeclarations::EventListenerBinding::EventListener;
+use dom::bindings::error::{Fallible, InvalidState};
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::error::{Fallible, InvalidState};
-use dom::bindings::codegen::BindingDeclarations::EventListenerBinding::EventListener;
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::NodeTypeId;
 use dom::xmlhttprequest::XMLHttpRequestId;
 use dom::virtualmethods::VirtualMethods;
+use js::jsapi::JSObject;
 use servo_util::str::DOMString;
+use std::ptr;
 
 use collections::hashmap::HashMap;
 
@@ -28,10 +31,24 @@ pub enum EventTargetTypeId {
     XMLHttpRequestTargetTypeId(XMLHttpRequestId)
 }
 
+#[deriving(Eq, Encodable)]
+pub enum EventListenerType {
+    Additive(EventListener),
+    Inline(EventListener),
+}
+
+impl EventListenerType {
+    fn get_listener(&self) -> EventListener {
+        match *self {
+            Additive(listener) | Inline(listener) => listener
+        }
+    }
+}
+
 #[deriving(Eq,Encodable)]
 pub struct EventListenerEntry {
     pub phase: ListenerPhase,
-    pub listener: EventListener
+    pub listener: EventListenerType
 }
 
 #[deriving(Encodable)]
@@ -52,7 +69,7 @@ impl EventTarget {
 
     pub fn get_listeners(&self, type_: &str) -> Option<Vec<EventListener>> {
         self.handlers.find_equiv(&type_).map(|listeners| {
-            listeners.iter().map(|entry| entry.listener).collect()
+            listeners.iter().map(|entry| entry.listener.get_listener()).collect()
         })
     }
 
@@ -60,7 +77,7 @@ impl EventTarget {
         -> Option<Vec<EventListener>> {
         self.handlers.find_equiv(&type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
-            filtered.map(|entry| entry.listener).collect()
+            filtered.map(|entry| entry.listener.get_listener()).collect()
         })
     }
 }
@@ -69,6 +86,12 @@ pub trait EventTargetHelpers {
     fn dispatch_event_with_target<'a>(&self,
                                       target: Option<JSRef<'a, EventTarget>>,
                                       event: &mut JSRef<Event>) -> Fallible<bool>;
+    fn set_inline_event_listener(&mut self,
+                                 ty: DOMString,
+                                 listener: Option<EventListener>);
+    fn get_inline_event_listener(&self, ty: DOMString) -> Option<EventListener>;
+    fn set_event_handler_common(&mut self, ty: &str, listener: *mut JSObject);
+    fn get_event_handler_common(&self, ty: &str) -> *mut JSObject;
 }
 
 impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
@@ -79,6 +102,57 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
             return Err(InvalidState);
         }
         Ok(dispatch_event(self, target, event))
+    }
+
+    fn set_inline_event_listener(&mut self,
+                                 ty: DOMString,
+                                 listener: Option<EventListener>) {
+        let entries = self.handlers.find_or_insert_with(ty, |_| vec!());
+        let idx = entries.iter().position(|&entry| {
+            match entry.listener {
+                Inline(_) => true,
+                _ => false,
+            }
+        });
+
+        match idx {
+            Some(idx) => {
+                match listener {
+                    Some(listener) => entries.get_mut(idx).listener = Inline(listener),
+                    None => {
+                        entries.remove(idx);
+                    }
+                }
+            }
+            None => {
+                if listener.is_some() {
+                    entries.push(EventListenerEntry {
+                        phase: Capturing, //XXXjdm no idea when inline handlers should run
+                        listener: Inline(listener.unwrap()),
+                    });
+                }
+            }
+        }
+    }
+
+    fn get_inline_event_listener(&self, ty: DOMString) -> Option<EventListener> {
+        let entries = self.handlers.find(&ty);
+        entries.and_then(|entries| entries.iter().find(|entry| {
+            match entry.listener {
+                Inline(_) => true,
+                _ => false,
+            }
+        }).map(|entry| entry.listener.get_listener()))
+    }
+
+    fn set_event_handler_common(&mut self, ty: &str, listener: *mut JSObject) {
+        let listener = EventListener::new(listener);
+        self.set_inline_event_listener(ty.to_owned(), Some(listener));
+    }
+
+    fn get_event_handler_common(&self, ty: &str) -> *mut JSObject {
+        let listener = self.get_inline_event_listener(ty.to_owned());
+        listener.map(|listener| listener.parent.callback()).unwrap_or(ptr::mut_null())
     }
 }
 
@@ -104,7 +178,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
             let phase = if capture { Capturing } else { Bubbling };
             let new_entry = EventListenerEntry {
                 phase: phase,
-                listener: listener
+                listener: Additive(listener)
             };
             if entry.as_slice().position_elem(&new_entry).is_none() {
                 entry.push(new_entry);
@@ -122,7 +196,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
                 let phase = if capture { Capturing } else { Bubbling };
                 let old_entry = EventListenerEntry {
                     phase: phase,
-                    listener: listener
+                    listener: Additive(listener)
                 };
                 let position = entry.as_slice().position_elem(&old_entry);
                 for &position in position.iter() {
