@@ -10,11 +10,11 @@
  * and create derivative works of this document.
  */
 
-interface HTMLCanvasElement : HTMLElement {
-  [Pure]
-           attribute unsigned long width;
-  [Pure]
-           attribute unsigned long height;
-
-  CanvasRenderingContext2D? getContext(DOMString contextId);
+interface CanvasRenderingContext2D {
+  [LenientFloat]
+  void fillRect(float x, float y, float w, float h);
+  [LenientFloat]
+  void strokeRect(float x, float y, float w, float h);
+  [LenientFloat]
+  void clearRect(float x, float y, float w, float h);
 };

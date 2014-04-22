@@ -16,6 +16,7 @@
 #[phase(syntax, link)]
 extern crate log;
 
+extern crate azure;
 extern crate collections;
 extern crate geom;
 extern crate hubbub;
@@ -59,6 +60,7 @@ pub mod dom {
     pub mod attr;
     pub mod attrlist;
     pub mod blob;
+    pub mod canvasrenderingcontext2d;
     pub mod characterdata;
     pub mod clientrect;
     pub mod clientrectlist;

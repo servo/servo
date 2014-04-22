@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::ElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLCanvasElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
@@ -10,8 +11,9 @@ use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
 use dom::bindings::js::JS;
 use dom::element::Element;
-use dom::element::{ElementTypeId, HTMLImageElementTypeId};
+use dom::element::{ElementTypeId, HTMLImageElementTypeId, HTMLCanvasElementTypeId};
 use dom::element::{HTMLIFrameElementTypeId, HTMLObjectElementTypeId, HTMLStyleElementTypeId};
+use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -76,6 +78,10 @@ pub trait VirtualMethods {
 /// interrupted.
 pub fn vtable_for<'a>(node: &JS<Node>) -> ~VirtualMethods: {
     match node.get().type_id {
+        ElementNodeTypeId(HTMLCanvasElementTypeId) => {
+            let element: JS<HTMLCanvasElement> = HTMLCanvasElementCast::to(node).unwrap();
+            ~element as ~VirtualMethods:
+        }
         ElementNodeTypeId(HTMLImageElementTypeId) => {
             let element: JS<HTMLImageElement> = HTMLImageElementCast::to(node).unwrap();
             ~element as ~VirtualMethods:
