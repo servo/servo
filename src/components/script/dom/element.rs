@@ -640,6 +640,12 @@ impl Element {
     pub fn GetOuterHTML(&self, abstract_self: &JS<Element>) -> Fallible<DOMString> {
         Ok(serialize(&mut NodeIterator::new(NodeCast::from(abstract_self), true, false)))
     }
+
+    pub fn Children(&self, abstract_self: &JS<Element>) -> JS<HTMLCollection> {
+        let doc = self.node.owner_doc();
+        let doc = doc.get();
+        HTMLCollection::children(&doc.window, &NodeCast::from(abstract_self))
+    }
 }
 
 pub fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
