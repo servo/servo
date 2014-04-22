@@ -92,6 +92,20 @@
       is(document.getElementById("x"), null, "test 7-0");
     }
 
+    // test 8
+    {
+      let TEST_ID = "test-8"
+      let element = document.createElement("div");
+      element.setAttribute("id", TEST_ID);
+      document.body.appendChild(element);
+      let target = document.getElementById(TEST_ID);
+      is_not(target, null, "test 8-0, getElementById is correct before changing the value");
+
+      element.attributes[0].value = TEST_ID + "-updated";
+      let target2 = document.getElementById(TEST_ID);
+      is(target2, null, "test 8-1, should return null after updated id via Attr.value");
+    }
+
     finish();
   </script>
 </body>
