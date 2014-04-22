@@ -645,6 +645,12 @@ impl Element {
         let doc = doc.get();
         HTMLCollection::children(&doc.window, &NodeCast::from(abstract_self))
     }
+
+    // http://dom.spec.whatwg.org/#dom-childnode-remove
+    pub fn Remove(&self, abstract_self: &JS<Element>) {
+        let mut node: JS<Node> = NodeCast::from(abstract_self);
+        node.remove_self();
+    }
 }
 
 pub fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {

@@ -272,6 +272,7 @@ pub trait NodeHelpers {
     fn node_removed(&self);
     fn add_child(&mut self, new_child: &mut JS<Node>, before: Option<JS<Node>>);
     fn remove_child(&mut self, child: &mut JS<Node>);
+    fn remove_self(&mut self);
 
     fn get_hover_state(&self) -> bool;
     fn set_hover_state(&mut self, state: bool);
@@ -505,6 +506,14 @@ impl NodeHelpers for JS<Node> {
         child_node.set_prev_sibling(None);
         child_node.set_next_sibling(None);
         child_node.set_parent_node(None);
+    }
+
+    fn remove_self(&mut self) {
+        let mut parent = self.parent_node();
+        match parent {
+            Some(ref mut parent) => parent.remove_child(self),
+            None => ()
+        }
     }
 
     fn get_hover_state(&self) -> bool {

@@ -4,13 +4,13 @@
 
 //! DOM bindings for `CharacterData`.
 
-use dom::bindings::codegen::InheritTypes::CharacterDataDerived;
+use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
 use dom::bindings::js::JS;
 use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId, ProcessingInstructionNodeTypeId};
+use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId, ProcessingInstructionNodeTypeId, NodeHelpers};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -84,6 +84,12 @@ impl CharacterData {
         self.data = data;
         // FIXME: Once we have `Range`, we should implement step7 to step11
         Ok(())
+    }
+
+    // http://dom.spec.whatwg.org/#dom-childnode-remove
+    pub fn Remove(&self, abstract_self: &JS<CharacterData>) {
+        let mut node: JS<Node> = NodeCast::from(abstract_self);
+        node.remove_self();
     }
 }
 
