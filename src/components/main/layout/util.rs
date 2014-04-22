@@ -64,7 +64,7 @@ impl ElementMapping {
         self.entries.iter().enumerate()
     }
 
-    pub fn repair_for_box_changes(&mut self, old_boxes: &[Box], new_boxes: &[Box]) {
+    pub fn repair_for_box_changes(&mut self, old_boxes: &Vec<Box>, new_boxes: &Vec<Box>) {
         let entries = &mut self.entries;
 
         debug!("--- Old boxes: ---");
@@ -106,7 +106,7 @@ impl ElementMapping {
                     repair_stack.push(item);
                     entries_k += 1;
                 }
-                while new_j < new_boxes.len() && old_boxes[old_i].node != new_boxes[new_j].node {
+                while new_j < new_boxes.len() && old_boxes.get(old_i).node != new_boxes.get(new_j).node {
                     debug!("repair_for_box_changes: Slide through new box {:u}", new_j);
                     new_j += 1;
                 }

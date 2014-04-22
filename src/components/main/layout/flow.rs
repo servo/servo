@@ -28,7 +28,6 @@
 use css::node_style::StyledNode;
 use layout::block::BlockFlow;
 use layout::box_::{Box, TableRowBox, TableCellBox};
-use layout::construct::OptVector;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo, ToGfxColor};
 use layout::floats::Floats;
