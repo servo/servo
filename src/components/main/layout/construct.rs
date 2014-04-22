@@ -125,7 +125,7 @@ pub struct InlineBoxesConstructionResult {
     /// Any {ib} splits that we're bubbling up.
     ///
     /// TODO(pcwalton): Small vector optimization.
-    pub splits: Option<~[InlineBlockSplit]>,
+    pub splits: Option<Vec<InlineBlockSplit>>,
 
     /// Any boxes that succeed the {ib} splits.
     pub boxes: InlineBoxes,
@@ -278,6 +278,58 @@ enum WhitespaceStrippingMode {
     NoWhitespaceStripping,
     StripWhitespaceFromStart,
     StripWhitespaceFromEnd,
+}
+
+/// Methods on optional vectors.
+///
+/// TODO: This is no longer necessary. This should be removed.
+pub trait OptNewVector<T> {
+    /// Turns this optional vector into an owned one. If the optional vector is `None`, then this
+    /// simply returns an empty owned vector.
+    fn to_vec(self) -> Vec<T>;
+
+    /// Pushes a value onto this vector.
+    fn push(&mut self, value: T);
+
+    /// Pushes a vector onto this vector, consuming the original.
+    fn push_all_move(&mut self, values: Vec<T>);
+
+    /// Returns the length of this optional vector.
+    fn len(&self) -> uint;
+}
+
+impl<T> OptNewVector<T> for Option<Vec<T>> {
+    #[inline]
+    fn to_vec(self) -> Vec<T> {
+        match self {
+            None => Vec::new(),
+            Some(vector) => vector,
+        }
+    }
+
+    #[inline]
+    fn push(&mut self, value: T) {
+        match *self {
+            None => *self = Some(vec!(value)),
+            Some(ref mut vector) => vector.push(value),
+        }
+    }
+
+    #[inline]
+    fn push_all_move(&mut self, values: Vec<T>) {
+        match *self {
+            None => *self = Some(values),
+            Some(ref mut vector) => vector.push_all_move(values),
+        }
+    }
+
+    #[inline]
+    fn len(&self) -> uint {
+        match *self {
+            None => 0,
+            Some(ref vector) => vector.len(),
+        }
+    }
 }
 
 /// An object that knows how to create flows.
@@ -606,7 +658,7 @@ impl<'a> FlowConstructor<'a> {
     /// `InlineBoxesConstructionResult` if this node consisted entirely of ignorable whitespace.
     fn build_boxes_for_nonreplaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
                                                   -> ConstructionResult {
-        let mut opt_inline_block_splits = None;
+        let mut opt_inline_block_splits: Option<Vec<InlineBlockSplit>> = None;
         let mut box_accumulator = InlineBoxAccumulator::from_inline_node(node);
         let mut abs_descendants = Descendants::new();
 
