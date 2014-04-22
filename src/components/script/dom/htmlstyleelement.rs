@@ -4,10 +4,11 @@
 
 use dom::bindings::codegen::HTMLStyleElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::js::JS;
 use dom::bindings::error::ErrorResult;
 use dom::document::Document;
-use dom::element::HTMLStyleElementTypeId;
+use dom::element::{Element, HTMLStyleElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
@@ -86,7 +87,9 @@ impl StyleElementHelpers for JS<HTMLStyleElement> {
         let win = window_from_node(&node);
         let url = win.get().page().get_url();
 
-        let data = node.get().GetTextContent(&node).expect("Element.textContent must be a string");
+        let element: JS<Element> = ElementCast::from(self);
+        let data = element.get().GetTextContent(&element);
+
         let sheet = parse_inline_css(url, data);
         let LayoutChan(ref layout_chan) = *win.get().page().layout_chan;
         layout_chan.send(AddStylesheetMsg(sheet));
