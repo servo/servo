@@ -603,6 +603,12 @@ impl Document {
         self.window.get_mut().Location(&abstract_self.get().window)
     }
 
+    pub fn Children(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
+        let doc = self.node.owner_doc();
+        let doc = doc.get();
+        HTMLCollection::children(&doc.window, &NodeCast::from(abstract_self))
+    }
+
     pub fn createNodeList(&self, callback: |node: &JS<Node>| -> bool) -> JS<NodeList> {
         let mut nodes: ~[JS<Node>] = ~[];
         match self.GetDocumentElement() {

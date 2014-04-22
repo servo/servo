@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::InheritTypes::DocumentFragmentDerived;
+use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
 use dom::bindings::codegen::DocumentFragmentBinding;
 use dom::bindings::js::JS;
 use dom::bindings::error::Fallible;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::htmlcollection::HTMLCollection;
 use dom::node::{DocumentFragmentNodeTypeId, Node};
 use dom::window::Window;
 
@@ -42,5 +43,13 @@ impl DocumentFragment {
 impl DocumentFragment {
     pub fn Constructor(owner: &JS<Window>) -> Fallible<JS<DocumentFragment>> {
         Ok(DocumentFragment::new(&owner.get().Document()))
+    }
+}
+
+impl DocumentFragment {
+    pub fn Children(&self, abstract_self: &JS<DocumentFragment>) -> JS<HTMLCollection> {
+        let doc = self.node.owner_doc();
+        let doc = doc.get();
+        HTMLCollection::children(&doc.window, &NodeCast::from(abstract_self))
     }
 }
