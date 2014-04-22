@@ -110,6 +110,7 @@ impl<T> DerefMut<T> for Untraceable<T> {
 /// Encapsulates a type that can be traced but is boxed in a type we don't control
 /// (such as RefCell). Wrap a field in Traceable and implement the Encodable trait
 /// for that new concrete type to achieve magic compiler-derived trace hooks.
+#[deriving(Eq, Clone)]
 pub struct Traceable<T> {
     inner: T
 }

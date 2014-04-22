@@ -4,18 +4,21 @@
 
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::codegen::BindingDeclarations::EventListenerBinding::EventListener;
+use dom::bindings::codegen::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::{Fallible, InvalidState};
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::node::NodeTypeId;
 use dom::xmlhttprequest::XMLHttpRequestId;
 use dom::virtualmethods::VirtualMethods;
-use js::jsapi::{JSObject, JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
+use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
+use js::jsapi::{JSContext, JSObject};
 use servo_util::str::DOMString;
 use libc::{c_char, size_t};
 use std::ptr;
+use url::Url;
 
 use collections::hashmap::HashMap;
 
@@ -92,11 +95,14 @@ pub trait EventTargetHelpers {
                                  listener: Option<EventListener>);
     fn get_inline_event_listener(&self, ty: DOMString) -> Option<EventListener>;
     fn set_event_handler_uncompiled(&mut self,
-                                    content: &JSRef<Node>,
+                                    cx: *mut JSContext,
+                                    url: Url,
+                                    scope: *mut JSObject,
                                     ty: &str,
                                     source: DOMString);
-    fn set_event_handler_common(&mut self, ty: &str, listener: *mut JSObject);
-    fn get_event_handler_common(&self, ty: &str) -> *mut JSObject;
+    fn set_event_handler_common<T: CallbackContainer>(&mut self, ty: &str,
+                                                      listener: Option<T>);
+    fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<T>;
 }
 
 impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
@@ -132,7 +138,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
             None => {
                 if listener.is_some() {
                     entries.push(EventListenerEntry {
-                        phase: Capturing, //XXXjdm no idea when inline handlers should run
+                        phase: Bubbling,
                         listener: Inline(listener.unwrap()),
                     });
                 }
@@ -151,12 +157,11 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     }
 
     fn set_event_handler_uncompiled(&mut self,
-                                    content: &JSRef<Node>,
+                                    cx: *mut JSContext,
+                                    url: Url,
+                                    scope: *mut JSObject,
                                     ty: &str,
                                     source: DOMString) {
-        let win = window_from_node(content).root();
-        let cx = win.deref().get_cx();
-        let url = win.deref().get_url();
         let url = url.to_str().to_c_str();
         let name = ty.to_c_str();
         let lineno = 0; //XXXjdm need to get a real number here
@@ -177,20 +182,22 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
                 assert!(fun.is_not_null());
                 JS_GetFunctionObject(fun)
             }})});
-        let scope = win.deref().reflector().get_jsobject();
         let funobj = unsafe { JS_CloneFunctionObject(cx, handler, scope) };
         assert!(funobj.is_not_null());
-        self.set_event_handler_common(ty, funobj)
+        self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)))
     }
 
-    fn set_event_handler_common(&mut self, ty: &str, listener: *mut JSObject) {
-        let listener = EventListener::new(listener);
-        self.set_inline_event_listener(ty.to_owned(), Some(listener));
+    fn set_event_handler_common<T: CallbackContainer>(
+        &mut self, ty: &str, listener: Option<T>)
+    {
+        let event_listener = listener.map(|listener|
+                                          EventListener::new(listener.callback()));
+        self.set_inline_event_listener(ty.to_owned(), event_listener);
     }
 
-    fn get_event_handler_common(&self, ty: &str) -> *mut JSObject {
+    fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<T> {
         let listener = self.get_inline_event_listener(ty.to_owned());
-        listener.map(|listener| listener.parent.callback()).unwrap_or(ptr::mut_null())
+        listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
     }
 }
 

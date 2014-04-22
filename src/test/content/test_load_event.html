@@ -21,10 +21,12 @@
   }
   window.onload = function(ev) {
     onloads++;
+    is(onloads, 1);
     check(ev);
   }
   addEventListener("load", function(ev) {
     onloads++;
+    is(onloads, 2);
     check(ev);
   });
 </script>

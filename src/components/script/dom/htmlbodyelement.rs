@@ -3,10 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::HTMLBodyElementBinding;
+use dom::bindings::codegen::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::HTMLBodyElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
@@ -14,7 +16,6 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowMethods;
-use js::jsapi::{JSContext, JSObject};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -54,8 +55,8 @@ pub trait HTMLBodyElementMethods {
     fn SetBgColor(&self, _bg_color: DOMString) -> ErrorResult;
     fn Background(&self) -> DOMString;
     fn SetBackground(&self, _background: DOMString) -> ErrorResult;
-    fn GetOnunload(&self, cx: *mut JSContext) -> *mut JSObject;
-    fn SetOnunload(&mut self, cx: *mut JSContext, listener: *mut JSObject);
+    fn GetOnunload(&self) -> Option<EventHandlerNonNull>;
+    fn SetOnunload(&mut self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
@@ -107,14 +108,14 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
         Ok(())
     }
 
-    fn GetOnunload(&self, cx: *mut JSContext) -> *mut JSObject {
+    fn GetOnunload(&self) -> Option<EventHandlerNonNull> {
         let win = window_from_node(self).root();
-        win.deref().GetOnunload(cx)
+        win.deref().GetOnunload()
     }
 
-    fn SetOnunload(&mut self, cx: *mut JSContext, listener: *mut JSObject) {
+    fn SetOnunload(&mut self, listener: Option<EventHandlerNonNull>) {
         let mut win = window_from_node(self).root();
-        win.SetOnunload(cx, listener)
+        win.SetOnunload(listener)
     }
 }
 
@@ -131,11 +132,22 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
         }
 
         if name.starts_with("on") {
-            //XXXjdm This should only forward a subset of event handler names
+            static forwarded_events: &'static [&'static str] =
+                &["onfocus", "onload", "onscroll", "onafterprint", "onbeforeprint",
+                  "onbeforeunload", "onhashchange", "onlanguagechange", "onmessage",
+                  "onoffline", "ononline", "onpagehide", "onpageshow", "onpopstate",
+                  "onstorage", "onresize", "onunload", "onerror"];
             let mut window = window_from_node(self).root();
-            let mut evtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(&mut *window);
-            let content: &mut JSRef<Node> = NodeCast::from_mut_ref(self);
-            evtarget.set_event_handler_uncompiled(content,
+            let (cx, url, reflector) = (window.get_cx(),
+                                        window.get_url(),
+                                        window.reflector().get_jsobject());
+            let evtarget: &mut JSRef<EventTarget> =
+                if forwarded_events.iter().any(|&event| name.as_slice() == event) {
+                    EventTargetCast::from_mut_ref(&mut *window)
+                } else {
+                    EventTargetCast::from_mut_ref(self)
+                };
+            evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.slice_from(2).to_owned(),
                                                   value);
         }

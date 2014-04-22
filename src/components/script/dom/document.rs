@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
@@ -45,7 +46,7 @@ use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref};
 
 use collections::hashmap::HashMap;
-use js::jsapi::{JSObject, JSContext};
+use js::jsapi::JSContext;
 use std::ascii::StrAsciiExt;
 use url::{Url, from_str};
 
@@ -326,8 +327,8 @@ pub trait DocumentMethods {
     fn Applets(&self) -> Temporary<HTMLCollection>;
     fn Location(&mut self) -> Temporary<Location>;
     fn Children(&self) -> Temporary<HTMLCollection>;
-    fn GetOnload(&self, _cx: *mut JSContext) -> *mut JSObject;
-    fn SetOnload(&mut self, _cx: *mut JSContext, listener: *mut JSObject);
+    fn GetOnload(&self) -> Option<EventHandlerNonNull>;
+    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> DocumentMethods for JSRef<'a, Document> {
@@ -808,12 +809,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         HTMLCollection::children(&*window, NodeCast::from_ref(self))
     }
 
-    fn GetOnload(&self, _cx: *mut JSContext) -> *mut JSObject {
+    fn GetOnload(&self) -> Option<EventHandlerNonNull> {
         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
         eventtarget.get_event_handler_common("load")
     }
 
-    fn SetOnload(&mut self, _cx: *mut JSContext, listener: *mut JSObject) {
+    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>) {
         let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
         eventtarget.set_event_handler_common("load", listener)
     }

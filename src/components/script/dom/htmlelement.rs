@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::BindingDeclarations::HTMLElementBinding;
+use dom::bindings::codegen::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
@@ -14,11 +15,10 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowMethods;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use servo_util::namespace;
 use servo_util::str::DOMString;
-use std::ptr;
 
 #[deriving(Encodable)]
 pub struct HTMLElement {
@@ -90,8 +90,8 @@ pub trait HTMLElementMethods {
     fn OffsetLeft(&self) -> i32;
     fn OffsetWidth(&self) -> i32;
     fn OffsetHeight(&self) -> i32;
-    fn GetOnload(&self, cx: *mut JSContext) -> *mut JSObject;
-    fn SetOnload(&mut self, cx: *mut JSContext, listener: *mut JSObject);
+    fn GetOnload(&self) -> Option<EventHandlerNonNull>;
+    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>);
 }
 
 impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
@@ -212,19 +212,19 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         0
     }
 
-    fn GetOnload(&self, cx: *mut JSContext) -> *mut JSObject {
+    fn GetOnload(&self) -> Option<EventHandlerNonNull> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self).root();
-            win.deref().GetOnload(cx)
+            win.deref().GetOnload()
         } else {
-            ptr::mut_null()
+            None
         }
     }
 
-    fn SetOnload(&mut self, cx: *mut JSContext, listener: *mut JSObject) {
+    fn SetOnload(&mut self, listener: Option<EventHandlerNonNull>) {
         if self.is_body_or_frameset() {
             let mut win = window_from_node(self).root();
-            win.SetOnload(cx, listener)
+            win.SetOnload(listener)
         }
     }
 }

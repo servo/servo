@@ -328,6 +328,12 @@ impl<'a, T: Reflectable> ToJSValConvertible for JSRef<'a, T> {
     }
 }
 
+impl<'a, T: Reflectable> ToJSValConvertible for JS<T> {
+    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
+        self.reflector().to_jsval(cx)
+    }
+}
+
 impl<T: ToJSValConvertible> ToJSValConvertible for Option<T> {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         match self {
@@ -350,7 +356,11 @@ impl<X: Default, T: FromJSValConvertible<X>> FromJSValConvertible<()> for Option
 }
 
 impl ToJSValConvertible for *mut JSObject {
-    fn to_jsval(&self, _cx: *mut JSContext) -> JSVal {
-        ObjectOrNullValue(*self)
+    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
+        let mut wrapped = ObjectOrNullValue(*self);
+        unsafe {
+            assert!(JS_WrapValue(cx, &mut wrapped) != 0);
+        }
+        wrapped
     }
 }

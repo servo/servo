@@ -5,7 +5,7 @@
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::codegen::BindingDeclarations::TestBindingBinding::TestEnum;
 use dom::bindings::codegen::BindingDeclarations::TestBindingBinding::TestEnumValues::_empty;
-use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, StringOrFormData};
+use dom::bindings::codegen::UnionTypes::{HTMLElementOrLong, EventOrString};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::blob::Blob;
@@ -136,7 +136,7 @@ pub trait TestBindingMethods {
     fn PassEnum(&self, _: TestEnum) {}
     fn PassInterface(&self, _: &JSRef<Blob>) {}
     fn PassUnion(&self, _: HTMLElementOrLong) {}
-    fn PassUnion2(&self, _: StringOrFormData) {}
+    fn PassUnion2(&self, _: EventOrString) {}
     fn PassAny(&self, _: *mut JSContext, _: JSVal) {}
 
     fn PassNullableBoolean(&self, _: Option<bool>) {}
@@ -155,7 +155,7 @@ pub trait TestBindingMethods {
     // fn PassNullableEnum(&self, _: Option<TestEnum>) {}
     fn PassNullableInterface(&self, _: Option<JSRef<Blob>>) {}
     fn PassNullableUnion(&self, _: Option<HTMLElementOrLong>) {}
-    fn PassNullableUnion2(&self, _: Option<StringOrFormData>) {}
+    fn PassNullableUnion2(&self, _: Option<EventOrString>) {}
     fn PassNullableAny(&self, _: *mut JSContext, _: Option<JSVal>) {}
 
     fn PassOptionalBoolean(&self, _: Option<bool>) {}
@@ -174,7 +174,7 @@ pub trait TestBindingMethods {
     fn PassOptionalEnum(&self, _: Option<TestEnum>) {}
     fn PassOptionalInterface(&self, _: Option<JSRef<Blob>>) {}
     fn PassOptionalUnion(&self, _: Option<HTMLElementOrLong>) {}
-    fn PassOptionalUnion2(&self, _: Option<StringOrFormData>) {}
+    fn PassOptionalUnion2(&self, _: Option<EventOrString>) {}
     fn PassOptionalAny(&self, _: *mut JSContext, _: Option<JSVal>) {}
 
     fn PassOptionalNullableBoolean(&self, _: Option<Option<bool>>) {}
@@ -193,7 +193,7 @@ pub trait TestBindingMethods {
     // fn PassOptionalNullableEnum(&self, _: Option<Option<TestEnum>>) {}
     fn PassOptionalNullableInterface(&self, _: Option<Option<JSRef<Blob>>>) {}
     fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>) {}
-    fn PassOptionalNullableUnion2(&self, _: Option<Option<StringOrFormData>>) {}
+    fn PassOptionalNullableUnion2(&self, _: Option<Option<EventOrString>>) {}
 
     fn PassOptionalBooleanWithDefault(&self, _: bool) {}
     fn PassOptionalByteWithDefault(&self, _: i8) {}
@@ -223,7 +223,7 @@ pub trait TestBindingMethods {
     // fn PassOptionalNullableEnumWithDefault(&self, _: Option<TestEnum>) {}
     fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<JSRef<Blob>>) {}
     fn PassOptionalNullableUnionWithDefault(&self, _: Option<HTMLElementOrLong>) {}
-    fn PassOptionalNullableUnion2WithDefault(&self, _: Option<StringOrFormData>) {}
+    fn PassOptionalNullableUnion2WithDefault(&self, _: Option<EventOrString>) {}
     fn PassOptionalAnyWithDefault(&self, _: *mut JSContext, _: JSVal) {}
 
     fn PassOptionalNullableBooleanWithNonNullDefault(&self, _: Option<bool>) {}
