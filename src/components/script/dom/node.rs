@@ -425,6 +425,8 @@ pub trait NodeHelpers {
 
     fn get_bounding_content_box(&self) -> Rect<Au>;
     fn get_content_boxes(&self) -> Vec<Rect<Au>>;
+
+    fn remove_self(&mut self);
 }
 
 impl<'a> NodeHelpers for JSRef<'a, Node> {
@@ -630,6 +632,12 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
         document.deref().wait_until_safe_to_modify_dom();
     }
 
+    fn remove_self(&mut self) {
+        match self.parent_node().root() {
+            Some(ref mut parent) => parent.remove_child(self),
+            None => ()
+        }
+    }
 }
 
 /// If the given untrusted node address represents a valid DOM node in the given runtime,

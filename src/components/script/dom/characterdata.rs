@@ -4,13 +4,13 @@
 
 //! DOM bindings for `CharacterData`.
 
-use dom::bindings::codegen::InheritTypes::CharacterDataDerived;
+use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
 use dom::bindings::js::JSRef;
 use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId, ProcessingInstructionNodeTypeId};
+use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId, ProcessingInstructionNodeTypeId, NodeHelpers};
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
@@ -48,6 +48,7 @@ pub trait CharacterDataMethods {
     fn InsertData(&mut self, _offset: u32, _arg: DOMString) -> ErrorResult;
     fn DeleteData(&mut self, _offset: u32, _count: u32) -> ErrorResult;
     fn ReplaceData(&mut self, _offset: u32, _count: u32, _arg: DOMString) -> ErrorResult;
+    fn Remove(&mut self);
 }
 
 impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
@@ -97,6 +98,12 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         self.data = data;
         // FIXME: Once we have `Range`, we should implement step7 to step11
         Ok(())
+    }
+
+    // http://dom.spec.whatwg.org/#dom-childnode-remove
+    fn Remove(&mut self) {
+        let node: &mut JSRef<Node> = NodeCast::from_mut_ref(self);
+        node.remove_self();
     }
 }
 
