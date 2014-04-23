@@ -1062,7 +1062,7 @@ impl ScriptTask {
 
                         if node.is_element() {
                             let element: JS<Element> = ElementCast::to(&node).unwrap();
-                            if "a" == element.get().tag_name {
+                            if "a" == element.get().local_name {
                                 self.load_url_from_element(page, &element)
                             }
                         }
