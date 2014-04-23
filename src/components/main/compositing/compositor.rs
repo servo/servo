@@ -299,10 +299,6 @@ impl IOCompositor {
                     self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                 }
 
-                (Data(InvalidateRect(pipeline_id, layer_id, rect)), false) => {
-                    self.invalidate_rect(pipeline_id, layer_id, rect);
-                }
-
                 (Data(ScrollFragmentPoint(pipeline_id, layer_id, point)), false) => {
                     self.scroll_fragment_to_point(pipeline_id, layer_id, point);
                 }
@@ -516,27 +512,6 @@ impl IOCompositor {
 
         // TODO: Recycle the old buffers; send them back to the renderer to reuse if
         // it wishes.
-    }
-
-    fn invalidate_rect(&mut self, pipeline_id: PipelineId, layer_id: LayerId, rect: Rect<uint>) {
-        let ask: bool = match self.compositor_layer {
-            Some(ref mut layer) => {
-                let point = Point2D(rect.origin.x as f32,
-                                    rect.origin.y as f32);
-                let size = Size2D(rect.size.width as f32,
-                                  rect.size.height as f32);
-                layer.invalidate_rect(pipeline_id, layer_id, Rect(point, size));
-                true
-            }
-            None => {
-                // Nothing to do
-                false
-            }
-        };
-
-        if ask {
-            self.ask_for_tiles();
-        }
     }
 
     fn scroll_fragment_to_point(&mut self,
