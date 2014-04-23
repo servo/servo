@@ -596,7 +596,6 @@ impl<T: Tile> QuadtreeNode<T> {
             };
 
             delta = delta + c_delta;
-            // This was a ~[] = ~[] + ~[] which copies. I think this is the equivalent operation.
             request.push_all(c_request.as_slice());
             unused.push_all_move(c_unused);
         }
