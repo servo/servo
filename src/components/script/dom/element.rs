@@ -34,7 +34,7 @@ use std::cast;
 #[deriving(Encodable)]
 pub struct Element {
     node: Node,
-    tag_name: DOMString,     // TODO: This should be an atom, not a DOMString.
+    local_name: DOMString,     // TODO: This should be an atom, not a DOMString.
     namespace: Namespace,
     prefix: Option<DOMString>,
     attrs: ~[JS<Attr>],
@@ -140,10 +140,10 @@ pub enum ElementTypeId {
 //
 
 impl Element {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: JS<Document>) -> Element {
+    pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: JS<Document>) -> Element {
         Element {
             node: Node::new_inherited(ElementNodeTypeId(type_id), document),
-            tag_name: tag_name,
+            local_name: local_name,
             namespace: namespace,
             prefix: prefix,
             attrs: ~[],
@@ -152,8 +152,8 @@ impl Element {
         }
     }
 
-    pub fn new(tag_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: &JS<Document>) -> JS<Element> {
-        let element = Element::new_inherited(ElementTypeId, tag_name, namespace, prefix, document.clone());
+    pub fn new(local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: &JS<Document>) -> JS<Element> {
+        let element = Element::new_inherited(ElementTypeId, local_name, namespace, prefix, document.clone());
         Node::reflect_node(~element, document, ElementBinding::Wrap)
     }
 
@@ -436,7 +436,7 @@ impl Element {
         if self.namespace != namespace::HTML {
             return false
         }
-        match self.tag_name.as_slice() {
+        match self.local_name.as_slice() {
             /* List of void elements from
             http://www.whatwg.org/specs/web-apps/current-work/multipage/the-end.html#html-fragment-serialization-algorithm */
             "area" | "base" | "basefont" | "bgsound" | "br" | "col" | "embed" |
@@ -453,6 +453,10 @@ impl Element {
         self.namespace.to_str().to_owned()
     }
 
+    pub fn LocalName(&self) -> DOMString {
+        self.local_name.clone()
+    }
+
     // http://dom.spec.whatwg.org/#dom-element-prefix
     pub fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix.clone()
@@ -462,10 +466,10 @@ impl Element {
     pub fn TagName(&self) -> DOMString {
         match self.prefix {
             None => {
-                self.tag_name.to_ascii_upper()
+                self.local_name.to_ascii_upper()
             }
             Some(ref prefix_str) => {
-                (*prefix_str + ":" + self.tag_name).to_ascii_upper()
+                (*prefix_str + ":" + self.local_name).to_ascii_upper()
             }
         }
     }

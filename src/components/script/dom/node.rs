@@ -1327,7 +1327,7 @@ impl Node {
             ElementNodeTypeId(..) => {
                 let element: JS<Element> = ElementCast::to(node).unwrap();
                 let element = element.get();
-                let element = build_element_from_tag(element.tag_name.clone(), &document);
+                let element = build_element_from_tag(element.local_name.clone(), &document);
                 NodeCast::from(&element)
             },
             TextNodeTypeId => {
@@ -1595,7 +1595,7 @@ impl Node {
             let other_element: JS<Element> = ElementCast::to(other).unwrap();
             // FIXME: namespace prefix
             (element.get().namespace == other_element.get().namespace) &&
-            (element.get().tag_name == other_element.get().tag_name) &&
+            (element.get().local_name == other_element.get().local_name) &&
             (element.get().attrs.len() == other_element.get().attrs.len())
         }
         fn is_equal_processinginstruction(node: &JS<Node>, other: &JS<Node>) -> bool {
