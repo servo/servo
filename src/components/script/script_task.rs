@@ -817,19 +817,16 @@ impl ScriptTask {
             is a bug.");
         let page = page_tree.page();
 
-        {
-            let mut page_url = page.mut_url();
-            let last_loaded_url = replace(&mut *page_url, None);
-            for loaded in last_loaded_url.iter() {
-                let (ref loaded, needs_reflow) = *loaded;
-                if *loaded == url {
-                    *page_url = Some((loaded.clone(), false));
-                    if needs_reflow {
-                        page.damage(ContentChangedDocumentDamage);
-                        page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor);
-                    }
-                    return;
+        let last_loaded_url = replace(&mut *page.mut_url(), None);
+        for loaded in last_loaded_url.iter() {
+            let (ref loaded, needs_reflow) = *loaded;
+            if *loaded == url {
+                *page.mut_url() = Some((loaded.clone(), false));
+                if needs_reflow {
+                    page.damage(ContentChangedDocumentDamage);
+                    page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor);
                 }
+                return;
             }
         }
 
