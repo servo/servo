@@ -61,7 +61,7 @@ struct LineboxScanner {
     pub new_boxes: Vec<Box>,
     pub work_list: RingBuf<Box>,
     pub pending_line: LineBox,
-    pub lines: ~[LineBox],
+    pub lines: Vec<LineBox>,
     pub cur_y: Au,
 }
 
@@ -76,7 +76,7 @@ impl LineboxScanner {
                 bounds: Rect(Point2D(Au::new(0), Au::new(0)), Size2D(Au::new(0), Au::new(0))),
                 green_zone: Size2D(Au::new(0), Au::new(0))
             },
-            lines: ~[],
+            lines: Vec::new(),
             cur_y: Au::new(0)
         }
     }
@@ -87,7 +87,7 @@ impl LineboxScanner {
 
     fn reset_scanner(&mut self) {
         debug!("Resetting line box scanner's state for flow.");
-        self.lines = ~[];
+        self.lines = Vec::new();
         self.new_boxes = Vec::new();
         self.cur_y = Au::new(0);
         self.reset_linebox();
@@ -456,7 +456,7 @@ pub struct InlineFlow {
     // vec of ranges into boxes that represents line positions.
     // these ranges are disjoint, and are the result of inline layout.
     // also some metadata used for positioning lines
-    pub lines: ~[LineBox],
+    pub lines: Vec<LineBox>,
 
     // vec of ranges into boxes that represent elements. These ranges
     // must be well-nested, and are only related to the content of
@@ -469,7 +469,7 @@ impl InlineFlow {
         InlineFlow {
             base: BaseFlow::new(node),
             boxes: boxes,
-            lines: ~[],
+            lines: Vec::new(),
             elems: ElementMapping::new(),
         }
     }

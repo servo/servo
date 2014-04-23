@@ -856,7 +856,7 @@ impl LayoutTask {
                     }
                 }
 
-                let mut mouse_over_list: Vec<UntrustedNodeAddress> = vec!();
+                let mut mouse_over_list:Vec<UntrustedNodeAddress> = Vec::new();
                 let (x, y) = (Au::from_frac_px(point.x as f64),
                               Au::from_frac_px(point.y as f64));
                 match self.display_list {
