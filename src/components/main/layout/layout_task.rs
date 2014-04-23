@@ -159,7 +159,7 @@ impl PreorderFlowTraversal for FlowTreeVerificationTraversal {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
         let base = flow::base(flow);
-        if !base.flags_info.flags.is_leaf() && !base.flags_info.flags.is_nonleaf() {
+        if !base.flags.is_leaf() && !base.flags.is_nonleaf() {
             println("flow tree verification failed: flow wasn't a leaf or a nonleaf!");
             flow.dump();
             fail!("flow tree verification failed")
@@ -224,7 +224,7 @@ impl<'a> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {
 
     #[inline]
     fn should_process(&mut self, flow: &mut Flow) -> bool {
-        !flow::base(flow).flags_info.flags.inorder()
+        !flow::base(flow).flags.inorder()
     }
 }
 

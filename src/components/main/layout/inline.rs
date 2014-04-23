@@ -500,7 +500,6 @@ impl InlineFlow {
                                     builder,
                                     info,
                                     self.base.abs_position + rel_offset,
-                                    (&*self) as &Flow,
                                     ContentLevel);
         }
 
@@ -709,7 +708,7 @@ impl Flow for InlineFlow {
         let mut line_height_offset = Au::new(0);
 
         // All lines use text alignment of the flow.
-        let text_align = self.base.flags_info.flags.text_align();
+        let text_align = self.base.flags.text_align();
 
         // Now, go through each line and lay out the boxes inside.
         for line in self.lines.mut_iter() {

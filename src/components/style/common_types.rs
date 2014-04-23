@@ -170,11 +170,13 @@ pub mod computed {
     pub use servo_util::geometry::Au;
 
     pub struct Context {
-        color: longhands::color::computed_value::T,
         inherited_font_weight: longhands::font_weight::computed_value::T,
         inherited_font_size: longhands::font_size::computed_value::T,
         inherited_minimum_line_height: longhands::_servo_minimum_line_height::T,
+        inherited_text_decorations_in_effect: longhands::_servo_text_decorations_in_effect::T,
         inherited_height: longhands::height::T,
+        color: longhands::color::computed_value::T,
+        text_decoration: longhands::text_decoration::computed_value::T,
         font_size: longhands::font_size::computed_value::T,
         display: longhands::display::computed_value::T,
         positioned: bool,
