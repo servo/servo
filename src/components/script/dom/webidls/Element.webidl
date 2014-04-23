@@ -16,7 +16,7 @@
 interface Element : Node {
 
   readonly attribute DOMString? prefix;
-  // readonly attribute DOMString localName;
+  readonly attribute DOMString localName;
 
   [Constant]
   readonly attribute DOMString namespaceURI;

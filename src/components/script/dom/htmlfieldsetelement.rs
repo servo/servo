@@ -76,7 +76,7 @@ impl HTMLFieldSetElement {
                 static tag_names: StaticStringVec = &["button", "fieldset", "input",
                     "keygen", "object", "output", "select", "textarea"];
                 let root: &JS<Element> = &ElementCast::to(root).unwrap();
-                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.get().tag_name)
+                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.get().local_name)
             }
         }
         let node: JS<Node> = NodeCast::from(abstract_self);

@@ -45,7 +45,7 @@ impl HTMLDataListElement {
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                elem.get().tag_name == ~"option"
+                elem.get().local_name == ~"option"
             }
         }
         let node: JS<Node> = NodeCast::from(abstract_self);

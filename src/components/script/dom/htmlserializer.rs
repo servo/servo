@@ -72,7 +72,7 @@ fn serialize_text(text: &JS<Text>) -> ~str {
     match text.get().characterdata.node.parent_node {
         Some(ref parent) if parent.is_element() => {
             let elem: JS<Element> = ElementCast::to(parent).unwrap();
-            match elem.get().tag_name.as_slice() {
+            match elem.get().local_name.as_slice() {
                 "style" | "script" | "xmp" | "iframe" |
                 "noembed" | "noframes" | "plaintext" |
                 "noscript" if elem.get().namespace == namespace::HTML => {
@@ -94,12 +94,12 @@ fn serialize_doctype(doctype: &JS<DocumentType>) -> ~str {
 }
 
 fn serialize_elem(elem: &JS<Element>, open_elements: &mut ~[~str]) -> ~str {
-    let mut rv = ~"<" + elem.get().tag_name;
+    let mut rv = ~"<" + elem.get().local_name;
     for attr in elem.get().attrs.iter() {
         rv.push_str(serialize_attr(attr));
     };
     rv.push_str(">");
-    match elem.get().tag_name.as_slice() {
+    match elem.get().local_name.as_slice() {
         "pre" | "listing" | "textarea" if elem.get().namespace == namespace::HTML => {
             match elem.get().node.first_child {
                 Some(ref child) if child.is_text() => {
@@ -114,7 +114,7 @@ fn serialize_elem(elem: &JS<Element>, open_elements: &mut ~[~str]) -> ~str {
         _ => {}
     }
     if !elem.get().is_void() {
-        open_elements.push(elem.get().tag_name.clone());
+        open_elements.push(elem.get().local_name.clone());
     }
     rv
 }

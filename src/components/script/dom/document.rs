@@ -514,7 +514,7 @@ impl Document {
         struct ImagesFilter;
         impl CollectionFilter for ImagesFilter {
             fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                elem.get().tag_name == ~"img"
+                elem.get().local_name == ~"img"
             }
         }
         let filter = ~ImagesFilter;
@@ -526,7 +526,7 @@ impl Document {
         struct EmbedsFilter;
         impl CollectionFilter for EmbedsFilter {
             fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                elem.get().tag_name == ~"embed"
+                elem.get().local_name == ~"embed"
             }
         }
         let filter = ~EmbedsFilter;
@@ -543,7 +543,7 @@ impl Document {
         struct LinksFilter;
         impl CollectionFilter for LinksFilter {
             fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                (elem.get().tag_name == ~"a" || elem.get().tag_name == ~"area") &&
+                (elem.get().local_name == ~"a" || elem.get().local_name == ~"area") &&
                 elem.get_attribute(Null, "href").is_some()
             }
         }
@@ -556,7 +556,7 @@ impl Document {
         struct FormsFilter;
         impl CollectionFilter for FormsFilter {
             fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                elem.get().tag_name == ~"form"
+                elem.get().local_name == ~"form"
             }
         }
         let filter = ~FormsFilter;
@@ -568,7 +568,7 @@ impl Document {
         struct ScriptsFilter;
         impl CollectionFilter for ScriptsFilter {
             fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                elem.get().tag_name == ~"script"
+                elem.get().local_name == ~"script"
             }
         }
         let filter = ~ScriptsFilter;
@@ -580,7 +580,7 @@ impl Document {
         struct AnchorsFilter;
         impl CollectionFilter for AnchorsFilter {
             fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                elem.get().tag_name == ~"a" && elem.get_attribute(Null, "name").is_some()
+                elem.get().local_name == ~"a" && elem.get_attribute(Null, "name").is_some()
             }
         }
         let filter = ~AnchorsFilter;
@@ -592,7 +592,7 @@ impl Document {
         struct AppletsFilter;
         impl CollectionFilter for AppletsFilter {
             fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                elem.get().tag_name == ~"applet"
+                elem.get().local_name == ~"applet"
             }
         }
         let filter = ~AppletsFilter;

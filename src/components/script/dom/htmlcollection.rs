@@ -62,7 +62,7 @@ impl HTMLCollection {
         }
         impl CollectionFilter for TagNameFilter {
             fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                elem.get().tag_name == self.tag
+                elem.get().local_name == self.tag
             }
         }
         let filter = TagNameFilter {
@@ -79,7 +79,7 @@ impl HTMLCollection {
         }
         impl CollectionFilter for TagNameNSFilter {
             fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {
-                elem.get().namespace == self.namespace && elem.get().tag_name == self.tag
+                elem.get().namespace == self.namespace && elem.get().local_name == self.tag
             }
         }
         let filter = TagNameNSFilter {
