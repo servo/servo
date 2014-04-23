@@ -348,7 +348,7 @@ impl<'le> LayoutElement<'le> {
 impl<'le> TElement for LayoutElement<'le> {
     #[inline]
     fn get_local_name<'a>(&'a self) -> &'a str {
-        self.element.tag_name.as_slice()
+        self.element.local_name.as_slice()
     }
 
     #[inline]
