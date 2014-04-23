@@ -765,7 +765,7 @@ impl LayoutTask {
                     }
                 }
 
-                let mut boxes = vec!();
+                let mut boxes = Vec::new();
                 match self.display_list {
                     None => fail!("no display list!"),
                     Some(ref display_list) => {
