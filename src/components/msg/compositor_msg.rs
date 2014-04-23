@@ -150,7 +150,6 @@ pub trait RenderListener {
 /// which is used in displaying the appropriate message in the window's title.
 pub trait ScriptListener : Clone {
     fn set_ready_state(&self, ReadyState);
-    fn invalidate_rect(&self, pipeline_id: PipelineId, layer_id: LayerId, rect: Rect<uint>);
     fn scroll_fragment_point(&self,
                              pipeline_id: PipelineId,
                              layer_id: LayerId,

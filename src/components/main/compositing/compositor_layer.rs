@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::quadtree::{Quadtree, Normal, Invalid, Hidden};
+use compositing::quadtree::{Quadtree, Normal, Hidden};
 use pipeline::CompositionPipeline;
 use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use windowing::{MouseWindowMouseUpEvent};
@@ -888,26 +888,6 @@ impl CompositorLayer {
                 self.children.mut_iter().map(|x| &mut x.child)
                                         .any(|x| x.delete(graphics_context, pipeline_id))
             }
-        }
-    }
-
-    pub fn invalidate_rect(&mut self, pipeline_id: PipelineId, layer_id: LayerId, rect: Rect<f32>)
-                           -> bool {
-        debug!("compositor_layer: starting invalidate_rect()");
-        if self.pipeline.id == pipeline_id && layer_id == self.id {
-            debug!("compositor_layer: layer found for invalidate_rect()");
-            let quadtree = match self.quadtree {
-                NoTree(..) => return true, // Nothing to do
-                Tree(ref mut quadtree) => quadtree,
-            };
-            quadtree.set_status_page(rect, Invalid, true);
-            true
-        } else {
-            // ID does not match ours, so recurse on descendents (including hidden children).
-            self.children
-                .mut_iter()
-                .map(|kid_holder| &mut kid_holder.child)
-                .any(|kid| kid.invalidate_rect(pipeline_id, layer_id, rect))
         }
     }
 

@@ -45,10 +45,6 @@ impl ScriptListener for CompositorChan {
         self.chan.send(msg);
     }
 
-    fn invalidate_rect(&self, pipeline_id: PipelineId, layer_id: LayerId, rect: Rect<uint>) {
-        self.chan.send(InvalidateRect(pipeline_id, layer_id, rect));
-    }
-
     fn scroll_fragment_point(&self,
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
@@ -179,8 +175,6 @@ pub enum Msg {
     SetLayerClipRect(PipelineId, LayerId, Rect<f32>),
     /// Alerts the compositor that the specified pipeline has been deleted.
     DeleteLayerGroup(PipelineId),
-    /// Invalidate a rect for a given layer
-    InvalidateRect(PipelineId, LayerId, Rect<uint>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor paint the given layer buffer set for the given page size.
