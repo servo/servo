@@ -22,7 +22,7 @@ use style::computed_values::{font_family, line_height, white_space};
 use sync::Arc;
 
 struct NewLinePositions {
-    new_line_pos: ~[uint],
+    new_line_pos: Vec<uint>,
 }
 
 // A helper function.
@@ -138,7 +138,8 @@ impl TextRunScanner {
                     white_space::pre => CompressNone,
                 };
 
-                let mut new_line_pos = ~[];
+                let mut new_line_pos = Vec::new();
+
                 let (transformed_text, whitespace) = transform_text(*text,
                                                                     compression,
                                                                     last_whitespace,
@@ -195,7 +196,7 @@ impl TextRunScanner {
                         _ => fail!("Expected an unscanned text box!"),
                     };
 
-                    let mut new_line_pos = ~[];
+                    let mut new_line_pos = Vec::new();
 
                     let (new_str, new_whitespace) = transform_text(*in_box,
                                                                    compression,
