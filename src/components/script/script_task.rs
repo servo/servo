@@ -457,6 +457,26 @@ impl Page {
         };
         address
     }
+
+    pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<~[UntrustedNodeAddress]> {
+        let frame = self.frame();
+        let document = frame.get_ref().document.clone();
+        let root = document.get().GetDocumentElement();
+        if root.is_none() {
+            return None;
+        }
+        let root: JS<Node> = NodeCast::from(&root.unwrap());
+        let (chan, port) = channel();
+        let address = match self.query_layout(MouseOverQuery(root.to_trusted_node_address(), *point, chan), port) {
+            Ok(MouseOverResponse(node_address)) => {
+                Some(node_address)
+            }
+            Err(()) => {
+                None
+            }
+        };
+        address
+    }
 }
 
 /// Information for one frame in the browsing context.
@@ -1074,22 +1094,15 @@ impl ScriptTask {
                             }
                         }
                     }
+
                     None => {}
                 }
             }
             MouseDownEvent(..) => {}
             MouseUpEvent(..) => {}
             MouseMoveEvent(point) => {
-                let frame = page.frame();
-                let document = frame.get_ref().document.clone();
-                let root = document.get().GetDocumentElement();
-                if root.is_none() {
-                    return;
-                }
-                let root: JS<Node> = NodeCast::from(&root.unwrap());
-                let (chan, port) = channel();
-                match page.query_layout(MouseOverQuery(root.to_trusted_node_address(), point, chan), port) {
-                    Ok(MouseOverResponse(node_address)) => {
+                match page.get_nodes_under_mouse(&point) {
+                    Some(node_address) => {
 
                         let mut target_list: ~[JS<Node>] = ~[];
                         let mut target_compare = false;
@@ -1147,8 +1160,9 @@ impl ScriptTask {
                             }
                             *mouse_over_targets = Some(target_list);
                         }
-                    },
-                    Err(()) => {},
+                    }
+
+                    None => {}
               }
             }
         }
