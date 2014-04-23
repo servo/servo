@@ -1311,7 +1311,7 @@ impl BlockFlow {
     pub fn propagate_assigned_width_to_children(&mut self,
                                                 left_content_edge: Au,
                                                 content_width: Au,
-                                                opt_col_widths: Option<~[Au]>) {
+                                                opt_col_widths: Option<Vec<Au>>) {
         // Keep track of whether floats could impact each child.
         let mut left_floats_impact_child = self.base.flags.impacted_by_left_floats();
         let mut right_floats_impact_child = self.base.flags.impacted_by_right_floats();
@@ -1382,7 +1382,7 @@ impl BlockFlow {
                     propagate_column_widths_to_child(kid,
                                                      i,
                                                      content_width,
-                                                     *col_widths,
+                                                     col_widths.as_slice(),
                                                      &mut left_margin_edge)
                 }
                 None => {}
@@ -2358,7 +2358,7 @@ fn propagate_column_widths_to_child(kid: &mut Flow,
     //
     // FIXME(pcwalton): This seems inefficient. Reference count it instead?
     let width = if kid.is_table() || kid.is_table_rowgroup() || kid.is_table_row() {
-        *kid.col_widths() = column_widths.to_owned();
+        *kid.col_widths() = column_widths.iter().map(|&x| x).collect();
 
         // Width of kid flow is our content width.
         content_width
