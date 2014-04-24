@@ -16,10 +16,15 @@ pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc()) {
 /// this `TaskBuilder` fails.
 pub fn send_on_failure<T: Send>(builder: &mut TaskBuilder, msg: T, dest: Sender<T>) {
     let port = builder.future_result();
-    spawn(proc() {
+    let watched_name = builder.opts.name.as_ref().unwrap().as_slice().to_owned();
+    let name = format!("{:s}Watcher", watched_name);
+    spawn_named(name, proc() {
         match port.recv() {
             Ok(()) => (),
-            Err(..) => dest.send(msg),
+            Err(..) => {
+                debug!("{:s} failed, notifying constellation", watched_name);
+                dest.send(msg);
+            }
         }
     })
 }
