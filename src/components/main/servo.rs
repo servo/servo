@@ -138,7 +138,7 @@ fn start(argc: int, argv: **u8) -> int {
 #[no_mangle]
 pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
     native::start(argc, argv, proc() {
-        let mut args:~[~str] = ~[];
+        let mut args: Vec<~str> = Vec::new();
         for i in range(0u, argc as uint) {
             unsafe {
                 args.push(str::raw::from_c_str(*argv.offset(i as int) as *i8));
