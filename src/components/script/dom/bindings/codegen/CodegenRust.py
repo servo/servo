@@ -2493,21 +2493,18 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
         # we're someone's consequential interface.  But for this-unwrapping, we
         # know that we're the real deal.  So fake a descriptor here for
         # consumption by FailureFatalCastableObjectUnwrapper.
-        unwrapThis = CGIndenter(CGGeneric(
-            "this = " + str(CastableObjectUnwrapper(
+        unwrapThis = str(CastableObjectUnwrapper(
                         FakeCastableDescriptor(self.descriptor),
-                        "obj", self.unwrapFailureCode)) + ";\n"))
-        return CGList([ self.getThis(), unwrapThis,
-                        self.generate_code() ], "\n").define()
-
-    def getThis(self):
-        return CGIndenter(
+                        "obj", self.unwrapFailureCode))
+        unwrapThis = CGIndenter(
             CGGeneric("let obj: *JSObject = JS_THIS_OBJECT(cx, vp as *mut JSVal);\n"
                       "if obj.is_null() {\n"
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let this: JS<%s>;" % self.descriptor.concreteType))
+                      "let this: JS<%s>;\n"
+                      "this = %s;\n" % (self.descriptor.concreteType, unwrapThis)))
+        return CGList([ unwrapThis, self.generate_code() ], "\n").define()
 
     def generate_code(self):
         assert(False) # Override me
