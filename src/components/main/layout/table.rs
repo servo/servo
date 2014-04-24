@@ -184,7 +184,7 @@ impl Flow for TableFlow {
             assert!(kid.is_proper_table_child());
 
             if kid.is_table_colgroup() {
-                self.col_widths.push_all(kid.as_table_colgroup().widths);
+                self.col_widths.push_all(kid.as_table_colgroup().widths.as_slice());
                 self.col_min_widths = self.col_widths.clone();
                 self.col_pref_widths = self.col_widths.clone();
             } else if kid.is_table_rowgroup() || kid.is_table_row() {
