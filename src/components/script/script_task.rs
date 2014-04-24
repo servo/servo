@@ -22,11 +22,11 @@ use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
 use layout_interface::{AddStylesheetMsg, DocumentDamage};
-use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery, MouseOverQuery, MouseOverResponse};
 use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg};
 use layout_interface::{Reflow, ReflowDocumentDamage, ReflowForDisplay, ReflowGoal, ReflowMsg};
 use layout_interface::ContentChangedDocumentDamage;
+use layout_interface::UntrustedNodeAddress;
 use layout_interface;
 
 use geom::point::Point2D;
@@ -435,6 +435,47 @@ impl Page {
             dom_static: GlobalStaticData(),
             js_context: Untraceable::new(js_context),
         });
+    }
+
+    pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
+        let frame = self.frame();
+        let document = frame.get_ref().document.clone();
+        let root = document.get().GetDocumentElement();
+        if root.is_none() {
+            return None;
+        }
+        let root: JS<Node> = NodeCast::from(&root.unwrap());
+        let (chan, port) = channel();
+        let address = match self.query_layout(HitTestQuery(root.to_trusted_node_address(), *point, chan), port) {
+            Ok(HitTestResponse(node_address)) => {
+                Some(node_address)
+            }
+            Err(()) => {
+                debug!("layout query error");
+                None
+            }
+        };
+        address
+    }
+
+    pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<~[UntrustedNodeAddress]> {
+        let frame = self.frame();
+        let document = frame.get_ref().document.clone();
+        let root = document.get().GetDocumentElement();
+        if root.is_none() {
+            return None;
+        }
+        let root: JS<Node> = NodeCast::from(&root.unwrap());
+        let (chan, port) = channel();
+        let address = match self.query_layout(MouseOverQuery(root.to_trusted_node_address(), *point, chan), port) {
+            Ok(MouseOverResponse(node_address)) => {
+                Some(node_address)
+            }
+            Err(()) => {
+                None
+            }
+        };
+        address
     }
 }
 
@@ -955,11 +996,9 @@ impl ScriptTask {
         chan.send(LoadCompleteMsg(page.id, url));
     }
 
-    fn scroll_fragment_point(&self, pipeline_id: PipelineId, page: &Page, node: JS<Element>) {
-        let (chan, port) = channel();
+    fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JS<Element>) {
         let node: JS<Node> = NodeCast::from(&node);
-        let ContentBoxResponse(rect) =
-            page.query_layout(ContentBoxQuery(node.to_trusted_node_address(), chan), port);
+        let rect = node.get_bounding_content_box();
         let point = Point2D(to_frac_px(rect.origin.x).to_f32().unwrap(),
                             to_frac_px(rect.origin.y).to_f32().unwrap());
         // FIXME(#2003, pcwalton): This is pretty bogus when multiple layers are involved.
@@ -997,7 +1036,7 @@ impl ScriptTask {
 
                 let mut fragment_node = page.fragment_node.deref().borrow_mut();
                 match fragment_node.take() {
-                    Some(node) => self.scroll_fragment_point(pipeline_id, page, node),
+                    Some(node) => self.scroll_fragment_point(pipeline_id, node),
                     None => {}
                 }
 
@@ -1031,17 +1070,8 @@ impl ScriptTask {
 
             ClickEvent(_button, point) => {
                 debug!("ClickEvent: clicked at {:?}", point);
-
-                let frame = page.frame();
-                let document = frame.get_ref().document.clone();
-                let root = document.get().GetDocumentElement();
-                if root.is_none() {
-                    return;
-                }
-                let (chan, port) = channel();
-                let root: JS<Node> = NodeCast::from(&root.unwrap());
-                match page.query_layout(HitTestQuery(root.to_trusted_node_address(), point, chan), port) {
-                    Ok(HitTestResponse(node_address)) => {
+                match page.hit_test(&point) {
+                    Some(node_address) => {
                         debug!("node address is {:?}", node_address);
                         let mut node: JS<Node> =
                             NodeHelpers::from_untrusted_node_address(self.js_runtime.deref().ptr,
@@ -1063,23 +1093,16 @@ impl ScriptTask {
                                 self.load_url_from_element(page, &element)
                             }
                         }
-                    },
-                    Err(()) => debug!("layout query error"),
+                    }
+
+                    None => {}
                 }
             }
             MouseDownEvent(..) => {}
             MouseUpEvent(..) => {}
             MouseMoveEvent(point) => {
-                let frame = page.frame();
-                let document = frame.get_ref().document.clone();
-                let root = document.get().GetDocumentElement();
-                if root.is_none() {
-                    return;
-                }
-                let root: JS<Node> = NodeCast::from(&root.unwrap());
-                let (chan, port) = channel();
-                match page.query_layout(MouseOverQuery(root.to_trusted_node_address(), point, chan), port) {
-                    Ok(MouseOverResponse(node_address)) => {
+                match page.get_nodes_under_mouse(&point) {
+                    Some(node_address) => {
 
                         let mut target_list: ~[JS<Node>] = ~[];
                         let mut target_compare = false;
@@ -1137,8 +1160,9 @@ impl ScriptTask {
                             }
                             *mouse_over_targets = Some(target_list);
                         }
-                    },
-                    Err(()) => {},
+                    }
+
+                    None => {}
               }
             }
         }
@@ -1156,7 +1180,7 @@ impl ScriptTask {
 
             if click_frag {
                 match page.find_fragment_node(url.fragment.unwrap()) {
-                    Some(node) => self.scroll_fragment_point(page.id, page, node),
+                    Some(node) => self.scroll_fragment_point(page.id, node),
                     None => {}
                 }
             } else {
