@@ -61,13 +61,11 @@ impl MouseEvent {
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Temporary<MouseEvent>> {
         let mut ev = MouseEvent::new(owner).root();
-        let view = init.view.as_ref().map(|view| view.root());
-        let related_target = init.relatedTarget.as_ref().map(|relatedTarget| relatedTarget.root());
-        ev.InitMouseEvent(type_, init.bubbles, init.cancelable, view.root_ref(),
+        ev.InitMouseEvent(type_, init.bubbles, init.cancelable, init.view.root_ref(),
                           init.detail, init.screenX, init.screenY,
                           init.clientX, init.clientY, init.ctrlKey,
                           init.altKey, init.shiftKey, init.metaKey,
-                          init.button, related_target.root_ref());
+                          init.button, init.relatedTarget.root_ref());
         Ok(Temporary::from_rooted(&*ev))
     }
 }

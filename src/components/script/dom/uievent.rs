@@ -46,9 +46,8 @@ impl UIEvent {
                        type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<Temporary<UIEvent>> {
         let mut ev = UIEvent::new(owner).root();
-        let view = init.view.as_ref().map(|view| view.root());
         ev.InitUIEvent(type_, init.parent.bubbles, init.parent.cancelable,
-                       view.root_ref(), init.detail);
+                       init.view.root_ref(), init.detail);
         Ok(Temporary::from_rooted(&*ev))
     }
 }

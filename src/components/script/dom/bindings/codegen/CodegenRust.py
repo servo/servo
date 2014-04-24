@@ -602,6 +602,8 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                           failureCode)
             return handleOptional(template, declType, isOptional)
 
+        descriptorType = descriptor.memberType if isMember else descriptor.nativeType
+
         templateBody = ""
         if descriptor.interface.isConsequential():
             raise TypeError("Consequential interface %s being used as an "
@@ -617,10 +619,13 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                     descriptor,
                     "(${val}).to_object()"))
 
-        declType = CGGeneric(descriptor.nativeType)
+        declType = CGGeneric(descriptorType)
         if type.nullable():
             templateBody = "Some(%s)" % templateBody
             declType = CGWrapper(declType, pre="Option<", post=">")
+
+        if isMember:
+            templateBody += ".root()"
 
         templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
                                           type, failureCode)
@@ -4069,7 +4074,7 @@ class CGDictionary(CGThing):
     def struct(self):
         d = self.dictionary
         if d.parent:
-            inheritance = "  pub parent: %s::%s,\n" % (self.makeModuleName(d.parent),
+            inheritance = "  pub parent: %s::%s<'a, 'b>,\n" % (self.makeModuleName(d.parent),
                                                    self.makeClassName(d.parent))
         else:
             inheritance = ""
@@ -4078,7 +4083,7 @@ class CGDictionary(CGThing):
                        for m in self.memberInfo]
 
         return (string.Template(
-                "pub struct ${selfName} {\n" +
+                "pub struct ${selfName}<'a, 'b> {\n" +
                 "${inheritance}" +
                 "\n".join(memberDecls) + "\n" +
                 "}").substitute( { "selfName": self.makeClassName(d),
@@ -4104,7 +4109,7 @@ class CGDictionary(CGThing):
         memberInits = CGList([memberInit(m) for m in self.memberInfo])
 
         return string.Template(
-            "impl ${selfName} {\n"
+            "impl<'a, 'b> ${selfName}<'a, 'b> {\n"
             "  pub fn new(cx: *JSContext, val: JSVal) -> Result<${selfName}, ()> {\n"
             "    let object = if val.is_null_or_undefined() {\n"
             "        ptr::null()\n"
@@ -4305,7 +4310,7 @@ class CGBindingRoot(CGThing):
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
             'dom::types::*',
             'dom::bindings',
-            'dom::bindings::js::{JS, JSRef, RootedReference, Temporary, OptionalRootable, OptionalRootedRootable}',
+            'dom::bindings::js::{JS, JSRef, Root, RootedReference, Temporary, OptionalRootable, OptionalRootedRootable, ResultRootable}',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::{ConstantSpec, cx_for_dom_object, Default}',
             'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',

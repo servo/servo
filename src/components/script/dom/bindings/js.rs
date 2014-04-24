@@ -284,6 +284,12 @@ impl<T: Reflectable, U> ResultRootable<T, U> for Result<Temporary<T>, U> {
     }
 }
 
+impl<T: Reflectable, U> ResultRootable<T, U> for Result<JS<T>, U> {
+    fn root<'a, 'b>(self) -> Result<Root<'a, 'b, T>, U> {
+        self.map(|inner| inner.root())
+    }
+}
+
 /// Provides a facility to push unrooted values onto lists of rooted values. This is safe
 /// under the assumption that said lists are reachable via the GC graph, and therefore the
 /// new values are transitively rooted for the lifetime of their new owner.
