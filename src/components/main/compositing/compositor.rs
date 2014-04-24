@@ -126,6 +126,9 @@ impl IOCompositor {
         let root_layer = Rc::new(ContainerLayer());
         let window_size = window.size();
 
+        let hidpi_factor = window.hidpi_factor();
+        root_layer.common.borrow_mut().set_transform(identity().scale(hidpi_factor, hidpi_factor, 1f32));
+
         IOCompositor {
             window: window,
             port: port,
@@ -140,7 +143,7 @@ impl IOCompositor {
             shutting_down: false,
             done: false,
             recomposite: false,
-            world_zoom: 1f32,
+            world_zoom: hidpi_factor,
             zoom_action: false,
             zoom_time: 0f64,
             ready_state: Blank,
