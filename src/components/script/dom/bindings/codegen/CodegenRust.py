@@ -2502,8 +2502,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let this: JS<%s>;\n"
-                      "this = %s;\n" % (self.descriptor.concreteType, unwrapThis)))
+                      "let this: JS<%s> = %s;\n" % (self.descriptor.concreteType, unwrapThis)))
         return CGList([ unwrapThis, self.generate_code() ], "\n").define()
 
     def generate_code(self):
