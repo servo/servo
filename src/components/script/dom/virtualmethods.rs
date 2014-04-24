@@ -74,34 +74,34 @@ pub trait VirtualMethods {
 /// method call on the trait object will invoke the corresponding method on the
 /// concrete type, propagating up the parent hierarchy unless otherwise
 /// interrupted.
-pub fn vtable_for<'a>(node: &JSRef<Node>) -> ~VirtualMethods: {
+pub fn vtable_for<'a>(node: &'a mut JSRef<Node>) -> &'a mut VirtualMethods: {
     match node.get().type_id {
         ElementNodeTypeId(HTMLImageElementTypeId) => {
-            let element: &JSRef<HTMLImageElement> = HTMLImageElementCast::to_ref(node).unwrap();
-            ~element.clone() as ~VirtualMethods:
+            let element: &mut JSRef<HTMLImageElement> = HTMLImageElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         ElementNodeTypeId(HTMLIFrameElementTypeId) => {
-            let element: &JSRef<HTMLIFrameElement> = HTMLIFrameElementCast::to_ref(node).unwrap();
-            ~element.clone() as ~VirtualMethods:
+            let element: &mut JSRef<HTMLIFrameElement> = HTMLIFrameElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         ElementNodeTypeId(HTMLObjectElementTypeId) => {
-            let element: &JSRef<HTMLObjectElement> = HTMLObjectElementCast::to_ref(node).unwrap();
-            ~element.clone() as ~VirtualMethods:
+            let element: &mut JSRef<HTMLObjectElement> = HTMLObjectElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         ElementNodeTypeId(HTMLStyleElementTypeId) => {
-            let element: &JSRef<HTMLStyleElement> = HTMLStyleElementCast::to_ref(node).unwrap();
-            ~element.clone() as ~VirtualMethods:
+            let element: &mut JSRef<HTMLStyleElement> = HTMLStyleElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         ElementNodeTypeId(ElementTypeId) => {
-            let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-            ~element.clone() as ~VirtualMethods:
+            let element: &mut JSRef<Element> = ElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         ElementNodeTypeId(_) => {
-            let element: &JSRef<HTMLElement> = HTMLElementCast::to_ref(node).unwrap();
-            ~element.clone() as ~VirtualMethods:
+            let element: &mut JSRef<HTMLElement> = HTMLElementCast::to_mut_ref(node).unwrap();
+            element as &mut VirtualMethods:
         }
         _ => {
-            ~node.clone() as ~VirtualMethods:
+            node as &mut VirtualMethods:
         }
     }
 }

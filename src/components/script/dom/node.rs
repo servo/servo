@@ -244,24 +244,25 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         let document = document_from_node(self).root();
 
         if self.is_in_doc() {
-            for node in self.traverse_preorder() {
-                vtable_for(&node).bind_to_tree();
+            for mut node in self.traverse_preorder() {
+                vtable_for(&mut node).bind_to_tree();
             }
         }
 
-        self.parent_node().root().map(|parent| vtable_for(&*parent).child_inserted(self));
+        let mut parent = self.parent_node().root();
+        parent.as_mut().map(|parent| vtable_for(&mut **parent).child_inserted(self));
 
         document.deref().content_changed();
     }
 
-    // http://dom.spec.whatwg.org/#node-is-removed
+    // http://spec.whatwg.org/#node-is-removed
     fn node_removed(&self) {
         assert!(self.parent_node().is_none());
         let document = document_from_node(self).root();
 
-        for node in self.traverse_preorder() {
+        for mut node in self.traverse_preorder() {
             // XXX how about if the node wasn't in the tree in the first place?
-            vtable_for(&node).unbind_from_tree();
+            vtable_for(&mut node).unbind_from_tree();
         }
 
         document.deref().content_changed();

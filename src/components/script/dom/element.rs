@@ -301,13 +301,14 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => (),
             Some(idx) => {
                 {
-                    let node: &JSRef<Node> = NodeCast::from_ref(self);
+                    let node: &mut JSRef<Node> = NodeCast::from_mut_ref(self);
                     node.wait_until_safe_to_modify_dom();
                 }
 
                 if namespace == namespace::Null {
                     let removed_raw_value = self.get().attrs.get(idx).root().Value();
-                    vtable_for(NodeCast::from_ref(self)).before_remove_attr(local_name.clone(), removed_raw_value);
+                    vtable_for(NodeCast::from_mut_ref(self))
+                        .before_remove_attr(local_name.clone(), removed_raw_value);
                 }
 
                 self.get_mut().attrs.remove(idx);
