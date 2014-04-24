@@ -36,6 +36,7 @@ dictionary TestDictionaryDefaults {
   // double doubleValue = 7.0;
   DOMString stringValue = "";
   // TestEnum enumValue = "bar";
+  any anyValue = null;
 
   // boolean? nullableBooleanValue = false;
   // byte? nullableByteValue = 7;
