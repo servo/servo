@@ -42,7 +42,106 @@ pub mod dom {
         pub mod proxyhandler;
         pub mod trace;
         pub mod codegen {
-            pub use self::BindingDeclarations::*;
+            pub use self::BindingDeclarations::{AttrBinding,
+                                                AttrListBinding,
+                                                BlobBinding,
+                                                CharacterDataBinding,
+                                                ClientRectBinding,
+                                                ClientRectListBinding,
+                                                CommentBinding,
+                                                ConsoleBinding,
+                                                DOMExceptionBinding,
+                                                DOMImplementationBinding,
+                                                DOMParserBinding,
+                                                DocumentBinding,
+                                                DocumentFragmentBinding,
+                                                DocumentTypeBinding,
+                                                ElementBinding,
+                                                EventBinding,
+                                                EventListenerBinding,
+                                                EventTargetBinding,
+                                                FormDataBinding,
+                                                HTMLAnchorElementBinding,
+                                                HTMLAppletElementBinding,
+                                                HTMLAreaElementBinding,
+                                                HTMLAudioElementBinding,
+                                                HTMLBRElementBinding,
+                                                HTMLBaseElementBinding,
+                                                HTMLBodyElementBinding,
+                                                HTMLButtonElementBinding,
+                                                HTMLCanvasElementBinding,
+                                                HTMLCollectionBinding,
+                                                HTMLDListElementBinding,
+                                                HTMLDataElementBinding,
+                                                HTMLDataListElementBinding,
+                                                HTMLDirectoryElementBinding,
+                                                HTMLDivElementBinding,
+                                                HTMLElementBinding,
+                                                HTMLEmbedElementBinding,
+                                                HTMLFieldSetElementBinding,
+                                                HTMLFontElementBinding,
+                                                HTMLFormElementBinding,
+                                                HTMLFrameElementBinding,
+                                                HTMLFrameSetElementBinding,
+                                                HTMLHRElementBinding,
+                                                HTMLHeadElementBinding,
+                                                HTMLHeadingElementBinding,
+                                                HTMLHtmlElementBinding,
+                                                HTMLIFrameElementBinding,
+                                                HTMLImageElementBinding,
+                                                HTMLInputElementBinding,
+                                                HTMLLIElementBinding,
+                                                HTMLLabelElementBinding,
+                                                HTMLLegendElementBinding,
+                                                HTMLLinkElementBinding,
+                                                HTMLMainElementBinding,
+                                                HTMLMapElementBinding,
+                                                HTMLMediaElementBinding,
+                                                HTMLMetaElementBinding,
+                                                HTMLMeterElementBinding,
+                                                HTMLModElementBinding,
+                                                HTMLOListElementBinding,
+                                                HTMLObjectElementBinding,
+                                                HTMLOptGroupElementBinding,
+                                                HTMLOptionElementBinding,
+                                                HTMLOutputElementBinding,
+                                                HTMLParagraphElementBinding,
+                                                HTMLParamElementBinding,
+                                                HTMLPreElementBinding,
+                                                HTMLProgressElementBinding,
+                                                HTMLQuoteElementBinding,
+                                                HTMLScriptElementBinding,
+                                                HTMLSelectElementBinding,
+                                                HTMLSourceElementBinding,
+                                                HTMLSpanElementBinding,
+                                                HTMLStyleElementBinding,
+                                                HTMLTableCaptionElementBinding,
+                                                HTMLTableCellElementBinding,
+                                                HTMLTableColElementBinding,
+                                                HTMLTableDataCellElementBinding,
+                                                HTMLTableElementBinding,
+                                                HTMLTableHeaderCellElementBinding,
+                                                HTMLTableRowElementBinding,
+                                                HTMLTableSectionElementBinding,
+                                                HTMLTemplateElementBinding,
+                                                HTMLTextAreaElementBinding,
+                                                HTMLTimeElementBinding,
+                                                HTMLTitleElementBinding,
+                                                HTMLTrackElementBinding,
+                                                HTMLUListElementBinding,
+                                                HTMLUnknownElementBinding,
+                                                HTMLVideoElementBinding,
+                                                LocationBinding,
+                                                MouseEventBinding,
+                                                NavigatorBinding,
+                                                NodeBinding,
+                                                NodeListBinding,
+                                                ProcessingInstructionBinding,
+                                                TestBindingBinding,
+                                                TextBinding,
+                                                UIEventBinding,
+                                                ValidityStateBinding,
+                                                WindowBinding};
             pub mod InterfaceTypes;
             pub mod InheritTypes;
             pub mod PrototypeList;
@@ -53,7 +152,105 @@ pub mod dom {
     }
 
     pub mod types {
-        pub use super::bindings::codegen::InterfaceTypes::*;
+        pub use super::attr::Attr;
+        pub use super::attrlist::AttrList;
+        pub use super::blob::Blob;
+        pub use super::characterdata::CharacterData;
+        pub use super::clientrect::ClientRect;
+        pub use super::clientrectlist::ClientRectList;
+        pub use super::comment::Comment;
+        pub use super::console::Console;
+        pub use super::domexception::DOMException;
+        pub use super::domimplementation::DOMImplementation;
+        pub use super::domparser::DOMParser;
+        pub use super::document::Document;
+        pub use super::documentfragment::DocumentFragment;
+        pub use super::documenttype::DocumentType;
+        pub use super::element::Element;
+        pub use super::event::Event;
+        pub use super::eventtarget::EventTarget;
+        pub use super::formdata::FormData;
+        pub use super::htmlanchorelement::HTMLAnchorElement;
+        pub use super::htmlappletelement::HTMLAppletElement;
+        pub use super::htmlareaelement::HTMLAreaElement;
+        pub use super::htmlaudioelement::HTMLAudioElement;
+        pub use super::htmlbrelement::HTMLBRElement;
+        pub use super::htmlbaseelement::HTMLBaseElement;
+        pub use super::htmlbodyelement::HTMLBodyElement;
+        pub use super::htmlbuttonelement::HTMLButtonElement;
+        pub use super::htmlcanvaselement::HTMLCanvasElement;
+        pub use super::htmlcollection::HTMLCollection;
+        pub use super::htmldlistelement::HTMLDListElement;
+        pub use super::htmldataelement::HTMLDataElement;
+        pub use super::htmldatalistelement::HTMLDataListElement;
+        pub use super::htmldirectoryelement::HTMLDirectoryElement;
+        pub use super::htmldivelement::HTMLDivElement;
+        pub use super::htmlelement::HTMLElement;
+        pub use super::htmlembedelement::HTMLEmbedElement;
+        pub use super::htmlfieldsetelement::HTMLFieldSetElement;
+        pub use super::htmlfontelement::HTMLFontElement;
+        pub use super::htmlformelement::HTMLFormElement;
+        pub use super::htmlframeelement::HTMLFrameElement;
+        pub use super::htmlframesetelement::HTMLFrameSetElement;
+        pub use super::htmlhrelement::HTMLHRElement;
+        pub use super::htmlheadelement::HTMLHeadElement;
+        pub use super::htmlheadingelement::HTMLHeadingElement;
+        pub use super::htmlhtmlelement::HTMLHtmlElement;
+        pub use super::htmliframeelement::HTMLIFrameElement;
+        pub use super::htmlimageelement::HTMLImageElement;
+        pub use super::htmlinputelement::HTMLInputElement;
+        pub use super::htmllielement::HTMLLIElement;
+        pub use super::htmllabelelement::HTMLLabelElement;
+        pub use super::htmllegendelement::HTMLLegendElement;
+        pub use super::htmllinkelement::HTMLLinkElement;
+        pub use super::htmlmainelement::HTMLMainElement;
+        pub use super::htmlmapelement::HTMLMapElement;
+        pub use super::htmlmediaelement::HTMLMediaElement;
+        pub use super::htmlmetaelement::HTMLMetaElement;
+        pub use super::htmlmeterelement::HTMLMeterElement;
+        pub use super::htmlmodelement::HTMLModElement;
+        pub use super::htmlolistelement::HTMLOListElement;
+        pub use super::htmlobjectelement::HTMLObjectElement;
+        pub use super::htmloptgroupelement::HTMLOptGroupElement;
+        pub use super::htmloptionelement::HTMLOptionElement;
+        pub use super::htmloutputelement::HTMLOutputElement;
+        pub use super::htmlparagraphelement::HTMLParagraphElement;
+        pub use super::htmlparamelement::HTMLParamElement;
+        pub use super::htmlpreelement::HTMLPreElement;
+        pub use super::htmlprogresselement::HTMLProgressElement;
+        pub use super::htmlquoteelement::HTMLQuoteElement;
+        pub use super::htmlscriptelement::HTMLScriptElement;
+        pub use super::htmlselectelement::HTMLSelectElement;
+        pub use super::htmlsourceelement::HTMLSourceElement;
+        pub use super::htmlspanelement::HTMLSpanElement;
+        pub use super::htmlstyleelement::HTMLStyleElement;
+        pub use super::htmltablecaptionelement::HTMLTableCaptionElement;
+        pub use super::htmltablecellelement::HTMLTableCellElement;
+        pub use super::htmltablecolelement::HTMLTableColElement;
+        pub use super::htmltabledatacellelement::HTMLTableDataCellElement;
+        pub use super::htmltableelement::HTMLTableElement;
+        pub use super::htmltableheadercellelement::HTMLTableHeaderCellElement;
+        pub use super::htmltablerowelement::HTMLTableRowElement;
+        pub use super::htmltablesectionelement::HTMLTableSectionElement;
+        pub use super::htmltemplateelement::HTMLTemplateElement;
+        pub use super::htmltextareaelement::HTMLTextAreaElement;
+        pub use super::htmltimeelement::HTMLTimeElement;
+        pub use super::htmltitleelement::HTMLTitleElement;
+        pub use super::htmltrackelement::HTMLTrackElement;
+        pub use super::htmlulistelement::HTMLUListElement;
+        pub use super::htmlunknownelement::HTMLUnknownElement;
+        pub use super::htmlvideoelement::HTMLVideoElement;
+        pub use super::location::Location;
+        pub use super::mouseevent::MouseEvent;
+        pub use super::navigator::Navigator;
+        pub use super::node::Node;
+        pub use super::nodelist::NodeList;
+        pub use super::processinginstruction::ProcessingInstruction;
+        pub use super::testbinding::TestBinding;
+        pub use super::text::Text;
+        pub use super::uievent::UIEvent;
+        pub use super::validitystate::ValidityState;
+        pub use super::window::Window;
     }
 
     pub mod attr;
