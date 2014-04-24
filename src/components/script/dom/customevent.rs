@@ -10,11 +10,12 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, CustomEventTypeId};
 use dom::window::Window;
 use servo_util::str::DOMString;
+use js::jsval::{JSVal, NullValue};
+use js::jsapi::JSContext;
 
 #[deriving(Encodable)]
 pub struct CustomEvent {
-    event: Event,
-    detail: i32
+    event: Event
 }
 
 impl CustomEventDerived for Event {
@@ -26,8 +27,7 @@ impl CustomEventDerived for Event {
 impl CustomEvent {
     pub fn new_inherited(type_id: EventTypeId) -> CustomEvent {
         CustomEvent {
-            event: Event::new_inherited(type_id),
-            detail: 0
+            event: Event::new_inherited(type_id)
         }
     }
 
@@ -41,22 +41,23 @@ impl CustomEvent {
                        type_: DOMString,
                        init: &CustomEventBinding::CustomEventInit) -> Fallible<JS<CustomEvent>> {
         let mut ev = CustomEvent::new(owner);
-        ev.get_mut().InitCustomEvent(type_, init.parent.bubbles, init.parent.cancelable, init.detail);
+        ev.get_mut().event.InitEvent(type_, init.parent.bubbles, init.parent.cancelable);
         Ok(ev)
     }
 
 
-    pub fn Detail(&self) -> i32 {
-        self.detail
+    pub fn Detail(&self, _cx: *JSContext) -> JSVal {
+        // FIXME store this properly
+        NullValue()
     }
 
     pub fn InitCustomEvent(&mut self,
+                       _cx: *JSContext,
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
-                       detail: i32) {
+                       _detail: JSVal) {
         self.event.InitEvent(type_, can_bubble, cancelable);
-        self.detail = detail;
     }
 }
 
