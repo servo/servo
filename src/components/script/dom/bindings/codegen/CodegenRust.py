@@ -765,10 +765,6 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if type.isAny():
         assert not isEnforceRange and not isClamp
 
-        if isMember:
-            raise TypeError("Can't handle member 'any'; need to sort out "
-                            "rooting issues")
-
         declType = CGGeneric("JSVal")
         value = CGGeneric("${val}")
         if isOptional:
@@ -4236,6 +4232,8 @@ class CGDictionary(CGThing):
                 return '~""'
             elif ty.startswith("Option"):
                 return "None"
+            elif ty == "JSVal":
+                return "UndefinedValue()"
             else:
                 return "/* uh oh: %s */" % ty
 
