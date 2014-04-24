@@ -1590,6 +1590,8 @@ impl Node {
                     }
                 }
             } else {
+                let c = &mut child.clone();
+                child.get_mut().Normalize(c);
                 prev_text = None;
             }
 
