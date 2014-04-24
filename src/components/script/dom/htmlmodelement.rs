@@ -64,4 +64,3 @@ impl<'a> HTMLModElementMethods for JSRef<'a, HTMLModElement> {
         Ok(())
     }
 }
-

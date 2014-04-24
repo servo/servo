@@ -50,4 +50,3 @@ impl<'a> ProcessingInstructionMethods for JSRef<'a, ProcessingInstruction> {
         self.target.clone()
     }
 }
-

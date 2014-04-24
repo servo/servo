@@ -74,4 +74,3 @@ impl<'a> HTMLSourceElementMethods for JSRef<'a, HTMLSourceElement> {
         Ok(())
     }
 }
-

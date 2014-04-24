@@ -120,4 +120,3 @@ impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
     fn SetCustomValidity(&mut self, _error: DOMString) {
     }
 }
-

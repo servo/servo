@@ -17,7 +17,7 @@ use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlobjectelement::HTMLObjectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
@@ -25,7 +25,7 @@ use servo_util::str::DOMString;
 pub trait VirtualMethods {
     /// Returns self as the superclass of the implementation for this trait,
     /// if any.
-    fn super_type(&self) -> Option<~VirtualMethods:>;
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:>;
 
     /// Called when changing or adding attributes, after the attribute's value
     /// has been updated.
@@ -75,7 +75,7 @@ pub trait VirtualMethods {
 /// concrete type, propagating up the parent hierarchy unless otherwise
 /// interrupted.
 pub fn vtable_for<'a>(node: &'a mut JSRef<Node>) -> &'a mut VirtualMethods: {
-    match node.get().type_id {
+    match node.type_id() {
         ElementNodeTypeId(HTMLImageElementTypeId) => {
             let element: &mut JSRef<HTMLImageElement> = HTMLImageElementCast::to_mut_ref(node).unwrap();
             element as &mut VirtualMethods:

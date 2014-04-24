@@ -54,4 +54,3 @@ impl<'a> HTMLQuoteElementMethods for JSRef<'a, HTMLQuoteElement> {
         Ok(())
     }
 }
-

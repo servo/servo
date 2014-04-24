@@ -52,4 +52,3 @@ impl<'a> HTMLLabelElementMethods for JSRef<'a, HTMLLabelElement> {
     fn SetHtmlFor(&mut self, _html_for: DOMString) {
     }
 }
-

@@ -94,4 +94,3 @@ impl<'a> HTMLHRElementMethods for JSRef<'a, HTMLHRElement> {
         Ok(())
     }
 }
-

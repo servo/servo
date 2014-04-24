@@ -76,7 +76,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     fn dispatch_event_with_target<'b>(&self,
                                       target: Option<JSRef<'b, EventTarget>>,
                                       event: &mut JSRef<Event>) -> Fallible<bool> {
-        if event.get().dispatching || !event.get().initialized {
+        if event.deref().dispatching || !event.deref().initialized {
             return Err(InvalidState);
         }
         Ok(dispatch_event(self, target, event))
@@ -149,7 +149,7 @@ impl Reflectable for EventTarget {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, EventTarget> {
-    fn super_type(&self) -> Option<~VirtualMethods:> {
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
         None
     }
 }

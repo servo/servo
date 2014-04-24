@@ -64,4 +64,3 @@ impl<'a> HTMLHeadingElementMethods for JSRef<'a, HTMLHeadingElement> {
     fn SetAlign(&mut self, _align: DOMString) {
     }
 }
-

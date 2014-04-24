@@ -64,4 +64,3 @@ impl<'a> HTMLLIElementMethods for JSRef<'a, HTMLLIElement> {
         Ok(())
     }
 }
-

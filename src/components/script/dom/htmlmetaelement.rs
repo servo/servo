@@ -84,4 +84,3 @@ impl<'a> HTMLMetaElementMethods for JSRef<'a, HTMLMetaElement> {
         Ok(())
     }
 }
-

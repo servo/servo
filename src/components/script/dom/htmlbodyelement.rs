@@ -104,4 +104,3 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
         Ok(())
     }
 }
-

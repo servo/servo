@@ -64,4 +64,3 @@ impl<'a> HTMLFrameSetElementMethods for JSRef<'a, HTMLFrameSetElement> {
         Ok(())
     }
 }
-

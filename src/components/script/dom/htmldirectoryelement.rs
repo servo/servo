@@ -54,4 +54,3 @@ impl<'a> HTMLDirectoryElementMethods for JSRef<'a, HTMLDirectoryElement> {
         Ok(())
     }
 }
-

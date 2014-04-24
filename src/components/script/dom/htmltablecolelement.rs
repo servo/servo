@@ -104,4 +104,3 @@ impl<'a> HTMLTableColElementMethods for JSRef<'a, HTMLTableColElement> {
         Ok(())
     }
 }
-

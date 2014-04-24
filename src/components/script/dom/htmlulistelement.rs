@@ -64,4 +64,3 @@ impl<'a> HTMLUListElementMethods for JSRef<'a, HTMLUListElement> {
         Ok(())
     }
 }
-

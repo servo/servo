@@ -54,4 +54,3 @@ impl<'a> HTMLBRElementMethods for JSRef<'a, HTMLBRElement> {
         Ok(())
     }
 }
-

@@ -166,4 +166,3 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
         fail!("Not implemented.")
     }
 }
-

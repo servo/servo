@@ -36,7 +36,8 @@ impl DOMParser {
 }
 
 pub trait DOMParserMethods {
-    fn ParseFromString(&self, _s: DOMString, ty: DOMParserBinding::SupportedType) -> Fallible<Temporary<Document>>;
+    fn ParseFromString(&self, _s: DOMString, ty: DOMParserBinding::SupportedType)
+        -> Fallible<Temporary<Document>>;
 }
 
 impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {

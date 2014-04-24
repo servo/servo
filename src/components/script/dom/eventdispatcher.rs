@@ -13,21 +13,21 @@ use dom::node::{Node, NodeHelpers};
 pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
                               pseudo_target: Option<JSRef<'b, EventTarget>>,
                               event: &mut JSRef<Event>) -> bool {
-    assert!(!event.get().dispatching);
+    assert!(!event.deref().dispatching);
 
     {
-        let event = event.get_mut();
-        match pseudo_target {
-            Some(pseudo_target) => event.target.assign(Some(pseudo_target)),
-            None => event.target.assign(Some(target.clone())),
-        }
+        let event = event.deref_mut();
+        event.target.assign(Some(match pseudo_target {
+            Some(pseudo_target) => pseudo_target,
+            None => target.clone(),
+        }));
         event.dispatching = true;
     }
 
-    let type_ = event.get().type_.clone();
+    let type_ = event.deref().type_.clone();
 
     //TODO: no chain if not participating in a tree
-    let mut chain: Vec<Root<EventTarget>> = if target.get().is_node() {
+    let mut chain: Vec<Root<EventTarget>> = if target.deref().is_node() {
         let target_node: &JSRef<Node> = NodeCast::to_ref(target).unwrap();
         target_node.ancestors().map(|ancestor| {
             let ancestor_target: &JSRef<EventTarget> = EventTargetCast::from_ref(&ancestor);
@@ -37,7 +37,7 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
         vec!()
     };
 
-    event.get_mut().phase = PhaseCapturing;
+    event.deref_mut().phase = PhaseCapturing;
 
     //FIXME: The "callback this value" should be currentTarget
 
@@ -51,12 +51,12 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
                     //       drop the exception on the floor
                     assert!(listener.HandleEvent__(event, ReportExceptions).is_ok());
 
-                    if event.get().stop_immediate {
+                    if event.deref().stop_immediate {
                         break;
                     }
                 }
 
-                event.get().stop_propagation
+                event.deref().stop_propagation
             }
             None => false
         };
@@ -67,20 +67,20 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
     }
 
     /* at target */
-    if !event.get().stop_propagation {
+    if !event.deref().stop_propagation {
         {
-            let event = event.get_mut();
+            let event = event.deref_mut();
             event.phase = PhaseAtTarget;
             event.current_target.assign(Some(target.clone()));
         }
 
-        let opt_listeners = target.get().get_listeners(type_);
+        let opt_listeners = target.deref().get_listeners(type_);
         for listeners in opt_listeners.iter() {
             for listener in listeners.iter() {
                 //FIXME: this should have proper error handling, or explicitly drop the
                 //       exception on the floor.
                 assert!(listener.HandleEvent__(event, ReportExceptions).is_ok());
-                if event.get().stop_immediate {
+                if event.deref().stop_immediate {
                     break;
                 }
             }
@@ -88,24 +88,24 @@ pub fn dispatch_event<'a, 'b>(target: &JSRef<'a, EventTarget>,
     }
 
     /* bubbling */
-    if event.get().bubbles && !event.get().stop_propagation {
-        event.get_mut().phase = PhaseBubbling;
+    if event.deref().bubbles && !event.deref().stop_propagation {
+        event.deref_mut().phase = PhaseBubbling;
 
         for cur_target in chain.iter() {
-            let stopped = match cur_target.get().get_listeners_for(type_, Bubbling) {
+            let stopped = match cur_target.deref().get_listeners_for(type_, Bubbling) {
                 Some(listeners) => {
-                    event.get_mut().current_target.assign(Some(cur_target.deref().clone()));
+                    event.deref_mut().current_target.assign(Some(cur_target.deref().clone()));
                     for listener in listeners.iter() {
                         //FIXME: this should have proper error handling or explicitly
                         //       drop exceptions on the floor.
                         assert!(listener.HandleEvent__(event, ReportExceptions).is_ok());
 
-                        if event.get().stop_immediate {
+                        if event.deref().stop_immediate {
                             break;
                         }
                     }
 
-                    event.get().stop_propagation
+                    event.deref().stop_propagation
                 }
                 None => false
             };

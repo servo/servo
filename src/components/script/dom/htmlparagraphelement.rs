@@ -54,4 +54,3 @@ impl<'a> HTMLParagraphElementMethods for JSRef<'a, HTMLParagraphElement> {
         Ok(())
     }
 }
-

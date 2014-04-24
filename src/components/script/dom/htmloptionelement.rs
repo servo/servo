@@ -115,4 +115,3 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         0
     }
 }
-

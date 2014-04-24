@@ -64,4 +64,3 @@ impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
         Ok(())
     }
 }
-

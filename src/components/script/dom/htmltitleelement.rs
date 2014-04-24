@@ -54,4 +54,3 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
         Ok(())
     }
 }
-

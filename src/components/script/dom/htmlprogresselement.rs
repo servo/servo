@@ -74,4 +74,3 @@ impl<'a> HTMLProgressElementMethods for JSRef<'a, HTMLProgressElement> {
         Ok(0f64)
     }
 }
-

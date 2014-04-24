@@ -238,9 +238,9 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
-    fn super_type(&self) -> Option<~VirtualMethods:> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
-        Some(~htmlelement.clone() as ~VirtualMethods:)
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
+        let htmlelement: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
+        Some(htmlelement as &mut VirtualMethods:)
     }
 
     fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
@@ -264,7 +264,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                     _ => AllowNothing
                 } as u8;
             }
-            self.get_mut().sandbox = Some(modes);
+            self.deref_mut().sandbox = Some(modes);
         }
     }
 
@@ -275,7 +275,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         }
 
         if "sandbox" == name {
-            self.get_mut().sandbox = None;
+            self.deref_mut().sandbox = None;
         }
     }
 }

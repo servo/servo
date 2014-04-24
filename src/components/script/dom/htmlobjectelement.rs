@@ -290,9 +290,9 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
-    fn super_type(&self) -> Option<~VirtualMethods:> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
-        Some(~htmlelement.clone() as ~VirtualMethods:)
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
+        let htmlelement: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
+        Some(htmlelement as &mut VirtualMethods:)
     }
 
     fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
@@ -303,8 +303,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
 
         if "data" == name {
             let window = window_from_node(self).root();
-            let url = Some(window.get().get_url());
-            self.process_data_url(window.get().image_cache_task.clone(), url);
+            let url = Some(window.deref().get_url());
+            self.process_data_url(window.deref().image_cache_task.clone(), url);
         }
     }
 }

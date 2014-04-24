@@ -428,4 +428,3 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
         Ok(())
     }
 }
-

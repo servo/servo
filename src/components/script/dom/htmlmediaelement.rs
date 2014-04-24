@@ -207,5 +207,3 @@ impl<'a> HTMLMediaElementMethods for JSRef<'a, HTMLMediaElement> {
         Ok(())
     }
 }
-
-

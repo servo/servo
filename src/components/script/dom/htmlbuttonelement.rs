@@ -185,4 +185,3 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     fn SetCustomValidity(&mut self, _error: DOMString) {
     }
 }
-

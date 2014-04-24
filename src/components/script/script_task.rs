@@ -419,7 +419,7 @@ impl Page {
                 anchors.find(|node| {
                     let elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
                     elem.get_attribute(Null, "name").root().map_or(false, |attr| {
-                        attr.get().value_ref() == fragid
+                        attr.deref().value_ref() == fragid
                     })
                 }).map(|node| Temporary::from_rooted(ElementCast::to_ref(&node).unwrap()))
             }
@@ -758,19 +758,18 @@ impl ScriptTask {
 
     /// Handles a timer that fired.
     fn handle_fire_timer_msg(&self, id: PipelineId, timer_id: TimerId) {
-
         let mut page_tree = self.page_tree.borrow_mut();
         let page = page_tree.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.").page();
         let frame = page.frame();
         let mut window = frame.get_ref().window.root();
 
+        let this_value = window.deref().reflector().get_jsobject();
+
         let is_interval;
-        match window.get().active_timers.find(&timer_id) {
+        match window.deref().active_timers.find(&timer_id) {
             None => return,
             Some(timer_handle) => {
-                let this_value = window.reflector().get_jsobject();
-
                 // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
                 let rval = NullValue();
                 let js_info = page.js_info();
@@ -785,7 +784,7 @@ impl ScriptTask {
         }
 
         if !is_interval {
-            window.get_mut().active_timers.remove(&timer_id);
+            window.deref_mut().active_timers.remove(&timer_id);
         }
     }
 
@@ -874,7 +873,6 @@ impl ScriptTask {
     fn load(&self, pipeline_id: PipelineId, url: Url) {
         debug!("ScriptTask: loading {:?} on page {:?}", url, pipeline_id);
 
-
         let mut page_tree = self.page_tree.borrow_mut();
         let page_tree = page_tree.find(pipeline_id).expect("ScriptTask: received a load
             message for a layout channel that is not associated with this script task. This
@@ -903,7 +901,7 @@ impl ScriptTask {
                                      self.image_cache_task.clone()).root();
         page.initialize_js_info(cx.clone(), window.reflector().get_jsobject());
         let mut document = Document::new(&*window, Some(url.clone()), HTMLDocument, None).root();
-        window.get_mut().init_browser_context(&*document);
+        window.deref_mut().init_browser_context(&*document);
 
         {
             let mut js_info = page.mut_js_info();
@@ -1118,7 +1116,7 @@ impl ScriptTask {
 
                         if node.deref().is_element() {
                             let element: &JSRef<Element> = ElementCast::to_ref(&*node).unwrap();
-                            if "a" == element.get().local_name {
+                            if "a" == element.deref().local_name {
                                 self.load_url_from_element(page, element)
                             }
                         }
@@ -1205,10 +1203,10 @@ impl ScriptTask {
         let attr = element.get_attribute(Null, "href");
         for href in attr.root().iter() {
             debug!("ScriptTask: clicked on link to {:s}", href.Value());
-            let click_frag = href.get().value_ref().starts_with("#");
+            let click_frag = href.deref().value_ref().starts_with("#");
             let base_url = Some(page.get_url());
             debug!("ScriptTask: current url is {:?}", base_url);
-            let url = parse_url(href.get().value_ref(), base_url);
+            let url = parse_url(href.deref().value_ref(), base_url);
 
             if click_frag {
                 match page.find_fragment_node(url.fragment.unwrap()).root() {

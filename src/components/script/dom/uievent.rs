@@ -146,7 +146,6 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
     }
 }
 
-
 impl Reflectable for UIEvent {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.event.reflector()

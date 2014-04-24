@@ -54,4 +54,3 @@ impl<'a> HTMLTableCaptionElementMethods for JSRef<'a, HTMLTableCaptionElement> {
         Ok(())
     }
 }
-

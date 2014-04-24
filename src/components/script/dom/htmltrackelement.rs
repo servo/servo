@@ -99,4 +99,3 @@ impl<'a> HTMLTrackElementMethods for JSRef<'a, HTMLTrackElement> {
         0
     }
 }
-

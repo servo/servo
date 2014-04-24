@@ -136,4 +136,3 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
         Ok(())
     }
 }
-

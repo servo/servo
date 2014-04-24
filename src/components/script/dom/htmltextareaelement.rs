@@ -244,4 +244,3 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     fn SetRangeText(&self, _replacement: DOMString) {
     }
 }
-

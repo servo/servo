@@ -49,7 +49,7 @@ impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.get().local_name == ~"option"
+                elem.deref().local_name == ~"option"
             }
         }
         let node: &JSRef<Node> = NodeCast::from_ref(self);
@@ -58,4 +58,3 @@ impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
         HTMLCollection::create(&*window, node, filter)
     }
 }
-

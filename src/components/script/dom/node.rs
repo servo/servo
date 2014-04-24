@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast, Elem
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::BindingDeclarations::NodeBinding::NodeConstants;
-use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};
+use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root, OptionalUnrootable};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -255,7 +255,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         document.deref().content_changed();
     }
 
-    // http://spec.whatwg.org/#node-is-removed
+    // http://dom.spec.whatwg.org/#node-is-removed
     fn node_removed(&self) {
         assert!(self.parent_node().is_none());
         let document = document_from_node(self).root();
@@ -417,9 +417,9 @@ pub trait NodeHelpers {
     fn dump_indent(&self, indent: uint);
     fn debug_str(&self) -> ~str;
 
-    fn traverse_preorder<'a>(&self) -> TreeIterator<'a>;
-    fn sequential_traverse_postorder<'a>(&self) -> TreeIterator<'a>;
-    fn inclusively_following_siblings(&self) -> AbstractNodeChildrenIterator;
+    fn traverse_preorder<'a>(&'a self) -> TreeIterator<'a>;
+    fn sequential_traverse_postorder<'a>(&'a self) -> TreeIterator<'a>;
+    fn inclusively_following_siblings<'a>(&'a self) -> AbstractNodeChildrenIterator<'a>;
 
     fn to_trusted_node_address(&self) -> TrustedNodeAddress;
 
@@ -455,34 +455,34 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn is_in_doc(&self) -> bool {
-        self.get().flags.is_in_doc()
+        self.deref().flags.is_in_doc()
     }
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
     fn type_id(&self) -> NodeTypeId {
-        self.get().type_id
+        self.deref().type_id
     }
 
     fn parent_node(&self) -> Option<Temporary<Node>> {
-        self.get().parent_node.clone().map(|node| Temporary::new(node))
+        self.deref().parent_node.clone().map(|node| Temporary::new(node))
     }
 
     fn first_child(&self) -> Option<Temporary<Node>> {
-        self.get().first_child.clone().map(|node| Temporary::new(node))
+        self.deref().first_child.clone().map(|node| Temporary::new(node))
     }
 
     fn last_child(&self) -> Option<Temporary<Node>> {
-        self.get().last_child.clone().map(|node| Temporary::new(node))
+        self.deref().last_child.clone().map(|node| Temporary::new(node))
     }
 
     /// Returns the previous sibling of this node. Fails if this node is borrowed mutably.
     fn prev_sibling(&self) -> Option<Temporary<Node>> {
-        self.get().prev_sibling.clone().map(|node| Temporary::new(node))
+        self.deref().prev_sibling.clone().map(|node| Temporary::new(node))
     }
 
     /// Returns the next sibling of this node. Fails if this node is borrowed mutably.
     fn next_sibling(&self) -> Option<Temporary<Node>> {
-        self.get().next_sibling.clone().map(|node| Temporary::new(node))
+        self.deref().next_sibling.clone().map(|node| Temporary::new(node))
     }
 
     #[inline]
@@ -536,22 +536,22 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    fn traverse_preorder<'a>(&self) -> TreeIterator<'a> {
+    fn traverse_preorder<'a>(&'a self) -> TreeIterator<'a> {
         let mut nodes = vec!();
         gather_abstract_nodes(self, &mut nodes, false);
         TreeIterator::new(nodes)
     }
 
     /// Iterates over this node and all its descendants, in postorder.
-    fn sequential_traverse_postorder<'a>(&self) -> TreeIterator<'a> {
+    fn sequential_traverse_postorder<'a>(&'a self) -> TreeIterator<'a> {
         let mut nodes = vec!();
         gather_abstract_nodes(self, &mut nodes, true);
         TreeIterator::new(nodes)
     }
 
-    fn inclusively_following_siblings(&self) -> AbstractNodeChildrenIterator {
+    fn inclusively_following_siblings<'a>(&'a self) -> AbstractNodeChildrenIterator<'a> {
         AbstractNodeChildrenIterator {
-            current_node: Some((*self.unrooted().root()).clone()),
+            current_node: Some(self.clone()),
         }
     }
 
@@ -561,7 +561,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     fn following_siblings(&self) -> AbstractNodeChildrenIterator {
         AbstractNodeChildrenIterator {
-            current_node: self.next_sibling().map(|node| (*node.root()).clone()),
+            current_node: self.next_sibling().root().map(|next| next.deref().clone()),
         }
     }
 
@@ -573,12 +573,12 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
     }
 
     fn to_trusted_node_address(&self) -> TrustedNodeAddress {
-        TrustedNodeAddress(self.get() as *Node as *libc::c_void)
+        TrustedNodeAddress(self.deref() as *Node as *libc::c_void)
     }
 
     fn get_bounding_content_box(&self) -> Rect<Au> {
         let window = window_from_node(self).root();
-        let page = window.get().page();
+        let page = window.deref().page();
         let (chan, port) = channel();
         let addr = self.to_trusted_node_address();
         let ContentBoxResponse(rect) = page.query_layout(ContentBoxQuery(addr, chan), port);
@@ -587,7 +587,7 @@ impl<'a> NodeHelpers for JSRef<'a, Node> {
 
     fn get_content_boxes(&self) -> Vec<Rect<Au>> {
         let window = window_from_node(self).root();
-        let page = window.get().page();
+        let page = window.deref().page();
         let (chan, port) = channel();
         let addr = self.to_trusted_node_address();
         let ContentBoxesResponse(rects) = page.query_layout(ContentBoxesQuery(addr, chan), port);
@@ -803,7 +803,7 @@ impl NodeIterator {
     fn next_child<'b>(&self, node: &JSRef<'b, Node>) -> Option<JSRef<Node>> {
         if !self.include_descendants_of_void && node.is_element() {
             let elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-            if elem.get().is_void() {
+            if elem.deref().is_void() {
                 None
             } else {
                 node.first_child().map(|child| (*child.root()).clone())
@@ -861,15 +861,15 @@ impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
     }
 }
 
-fn gather_abstract_nodes<'a>(cur: &JSRef<Node>, refs: &mut Vec<JSRef<Node>>, postorder: bool) {
+fn gather_abstract_nodes<'a>(cur: &JSRef<'a, Node>, refs: &mut Vec<JSRef<'a, Node>>, postorder: bool) {
     if !postorder {
-        refs.push((*cur.unrooted().root()).clone());
+        refs.push(cur.clone());
     }
     for kid in cur.children() {
         gather_abstract_nodes(&kid, refs, postorder)
     }
     if postorder {
-        refs.push((*cur.unrooted().root()).clone());
+        refs.push(cur.clone());
     }
 }
 
@@ -889,9 +889,9 @@ impl Node {
              wrap_fn:   extern "Rust" fn(*JSContext, &JSRef<Window>, ~N) -> JS<N>)
              -> Temporary<N> {
         assert!(node.reflector().get_jsobject().is_null());
-        let window = document.get().window.root();
+        let window = document.deref().window.root();
         let node = reflect_dom_object(node, &window.root_ref(), wrap_fn).root();
-        assert!(node.reflector().get_jsobject().is_not_null());
+        assert!(node.deref().reflector().get_jsobject().is_not_null());
         Temporary::from_rooted(&*node)
     }
 
@@ -914,7 +914,7 @@ impl Node {
             next_sibling: None,
             prev_sibling: None,
 
-            owner_doc: doc.map(|doc| doc.unrooted()),
+            owner_doc: doc.unrooted(),
             child_list: None,
 
             flags: NodeFlags::new(type_id),
@@ -1110,7 +1110,7 @@ impl Node {
         // Step 8.
         for node in nodes.mut_iter() {
             parent.add_child(node, child.clone());
-            node.get_mut().flags.set_is_in_doc(parent.is_in_doc());
+            node.deref_mut().flags.set_is_in_doc(parent.is_in_doc());
         }
 
         // Step 9.
@@ -1193,7 +1193,7 @@ impl Node {
         // Step 6-7: mutation observers.
         // Step 8.
         parent.remove_child(node);
-        node.get_mut().flags.set_is_in_doc(false);
+        node.deref_mut().flags.set_is_in_doc(false);
 
         // Step 9.
         match suppress_observers {
@@ -1217,7 +1217,7 @@ impl Node {
         let mut copy: Root<Node> = match node.type_id() {
             DoctypeNodeTypeId => {
                 let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
-                let doctype = doctype.get();
+                let doctype = doctype.deref();
                 let doctype = DocumentType::new(doctype.name.clone(),
                                                 Some(doctype.public_id.clone()),
                                                 Some(doctype.system_id.clone()), &*document);
@@ -1229,7 +1229,7 @@ impl Node {
             },
             CommentNodeTypeId => {
                 let comment: &JSRef<Comment> = CommentCast::to_ref(node).unwrap();
-                let comment = comment.get();
+                let comment = comment.deref();
                 let comment = Comment::new(comment.characterdata.data.clone(), &*document);
                 NodeCast::from_unrooted(comment)
             },
@@ -1246,19 +1246,19 @@ impl Node {
             },
             ElementNodeTypeId(..) => {
                 let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-                let element = element.get();
+                let element = element.deref();
                 let element = build_element_from_tag(element.local_name.clone(), &*document);
                 NodeCast::from_unrooted(element)
             },
             TextNodeTypeId => {
                 let text: &JSRef<Text> = TextCast::to_ref(node).unwrap();
-                let text = text.get();
+                let text = text.deref();
                 let text = Text::new(text.characterdata.data.clone(), &*document);
                 NodeCast::from_unrooted(text)
             },
             ProcessingInstructionNodeTypeId => {
                 let pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
-                let pi = pi.get();
+                let pi = pi.deref();
                 let pi = ProcessingInstruction::new(pi.target.clone(),
                                                     pi.characterdata.data.clone(), &*document);
                 NodeCast::from_unrooted(pi)
@@ -1275,7 +1275,7 @@ impl Node {
         assert!(&*copy.owner_doc().root() == &*document);
 
         // Step 4 (some data already copied in step 2).
-        match node.get().type_id {
+        match node.type_id() {
             DocumentNodeTypeId => {
                 let node_doc: &JSRef<Document> = DocumentCast::to_ref(node).unwrap();
                 let copy_doc: &mut JSRef<Document> = DocumentCast::to_mut_ref(&mut *copy).unwrap();
@@ -1284,16 +1284,16 @@ impl Node {
             },
             ElementNodeTypeId(..) => {
                 let node_elem: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
-                let node_elem = node_elem.get();
+                let node_elem = node_elem.deref();
                 let copy_elem: &mut JSRef<Element> = ElementCast::to_mut_ref(&mut *copy).unwrap();
 
                 // XXX: to avoid double borrowing compile error. we might be able to fix this after #1854
                 let copy_elem_alias = copy_elem.clone();
 
-                let copy_elem = copy_elem.get_mut();
+                let copy_elem = copy_elem.deref_mut();
                 // FIXME: https://github.com/mozilla/servo/issues/1737
                 copy_elem.namespace = node_elem.namespace.clone();
-                let window = document.get().window.root();
+                let window = document.deref().window.root();
                 for attr in node_elem.attrs.iter().map(|attr| attr.root()) {
                     copy_elem.attrs.push_unrooted(
                         &Attr::new(&*window,
@@ -1396,7 +1396,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             CommentNodeTypeId => ~"#comment",
             DoctypeNodeTypeId => {
                 let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(self).unwrap();
-                doctype.get().name.clone()
+                doctype.deref().name.clone()
             },
             DocumentFragmentNodeTypeId => ~"#document-fragment",
             DocumentNodeTypeId => ~"#document"
@@ -1514,7 +1514,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 for node in self.traverse_preorder() {
                     if node.is_text() {
                         let text: &JSRef<Text> = TextCast::to_ref(&node).unwrap();
-                        content.push_str(text.get().characterdata.data.as_slice());
+                        content.push_str(text.deref().characterdata.data.as_slice());
                     }
                 }
                 Some(content)
@@ -1557,7 +1557,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
                 {
                     let characterdata: &mut JSRef<CharacterData> = CharacterDataCast::to_mut_ref(self).unwrap();
-                    characterdata.get_mut().data = value.clone();
+                    characterdata.deref_mut().data = value.clone();
                 }
 
                 // Notify the document that the content of this node is different
@@ -1755,35 +1755,35 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         fn is_equal_doctype(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
             let other_doctype: &JSRef<DocumentType> = DocumentTypeCast::to_ref(other).unwrap();
-            (doctype.get().name == other_doctype.get().name) &&
-            (doctype.get().public_id == other_doctype.get().public_id) &&
-            (doctype.get().system_id == other_doctype.get().system_id)
+            (doctype.deref().name == other_doctype.deref().name) &&
+            (doctype.deref().public_id == other_doctype.deref().public_id) &&
+            (doctype.deref().system_id == other_doctype.deref().system_id)
         }
         fn is_equal_element(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
             let other_element: &JSRef<Element> = ElementCast::to_ref(other).unwrap();
             // FIXME: namespace prefix
-            (element.get().namespace == other_element.get().namespace) &&
-            (element.get().local_name == other_element.get().local_name) &&
-            (element.get().attrs.len() == other_element.get().attrs.len())
+            (element.deref().namespace == other_element.deref().namespace) &&
+            (element.deref().local_name == other_element.deref().local_name) &&
+            (element.deref().attrs.len() == other_element.deref().attrs.len())
         }
         fn is_equal_processinginstruction(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
             let other_pi: &JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(other).unwrap();
-            (pi.get().target == other_pi.get().target) &&
-            (pi.get().characterdata.data == other_pi.get().characterdata.data)
+            (pi.deref().target == other_pi.deref().target) &&
+            (pi.deref().characterdata.data == other_pi.deref().characterdata.data)
         }
         fn is_equal_characterdata(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(node).unwrap();
             let other_characterdata: &JSRef<CharacterData> = CharacterDataCast::to_ref(other).unwrap();
-            characterdata.get().data == other_characterdata.get().data
+            characterdata.deref().data == other_characterdata.deref().data
         }
         fn is_equal_element_attrs(node: &JSRef<Node>, other: &JSRef<Node>) -> bool {
             let element: &JSRef<Element> = ElementCast::to_ref(node).unwrap();
             let other_element: &JSRef<Element> = ElementCast::to_ref(other).unwrap();
-            assert!(element.get().attrs.len() == other_element.get().attrs.len());
-            element.get().attrs.iter().map(|attr| attr.root()).all(|attr| {
-                other_element.get().attrs.iter().map(|attr| attr.root()).any(|other_attr| {
+            assert!(element.deref().attrs.len() == other_element.deref().attrs.len());
+            element.deref().attrs.iter().map(|attr| attr.root()).all(|attr| {
+                other_element.deref().attrs.iter().map(|attr| attr.root()).any(|other_attr| {
                     (attr.namespace == other_attr.namespace) &&
                     (attr.local_name == other_attr.local_name) &&
                     (attr.value == other_attr.value)
@@ -1929,8 +1929,8 @@ pub fn window_from_node<T: NodeBase>(derived: &JSRef<T>) -> Temporary<Window> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Node> {
-    fn super_type(&self) -> Option<~VirtualMethods:> {
-        let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        Some(~eventtarget.clone() as ~VirtualMethods:)
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
+        let eventtarget: &mut JSRef<EventTarget> = EventTargetCast::from_mut_ref(self);
+        Some(eventtarget as &mut VirtualMethods:)
     }
 }

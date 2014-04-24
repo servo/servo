@@ -84,4 +84,3 @@ impl<'a> HTMLVideoElementMethods for JSRef<'a, HTMLVideoElement> {
         Ok(())
     }
 }
-

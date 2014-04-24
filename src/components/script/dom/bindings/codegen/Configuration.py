@@ -128,15 +128,18 @@ class Descriptor(DescriptorProvider):
 
         # Read the desc, and fill in the relevant defaults.
         ifaceName = self.interface.identifier.name
+
+        # Callback types do not use JS smart pointers, so we should not use the
+        # built-in rooting mechanisms for them.
         if self.interface.isCallback():
-            nativeTypeDefault = "nsIDOM" + ifaceName
+            self.needsRooting = False
         else:
-            nativeTypeDefault = 'JS<%s>' % ifaceName
+            self.needsRooting = True
 
         self.returnType = "Temporary<%s>" % ifaceName
         self.argumentType = "JSRef<%s>" % ifaceName
         self.memberType = "Root<'a, 'b, %s>" % ifaceName
-        self.nativeType = desc.get('nativeType', nativeTypeDefault)
+        self.nativeType = desc.get('nativeType', 'JS<%s>' % ifaceName)
         self.concreteType = desc.get('concreteType', ifaceName)
         self.createGlobal = desc.get('createGlobal', False)
         self.register = desc.get('register', True)

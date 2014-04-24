@@ -218,7 +218,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 
     fn Align(&self) -> DOMString {
         let element: &JSRef<Element> = ElementCast::from_ref(self);
-        element.get_string_attribute("longdesc")
+        element.get_string_attribute("align")
     }
 
     fn SetAlign(&mut self, align: DOMString) {
@@ -268,9 +268,9 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
-    fn super_type(&self) -> Option<~VirtualMethods:> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
-        Some(~htmlelement.clone() as ~VirtualMethods:)
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
+        let htmlelement: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
+        Some(htmlelement as &mut VirtualMethods:)
     }
 
     fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
@@ -281,13 +281,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
 
         if "src" == name {
             let window = window_from_node(self).root();
-            let url = Some(window.get().get_url());
+            let url = Some(window.deref().get_url());
             self.update_image(Some(value), url);
         }
     }
 
     fn before_remove_attr(&mut self, name: DOMString, value: DOMString) {
-         match self.super_type() {
+        match self.super_type() {
             Some(ref mut s) => s.before_remove_attr(name.clone(), value.clone()),
             _ => (),
         }

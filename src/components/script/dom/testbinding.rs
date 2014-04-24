@@ -154,7 +154,7 @@ pub trait TestBindingMethods {
     fn PassOptionalNullableString(&self, _: Option<Option<DOMString>>);
     fn PassOptionalNullableByteString(&self, _: Option<Option<ByteString>>) {}
     // fn PassOptionalNullableEnum(&self, _: Option<Option<TestEnum>>);
-    fn PassOptionalNullableInterface(&self, _: Option<Option<JS<Blob>>>);
+    fn PassOptionalNullableInterface(&self, _: Option<Option<JSRef<Blob>>>);
     fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>);
 
     fn PassOptionalBooleanWithDefault(&self, _: bool);
@@ -268,7 +268,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
     fn GetInterfaceAttributeNullable(&self) -> Option<Temporary<Blob>> {
         let window = self.window.root();
-        Some(Blob::new(&(*window)))
+        Some(Blob::new(&*window))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<JSRef<Blob>>) {}
 
@@ -340,7 +340,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalNullableString(&self, _: Option<Option<DOMString>>) {}
     fn PassOptionalNullableByteString(&self, _: Option<Option<ByteString>>) {}
     // fn PassOptionalNullableEnum(&self, _: Option<Option<TestEnum>>) {}
-    fn PassOptionalNullableInterface(&self, _: Option<Option<JS<Blob>>>) {}
+    fn PassOptionalNullableInterface(&self, _: Option<Option<JSRef<Blob>>>) {}
     fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>) {}
 
     fn PassOptionalBooleanWithDefault(&self, _: bool) {}

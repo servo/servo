@@ -60,4 +60,3 @@ impl<'a> TextMethods for JSRef<'a, Text> {
         Ok(~"")
     }
 }
-

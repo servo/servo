@@ -182,7 +182,7 @@ impl<'a> DocumentHelpers for JSRef<'a, Document> {
 }
 
 impl Document {
-        pub fn reflect_document(document: ~Document,
+    pub fn reflect_document(document: ~Document,
                             window: &JSRef<Window>,
                             wrap_fn: extern "Rust" fn(*JSContext, &JSRef<Window>, ~Document) -> JS<Document>)
              -> Temporary<Document> {
@@ -256,20 +256,22 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
     fn createNodeList(&self, callback: |node: &JSRef<Node>| -> bool) -> Temporary<NodeList> {
         let window = self.window.root();
 
-        let mut nodes = vec!();
         match self.GetDocumentElement().root() {
-            None => {},
+            None => {
+                NodeList::new_simple_list(&*window, vec!())
+            },
             Some(root) => {
+                let mut nodes = vec!();
                 let root: &JSRef<Node> = NodeCast::from_ref(&*root);
                 for child in root.traverse_preorder() {
                     if callback(&child) {
                         nodes.push(child);
                     }
                 }
+                NodeList::new_simple_list(&*window, nodes)
             }
         }
 
-        NodeList::new_simple_list(&*window, nodes)
     }
 
     fn get_html_element(&self) -> Option<Temporary<HTMLHtmlElement>> {
@@ -551,7 +553,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                     for child in title_elem.children() {
                         if child.is_text() {
                             let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
-                            title.push_str(text.get().characterdata.data.as_slice());
+                            title.push_str(text.deref().characterdata.data.as_slice());
                         }
                     }
                 });
@@ -563,15 +565,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn SetTitle(&self, title: DOMString) -> ErrorResult {
-
         self.GetDocumentElement().root().map(|root| {
             let root: &JSRef<Node> = NodeCast::from_ref(&*root);
             let mut head_node = root.traverse_preorder().find(|child| {
-                child.get().type_id == ElementNodeTypeId(HTMLHeadElementTypeId)
+                child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
             });
             head_node.as_mut().map(|head| {
                 let mut title_node = head.children().find(|child| {
-                    child.get().type_id == ElementNodeTypeId(HTMLTitleElementTypeId)
+                    child.type_id() == ElementNodeTypeId(HTMLTitleElementTypeId)
                 });
 
                 match title_node {
@@ -630,7 +631,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
     fn SetBody(&self, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult {
-
         // Step 1.
         match new_body {
             Some(ref htmlelem) => {
@@ -674,7 +674,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
     fn GetElementsByName(&self, name: DOMString) -> Temporary<NodeList> {
-
         self.createNodeList(|node| {
             if !node.is_element() {
                 return false;
@@ -694,7 +693,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct ImagesFilter;
         impl CollectionFilter for ImagesFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.get().local_name == ~"img"
+                elem.deref().local_name == ~"img"
             }
         }
         let filter = ~ImagesFilter;
@@ -708,7 +707,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct EmbedsFilter;
         impl CollectionFilter for EmbedsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.get().local_name == ~"embed"
+                elem.deref().local_name == ~"embed"
             }
         }
         let filter = ~EmbedsFilter;
@@ -727,7 +726,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct LinksFilter;
         impl CollectionFilter for LinksFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                (elem.get().local_name == ~"a" || elem.get().local_name == ~"area") &&
+                (elem.deref().local_name == ~"a" || elem.deref().local_name == ~"area") &&
                 elem.get_attribute(Null, "href").is_some()
             }
         }
@@ -742,7 +741,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct FormsFilter;
         impl CollectionFilter for FormsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.get().local_name == ~"form"
+                elem.deref().local_name == ~"form"
             }
         }
         let filter = ~FormsFilter;
@@ -756,7 +755,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct ScriptsFilter;
         impl CollectionFilter for ScriptsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.get().local_name == ~"script"
+                elem.deref().local_name == ~"script"
             }
         }
         let filter = ~ScriptsFilter;
@@ -770,7 +769,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct AnchorsFilter;
         impl CollectionFilter for AnchorsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.get().local_name == ~"a" && elem.get_attribute(Null, "name").is_some()
+                elem.deref().local_name == ~"a" && elem.get_attribute(Null, "name").is_some()
             }
         }
         let filter = ~AnchorsFilter;
@@ -784,7 +783,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         struct AppletsFilter;
         impl CollectionFilter for AppletsFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.get().local_name == ~"applet"
+                elem.deref().local_name == ~"applet"
             }
         }
         let filter = ~AppletsFilter;

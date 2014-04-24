@@ -5,7 +5,7 @@
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{Fallible};
 use dom::bindings::codegen::BindingDeclarations::FormDataBinding;
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalUnrootable};
 use dom::blob::Blob;
 use dom::htmlformelement::HTMLFormElement;
 use dom::window::Window;
@@ -33,7 +33,7 @@ impl FormData {
             data: HashMap::new(),
             reflector_: Reflector::new(),
             window: window.unrooted(),
-            form: form.map(|form| form.unrooted())
+            form: form.unrooted(),
         }
     }
 

@@ -64,7 +64,7 @@ impl HTMLCollection {
         }
         impl CollectionFilter for TagNameFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.get().local_name == self.tag
+                elem.deref().local_name == self.tag
             }
         }
         let filter = TagNameFilter {
@@ -81,7 +81,7 @@ impl HTMLCollection {
         }
         impl CollectionFilter for TagNameNSFilter {
             fn filter(&self, elem: &JSRef<Element>, _root: &JSRef<Node>) -> bool {
-                elem.get().namespace == self.namespace && elem.get().local_name == self.tag
+                elem.deref().namespace == self.namespace && elem.deref().local_name == self.tag
             }
         }
         let filter = TagNameNSFilter {
@@ -155,7 +155,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                     .filter_map(|node| {
                         let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
                         elem.filtered(|&elem| filter.filter(elem, &*root))
-                            .and_then(|elem| Some(elem.clone()))
+                            .map(|elem| elem.clone())
                     })
                     .nth(index as uint)
                     .clone()
@@ -166,7 +166,6 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
 
     // http://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
     fn NamedItem(&self, key: DOMString) -> Option<Temporary<Element>> {
-
         // Step 1.
         if key.is_empty() {
             return None;
@@ -186,7 +185,7 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                     .filter_map(|node| {
                         let elem: Option<&JSRef<Element>> = ElementCast::to_ref(&node);
                         elem.filtered(|&elem| filter.filter(elem, &*root))
-                            .and_then(|elem| Some(elem.clone()))
+                            .map(|elem| elem.clone())
                     })
                     .find(|elem| {
                         elem.get_string_attribute("name") == key ||

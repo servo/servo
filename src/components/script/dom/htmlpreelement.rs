@@ -54,4 +54,3 @@ impl<'a> HTMLPreElementMethods for JSRef<'a, HTMLPreElement> {
         Ok(())
     }
 }
-

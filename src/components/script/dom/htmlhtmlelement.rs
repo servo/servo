@@ -54,4 +54,3 @@ impl<'a> HTMLHtmlElementMethods for JSRef<'a, HTMLHtmlElement> {
         Ok(())
     }
 }
-

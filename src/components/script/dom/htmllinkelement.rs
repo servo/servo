@@ -143,4 +143,3 @@ impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
         Ok(())
     }
 }
-

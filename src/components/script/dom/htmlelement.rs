@@ -198,8 +198,8 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
-    fn super_type(&self) -> Option<~VirtualMethods:> {
-        let element: &JSRef<Element> = ElementCast::from_ref(self);
-        Some(~element.clone() as ~VirtualMethods:)
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
+        let element: &mut JSRef<Element> = ElementCast::from_mut_ref(self);
+        Some(element as &mut VirtualMethods:)
     }
 }

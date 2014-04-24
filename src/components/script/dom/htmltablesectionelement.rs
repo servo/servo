@@ -89,4 +89,3 @@ impl<'a> HTMLTableSectionElementMethods for JSRef<'a, HTMLTableSectionElement> {
         Ok(())
     }
 }
-

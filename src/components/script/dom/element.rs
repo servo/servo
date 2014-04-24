@@ -228,11 +228,11 @@ pub trait AttributeHandlers {
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(&self, namespace: Namespace, name: &str) -> Option<Temporary<Attr>> {
         if self.html_element_in_html_document() {
-            self.get().attrs.iter().map(|attr| attr.root()).find(|attr| {
+            self.deref().attrs.iter().map(|attr| attr.root()).find(|attr| {
                 name.to_ascii_lower() == attr.local_name && attr.namespace == namespace
             }).map(|x| Temporary::from_rooted(&*x))
         } else {
-            self.get().attrs.iter().map(|attr| attr.root()).find(|attr| {
+            self.deref().attrs.iter().map(|attr| attr.root()).find(|attr| {
                 name == attr.local_name && attr.namespace == namespace
             }).map(|x| Temporary::from_rooted(&*x))
         }
@@ -262,9 +262,9 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
         let position: |&JSRef<Attr>| -> bool =
             if self.html_element_in_html_document() {
-                |attr| attr.get().local_name.eq_ignore_ascii_case(local_name)
+                |attr| attr.deref().local_name.eq_ignore_ascii_case(local_name)
             } else {
-                |attr| attr.get().local_name == local_name
+                |attr| attr.deref().local_name == local_name
             };
         self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, position);
         Ok(())
@@ -273,27 +273,27 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn do_set_attribute(&mut self, local_name: DOMString, value: DOMString,
                         name: DOMString, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |&JSRef<Attr>| -> bool) {
-        let idx = self.get().attrs.iter()
-                                  .map(|attr| attr.root())
-                                  .position(|attr| cb(&*attr));
+        let idx = self.deref().attrs.iter()
+                                    .map(|attr| attr.root())
+                                    .position(|attr| cb(&*attr));
         let (idx, set_type) = match idx {
             Some(idx) => (idx, ReplacedAttr),
             None => {
                 let window = window_from_node(self).root();
                 let attr = Attr::new(&*window, local_name.clone(), value.clone(),
                                      name, namespace.clone(), prefix, self);
-                self.get_mut().attrs.push_unrooted(&attr);
-                (self.get().attrs.len() - 1, FirstSetAttr)
+                self.deref_mut().attrs.push_unrooted(&attr);
+                (self.deref().attrs.len() - 1, FirstSetAttr)
             }
         };
 
-        self.get_mut().attrs.get(idx).root().set_value(set_type, value);
+        self.deref_mut().attrs.get(idx).root().set_value(set_type, value);
     }
 
     fn remove_attribute(&mut self, namespace: Namespace, name: DOMString) -> ErrorResult {
         let (_, local_name) = get_attribute_parts(name.clone());
 
-        let idx = self.get().attrs.iter().map(|attr| attr.root()).position(|attr| {
+        let idx = self.deref().attrs.iter().map(|attr| attr.root()).position(|attr| {
             attr.local_name == local_name
         });
 
@@ -306,12 +306,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 }
 
                 if namespace == namespace::Null {
-                    let removed_raw_value = self.get().attrs.get(idx).root().Value();
+                    let removed_raw_value = self.deref().attrs.get(idx).root().Value();
                     vtable_for(NodeCast::from_mut_ref(self))
                         .before_remove_attr(local_name.clone(), removed_raw_value);
                 }
 
-                self.get_mut().attrs.remove(idx);
+                self.deref_mut().attrs.remove(idx);
             }
         };
 
@@ -516,7 +516,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
         // Step 3-5.
         self.do_set_attribute(name.clone(), value, name.clone(), namespace::Null, None, |attr| {
-            attr.get().name == name
+            attr.deref().name == name
         });
         Ok(())
     }
@@ -577,8 +577,8 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
         // Step 9.
         self.do_set_attribute(local_name.clone(), value, name, namespace.clone(), prefix, |attr| {
-            attr.get().local_name == local_name &&
-            attr.get().namespace == namespace
+            attr.deref().local_name == local_name &&
+            attr.deref().namespace == namespace
         });
         Ok(())
     }
@@ -694,9 +694,9 @@ pub fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Element> {
-    fn super_type(&self) -> Option<~VirtualMethods:> {
-        let node: &JSRef<Node> = NodeCast::from_ref(self);
-        Some(~node.clone() as ~VirtualMethods:)
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
+        let node: &mut JSRef<Node> = NodeCast::from_mut_ref(self);
+        Some(node as &mut VirtualMethods:)
     }
 
     fn after_set_attr(&mut self, name: DOMString, value: DOMString) {
@@ -709,7 +709,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             "style" => {
                 let doc = document_from_node(self).root();
                 let base_url = doc.deref().url().clone();
-                self.get_mut().style_attribute = Some(style::parse_style_attribute(value, &base_url))
+                self.deref_mut().style_attribute = Some(style::parse_style_attribute(value, &base_url))
             }
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);
@@ -732,7 +732,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
 
         match name.as_slice() {
             "style" => {
-                self.get_mut().style_attribute = None
+                self.deref_mut().style_attribute = None
             }
             "id" => {
                 let node: &JSRef<Node> = NodeCast::from_ref(self);

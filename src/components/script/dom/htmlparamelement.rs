@@ -84,4 +84,3 @@ impl<'a> HTMLParamElementMethods for JSRef<'a, HTMLParamElement> {
         Ok(())
     }
 }
-

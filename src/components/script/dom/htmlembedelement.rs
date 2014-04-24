@@ -109,4 +109,3 @@ impl<'a> HTMLEmbedElementMethods for JSRef<'a, HTMLEmbedElement> {
         None
     }
 }
-

@@ -160,9 +160,9 @@ impl<'a> EventMethods for JSRef<'a, Event> {
     }
 
     fn InitEvent(&mut self,
-                     type_: DOMString,
-                     bubbles: bool,
-                     cancelable: bool) {
+                 type_: DOMString,
+                 bubbles: bool,
+                 cancelable: bool) {
         self.initialized = true;
         if self.dispatching {
             return;

@@ -74,4 +74,3 @@ impl<'a> HTMLFontElementMethods for JSRef<'a, HTMLFontElement> {
         Ok(())
     }
 }
-

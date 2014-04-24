@@ -74,4 +74,3 @@ impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
         self.system_id.clone()
     }
 }
-

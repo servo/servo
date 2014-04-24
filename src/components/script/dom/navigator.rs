@@ -113,7 +113,6 @@ impl<'a> NavigatorMethods for JSRef<'a, Navigator> {
     }
 }
 
-
 impl Reflectable for Navigator {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_

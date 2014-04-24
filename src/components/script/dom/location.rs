@@ -161,7 +161,6 @@ impl<'a> LocationMethods for JSRef<'a, Location> {
     }
 }
 
-
 impl Reflectable for Location {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_

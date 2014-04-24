@@ -54,4 +54,3 @@ impl<'a> HTMLDivElementMethods for JSRef<'a, HTMLDivElement> {
         Ok(())
     }
 }
-

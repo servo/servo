@@ -80,7 +80,6 @@ impl<'a> ValidityStateMethods for JSRef<'a, ValidityState> {
     }
 }
 
-
 impl Reflectable for ValidityState {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector_

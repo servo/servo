@@ -392,7 +392,7 @@ pub fn reflect_dom_object<T: Reflectable>
          window:  &JSRef<window::Window>,
          wrap_fn: extern "Rust" fn(*JSContext, &JSRef<window::Window>, ~T) -> JS<T>)
          -> Temporary<T> {
-    JS::new(obj, window, wrap_fn)
+    Temporary::new(wrap_fn(window.deref().get_cx(), window, obj))
 }
 
 #[deriving(Eq)]
@@ -415,8 +415,8 @@ impl Reflector {
     /// Return a pointer to the memory location at which the JS reflector object is stored.
     /// Used by Temporary values to root the reflector, as required by the JSAPI rooting
     /// APIs.
-    pub fn rootable(&self) -> **JSObject {
-        &self.object as **JSObject
+    pub fn rootable<'a>(&'a self) -> &'a *JSObject {
+        &self.object
     }
 
     pub fn new() -> Reflector {
@@ -634,7 +634,7 @@ pub fn global_object_for_js_object(obj: *JSObject) -> JS<window::Window> {
 
 fn cx_for_dom_reflector(obj: *JSObject) -> *JSContext {
     let win = global_object_for_js_object(obj).root();
-    let js_info = win.get().page().js_info();
+    let js_info = win.deref().page().js_info();
     match *js_info {
         Some(ref info) => info.js_context.deref().deref().ptr,
         None => fail!("no JS context for DOM global")

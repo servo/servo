@@ -135,4 +135,3 @@ impl<'a> HTMLFrameElementMethods for JSRef<'a, HTMLFrameElement> {
         Ok(())
     }
 }
-

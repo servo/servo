@@ -81,7 +81,7 @@ trait NodeWrapping<T> {
 
 impl<'a, T: NodeBase+Reflectable> NodeWrapping<T> for JSRef<'a, T> {
     unsafe fn to_hubbub_node(&self) -> hubbub::NodeDataPtr {
-        cast::transmute(self.get())
+        cast::transmute(self.deref())
     }
 }
 
@@ -293,7 +293,6 @@ pub fn parse_html(page: &Page,
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
 
-
     parser.set_document_node(unsafe { document.to_hubbub_node() });
     parser.enable_scripting(true);
     parser.enable_styling(true);
@@ -393,7 +392,7 @@ pub fn parse_html(page: &Page,
                         let SubpageId(id_num) = subpage_id;
                         *next_subpage_id.borrow_mut() = SubpageId(id_num + 1);
 
-                        iframe_element.get_mut().size = Some(IFrameSize {
+                        iframe_element.deref_mut().size = Some(IFrameSize {
                             pipeline_id: pipeline_id,
                             subpage_id: subpage_id,
                         });
@@ -477,7 +476,7 @@ pub fn parse_html(page: &Page,
                 match script.get_attribute(Null, "src").root() {
                     Some(src) => {
                         debug!("found script: {:s}", src.deref().Value());
-                        let new_url = parse_url(src.get().value_ref(), Some(url3.clone()));
+                        let new_url = parse_url(src.deref().value_ref(), Some(url3.clone()));
                         js_chan2.send(JSTaskNewFile(new_url));
                     }
                     None => {
@@ -487,7 +486,7 @@ pub fn parse_html(page: &Page,
                         for child in scriptnode.children() {
                             debug!("child = {:?}", child);
                             let text: &JSRef<Text> = TextCast::to_ref(&child).unwrap();
-                            data.push(text.get().characterdata.data.to_str());  // FIXME: Bad copy.
+                            data.push(text.deref().characterdata.data.to_str());  // FIXME: Bad copy.
                         }
 
                         debug!("script data = {:?}", data);

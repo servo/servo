@@ -214,4 +214,3 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
         Ok(())
     }
 }
-

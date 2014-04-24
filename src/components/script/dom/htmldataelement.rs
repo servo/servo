@@ -54,4 +54,3 @@ impl<'a> HTMLDataElementMethods for JSRef<'a, HTMLDataElement> {
         Ok(())
     }
 }
-

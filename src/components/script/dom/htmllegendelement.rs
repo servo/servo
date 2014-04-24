@@ -54,4 +54,3 @@ impl<'a> HTMLLegendElementMethods for JSRef<'a, HTMLLegendElement> {
         Ok(())
     }
 }
-

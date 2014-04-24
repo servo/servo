@@ -119,4 +119,3 @@ impl<'a> HTMLTableRowElementMethods for JSRef<'a, HTMLTableRowElement> {
         Ok(())
     }
 }
-

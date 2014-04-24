@@ -64,4 +64,3 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
         Ok(())
     }
 }
-

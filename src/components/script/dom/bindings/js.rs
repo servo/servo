@@ -40,8 +40,8 @@
 /// - RootedReference: makes obtaining an Option<JSRef<T>> from an Option<Root<T>> easy
 
 use dom::bindings::utils::{Reflector, Reflectable, cx_for_dom_object};
-use dom::window::Window;
-use js::jsapi::{JSObject, JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot};
+use dom::node::Node;
+use js::jsapi::{JSObject, JS_AddObjectRoot, JS_RemoveObjectRoot};
 use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
 
@@ -90,7 +90,7 @@ impl<T: Reflectable> Temporary<T> {
         Temporary::new(root.unrooted())
     }
 
-    /// Root this unrooted value.
+    /// Create a stack-bounded root for this value.
     pub fn root<'a, 'b>(self) -> Root<'a, 'b, T> {
         local_data::get(StackRoots, |opt| {
             let collection = opt.unwrap();
@@ -130,15 +130,17 @@ impl <T> Clone for JS<T> {
     }
 }
 
-impl<T: Reflectable> JS<T> {
-    /// Create a new JS-reflected DOM object; returns an Temporary type because the new value
-    /// is not safe to use until it is rooted.
-    pub fn new(obj: ~T,
-               window:  &JSRef<Window>,
-               wrap_fn: extern "Rust" fn(*JSContext, &JSRef<Window>, ~T) -> JS<T>) -> Temporary<T> {
-        Temporary::new(wrap_fn(window.get().get_cx(), window, obj))
+impl JS<Node> {
+    /// Create a new JS-owned value wrapped from an address known to be a Node pointer.
+    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<Node> {
+        let TrustedNodeAddress(addr) = inner;
+        JS {
+            ptr: RefCell::new(addr as *mut Node)
+        }
     }
+}
 
+impl<T: Reflectable> JS<T> {
     /// Create a new JS-owned value wrapped from a raw Rust pointer.
     pub unsafe fn from_raw(raw: *mut T) -> JS<T> {
         JS {
@@ -146,14 +148,6 @@ impl<T: Reflectable> JS<T> {
         }
     }
 
-
-    /// Create a new JS-owned value wrapped from an address known to be a Node pointer.
-    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<T> {
-        let TrustedNodeAddress(addr) = inner;
-        JS {
-            ptr: RefCell::new(addr as *mut T)
-        }
-    }
 
     /// Root this JS-owned value to prevent its collection as garbage.
     pub fn root<'a, 'b>(&self) -> Root<'a, 'b, T> {
@@ -209,6 +203,8 @@ impl<From, To> JS<From> {
     }
 }
 
+
+/// Get an Option<JSRef<T>> out of an Option<Root<T>>
 pub trait RootedReference<T> {
     fn root_ref<'a>(&'a self) -> Option<JSRef<'a, T>>;
 }
@@ -216,6 +212,17 @@ pub trait RootedReference<T> {
 impl<'a, 'b, T: Reflectable> RootedReference<T> for Option<Root<'a, 'b, T>> {
     fn root_ref<'a>(&'a self) -> Option<JSRef<'a, T>> {
         self.as_ref().map(|root| root.root_ref())
+    }
+}
+
+/// Get an Option<Option<JSRef<T>>> out of an Option<Option<Root<T>>>
+pub trait OptionalRootedReference<T> {
+    fn root_ref<'a>(&'a self) -> Option<Option<JSRef<'a, T>>>;
+}
+
+impl<'a, 'b, T: Reflectable> OptionalRootedReference<T> for Option<Option<Root<'a, 'b, T>>> {
+    fn root_ref<'a>(&'a self) -> Option<Option<JSRef<'a, T>>> {
+        self.as_ref().map(|inner| inner.root_ref())
     }
 }
 
@@ -244,6 +251,8 @@ impl<T: Reflectable> Assignable<T> for Temporary<T> {
     }
 }
 
+/// Assign an optional rootable value (either of JS<T> or Temporary<T>) to an optional
+/// field of a DOM type (ie. Option<JS<T>>)
 pub trait OptionalSettable<T> {
     fn assign(&mut self, val: Option<T>);
 }
@@ -254,6 +263,7 @@ impl<T: Assignable<U>, U: Reflectable> OptionalSettable<T> for Option<JS<U>> {
     }
 }
 
+/// Root a rootable Option type (used for Option<Temporary<T>>)
 pub trait OptionalRootable<T> {
     fn root<'a, 'b>(self) -> Option<Root<'a, 'b, T>>;
 }
@@ -264,6 +274,18 @@ impl<T: Reflectable> OptionalRootable<T> for Option<Temporary<T>> {
     }
 }
 
+/// Return an unrooted type for storing in optional DOM fields
+pub trait OptionalUnrootable<T> {
+    fn unrooted(&self) -> Option<JS<T>>;
+}
+
+impl<'a, T: Reflectable> OptionalUnrootable<T> for Option<JSRef<'a, T>> {
+    fn unrooted(&self) -> Option<JS<T>> {
+        self.as_ref().map(|inner| inner.unrooted())
+    }
+}
+
+/// Root a rootable Option type (used for Option<JS<T>>)
 pub trait OptionalRootedRootable<T> {
     fn root<'a, 'b>(&self) -> Option<Root<'a, 'b, T>>;
 }
@@ -274,6 +296,19 @@ impl<T: Reflectable> OptionalRootedRootable<T> for Option<JS<T>> {
     }
 }
 
+/// Root a rootable Option<Option> type (used for Option<Option<JS<T>>>)
+pub trait OptionalOptionalRootedRootable<T> {
+    fn root<'a, 'b>(&self) -> Option<Option<Root<'a, 'b, T>>>;
+}
+
+impl<T: Reflectable> OptionalOptionalRootedRootable<T> for Option<Option<JS<T>>> {
+    fn root<'a, 'b>(&self) -> Option<Option<Root<'a, 'b, T>>> {
+        self.as_ref().map(|inner| inner.root())
+    }
+}
+
+
+/// Root a rootable Result type (any of Temporary<T> or JS<T>)
 pub trait ResultRootable<T,U> {
     fn root<'a, 'b>(self) -> Result<Root<'a, 'b, T>, U>;
 }
@@ -310,26 +345,30 @@ impl<T: Assignable<U>, U: Reflectable> TemporaryPushable<T> for Vec<JS<U>> {
 
 /// An opaque, LIFO rooting mechanism.
 pub struct RootCollection {
-    roots: RefCell<~[*JSObject]>,
+    roots: RefCell<Vec<*JSObject>>,
 }
 
 impl RootCollection {
+    /// Create an empty collection of roots
     pub fn new() -> RootCollection {
         RootCollection {
-            roots: RefCell::new(~[]),
+            roots: RefCell::new(vec!()),
         }
     }
 
+    /// Create a new stack-bounded root that will not outlive this collection
     fn new_root<'a, 'b, T: Reflectable>(&'a self, unrooted: &JS<T>) -> Root<'a, 'b, T> {
         Root::new(self, unrooted)
     }
 
+    /// Track a stack-based root to ensure LIFO root ordering
     fn root<'a, 'b, T: Reflectable>(&self, untracked: &Root<'a, 'b, T>) {
         let mut roots = self.roots.borrow_mut();
         roots.push(untracked.js_ptr);
         debug!("  rooting {:?}", untracked.js_ptr);
     }
 
+    /// Stop tracking a stack-based root, asserting if LIFO root ordering has been violated
     fn unroot<'a, 'b, T: Reflectable>(&self, rooted: &Root<'a, 'b, T>) {
         let mut roots = self.roots.borrow_mut();
         debug!("unrooting {:?} (expecting {:?}", roots.last().unwrap(), rooted.js_ptr);
@@ -355,6 +394,9 @@ pub struct Root<'a, 'b, T> {
 }
 
 impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
+    /// Create a new stack-bounded root for the provided JS-owned value.
+    /// It cannot not outlive its associated RootCollection, and it contains a JSRef
+    /// which cannot outlive this new Root.
     fn new(roots: &'a RootCollection, unrooted: &JS<T>) -> Root<'a, 'b, T> {
         let root = Root {
             root_list: roots,
@@ -369,20 +411,8 @@ impl<'a, 'b, T: Reflectable> Root<'a, 'b, T> {
         root
     }
 
-    pub fn get<'a>(&'a self) -> &'a T {
-        unsafe {
-            let borrow = self.ptr.borrow();
-            &**borrow
-        }
-    }
-
-    pub fn get_mut<'a>(&'a mut self) -> &'a mut T {
-       unsafe {
-            let mut borrow = self.ptr.borrow_mut();
-            &mut **borrow
-        }
-    }
-
+    /// Obtain a safe reference to the wrapped JS owned-value that cannot outlive
+    /// the lifetime of this root.
     pub fn root_ref<'b>(&'b self) -> JSRef<'b,T> {
         self.jsref.clone()
     }
@@ -395,37 +425,33 @@ impl<'a, 'b, T: Reflectable> Drop for Root<'a, 'b, T> {
     }
 }
 
-impl<'a, 'b, T: Reflectable> Reflectable for Root<'a, 'b, T> {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.get().reflector()
-    }
-
-    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.get_mut().mut_reflector()
-    }
-}
-
 impl<'a, 'b, T: Reflectable> Deref<JSRef<'b, T>> for Root<'a, 'b, T> {
     fn deref<'c>(&'c self) -> &'c JSRef<'b, T> {
-        &'a self.jsref
+        &self.jsref
     }
 }
 
 impl<'a, 'b, T: Reflectable> DerefMut<JSRef<'b, T>> for Root<'a, 'b, T> {
     fn deref_mut<'c>(&'c mut self) -> &'c mut JSRef<'b, T> {
-        &'a mut self.jsref
+        &mut self.jsref
     }
 }
 
 impl<'a, T: Reflectable> Deref<T> for JSRef<'a, T> {
     fn deref<'b>(&'b self) -> &'b T {
-        self.get()
+        let borrow = self.ptr.borrow();
+        unsafe {
+            &**borrow
+        }
     }
 }
 
 impl<'a, T: Reflectable> DerefMut<T> for JSRef<'a, T> {
     fn deref_mut<'b>(&'b mut self) -> &'b mut T {
-        self.get_mut()
+        let mut borrowed = self.ptr.borrow_mut();
+        unsafe {
+            &mut **borrowed
+        }
     }
 }
 
@@ -451,20 +477,6 @@ impl<'a, T> Eq for JSRef<'a, T> {
 }
 
 impl<'a,T> JSRef<'a,T> {
-    pub fn get<'a>(&'a self) -> &'a T {
-        unsafe {
-            let borrow = self.ptr.borrow();
-            &**borrow
-        }
-    }
-
-    pub fn get_mut<'a>(&'a mut self) -> &'a mut T {
-        let mut borrowed = self.ptr.borrow_mut();
-        unsafe {
-            &mut **borrowed
-        }
-    }
-
     //XXXjdm It would be lovely if this could be private.
     pub unsafe fn transmute<'b, To>(&'b self) -> &'b JSRef<'a, To> {
         cast::transmute(self)
@@ -484,10 +496,10 @@ impl<'a,T> JSRef<'a,T> {
 
 impl<'a, T: Reflectable> Reflectable for JSRef<'a, T> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.get().reflector()
+        self.deref().reflector()
     }
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        self.get_mut().mut_reflector()
+        self.deref_mut().mut_reflector()
     }
 }

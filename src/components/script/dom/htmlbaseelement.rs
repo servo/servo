@@ -64,4 +64,3 @@ impl<'a> HTMLBaseElementMethods for JSRef<'a, HTMLBaseElement> {
         Ok(())
     }
 }
-

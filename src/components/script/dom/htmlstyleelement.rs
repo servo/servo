@@ -95,19 +95,19 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
     fn parse_own_css(&self) {
         let node: &JSRef<Node> = NodeCast::from_ref(self);
         let win = window_from_node(node).root();
-        let url = win.get().page().get_url();
+        let url = win.deref().page().get_url();
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
         let sheet = parse_inline_css(url, data);
-        let LayoutChan(ref layout_chan) = *win.get().page().layout_chan;
+        let LayoutChan(ref layout_chan) = *win.deref().page().layout_chan;
         layout_chan.send(AddStylesheetMsg(sheet));
     }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
-    fn super_type(&self) -> Option<~VirtualMethods:> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_ref(self);
-        Some(~htmlelement.clone() as ~VirtualMethods:)
+    fn super_type<'a>(&'a mut self) -> Option<&'a mut VirtualMethods:> {
+        let htmlelement: &mut JSRef<HTMLElement> = HTMLElementCast::from_mut_ref(self);
+        Some(htmlelement as &mut VirtualMethods:)
     }
 
     fn child_inserted(&mut self, child: &JSRef<Node>) {

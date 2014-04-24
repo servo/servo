@@ -54,4 +54,3 @@ impl<'a> HTMLTimeElementMethods for JSRef<'a, HTMLTimeElement> {
         Ok(())
     }
 }
-

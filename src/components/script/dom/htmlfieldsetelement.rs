@@ -91,7 +91,7 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
                 static tag_names: StaticStringVec = &["button", "fieldset", "input",
                     "keygen", "object", "output", "select", "textarea"];
                 let root: &JSRef<Element> = ElementCast::to_ref(root).unwrap();
-                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.get().local_name)
+                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.deref().local_name)
             }
         }
         let node: &JSRef<Node> = NodeCast::from_ref(self);
@@ -120,4 +120,3 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     fn SetCustomValidity(&mut self, _error: DOMString) {
     }
 }
-
