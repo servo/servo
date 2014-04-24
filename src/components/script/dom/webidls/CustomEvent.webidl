@@ -17,6 +17,6 @@ interface CustomEvent : Event {
 };
 
 dictionary CustomEventInit : EventInit {
-  //FIXME any types don't yet work 
-  //any detail = 0;
+  // FIXME any types don't yet work 
+  // any detail = 0;
 };
