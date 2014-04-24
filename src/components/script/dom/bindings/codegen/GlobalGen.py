@@ -71,9 +71,6 @@ def main():
     generate_file(config, 'RegisterBindings')
 
     # Generate the type list.
-    generate_file(config, 'InterfaceTypes')
-
-    # Generate the type list.
     generate_file(config, 'InheritTypes')
 
     # Generate the module declarations.

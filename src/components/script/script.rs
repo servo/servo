@@ -142,7 +142,6 @@ pub mod dom {
                                                 UIEventBinding,
                                                 ValidityStateBinding,
                                                 WindowBinding};
-            pub mod InterfaceTypes;
             pub mod InheritTypes;
             pub mod PrototypeList;
             pub mod RegisterBindings;
