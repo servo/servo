@@ -16,7 +16,6 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use servo_util::geometry::to_px;
-use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
 use servo_util::url::parse_url;
 use servo_util::str::DOMString;
@@ -131,11 +130,7 @@ impl HTMLImageElement {
 
     pub fn Width(&self, abstract_self: &JS<HTMLImageElement>) -> u32 {
         let node: JS<Node> = NodeCast::from(abstract_self);
-        let window = window_from_node(&node);
-        let page = window.get().page();
-        let (chan, port) = channel();
-        let addr = node.to_trusted_node_address();
-        let ContentBoxResponse(rect) = page.query_layout(ContentBoxQuery(addr, chan), port);
+        let rect = node.get_bounding_content_box();
         to_px(rect.size.width) as u32
     }
 
@@ -145,13 +140,8 @@ impl HTMLImageElement {
     }
 
     pub fn Height(&self, abstract_self: &JS<HTMLImageElement>) -> u32 {
-        let node = &self.htmlelement.element.node;
-        let doc = node.owner_doc();
-        let page = doc.get().window.get().page();
-        let (chan, port) = channel();
-        let this_node: JS<Node> = NodeCast::from(abstract_self);
-        let addr = this_node.to_trusted_node_address();
-        let ContentBoxResponse(rect) = page.query_layout(ContentBoxQuery(addr, chan), port);
+        let node: JS<Node> = NodeCast::from(abstract_self);
+        let rect = node.get_bounding_content_box();
         to_px(rect.size.height) as u32
     }
 

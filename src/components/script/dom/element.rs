@@ -20,8 +20,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmlserializer::serialize;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
 use dom::virtualmethods::{VirtualMethods, vtable_for};
-use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
-use layout_interface::{ContentBoxesResponse, ContentChangedDocumentDamage};
+use layout_interface::ContentChangedDocumentDamage;
 use layout_interface::MatchSelectorsDocumentDamage;
 use style;
 use servo_util::namespace;
@@ -605,9 +604,7 @@ impl Element {
         let doc = self.node.owner_doc();
         let win = &doc.get().window;
         let node: JS<Node> = NodeCast::from(abstract_self);
-        let (chan, port) = channel();
-        let addr = node.to_trusted_node_address();
-        let ContentBoxesResponse(rects) = win.get().page().query_layout(ContentBoxesQuery(addr, chan), port);
+        let rects = node.get_content_boxes();
         let rects = rects.map(|r| {
             ClientRect::new(
                 win,
@@ -625,9 +622,7 @@ impl Element {
         let doc = self.node.owner_doc();
         let win = &doc.get().window;
         let node: JS<Node> = NodeCast::from(abstract_self);
-        let (chan, port) = channel();
-        let addr = node.to_trusted_node_address();
-        let ContentBoxResponse(rect) = win.get().page().query_layout(ContentBoxQuery(addr, chan), port);
+        let rect = node.get_bounding_content_box();
         ClientRect::new(
             win,
             rect.origin.y,
