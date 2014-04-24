@@ -41,7 +41,7 @@ impl CustomEvent {
                        type_: DOMString,
                        init: &CustomEventBinding::CustomEventInit) -> Fallible<JS<CustomEvent>> {
         let mut ev = CustomEvent::new(owner);
-        ev.get_mut().InitCustomEvent(owner.get().get_cx(),type_, init.parent.bubbles, init.parent.cancelable, NullValue());
+        ev.get_mut().InitCustomEvent(owner.get().get_cx(), type_, init.parent.bubbles, init.parent.cancelable, NullValue());
         Ok(ev)
     }
 
