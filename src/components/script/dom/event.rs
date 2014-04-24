@@ -34,6 +34,7 @@ pub enum EventPhase {
 pub enum EventTypeId {
     HTMLEventTypeId,
     UIEventTypeId,
+    CustomEventTypeId,
     MouseEventTypeId,
     KeyEventTypeId
 }

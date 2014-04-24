@@ -33,6 +33,7 @@ use dom::node::{CloneChildren, DoNotCloneChildren};
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::uievent::UIEvent;
+use dom::customevent::CustomEvent;
 use dom::window::Window;
 use dom::location::Location;
 use html::hubbub_html_parser::build_element_from_tag;
@@ -366,6 +367,7 @@ impl Document {
         match interface.to_ascii_lower().as_slice() {
             // FIXME: Implement CustomEvent (http://dom.spec.whatwg.org/#customevent)
             "uievents" | "uievent" => Ok(EventCast::from(&UIEvent::new(&self.window))),
+            "customevent" => Ok(EventCast::from(&CustomEvent::new(&self.window))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from(&MouseEvent::new(&self.window))),
             "htmlevents" | "events" | "event" => Ok(Event::new(&self.window)),
             _ => Err(NotSupported)
