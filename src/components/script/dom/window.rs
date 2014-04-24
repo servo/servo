@@ -26,7 +26,7 @@ use js::jsval::{NullValue, JSVal};
 
 use collections::hashmap::HashMap;
 use std::cmp;
-use std::comm::{channel, Sender, Receiver};
+use std::comm::{channel, Sender};
 use std::comm::Select;
 use std::hash::{Hash, sip};
 use std::io::timer::Timer;
@@ -34,12 +34,6 @@ use std::rc::Rc;
 
 use serialize::{Encoder, Encodable};
 use url::Url;
-
-pub enum TimerControlMsg {
-    TimerMessageFire(~TimerData),
-    TimerMessageClose,
-    TimerMessageTriggerExit //XXXjdm this is just a quick hack to talk to the script task
-}
 
 pub struct TimerHandle {
     handle: i32,
@@ -86,7 +80,6 @@ pub struct Window {
     active_timers: ~HashMap<i32, TimerHandle>,
     next_timer_handle: i32,
     compositor: Untraceable<~ScriptListener>,
-    timer_chan: Untraceable<Sender<TimerControlMsg>>,
     browser_context: Option<BrowserContext>,
     page: Rc<Page>,
 }
@@ -108,7 +101,6 @@ impl Window {
 #[unsafe_destructor]
 impl Drop for Window {
     fn drop(&mut self) {
-        self.timer_chan.send(TimerMessageClose);
         for timer_handle in self.active_timers.values() {
             timer_handle.cancel();
         }
@@ -132,7 +124,8 @@ impl Window {
     }
 
     pub fn Close(&self) {
-        self.timer_chan.deref().send(TimerMessageTriggerExit);
+        let ScriptChan(ref chan) = self.script_chan;
+        chan.send(ExitWindowMsg(self.page.id.clone()));
     }
 
     pub fn Document(&self) -> JS<Document> {
@@ -228,7 +221,8 @@ impl Window {
         // to the relevant script handler that will deal with it.
         let tm = Timer::new().unwrap();
         let (cancel_chan, cancel_port) = channel();
-        let chan = self.timer_chan.clone();
+        let chan = self.script_chan.clone();
+        let page_id = self.page.id.clone();
         let spawn_name = if is_interval {
             "Window:SetInterval"
         } else {
@@ -253,12 +247,14 @@ impl Window {
                 let id = select.wait();
                 if id == timeout_handle.id() {
                     timeout_port.recv();
-                    chan.send(TimerMessageFire(~TimerData {
+                    let data = ~TimerData {
                         handle: handle,
                         is_interval: is_interval,
                         funval: callback,
                         args: ~[],
-                    }));
+                    };
+                    let ScriptChan(ref chan) = chan;
+                    chan.send(FireTimerMsg(page_id, data));
                     if !is_interval {
                         break;
                     }
@@ -323,26 +319,11 @@ impl Window {
                compositor: ~ScriptListener,
                image_cache_task: ImageCacheTask)
                -> JS<Window> {
-        let script_chan_clone = script_chan.clone();
-        let (timer_chan, timer_port): (Sender<TimerControlMsg>, Receiver<TimerControlMsg>) = channel();
-        let id = page.id.clone();
-        spawn_named("timer controller", proc() {
-            let ScriptChan(script_chan) = script_chan;
-            loop {
-                match timer_port.recv() {
-                    TimerMessageClose => break,
-                    TimerMessageFire(td) => script_chan.send(FireTimerMsg(id, td)),
-                    TimerMessageTriggerExit => script_chan.send(ExitWindowMsg(id)),
-                }
-            }
-        });
-
         let win = ~Window {
             eventtarget: EventTarget::new_inherited(WindowTypeId),
-            script_chan: script_chan_clone,
+            script_chan: script_chan,
             console: None,
             compositor: Untraceable::new(compositor),
-            timer_chan: Untraceable::new(timer_chan),
             page: page.clone(),
             location: None,
             navigator: None,

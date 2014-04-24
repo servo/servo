@@ -387,16 +387,37 @@ impl Constellation {
         }
 
         let old_pipeline = match self.pipelines.find(&pipeline_id) {
-            None => return, // already failed?
-            Some(id) => id.clone()
+            None => {
+                debug!("no existing pipeline found; bailing out of failure recovery.");
+                return; // already failed?
+            }
+            Some(pipeline) => pipeline.clone()
         };
 
-        let ScriptChan(ref old_script) = old_pipeline.script_chan;
-        old_script.try_send(ExitPipelineMsg(pipeline_id));
-        old_pipeline.render_chan.chan.try_send(render_task::ExitMsg(None));
-        let LayoutChan(ref old_layout) = old_pipeline.layout_chan;
-        old_layout.try_send(layout_interface::ExitNowMsg);
+        fn force_pipeline_exit(old_pipeline: &Rc<Pipeline>) {
+            let ScriptChan(ref old_script) = old_pipeline.script_chan;
+            old_script.try_send(ExitPipelineMsg(old_pipeline.id));
+            old_pipeline.render_chan.chan.try_send(render_task::ExitMsg(None));
+            let LayoutChan(ref old_layout) = old_pipeline.layout_chan;
+            old_layout.try_send(layout_interface::ExitNowMsg);
+        }
+        force_pipeline_exit(&old_pipeline);
         self.pipelines.remove(&pipeline_id);
+
+        loop {
+            let idx = self.pending_frames.iter().position(|pending| {
+                pending.after.pipeline.id == pipeline_id
+            });
+            idx.map(|idx| {
+                debug!("removing pending frame change for failed pipeline");
+                force_pipeline_exit(&self.pending_frames[idx].after.pipeline);
+                self.pending_frames.remove(idx)
+            });
+            if idx.is_none() {
+                break;
+            }
+        }
+        debug!("creating replacement pipeline for about:failure");
 
         let new_id = self.get_next_pipeline_id();
         let pipeline = Pipeline::create(new_id,
@@ -419,10 +440,10 @@ impl Constellation {
                 parent: RefCell::new(None),
                 children: RefCell::new(~[]),
             }),
-            navigation_type: constellation_msg::Navigate,
+            navigation_type: constellation_msg::Load,
         });
 
-        self.pipelines.insert(pipeline_id, pipeline_wrapped);
+        self.pipelines.insert(new_id, pipeline_wrapped);
     }
 
     fn handle_init_load(&mut self, url: Url) {
@@ -729,12 +750,12 @@ impl Constellation {
 
             // If there are frames to revoke permission from, do so now.
             match frame_change.before {
-                Some(revoke_id) => {
+                Some(revoke_id) if self.current_frame().is_some() => {
                     debug!("Constellation: revoking permission from {:?}", revoke_id);
                     let current_frame = self.current_frame().get_ref();
 
                     let to_revoke = current_frame.find(revoke_id).expect(
-                        "Constellation: pending frame change refers to an old
+                        "Constellation: pending frame change refers to an old \
                         frame not contained in the current frame. This is a bug");
 
                     for frame in to_revoke.iter() {
@@ -758,7 +779,7 @@ impl Constellation {
                     }
                 }
 
-                None => {
+                _ => {
                     // Add to_add to parent's children, if it is not the root
                     let parent = &to_add.parent;
                     for parent in parent.borrow().iter() {
@@ -807,9 +828,10 @@ impl Constellation {
         for change in self.pending_frames.iter() {
             let frame_tree = &change.after;
             if frame_tree.parent.borrow().is_none() {
-                debug!("constellation sending resize message to pending outer frame");
+                debug!("constellation sending resize message to pending outer frame ({:?})",
+                       frame_tree.pipeline.id);
                 let ScriptChan(ref chan) = frame_tree.pipeline.script_chan;
-                chan.send(ResizeMsg(frame_tree.pipeline.id, new_size))
+                chan.try_send(ResizeMsg(frame_tree.pipeline.id, new_size));
             }
         }
 
@@ -847,10 +869,13 @@ impl Constellation {
         // parsed iframes that finish loading)
         match navigation_type {
             constellation_msg::Load => {
+                debug!("evicting old frames due to load");
                 let evicted = self.navigation_context.load(frame_tree);
                 self.handle_evicted_frames(evicted);
             }
-            _ => {}
+            _ => {
+                debug!("ignoring non-load navigation type");
+            }
         }
     }
 
