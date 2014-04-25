@@ -2914,12 +2914,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     jsConversion = string.Template(template).substitute({
         "val": "value",
         "valPtr": None,
-        "declName": "retval",
         "holderName": None,
     })
-    jsConversion = CGWrapper(CGGeneric(jsConversion),
-                             pre="let retval;\nretval = ",
-                             post=";\nOk(Some(retval))")
+    jsConversion = CGWrapper(CGGeneric(jsConversion), pre="Ok(Some(", post="))")
 
     return {
         "name": name,
