@@ -67,7 +67,7 @@ impl Event {
             type_: ~"",
             canceled: false,
             cancelable: true,
-            bubbles: true,
+            bubbles: false,
             trusted: false,
             dispatching: false,
             stop_propagation: false,
