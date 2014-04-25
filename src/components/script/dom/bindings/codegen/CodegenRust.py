@@ -553,13 +553,13 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             if type.nullable():
                 templateBody += (
                     "} else if (${val}).is_null_or_undefined() {\n"
-                    "  ${declName} = None;\n")
+                    "  None\n")
             templateBody += (
                 "} else {\n" +
                 CGIndenter(onFailureNotAnObject(failureCode)).define() +
                 "}")
             if type.nullable():
-                templateBody = handleDefaultNull(templateBody, "${declName} = None;")
+                templateBody = handleDefaultNull(templateBody, "None")
             else:
                 assert(defaultValue is None)
 
@@ -584,19 +584,19 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             declType = CGWrapper(declType, pre="Option<", post=" >")
             value = CGWrapper(value, pre="Some(", post=")")
 
-        templateBody = CGGeneric("${declName} = match %s::from_value(cx, ${val}) {\n"
+        templateBody = CGGeneric("match %s::from_value(cx, ${val}) {\n"
                                  "    Err(()) => { %s },\n"
                                  "    Ok(value) => %s,\n"
-                                 "};" % (type.name, exceptionCode, value.define()))
+                                 "}" % (type.name, exceptionCode, value.define()))
 
         if type.nullable():
             templateBody = CGIfElseWrapper(
                 "(${val}).is_null_or_undefined()",
-                CGGeneric("${declName} = None;"),
+                CGGeneric("None"),
                 templateBody)
 
         templateBody = handleDefaultNull(templateBody.define(),
-                                         "${declName} = None;")
+                                         "None")
 
         return (templateBody, declType, None, isOptional, "None" if isOptional else None)
 
@@ -609,7 +609,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
             declType = CGGeneric("Option<%s>" % name);
-            conversion = ("${declName} = Some(%s::new((${val}).to_object()));" % name)
+            conversion = ("Some(%s::new((${val}).to_object()))" % name)
 
             template = wrapObjectTemplate(conversion, isDefinitelyObject, type,
                                           failureCode)
@@ -621,19 +621,17 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                             "argument" % descriptor.interface.identifier.name)
 
 
-        templateBody = "${declName} = "
         if failureCode is not None:
-            templateBody += str(CastableObjectUnwrapper(
+            templateBody = str(CastableObjectUnwrapper(
                     descriptor,
                     "(${val}).to_object()",
                     failureCode,
                     isOptional or type.nullable()))
         else:
-            templateBody += str(FailureFatalCastableObjectUnwrapper(
+            templateBody = str(FailureFatalCastableObjectUnwrapper(
                     descriptor,
                     "(${val}).to_object()",
                     isOptional or type.nullable()))
-        templateBody += ";\n"
 
         templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
                                           type, failureCode)
@@ -667,17 +665,17 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                 strval = "Some(%s)" % strval
 
             conversionCode = (
-                "${declName} = match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
+                "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
                 "  Ok(strval) => %s,\n"
                 "  Err(_) => { %s },\n"
-                "};" % (nullBehavior, strval, exceptionCode))
+                "}" % (nullBehavior, strval, exceptionCode))
 
             if defaultValue is None:
                 return conversionCode
 
             if isinstance(defaultValue, IDLNullValue):
                 assert(type.nullable())
-                return handleDefault(conversionCode, "${declName} = None;")
+                return handleDefault(conversionCode, "None")
 
             value = "str::from_utf8(data).unwrap().to_owned()"
             if type.nullable():
@@ -685,7 +683,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
             default = (
                 "static data: [u8, ..%s] = [ %s ];\n"
-                "${declName} = %s;" %
+                "%s" %
                 (len(defaultValue.value) + 1,
                  ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
                  value))
@@ -702,8 +700,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             initialValue = "None"
 
         return (
-            "%s\n" %
-            (getConversionCode(isOptional)),
+            getConversionCode(isOptional),
             CGGeneric(declType), None, #CGGeneric("FakeDependentString"),
             False,
             initialValue)
@@ -726,7 +723,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             "  Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
             "  Ok(Some(index)) => {\n"
             "    //XXXjdm need some range checks up in here.\n"
-            "    ${declName} = cast::transmute(index);\n"
+            "    cast::transmute(index)\n"
             "  },\n"
             "}" % { "values" : enum + "Values::strings",
              "exceptionCode" : exceptionCode,
@@ -735,7 +732,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if defaultValue is not None:
             assert(defaultValue.type.tag() == IDLType.Tags.domstring)
             template = handleDefault(template,
-                                     ("${declName} = %sValues::%s;" %
+                                     ("%sValues::%s" %
                                       (enum,
                                        getEnumValueName(defaultValue.value))))
 
@@ -770,10 +767,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             declType = CGWrapper(declType, pre="Option<", post=">")
             value = CGWrapper(value, pre="Some(", post=")")
 
-        templateBody = "${declName} = %s;" % value.define()
-        templateBody = handleDefaultNull(templateBody,
-                                         "${declName} = NullValue();")
-
+        templateBody = handleDefaultNull(value.define(), "NullValue()")
         return (templateBody, declType, None, isOptional, "None" if isOptional else None)
 
     if type.isObject():
@@ -800,10 +794,10 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         else:
             val = "${val}"
 
-        template = ("${declName} = match %s::new(cx, %s) {\n"
+        template = ("match %s::new(cx, %s) {\n"
                     "  Ok(dictionary) => dictionary,\n"
                     "  Err(_) => return 0,\n"
-                    "};" % (typeName, val))
+                    "}" % (typeName, val))
 
         return (template, declType, None, False, None)
 
@@ -832,10 +826,10 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
     #XXXjdm support conversionBehavior here
     template = (
-        "${declName} = match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+        "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
         "  Ok(v) => %s,\n"
         "  Err(_) => { %s }\n"
-        "};" % (value, exceptionCode))
+        "}" % (value, exceptionCode))
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
@@ -844,7 +838,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         else:
             tag = defaultValue.type.tag()
             if tag in numericTags:
-                defaultStr = defaultValue.value
+                defaultStr = str(defaultValue.value)
             else:
                 assert(tag == IDLType.Tags.bool)
                 defaultStr = toStringBool(defaultValue.value)
@@ -854,7 +848,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
         template = CGIfElseWrapper("${haveValue}",
                                    CGGeneric(template),
-                                   CGGeneric("${declName} = %s;" % defaultStr)).define()
+                                   CGGeneric(defaultStr)).define()
 
     return (template, declType, None, isOptional, "None" if isOptional else None)
 
@@ -898,20 +892,22 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
         tmpresult += [CGGeneric(";")]
         result.append(CGList(tmpresult))
 
-    originalDeclName = replacements["declName"]
+    conversion = CGGeneric(
+            string.Template(templateBody).substitute(replacements)
+            )
+
     if declType is not None:
         newDecl = [CGGeneric("let mut "),
-                   CGGeneric(originalDeclName),
+                   CGGeneric(replacements["declName"]),
                    CGGeneric(": "),
                    declType]
         if initialValue:
             newDecl.append(CGGeneric(" = " + initialValue))
         newDecl.append(CGGeneric(";"))
         result.append(CGList(newDecl))
-
-    conversion = CGGeneric(
-            string.Template(templateBody).substitute(replacements)
-            )
+        conversion = CGWrapper(conversion,
+                               pre="%s = " % replacements["declName"],
+                               post=";")
 
     if argcAndIndex is not None:
         declConstruct = None
@@ -2839,12 +2835,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     jsConversion = string.Template(template).substitute({
         "val": "value",
         "valPtr": None,
-        "declName": "retval",
         "holderName": None,
     })
-    jsConversion = CGWrapper(CGGeneric(jsConversion),
-                             pre="let retval;\n",
-                             post="\nOk(Some(retval))")
+    jsConversion = CGWrapper(CGGeneric(jsConversion), pre="Ok(Some(", post="))")
 
     return {
         "name": name,
@@ -4136,31 +4129,17 @@ class CGDictionary(CGThing):
         else:
             initParent = ""
 
-        memberInits = [CGIndenter(self.getMemberConversion(m), indentLevel=6).define()
-                       for m in self.memberInfo]
+        def memberInit(memberInfo):
+            member, _ = memberInfo
+            name = self.makeMemberName(member.identifier.name)
+            conversion = self.getMemberConversion(memberInfo)
+            return CGGeneric("%s: %s,\n" % (name, conversion.define()))
 
-        def defaultValue(ty):
-            if ty is "bool":
-                return "false"
-            elif ty in ["i32", "u32", "i16", "u16"]:
-                return "0"
-            elif ty == "DOMString":
-                return '~""'
-            elif ty.startswith("Option"):
-                return "None"
-            elif ty == "JSVal":
-                return "UndefinedValue()"
-            else:
-                return "/* uh oh: %s */" % ty
+        memberInits = CGList([memberInit(m) for m in self.memberInfo])
 
         return string.Template(
             "impl ${selfName} {\n"
             "  pub fn new(cx: *JSContext, val: JSVal) -> Result<${selfName}, ()> {\n"
-            "    let mut result = ${selfName} {\n"
-            "${initParent}" +
-            "\n".join("      %s: %s," % (self.makeMemberName(m[0].identifier.name), defaultValue(self.getMemberType(m))) for m in self.memberInfo) + "\n"
-            "    };\n"
-            "\n"
             "    let object = if val.is_null_or_undefined() {\n"
             "        ptr::null()\n"
             "    } else if val.is_object() {\n"
@@ -4169,15 +4148,15 @@ class CGDictionary(CGThing):
             "        //XXXjdm throw properly here\n"
             "        return Err(());\n"
             "    };\n"
-            "    unsafe {\n"
-            "${initMembers}\n"
-            "    }\n"
-            "    Ok(result)\n"
+            "    Ok(${selfName} {\n"
+            "${initParent}"
+            "${initMembers}"
+            "    })\n"
             "  }\n"
             "}").substitute({
                 "selfName": self.makeClassName(d),
                 "initParent": CGIndenter(CGGeneric(initParent), indentLevel=6).define(),
-                "initMembers": "\n\n".join(memberInits),
+                "initMembers": CGIndenter(memberInits, indentLevel=6).define(),
                 })
 
     @staticmethod
@@ -4208,16 +4187,9 @@ class CGDictionary(CGThing):
     def getMemberConversion(self, memberInfo):
         (member, (templateBody, declType,
                   holderType, dealWithOptional, initialValue)) = memberInfo
-        replacements = { "val": "value.unwrap()",
-                         "declName": ("result.%s" % self.makeMemberName(member.identifier.name)),
-                         # We need a holder name for external interfaces, but
-                         # it's scoped down to the conversion so we can just use
-                         # anything we want.
-                         "holderName": "holder"}
+        replacements = { "val": "value.unwrap()" }
         # We can't handle having a holderType here
         assert holderType is None
-        if dealWithOptional:
-            replacements["declName"] = "(" + replacements["declName"] + ".Value())"
         if member.defaultValue:
             replacements["haveValue"] = "value.is_some()"
 
@@ -4235,7 +4207,7 @@ class CGDictionary(CGThing):
             "    Ok(value) => {\n"
             "%s\n"
             "    },\n"
-            "}\n") % (propName, conversion)
+            "}") % (propName, conversion)
 
         return CGGeneric(conversion)
 
