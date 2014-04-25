@@ -723,7 +723,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             "  Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
             "  Ok(Some(index)) => {\n"
             "    //XXXjdm need some range checks up in here.\n"
-            "    ${declName} = cast::transmute(index);\n"
+            "    cast::transmute(index)\n"
             "  },\n"
             "}" % { "values" : enum + "Values::strings",
              "exceptionCode" : exceptionCode,
@@ -732,11 +732,11 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if defaultValue is not None:
             assert(defaultValue.type.tag() == IDLType.Tags.domstring)
             template = handleDefault(template,
-                                     ("${declName} = %sValues::%s;" %
+                                     ("%sValues::%s" %
                                       (enum,
                                        getEnumValueName(defaultValue.value))))
 
-        return (template, CGGeneric(enum), None, isOptional, None)
+        return ("${declName} = " + template + ";", CGGeneric(enum), None, isOptional, None)
 
     if type.isCallback():
         assert not isEnforceRange and not isClamp
