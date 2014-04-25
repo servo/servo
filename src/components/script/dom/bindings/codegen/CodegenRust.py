@@ -598,7 +598,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         templateBody = handleDefaultNull(templateBody.define(),
                                          "None")
 
-        return ("${declName} = " + templateBody + ";", declType, None, isOptional, "None" if isOptional else None)
+        return (templateBody, declType, None, isOptional, "None" if isOptional else None)
 
     if type.isGeckoInterface():
         assert not isEnforceRange and not isClamp
@@ -613,7 +613,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
             template = wrapObjectTemplate(conversion, isDefinitelyObject, type,
                                           failureCode)
-            return ("${declName} = " + template + ";", declType, None, isOptional, None)
+            return (template, declType, None, isOptional, None)
 
         templateBody = ""
         if descriptor.interface.isConsequential():
@@ -640,7 +640,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if type.nullable() or isOptional:
             declType = CGWrapper(declType, pre="Option<", post=">")
 
-        return ("${declName} = " + templateBody + ";", declType, None, isOptional, "None" if isOptional else None)
+        return (templateBody, declType, None, isOptional, "None" if isOptional else None)
 
     if type.isSpiderMonkeyInterface():
         raise TypeError("Can't handle SpiderMonkey interface arguments yet")
@@ -700,7 +700,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             initialValue = "None"
 
         return (
-            "${declName} = %s;" % getConversionCode(isOptional),
+            getConversionCode(isOptional),
             CGGeneric(declType), None, #CGGeneric("FakeDependentString"),
             False,
             initialValue)
@@ -736,7 +736,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                       (enum,
                                        getEnumValueName(defaultValue.value))))
 
-        return ("${declName} = " + template + ";", CGGeneric(enum), None, isOptional, None)
+        return (template, CGGeneric(enum), None, isOptional, None)
 
     if type.isCallback():
         assert not isEnforceRange and not isClamp
@@ -768,7 +768,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             value = CGWrapper(value, pre="Some(", post=")")
 
         templateBody = handleDefaultNull(value.define(), "NullValue()")
-        return ("${declName} = " + templateBody + ";", declType, None, isOptional, "None" if isOptional else None)
+        return (templateBody, declType, None, isOptional, "None" if isOptional else None)
 
     if type.isObject():
         raise TypeError("Can't handle object arguments yet")
@@ -794,10 +794,10 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         else:
             val = "${val}"
 
-        template = ("${declName} = match %s::new(cx, %s) {\n"
+        template = ("match %s::new(cx, %s) {\n"
                     "  Ok(dictionary) => dictionary,\n"
                     "  Err(_) => return 0,\n"
-                    "};" % (typeName, val))
+                    "}" % (typeName, val))
 
         return (template, declType, None, False, None)
 
@@ -850,7 +850,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                    CGGeneric(template),
                                    CGGeneric(defaultStr)).define()
 
-    return ("${declName} = " + template + ";", declType, None, isOptional, "None" if isOptional else None)
+    return (template, declType, None, isOptional, "None" if isOptional else None)
 
 def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                                             argcAndIndex=None):
@@ -892,20 +892,22 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
         tmpresult += [CGGeneric(";")]
         result.append(CGList(tmpresult))
 
-    originalDeclName = replacements["declName"]
+    conversion = CGGeneric(
+            string.Template(templateBody).substitute(replacements)
+            )
+
     if declType is not None:
         newDecl = [CGGeneric("let mut "),
-                   CGGeneric(originalDeclName),
+                   CGGeneric(replacements["declName"]),
                    CGGeneric(": "),
                    declType]
         if initialValue:
             newDecl.append(CGGeneric(" = " + initialValue))
         newDecl.append(CGGeneric(";"))
         result.append(CGList(newDecl))
-
-    conversion = CGGeneric(
-            string.Template(templateBody).substitute(replacements)
-            )
+        conversion = CGWrapper(conversion,
+                               pre="%s = " % replacements["declName"],
+                               post=";")
 
     if argcAndIndex is not None:
         declConstruct = None
@@ -2916,8 +2918,8 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         "holderName": None,
     })
     jsConversion = CGWrapper(CGGeneric(jsConversion),
-                             pre="let retval;\n",
-                             post="\nOk(Some(retval))")
+                             pre="let retval;\nretval = ",
+                             post=";\nOk(Some(retval))")
 
     return {
         "name": name,
@@ -4296,7 +4298,7 @@ class CGDictionary(CGThing):
 
         propName = member.identifier.name
         conversion = CGIndenter(
-            CGGeneric(string.Template(templateBody).substitute(replacements)),
+            CGGeneric(string.Template("${declName} = " + templateBody + ";").substitute(replacements)),
             8).define()
         if not member.defaultValue:
             raise TypeError("We don't support dictionary members without a "
