@@ -27,7 +27,7 @@ B := $(CFG_BUILD_DIR)
 %:: s.%
 %:: SCCS/s.%
 
-MKFILE_DEPS := config.stamp $(call rwildcard,$(S)mk/,*)
+MKFILE_DEPS := $(CFG_BUILD_HOME)config.stamp $(call rwildcard,$(S)mk/,*)
 
 CFG_GCCISH_CFLAGS += -DRUST_DEBUG
 CFG_RUSTC_FLAGS += -D unused-imports
@@ -75,12 +75,12 @@ endif
 ifeq ($(NEED_GIT_RECONFIG),0)
 else
 # If the submodules have changed then always execute config.mk
-.PHONY: $(S)config.stamp
+.PHONY: $(CFG_BUILD_HOME)config.stamp
 endif
 
-$(S)Makefile $(S)config.mk: $(S)config.stamp
+$(CFG_BUILD_HOME)Makefile $(CFG_BUILD_HOME)config.mk: $(CFG_BUILD_HOME)config.stamp
 
-$(S)config.stamp : $(S)configure $(S)Makefile.in
+$(CFG_BUILD_HOME)config.stamp : $(S)configure $(S)Makefile.in
 	@$(call E, cfg: reconfiguring)
 	$(Q)$(S)configure $(CFG_CONFIGURE_ARGS)
 
@@ -164,7 +164,7 @@ endef
 # Define how to make submodule targets
 define DEF_SUBMODULE_RULES
 
-ENV_RLDFLAGS_$(1) = -L $$(CFG_BUILD_HOME)workspace/lib/$$(CFG_TARGET_TRIPLES)
+ENV_RLDFLAGS_$(1) = -L $$(CFG_BUILD_HOME)workspace/lib/$$(CFG_TARGET)
 ENV_RLDFLAGS_$(1) += $$(foreach dep,$$(DEPS_$(1)),-L $$(B)src/$$(PATH_$$(dep)) -L $$(B)src/$$(PATH_$$(dep))/.libs -L $$(B)src/$$(PATH_$$(dep))/src/.libs)
 
 # variables that depend on dependency definitions from sub.mk!
@@ -369,8 +369,8 @@ package: servo
 else ifeq ($(CFG_OSTYPE),linux-androideabi)
 package: servo
 	mkdir -p sofile
-	find . ! \( \( -type d -path './sofile' -o -path './$(CFG_TARGET_TRIPLES)/src/compiler/rust' \) -prune \) -name '*.so' -type f | xargs -I {} cp -f {} $(CFG_BUILD_HOME)sofile/
-	find $(CFG_RUST_HOME)/lib/rustlib/$(CFG_TARGET_TRIPLES)/lib/ -name '*.so' -type f -size +1c | xargs -I {} cp -f {} $(CFG_BUILD_HOME)sofile/
+	find . ! \( \( -type d -path './sofile' -o -path './$(CFG_TARGET)/src/compiler/rust' \) -prune \) -name '*.so' -type f | xargs -I {} cp -f {} $(CFG_BUILD_HOME)sofile/
+	find $(CFG_RUST_HOME)/lib/rustlib/$(CFG_TARGET)/lib/ -name '*.so' -type f -size +1c | xargs -I {} cp -f {} $(CFG_BUILD_HOME)sofile/
 	cd $(S)src/platform/android/servo-android-glue && make with-libs
 	cd $(CFG_BUILD_HOME)
 	cp $(S)src/platform/android/servo-android-glue/bin/ServoAndroid-debug.apk $(CFG_BUILD_HOME)
