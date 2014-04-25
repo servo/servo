@@ -4208,31 +4208,17 @@ class CGDictionary(CGThing):
         else:
             initParent = ""
 
-        memberInits = [CGIndenter(self.getMemberConversion(m), indentLevel=6).define()
-                       for m in self.memberInfo]
+        def memberInit(memberInfo):
+            member, _ = memberInfo
+            name = self.makeMemberName(member.identifier.name)
+            conversion = self.getMemberConversion(memberInfo)
+            return CGGeneric("%s: %s,\n" % (name, conversion.define()))
 
-        def defaultValue(ty):
-            if ty is "bool":
-                return "false"
-            elif ty in ["i32", "u32", "i16", "u16"]:
-                return "0"
-            elif ty == "DOMString":
-                return '~""'
-            elif ty.startswith("Option"):
-                return "None"
-            elif ty == "JSVal":
-                return "UndefinedValue()"
-            else:
-                return "/* uh oh: %s */" % ty
+        memberInits = CGList([memberInit(m) for m in self.memberInfo])
 
         return string.Template(
             "impl ${selfName} {\n"
             "  pub fn new(cx: *JSContext, val: JSVal) -> Result<${selfName}, ()> {\n"
-            "    let mut result = ${selfName} {\n"
-            "${initParent}" +
-            "\n".join("      %s: %s," % (self.makeMemberName(m[0].identifier.name), defaultValue(self.getMemberType(m))) for m in self.memberInfo) + "\n"
-            "    };\n"
-            "\n"
             "    let object = if val.is_null_or_undefined() {\n"
             "        ptr::null()\n"
             "    } else if val.is_object() {\n"
@@ -4241,15 +4227,15 @@ class CGDictionary(CGThing):
             "        //XXXjdm throw properly here\n"
             "        return Err(());\n"
             "    };\n"
-            "    unsafe {\n"
-            "${initMembers}\n"
-            "    }\n"
-            "    Ok(result)\n"
+            "    Ok(${selfName} {\n"
+            "${initParent}"
+            "${initMembers}"
+            "    })\n"
             "  }\n"
             "}").substitute({
                 "selfName": self.makeClassName(d),
                 "initParent": CGIndenter(CGGeneric(initParent), indentLevel=6).define(),
-                "initMembers": "\n\n".join(memberInits),
+                "initMembers": CGIndenter(memberInits, indentLevel=6).define(),
                 })
 
     @staticmethod
@@ -4280,22 +4266,15 @@ class CGDictionary(CGThing):
     def getMemberConversion(self, memberInfo):
         (member, (templateBody, declType,
                   holderType, dealWithOptional, initialValue)) = memberInfo
-        replacements = { "val": "value.unwrap()",
-                         "declName": ("result.%s" % self.makeMemberName(member.identifier.name)),
-                         # We need a holder name for external interfaces, but
-                         # it's scoped down to the conversion so we can just use
-                         # anything we want.
-                         "holderName": "holder"}
+        replacements = { "val": "value.unwrap()" }
         # We can't handle having a holderType here
         assert holderType is None
-        if dealWithOptional:
-            replacements["declName"] = "(" + replacements["declName"] + ".Value())"
         if member.defaultValue:
             replacements["haveValue"] = "value.is_some()"
 
         propName = member.identifier.name
         conversion = CGIndenter(
-            CGGeneric(string.Template("${declName} = " + templateBody + ";").substitute(replacements)),
+            CGGeneric(string.Template(templateBody).substitute(replacements)),
             8).define()
         if not member.defaultValue:
             raise TypeError("We don't support dictionary members without a "
@@ -4307,7 +4286,7 @@ class CGDictionary(CGThing):
             "    Ok(value) => {\n"
             "%s\n"
             "    },\n"
-            "}\n") % (propName, conversion)
+            "}") % (propName, conversion)
 
         return CGGeneric(conversion)
 
