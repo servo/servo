@@ -754,7 +754,7 @@ impl LayoutTask {
             ContentBoxesQuery(node, reply_chan) => {
                 let node: OpaqueNode = OpaqueNodeMethods::from_script_node(node);
 
-                fn add_boxes_for_node(accumulator: &mut ~[Rect<Au>],
+                fn add_boxes_for_node(accumulator: &mut Vec<Rect<Au>>,
                                       mut iter: DisplayItemIterator,
                                       node: OpaqueNode) {
                     for item in iter {
@@ -765,7 +765,7 @@ impl LayoutTask {
                     }
                 }
 
-                let mut boxes = ~[];
+                let mut boxes = vec!();
                 match self.display_list {
                     None => fail!("no display list!"),
                     Some(ref display_list) => {

@@ -288,7 +288,7 @@ pub trait NodeHelpers {
     fn to_trusted_node_address(&self) -> TrustedNodeAddress;
 
     fn get_bounding_content_box(&self) -> Rect<Au>;
-    fn get_content_boxes(&self) -> ~[Rect<Au>];
+    fn get_content_boxes(&self) -> Vec<Rect<Au>>;
 }
 
 impl NodeHelpers for JS<Node> {
@@ -581,7 +581,7 @@ impl NodeHelpers for JS<Node> {
         rect
     }
 
-    fn get_content_boxes(&self) -> ~[Rect<Au>] {
+    fn get_content_boxes(&self) -> Vec<Rect<Au>> {
         let window = window_from_node(self);
         let page = window.get().page();
         let (chan, port) = channel();
