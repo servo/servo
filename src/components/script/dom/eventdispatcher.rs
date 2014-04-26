@@ -24,6 +24,7 @@ pub fn dispatch_event(target: &JS<EventTarget>,
     }
 
     let type_ = event.get().type_.clone();
+    let mut chain = Vec::new();
 
     //TODO: no chain if not participating in a tree
     let chain: Vec<JS<EventTarget>> = if target.get().is_node() {
@@ -41,7 +42,7 @@ pub fn dispatch_event(target: &JS<EventTarget>,
     //FIXME: The "callback this value" should be currentTarget
 
     /* capturing */
-    for cur_target in chain.as_slice().rev_iter() {
+    for cur_target in chain.iter().rev() {
         let stopped = match cur_target.get().get_listeners_for(type_, Capturing) {
             Some(listeners) => {
                 event.get_mut().current_target = Some(cur_target.clone());
