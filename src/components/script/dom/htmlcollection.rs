@@ -26,7 +26,7 @@ impl<S: Encoder<E>, E> Encodable<S, E> for ~CollectionFilter {
 
 #[deriving(Encodable)]
 pub enum CollectionTypeId {
-    Static(~[JS<Element>]),
+    Static(Vec<JS<Element>>),
     Live(JS<Node>, ~CollectionFilter)
 }
 
@@ -135,6 +135,7 @@ impl HTMLCollection {
     pub fn Item(&self, index: u32) -> Option<JS<Element>> {
         match self.collection {
             Static(ref elems) => elems
+                .as_slice()
                 .get(index as uint)
                 .map(|elem| elem.clone()),
             Live(ref root, ref filter) => root.traverse_preorder()
