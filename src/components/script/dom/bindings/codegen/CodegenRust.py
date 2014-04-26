@@ -597,7 +597,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         templateBody = handleDefaultNull(templateBody.define(),
                                          "None")
 
-        return (templateBody, declType, isOptional, "None" if isOptional else None)
+        return handleOptional(templateBody, declType, isOptional)
 
     if type.isGeckoInterface():
         assert not isEnforceRange and not isClamp

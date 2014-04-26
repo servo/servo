@@ -134,7 +134,7 @@ interface TestBinding {
   void passOptionalString(optional DOMString arg);
   // void passOptionalEnum(optional TestEnum arg);
   void passOptionalInterface(optional Blob arg);
-  // void passOptionalUnion(optional (HTMLElement or long) arg);
+  void passOptionalUnion(optional (HTMLElement or long) arg);
   void passOptionalAny(optional any arg);
 
   void passOptionalNullableBoolean(optional boolean? arg);
@@ -151,7 +151,7 @@ interface TestBinding {
   void passOptionalNullableString(optional DOMString? arg);
   // void passOptionalNullableEnum(optional TestEnum? arg);
   // void passOptionalNullableInterface(optional Blob? arg);
-  // void passOptionalNullableUnion(optional (HTMLElement or long)? arg);
+  void passOptionalNullableUnion(optional (HTMLElement or long)? arg);
 
   void passOptionalBooleanWithDefault(optional boolean arg = false);
   void passOptionalByteWithDefault(optional byte arg = 0);

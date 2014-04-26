@@ -129,7 +129,7 @@ impl TestBinding {
     pub fn PassOptionalString(&self, _: Option<DOMString>) {}
     // pub fn PassOptionalEnum(&self, _: Option<TestEnum>) {}
     pub fn PassOptionalInterface(&self, _: Option<JS<Blob>>) {}
-    // pub fn PassOptionalUnion(&self, _: Option<HTMLElementOrLong>) {}
+    pub fn PassOptionalUnion(&self, _: Option<HTMLElementOrLong>) {}
     pub fn PassOptionalAny(&self, _: *JSContext, _: Option<JSVal>) {}
 
     pub fn PassOptionalNullableBoolean(&self, _: Option<Option<bool>>) {}
@@ -146,7 +146,7 @@ impl TestBinding {
     pub fn PassOptionalNullableString(&self, _: Option<Option<DOMString>>) {}
     // pub fn PassOptionalNullableEnum(&self, _: Option<Option<TestEnum>>) {}
     // pub fn PassOptionalNullableInterface(&self, _: Option<Option<JS<Blob>>>) {}
-    // pub fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>) {}
+    pub fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>) {}
 
     pub fn PassOptionalBooleanWithDefault(&self, _: bool) {}
     pub fn PassOptionalByteWithDefault(&self, _: i8) {}
