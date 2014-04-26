@@ -24,23 +24,24 @@ pub fn dispatch_event(target: &JS<EventTarget>,
     }
 
     let type_ = event.get().type_.clone();
-    let mut chain = ~[];
 
     //TODO: no chain if not participating in a tree
-    if target.get().is_node() {
+    let chain: Vec<JS<EventTarget>> = if target.get().is_node() {
         let target_node: JS<Node> = NodeCast::to(target).unwrap();
-        for ancestor in target_node.ancestors() {
+        target_node.ancestors().map(|ancestor| {
             let ancestor_target: JS<EventTarget> = EventTargetCast::from(&ancestor);
-            chain.push(ancestor_target);
-        }
-    }
+            ancestor_target
+        }).collect()
+    } else {
+        vec!()
+    };
 
     event.get_mut().phase = PhaseCapturing;
 
     //FIXME: The "callback this value" should be currentTarget
 
     /* capturing */
-    for cur_target in chain.rev_iter() {
+    for cur_target in chain.as_slice().rev_iter() {
         let stopped = match cur_target.get().get_listeners_for(type_, Capturing) {
             Some(listeners) => {
                 event.get_mut().current_target = Some(cur_target.clone());
