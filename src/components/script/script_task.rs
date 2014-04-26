@@ -151,11 +151,11 @@ pub struct Page {
 
 pub struct PageTree {
     pub page: Rc<Page>,
-    pub inner: ~[PageTree],
+    pub inner: Vec<PageTree>,
 }
 
 pub struct PageTreeIterator<'a> {
-    stack: ~[&'a mut PageTree],
+    stack: Vec<&'a mut PageTree>,
 }
 
 impl PageTree {
@@ -175,7 +175,7 @@ impl PageTree {
                 fragment_node: Traceable::new(RefCell::new(None)),
                 last_reflow_id: Traceable::new(RefCell::new(0)),
             }),
-            inner: ~[],
+            inner: vec!(),
         }
     }
 
@@ -198,7 +198,7 @@ impl PageTree {
 
     pub fn iter<'a>(&'a mut self) -> PageTreeIterator<'a> {
         PageTreeIterator {
-            stack: ~[self],
+            stack: vec!(self),
         }
     }
 
