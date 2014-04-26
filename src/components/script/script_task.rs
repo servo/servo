@@ -751,11 +751,7 @@ impl ScriptTask {
             window.get_mut().active_timers.remove(&timer_data.handle);
         }
 
-        let this_value = if timer_data.args.len() > 0 {
-            fail!("NYI")
-        } else {
-            window.reflector().get_jsobject()
-        };
+        let this_value = window.reflector().get_jsobject();
 
         // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
         let rval = NullValue();
