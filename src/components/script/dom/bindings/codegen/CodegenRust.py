@@ -757,13 +757,8 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         assert not isEnforceRange and not isClamp
 
         declType = CGGeneric("JSVal")
-        value = CGGeneric("${val}")
-        if isOptional:
-            declType = CGWrapper(declType, pre="Option<", post=">")
-            value = CGWrapper(value, pre="Some(", post=")")
-
-        templateBody = handleDefaultNull(value.define(), "NullValue()")
-        return (templateBody, declType, isOptional, "None" if isOptional else None)
+        templateBody = handleDefaultNull("${val}", "NullValue()")
+        return handleOptional(templateBody, declType, isOptional)
 
     if type.isObject():
         raise TypeError("Can't handle object arguments yet")
