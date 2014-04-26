@@ -459,7 +459,7 @@ impl Page {
         address
     }
 
-    pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<~[UntrustedNodeAddress]> {
+    pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<Vec<UntrustedNodeAddress>> {
         let frame = self.frame();
         let document = frame.get_ref().document.clone();
         let root = document.get().GetDocumentElement();

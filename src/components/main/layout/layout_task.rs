@@ -830,7 +830,7 @@ impl LayoutTask {
                 fn mouse_over_test(x: Au,
                                    y: Au,
                                    list: &[DisplayItem],
-                                   result: &mut ~[UntrustedNodeAddress]) {
+                                   result: &mut Vec<UntrustedNodeAddress>) {
                     for item in list.rev_iter() {
                         match *item {
                             ClipDisplayItemClass(ref cc) => {
@@ -856,7 +856,7 @@ impl LayoutTask {
                     }
                 }
 
-                let mut mouse_over_list:~[UntrustedNodeAddress] = ~[];
+                let mut mouse_over_list: Vec<UntrustedNodeAddress> = vec!();
                 let (x, y) = (Au::from_frac_px(point.x as f64),
                               Au::from_frac_px(point.y as f64));
                 match self.display_list {
