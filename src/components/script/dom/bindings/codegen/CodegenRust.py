@@ -658,16 +658,12 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         else:
             nullBehavior = treatAs[treatNullAs]
 
-        def getConversionCode(isOptional=False):
-            strval = "strval"
-            if isOptional:
-                strval = "Some(%s)" % strval
-
+        def getConversionCode():
             conversionCode = (
                 "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
-                "  Ok(strval) => %s,\n"
+                "  Ok(strval) => strval,\n"
                 "  Err(_) => { %s },\n"
-                "}" % (nullBehavior, strval, exceptionCode))
+                "}" % (nullBehavior, exceptionCode))
 
             if defaultValue is None:
                 return conversionCode
@@ -690,15 +686,10 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             return handleDefault(conversionCode, default)
 
         declType = "DOMString"
-        initialValue = None
         if type.nullable():
             declType = "Option<%s>" % declType
 
-        if isOptional:
-            declType = "Option<%s>" % declType
-            initialValue = "None"
-
-        return (getConversionCode(isOptional), CGGeneric(declType), False, initialValue)
+        return handleOptional(getConversionCode(), CGGeneric(declType), isOptional)
 
     if type.isEnum():
         assert not isEnforceRange and not isClamp
