@@ -94,7 +94,7 @@ impl HTMLCollection {
     pub fn by_class_name(window: &JS<Window>, root: &JS<Node>, classes: DOMString)
                          -> JS<HTMLCollection> {
         struct ClassNameFilter {
-            classes: ~[DOMString]
+            classes: Vec<DOMString>
         }
         impl CollectionFilter for ClassNameFilter {
             fn filter(&self, elem: &JS<Element>, _root: &JS<Node>) -> bool {

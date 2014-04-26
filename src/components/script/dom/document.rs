@@ -386,10 +386,9 @@ impl Document {
                     }
                 });
         });
-        let v: ~[&str] = title.words().collect();
-        title = v.connect(" ");
-        title = title.trim().to_owned();
-        title
+        let v: Vec<&str> = title.words().collect();
+        let title = v.connect(" ");
+        title.trim().to_owned()
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title

@@ -651,8 +651,8 @@ pub fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
     let (prefix, local_name) = if name.contains(":")  {
-        let parts: ~[&str] = name.splitn(':', 1).collect();
-        (Some(parts[0].to_owned()), parts[1].to_owned())
+        let mut parts = name.splitn(':', 1);
+        (Some(parts.next().unwrap().to_owned()), parts.next().unwrap().to_owned())
     } else {
         (None, name)
     };
