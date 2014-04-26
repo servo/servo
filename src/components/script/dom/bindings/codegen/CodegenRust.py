@@ -722,7 +722,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                       (enum,
                                        getEnumValueName(defaultValue.value))))
 
-        return (template, CGGeneric(enum), isOptional, None)
+        return handleOptional(template, CGGeneric(enum), isOptional)
 
     if type.isCallback():
         assert not isEnforceRange and not isClamp

@@ -127,7 +127,7 @@ impl TestBinding {
     pub fn PassOptionalFloat(&self, _: Option<f32>) {}
     pub fn PassOptionalDouble(&self, _: Option<f64>) {}
     pub fn PassOptionalString(&self, _: Option<DOMString>) {}
-    // pub fn PassOptionalEnum(&self, _: Option<TestEnum>) {}
+    pub fn PassOptionalEnum(&self, _: Option<TestEnum>) {}
     pub fn PassOptionalInterface(&self, _: Option<JS<Blob>>) {}
     pub fn PassOptionalUnion(&self, _: Option<HTMLElementOrLong>) {}
     pub fn PassOptionalAny(&self, _: *JSContext, _: Option<JSVal>) {}

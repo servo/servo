@@ -132,7 +132,7 @@ interface TestBinding {
   void passOptionalFloat(optional float arg);
   void passOptionalDouble(optional double arg);
   void passOptionalString(optional DOMString arg);
-  // void passOptionalEnum(optional TestEnum arg);
+  void passOptionalEnum(optional TestEnum arg);
   void passOptionalInterface(optional Blob arg);
   void passOptionalUnion(optional (HTMLElement or long) arg);
   void passOptionalAny(optional any arg);
