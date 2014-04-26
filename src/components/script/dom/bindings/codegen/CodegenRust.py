@@ -576,21 +576,13 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                             "holderType")
 
         declType = CGGeneric(type.name)
-        value = CGGeneric("value")
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
-            value = CGWrapper(value, pre="Some(", post=")")
 
         templateBody = CGGeneric("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+                                 "    Ok(value) => value,\n"
                                  "    Err(()) => { %s },\n"
-                                 "    Ok(value) => %s,\n"
-                                 "}" % (exceptionCode, value.define()))
-
-        if type.nullable():
-            templateBody = CGIfElseWrapper(
-                "(${val}).is_null_or_undefined()",
-                CGGeneric("None"),
-                templateBody)
+                                 "}" % exceptionCode)
 
         templateBody = handleDefaultNull(templateBody.define(),
                                          "None")
