@@ -1201,7 +1201,7 @@ impl Node {
         // Step 4.
         let mut nodes = match node.type_id() {
             DocumentFragmentNodeTypeId => node.children().collect(),
-            _ => ~[node.clone()],
+            _ => vec!(node.clone()),
         };
 
         // Step 5: DocumentFragment, mutation records.
@@ -1242,14 +1242,14 @@ impl Node {
         }
 
         // Step 2.
-        let removedNodes: ~[JS<Node>] = parent.children().collect();
+        let removedNodes: Vec<JS<Node>> = parent.children().collect();
 
         // Step 3.
         let addedNodes = match node {
-            None => ~[],
+            None => vec!(),
             Some(ref node) => match node.type_id() {
                 DocumentFragmentNodeTypeId => node.children().collect(),
-                _ => ~[node.clone()],
+                _ => vec!(node.clone()),
             },
         };
 
