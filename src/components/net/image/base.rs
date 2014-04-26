@@ -21,8 +21,8 @@ pub fn Image(width: u32, height: u32, color_type: png::ColorType, data: ~[u8]) -
 
 static TEST_IMAGE: &'static [u8] = include_bin!("test.jpeg");
 
-pub fn test_image_bin() -> ~[u8] {
-    TEST_IMAGE.into_owned()
+pub fn test_image_bin() -> Vec<u8> {
+    TEST_IMAGE.iter().map(|&x| x).collect()
 }
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.

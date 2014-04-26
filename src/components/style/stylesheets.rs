@@ -41,13 +41,13 @@ pub struct StyleRule {
 
 
 impl Stylesheet {
-    pub fn from_bytes_iter<I: Iterator<~[u8]>>(
+    pub fn from_bytes_iter<I: Iterator<Vec<u8>>>(
             mut input: I, base_url: Url, protocol_encoding_label: Option<&str>,
             environment_encoding: Option<EncodingRef>) -> Stylesheet {
         let mut bytes = ~[];
         // TODO: incremental decoding and tokinization/parsing
         for chunk in input {
-            bytes.push_all(chunk)
+            bytes.push_all(chunk.as_slice())
         }
         Stylesheet::from_bytes(bytes, base_url, protocol_encoding_label, environment_encoding)
     }

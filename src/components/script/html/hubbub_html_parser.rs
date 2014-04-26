@@ -493,7 +493,7 @@ pub fn parse_html(page: &Page,
         match load_response.progress_port.recv() {
             Payload(data) => {
                 debug!("received data");
-                parser.parse_chunk(data);
+                parser.parse_chunk(data.as_slice());
             }
             Done(Err(..)) => {
                 fail!("Failed to load page URL {:s}", url.to_str());
