@@ -494,6 +494,16 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if exceptionCode is None:
         exceptionCode = "return 0;"
 
+    def handleOptional(template, declType, isOptional):
+        if isOptional:
+            template = "Some(%s)" % template
+            declType = CGWrapper(declType, pre="Option<", post=">")
+            initialValue = "None"
+        else:
+            initialValue = None
+
+        return (template, declType, isOptional, initialValue)
+
     # Unfortunately, .capitalize() on a string will lowercase things inside the
     # string, which we do not want.
     def firstCap(string):
@@ -800,21 +810,16 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if failureCode is None:
         failureCode = 'return 0'
 
-    value = "v"
     declType = CGGeneric(builtinNames[type.tag()])
     if type.nullable():
-        declType = CGWrapper(declType, pre="Option<", post=">")
-
-    if isOptional:
-        value = "Some(%s)" % value
         declType = CGWrapper(declType, pre="Option<", post=">")
 
     #XXXjdm support conversionBehavior here
     template = (
         "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
-        "  Ok(v) => %s,\n"
+        "  Ok(v) => v,\n"
         "  Err(_) => { %s }\n"
-        "}" % (value, exceptionCode))
+        "}" % exceptionCode)
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
@@ -835,7 +840,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                    CGGeneric(template),
                                    CGGeneric(defaultStr)).define()
 
-    return (template, declType, isOptional, "None" if isOptional else None)
+    return handleOptional(template, declType, isOptional)
 
 def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                                             argcAndIndex=None):
