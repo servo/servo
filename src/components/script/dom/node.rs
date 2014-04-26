@@ -517,14 +517,14 @@ impl NodeHelpers for JS<Node> {
 
     /// Iterates over this node and all its descendants, in preorder.
     fn traverse_preorder(&self) -> TreeIterator {
-        let mut nodes = ~[];
+        let mut nodes = vec!();
         gather_abstract_nodes(self, &mut nodes, false);
         TreeIterator::new(nodes)
     }
 
     /// Iterates over this node and all its descendants, in postorder.
     fn sequential_traverse_postorder(&self) -> TreeIterator {
-        let mut nodes = ~[];
+        let mut nodes = vec!();
         gather_abstract_nodes(self, &mut nodes, true);
         TreeIterator::new(nodes)
     }
@@ -633,12 +633,12 @@ impl Iterator<JS<Node>> for AncestorIterator {
 // FIXME: Do this without precomputing a vector of refs.
 // Easy for preorder; harder for postorder.
 pub struct TreeIterator {
-    nodes: ~[JS<Node>],
+    nodes: Vec<JS<Node>>,
     index: uint,
 }
 
 impl TreeIterator {
-    fn new(nodes: ~[JS<Node>]) -> TreeIterator {
+    fn new(nodes: Vec<JS<Node>>) -> TreeIterator {
         TreeIterator {
             nodes: nodes,
             index: 0,
@@ -651,7 +651,7 @@ impl Iterator<JS<Node>> for TreeIterator {
         if self.index >= self.nodes.len() {
             None
         } else {
-            let v = self.nodes[self.index].clone();
+            let v = self.nodes.get(self.index).clone();
             self.index += 1;
             Some(v)
         }
@@ -735,7 +735,7 @@ impl Iterator<JS<Node>> for NodeIterator {
     }
 }
 
-fn gather_abstract_nodes(cur: &JS<Node>, refs: &mut ~[JS<Node>], postorder: bool) {
+fn gather_abstract_nodes(cur: &JS<Node>, refs: &mut Vec<JS<Node>>, postorder: bool) {
     if !postorder {
         refs.push(cur.clone());
     }
