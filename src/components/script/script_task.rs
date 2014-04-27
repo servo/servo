@@ -671,7 +671,7 @@ impl ScriptTask {
 
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
-        let mut resizes = vec!();
+        let mut resizes = Vec::new();
 
         {
             let mut page_tree = self.page_tree.borrow_mut();
@@ -693,7 +693,7 @@ impl ScriptTask {
         }
 
         // Store new resizes, and gather all other events.
-        let mut sequential = vec!();
+        let mut sequential = Vec::new();
 
         // Receive at least one message so we don't spinloop.
         let mut event = self.port.recv();
