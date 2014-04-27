@@ -1141,7 +1141,7 @@ impl Node {
 
         // Step 3.
         let addedNodes = match node {
-            None => vec!(),
+            None => Vec::new(),
             Some(ref node) => match node.type_id() {
                 DocumentFragmentNodeTypeId => node.children().collect(),
                 _ => vec!(node.clone()),
