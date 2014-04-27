@@ -517,7 +517,7 @@ pub mod longhands {
                 pub enum T {
                     normal,
                     none,
-                    Content(~[Content]),
+                    Content(Vec<Content>),
                 }
             }
             pub type SpecifiedValue = computed_value::T;
@@ -539,7 +539,7 @@ pub mod longhands {
                     },
                     _ => ()
                 }
-                let mut content = ~[];
+                let mut content = Vec::new();
                 for component_value in input.skip_whitespace() {
                     match component_value {
                         &String(ref value)
@@ -1246,8 +1246,8 @@ pub mod shorthands {
 
 
 pub struct PropertyDeclarationBlock {
-    pub important: Arc<~[PropertyDeclaration]>,
-    pub normal: Arc<~[PropertyDeclaration]>,
+    pub important: Arc<Vec<PropertyDeclaration>>,
+    pub normal: Arc<Vec<PropertyDeclaration>>,
 }
 
 impl<E, S: Encoder<E>> Encodable<S, E> for PropertyDeclarationBlock {
@@ -1263,8 +1263,8 @@ pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclaration
 
 
 pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &Url) -> PropertyDeclarationBlock {
-    let mut important = ~[];
-    let mut normal = ~[];
+    let mut important = Vec::new();
+    let mut normal = Vec::new();
     for item in ErrorLoggerIterator(parse_declaration_list(input)) {
         match item {
             DeclAtRule(rule) => log_css_error(
@@ -1332,7 +1332,7 @@ pub enum PropertyDeclarationParseResult {
 
 impl PropertyDeclaration {
     pub fn parse(name: &str, value: &[ComponentValue],
-                 result_list: &mut ~[PropertyDeclaration],
+                 result_list: &mut Vec<PropertyDeclaration>,
                  base_url: &Url) -> PropertyDeclarationParseResult {
         // FIXME: local variable to work around Rust #10683
         let name_lower = name.to_ascii_lower();
