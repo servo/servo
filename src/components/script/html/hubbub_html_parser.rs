@@ -105,7 +105,7 @@ spawned, collates them, and sends them to the given result channel.
 */
 fn css_link_listener(to_parent: Sender<HtmlDiscoveryMessage>,
                      from_parent: Receiver<CSSMessage>) {
-    let mut result_vec = vec!();
+    let mut result_vec = Vec::new();
 
     loop {
         match from_parent.recv_opt() {
@@ -128,7 +128,7 @@ fn css_link_listener(to_parent: Sender<HtmlDiscoveryMessage>,
 fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
                       from_parent: Receiver<JSMessage>,
                       resource_task: ResourceTask) {
-    let mut result_vec = vec!();
+    let mut result_vec = Vec::new();
 
     loop {
         match from_parent.recv_opt() {
@@ -465,7 +465,7 @@ pub fn parse_html(page: &Page,
                         js_chan2.send(JSTaskNewFile(new_url));
                     }
                     None => {
-                        let mut data = vec!();
+                        let mut data = Vec::new();
                         let scriptnode: JS<Node> = NodeCast::from(&script);
                         debug!("iterating over children {:?}", scriptnode.first_child());
                         for child in scriptnode.children() {
