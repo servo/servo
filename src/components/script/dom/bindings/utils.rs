@@ -728,6 +728,10 @@ pub fn xml_name_type(name: &str) -> XMLName {
         }
     }
 
+    if name.as_slice().ends_with(":") {
+        return Name;
+    }
+
     match non_qname_colons {
         false => QName,
         true => Name
