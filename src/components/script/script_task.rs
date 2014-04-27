@@ -156,6 +156,13 @@ pub struct PageTree {
 
 pub struct PageTreeIterator<'a> {
     stack: Vec<&'a mut PageTree>,
+    page: Rc<Page>,
+    inner: Vec<PageTree>,
+}
+
+pub struct PageTreeIterator<'a> {
+    priv stack: Vec<&'a mut PageTree>,
+>>>>>>> ~[] to Vec in script/script_task.rs
 }
 
 impl PageTree {
@@ -175,7 +182,7 @@ impl PageTree {
                 fragment_node: Traceable::new(RefCell::new(None)),
                 last_reflow_id: Traceable::new(RefCell::new(0)),
             }),
-            inner: vec!(),
+            inner: Vec::new(),
         }
     }
 
