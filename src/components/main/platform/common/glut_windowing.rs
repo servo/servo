@@ -11,8 +11,8 @@ use windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMou
 use windowing::{Forward, Back};
 
 use alert::{Alert, AlertMethods};
+use libc::{c_int, c_uchar};
 use std::cell::{Cell, RefCell};
-use std::libc::{c_int, c_uchar};
 use std::local_data;
 use std::rc::Rc;
 use geom::point::Point2D;
@@ -45,18 +45,18 @@ impl Drop for Application {
 
 /// The type of a window.
 pub struct Window {
-    glut_window: glut::Window,
+    pub glut_window: glut::Window,
 
-    event_queue: RefCell<~[WindowEvent]>,
+    pub event_queue: RefCell<~[WindowEvent]>,
 
-    drag_origin: Point2D<c_int>,
+    pub drag_origin: Point2D<c_int>,
 
-    mouse_down_button: Cell<c_int>,
-    mouse_down_point: Cell<Point2D<c_int>>,
+    pub mouse_down_button: Cell<c_int>,
+    pub mouse_down_point: Cell<Point2D<c_int>>,
 
-    ready_state: Cell<ReadyState>,
-    render_state: Cell<RenderState>,
-    throbber_frame: Cell<u8>,
+    pub ready_state: Cell<ReadyState>,
+    pub render_state: Cell<RenderState>,
+    pub throbber_frame: Cell<u8>,
 }
 
 impl WindowMethods<Application> for Window {

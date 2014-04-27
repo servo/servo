@@ -15,17 +15,17 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct MouseEvent {
-    mouseevent: UIEvent,
-    screen_x: i32,
-    screen_y: i32,
-    client_x: i32,
-    client_y: i32,
-    ctrl_key: bool,
-    shift_key: bool,
-    alt_key: bool,
-    meta_key: bool,
-    button: u16,
-    related_target: Option<JS<EventTarget>>
+    pub mouseevent: UIEvent,
+    pub screen_x: i32,
+    pub screen_y: i32,
+    pub client_x: i32,
+    pub client_y: i32,
+    pub ctrl_key: bool,
+    pub shift_key: bool,
+    pub alt_key: bool,
+    pub meta_key: bool,
+    pub button: u16,
+    pub related_target: Option<JS<EventTarget>>
 }
 
 impl MouseEventDerived for Event {

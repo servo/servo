@@ -15,7 +15,7 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct HTMLDListElement {
-    htmlelement: HTMLElement
+    pub htmlelement: HTMLElement
 }
 
 impl HTMLDListElementDerived for EventTarget {

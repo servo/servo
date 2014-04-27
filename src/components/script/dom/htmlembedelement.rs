@@ -15,7 +15,7 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct HTMLEmbedElement {
-    htmlelement: HTMLElement
+    pub htmlelement: HTMLElement
 }
 
 impl HTMLEmbedElementDerived for EventTarget {

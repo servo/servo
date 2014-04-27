@@ -8,8 +8,8 @@ use js::jsapi::{JS_GetProperty, JSTracer, JS_CallTracer};
 use js::jsval::{JSVal, UndefinedValue};
 use js::JSTRACE_OBJECT;
 
+use libc;
 use std::cast;
-use std::libc;
 use std::ptr;
 
 use serialize::{Encodable, Encoder};
@@ -27,11 +27,11 @@ pub enum ExceptionHandling {
 
 #[deriving(Clone,Eq)]
 pub struct CallbackInterface {
-    callback: *JSObject
+    pub callback: *JSObject
 }
 
-impl<S: Encoder> Encodable<S> for CallbackInterface {
-    fn encode(&self, s: &mut S) {
+impl<S: Encoder<E>, E> Encodable<S, E> for CallbackInterface {
+    fn encode(&self, s: &mut S) -> Result<(), E> {
         unsafe {
             let tracer: *mut JSTracer = cast::transmute(s);
             "callback".to_c_str().with_ref(|name| {
@@ -40,7 +40,8 @@ impl<S: Encoder> Encodable<S> for CallbackInterface {
                 (*tracer).debugPrintArg = name as *libc::c_void;
                 JS_CallTracer(tracer as *JSTracer, self.callback, JSTRACE_OBJECT as u32);
             });
-        }
+        };
+        Ok(())
     }
 }
 
@@ -98,8 +99,8 @@ pub fn WrapCallThisObject<T: 'static + CallbackContainer + Reflectable>(cx: *JSC
 }
 
 pub struct CallSetup {
-    cx: *JSContext,
-    handling: ExceptionHandling
+    pub cx: *JSContext,
+    pub handling: ExceptionHandling
 }
 
 impl CallSetup {

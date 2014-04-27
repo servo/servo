@@ -54,9 +54,9 @@ enum FontSource {
 pub struct FontHandle {
     // The font binary. This must stay valid for the lifetime of the font,
     // if the font is created using FT_Memory_Face.
-    source: FontSource,
-    face: FT_Face,
-    handle: FontContextHandle
+    pub source: FontSource,
+    pub face: FT_Face,
+    pub handle: FontContextHandle
 }
 
 #[unsafe_destructor]

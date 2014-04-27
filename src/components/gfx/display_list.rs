@@ -19,11 +19,11 @@ use render_context::RenderContext;
 use text::TextRun;
 
 use geom::{Point2D, Rect, SideOffsets2D, Size2D};
+use libc::uintptr_t;
 use servo_net::image::base::Image;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec0, SmallVecIterator};
-use std::libc::uintptr_t;
 use std::mem;
 use std::slice::Items;
 use style::computed_values::border_style;
@@ -36,7 +36,7 @@ use sync::Arc;
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
 #[deriving(Clone, Eq)]
-pub struct OpaqueNode(uintptr_t);
+pub struct OpaqueNode(pub uintptr_t);
 
 impl OpaqueNode {
     /// Returns the address of this node, for debugging purposes.
@@ -52,20 +52,20 @@ impl OpaqueNode {
 /// TODO(pcwalton): Outlines.
 pub struct StackingContext {
     /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
-    background_and_borders: DisplayList,
+    pub background_and_borders: DisplayList,
     /// Borders and backgrounds for block-level descendants: step 4.
-    block_backgrounds_and_borders: DisplayList,
+    pub block_backgrounds_and_borders: DisplayList,
     /// Floats: step 5. These are treated as pseudo-stacking contexts.
-    floats: DisplayList,
+    pub floats: DisplayList,
     /// All other content.
-    content: DisplayList,
+    pub content: DisplayList,
 
     /// Positioned descendant stacking contexts, along with their `z-index` levels.
     ///
     /// TODO(pcwalton): `z-index` should be the actual CSS property value in order to handle
     /// `auto`, not just an integer. In this case we should store an actual stacking context, not
     /// a flattened display list.
-    positioned_descendants: SmallVec0<(int, DisplayList)>,
+    pub positioned_descendants: SmallVec0<(int, DisplayList)>,
 }
 
 impl StackingContext {
@@ -143,7 +143,7 @@ pub enum BackgroundAndBorderLevel {
 
 /// A list of rendering operations to be performed.
 pub struct DisplayList {
-    list: SmallVec0<DisplayItem>,
+    pub list: SmallVec0<DisplayItem>,
 }
 
 pub enum DisplayListIterator<'a> {
@@ -216,43 +216,43 @@ pub struct BaseDisplayItem {
     /// The boundaries of the display item.
     ///
     /// TODO: Which coordinate system should this use?
-    bounds: Rect<Au>,
+    pub bounds: Rect<Au>,
 
     /// The originating DOM node.
-    node: OpaqueNode,
+    pub node: OpaqueNode,
 }
 
 /// Renders a solid color.
 pub struct SolidColorDisplayItem {
-    base: BaseDisplayItem,
-    color: Color,
+    pub base: BaseDisplayItem,
+    pub color: Color,
 }
 
 /// Renders text.
 pub struct TextDisplayItem {
     /// Fields common to all display items.
-    base: BaseDisplayItem,
+    pub base: BaseDisplayItem,
 
     /// The text run.
-    text_run: Arc<~TextRun>,
+    pub text_run: Arc<~TextRun>,
 
     /// The range of text within the text run.
-    range: Range,
+    pub range: Range,
 
     /// The color of the text.
-    text_color: Color,
+    pub text_color: Color,
 
     /// A bitfield of flags for text display items.
-    flags: TextDisplayItemFlags,
+    pub flags: TextDisplayItemFlags,
 
     /// The color of text-decorations
-    underline_color: Color,
-    overline_color: Color,
-    line_through_color: Color,
+    pub underline_color: Color,
+    pub overline_color: Color,
+    pub line_through_color: Color,
 }
 
 /// Flags for text display items.
-pub struct TextDisplayItemFlags(u8);
+pub struct TextDisplayItemFlags(pub u8);
 
 impl TextDisplayItemFlags {
     pub fn new() -> TextDisplayItemFlags {
@@ -269,44 +269,44 @@ bitfield!(TextDisplayItemFlags, override_line_through, set_override_line_through
 
 /// Renders an image.
 pub struct ImageDisplayItem {
-    base: BaseDisplayItem,
-    image: Arc<~Image>,
+    pub base: BaseDisplayItem,
+    pub image: Arc<~Image>,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
     /// the bounds of this display item, then the image will be repeated in the appropriate
     /// direction to tile the entire bounds.
-    stretch_size: Size2D<Au>,
+    pub stretch_size: Size2D<Au>,
 }
 
 /// Renders a border.
 pub struct BorderDisplayItem {
-    base: BaseDisplayItem,
+    pub base: BaseDisplayItem,
 
     /// The border widths
-    border: SideOffsets2D<Au>,
+    pub border: SideOffsets2D<Au>,
 
     /// The border colors.
-    color: SideOffsets2D<Color>,
+    pub color: SideOffsets2D<Color>,
 
     /// The border styles.
-    style: SideOffsets2D<border_style::T>
+    pub style: SideOffsets2D<border_style::T>
 }
 
 /// Renders a line segment.
 pub struct LineDisplayItem {
-    base: BaseDisplayItem,
+    pub base: BaseDisplayItem,
 
     /// The line segment color.
-    color: Color,
+    pub color: Color,
 
     /// The line segment style.
-    style: border_style::T
+    pub style: border_style::T
 }
 
 pub struct ClipDisplayItem {
-    base: BaseDisplayItem,
-    child_list: SmallVec0<DisplayItem>,
-    need_clip: bool
+    pub base: BaseDisplayItem,
+    pub child_list: SmallVec0<DisplayItem>,
+    pub need_clip: bool
 }
 
 pub enum DisplayItemIterator<'a> {
@@ -348,7 +348,7 @@ impl DisplayItem {
                 debug!("Drawing text at {:?}.", text.base.bounds);
 
                 // FIXME(pcwalton): Allocating? Why?
-                let text_run = text.text_run.get();
+                let text_run = text.text_run.clone();
                 let font = render_context.font_ctx.get_font_by_descriptor(&text_run.font_descriptor).unwrap();
 
                 let font_metrics = {
@@ -358,7 +358,7 @@ impl DisplayItem {
                 let baseline_origin = Point2D(origin.x, origin.y + font_metrics.ascent);
                 {
                     font.borrow_mut().draw_text_into_context(render_context,
-                                                             text.text_run.get(),
+                                                             &*text.text_run,
                                                              &text.range,
                                                              baseline_origin,
                                                              text.text_color);

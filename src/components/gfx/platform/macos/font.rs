@@ -52,8 +52,8 @@ impl FontTableMethods for FontTable {
 }
 
 pub struct FontHandle {
-    priv cgfont: Option<CGFont>,
-    ctfont: CTFont,
+    cgfont: Option<CGFont>,
+    pub ctfont: CTFont,
 }
 
 impl FontHandle {

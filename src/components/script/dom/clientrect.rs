@@ -10,12 +10,12 @@ use servo_util::geometry::Au;
 
 #[deriving(Encodable)]
 pub struct ClientRect {
-    reflector_: Reflector,
-    top: f32,
-    bottom: f32,
-    left: f32,
-    right: f32,
-    window: JS<Window>,
+    pub reflector_: Reflector,
+    pub top: f32,
+    pub bottom: f32,
+    pub left: f32,
+    pub right: f32,
+    pub window: JS<Window>,
 }
 
 impl ClientRect {

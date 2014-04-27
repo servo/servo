@@ -71,13 +71,13 @@ fn parse_lists(filenames: &[~str], servo_args: &[~str]) -> Vec<TestDescAndFn> {
         let file_path = Path::new(file.clone());
         let contents = match File::open_mode(&file_path, io::Open, io::Read)
             .and_then(|mut f| {
-                f.read_to_end()
+                f.read_to_str()
             }) {
-                Ok(s) => str::from_utf8_owned(s),
+                Ok(s) => s,
                 _ => fail!("Could not read file"),
             };
 
-        for line in contents.unwrap().lines() {
+        for line in contents.lines() {
             // ignore comments
             if line.starts_with("#") {
                 continue;

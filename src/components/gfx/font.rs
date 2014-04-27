@@ -77,16 +77,16 @@ pub trait FontTableMethods {
 
 #[deriving(Clone)]
 pub struct FontMetrics {
-    underline_size:   Au,
-    underline_offset: Au,
-    strikeout_size:   Au,
-    strikeout_offset: Au,
-    leading:          Au,
-    x_height:         Au,
-    em_size:          Au,
-    ascent:           Au,
-    descent:          Au,
-    max_advance:      Au
+    pub underline_size:   Au,
+    pub underline_offset: Au,
+    pub strikeout_size:   Au,
+    pub strikeout_offset: Au,
+    pub leading:          Au,
+    pub x_height:         Au,
+    pub em_size:          Au,
+    pub ascent:           Au,
+    pub descent:          Au,
+    pub max_advance:      Au
 }
 
 // TODO(Issue #179): eventually this will be split into the specified
@@ -97,10 +97,10 @@ pub struct FontMetrics {
 // For now, the cases are differentiated with a typedef
 #[deriving(Clone, Eq)]
 pub struct FontStyle {
-    pt_size: f64,
-    weight: font_weight::T,
-    style: font_style::T,
-    families: ~[~str],
+    pub pt_size: f64,
+    pub weight: font_weight::T,
+    pub style: font_style::T,
+    pub families: ~[~str],
     // TODO(Issue #198): font-stretch, text-decoration, font-variant, size-adjust
 }
 
@@ -115,8 +115,8 @@ pub type UsedFontStyle = FontStyle;
 // and render tasks.
 #[deriving(Clone, Eq)]
 pub struct FontDescriptor {
-    style: UsedFontStyle,
-    selector: FontSelector,
+    pub style: UsedFontStyle,
+    pub selector: FontSelector,
 }
 
 impl FontDescriptor {
@@ -142,11 +142,11 @@ pub enum FontSelector {
 // The ordering of font instances is mainly decided by the CSS
 // 'font-family' property. The last font is a system fallback font.
 pub struct FontGroup {
-    families: ~[~str],
+    pub families: ~[~str],
     // style of the first western font in group, which is
     // used for purposes of calculating text run metrics.
-    style: UsedFontStyle,
-    fonts: ~[Rc<RefCell<Font>>]
+    pub style: UsedFontStyle,
+    pub fonts: ~[Rc<RefCell<Font>>]
 }
 
 impl FontGroup {
@@ -172,12 +172,12 @@ impl FontGroup {
 
 pub struct RunMetrics {
     // may be negative due to negative width (i.e., kerning of '.' in 'P.T.')
-    advance_width: Au,
-    ascent: Au, // nonzero
-    descent: Au, // nonzero
+    pub advance_width: Au,
+    pub ascent: Au, // nonzero
+    pub descent: Au, // nonzero
     // this bounding box is relative to the left origin baseline.
     // so, bounding_box.position.y = -ascent
-    bounding_box: Rect<Au>
+    pub bounding_box: Rect<Au>
 }
 
 impl RunMetrics {
@@ -203,14 +203,14 @@ A font instance. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 */
 pub struct Font {
-    priv handle: FontHandle,
-    priv azure_font: Option<ScaledFont>,
-    priv shaper: Option<Shaper>,
-    style: UsedFontStyle,
-    metrics: FontMetrics,
-    backend: BackendType,
-    shape_cache: HashCache<~str, Arc<GlyphStore>>,
-    glyph_advance_cache: HashCache<u32, FractionalPixel>,
+    pub handle: FontHandle,
+    pub azure_font: Option<ScaledFont>,
+    pub shaper: Option<Shaper>,
+    pub style: UsedFontStyle,
+    pub metrics: FontMetrics,
+    pub backend: BackendType,
+    pub shape_cache: HashCache<~str, Arc<GlyphStore>>,
+    pub glyph_advance_cache: HashCache<u32, FractionalPixel>,
 }
 
 impl<'a> Font {
@@ -341,7 +341,7 @@ impl Font {
                               range: &Range,
                               baseline_origin: Point2D<Au>,
                               color: Color) {
-        use std::libc::types::common::c99::{uint16_t, uint32_t};
+        use libc::types::common::c99::{uint16_t, uint32_t};
         use azure::{struct__AzDrawOptions,
                     struct__AzGlyph,
                     struct__AzGlyphBuffer,

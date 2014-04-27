@@ -12,10 +12,11 @@ use windowing::RefreshWindowEvent;
 use windowing::{Forward, Back};
 
 use alert::{Alert, AlertMethods};
+use libc::{exit, c_int};
 use time;
 use time::Timespec;
 use std::cell::{Cell, RefCell};
-use std::libc::{exit, c_int};
+use std::comm::Receiver;
 use std::rc::Rc;
 
 use geom::point::Point2D;
@@ -24,24 +25,27 @@ use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderSta
 use servo_msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
 
 use glfw;
+use glfw::Context;
 
 /// A structure responsible for setting up and tearing down the entire windowing system.
-pub struct Application;
+pub struct Application {
+    pub glfw: glfw::Glfw,
+}
 
 impl ApplicationMethods for Application {
     fn new() -> Application {
-        // Per GLFW docs it's safe to set the error callback before calling
-        // glfwInit(), and this way we notice errors from init too.
-        glfw::set_error_callback(~glfw::LogErrorHandler);
-
-        if glfw::init().is_err() {
-            // handles things like inability to connect to X
-            // cannot simply fail, since the runtime isn't up yet (causes a nasty abort)
-            println!("GLFW initialization failed");
-            unsafe { exit(1); }
+        let app = glfw::init(glfw::LOG_ERRORS);
+        match app {
+            Err(_) => {
+                // handles things like inability to connect to X
+                // cannot simply fail, since the runtime isn't up yet (causes a nasty abort)
+                println!("GLFW initialization failed");
+                unsafe { exit(1); }
+            }
+            Ok(app) => {
+                Application { glfw: app }
+            }
         }
-
-        Application
     }
 }
 
@@ -79,32 +83,38 @@ macro_rules! glfw_callback(
 
 /// The type of a window.
 pub struct Window {
-    glfw_window: glfw::Window,
+    pub glfw: glfw::Glfw,
 
-    event_queue: RefCell<~[WindowEvent]>,
+    pub glfw_window: glfw::Window,
+    pub events: Receiver<(f64, glfw::WindowEvent)>,
 
-    drag_origin: Point2D<c_int>,
+    pub event_queue: RefCell<~[WindowEvent]>,
 
-    mouse_down_button: Cell<Option<glfw::MouseButton>>,
-    mouse_down_point: Cell<Point2D<c_int>>,
+    pub drag_origin: Point2D<c_int>,
 
-    ready_state: Cell<ReadyState>,
-    render_state: Cell<RenderState>,
+    pub mouse_down_button: Cell<Option<glfw::MouseButton>>,
+    pub mouse_down_point: Cell<Point2D<c_int>>,
 
-    last_title_set_time: Cell<Timespec>,
+    pub ready_state: Cell<ReadyState>,
+    pub render_state: Cell<RenderState>,
+
+    pub last_title_set_time: Cell<Timespec>,
 }
 
 impl WindowMethods<Application> for Window {
     /// Creates a new window.
-    fn new(_: &Application) -> Rc<Window> {
+    fn new(app: &Application) -> Rc<Window> {
         // Create the GLFW window.
-        let glfw_window = glfw::Window::create(800, 600, "Servo", glfw::Windowed)
+        let (glfw_window, events) = app.glfw.create_window(800, 600, "Servo", glfw::Windowed)
             .expect("Failed to create GLFW window");
-        glfw_window.make_context_current();
+        glfw_window.make_current();
 
         // Create our window object.
         let window = Window {
+            glfw: app.glfw,
+
             glfw_window: glfw_window,
+            events: events,
 
             event_queue: RefCell::new(~[]),
 
@@ -151,8 +161,8 @@ impl WindowMethods<Application> for Window {
             }
         }
 
-        glfw::poll_events();
-        for (_, event) in self.glfw_window.flush_events() {
+        self.glfw.poll_events();
+        for (_, event) in glfw::flush_messages(&self.events) {
             self.handle_window_event(&self.glfw_window, event);
         }
 

@@ -42,19 +42,19 @@ use sync::Arc;
 
 /// Information specific to floated blocks.
 pub struct FloatedBlockInfo {
-    containing_width: Au,
+    pub containing_width: Au,
 
     /// Offset relative to where the parent tried to position this flow
-    rel_pos: Point2D<Au>,
+    pub rel_pos: Point2D<Au>,
 
     /// Index into the box list for inline floats
-    index: Option<uint>,
+    pub index: Option<uint>,
 
     /// Number of floated children
-    floated_children: uint,
+    pub floated_children: uint,
 
     /// Left or right?
-    float_kind: FloatKind,
+    pub float_kind: FloatKind,
 }
 
 impl FloatedBlockInfo {
@@ -481,20 +481,20 @@ fn propagate_layer_flag_from_child(layers_needed_for_descendants: &mut bool, kid
 // A block formatting context.
 pub struct BlockFlow {
     /// Data common to all flows.
-    base: BaseFlow,
+    pub base: BaseFlow,
 
     /// The associated box.
-    box_: Box,
+    pub box_: Box,
 
     /// TODO: is_root should be a bit field to conserve memory.
     /// Whether this block flow is the root flow.
-    is_root: bool,
+    pub is_root: bool,
 
     /// Static y offset of an absolute flow from its CB.
-    static_y_offset: Au,
+    pub static_y_offset: Au,
 
     /// Additional floating flow members.
-    float: Option<~FloatedBlockInfo>
+    pub float: Option<~FloatedBlockInfo>
 }
 
 impl BlockFlow {
@@ -780,9 +780,9 @@ impl BlockFlow {
         self.base.position.size.height = self.base.position.size.height + top_margin_value +
             bottom_margin_value;
 
-        let mut position = self.box_.border_box.get();
+        let mut position = *self.box_.border_box.borrow();
         position.size.height = position.size.height + top_margin_value + bottom_margin_value;
-        self.box_.border_box.set(position);
+        *self.box_.border_box.borrow_mut() = position;
     }
 
     /// Assign height for current flow.
@@ -819,14 +819,14 @@ impl BlockFlow {
         self.base.floats.translate(Point2D(-self.box_.left_offset(), Au(0)));
 
         // The sum of our top border and top padding.
-        let top_offset = self.box_.border.get().top + self.box_.padding.get().top;
+        let top_offset = self.box_.border.borrow().top + self.box_.padding.borrow().top;
         translate_including_floats(&mut cur_y, top_offset, inorder, &mut self.base.floats);
 
         let can_collapse_top_margin_with_kids =
             margins_may_collapse == MarginsMayCollapse &&
             !self.is_absolutely_positioned() &&
-            self.box_.border.get().top == Au(0) &&
-            self.box_.padding.get().top == Au(0);
+            self.box_.border.borrow().top == Au(0) &&
+            self.box_.padding.borrow().top == Au(0);
         margin_collapse_info.initialize_top_margin(&self.box_,
                                                    can_collapse_top_margin_with_kids);
 
@@ -940,8 +940,8 @@ impl BlockFlow {
         let can_collapse_bottom_margin_with_kids =
             margins_may_collapse == MarginsMayCollapse &&
             !self.is_absolutely_positioned() &&
-            self.box_.border.get().bottom == Au(0) &&
-            self.box_.padding.get().bottom == Au(0);
+            self.box_.border.borrow().bottom == Au(0) &&
+            self.box_.padding.borrow().bottom == Au(0);
         let (collapsible_margins, delta) =
             margin_collapse_info.finish_and_compute_collapsible_margins(
             &self.box_,
@@ -970,9 +970,9 @@ impl BlockFlow {
 
             // Store the content height for use in calculating the absolute flow's dimensions
             // later.
-            let mut temp_position = self.box_.border_box.get();
+            let mut temp_position = *self.box_.border_box.borrow();
             temp_position.size.height = height;
-            self.box_.border_box.set(temp_position);
+            *self.box_.border_box.borrow_mut() = temp_position;
             return
         }
 
@@ -991,15 +991,15 @@ impl BlockFlow {
         translate_including_floats(&mut cur_y, delta, inorder, &mut floats);
 
         // Compute content height and noncontent height.
-        let bottom_offset = self.box_.border.get().bottom + self.box_.padding.get().bottom;
+        let bottom_offset = self.box_.border.borrow().bottom + self.box_.padding.borrow().bottom;
         translate_including_floats(&mut cur_y, bottom_offset, inorder, &mut floats);
 
         // Now that `cur_y` is at the bottom of the border box, compute the final border box
         // position.
-        let mut border_box = self.box_.border_box.get();
+        let mut border_box = *self.box_.border_box.borrow();
         border_box.size.height = cur_y;
         border_box.origin.y = Au(0);
-        self.box_.border_box.set(border_box);
+        *self.box_.border_box.borrow_mut() = border_box;
         self.base.position.size.height = cur_y;
 
         self.base.floats = floats.clone();
@@ -1031,18 +1031,18 @@ impl BlockFlow {
     /// Therefore, assign_height_float was already called on this kid flow by
     /// the traversal function. So, the values used are well-defined.
     pub fn assign_height_float_inorder(&mut self) {
-        let height = self.box_.border_box.get().size.height;
+        let height = self.box_.border_box.borrow().size.height;
         let clearance = match self.box_.clear() {
             None => Au(0),
             Some(clear) => self.base.floats.clearance(clear),
         };
 
-        let noncontent_width = self.box_.padding.get().left + self.box_.padding.get().right +
-            self.box_.border.get().left + self.box_.border.get().right;
+        let noncontent_width = self.box_.padding.borrow().left + self.box_.padding.borrow().right +
+            self.box_.border.borrow().left + self.box_.border.borrow().right;
 
-        let full_noncontent_width = noncontent_width + self.box_.margin.get().left +
-            self.box_.margin.get().right;
-        let margin_height = self.box_.margin.get().top + self.box_.margin.get().bottom;
+        let full_noncontent_width = noncontent_width + self.box_.margin.borrow().left +
+            self.box_.margin.borrow().right;
+        let margin_height = self.box_.margin.borrow().top + self.box_.margin.borrow().bottom;
 
         let info = PlacementInfo {
             size: Size2D(self.base.position.size.width + full_noncontent_width,
@@ -1083,7 +1083,7 @@ impl BlockFlow {
         }
         let mut cur_y = Au(0);
 
-        let top_offset = self.box_.margin.get().top + self.box_.border.get().top + self.box_.padding.get().top;
+        let top_offset = self.box_.margin.borrow().top + self.box_.border.borrow().top + self.box_.padding.borrow().top;
         cur_y = cur_y + top_offset;
 
         // cur_y is now at the top content edge
@@ -1098,13 +1098,13 @@ impl BlockFlow {
         let content_height = cur_y - top_offset;
 
         let mut noncontent_height;
-        let mut position = self.box_.border_box.get();
+        let mut position = *self.box_.border_box.borrow();
 
         // The associated box is the border box of this flow.
-        position.origin.y = self.box_.margin.get().top;
+        position.origin.y = self.box_.margin.borrow().top;
 
-        noncontent_height = self.box_.padding.get().top + self.box_.padding.get().bottom +
-            self.box_.border.get().top + self.box_.border.get().bottom;
+        noncontent_height = self.box_.padding.borrow().top + self.box_.padding.borrow().bottom +
+            self.box_.border.borrow().top + self.box_.border.borrow().bottom;
 
         // Calculate content height, taking `min-height` and `max-height` into account.
 
@@ -1121,7 +1121,7 @@ impl BlockFlow {
         debug!("assign_height_float -- height: {}", content_height + noncontent_height);
 
         position.size.height = content_height + noncontent_height;
-        self.box_.border_box.set(position);
+        *self.box_.border_box.borrow_mut() = position;
     }
 
     fn build_display_list_block_common(&mut self,
@@ -1232,13 +1232,13 @@ impl BlockFlow {
         let static_y_offset = self.static_y_offset;
 
         // This is the stored content height value from assign-height
-        let content_height = self.box_.border_box.get().size.height - self.box_.noncontent_height();
+        let content_height = self.box_.border_box.borrow().size.height - self.box_.noncontent_height();
 
         let style = self.box_.style();
 
         // Non-auto margin-top and margin-bottom values have already been
         // calculated during assign-width.
-        let margin = self.box_.margin.get();
+        let mut margin = self.box_.margin.borrow_mut();
         let margin_top = match MaybeAuto::from_style(style.Margin.get().margin_top, Au(0)) {
             Auto => Auto,
             _ => Specified(margin.top)
@@ -1262,7 +1262,7 @@ impl BlockFlow {
             // TODO: Right now, this content height value includes the
             // margin because of erroneous height calculation in Box_.
             // Check this when that has been fixed.
-            let height_used_val = self.box_.border_box.get().size.height;
+            let height_used_val = self.box_.border_box.borrow().size.height;
             solution = Some(HeightConstraintSolution::solve_vertical_constraints_abs_replaced(
                     height_used_val,
                     margin_top,
@@ -1294,17 +1294,14 @@ impl BlockFlow {
 
         let solution = solution.unwrap();
 
-        let mut margin = self.box_.margin.get();
         margin.top = solution.margin_top;
         margin.bottom = solution.margin_bottom;
-        self.box_.margin.set(margin);
 
-        let mut position = self.box_.border_box.get();
+        let mut position = self.box_.border_box.borrow_mut();
         position.origin.y = Au(0);
         // Border box height
         let border_and_padding = self.box_.noncontent_height();
         position.size.height = solution.height + border_and_padding;
-        self.box_.border_box.set(position);
 
         self.base.position.origin.y = solution.top + margin.top;
         self.base.position.size.height = solution.height + border_and_padding;
@@ -1403,7 +1400,7 @@ impl BlockFlow {
             // Pass yourself as a new Containing Block
             // The static x offset for any immediate kid flows will be the
             // left padding
-            kid_abs_cb_x_offset = self.box_.padding.get().left;
+            kid_abs_cb_x_offset = self.box_.padding.borrow().left;
         } else {
             // For kids, the left margin edge will be at our left content edge.
             // The current static offset is at our left margin
@@ -1570,11 +1567,11 @@ impl Flow for BlockFlow {
         self.base.clear = self.box_.style().Box.get().clear;
 
         // Move in from the left border edge
-        let left_content_edge = self.box_.border_box.get().origin.x
-            + self.box_.padding.get().left + self.box_.border.get().left;
-        let padding_and_borders = self.box_.padding.get().left + self.box_.padding.get().right +
-            self.box_.border.get().left + self.box_.border.get().right;
-        let content_width = self.box_.border_box.get().size.width - padding_and_borders;
+        let left_content_edge = self.box_.border_box.borrow().origin.x
+            + self.box_.padding.borrow().left + self.box_.border.borrow().left;
+        let padding_and_borders = self.box_.padding.borrow().left + self.box_.padding.borrow().right +
+            self.box_.border.borrow().left + self.box_.border.borrow().right;
+        let content_width = self.box_.border_box.borrow().size.width - padding_and_borders;
 
         if self.is_float() {
             self.base.position.size.width = content_width;
@@ -1637,7 +1634,7 @@ impl Flow for BlockFlow {
 
     /// The 'position' property of this flow.
     fn positioning(&self) -> position::T {
-        self.box_.style.get().Box.get().position
+        self.box_.style.Box.get().position
     }
 
     /// Return true if this is the root of an Absolute flow tree.
@@ -1657,7 +1654,7 @@ impl Flow for BlockFlow {
     /// Return position of the CB generated by this flow from the start of this flow.
     fn generated_cb_position(&self) -> Point2D<Au> {
         // Border box y coordinate + border top
-        self.box_.border_box.get().origin + Point2D(self.box_.border.get().left, self.box_.border.get().top)
+        self.box_.border_box.borrow().origin + Point2D(self.box_.border.borrow().left, self.box_.border.borrow().top)
     }
 
     fn layer_id(&self, fragment_index: uint) -> LayerId {
@@ -1685,13 +1682,13 @@ impl Flow for BlockFlow {
 
 /// The inputs for the widths-and-margins constraint equation.
 pub struct WidthConstraintInput {
-    computed_width: MaybeAuto,
-    left_margin: MaybeAuto,
-    right_margin: MaybeAuto,
-    left: MaybeAuto,
-    right: MaybeAuto,
-    available_width: Au,
-    static_x_offset: Au,
+    pub computed_width: MaybeAuto,
+    pub left_margin: MaybeAuto,
+    pub right_margin: MaybeAuto,
+    pub left: MaybeAuto,
+    pub right: MaybeAuto,
+    pub available_width: Au,
+    pub static_x_offset: Au,
 }
 
 impl WidthConstraintInput {
@@ -1717,11 +1714,11 @@ impl WidthConstraintInput {
 
 /// The solutions for the widths-and-margins constraint equation.
 pub struct WidthConstraintSolution {
-    left: Au,
-    right: Au,
-    width: Au,
-    margin_left: Au,
-    margin_right: Au
+    pub left: Au,
+    pub right: Au,
+    pub width: Au,
+    pub margin_left: Au,
+    pub margin_right: Au
 }
 
 impl WidthConstraintSolution {
@@ -1807,15 +1804,14 @@ pub trait WidthAndMarginsComputer {
                                       block: &mut BlockFlow,
                                       solution: WidthConstraintSolution) {
         let box_ = block.box_();
-        let mut margin = box_.margin.get();
+        let mut margin = box_.margin.borrow_mut();
         margin.left = solution.margin_left;
         margin.right = solution.margin_right;
-        box_.margin.set(margin);
 
         // The associated box is the border box of this flow.
         let mut position_ref = box_.border_box.borrow_mut();
         // Left border edge.
-        position_ref.origin.x = box_.margin.borrow().left;
+        position_ref.origin.x = margin.left;
 
         // Border box width
         position_ref.size.width = solution.width + box_.noncontent_width();

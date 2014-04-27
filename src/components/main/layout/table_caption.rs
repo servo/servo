@@ -15,7 +15,7 @@ use gfx::display_list::StackingContext;
 
 /// A table formatting context.
 pub struct TableCaptionFlow {
-    block_flow: BlockFlow,
+    pub block_flow: BlockFlow,
 }
 
 impl TableCaptionFlow {

@@ -8,8 +8,8 @@ use servo_util::namespace::Namespace;
 use errors::log_css_error;
 
 pub struct NamespaceMap {
-    default: Option<Namespace>,
-    prefix_map: HashMap<~str, Namespace>,
+    pub default: Option<Namespace>,
+    pub prefix_map: HashMap<~str, Namespace>,
 }
 
 

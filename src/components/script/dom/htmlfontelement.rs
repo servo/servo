@@ -15,7 +15,7 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct HTMLFontElement {
-    htmlelement: HTMLElement
+    pub htmlelement: HTMLElement
 }
 
 impl HTMLFontElementDerived for EventTarget {

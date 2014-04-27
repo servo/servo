@@ -15,7 +15,7 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct HTMLQuoteElement {
-    htmlelement: HTMLElement,
+    pub htmlelement: HTMLElement,
 }
 
 impl HTMLQuoteElementDerived for EventTarget {

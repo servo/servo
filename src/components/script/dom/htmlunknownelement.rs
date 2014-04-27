@@ -14,7 +14,7 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct HTMLUnknownElement {
-    htmlelement: HTMLElement
+    pub htmlelement: HTMLElement
 }
 
 impl HTMLUnknownElementDerived for EventTarget {

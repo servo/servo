@@ -43,72 +43,72 @@ use time::precise_time_s;
 
 pub struct IOCompositor {
     /// The application window.
-    window: Rc<Window>,
+    pub window: Rc<Window>,
 
     /// The port on which we receive messages.
-    port: Receiver<Msg>,
+    pub port: Receiver<Msg>,
 
     /// The render context.
-    context: RenderContext,
+    pub context: RenderContext,
 
     /// The root ContainerLayer.
-    root_layer: Rc<ContainerLayer>,
+    pub root_layer: Rc<ContainerLayer>,
 
     /// The root pipeline.
-    root_pipeline: Option<CompositionPipeline>,
+    pub root_pipeline: Option<CompositionPipeline>,
 
     /// The canvas to paint a page.
-    scene: Scene,
+    pub scene: Scene,
 
     /// The application window size.
-    window_size: Size2D<uint>,
+    pub window_size: Size2D<uint>,
 
     /// The platform-specific graphics context.
-    graphics_context: NativeCompositingGraphicsContext,
+    pub graphics_context: NativeCompositingGraphicsContext,
 
     /// Tracks whether the renderer has finished its first rendering
-    composite_ready: bool,
+    pub composite_ready: bool,
 
     /// Tracks whether we are in the process of shutting down.
-    shutting_down: bool,
+    pub shutting_down: bool,
 
     /// Tracks whether we should close compositor.
-    done: bool,
+    pub done: bool,
 
     /// Tracks whether we need to re-composite a page.
-    recomposite: bool,
+    pub recomposite: bool,
 
     /// Keeps track of the current zoom factor.
-    world_zoom: f32,
+    pub world_zoom: f32,
 
     /// Tracks whether the zoom action has happend recently.
-    zoom_action: bool,
+    pub zoom_action: bool,
 
     /// The time of the last zoom action has started.
-    zoom_time: f64,
+    pub zoom_time: f64,
 
     /// Current display/reflow status of the page
-    ready_state: ReadyState,
+    pub ready_state: ReadyState,
 
     /// Whether the page being rendered has loaded completely.
     /// Differs from ReadyState because we can finish loading (ready)
     /// many times for a single page.
-    load_complete: bool,
+    pub load_complete: bool,
 
     /// The command line option flags.
-    opts: Opts,
+    pub opts: Opts,
 
     /// The root CompositorLayer
-    compositor_layer: Option<CompositorLayer>,
+    pub compositor_layer: Option<CompositorLayer>,
 
     /// The channel on which messages can be sent to the constellation.
-    constellation_chan: ConstellationChan,
+    pub constellation_chan: ConstellationChan,
 
     /// The channel on which messages can be sent to the profiler.
-    profiler_chan: ProfilerChan,
+    pub profiler_chan: ProfilerChan,
 
     /// Pending scroll to fragment event, if any
-    fragment_point: Option<Point2D<f32>>
+    pub fragment_point: Option<Point2D<f32>>
 }
 
 impl IOCompositor {
@@ -376,7 +376,7 @@ impl IOCompositor {
                                                           self.opts.tile_size,
                                                           self.opts.cpu_painting);
 
-            match self.root_layer.first_child.get() {
+            match *self.root_layer.first_child.borrow() {
                 None => {}
                 Some(ref old_layer) => {
                     ContainerLayer::remove_child(self.root_layer.clone(), old_layer.clone())

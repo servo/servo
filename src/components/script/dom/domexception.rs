@@ -37,8 +37,8 @@ pub enum DOMErrorName {
 
 #[deriving(Encodable)]
 pub struct DOMException {
-    code: DOMErrorName,
-    reflector_: Reflector
+    pub code: DOMErrorName,
+    pub reflector_: Reflector
 }
 
 impl DOMException {

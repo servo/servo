@@ -28,7 +28,7 @@ use url::Url;
 
 #[deriving(Encodable)]
 pub struct HTMLObjectElement {
-    htmlelement: HTMLElement,
+    pub htmlelement: HTMLElement,
 }
 
 impl HTMLObjectElementDerived for EventTarget {

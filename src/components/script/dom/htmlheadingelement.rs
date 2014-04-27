@@ -24,8 +24,8 @@ pub enum HeadingLevel {
 
 #[deriving(Encodable)]
 pub struct HTMLHeadingElement {
-    htmlelement: HTMLElement,
-    level: HeadingLevel,
+    pub htmlelement: HTMLElement,
+    pub level: HeadingLevel,
 }
 
 impl HTMLHeadingElementDerived for EventTarget {

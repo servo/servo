@@ -5,11 +5,10 @@
 use resource_task::{Metadata, Payload, Done, LoadResponse, LoaderTask, start_sending};
 
 use collections::hashmap::HashSet;
-use http::client::RequestWriter;
+use http::client::{RequestWriter, NetworkStream};
 use http::method::Get;
 use http::headers::HeaderEnum;
 use std::io::Reader;
-use std::io::net::tcp::TcpStream;
 use std::slice;
 use servo_util::task::spawn_named;
 use url::Url;
@@ -60,7 +59,7 @@ fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
 
         info!("requesting {:s}", url.to_str());
 
-        let request = RequestWriter::<TcpStream>::new(Get, url.clone());
+        let request = RequestWriter::<NetworkStream>::new(Get, url.clone());
         let writer = match request {
             Ok(w) => ~w,
             Err(_) => {

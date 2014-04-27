@@ -90,7 +90,7 @@ pub fn mut_borrowed_flow_to_unsafe_flow(flow: &mut Flow) -> UnsafeFlow {
 /// Information that we need stored in each DOM node.
 pub struct DomParallelInfo {
     /// The number of children that still need work done.
-    children_count: AtomicInt,
+    pub children_count: AtomicInt,
 }
 
 impl DomParallelInfo {
@@ -104,9 +104,9 @@ impl DomParallelInfo {
 /// Information that we need stored in each flow.
 pub struct FlowParallelInfo {
     /// The number of children that still need work done.
-    children_count: AtomicInt,
+    pub children_count: AtomicInt,
     /// The address of the parent flow.
-    parent: UnsafeFlow,
+    pub parent: UnsafeFlow,
 }
 
 impl FlowParallelInfo {
@@ -270,7 +270,7 @@ fn recalc_style_for_node(unsafe_layout_node: UnsafeLayoutNode,
 
                 // Perform the CSS cascade.
                 node.cascade_node(parent_opt,
-                                  layout_context.initial_css_values.get(),
+                                  &*layout_context.initial_css_values,
                                   &applicable_declarations,
                                   layout_context.applicable_declarations_cache());
 

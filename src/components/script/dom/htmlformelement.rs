@@ -16,7 +16,7 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct HTMLFormElement {
-    htmlelement: HTMLElement
+    pub htmlelement: HTMLElement
 }
 
 impl HTMLFormElementDerived for EventTarget {

@@ -14,7 +14,7 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct HTMLTableCellElement {
-    htmlelement: HTMLElement,
+    pub htmlelement: HTMLElement,
 }
 
 impl HTMLTableCellElementDerived for EventTarget {

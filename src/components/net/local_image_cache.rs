@@ -17,7 +17,7 @@ use servo_util::task::spawn_named;
 use url::Url;
 
 pub trait ImageResponder {
-    fn respond(&self) -> proc(ImageResponseMsg);
+    fn respond(&self) -> proc(ImageResponseMsg):Send;
 }
 
 pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
@@ -30,10 +30,10 @@ pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
 }
 
 pub struct LocalImageCache {
-    priv image_cache_task: ImageCacheTask,
-    priv round_number: uint,
-    priv on_image_available: Option<~ImageResponder:Send>,
-    priv state_map: UrlMap<ImageState>
+    image_cache_task: ImageCacheTask,
+    round_number: uint,
+    on_image_available: Option<~ImageResponder:Send>,
+    state_map: UrlMap<ImageState>
 }
 
 #[deriving(Clone)]
@@ -124,7 +124,7 @@ impl LocalImageCache {
                 // on the image to load and triggering layout
                 let image_cache_task = self.image_cache_task.clone();
                 assert!(self.on_image_available.is_some());
-                let on_image_available = self.on_image_available.as_ref().unwrap().respond();
+                let on_image_available: proc(ImageResponseMsg):Send = self.on_image_available.as_ref().unwrap().respond();
                 let url = (*url).clone();
                 spawn_named("LocalImageCache", proc() {
                     let (response_chan, response_port) = channel();
@@ -161,4 +161,3 @@ impl LocalImageCache {
         state
     }
 }
-

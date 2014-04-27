@@ -29,15 +29,15 @@ pub enum EventTargetTypeId {
 
 #[deriving(Eq,Encodable)]
 pub struct EventListenerEntry {
-    phase: ListenerPhase,
-    listener: EventListener
+    pub phase: ListenerPhase,
+    pub listener: EventListener
 }
 
 #[deriving(Encodable)]
 pub struct EventTarget {
-    type_id: EventTargetTypeId,
-    reflector_: Reflector,
-    handlers: HashMap<DOMString, ~[EventListenerEntry]>,
+    pub type_id: EventTargetTypeId,
+    pub reflector_: Reflector,
+    pub handlers: HashMap<DOMString, ~[EventListenerEntry]>,
 }
 
 impl EventTarget {

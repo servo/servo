@@ -35,12 +35,12 @@ use harfbuzz::{hb_glyph_info_t};
 use harfbuzz::{hb_glyph_position_t};
 use harfbuzz::{hb_position_t, hb_tag_t};
 use harfbuzz::{hb_shape, hb_buffer_get_glyph_infos};
+use libc::{c_uint, c_int, c_void, c_char};
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use std::cast::transmute;
 use std::char;
 use std::cmp;
-use std::libc::{c_uint, c_int, c_void, c_char};
 use std::ptr::null;
 use std::slice;
 
@@ -133,9 +133,9 @@ impl ShapedGlyphData {
 }
 
 pub struct Shaper {
-    priv hb_face: *hb_face_t,
-    priv hb_font: *hb_font_t,
-    priv hb_funcs: *hb_font_funcs_t,
+    hb_face: *hb_face_t,
+    hb_font: *hb_font_t,
+    hb_funcs: *hb_font_funcs_t,
 }
 
 #[unsafe_destructor]

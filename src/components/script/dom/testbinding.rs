@@ -16,8 +16,8 @@ use js::jsval::{JSVal, NullValue};
 
 #[deriving(Encodable)]
 pub struct TestBinding {
-    reflector: Reflector,
-    window: JS<Window>,
+    pub reflector: Reflector,
+    pub window: JS<Window>,
 }
 
 impl TestBinding {

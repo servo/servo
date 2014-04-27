@@ -23,33 +23,33 @@ use layers::platform::surface::NativePaintingGraphicsContext;
 /// at this level are in pixel coordinates.
 pub struct Quadtree<T> {
     // The root node of the quadtree
-    root: ~QuadtreeNode<T>,
+    pub root: ~QuadtreeNode<T>,
     // The size of the layer in pixels. Tiles will be clipped to this size.
     // Note that the underlying quadtree has a potentailly larger size, since it is rounded
     // to the next highest power of two.
-    clip_size: Size2D<uint>,
+    pub clip_size: Size2D<uint>,
     // The maximum size of the tiles requested in pixels. Tiles requested will be
     // of a size anywhere between half this value and this value.
-    max_tile_size: uint,
+    pub max_tile_size: uint,
     // The maximum allowed total memory of tiles in the tree. If this limit is reached, tiles
     // will be removed from the tree. Set this to None to prevent this behavior.
-    max_mem: Option<uint>,
+    pub max_mem: Option<uint>,
 }
 
 /// A node in the tree. All method calls at this level are in page coordinates.
 struct QuadtreeNode<T> {
     /// The tile belonging to this node. Note that parent nodes can have tiles.
-    tile: Option<T>,
+    pub tile: Option<T>,
     /// The position of the node in page coordinates.
-    origin: Point2D<f32>,
+    pub origin: Point2D<f32>,
     /// The width and height of the node in page coordinates.
-    size: f32,
+    pub size: f32,
     /// The node's children.
-    quadrants: [Option<~QuadtreeNode<T>>, ..4],
+    pub quadrants: [Option<~QuadtreeNode<T>>, ..4],
     /// Combined size of self.tile and tiles of all descendants
-    tile_mem: uint,
+    pub tile_mem: uint,
     /// The current status of this node. See below for details.
-    status: NodeStatus,
+    pub status: NodeStatus,
 }
 
 /// The status of a QuadtreeNode. This determines the behavior of the node
@@ -201,12 +201,12 @@ impl<T: Tile> Quadtree<T> {
                     tile_mem: self.root.tile_mem,
                     status: Normal,
                 };
-                self.root.quadrants[TL as int] = Some(replace(&mut self.root, new_root));
+                self.root.quadrants[TL as uint] = Some(replace(&mut self.root, new_root));
             }
         } else if difference < 0 { // halving
             let difference = difference.abs() as uint;
             for _ in range(0, difference) {
-                let remove = replace(&mut self.root.quadrants[TL as int], None);
+                let remove = replace(&mut self.root.quadrants[TL as uint], None);
                 match remove {
                     Some(child) => self.root = child,
                     None => {
@@ -318,7 +318,7 @@ impl<T: Tile> QuadtreeNode<T> {
             (self.tile_mem as int - old_size as int, unused_tiles)
         } else { // Send tile to children
             let quad = self.get_quadrant(x, y);
-            match self.quadrants[quad as int] {
+            match self.quadrants[quad as uint] {
                 Some(ref mut child) => {
                     let (delta, unused) = child.add_tile(x, y, tile, tile_size);
                     self.tile_mem = (self.tile_mem as int + delta) as uint;
@@ -337,7 +337,7 @@ impl<T: Tile> QuadtreeNode<T> {
                     let mut c = ~QuadtreeNode::new_child(new_x, new_y, new_size);
                     let (delta, unused) = c.add_tile(x, y, tile, tile_size);
                     self.tile_mem = (self.tile_mem as int + delta) as uint;
-                    self.quadrants[quad as int] = Some(c);
+                    self.quadrants[quad as uint] = Some(c);
                     (delta, unused)
                 }
             }
@@ -365,7 +365,7 @@ impl<T: Tile> QuadtreeNode<T> {
         }
 
         let quad = self.get_quadrant(x,y);
-        match self.quadrants[quad as int] {
+        match self.quadrants[quad as uint] {
             None => {
                 let new_size = self.size / 2.0;
                 let new_x = match quad {
@@ -378,7 +378,7 @@ impl<T: Tile> QuadtreeNode<T> {
                 };
                 let mut c = ~QuadtreeNode::new_child(new_x, new_y, new_size);
                 let result = c.get_tile_rect(x, y, clip_x, clip_y, scale, tile_size);
-                self.quadrants[quad as int] = Some(c);
+                self.quadrants[quad as uint] = Some(c);
                 result
             }
             Some(ref mut child) => child.get_tile_rect(x, y, clip_x, clip_y, scale, tile_size),
@@ -419,7 +419,7 @@ impl<T: Tile> QuadtreeNode<T> {
         let mut ret = (None, false, 0);
 
         for quad in queue.iter() {
-            match self.quadrants[*quad as int] {
+            match self.quadrants[*quad as uint] {
                 Some(ref mut child) => {
                     let (tile, flag, delta) = child.remove_tile(x, y);
                     match tile {
@@ -443,7 +443,7 @@ impl<T: Tile> QuadtreeNode<T> {
 
         match del_quad {
             Some(quad) => {
-                self.quadrants[quad as int] = None;
+                self.quadrants[quad as uint] = None;
                 let (tile, _, delta) = ret;
                 match (&self.tile, &self.quadrants) {
                     (&None, &[None, None, None, None]) => (tile, true, delta),
@@ -575,7 +575,7 @@ impl<T: Tile> QuadtreeNode<T> {
 
             let override = override || self.status == Invalid;
             self.status = Normal;
-            let (c_request, c_unused, c_delta) = match self.quadrants[*quad as int] {
+            let (c_request, c_unused, c_delta) = match self.quadrants[*quad as uint] {
                 Some(ref mut child) => child.get_tile_rects(new_window, clip, scale, tile_size, override),
                 None => {
                     // Create new child
@@ -590,7 +590,7 @@ impl<T: Tile> QuadtreeNode<T> {
                     };
                     let mut child = ~QuadtreeNode::new_child(new_x, new_y, new_size);
                     let ret = child.get_tile_rects(new_window, clip, scale, tile_size, override);
-                    self.quadrants[*quad as int] = Some(child);
+                    self.quadrants[*quad as uint] = Some(child);
                     ret
                 }
             };

@@ -12,10 +12,10 @@ use dom::window;
 use servo_util::str::DOMString;
 
 use collections::hashmap::HashMap;
-use std::libc::c_uint;
+use libc;
+use libc::c_uint;
 use std::cast;
 use std::cmp::Eq;
-use std::libc;
 use std::ptr;
 use std::ptr::null;
 use std::slice;
@@ -49,8 +49,8 @@ use js;
 
 #[deriving(Encodable)]
 pub struct GlobalStaticData {
-    proxy_handlers: Untraceable<HashMap<uint, *libc::c_void>>,
-    windowproxy_handler: Untraceable<*libc::c_void>,
+    pub proxy_handlers: Untraceable<HashMap<uint, *libc::c_void>>,
+    pub windowproxy_handler: Untraceable<*libc::c_void>,
 }
 
 pub fn GlobalStaticData() -> GlobalStaticData {
@@ -190,19 +190,19 @@ pub enum ConstantVal {
 
 #[deriving(Clone)]
 pub struct ConstantSpec {
-    name: *libc::c_char,
-    value: ConstantVal
+    pub name: *libc::c_char,
+    pub value: ConstantVal
 }
 
 pub struct DOMClass {
     // A list of interfaces that this object implements, in order of decreasing
     // derivedness.
-    interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH]
+    pub interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH]
 }
 
 pub struct DOMJSClass {
-    base: js::Class,
-    dom_class: DOMClass
+    pub base: js::Class,
+    pub dom_class: DOMClass
 }
 
 pub fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
@@ -398,7 +398,7 @@ pub fn reflect_dom_object<T: Reflectable>
 
 #[deriving(Eq)]
 pub struct Reflector {
-    object: *JSObject,
+    pub object: *JSObject,
 }
 
 impl Reflector {
@@ -509,8 +509,8 @@ pub fn FindEnumStringIndex(cx: *JSContext,
 
         Ok(values.iter().position(|value| {
             value.len() == length as uint &&
-            range(0, length as int).all(|j| {
-                value[j] as u16 == *chars.offset(j)
+            range(0, length as uint).all(|j| {
+                value[j] as u16 == *chars.offset(j as int)
             })
         }))
     }

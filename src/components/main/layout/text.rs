@@ -17,7 +17,7 @@ use sync::Arc;
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
 pub struct TextRunScanner {
-    clump: Range,
+    pub clump: Range,
 }
 
 impl TextRunScanner {
@@ -244,7 +244,7 @@ impl TextRunScanner {
                     }
 
                     let new_text_box_info = ScannedTextBoxInfo::new(run.get_ref().clone(), range);
-                    let new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
+                    let new_metrics = new_text_box_info.run.metrics_for_range(&range);
                     let mut new_box = in_boxes[i].transform(new_metrics.bounding_box.size,
                                                         ScannedTextBox(new_text_box_info));
                     new_box.new_line_pos = new_line_positions[logical_offset].new_line_pos.clone();

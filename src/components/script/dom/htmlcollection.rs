@@ -18,8 +18,10 @@ pub trait CollectionFilter {
     fn filter(&self, elem: &JS<Element>, root: &JS<Node>) -> bool;
 }
 
-impl<S: Encoder> Encodable<S> for ~CollectionFilter {
-    fn encode(&self, _s: &mut S) {}
+impl<S: Encoder<E>, E> Encodable<S, E> for ~CollectionFilter {
+    fn encode(&self, _s: &mut S) -> Result<(), E> {
+        Ok(())
+    }
 }
 
 #[deriving(Encodable)]
@@ -30,9 +32,9 @@ pub enum CollectionTypeId {
 
 #[deriving(Encodable)]
 pub struct HTMLCollection {
-    collection: CollectionTypeId,
-    reflector_: Reflector,
-    window: JS<Window>,
+    pub collection: CollectionTypeId,
+    pub reflector_: Reflector,
+    pub window: JS<Window>,
 }
 
 impl HTMLCollection {
@@ -100,7 +102,7 @@ impl HTMLCollection {
             }
         }
         let filter = ClassNameFilter {
-            classes: split_html_space_chars(classes).map(|class| class.into_owned()).to_owned_vec()
+            classes: split_html_space_chars(classes).map(|class| class.into_owned()).collect()
         };
         HTMLCollection::create(window, root, ~filter)
     }

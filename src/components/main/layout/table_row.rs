@@ -22,16 +22,16 @@ use servo_util::geometry;
 
 /// A table formatting context.
 pub struct TableRowFlow {
-    block_flow: BlockFlow,
+    pub block_flow: BlockFlow,
 
     /// Column widths.
-    col_widths: ~[Au],
+    pub col_widths: ~[Au],
 
     /// Column min widths.
-    col_min_widths: ~[Au],
+    pub col_min_widths: ~[Au],
 
     /// Column pref widths.
-    col_pref_widths: ~[Au],
+    pub col_pref_widths: ~[Au],
 }
 
 impl TableRowFlow {
@@ -116,18 +116,18 @@ impl TableRowFlow {
         // Assign the height of own box
         //
         // FIXME(pcwalton): Take `cur_y` into account.
-        let mut position = self.block_flow.box_.border_box.get();
+        let mut position = *self.block_flow.box_.border_box.borrow();
         position.size.height = height;
-        self.block_flow.box_.border_box.set(position);
+        *self.block_flow.box_.border_box.borrow_mut() = position;
         self.block_flow.base.position.size.height = height;
 
         // Assign the height of kid boxes, which is the same value as own height.
         for kid in self.block_flow.base.child_iter() {
             {
                 let kid_box_ = kid.as_table_cell().box_();
-                let mut position = kid_box_.border_box.get();
+                let mut position = *kid_box_.border_box.borrow();
                 position.size.height = height;
-                kid_box_.border_box.set(position);
+                *kid_box_.border_box.borrow_mut() = position;
             }
             let child_node = flow::mut_base(kid);
             child_node.position.size.height = height;

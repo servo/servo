@@ -15,23 +15,23 @@ use style;
 
 /// Manages the information needed to construct the display list.
 pub struct DisplayListBuilder<'a> {
-    ctx: &'a LayoutContext,
+    pub ctx: &'a LayoutContext,
 
     /// A list of render layers that we've built up, root layer not included.
-    layers: SmallVec0<RenderLayer>,
+    pub layers: SmallVec0<RenderLayer>,
 
     /// The dirty rect.
-    dirty: Rect<Au>,
+    pub dirty: Rect<Au>,
 }
 
 /// Information needed at each step of the display list building traversal.
 pub struct DisplayListBuildingInfo {
     /// The size of the containing block for relatively-positioned descendants.
-    relative_containing_block_size: Size2D<Au>,
+    pub relative_containing_block_size: Size2D<Au>,
     /// The position and size of the absolute containing block.
-    absolute_containing_block_position: Point2D<Au>,
+    pub absolute_containing_block_position: Point2D<Au>,
     /// Whether the absolute containing block forces positioned descendants to be layerized.
-    layers_needed_for_positioned_flows: bool,
+    pub layers_needed_for_positioned_flows: bool,
 }
 
 //

@@ -14,7 +14,7 @@ use task::{spawn_named};
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
-pub struct ProfilerChan(Sender<ProfilerMsg>);
+pub struct ProfilerChan(pub Sender<ProfilerMsg>);
 
 impl ProfilerChan {
     pub fn send(&self, msg: ProfilerMsg) {
@@ -104,9 +104,9 @@ type ProfilerBuckets = TreeMap<ProfilerCategory, ~[f64]>;
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
-    port: Receiver<ProfilerMsg>,
-    priv buckets: ProfilerBuckets,
-    last_msg: Option<ProfilerMsg>,
+    pub port: Receiver<ProfilerMsg>,
+    buckets: ProfilerBuckets,
+    pub last_msg: Option<ProfilerMsg>,
 }
 
 impl Profiler {
