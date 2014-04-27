@@ -150,7 +150,7 @@ interface TestBinding {
   void passOptionalNullableDouble(optional double? arg);
   void passOptionalNullableString(optional DOMString? arg);
   // void passOptionalNullableEnum(optional TestEnum? arg);
-  // void passOptionalNullableInterface(optional Blob? arg);
+  void passOptionalNullableInterface(optional Blob? arg);
   void passOptionalNullableUnion(optional (HTMLElement or long)? arg);
 
   void passOptionalBooleanWithDefault(optional boolean arg = false);

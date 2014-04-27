@@ -145,7 +145,7 @@ impl TestBinding {
     pub fn PassOptionalNullableDouble(&self, _: Option<Option<f64>>) {}
     pub fn PassOptionalNullableString(&self, _: Option<Option<DOMString>>) {}
     // pub fn PassOptionalNullableEnum(&self, _: Option<Option<TestEnum>>) {}
-    // pub fn PassOptionalNullableInterface(&self, _: Option<Option<JS<Blob>>>) {}
+    pub fn PassOptionalNullableInterface(&self, _: Option<Option<JS<Blob>>>) {}
     pub fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>) {}
 
     pub fn PassOptionalBooleanWithDefault(&self, _: bool) {}

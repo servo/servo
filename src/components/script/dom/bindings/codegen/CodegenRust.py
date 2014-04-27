@@ -628,14 +628,14 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                     "(${val}).to_object()"))
 
         declType = CGGeneric(descriptor.nativeType)
-        if type.nullable() or isOptional:
+        if type.nullable():
             templateBody = "Some(%s)" % templateBody
             declType = CGWrapper(declType, pre="Option<", post=">")
 
         templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
                                           type, failureCode)
 
-        return (templateBody, declType, isOptional, "None" if isOptional else None)
+        return handleOptional(templateBody, declType, isOptional)
 
     if type.isSpiderMonkeyInterface():
         raise TypeError("Can't handle SpiderMonkey interface arguments yet")
