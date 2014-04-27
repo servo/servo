@@ -15,7 +15,7 @@ use std::mem;
 /// needs it.
 pub struct BufferMap<T> {
     /// A HashMap that stores the Buffers.
-    priv map: HashMap<BufferKey, BufferValue<T>>,
+    map: HashMap<BufferKey, BufferValue<T>>,
     /// The current amount of memory stored by the BufferMap's buffers.
     mem: uint,
     /// The maximum allowed memory. Unused buffers will be deleted
@@ -26,6 +26,7 @@ pub struct BufferMap<T> {
 }
 
 /// A key with which to store buffers. It is based on the size of the buffer.
+#[deriving(TotalEq)]
 struct BufferKey([uint, ..2]);
 
 impl Hash for BufferKey {
@@ -40,12 +41,6 @@ impl Eq for BufferKey {
         let BufferKey(s) = *self;
         let BufferKey(o) = *other;
         s[0] == o[0] && s[1] == o[1]
-    }
-}
-
-impl TotalEq for BufferKey {
-    fn equals(&self, other: &BufferKey) -> bool {
-        self.eq(other)
     }
 }
 

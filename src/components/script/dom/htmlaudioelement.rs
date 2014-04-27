@@ -14,7 +14,7 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct HTMLAudioElement {
-    htmlmediaelement: HTMLMediaElement
+    pub htmlmediaelement: HTMLMediaElement
 }
 
 impl HTMLAudioElementDerived for EventTarget {

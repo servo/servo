@@ -11,7 +11,7 @@ use std::cast;
 use std::cell::RefCell;
 
 pub struct JS<T> {
-    priv ptr: RefCell<*mut T>
+    ptr: RefCell<*mut T>
 }
 
 impl<T> Eq for JS<T> {

@@ -18,8 +18,8 @@ use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
 use js::jsval::{StringValue, ObjectValue};
 use js::glue::RUST_JS_NumberValue;
+use libc;
 use std::default::Default;
-use std::libc;
 
 use dom::bindings::codegen::PrototypeList;
 

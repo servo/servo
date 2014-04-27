@@ -13,18 +13,18 @@ use text::glyph::GlyphStore;
 /// A text run.
 #[deriving(Clone)]
 pub struct TextRun {
-    text: Arc<~str>,
-    font_descriptor: FontDescriptor,
-    font_metrics: FontMetrics,
-    font_style: FontStyle,
-    decoration: text_decoration::T,
-    glyphs: Arc<~[Arc<GlyphStore>]>,
+    pub text: Arc<~str>,
+    pub font_descriptor: FontDescriptor,
+    pub font_metrics: FontMetrics,
+    pub font_style: FontStyle,
+    pub decoration: text_decoration::T,
+    pub glyphs: Arc<~[Arc<GlyphStore>]>,
 }
 
 pub struct SliceIterator<'a> {
-    priv glyph_iter: Items<'a, Arc<GlyphStore>>,
-    priv range:      Range,
-    priv offset:     uint,
+    glyph_iter: Items<'a, Arc<GlyphStore>>,
+    range:      Range,
+    offset:     uint,
 }
 
 impl<'a> Iterator<(&'a GlyphStore, uint, Range)> for SliceIterator<'a> {
@@ -36,7 +36,7 @@ impl<'a> Iterator<(&'a GlyphStore, uint, Range)> for SliceIterator<'a> {
             if slice_glyphs.is_none() {
                 return None;
             }
-            let slice_glyphs = slice_glyphs.unwrap().get();
+            let slice_glyphs = slice_glyphs.unwrap();
 
             let slice_range = Range::new(self.offset, slice_glyphs.char_len());
             let mut char_range = self.range.intersect(&slice_range);
@@ -45,16 +45,16 @@ impl<'a> Iterator<(&'a GlyphStore, uint, Range)> for SliceIterator<'a> {
             let old_offset = self.offset;
             self.offset += slice_glyphs.char_len();
             if !char_range.is_empty() {
-                return Some((slice_glyphs, old_offset, char_range))
+                return Some((&**slice_glyphs, old_offset, char_range))
             }
         }
     }
 }
 
 pub struct LineIterator<'a> {
-    priv range:  Range,
-    priv clump:  Option<Range>,
-    priv slices: SliceIterator<'a>,
+    range:  Range,
+    clump:  Option<Range>,
+    slices: SliceIterator<'a>,
 }
 
 impl<'a> Iterator<Range> for LineIterator<'a> {
@@ -169,13 +169,13 @@ impl<'a> TextRun {
     }
 
     pub fn char_len(&self) -> uint {
-        self.glyphs.get().iter().fold(0u, |len, slice_glyphs| {
-            len + slice_glyphs.get().char_len()
+        self.glyphs.iter().fold(0u, |len, slice_glyphs| {
+            len + slice_glyphs.char_len()
         })
     }
 
     pub fn glyphs(&'a self) -> &'a ~[Arc<GlyphStore>] {
-        self.glyphs.get()
+        &*self.glyphs
     }
 
     pub fn range_is_trimmable_whitespace(&self, range: &Range) -> bool {
@@ -217,7 +217,7 @@ impl<'a> TextRun {
 
     pub fn iter_slices_for_range(&'a self, range: &Range) -> SliceIterator<'a> {
         SliceIterator {
-            glyph_iter: self.glyphs.get().iter(),
+            glyph_iter: self.glyphs.iter(),
             range:      *range,
             offset:     0,
         }

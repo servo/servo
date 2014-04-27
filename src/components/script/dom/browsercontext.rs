@@ -11,14 +11,14 @@ use dom::window::Window;
 use js::jsapi::JSObject;
 use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
 
-use std::libc::c_void;
+use libc::c_void;
 use std::ptr;
 
 #[deriving(Encodable)]
 pub struct BrowserContext {
-    priv history: Vec<SessionHistoryEntry>,
-    priv active_index: uint,
-    priv window_proxy: Traceable<*JSObject>,
+    history: Vec<SessionHistoryEntry>,
+    active_index: uint,
+    window_proxy: Traceable<*JSObject>,
 }
 
 impl BrowserContext {
@@ -66,8 +66,8 @@ impl BrowserContext {
 
 #[deriving(Encodable)]
 pub struct SessionHistoryEntry {
-    priv document: JS<Document>,
-    priv children: Vec<BrowserContext>
+    document: JS<Document>,
+    children: Vec<BrowserContext>
 }
 
 impl SessionHistoryEntry {

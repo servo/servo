@@ -11,8 +11,8 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct Blob {
-    reflector_: Reflector,
-    window: JS<Window>
+    pub reflector_: Reflector,
+    pub window: JS<Window>
 }
 
 impl Blob {

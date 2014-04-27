@@ -35,12 +35,12 @@ use servo_util::str::{DOMString, null_str_as_empty};
 
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsfriendapi;
+use libc;
+use libc::uintptr_t;
 use std::cast::transmute;
 use std::cast;
 use std::cell::{RefCell, Ref, RefMut};
 use std::iter::{Map, Filter};
-use std::libc;
-use std::libc::uintptr_t;
 use std::mem;
 
 use serialize::{Encoder, Encodable};
@@ -53,44 +53,45 @@ use serialize::{Encoder, Encodable};
 #[deriving(Encodable)]
 pub struct Node {
     /// The JavaScript reflector for this node.
-    eventtarget: EventTarget,
+    pub eventtarget: EventTarget,
 
     /// The type of node that this is.
-    type_id: NodeTypeId,
+    pub type_id: NodeTypeId,
 
     /// The parent of this node.
-    parent_node: Option<JS<Node>>,
+    pub parent_node: Option<JS<Node>>,
 
     /// The first child of this node.
-    first_child: Option<JS<Node>>,
+    pub first_child: Option<JS<Node>>,
 
     /// The last child of this node.
-    last_child: Option<JS<Node>>,
+    pub last_child: Option<JS<Node>>,
 
     /// The next sibling of this node.
-    next_sibling: Option<JS<Node>>,
+    pub next_sibling: Option<JS<Node>>,
 
     /// The previous sibling of this node.
-    prev_sibling: Option<JS<Node>>,
+    pub prev_sibling: Option<JS<Node>>,
 
     /// The document that this node belongs to.
-    priv owner_doc: Option<JS<Document>>,
+    owner_doc: Option<JS<Document>>,
 
     /// The live list of children return by .childNodes.
-    child_list: Option<JS<NodeList>>,
+    pub child_list: Option<JS<NodeList>>,
 
     /// A bitfield of flags for node items.
-    priv flags: NodeFlags,
+    flags: NodeFlags,
 
     /// Layout information. Only the layout task may touch this data.
     ///
     /// FIXME(pcwalton): We need to send these back to the layout task to be destroyed when this
     /// node is finalized.
-    layout_data: LayoutDataRef,
+    pub layout_data: LayoutDataRef,
 }
 
-impl<S: Encoder> Encodable<S> for LayoutDataRef {
-    fn encode(&self, _s: &mut S) {
+impl<S: Encoder<E>, E> Encodable<S, E> for LayoutDataRef {
+    fn encode(&self, _s: &mut S) -> Result<(), E> {
+        Ok(())
     }
 }
 
@@ -105,7 +106,7 @@ impl NodeDerived for EventTarget {
 
 /// Flags for node items.
 #[deriving(Encodable)]
-pub struct NodeFlags(u8);
+pub struct NodeFlags(pub u8);
 
 impl NodeFlags {
     pub fn new(type_id: NodeTypeId) -> NodeFlags {
@@ -142,12 +143,12 @@ enum SuppressObserver {
 
 /// Encapsulates the abstract layout data.
 pub struct LayoutData {
-    priv chan: Option<LayoutChan>,
-    priv data: *(),
+    chan: Option<LayoutChan>,
+    data: *(),
 }
 
 pub struct LayoutDataRef {
-    data_cell: RefCell<Option<LayoutData>>,
+    pub data_cell: RefCell<Option<LayoutData>>,
 }
 
 impl LayoutDataRef {
@@ -599,7 +600,7 @@ pub type ChildElementIterator<'a> = Map<'a, JS<Node>,
                                     Filter<'a, JS<Node>, AbstractNodeChildrenIterator>>;
 
 pub struct AbstractNodeChildrenIterator {
-    priv current_node: Option<JS<Node>>,
+    current_node: Option<JS<Node>>,
 }
 
 impl Iterator<JS<Node>> for AbstractNodeChildrenIterator {
@@ -613,7 +614,7 @@ impl Iterator<JS<Node>> for AbstractNodeChildrenIterator {
 }
 
 pub struct AncestorIterator {
-    priv current: Option<JS<Node>>,
+    current: Option<JS<Node>>,
 }
 
 impl Iterator<JS<Node>> for AncestorIterator {
@@ -632,8 +633,8 @@ impl Iterator<JS<Node>> for AncestorIterator {
 // FIXME: Do this without precomputing a vector of refs.
 // Easy for preorder; harder for postorder.
 pub struct TreeIterator {
-    priv nodes: ~[JS<Node>],
-    priv index: uint,
+    nodes: ~[JS<Node>],
+    index: uint,
 }
 
 impl TreeIterator {
@@ -658,11 +659,11 @@ impl Iterator<JS<Node>> for TreeIterator {
 }
 
 pub struct NodeIterator {
-    start_node: JS<Node>,
-    current_node: Option<JS<Node>>,
-    depth: uint,
-    priv include_start: bool,
-    priv include_descendants_of_void: bool
+    pub start_node: JS<Node>,
+    pub current_node: Option<JS<Node>>,
+    pub depth: uint,
+    include_start: bool,
+    include_descendants_of_void: bool
 }
 
 impl NodeIterator {

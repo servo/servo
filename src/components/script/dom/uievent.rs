@@ -16,9 +16,9 @@ use serialize::{Encoder, Encodable};
 
 #[deriving(Encodable)]
 pub struct UIEvent {
-    event: Event,
-    view: Option<JS<Window>>,
-    detail: i32
+    pub event: Event,
+    pub view: Option<JS<Window>>,
+    pub detail: i32
 }
 
 impl UIEventDerived for Event {

@@ -13,8 +13,8 @@ use js::glue::{GetObjectProto, GetObjectParent, SetProxyExtra, GetProxyHandler};
 use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY, JSRESOLVE_QUALIFIED};
 
+use libc;
 use std::cast;
-use std::libc;
 use std::ptr;
 use std::str;
 use std::mem::size_of;

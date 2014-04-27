@@ -60,53 +60,54 @@ use std::ptr;
 use std::task;
 use style::{AuthorOrigin, ComputedValues, Stylesheet, Stylist};
 use style;
-use sync::{Arc, MutexArc};
+use sync::{Arc, Mutex};
 use url::Url;
 
 /// Information needed by the layout task.
 pub struct LayoutTask {
     /// The ID of the pipeline that we belong to.
-    id: PipelineId,
+    pub id: PipelineId,
 
     /// The port on which we receive messages.
-    port: Receiver<Msg>,
+    pub port: Receiver<Msg>,
 
     //// The channel to send messages to ourself.
-    chan: LayoutChan,
+    pub chan: LayoutChan,
 
     /// The channel on which messages can be sent to the constellation.
-    constellation_chan: ConstellationChan,
+    pub constellation_chan: ConstellationChan,
 
     /// The channel on which messages can be sent to the script task.
-    script_chan: ScriptChan,
+    pub script_chan: ScriptChan,
 
     /// The channel on which messages can be sent to the painting task.
-    render_chan: RenderChan,
+    pub render_chan: RenderChan,
 
     /// The channel on which messages can be sent to the image cache.
-    image_cache_task: ImageCacheTask,
+    pub image_cache_task: ImageCacheTask,
 
     /// The local image cache.
-    local_image_cache: MutexArc<LocalImageCache>,
+    // FIXME(rust#13125): Remove the *() for the real type.
+    pub local_image_cache: Arc<Mutex<*()>>,
 
     /// The size of the viewport.
-    screen_size: Size2D<Au>,
+    pub screen_size: Size2D<Au>,
 
     /// A cached display list.
-    display_list: Option<Arc<DisplayList>>,
+    pub display_list: Option<Arc<DisplayList>>,
 
-    stylist: ~Stylist,
+    pub stylist: ~Stylist,
 
     /// The initial set of CSS values.
-    initial_css_values: Arc<ComputedValues>,
+    pub initial_css_values: Arc<ComputedValues>,
 
     /// The workers that we use for parallel operation.
-    parallel_traversal: Option<WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>>,
+    pub parallel_traversal: Option<WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>>,
 
     /// The channel on which messages can be sent to the profiler.
-    profiler_chan: ProfilerChan,
+    pub profiler_chan: ProfilerChan,
 
-    opts: Opts
+    pub opts: Opts
 }
 
 /// The damage computation traversal.
@@ -171,7 +172,7 @@ impl PreorderFlowTraversal for FlowTreeVerificationTraversal {
 /// The bubble-widths traversal, the first part of layout computation. This computes preferred
 /// and intrinsic widths and bubbles them up the tree.
 pub struct BubbleWidthsTraversal<'a> {
-    layout_context: &'a mut LayoutContext,
+    pub layout_context: &'a mut LayoutContext,
 }
 
 impl<'a> PostorderFlowTraversal for BubbleWidthsTraversal<'a> {
@@ -192,7 +193,7 @@ impl<'a> PostorderFlowTraversal for BubbleWidthsTraversal<'a> {
 
 /// The assign-widths traversal. In Gecko this corresponds to `Reflow`.
 pub struct AssignWidthsTraversal<'a> {
-    layout_context: &'a mut LayoutContext,
+    pub layout_context: &'a mut LayoutContext,
 }
 
 impl<'a> PreorderFlowTraversal for AssignWidthsTraversal<'a> {
@@ -207,7 +208,7 @@ impl<'a> PreorderFlowTraversal for AssignWidthsTraversal<'a> {
 /// computation. Determines the final heights for all layout objects, computes positions, and
 /// computes overflow regions. In Gecko this corresponds to `FinishAndStoreOverflow`.
 pub struct AssignHeightsAndStoreOverflowTraversal<'a> {
-    layout_context: &'a mut LayoutContext,
+    pub layout_context: &'a mut LayoutContext,
 }
 
 impl<'a> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {
@@ -234,10 +235,10 @@ struct LayoutImageResponder {
 }
 
 impl ImageResponder for LayoutImageResponder {
-    fn respond(&self) -> proc(ImageResponseMsg) {
+    fn respond(&self) -> proc(ImageResponseMsg):Send {
         let id = self.id.clone();
         let script_chan = self.script_chan.clone();
-        let f: proc(ImageResponseMsg) = proc(_) {
+        let f: proc(ImageResponseMsg):Send = proc(_) {
             let ScriptChan(chan) = script_chan;
             drop(chan.try_send(SendEventMsg(id.clone(), ReflowEvent)))
         };
@@ -289,7 +290,10 @@ impl LayoutTask {
            opts: &Opts,
            profiler_chan: ProfilerChan)
            -> LayoutTask {
-        let local_image_cache = MutexArc::new(LocalImageCache(image_cache_task.clone()));
+        let local_image_cache = ~LocalImageCache(image_cache_task.clone());
+        let local_image_cache = Arc::new(Mutex::new(unsafe {
+                    cast::transmute::<~LocalImageCache, *()>(local_image_cache)
+                }));
         let screen_size = Size2D(Au(0), Au(0));
         let parallel_traversal = if opts.layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", opts.layout_threads, ptr::mut_null()))
@@ -539,10 +543,14 @@ impl LayoutTask {
         debug!("layout: parsed Node tree");
         debug!("{:?}", node.dump());
 
-        // Reset the image cache.
-        self.local_image_cache.access(|local_image_cache| {
-            local_image_cache.next_round(self.make_on_image_available_cb())
-        });
+        {
+            // Reset the image cache.
+            let val = self.local_image_cache.lock();
+            let mut local_image_cache = unsafe {
+                cast::transmute::<*(), &mut LocalImageCache>(*val)
+            };
+            local_image_cache.next_round(self.make_on_image_available_cb());
+        }
 
         // true => Do the reflow with full style damage, because content
         // changed or the window was resized.
@@ -654,9 +662,7 @@ impl LayoutTask {
                         let element_bg_color = {
                             let thread_safe_child = ThreadSafeLayoutNode::new(&child);
                             thread_safe_child.style()
-                                             .get()
                                              .resolve_color(thread_safe_child.style()
-                                                                             .get()
                                                                              .Background
                                                                              .get()
                                                                              .background_color)
@@ -740,7 +746,7 @@ impl LayoutTask {
                 match self.display_list {
                     None => fail!("no display list!"),
                     Some(ref display_list) => {
-                        union_boxes_for_node(&mut rect, display_list.get().iter(), node)
+                        union_boxes_for_node(&mut rect, display_list.iter(), node)
                     }
                 }
                 reply_chan.send(ContentBoxResponse(rect.unwrap_or(Au::zero_rect())))
@@ -763,7 +769,7 @@ impl LayoutTask {
                 match self.display_list {
                     None => fail!("no display list!"),
                     Some(ref display_list) => {
-                        add_boxes_for_node(&mut boxes, display_list.get().iter(), node)
+                        add_boxes_for_node(&mut boxes, display_list.iter(), node)
                     }
                 }
                 reply_chan.send(ContentBoxesResponse(boxes))
@@ -811,7 +817,7 @@ impl LayoutTask {
                               Au::from_frac_px(point.y as f64));
                 let resp = match self.display_list {
                     None => fail!("no display list!"),
-                    Some(ref display_list) => hit_test(x, y, display_list.get().list.as_slice()),
+                    Some(ref display_list) => hit_test(x, y, display_list.list.as_slice()),
                 };
                 if resp.is_some() {
                     reply_chan.send(Ok(resp.unwrap()));
@@ -858,7 +864,7 @@ impl LayoutTask {
                     Some(ref display_list) => {
                         mouse_over_test(x,
                                         y,
-                                        display_list.get().list.as_slice(),
+                                        display_list.list.as_slice(),
                                         &mut mouse_over_list);
                     }
                 };

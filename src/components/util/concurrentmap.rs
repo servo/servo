@@ -32,15 +32,15 @@ struct Bucket<K,V> {
 /// A concurrent hash map using striped locks.
 pub struct ConcurrentHashMap<K,V> {
     /// The first secret key value.
-    priv k0: u64,
+    k0: u64,
     /// The second key value.
-    priv k1: u64,
+    k1: u64,
     /// The number of elements in this hash table.
-    priv size: AtomicUint,
+    size: AtomicUint,
     /// The striped locks.
-    priv locks: ~[StaticNativeMutex],
+    locks: ~[StaticNativeMutex],
     /// The buckets.
-    priv buckets: ~[Option<Bucket<K,V>>],
+    buckets: ~[Option<Bucket<K,V>>],
 }
 
 impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
@@ -405,9 +405,9 @@ impl<K:Hash + Eq,V> ConcurrentHashMap<K,V> {
 }
 
 pub struct ConcurrentHashMapIterator<'a,K,V> {
-    priv map: &'a ConcurrentHashMap<K,V>,
-    priv bucket_index: int,
-    priv current_bucket: *Bucket<K,V>,
+    map: &'a ConcurrentHashMap<K,V>,
+    bucket_index: int,
+    current_bucket: *Bucket<K,V>,
 }
 
 impl<'a,K,V> Iterator<(&'a K, &'a V)> for ConcurrentHashMapIterator<'a,K,V> {
@@ -447,12 +447,12 @@ impl<'a,K,V> Iterator<(&'a K, &'a V)> for ConcurrentHashMapIterator<'a,K,V> {
                 // necessary and acquire the new one, if necessary.
                 if bucket_index != -1 {
                     unsafe {
-                        map.locks[lock_index].unlock_noguard()
+                        map.locks[lock_index as uint].unlock_noguard()
                     }
                 }
                 if bucket_index != (bucket_count as int) - 1 {
                     unsafe {
-                        map.locks[lock_index + 1].lock_noguard()
+                        map.locks[(lock_index + 1) as uint].lock_noguard()
                     }
                 }
             }
@@ -464,7 +464,7 @@ impl<'a,K,V> Iterator<(&'a K, &'a V)> for ConcurrentHashMapIterator<'a,K,V> {
 
             self.bucket_index += 1;
 
-            self.current_bucket = match map.buckets[self.bucket_index] {
+            self.current_bucket = match map.buckets[self.bucket_index as uint] {
                 None => ptr::null(),
                 Some(ref bucket) => {
                     let bucket: *Bucket<K,V> = bucket;
@@ -499,7 +499,7 @@ pub mod test {
             let chan = chan.clone();
             native::task::spawn(proc() {
                 for j in range(i * 20, (i * 20) + 20) {
-                    m.get().insert(j, j * j);
+                    m.insert(j, j * j);
                 }
                 chan.send(());
             })
@@ -509,7 +509,7 @@ pub mod test {
         }
 
         let mut count = 0;
-        for (&k, &v) in m.get().iter() {
+        for (&k, &v) in m.iter() {
             assert_eq!(k * k, v)
             count += 1;
         }

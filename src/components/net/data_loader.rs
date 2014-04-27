@@ -25,7 +25,7 @@ fn load(url: Url, start_chan: Sender<LoadResponse>) {
     let mut metadata = Metadata::default(url.clone());
 
     // Split out content type and data.
-    let parts: ~[&str] = url.path.splitn(',', 1).to_owned_vec();
+    let parts: ~[&str] = url.path.splitn(',', 1).collect();
     if parts.len() != 2 {
         start_sending(start_chan, metadata).send(Done(Err(())));
         return;

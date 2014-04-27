@@ -55,16 +55,16 @@ pub enum IsHTMLDocument {
 
 #[deriving(Encodable)]
 pub struct Document {
-    node: Node,
-    reflector_: Reflector,
-    window: JS<Window>,
-    idmap: HashMap<DOMString, ~[JS<Element>]>,
-    implementation: Option<JS<DOMImplementation>>,
-    content_type: DOMString,
-    encoding_name: DOMString,
-    is_html_document: bool,
-    url: Untraceable<Url>,
-    quirks_mode: Untraceable<QuirksMode>,
+    pub node: Node,
+    pub reflector_: Reflector,
+    pub window: JS<Window>,
+    pub idmap: HashMap<DOMString, ~[JS<Element>]>,
+    pub implementation: Option<JS<DOMImplementation>>,
+    pub content_type: DOMString,
+    pub encoding_name: DOMString,
+    pub is_html_document: bool,
+    pub url: Untraceable<Url>,
+    pub quirks_mode: Untraceable<QuirksMode>,
 }
 
 impl DocumentDerived for EventTarget {

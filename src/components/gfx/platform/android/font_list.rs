@@ -26,13 +26,13 @@ use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 
 use collections::HashMap;
-use std::libc;
-use std::libc::{c_int, c_char};
+use libc;
+use libc::{c_int, c_char};
 use std::ptr;
 use std::str;
 
 pub struct FontListHandle {
-    fctx: FontContextHandle,
+    pub fctx: FontContextHandle,
 }
 
 impl FontListHandle {

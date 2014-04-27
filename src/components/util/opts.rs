@@ -15,10 +15,10 @@ use std::os;
 #[deriving(Clone)]
 pub struct Opts {
     /// The initial URLs to load.
-    urls: Vec<~str>,
+    pub urls: Vec<~str>,
 
     /// The rendering backend to use (`-r`).
-    render_backend: BackendType,
+    pub render_backend: BackendType,
 
     /// How many threads to use for CPU rendering (`-t`).
     ///
@@ -27,31 +27,31 @@ pub struct Opts {
 
     /// True to use CPU painting, false to use GPU painting via Skia-GL (`-c`). Note that
     /// compositing is always done on the GPU.
-    cpu_painting: bool,
+    pub cpu_painting: bool,
 
     /// The maximum size of each tile in pixels (`-s`).
-    tile_size: uint,
+    pub tile_size: uint,
 
     /// `None` to disable the profiler or `Some` with an interval in seconds to enable it and cause
     /// it to produce output on that interval (`-p`).
-    profiler_period: Option<f64>,
+    pub profiler_period: Option<f64>,
 
     /// The number of threads to use for layout (`-y`). Defaults to 1, which results in a recursive
     /// sequential algorithm.
-    layout_threads: uint,
+    pub layout_threads: uint,
 
     /// True to exit after the page load (`-x`).
-    exit_after_load: bool,
+    pub exit_after_load: bool,
 
-    output_file: Option<~str>,
-    headless: bool,
-    hard_fail: bool,
+    pub output_file: Option<~str>,
+    pub headless: bool,
+    pub hard_fail: bool,
 
     /// True if we should bubble intrinsic widths sequentially (`-b`). If this is true, then
     /// intrinsic widths are computed as a separate pass instead of during flow construction. You
     /// may wish to turn this flag on in order to benchmark style recalculation against other
     /// browser engines.
-    bubble_widths_separately: bool,
+    pub bubble_widths_separately: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {

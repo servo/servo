@@ -27,13 +27,13 @@ pub enum TableLayout {
 
 /// A table wrapper flow based on a block formatting context.
 pub struct TableWrapperFlow {
-    block_flow: BlockFlow,
+    pub block_flow: BlockFlow,
 
     /// Column widths
-    col_widths: ~[Au],
+    pub col_widths: ~[Au],
 
     /// Table-layout property
-    table_layout: TableLayout,
+    pub table_layout: TableLayout,
 }
 
 impl TableWrapperFlow {
@@ -170,8 +170,8 @@ impl Flow for TableWrapperFlow {
         let width_computer = TableWrapper;
         width_computer.compute_used_width_table_wrapper(self, ctx, containing_block_width);
 
-        let left_content_edge = self.block_flow.box_.border_box.get().origin.x;
-        let content_width = self.block_flow.box_.border_box.get().size.width;
+        let left_content_edge = self.block_flow.box_.border_box.borrow().origin.x;
+        let content_width = self.block_flow.box_.border_box.borrow().size.width;
 
         match self.table_layout {
             FixedLayout | _ if self.is_float() =>
@@ -320,9 +320,9 @@ impl TableWrapper {
                 // The extra width is distributed over the columns
                 if extra_width > Au(0) {
                     let cell_len = table_wrapper.col_widths.len() as f64;
-                    table_wrapper.col_widths = col_min_widths.map(|width| {
+                    table_wrapper.col_widths = col_min_widths.iter().map(|width| {
                         width + extra_width.scale_by(1.0 / cell_len)
-                    });
+                    }).collect();
                 }
                 width
             }

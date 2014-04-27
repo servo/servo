@@ -40,20 +40,20 @@ pub enum EventTypeId {
 
 #[deriving(Encodable)]
 pub struct Event {
-    type_id: EventTypeId,
-    reflector_: Reflector,
-    current_target: Option<JS<EventTarget>>,
-    target: Option<JS<EventTarget>>,
-    type_: DOMString,
-    phase: EventPhase,
-    canceled: bool,
-    stop_propagation: bool,
-    stop_immediate: bool,
-    cancelable: bool,
-    bubbles: bool,
-    trusted: bool,
-    dispatching: bool,
-    initialized: bool,
+    pub type_id: EventTypeId,
+    pub reflector_: Reflector,
+    pub current_target: Option<JS<EventTarget>>,
+    pub target: Option<JS<EventTarget>>,
+    pub type_: DOMString,
+    pub phase: EventPhase,
+    pub canceled: bool,
+    pub stop_propagation: bool,
+    pub stop_immediate: bool,
+    pub cancelable: bool,
+    pub bubbles: bool,
+    pub trusted: bool,
+    pub dispatching: bool,
+    pub initialized: bool,
 }
 
 impl Event {

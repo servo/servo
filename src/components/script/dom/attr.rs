@@ -21,15 +21,15 @@ pub enum AttrSettingType {
 
 #[deriving(Encodable)]
 pub struct Attr {
-    reflector_: Reflector,
-    local_name: DOMString,
-    value: DOMString,
-    name: DOMString,
-    namespace: Namespace,
-    prefix: Option<DOMString>,
+    pub reflector_: Reflector,
+    pub local_name: DOMString,
+    pub value: DOMString,
+    pub name: DOMString,
+    pub namespace: Namespace,
+    pub prefix: Option<DOMString>,
 
     /// the element that owns this attribute.
-    owner: JS<Element>,
+    pub owner: JS<Element>,
 }
 
 impl Reflectable for Attr {

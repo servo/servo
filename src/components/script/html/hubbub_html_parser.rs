@@ -46,8 +46,8 @@ macro_rules! handle_element(
 
 
 pub struct JSFile {
-    data: ~str,
-    url: Url
+    pub data: ~str,
+    pub url: Url
 }
 
 pub type JSResult = ~[JSFile];
@@ -71,7 +71,7 @@ pub enum HtmlDiscoveryMessage {
 }
 
 pub struct HtmlParserResult {
-    discovery_port: Receiver<HtmlDiscoveryMessage>,
+    pub discovery_port: Receiver<HtmlDiscoveryMessage>,
 }
 
 trait NodeWrapping {
@@ -375,7 +375,7 @@ pub fn parse_html(page: &Page,
                         // Subpage Id
                         let subpage_id = *next_subpage_id.borrow();
                         let SubpageId(id_num) = subpage_id;
-                        next_subpage_id.set(SubpageId(id_num + 1));
+                        *next_subpage_id.borrow_mut() = SubpageId(id_num + 1);
 
                         iframe_element.get_mut().size = Some(IFrameSize {
                             pipeline_id: pipeline_id,

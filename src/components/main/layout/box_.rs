@@ -16,7 +16,7 @@ use layout::model;
 use layout::util::OpaqueNodeMethods;
 use layout::wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
-use sync::{MutexArc, Arc};
+use sync::{Arc, Mutex};
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use geom::approxeq::ApproxEq;
 use gfx::color::rgb;
@@ -30,7 +30,6 @@ use gfx::font::FontStyle;
 use gfx::text::text_run::TextRun;
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
-use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::range::*;
@@ -71,37 +70,37 @@ use url::Url;
 #[deriving(Clone)]
 pub struct Box {
     /// An opaque reference to the DOM node that this `Box` originates from.
-    node: OpaqueNode,
+    pub node: OpaqueNode,
 
     /// The CSS style of this box.
-    style: Arc<ComputedValues>,
+    pub style: Arc<ComputedValues>,
 
     /// The position of this box relative to its owning flow.
     /// The size includes padding and border, but not margin.
-    border_box: RefCell<Rect<Au>>,
+    pub border_box: RefCell<Rect<Au>>,
 
     /// The border of the content box.
     ///
     /// FIXME(pcwalton): This need not be stored in the box.
-    border: RefCell<SideOffsets2D<Au>>,
+    pub border: RefCell<SideOffsets2D<Au>>,
 
     /// The padding of the content box.
-    padding: RefCell<SideOffsets2D<Au>>,
+    pub padding: RefCell<SideOffsets2D<Au>>,
 
     /// The margin of the content box.
-    margin: RefCell<SideOffsets2D<Au>>,
+    pub margin: RefCell<SideOffsets2D<Au>>,
 
     /// Info specific to the kind of box. Keep this enum small.
-    specific: SpecificBoxInfo,
+    pub specific: SpecificBoxInfo,
 
     /// positioned box offsets
-    position_offsets: RefCell<SideOffsets2D<Au>>,
+    pub position_offsets: RefCell<SideOffsets2D<Au>>,
 
     /// Inline data
-    inline_info: RefCell<Option<InlineInfo>>,
+    pub inline_info: RefCell<Option<InlineInfo>>,
 
     /// New-line chracter(\n)'s positions(relative, not absolute)
-    new_line_pos: ~[uint],
+    pub new_line_pos: ~[uint],
 }
 
 /// Info specific to the kind of box. Keep this enum small.
@@ -123,11 +122,11 @@ pub enum SpecificBoxInfo {
 #[deriving(Clone)]
 pub struct ImageBoxInfo {
     /// The image held within this box.
-    image: RefCell<ImageHolder>,
-    computed_width: RefCell<Option<Au>>,
-    computed_height: RefCell<Option<Au>>,
-    dom_width: Option<Au>,
-    dom_height: Option<Au>,
+    pub image: RefCell<ImageHolder>,
+    pub computed_width: RefCell<Option<Au>>,
+    pub computed_height: RefCell<Option<Au>>,
+    pub dom_width: Option<Au>,
+    pub dom_height: Option<Au>,
 }
 
 impl ImageBoxInfo {
@@ -137,7 +136,7 @@ impl ImageBoxInfo {
     /// me.
     pub fn new(node: &ThreadSafeLayoutNode,
                image_url: Url,
-               local_image_cache: MutexArc<LocalImageCache>)
+               local_image_cache: Arc<Mutex<*()>>)
                -> ImageBoxInfo {
         fn convert_length(node: &ThreadSafeLayoutNode, name: &str) -> Option<Au> {
             let element = node.as_element();
@@ -216,9 +215,9 @@ impl ImageBoxInfo {
 #[deriving(Clone)]
 pub struct IframeBoxInfo {
     /// The pipeline ID of this iframe.
-    pipeline_id: PipelineId,
+    pub pipeline_id: PipelineId,
     /// The subpage ID of this iframe.
-    subpage_id: SubpageId,
+    pub subpage_id: SubpageId,
 }
 
 impl IframeBoxInfo {
@@ -239,10 +238,10 @@ impl IframeBoxInfo {
 #[deriving(Clone)]
 pub struct ScannedTextBoxInfo {
     /// The text run that this represents.
-    run: Arc<~TextRun>,
+    pub run: Arc<~TextRun>,
 
     /// The range within the above text run that this represents.
-    range: Range,
+    pub range: Range,
 }
 
 impl ScannedTextBoxInfo {
@@ -260,7 +259,7 @@ impl ScannedTextBoxInfo {
 #[deriving(Clone)]
 pub struct UnscannedTextBoxInfo {
     /// The text inside the box.
-    text: ~str,
+    pub text: ~str,
 }
 
 impl UnscannedTextBoxInfo {
@@ -297,8 +296,8 @@ pub enum SplitBoxResult {
 /// Use atomic reference counting instead.
 #[deriving(Clone)]
 pub struct InlineInfo {
-    parent_info: SmallVec0<InlineParentInfo>,
-    baseline: Au,
+    pub parent_info: SmallVec0<InlineParentInfo>,
+    pub baseline: Au,
 }
 
 impl InlineInfo {
@@ -312,20 +311,20 @@ impl InlineInfo {
 
 #[deriving(Clone)]
 pub struct InlineParentInfo {
-    padding: SideOffsets2D<Au>,
-    border: SideOffsets2D<Au>,
-    margin: SideOffsets2D<Au>,
-    style: Arc<ComputedValues>,
-    font_ascent: Au,
-    font_descent: Au,
-    node: OpaqueNode,
+    pub padding: SideOffsets2D<Au>,
+    pub border: SideOffsets2D<Au>,
+    pub margin: SideOffsets2D<Au>,
+    pub style: Arc<ComputedValues>,
+    pub font_ascent: Au,
+    pub font_descent: Au,
+    pub node: OpaqueNode,
 }
 
 /// A box that represents a table column.
 #[deriving(Clone)]
 pub struct TableColumnBoxInfo {
     /// the number of columns a <col> element should span
-    span: Option<int>,
+    pub span: Option<int>,
 }
 
 impl TableColumnBoxInfo {
@@ -348,7 +347,7 @@ impl TableColumnBoxInfo {
 macro_rules! def_noncontent( ($side:ident, $get:ident, $inline_get:ident) => (
     impl Box {
         pub fn $get(&self) -> Au {
-            self.border.get().$side + self.padding.get().$side
+            self.border.borrow().$side + self.padding.borrow().$side
         }
 
         pub fn $inline_get(&self) -> Au {
@@ -469,7 +468,7 @@ impl Box {
         //
         // Anonymous table boxes, TableRowBox and TableCellBox, are generated around `Foo`, but it shouldn't inherit the border.
 
-        let (node_style, _) = cascade(&[], false, Some(node.style().get()),
+        let (node_style, _) = cascade(&[], false, Some(&**node.style()),
                                       &initial_values(), None);
         Box {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
@@ -518,10 +517,10 @@ impl Box {
         Box {
             node: self.node,
             style: self.style.clone(),
-            border_box: RefCell::new(Rect(self.border_box.get().origin, size)),
-            border: RefCell::new(self.border.get()),
-            padding: RefCell::new(self.padding.get()),
-            margin: RefCell::new(self.margin.get()),
+            border_box: RefCell::new(Rect(self.border_box.borrow().origin, size)),
+            border: RefCell::new(*self.border.borrow()),
+            padding: RefCell::new(*self.padding.borrow()),
+            margin: RefCell::new(*self.margin.borrow()),
             specific: specific,
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: self.inline_info.clone(),
@@ -561,7 +560,7 @@ impl Box {
         };
 
         let surround_width = margin_left + margin_right + padding_left + padding_right +
-                self.border.get().left + self.border.get().right;
+                self.border.borrow().left + self.border.borrow().right;
 
         IntrinsicWidths {
             minimum_width: width,
@@ -608,11 +607,11 @@ impl Box {
                                          style.Border.get().border_left_style))
             }
         };
-        self.border.set(border)
+        *self.border.borrow_mut() = border;
     }
 
     pub fn compute_positioned_offsets(&self, style: &ComputedValues, containing_width: Au, containing_height: Au) {
-        self.position_offsets.set(SideOffsets2D::new(
+        *self.position_offsets.borrow_mut() = SideOffsets2D::new(
                 MaybeAuto::from_style(style.PositionOffsets.get().top, containing_height)
                 .specified_or_zero(),
                 MaybeAuto::from_style(style.PositionOffsets.get().right, containing_width)
@@ -620,7 +619,7 @@ impl Box {
                 MaybeAuto::from_style(style.PositionOffsets.get().bottom, containing_height)
                 .specified_or_zero(),
                 MaybeAuto::from_style(style.PositionOffsets.get().left, containing_width)
-                .specified_or_zero()));
+                .specified_or_zero());
     }
 
     /// Compute and set margin-top and margin-bottom values.
@@ -631,7 +630,7 @@ impl Box {
     pub fn compute_margin_top_bottom(&self, containing_block_width: Au) {
         match self.specific {
             TableBox | TableCellBox | TableRowBox | TableColumnBox(_) => {
-                self.margin.set(SideOffsets2D::new(Au(0), Au(0), Au(0), Au(0)))
+                *self.margin.borrow_mut() = SideOffsets2D::new(Au(0), Au(0), Au(0), Au(0));
             },
             _ => {
                 let style = self.style();
@@ -640,10 +639,10 @@ impl Box {
                                                        containing_block_width).specified_or_zero();
                 let margin_bottom = MaybeAuto::from_style(style.Margin.get().margin_bottom,
                                                           containing_block_width).specified_or_zero();
-                let mut margin = self.margin.get();
+                let mut margin = *self.margin.borrow();
                 margin.top = margin_top;
                 margin.bottom = margin_bottom;
-                self.margin.set(margin);
+                *self.margin.borrow_mut() = margin;
             }
         }
     }
@@ -674,7 +673,7 @@ impl Box {
                                                                containing_block_width))
             }
         };
-        self.padding.set(padding)
+        *self.padding.borrow_mut() = padding;
     }
 
     fn compute_padding_length(&self, padding: LengthOrPercentage, content_box_width: Au) -> Au {
@@ -682,9 +681,9 @@ impl Box {
     }
 
     pub fn padding_box_size(&self) -> Size2D<Au> {
-        let border_box_size = self.border_box.get().size;
-        Size2D(border_box_size.width - self.border.get().left - self.border.get().right,
-               border_box_size.height - self.border.get().top - self.border.get().bottom)
+        let border_box_size = self.border_box.borrow().size;
+        Size2D(border_box_size.width - self.border.borrow().left - self.border.borrow().right,
+               border_box_size.height - self.border.borrow().top - self.border.borrow().bottom)
     }
 
     pub fn noncontent_width(&self) -> Au {
@@ -739,10 +738,10 @@ impl Box {
         match &*info {
             &Some(ref info) => {
                 for info in info.parent_info.iter() {
-                    if info.style.get().Box.get().position == position::relative {
-                        rel_pos.x = rel_pos.x + left_right(info.style.get(),
+                    if info.style.Box.get().position == position::relative {
+                        rel_pos.x = rel_pos.x + left_right(&*info.style,
                                                            container_block_size.width);
-                        rel_pos.y = rel_pos.y + top_bottom(info.style.get(),
+                        rel_pos.y = rel_pos.y + top_bottom(&*info.style,
                                                            container_block_size.height);
                     }
                 }
@@ -776,11 +775,11 @@ impl Box {
         debug!("(font style) start");
 
         // FIXME: Too much allocation here.
-        let font_families = my_style.Font.get().font_family.map(|family| {
+        let font_families = my_style.Font.get().font_family.iter().map(|family| {
             match *family {
                 font_family::FamilyName(ref name) => (*name).clone(),
             }
-        });
+        }).collect();
         debug!("(font style) font families: `{:?}`", font_families);
 
         let font_size = my_style.Font.get().font_size.to_f64().unwrap() / 60.0;
@@ -796,7 +795,7 @@ impl Box {
 
     #[inline(always)]
     pub fn style<'a>(&'a self) -> &'a ComputedValues {
-        self.style.get()
+        &*self.style
     }
 
     /// Returns the text alignment of the computed style of the nearest ancestor-or-self `Element`
@@ -827,33 +826,33 @@ impl Box {
     /// Returns the left offset from margin edge to content edge.
     pub fn left_offset(&self) -> Au {
         match self.specific {
-            TableWrapperBox => self.margin.get().left,
-            TableBox | TableCellBox => self.border.get().left + self.padding.get().left,
-            TableRowBox => self.border.get().left,
+            TableWrapperBox => self.margin.borrow().left,
+            TableBox | TableCellBox => self.border.borrow().left + self.padding.borrow().left,
+            TableRowBox => self.border.borrow().left,
             TableColumnBox(_) => Au(0),
-            _ => self.margin.get().left + self.border.get().left + self.padding.get().left
+            _ => self.margin.borrow().left + self.border.borrow().left + self.padding.borrow().left
         }
     }
 
     /// Returns the top offset from margin edge to content edge.
     pub fn top_offset(&self) -> Au {
         match self.specific {
-            TableWrapperBox => self.margin.get().top,
-            TableBox | TableCellBox => self.border.get().top + self.padding.get().top,
-            TableRowBox => self.border.get().top,
+            TableWrapperBox => self.margin.borrow().top,
+            TableBox | TableCellBox => self.border.borrow().top + self.padding.borrow().top,
+            TableRowBox => self.border.borrow().top,
             TableColumnBox(_) => Au(0),
-            _ => self.margin.get().top + self.border.get().top + self.padding.get().top
+            _ => self.margin.borrow().top + self.border.borrow().top + self.padding.borrow().top
         }
     }
 
     /// Returns the bottom offset from margin edge to content edge.
     pub fn bottom_offset(&self) -> Au {
         match self.specific {
-            TableWrapperBox => self.margin.get().bottom,
-            TableBox | TableCellBox => self.border.get().bottom + self.padding.get().bottom,
-            TableRowBox => self.border.get().bottom,
+            TableWrapperBox => self.margin.borrow().bottom,
+            TableBox | TableCellBox => self.border.borrow().bottom + self.padding.borrow().bottom,
+            TableRowBox => self.border.borrow().bottom,
             TableColumnBox(_) => Au(0),
-            _ => self.margin.get().bottom + self.border.get().bottom + self.padding.get().bottom
+            _ => self.margin.borrow().bottom + self.border.borrow().bottom + self.padding.borrow().bottom
         }
     }
 
@@ -895,8 +894,8 @@ impl Box {
                     // TODO (ksh8281) compute vertical-align, line-height
                     bg_rect.origin.y = box_info.baseline + offset.y - info.font_ascent;
                     bg_rect.size.height = info.font_ascent + info.font_descent;
-                    let background_color = info.style.get().resolve_color(
-                        info.style.get().Background.get().background_color);
+                    let background_color = info.style.resolve_color(
+                        info.style.Background.get().background_color);
 
                     if !background_color.alpha.approx_eq(&0.0) {
                         let solid_color_display_item = ~SolidColorDisplayItem {
@@ -920,7 +919,7 @@ impl Box {
                     bg_rect.origin.y = bg_rect.origin.y - border.top;
                     bg_rect.size.height = bg_rect.size.height + border.top + border.bottom;
 
-                    let style = info.style.get();
+                    let style = &info.style;
                     let top_color = style.resolve_color(style.Border.get().border_top_color);
                     let right_color = style.resolve_color(style.Border.get().border_right_color);
                     let bottom_color = style.resolve_color(style.Border.get().border_bottom_color);
@@ -1025,14 +1024,14 @@ impl Box {
                         // Adjust sizes for `background-repeat`.
                         match style.Background.get().background_repeat {
                             background_repeat::no_repeat => {
-                                bounds.size.width = Au::from_px(image.get().width as int);
-                                bounds.size.height = Au::from_px(image.get().height as int)
+                                bounds.size.width = Au::from_px(image.width as int);
+                                bounds.size.height = Au::from_px(image.height as int)
                             }
                             background_repeat::repeat_x => {
-                                bounds.size.height = Au::from_px(image.get().height as int)
+                                bounds.size.height = Au::from_px(image.height as int)
                             }
                             background_repeat::repeat_y => {
-                                bounds.size.width = Au::from_px(image.get().width as int)
+                                bounds.size.width = Au::from_px(image.width as int)
                             }
                             background_repeat::repeat => {}
                         };
@@ -1045,8 +1044,8 @@ impl Box {
                                 node: self.node,
                             },
                             image: image.clone(),
-                            stretch_size: Size2D(Au::from_px(image.get().width as int),
-                                                 Au::from_px(image.get().height as int)),
+                            stretch_size: Size2D(Au::from_px(image.width as int),
+                                                 Au::from_px(image.height as int)),
                         });
 
                         match clip_display_item {
@@ -1073,7 +1072,7 @@ impl Box {
     /// necessary.
     pub fn paint_borders_if_applicable(&self, list: &mut DisplayList, abs_bounds: &Rect<Au>) {
         // Fast path.
-        let border = self.border.get();
+        let border = self.border.borrow();
         if border.is_zero() {
             return
         }
@@ -1099,7 +1098,7 @@ impl Box {
                 bounds: abs_bounds,
                 node: self.node,
             },
-            border: border,
+            border: *border,
             color: SideOffsets2D::new(top_color.to_gfx_color(),
                                       right_color.to_gfx_color(),
                                       bottom_color.to_gfx_color(),
@@ -1117,7 +1116,7 @@ impl Box {
                                              stacking_context: &mut StackingContext,
                                              flow_origin: Point2D<Au>,
                                              text_box: &ScannedTextBoxInfo) {
-        let box_bounds = self.border_box.get();
+        let box_bounds = self.border_box.borrow();
         let absolute_box_bounds = box_bounds.translate(&flow_origin);
 
         // Compute the text box bounds and draw a border surrounding them.
@@ -1136,7 +1135,7 @@ impl Box {
         stacking_context.content.push(BorderDisplayItemClass(border_display_item));
 
         // Draw a rectangle representing the baselines.
-        let ascent = text_box.run.get().metrics_for_range(&text_box.range).ascent;
+        let ascent = text_box.run.metrics_for_range(&text_box.range).ascent;
         let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
                             Size2D(absolute_box_bounds.size.width, Au(0)));
 
@@ -1155,7 +1154,7 @@ impl Box {
     fn build_debug_borders_around_box(&self,
                                       stacking_context: &mut StackingContext,
                                       flow_origin: Point2D<Au>) {
-        let box_bounds = self.border_box.get();
+        let box_bounds = self.border_box.borrow();
         let absolute_box_bounds = box_bounds.translate(&flow_origin);
 
         // This prints a debug border around the border of this box.
@@ -1192,7 +1191,7 @@ impl Box {
                               flow: &Flow,
                               background_and_border_level: BackgroundAndBorderLevel) {
         // Box position wrt to the owning flow.
-        let box_bounds = self.border_box.get();
+        let box_bounds = *self.border_box.borrow();
         let absolute_box_bounds = box_bounds.translate(&flow_origin);
         debug!("Box::build_display_list at rel={}, abs={}: {:s}",
                box_bounds,
@@ -1244,7 +1243,7 @@ impl Box {
                 match &*inline_info {
                     &Some(ref info) => {
                         for data in info.parent_info.as_slice().rev_iter() {
-                            let parent_info = FlowFlagsInfo::new(data.style.get());
+                            let parent_info = FlowFlagsInfo::new(&*data.style);
                             flow_flags.propagate_text_decoration_from_parent(&parent_info);
                         }
                     },
@@ -1374,11 +1373,11 @@ impl Box {
             }
             ScannedTextBox(ref text_box_info) => {
                 let range = &text_box_info.range;
-                let min_line_width = text_box_info.run.get().min_width_for_range(range);
+                let min_line_width = text_box_info.run.min_width_for_range(range);
 
                 let mut max_line_width = Au::new(0);
-                for line_range in text_box_info.run.get().iter_natural_lines_for_range(range) {
-                    let line_metrics = text_box_info.run.get().metrics_for_range(&line_range);
+                for line_range in text_box_info.run.iter_natural_lines_for_range(range) {
+                    let line_metrics = text_box_info.run.metrics_for_range(&line_range);
                     max_line_width = Au::max(max_line_width, line_metrics.advance_width);
                 }
 
@@ -1389,8 +1388,7 @@ impl Box {
         }
 
         // Take borders and padding for parent inline boxes into account.
-        let inline_info = self.inline_info.get();
-        match inline_info {
+        match *self.inline_info.borrow() {
             None => {}
             Some(ref inline_info) => {
                 for inline_parent_info in inline_info.parent_info.iter() {
@@ -1418,7 +1416,7 @@ impl Box {
             }
             ScannedTextBox(ref text_box_info) => {
                 let (range, run) = (&text_box_info.range, &text_box_info.run);
-                let text_bounds = run.get().metrics_for_range(range).bounding_box;
+                let text_bounds = run.metrics_for_range(range).bounding_box;
                 text_bounds.size.width
             }
             TableColumnBox(_) => fail!("Table column boxes do not have width"),
@@ -1437,7 +1435,7 @@ impl Box {
             ScannedTextBox(ref text_box_info) => {
                 // Compute the height based on the line-height and font size.
                 let (range, run) = (&text_box_info.range, &text_box_info.run);
-                let text_bounds = run.get().metrics_for_range(range).bounding_box;
+                let text_bounds = run.metrics_for_range(range).bounding_box;
                 let em_size = text_bounds.size.height;
                 self.calculate_line_height(em_size)
             }
@@ -1448,7 +1446,7 @@ impl Box {
 
     /// Return the size of the content box.
     pub fn content_box_size(&self) -> Size2D<Au> {
-        let border_box_size = self.border_box.get().size;
+        let border_box_size = self.border_box.borrow().size;
         Size2D(border_box_size.width - self.noncontent_width(),
                border_box_size.height - self.noncontent_height())
     }
@@ -1470,7 +1468,7 @@ impl Box {
                 // Left box is for left text of first founded new-line character.
                 let left_box = {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
-                    let new_metrics = new_text_box_info.run.get().metrics_for_range(&left_range);
+                    let new_metrics = new_text_box_info.run.metrics_for_range(&left_range);
                     let mut new_box = self.transform(new_metrics.bounding_box.size, ScannedTextBox(new_text_box_info));
                     new_box.new_line_pos = ~[];
                     Some(new_box)
@@ -1479,7 +1477,7 @@ impl Box {
                 // Right box is for right text of first founded new-line character.
                 let right_box = if right_range.length() > 0 {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), right_range);
-                    let new_metrics = new_text_box_info.run.get().metrics_for_range(&right_range);
+                    let new_metrics = new_text_box_info.run.metrics_for_range(&right_range);
                     let mut new_box = self.transform(new_metrics.bounding_box.size, ScannedTextBox(new_text_box_info));
                     new_box.new_line_pos = new_line_pos;
                     Some(new_box)
@@ -1507,11 +1505,11 @@ impl Box {
 
                 debug!("split_to_width: splitting text box (strlen={:u}, range={}, \
                                                             avail_width={})",
-                       text_box_info.run.get().text.get().len(),
+                       text_box_info.run.text.len(),
                        text_box_info.range,
                        max_width);
 
-                for (glyphs, offset, slice_range) in text_box_info.run.get().iter_slices_for_range(
+                for (glyphs, offset, slice_range) in text_box_info.run.iter_slices_for_range(
                         &text_box_info.range) {
                     debug!("split_to_width: considering slice (offset={}, range={}, \
                                                                remain_width={})",
@@ -1519,7 +1517,7 @@ impl Box {
                            slice_range,
                            remaining_width);
 
-                    let metrics = text_box_info.run.get().metrics_for_slice(glyphs, &slice_range);
+                    let metrics = text_box_info.run.metrics_for_slice(glyphs, &slice_range);
                     let advance = metrics.advance_width;
 
                     let should_continue;
@@ -1571,8 +1569,8 @@ impl Box {
 
                 let left_box = if left_range.length() > 0 {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
-                    let mut new_metrics = new_text_box_info.run.get().metrics_for_range(&left_range);
-                    new_metrics.bounding_box.size.height = self.border_box.get().size.height;
+                    let mut new_metrics = new_text_box_info.run.metrics_for_range(&left_range);
+                    new_metrics.bounding_box.size.height = self.border_box.borrow().size.height;
                     Some(self.transform(new_metrics.bounding_box.size,
                                         ScannedTextBox(new_text_box_info)))
                 } else {
@@ -1581,8 +1579,8 @@ impl Box {
 
                 let right_box = right_range.map_or(None, |range: Range| {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), range);
-                    let mut new_metrics = new_text_box_info.run.get().metrics_for_range(&range);
-                    new_metrics.bounding_box.size.height = self.border_box.get().size.height;
+                    let mut new_metrics = new_text_box_info.run.metrics_for_range(&range);
+                    new_metrics.bounding_box.size.height = self.border_box.borrow().size.height;
                     Some(self.transform(new_metrics.bounding_box.size,
                                         ScannedTextBox(new_text_box_info)))
                 });
@@ -1647,7 +1645,7 @@ impl Box {
                 let mut position = self.border_box.borrow_mut();
                 position.size.width = width + self.noncontent_width() +
                     self.noncontent_inline_left() + self.noncontent_inline_right();
-                image_box_info.computed_width.set(Some(width));
+                *image_box_info.computed_width.borrow_mut() = Some(width);
             }
             ScannedTextBox(_) => {
                 // Scanned text boxes will have already had their
@@ -1694,7 +1692,7 @@ impl Box {
                 };
 
                 let mut position = self.border_box.borrow_mut();
-                image_box_info.computed_height.set(Some(height));
+                *image_box_info.computed_height.borrow_mut() = Some(height);
                 position.size.height = height + self.noncontent_height()
             }
             ScannedTextBox(_) => {
@@ -1724,7 +1722,7 @@ impl Box {
     /// Cleans up all the memory associated with this box.
     pub fn teardown(&self) {
         match self.specific {
-            ScannedTextBox(ref text_box_info) => text_box_info.run.get().teardown(),
+            ScannedTextBox(ref text_box_info) => text_box_info.run.teardown(),
             _ => {}
         }
     }
@@ -1751,9 +1749,9 @@ impl Box {
 
         format!("({}{}{}{})",
                 class_name,
-                self.side_offsets_debug_string("b", self.border.get()),
-                self.side_offsets_debug_string("p", self.padding.get()),
-                self.side_offsets_debug_string("m", self.margin.get()))
+                self.side_offsets_debug_string("b", *self.border.borrow()),
+                self.side_offsets_debug_string("p", *self.padding.borrow()),
+                self.side_offsets_debug_string("m", *self.margin.borrow()))
     }
 
     /// A helper function to return a debug string describing the side offsets for one of the rect
@@ -1778,12 +1776,12 @@ impl Box {
                                             iframe_box: &IframeBoxInfo,
                                             offset: Point2D<Au>,
                                             layout_context: &LayoutContext) {
-        let left = offset.x + self.margin.get().left + self.border.get().left +
-            self.padding.get().left;
-        let top = offset.y + self.margin.get().top + self.border.get().top +
-            self.padding.get().top;
-        let width = self.border_box.get().size.width - self.noncontent_width();
-        let height = self.border_box.get().size.height - self.noncontent_height();
+        let left = offset.x + self.margin.borrow().left + self.border.borrow().left +
+            self.padding.borrow().left;
+        let top = offset.y + self.margin.borrow().top + self.border.borrow().top +
+            self.padding.borrow().top;
+        let width = self.border_box.borrow().size.width - self.noncontent_width();
+        let height = self.border_box.borrow().size.height - self.noncontent_height();
         let origin = Point2D(geometry::to_frac_px(left) as f32, geometry::to_frac_px(top) as f32);
         let size = Size2D(geometry::to_frac_px(width) as f32, geometry::to_frac_px(height) as f32);
         let rect = Rect(origin, size);

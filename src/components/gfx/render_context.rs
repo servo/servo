@@ -13,22 +13,22 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::side_offsets::SideOffsets2D;
-use servo_net::image::base::Image;
+use libc::types::common::c99::uint16_t;
+use libc::size_t;
 use png::{RGBA8, K8, KA8};
+use servo_net::image::base::Image;
 use servo_util::geometry::Au;
 use servo_util::opts::Opts;
-use std::libc::types::common::c99::uint16_t;
-use std::libc::size_t;
 use sync::Arc;
 
 pub struct RenderContext<'a> {
-    draw_target: &'a DrawTarget,
-    font_ctx: &'a mut ~FontContext,
-    opts: &'a Opts,
+    pub draw_target: &'a DrawTarget,
+    pub font_ctx: &'a mut ~FontContext,
+    pub opts: &'a Opts,
     /// The rectangle that this context encompasses in page coordinates.
-    page_rect: Rect<f32>,
+    pub page_rect: Rect<f32>,
     /// The rectangle that this context encompasses in screen coordinates (pixels).
-    screen_rect: Rect<uint>,
+    pub screen_rect: Rect<uint>,
 }
 
 enum Direction {
@@ -94,7 +94,6 @@ impl<'a> RenderContext<'a>  {
     }
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<~Image>) {
-        let image = image.get();
         let size = Size2D(image.width as i32, image.height as i32);
         let pixel_width = match image.color_type {
             RGBA8 => 4,

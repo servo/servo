@@ -36,12 +36,13 @@ use serialize::{Encoder, Encodable};
 use url::Url;
 
 pub struct TimerHandle {
-    handle: i32,
-    cancel_chan: Option<Sender<()>>,
+    pub handle: i32,
+    pub cancel_chan: Option<Sender<()>>,
 }
 
-impl<S: Encoder> Encodable<S> for TimerHandle {
-    fn encode(&self, _: &mut S) {
+impl<S: Encoder<E>, E> Encodable<S, E> for TimerHandle {
+    fn encode(&self, _s: &mut S) -> Result<(), E> {
+        Ok(())
     }
 }
 
@@ -57,11 +58,7 @@ impl Eq for TimerHandle {
     }
 }
 
-impl TotalEq for TimerHandle {
-    fn equals(&self, other: &TimerHandle) -> bool {
-        self.eq(other)
-    }
-}
+impl TotalEq for TimerHandle { }
 
 impl TimerHandle {
     fn cancel(&self) {
@@ -71,17 +68,17 @@ impl TimerHandle {
 
 #[deriving(Encodable)]
 pub struct Window {
-    eventtarget: EventTarget,
-    script_chan: ScriptChan,
-    console: Option<JS<Console>>,
-    location: Option<JS<Location>>,
-    navigator: Option<JS<Navigator>>,
-    image_cache_task: ImageCacheTask,
-    active_timers: ~HashMap<i32, TimerHandle>,
-    next_timer_handle: i32,
-    compositor: Untraceable<~ScriptListener>,
-    browser_context: Option<BrowserContext>,
-    page: Rc<Page>,
+    pub eventtarget: EventTarget,
+    pub script_chan: ScriptChan,
+    pub console: Option<JS<Console>>,
+    pub location: Option<JS<Location>>,
+    pub navigator: Option<JS<Navigator>>,
+    pub image_cache_task: ImageCacheTask,
+    pub active_timers: ~HashMap<i32, TimerHandle>,
+    pub next_timer_handle: i32,
+    pub compositor: Untraceable<~ScriptListener>,
+    pub browser_context: Option<BrowserContext>,
+    pub page: Rc<Page>,
 }
 
 impl Window {
@@ -111,10 +108,10 @@ impl Drop for Window {
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
 pub struct TimerData {
-    handle: i32,
-    is_interval: bool,
-    funval: JSVal,
-    args: ~[JSVal],
+    pub handle: i32,
+    pub is_interval: bool,
+    pub funval: JSVal,
+    pub args: ~[JSVal],
 }
 
 impl Window {

@@ -130,10 +130,10 @@ pub trait TLayoutNode {
 /// only ever see these and must never see instances of `JS`.
 pub struct LayoutNode<'a> {
     /// The wrapped node.
-    priv node: JS<Node>,
+    node: JS<Node>,
 
     /// Being chained to a value prevents `LayoutNode`s from escaping.
-    chain: &'a (),
+    pub chain: &'a (),
 }
 
 impl<'ln> Clone for LayoutNode<'ln> {
@@ -278,7 +278,7 @@ impl<'ln> TNode<LayoutElement<'ln>> for LayoutNode<'ln> {
 }
 
 pub struct LayoutNodeChildrenIterator<'a> {
-    priv current_node: Option<LayoutNode<'a>>,
+    current_node: Option<LayoutNode<'a>>,
 }
 
 impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeChildrenIterator<'a> {
@@ -296,8 +296,8 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeChildrenIterator<'a> {
 //
 // FIXME(pcwalton): Parallelism! Eventually this should just be nuked.
 pub struct LayoutTreeIterator<'a> {
-    priv nodes: ~[LayoutNode<'a>],
-    priv index: uint,
+    nodes: ~[LayoutNode<'a>],
+    index: uint,
 }
 
 impl<'a> LayoutTreeIterator<'a> {
@@ -336,7 +336,7 @@ fn gather_layout_nodes<'a>(cur: &LayoutNode<'a>, refs: &mut ~[LayoutNode<'a>], p
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
 pub struct LayoutElement<'le> {
-    priv element: &'le Element,
+    element: &'le Element,
 }
 
 impl<'le> LayoutElement<'le> {
@@ -409,9 +409,9 @@ pub enum PseudoElementType {
 #[deriving(Clone)]
 pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
-    priv node: LayoutNode<'ln>,
+    node: LayoutNode<'ln>,
 
-    priv pseudo: PseudoElementType,
+    pseudo: PseudoElementType,
 }
 
 impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
@@ -470,10 +470,10 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
 
             if self.pseudo == Before {
                 let before_style = node_layout_data_wrapper.data.before_style.get_ref();
-                return get_content(&before_style.get().Box.get().content)
+                return get_content(&before_style.Box.get().content)
             } else {
                 let after_style = node_layout_data_wrapper.data.after_style.get_ref();
-                return get_content(&after_style.get().Box.get().content)
+                return get_content(&after_style.Box.get().content)
             }
         }
 
@@ -548,15 +548,15 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         let display = match kind {
             Before | BeforeBlock => {
                 let before_style = node_layout_data_wrapper.data.before_style.get_ref();
-                before_style.get().Box.get().display
+                before_style.Box.get().display
             }
             After | AfterBlock => {
                 let after_style = node_layout_data_wrapper.data.after_style.get_ref();
-                after_style.get().Box.get().display
+                after_style.Box.get().display
             }
             Normal => {
                 let after_style = node_layout_data_wrapper.data.style.get_ref();
-                after_style.get().Box.get().display
+                after_style.Box.get().display
             }
         };
 
@@ -620,8 +620,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 }
 
 pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
-    priv current_node: Option<ThreadSafeLayoutNode<'a>>,
-    priv parent_node: Option<ThreadSafeLayoutNode<'a>>,
+    current_node: Option<ThreadSafeLayoutNode<'a>>,
+    parent_node: Option<ThreadSafeLayoutNode<'a>>,
 }
 
 impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIterator<'a> {
@@ -678,7 +678,7 @@ impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIter
 /// A wrapper around elements that ensures layout can only ever access safe properties and cannot
 /// race on elements.
 pub struct ThreadSafeLayoutElement<'le> {
-    priv element: &'le Element,
+    element: &'le Element,
 }
 
 impl<'le> ThreadSafeLayoutElement<'le> {

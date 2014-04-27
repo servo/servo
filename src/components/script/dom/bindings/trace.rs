@@ -7,9 +7,9 @@ use dom::bindings::utils::{Reflectable, Reflector};
 
 use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
 
+use libc;
 use std::cast;
 use std::cell::RefCell;
-use std::libc;
 use std::ptr;
 use std::ptr::null;
 use serialize::{Encodable, Encoder};
@@ -19,20 +19,22 @@ use serialize::{Encodable, Encoder};
 //            we are unfortunately required to use generic types everywhere and
 //            unsafely cast to the concrete JSTracer we actually require.
 
-fn get_jstracer<'a, S: Encoder>(s: &'a mut S) -> &'a mut JSTracer {
+fn get_jstracer<'a, S: Encoder<E>, E>(s: &'a mut S) -> &'a mut JSTracer {
     unsafe {
         cast::transmute(s)
     }
 }
 
-impl<T: Reflectable+Encodable<S>, S: Encoder> Encodable<S> for JS<T> {
-    fn encode(&self, s: &mut S) {
+impl<T: Reflectable+Encodable<S, E>, S: Encoder<E>, E> Encodable<S, E> for JS<T> {
+    fn encode(&self, s: &mut S) -> Result<(), E> {
         trace_reflector(get_jstracer(s), "", self.reflector());
+        Ok(())
     }
 }
 
-impl<S: Encoder> Encodable<S> for Reflector {
-    fn encode(&self, _s: &mut S) {
+impl<S: Encoder<E>, E> Encodable<S, E> for Reflector {
+    fn encode(&self, _s: &mut S) -> Result<(), E> {
+        Ok(())
     }
 }
 
@@ -61,7 +63,7 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *JSObject) {
 /// Use only with types that are not associated with a JS reflector and do not contain
 /// fields of types associated with JS reflectors.
 pub struct Untraceable<T> {
-    priv inner: T,
+    inner: T,
 }
 
 impl<T> Untraceable<T> {
@@ -72,8 +74,9 @@ impl<T> Untraceable<T> {
     }
 }
 
-impl<S: Encoder, T> Encodable<S> for Untraceable<T> {
-    fn encode(&self, _s: &mut S) {
+impl<S: Encoder<E>, E, T> Encodable<S, E> for Untraceable<T> {
+    fn encode(&self, _s: &mut S) -> Result<(), E> {
+        Ok(())
     }
 }
 
@@ -93,7 +96,7 @@ impl<T> DerefMut<T> for Untraceable<T> {
 /// (such as RefCell). Wrap a field in Traceable and implement the Encodable trait
 /// for that new concrete type to achieve magic compiler-derived trace hooks.
 pub struct Traceable<T> {
-    priv inner: T
+    inner: T
 }
 
 impl<T> Traceable<T> {
@@ -116,14 +119,16 @@ impl<T> DerefMut<T> for Traceable<T> {
     }
 }
 
-impl<S: Encoder, T: Encodable<S>> Encodable<S> for Traceable<RefCell<T>> {
-    fn encode(&self, s: &mut S) {
-        self.borrow().encode(s)
+impl<S: Encoder<E>, E, T: Encodable<S, E>> Encodable<S, E> for Traceable<RefCell<T>> {
+    fn encode(&self, s: &mut S) -> Result<(), E> {
+        self.borrow().encode(s);
+        Ok(())
     }
 }
 
-impl<S: Encoder> Encodable<S> for Traceable<*JSObject> {
-    fn encode(&self, s: &mut S) {
-        trace_object(get_jstracer(s), "object", **self)
+impl<S: Encoder<E>, E> Encodable<S, E> for Traceable<*JSObject> {
+    fn encode(&self, s: &mut S) -> Result<(), E> {
+        trace_object(get_jstracer(s), "object", **self);
+        Ok(())
     }
 }

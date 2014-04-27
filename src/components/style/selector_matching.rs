@@ -200,7 +200,7 @@ impl SelectorMap {
                           matching_rules: &mut V,
                           shareable: &mut bool) {
         for rule in rules.iter() {
-            if matches_compound_selector(rule.selector.get(), node, shareable) {
+            if matches_compound_selector(&*rule.selector, node, shareable) {
                 // TODO(pradeep): Is the cloning inefficient?
                 matching_rules.push(rule.property.clone());
             }
@@ -261,7 +261,7 @@ impl SelectorMap {
 
     /// Retrieve the first ID name in Rule, or None otherwise.
     fn get_id_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.get().simple_selectors;
+        let simple_selector_sequence = &rule.selector.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
@@ -275,7 +275,7 @@ impl SelectorMap {
 
     /// Retrieve the FIRST class name in Rule, or None otherwise.
     fn get_class_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.get().simple_selectors;
+        let simple_selector_sequence = &rule.selector.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
@@ -289,7 +289,7 @@ impl SelectorMap {
 
     /// Retrieve the name if it is a type selector, or None otherwise.
     fn get_element_name(rule: &Rule) -> Option<~str> {
-        let simple_selector_sequence = &rule.selector.get().simple_selectors;
+        let simple_selector_sequence = &rule.selector.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
                 // HTML elements in HTML documents must be matched case-insensitively
@@ -303,10 +303,10 @@ impl SelectorMap {
 }
 
 pub struct Stylist {
-    priv element_map: PerPseudoElementSelectorMap,
-    priv before_map: PerPseudoElementSelectorMap,
-    priv after_map: PerPseudoElementSelectorMap,
-    priv rules_source_order: uint,
+    element_map: PerPseudoElementSelectorMap,
+    before_map: PerPseudoElementSelectorMap,
+    after_map: PerPseudoElementSelectorMap,
+    rules_source_order: uint,
 }
 
 impl Stylist {
@@ -344,7 +344,7 @@ impl Stylist {
         // them into the SelectorMap of that priority.
         macro_rules! append(
             ($priority: ident) => {
-                if style_rule.declarations.$priority.get().len() > 0 {
+                if style_rule.declarations.$priority.len() > 0 {
                     for selector in style_rule.selectors.iter() {
                         let map = match selector.pseudo_element {
                             None => &mut element_map,
@@ -481,7 +481,7 @@ struct Rule {
 /// we can sort them.
 #[deriving(Clone)]
 pub struct MatchedProperty {
-    declarations: Arc<~[PropertyDeclaration]>,
+    pub declarations: Arc<~[PropertyDeclaration]>,
     source_order: uint,
     specificity: u32,
 }
@@ -954,7 +954,7 @@ mod tests {
 
         let namespaces = NamespaceMap::new();
         css_selectors.iter().enumerate().map(|(i, selectors)| {
-            parse_selector_list(tokenize(*selectors).map(|(c, _)| c).to_owned_vec(), &namespaces)
+            parse_selector_list(tokenize(*selectors).map(|(c, _)| c).collect(), &namespaces)
             .unwrap().move_iter().map(|s| {
                 Rule {
                     selector: s.compound_selectors.clone(),
@@ -964,8 +964,8 @@ mod tests {
                         source_order: i,
                     }
                 }
-            }).to_owned_vec()
-        }).to_owned_vec()
+            }).collect()
+        }).collect()
     }
 
     #[test]

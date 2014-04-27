@@ -15,7 +15,7 @@ struct CowArcAlloc<T> {
 
 #[unsafe_no_drop_flag]
 pub struct CowArc<T> {
-    priv ptr: *mut CowArcAlloc<T>,
+    ptr: *mut CowArcAlloc<T>,
 }
 
 #[unsafe_destructor]

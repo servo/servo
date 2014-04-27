@@ -10,9 +10,9 @@ use dom::window::Window;
 
 #[deriving(Encodable)]
 pub struct ClientRectList {
-    reflector_: Reflector,
-    rects: ~[JS<ClientRect>],
-    window: JS<Window>,
+    pub reflector_: Reflector,
+    pub rects: ~[JS<ClientRect>],
+    pub window: JS<Window>,
 }
 
 impl ClientRectList {
@@ -37,7 +37,7 @@ impl ClientRectList {
 
     pub fn Item(&self, index: u32) -> Option<JS<ClientRect>> {
         if index < self.rects.len() as u32 {
-            Some(self.rects[index].clone())
+            Some(self.rects[index as uint].clone())
         } else {
             None
         }

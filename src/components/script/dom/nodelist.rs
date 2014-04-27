@@ -16,9 +16,9 @@ pub enum NodeListType {
 
 #[deriving(Encodable)]
 pub struct NodeList {
-    list_type: NodeListType,
-    reflector_: Reflector,
-    window: JS<Window>
+    pub list_type: NodeListType,
+    pub reflector_: Reflector,
+    pub window: JS<Window>
 }
 
 impl NodeList {
@@ -55,7 +55,7 @@ impl NodeList {
     pub fn Item(&self, index: u32) -> Option<JS<Node>> {
         match self.list_type {
             _ if index >= self.Length() => None,
-            Simple(ref elems) => Some(elems[index].clone()),
+            Simple(ref elems) => Some(elems[index as uint].clone()),
             Children(ref node) => node.children().nth(index as uint)
         }
     }

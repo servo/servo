@@ -441,22 +441,22 @@ pub trait PostorderFlowTraversal {
 
 #[deriving(Clone)]
 pub struct FlowFlagsInfo {
-    flags: FlowFlags,
+    pub flags: FlowFlags,
 
     /// text-decoration colors
-    rare_flow_flags: Option<~RareFlowFlags>,
+    pub rare_flow_flags: Option<~RareFlowFlags>,
 }
 
 #[deriving(Clone)]
 pub struct RareFlowFlags {
-    underline_color: Color,
-    overline_color: Color,
-    line_through_color: Color,
+    pub underline_color: Color,
+    pub overline_color: Color,
+    pub line_through_color: Color,
 }
 
 /// Flags used in flows, tightly packed to save space.
 #[deriving(Clone)]
-pub struct FlowFlags(u8);
+pub struct FlowFlags(pub u8);
 
 /// The bitmask of flags that represent text decoration fields that get propagated downward.
 ///
@@ -674,9 +674,9 @@ impl FlowFlags {
 /// FIXME: This should use @pcwalton's reference counting scheme (Coming Soon).
 pub struct Descendants {
     /// Links to every Descendant.
-    descendant_links: SmallVec0<Rawlink>,
+    pub descendant_links: SmallVec0<Rawlink>,
     /// Static y offsets of all descendants from the start of this flow box.
-    static_y_offsets: SmallVec0<Au>,
+    pub static_y_offsets: SmallVec0<Au>,
 }
 
 impl Descendants {
@@ -724,17 +724,17 @@ pub type DescendantOffsetIter<'a> = Zip<MutItems<'a, Rawlink>, MutItems<'a, Au>>
 
 /// Data common to all flows.
 pub struct BaseFlow {
-    restyle_damage: RestyleDamage,
+    pub restyle_damage: RestyleDamage,
 
     /// The children of this flow.
-    children: FlowList,
-    next_sibling: Link,
-    prev_sibling: Rawlink,
+    pub children: FlowList,
+    pub next_sibling: Link,
+    pub prev_sibling: Rawlink,
 
     /* layout computations */
     // TODO: min/pref and position are used during disjoint phases of
     // layout; maybe combine into a single enum to save space.
-    intrinsic_widths: IntrinsicWidths,
+    pub intrinsic_widths: IntrinsicWidths,
 
     /// The upper left corner of the box representing this flow, relative to the box representing
     /// its parent flow.
@@ -744,59 +744,60 @@ pub struct BaseFlow {
     /// This does not include margins in the block flow direction, because those can collapse. So
     /// for the block direction (usually vertical), this represents the *border box*. For the
     /// inline direction (usually horizontal), this represents the *margin box*.
-    position: Rect<Au>,
+    pub position: Rect<Au>,
 
     /// The amount of overflow of this flow, relative to the containing block. Must include all the
     /// pixels of all the display list items for correct invalidation.
-    overflow: Rect<Au>,
+    pub overflow: Rect<Au>,
 
     /// Data used during parallel traversals.
     ///
     /// TODO(pcwalton): Group with other transient data to save space.
-    parallel: FlowParallelInfo,
+    pub parallel: FlowParallelInfo,
 
     /// The floats next to this flow.
-    floats: Floats,
+    pub floats: Floats,
 
     /// The value of this flow's `clear` property, if any.
-    clear: clear::T,
+    pub clear: clear::T,
 
     /// For normal flows, this is the number of floated descendants that are
     /// not contained within any other floated descendant of this flow. For
     /// floats, it is 1.
     /// It is used to allocate float data if necessary and to
     /// decide whether to do an in-order traversal for assign_height.
-    num_floats: uint,
+    pub num_floats: uint,
 
     /// The collapsible margins for this flow, if any.
-    collapsible_margins: CollapsibleMargins,
+    pub collapsible_margins: CollapsibleMargins,
 
     /// The position of this flow in page coordinates, computed during display list construction.
-    abs_position: Point2D<Au>,
+    pub abs_position: Point2D<Au>,
 
     /// Details about descendants with position 'absolute' or 'fixed' for which we are the
     /// containing block. This is in tree order. This includes any direct children.
-    abs_descendants: AbsDescendants,
+    pub abs_descendants: AbsDescendants,
 
     /// Offset wrt the nearest positioned ancestor - aka the Containing Block
     /// for any absolutely positioned elements.
-    absolute_static_x_offset: Au,
+    pub absolute_static_x_offset: Au,
     /// Offset wrt the Initial Containing Block.
-    fixed_static_x_offset: Au,
+    pub fixed_static_x_offset: Au,
 
     /// Reference to the Containing Block, if this flow is absolutely positioned.
-    absolute_cb: Rawlink,
+    pub absolute_cb: Rawlink,
 
     /// Whether this flow has been destroyed.
     ///
     /// TODO(pcwalton): Pack this into the flags? Need to be careful because manipulation of this
     /// flag can have memory safety implications.
-    priv destroyed: bool,
+    destroyed: bool,
 
     /// Various flags for flows and some info
-    flags_info: FlowFlagsInfo,
+    pub flags_info: FlowFlagsInfo,
 }
 
+#[unsafe_destructor]
 impl Drop for BaseFlow {
     fn drop(&mut self) {
         if !self.destroyed {
@@ -834,7 +835,7 @@ impl BaseFlow {
 
             destroyed: false,
 
-            flags_info: FlowFlagsInfo::new(style.get()),
+            flags_info: FlowFlagsInfo::new(&**style),
         }
     }
 

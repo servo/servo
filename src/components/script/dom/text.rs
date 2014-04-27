@@ -16,7 +16,7 @@ use servo_util::str::DOMString;
 /// An HTML text node.
 #[deriving(Encodable)]
 pub struct Text {
-    characterdata: CharacterData,
+    pub characterdata: CharacterData,
 }
 
 impl TextDerived for EventTarget {

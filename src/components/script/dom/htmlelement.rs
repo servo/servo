@@ -19,7 +19,7 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct HTMLElement {
-    element: Element
+    pub element: Element
 }
 
 impl HTMLElementDerived for EventTarget {

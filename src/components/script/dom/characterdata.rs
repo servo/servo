@@ -15,8 +15,8 @@ use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct CharacterData {
-    node: Node,
-    data: DOMString,
+    pub node: Node,
+    pub data: DOMString,
 }
 
 impl CharacterDataDerived for EventTarget {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[allow(non_camel_case_types)];
+#![allow(non_camel_case_types)]
 
 pub use servo_util::geometry::Au;
 
@@ -170,20 +170,20 @@ pub mod computed {
     pub use servo_util::geometry::Au;
 
     pub struct Context {
-        color: longhands::color::computed_value::T,
-        inherited_font_weight: longhands::font_weight::computed_value::T,
-        inherited_font_size: longhands::font_size::computed_value::T,
-        inherited_minimum_line_height: longhands::_servo_minimum_line_height::T,
-        inherited_height: longhands::height::T,
-        font_size: longhands::font_size::computed_value::T,
-        display: longhands::display::computed_value::T,
-        positioned: bool,
-        floated: bool,
-        border_top_present: bool,
-        border_right_present: bool,
-        border_bottom_present: bool,
-        border_left_present: bool,
-        is_root_element: bool,
+        pub color: longhands::color::computed_value::T,
+        pub inherited_font_weight: longhands::font_weight::computed_value::T,
+        pub inherited_font_size: longhands::font_size::computed_value::T,
+        pub inherited_minimum_line_height: longhands::_servo_minimum_line_height::T,
+        pub inherited_height: longhands::height::T,
+        pub font_size: longhands::font_size::computed_value::T,
+        pub display: longhands::display::computed_value::T,
+        pub positioned: bool,
+        pub floated: bool,
+        pub border_top_present: bool,
+        pub border_right_present: bool,
+        pub border_bottom_present: bool,
+        pub border_left_present: bool,
+        pub is_root_element: bool,
         // TODO, as needed: root font size, viewport size, etc.
     }
 

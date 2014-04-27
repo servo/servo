@@ -24,9 +24,9 @@ use std::task::TaskOpts;
 /// custom data specific to each unit of work.
 pub struct WorkUnit<QUD,WUD> {
     /// The function to execute.
-    fun: extern "Rust" fn(WUD, &mut WorkerProxy<QUD,WUD>),
+    pub fun: extern "Rust" fn(WUD, &mut WorkerProxy<QUD,WUD>),
     /// Arbitrary data.
-    data: WUD,
+    pub data: WUD,
 }
 
 /// Messages from the supervisor to the worker.
@@ -162,9 +162,9 @@ impl<QUD:Send,WUD:Send> WorkerThread<QUD,WUD> {
 
 /// A handle to the work queue that individual work units have.
 pub struct WorkerProxy<'a,QUD,WUD> {
-    priv worker: &'a mut Worker<WorkUnit<QUD,WUD>>,
-    priv ref_count: *mut AtomicUint,
-    priv queue_data: *QUD,
+    pub worker: &'a mut Worker<WorkUnit<QUD,WUD>>,
+    pub ref_count: *mut AtomicUint,
+    pub queue_data: *QUD,
 }
 
 impl<'a,QUD,WUD:Send> WorkerProxy<'a,QUD,WUD> {
@@ -189,13 +189,13 @@ impl<'a,QUD,WUD:Send> WorkerProxy<'a,QUD,WUD> {
 /// A work queue on which units of work can be submitted.
 pub struct WorkQueue<QUD,WUD> {
     /// Information about each of the workers.
-    priv workers: ~[WorkerInfo<QUD,WUD>],
+    pub workers: ~[WorkerInfo<QUD,WUD>],
     /// A port on which deques can be received from the workers.
-    priv port: Receiver<SupervisorMsg<QUD,WUD>>,
+    pub port: Receiver<SupervisorMsg<QUD,WUD>>,
     /// The amount of work that has been enqueued.
-    priv work_count: uint,
+    pub work_count: uint,
     /// Arbitrary user data.
-    data: QUD,
+    pub data: QUD,
 }
 
 impl<QUD:Send,WUD:Send> WorkQueue<QUD,WUD> {

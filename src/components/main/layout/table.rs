@@ -25,19 +25,19 @@ use style::computed_values::table_layout;
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper box,
 /// not table box per CSS 2.1 § 10.5.
 pub struct TableFlow {
-    block_flow: BlockFlow,
+    pub block_flow: BlockFlow,
 
     /// Column widths
-    col_widths: ~[Au],
+    pub col_widths: ~[Au],
 
     /// Column min widths.
-    col_min_widths: ~[Au],
+    pub col_min_widths: ~[Au],
 
     /// Column pref widths.
-    col_pref_widths: ~[Au],
+    pub col_pref_widths: ~[Au],
 
     /// Table-layout property
-    table_layout: TableLayout,
+    pub table_layout: TableLayout,
 }
 
 impl TableFlow {
@@ -268,10 +268,10 @@ impl Flow for TableFlow {
         let width_computer = InternalTable;
         width_computer.compute_used_width(&mut self.block_flow, ctx, containing_block_width);
 
-        let left_content_edge = self.block_flow.box_.padding.get().left + self.block_flow.box_.border.get().left;
-        let padding_and_borders = self.block_flow.box_.padding.get().left + self.block_flow.box_.padding.get().right +
-                                  self.block_flow.box_.border.get().left + self.block_flow.box_.border.get().right;
-        let content_width = self.block_flow.box_.border_box.get().size.width - padding_and_borders;
+        let left_content_edge = self.block_flow.box_.padding.borrow().left + self.block_flow.box_.border.borrow().left;
+        let padding_and_borders = self.block_flow.box_.padding.borrow().left + self.block_flow.box_.padding.borrow().right +
+                                  self.block_flow.box_.border.borrow().left + self.block_flow.box_.border.borrow().right;
+        let content_width = self.block_flow.box_.border_box.borrow().size.width - padding_and_borders;
 
         match self.table_layout {
             FixedLayout => {
