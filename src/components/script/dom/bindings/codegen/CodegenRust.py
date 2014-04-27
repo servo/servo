@@ -92,19 +92,18 @@ class CastableObjectUnwrapper():
 
     codeOnFailure is the code to run if unwrapping fails.
     """
-    def __init__(self, descriptor, source, codeOnFailure, isOptional=False):
+    def __init__(self, descriptor, source, codeOnFailure):
         self.substitution = { "type" : descriptor.nativeType,
                               "depth": descriptor.interface.inheritanceDepth(),
                               "prototype": "PrototypeList::id::" + descriptor.name,
                               "protoID" : "PrototypeList::id::" + descriptor.name + " as uint",
                               "source" : source,
-                              "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define(),
-                              "unwrapped_val" : "Some(val)" if isOptional else "val"}
+                              "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define()}
 
     def __str__(self):
         return string.Template(
 """match unwrap_jsmanaged(${source}, ${prototype}, ${depth}) {
-  Ok(val) => ${unwrapped_val},
+  Ok(val) => val,
   Err(()) => {
     ${codeOnFailure}
   }
@@ -121,10 +120,9 @@ class FailureFatalCastableObjectUnwrapper(CastableObjectUnwrapper):
     """
     As CastableObjectUnwrapper, but defaulting to throwing if unwrapping fails
     """
-    def __init__(self, descriptor, source, isOptional):
+    def __init__(self, descriptor, source):
         CastableObjectUnwrapper.__init__(self, descriptor, source,
-                                         "return 0; //XXXjdm return Throw(cx, rv);",
-                                         isOptional)
+                                         "return 0; //XXXjdm return Throw(cx, rv);")
 
 class CGThing():
     """
@@ -619,25 +617,23 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             raise TypeError("Consequential interface %s being used as an "
                             "argument" % descriptor.interface.identifier.name)
 
-
         if failureCode is not None:
             templateBody = str(CastableObjectUnwrapper(
                     descriptor,
                     "(${val}).to_object()",
-                    failureCode,
-                    isOptional or type.nullable()))
+                    failureCode))
         else:
             templateBody = str(FailureFatalCastableObjectUnwrapper(
                     descriptor,
-                    "(${val}).to_object()",
-                    isOptional or type.nullable()))
-
-        templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
-                                          type, failureCode)
+                    "(${val}).to_object()"))
 
         declType = CGGeneric(descriptor.nativeType)
         if type.nullable() or isOptional:
+            templateBody = "Some(%s)" % templateBody
             declType = CGWrapper(declType, pre="Option<", post=">")
+
+        templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
+                                          type, failureCode)
 
         return (templateBody, declType, isOptional, "None" if isOptional else None)
 
