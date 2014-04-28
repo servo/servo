@@ -376,7 +376,8 @@ impl IOCompositor {
                                                           self.opts.tile_size,
                                                           self.opts.cpu_painting);
 
-            match *self.root_layer.first_child.borrow() {
+            let first_child = self.root_layer.first_child.borrow().clone();
+            match first_child {
                 None => {}
                 Some(ref old_layer) => {
                     ContainerLayer::remove_child(self.root_layer.clone(), old_layer.clone())
