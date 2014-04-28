@@ -576,21 +576,13 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                             "holderType")
 
         declType = CGGeneric(type.name)
-        value = CGGeneric("value")
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
-            value = CGWrapper(value, pre="Some(", post=")")
 
-        templateBody = CGGeneric("match %s::from_value(cx, ${val}) {\n"
+        templateBody = CGGeneric("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+                                 "    Ok(value) => value,\n"
                                  "    Err(()) => { %s },\n"
-                                 "    Ok(value) => %s,\n"
-                                 "}" % (type.name, exceptionCode, value.define()))
-
-        if type.nullable():
-            templateBody = CGIfElseWrapper(
-                "(${val}).is_null_or_undefined()",
-                CGGeneric("None"),
-                templateBody)
+                                 "}" % exceptionCode)
 
         templateBody = handleDefaultNull(templateBody.define(),
                                          "None")
@@ -2847,7 +2839,7 @@ class CGUnionConversionStruct(CGThing):
         self.type = type
         self.descriptorProvider = descriptorProvider
 
-    def from_value_method(self):
+    def from_jsval(self):
         memberTypes = self.type.flatMemberTypes
         names = []
         conversions = []
@@ -2941,9 +2933,13 @@ class CGUnionConversionStruct(CGThing):
         conversions.append(CGGeneric(
             "throw_not_in_union(cx, \"%s\");\n"
             "Err(())" % ", ".join(names)))
-        return CGWrapper(
+        method = CGWrapper(
             CGIndenter(CGList(conversions, "\n\n")),
-            pre="pub fn from_value(cx: *JSContext, value: JSVal) -> Result<%s, ()> {\n" % self.type,
+            pre="fn from_jsval(cx: *JSContext, value: JSVal, _option: ()) -> Result<%s, ()> {\n" % self.type,
+            post="\n}")
+        return CGWrapper(
+            CGIndenter(method),
+            pre="impl FromJSValConvertible<()> for %s {\n" % self.type,
             post="\n}")
 
     def try_method(self, t):
@@ -2953,16 +2949,21 @@ class CGUnionConversionStruct(CGThing):
 
         return CGWrapper(
             CGIndenter(jsConversion, 4),
-            pre="pub fn TryConvertTo%s(cx: *JSContext, value: JSVal) -> %s {\n" % (t.name, returnType),
+            pre="fn TryConvertTo%s(cx: *JSContext, value: JSVal) -> %s {\n" % (t.name, returnType),
             post="\n}")
 
     def define(self):
-        methods = [self.from_value_method()]
-        methods.extend(self.try_method(t) for t in self.type.flatMemberTypes)
+        from_jsval = self.from_jsval()
+        methods = CGIndenter(CGList([
+            self.try_method(t) for t in self.type.flatMemberTypes
+        ], "\n\n"))
         return """
+%s
+
 impl %s {
 %s
-}""" % (self.type, CGIndenter(CGList(methods, "\n\n")).define())
+}
+""" % (from_jsval.define(), self.type, methods.define())
 
 
 class ClassItem:
