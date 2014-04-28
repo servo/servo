@@ -546,7 +546,7 @@ impl LayoutTask {
         {
             // Reset the image cache.
             let val = self.local_image_cache.lock();
-            let mut local_image_cache = unsafe {
+            let local_image_cache = unsafe {
                 cast::transmute::<*(), &mut LocalImageCache>(*val)
             };
             local_image_cache.next_round(self.make_on_image_available_cb());
