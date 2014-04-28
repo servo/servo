@@ -176,7 +176,7 @@ class CGMethodCall(CGThing):
             if requiredArgs > 0:
                 code = (
                     "if argc < %d {\n"
-                    "  ThrowTypeError(cx, \"Not enough arguments to %s.\");\n"
+                    "  throw_type_error(cx, \"Not enough arguments to %s.\");\n"
                     "  return 0;\n"
                     "}" % (requiredArgs, methodName))
                 self.cgRoot.prepend(
@@ -4340,7 +4340,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::codegen::UnionTypes::*',
             'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult}',
             'dom::bindings::error::{throw_method_failed_with_details}',
-            'dom::bindings::error::ThrowTypeError',
+            'dom::bindings::error::throw_type_error',
             'script_task::JSPageInfo',
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{_obj_toString, defineProperty}',
