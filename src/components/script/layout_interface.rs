@@ -83,9 +83,9 @@ impl<S: Encoder<E>, E> Encodable<S, E> for TrustedNodeAddress {
 pub type UntrustedNodeAddress = *c_void;
 
 pub struct ContentBoxResponse(pub Rect<Au>);
-pub struct ContentBoxesResponse(pub ~[Rect<Au>]);
+pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
 pub struct HitTestResponse(pub UntrustedNodeAddress);
-pub struct MouseOverResponse(pub ~[UntrustedNodeAddress]);
+pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
 
 /// Determines which part of the
 #[deriving(Eq, Ord, TotalEq, TotalOrd, Encodable)]

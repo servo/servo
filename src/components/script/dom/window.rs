@@ -111,7 +111,6 @@ pub struct TimerData {
     pub handle: i32,
     pub is_interval: bool,
     pub funval: JSVal,
-    pub args: ~[JSVal],
 }
 
 impl Window {
@@ -248,7 +247,6 @@ impl Window {
                         handle: handle,
                         is_interval: is_interval,
                         funval: callback,
-                        args: ~[],
                     };
                     let ScriptChan(ref chan) = chan;
                     chan.send(FireTimerMsg(page_id, data));

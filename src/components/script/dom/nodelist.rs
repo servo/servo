@@ -10,7 +10,7 @@ use dom::window::Window;
 
 #[deriving(Encodable)]
 pub enum NodeListType {
-    Simple(~[JS<Node>]),
+    Simple(Vec<JS<Node>>),
     Children(JS<Node>)
 }
 
@@ -37,7 +37,7 @@ impl NodeList {
                            window, NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list(window: &JS<Window>, elements: ~[JS<Node>]) -> JS<NodeList> {
+    pub fn new_simple_list(window: &JS<Window>, elements: Vec<JS<Node>>) -> JS<NodeList> {
         NodeList::new(window, Simple(elements))
     }
 
@@ -55,7 +55,7 @@ impl NodeList {
     pub fn Item(&self, index: u32) -> Option<JS<Node>> {
         match self.list_type {
             _ if index >= self.Length() => None,
-            Simple(ref elems) => Some(elems[index as uint].clone()),
+            Simple(ref elems) => Some(elems.get(index as uint).clone()),
             Children(ref node) => node.children().nth(index as uint)
         }
     }

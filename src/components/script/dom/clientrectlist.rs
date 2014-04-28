@@ -11,13 +11,13 @@ use dom::window::Window;
 #[deriving(Encodable)]
 pub struct ClientRectList {
     pub reflector_: Reflector,
-    pub rects: ~[JS<ClientRect>],
+    pub rects: Vec<JS<ClientRect>>,
     pub window: JS<Window>,
 }
 
 impl ClientRectList {
     pub fn new_inherited(window: JS<Window>,
-                         rects: ~[JS<ClientRect>]) -> ClientRectList {
+                         rects: Vec<JS<ClientRect>>) -> ClientRectList {
         ClientRectList {
             reflector_: Reflector::new(),
             rects: rects,
@@ -26,7 +26,7 @@ impl ClientRectList {
     }
 
     pub fn new(window: &JS<Window>,
-               rects: ~[JS<ClientRect>]) -> JS<ClientRectList> {
+               rects: Vec<JS<ClientRect>>) -> JS<ClientRectList> {
         reflect_dom_object(~ClientRectList::new_inherited(window.clone(), rects),
                            window, ClientRectListBinding::Wrap)
     }
@@ -37,7 +37,7 @@ impl ClientRectList {
 
     pub fn Item(&self, index: u32) -> Option<JS<ClientRect>> {
         if index < self.rects.len() as u32 {
-            Some(self.rects[index as uint].clone())
+            Some(self.rects.get(index as uint).clone())
         } else {
             None
         }

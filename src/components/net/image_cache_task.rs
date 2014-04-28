@@ -491,7 +491,7 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
     loop {
         match progress_port.recv() {
             resource_task::Payload(data) => {
-                image_data.push_all(data);
+                image_data.push_all(data.as_slice());
             }
             resource_task::Done(result::Ok(..)) => {
                 return Ok(image_data);
@@ -554,7 +554,7 @@ mod tests {
     struct SendBogusImage;
     impl Closure for SendBogusImage {
         fn invoke(&self, response: Sender<resource_task::ProgressMsg>) {
-            response.send(resource_task::Payload(~[]));
+            response.send(resource_task::Payload(vec!()));
             response.send(resource_task::Done(Ok(())));
         }
     }

@@ -104,7 +104,8 @@ fn load(mut url: Url, start_chan: Sender<LoadResponse>) {
             match response.read(buf) {
                 Ok(len) => {
                     unsafe { buf.set_len(len); }
-                    progress_chan.send(Payload(buf));
+                    let buf: ~[u8] = buf;
+                    progress_chan.send(Payload(buf.move_iter().collect()));
                 }
                 Err(_) => {
                     progress_chan.send(Done(Ok(())));

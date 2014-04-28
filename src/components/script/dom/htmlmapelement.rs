@@ -54,6 +54,6 @@ impl HTMLMapElement {
         // FIXME: https://github.com/mozilla/servo/issues/1845
         let doc = self.htmlelement.element.node.owner_doc();
         let doc = doc.get();
-        HTMLCollection::new(&doc.window, Static(~[]))
+        HTMLCollection::new(&doc.window, Static(vec!()))
     }
 }
