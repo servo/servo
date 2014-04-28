@@ -776,7 +776,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                     "  Err(_) => return 0,\n"
                     "}" % (typeName, val))
 
-        return (template, declType, False, None)
+        return handleOptional(template, declType, isOptional)
 
     if type.isVoid():
         assert not isOptional
