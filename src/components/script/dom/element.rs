@@ -430,6 +430,38 @@ impl AttributeHandlers for JS<Element> {
     }
 }
 
+impl style::TElement for JS<Element> {
+    fn get_attr(&self, namespace: &Namespace, attr: &str) -> Option<&'static str> {
+        unsafe { self.get().get_attr_val_for_layout(namespace, attr) }
+    }
+
+    fn get_link(&self) -> Option<&'static str> {
+        // FIXME: This is HTML only.
+        match self.get().node.type_id {
+            // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
+            // selector-link
+            ElementNodeTypeId(HTMLAnchorElementTypeId) |
+            ElementNodeTypeId(HTMLAreaElementTypeId) |
+            ElementNodeTypeId(HTMLLinkElementTypeId) => {
+                unsafe { self.get().get_attr_val_for_layout(&namespace::Null, "href") }
+            }
+            _ => None,
+        }
+    }
+
+    fn get_local_name<'a>(&'a self) -> &'a str {
+        self.get().local_name.as_slice()
+    }
+
+    fn get_namespace<'a>(&'a self) -> &'a Namespace {
+        &self.get().namespace
+    }
+
+    fn get_hover_state(&self) -> bool {
+        unsafe { self.get().node.get_hover_state_for_layout() }
+    }
+}
+
 impl Element {
     pub fn is_void(&self) -> bool {
         if self.namespace != namespace::HTML {
