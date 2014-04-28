@@ -2,17 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
+use cssparser::tokenize;
+use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, ElementCast, NodeCast};
 use dom::bindings::codegen::DocumentFragmentBinding;
 use dom::bindings::js::JS;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Fallible, TypeError};
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
-use dom::node::{DocumentFragmentNodeTypeId, Node};
+use dom::node::{DocumentFragmentNodeTypeId, Node, NodeHelpers};
 use dom::window::Window;
 use servo_util::str::DOMString;
+use style::parse_selector_list;
+use style::matches_compound_selector;
+use style::NamespaceMap;
 
 #[deriving(Encodable)]
 pub struct DocumentFragment {
@@ -59,6 +63,27 @@ impl DocumentFragment {
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     pub fn QuerySelector(&self, abstract_self: &JS<DocumentFragment>, selectors: DOMString) -> Fallible<Option<JS<Element>>> {
+        // Step 1.
+        let namespace = NamespaceMap::new();
+        let maybe_selectors = parse_selector_list(tokenize(selectors).map(|(token, _)| token).to_owned_vec(), &namespace);
+        match maybe_selectors {
+            // Step 2.
+            None => return Err(TypeError),
+            // Step 3.
+            Some(ref selectors) => {
+                for selector in selectors.iter() {
+                    assert!(selector.pseudo_element.is_none());
+                    let root: JS<Node> = NodeCast::from(abstract_self);
+                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
+                        let elem: JS<Element> = ElementCast::to(&node).unwrap();
+                        let mut shareable: bool = false;
+                        if matches_compound_selector(selector.compound_selectors.get(), &node, &mut shareable) {
+                            return Ok(Some(elem));
+                        }
+                    }
+                }
+            }
+        }
         Ok(None)
     }
 }
