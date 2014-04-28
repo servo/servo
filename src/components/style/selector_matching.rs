@@ -521,7 +521,7 @@ impl Ord for MatchedProperty {
 /// `shareable` to false unless you are willing to update the style sharing logic. Otherwise things
 /// will almost certainly break as nodes will start mistakenly sharing styles. (See the code in
 /// `main/css/matching.rs`.)
-fn matches_compound_selector<E:TElement,
+pub fn matches_compound_selector<E:TElement,
                              N:TNode<E>>(
                              selector: &CompoundSelector,
                              element: &N,

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::tokenize;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentBase, NodeCast, DocumentCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
@@ -10,7 +11,8 @@ use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::js::JS;
 use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter, HierarchyRequest, NamespaceError};
+use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
+use dom::bindings::error::{TypeError, HierarchyRequest, NamespaceError};
 use dom::bindings::utils::{xml_name_type, InvalidXMLName, Name, QName};
 use dom::comment::Comment;
 use dom::documentfragment::DocumentFragment;
@@ -41,6 +43,9 @@ use layout_interface::{DocumentDamageLevel, ContentChangedDocumentDamage};
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref};
+use style::parse_selector_list;
+use style::matches_compound_selector;
+use style::NamespaceMap;
 
 use collections::hashmap::HashMap;
 use js::jsapi::JSContext;
@@ -615,6 +620,27 @@ impl Document {
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     pub fn QuerySelector(&self, abstract_self: &JS<Document>, selectors: DOMString) -> Fallible<Option<JS<Element>>> {
+        // Step 1.
+        let namespace = NamespaceMap::new();
+        let maybe_selectors = parse_selector_list(tokenize(selectors).map(|(token, _)| token).to_owned_vec(), &namespace);
+        match maybe_selectors {
+            // Step 2.
+            None => return Err(TypeError),
+            // Step 3.
+            Some(ref selectors) => {
+                for selector in selectors.iter() {
+                    assert!(selector.pseudo_element.is_none());
+                    let root: JS<Node> = NodeCast::from(abstract_self);
+                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
+                        let elem: JS<Element> = ElementCast::to(&node).unwrap();
+                        let mut shareable: bool = false;
+                        if matches_compound_selector(selector.compound_selectors.get(), &node, &mut shareable) {
+                            return Ok(Some(elem));
+                        }
+                    }
+                }
+            }
+        }
         Ok(None)
     }
 }
