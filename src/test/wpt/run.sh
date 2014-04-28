@@ -19,4 +19,5 @@ fi
 python $servo_root/src/test/wpt/run.py \
   --config $servo_root/src/test/wpt/config.ini \
   --binary $objdir/../servo \
+  --log-mach - \
   "$@"
