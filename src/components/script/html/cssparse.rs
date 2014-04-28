@@ -62,8 +62,8 @@ struct ProgressMsgPortIterator {
     progress_port: Receiver<ProgressMsg>
 }
 
-impl Iterator<~[u8]> for ProgressMsgPortIterator {
-    fn next(&mut self) -> Option<~[u8]> {
+impl Iterator<Vec<u8>> for ProgressMsgPortIterator {
+    fn next(&mut self) -> Option<Vec<u8>> {
         match self.progress_port.recv() {
             Payload(data) => Some(data),
             Done(..) => None

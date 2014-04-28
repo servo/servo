@@ -78,7 +78,7 @@ pub struct LoadResponse {
 #[deriving(Eq,Show)]
 pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
-    Payload(~[u8]),
+    Payload(Vec<u8>),
     /// Indicates loading is complete, either successfully or not
     Done(Result<(), ()>)
 }
@@ -104,7 +104,7 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
     let mut buf = ~[];
     loop {
         match response.progress_port.recv() {
-            Payload(data) => buf.push_all(data),
+            Payload(data) => buf.push_all(data.as_slice()),
             Done(Ok(()))  => return Ok((response.metadata, buf)),
             Done(Err(e))  => return Err(e)
         }
@@ -228,7 +228,7 @@ static snicklefritz_payload: [u8, ..3] = [1, 2, 3];
 fn snicklefritz_loader_factory() -> LoaderTask {
     let f: LoaderTask = proc(url: Url, start_chan: Sender<LoadResponse>) {
         let progress_chan = start_sending(start_chan, Metadata::default(url));
-        progress_chan.send(Payload(snicklefritz_payload.into_owned()));
+        progress_chan.send(Payload(Vec::from_slice(snicklefritz_payload)));
         progress_chan.send(Done(Ok(())));
     };
     f
@@ -244,7 +244,7 @@ fn should_delegate_to_scheme_loader() {
     let response = start.recv();
     let progress = response.progress_port;
 
-    assert!(progress.recv() == Payload(snicklefritz_payload.into_owned()));
+    assert!(progress.recv() == Payload(Vec::from_slice(snicklefritz_payload)));
     assert!(progress.recv() == Done(Ok(())));
     resource_task.send(Exit);
 }

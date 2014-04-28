@@ -53,14 +53,16 @@ fn load(url: Url, start_chan: Sender<LoadResponse>) {
                 progress_chan.send(Done(Err(())));
             }
             Ok(data) => {
-                progress_chan.send(Payload(data));
+                let data: ~[u8] = data;
+                progress_chan.send(Payload(data.move_iter().collect()));
                 progress_chan.send(Done(Ok(())));
             }
         }
     } else {
         // FIXME: Since the %-decoded URL is already a str, we can't
         // handle UTF8-incompatible encodings.
-        progress_chan.send(Payload(parts[1].as_bytes().into_owned()));
+        let bytes: &[u8] = parts[1].as_bytes();
+        progress_chan.send(Payload(bytes.iter().map(|&x| x).collect()));
         progress_chan.send(Done(Ok(())));
     }
 }
@@ -69,7 +71,7 @@ fn load(url: Url, start_chan: Sender<LoadResponse>) {
 fn assert_parse(url:          &'static str,
                 content_type: Option<(~str, ~str)>,
                 charset:      Option<~str>,
-                data:         Option<~[u8]>) {
+                data:         Option<Vec<u8>>) {
     use std::from_str::FromStr;
     use std::comm;
 
@@ -100,35 +102,35 @@ fn empty_invalid() {
 
 #[test]
 fn plain() {
-    assert_parse("data:,hello%20world", None, None, Some(bytes!("hello world").into_owned()));
+    assert_parse("data:,hello%20world", None, None, Some(bytes!("hello world").iter().map(|&x| x).collect()));
 }
 
 #[test]
 fn plain_ct() {
     assert_parse("data:text/plain,hello",
-        Some((~"text", ~"plain")), None, Some(bytes!("hello").into_owned()));
+        Some((~"text", ~"plain")), None, Some(bytes!("hello").iter().map(|&x| x).collect()));
 }
 
 #[test]
 fn plain_charset() {
     assert_parse("data:text/plain;charset=latin1,hello",
-        Some((~"text", ~"plain")), Some(~"latin1"), Some(bytes!("hello").into_owned()));
+        Some((~"text", ~"plain")), Some(~"latin1"), Some(bytes!("hello").iter().map(|&x| x).collect()));
 }
 
 #[test]
 fn base64() {
-    assert_parse("data:;base64,C62+7w==", None, None, Some(~[0x0B, 0xAD, 0xBE, 0xEF]));
+    assert_parse("data:;base64,C62+7w==", None, None, Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
 }
 
 #[test]
 fn base64_ct() {
     assert_parse("data:application/octet-stream;base64,C62+7w==",
-        Some((~"application", ~"octet-stream")), None, Some(~[0x0B, 0xAD, 0xBE, 0xEF]));
+        Some((~"application", ~"octet-stream")), None, Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
 }
 
 #[test]
 fn base64_charset() {
     assert_parse("data:text/plain;charset=koi8-r;base64,8PLl9+XkIO3l5Pfl5A==",
         Some((~"text", ~"plain")), Some(~"koi8-r"),
-        Some(~[0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4]));
+        Some(vec!(0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4)));
 }

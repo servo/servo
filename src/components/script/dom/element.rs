@@ -36,7 +36,7 @@ pub struct Element {
     pub local_name: DOMString,     // TODO: This should be an atom, not a DOMString.
     pub namespace: Namespace,
     pub prefix: Option<DOMString>,
-    pub attrs: ~[JS<Attr>],
+    pub attrs: Vec<JS<Attr>>,
     pub style_attribute: Option<style::PropertyDeclarationBlock>,
     pub attr_list: Option<JS<AttrList>>
 }
@@ -145,7 +145,7 @@ impl Element {
             local_name: local_name,
             namespace: namespace,
             prefix: prefix,
-            attrs: ~[],
+            attrs: vec!(),
             attr_list: None,
             style_attribute: None,
         }
@@ -264,7 +264,7 @@ impl AttributeHandlers for JS<Element> {
         let idx = self.get().attrs.iter().position(cb);
         let (mut attr, set_type): (JS<Attr>, AttrSettingType) = match idx {
             Some(idx) => {
-                let attr = self.get_mut().attrs[idx].clone();
+                let attr = self.get_mut().attrs.get(idx).clone();
                 (attr, ReplacedAttr)
             }
 
@@ -376,7 +376,7 @@ impl AttributeHandlers for JS<Element> {
             None => (),
             Some(idx) => {
                 if namespace == namespace::Null {
-                    let removed_raw_value = self.get().attrs[idx].get().Value();
+                    let removed_raw_value = self.get().attrs.get(idx).get().Value();
                     vtable_for(&node).before_remove_attr(local_name.clone(), removed_raw_value);
                 }
 
@@ -651,8 +651,8 @@ pub fn get_attribute_parts(name: DOMString) -> (Option<~str>, ~str) {
     //FIXME: Throw for XML-invalid names
     //FIXME: Throw for XMLNS-invalid names
     let (prefix, local_name) = if name.contains(":")  {
-        let parts: ~[&str] = name.splitn(':', 1).collect();
-        (Some(parts[0].to_owned()), parts[1].to_owned())
+        let mut parts = name.splitn(':', 1);
+        (Some(parts.next().unwrap().to_owned()), parts.next().unwrap().to_owned())
     } else {
         (None, name)
     };

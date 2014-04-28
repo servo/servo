@@ -21,7 +21,7 @@ use dom::text::Text;
 
 pub fn serialize(iterator: &mut NodeIterator) -> ~str {
     let mut html = ~"";
-    let mut open_elements: ~[~str] = ~[];
+    let mut open_elements: Vec<~str> = vec!();
 
     for node in *iterator {
         while open_elements.len() > iterator.depth {
@@ -93,7 +93,7 @@ fn serialize_doctype(doctype: &JS<DocumentType>) -> ~str {
     ~"<!DOCTYPE" + doctype.get().name + ">"
 }
 
-fn serialize_elem(elem: &JS<Element>, open_elements: &mut ~[~str]) -> ~str {
+fn serialize_elem(elem: &JS<Element>, open_elements: &mut Vec<~str>) -> ~str {
     let mut rv = ~"<" + elem.get().local_name;
     for attr in elem.get().attrs.iter() {
         rv.push_str(serialize_attr(attr));

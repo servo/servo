@@ -151,11 +151,11 @@ pub struct Page {
 
 pub struct PageTree {
     pub page: Rc<Page>,
-    pub inner: ~[PageTree],
+    pub inner: Vec<PageTree>,
 }
 
 pub struct PageTreeIterator<'a> {
-    stack: ~[&'a mut PageTree],
+    stack: Vec<&'a mut PageTree>,
 }
 
 impl PageTree {
@@ -175,7 +175,7 @@ impl PageTree {
                 fragment_node: Traceable::new(RefCell::new(None)),
                 last_reflow_id: Traceable::new(RefCell::new(0)),
             }),
-            inner: ~[],
+            inner: vec!(),
         }
     }
 
@@ -198,7 +198,7 @@ impl PageTree {
 
     pub fn iter<'a>(&'a mut self) -> PageTreeIterator<'a> {
         PageTreeIterator {
-            stack: ~[self],
+            stack: vec!(self),
         }
     }
 
@@ -459,7 +459,7 @@ impl Page {
         address
     }
 
-    pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<~[UntrustedNodeAddress]> {
+    pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<Vec<UntrustedNodeAddress>> {
         let frame = self.frame();
         let document = frame.get_ref().document.clone();
         let root = document.get().GetDocumentElement();
@@ -524,7 +524,7 @@ pub struct ScriptTask {
     /// The JavaScript runtime.
     pub js_runtime: js::rust::rt,
 
-    pub mouse_over_targets: RefCell<Option<~[JS<Node>]>>
+    pub mouse_over_targets: RefCell<Option<Vec<JS<Node>>>>
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -647,7 +647,7 @@ impl ScriptTask {
     fn handle_msgs(&self) -> bool {
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
-        let mut resizes = ~[];
+        let mut resizes = vec!();
 
         {
             let mut page_tree = self.page_tree.borrow_mut();
@@ -669,7 +669,7 @@ impl ScriptTask {
         }
 
         // Store new resizes, and gather all other events.
-        let mut sequential = ~[];
+        let mut sequential = vec!();
 
         // Receive at least one message so we don't spinloop.
         let mut event = self.port.recv();
@@ -751,11 +751,7 @@ impl ScriptTask {
             window.get_mut().active_timers.remove(&timer_data.handle);
         }
 
-        let this_value = if timer_data.args.len() > 0 {
-            fail!("NYI")
-        } else {
-            window.reflector().get_jsobject()
-        };
+        let this_value = window.reflector().get_jsobject();
 
         // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
         let rval = NullValue();
@@ -1105,7 +1101,7 @@ impl ScriptTask {
                 match page.get_nodes_under_mouse(&point) {
                     Some(node_address) => {
 
-                        let mut target_list: ~[JS<Node>] = ~[];
+                        let mut target_list = vec!();
                         let mut target_compare = false;
 
                         let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();

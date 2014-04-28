@@ -37,7 +37,7 @@ pub struct EventListenerEntry {
 pub struct EventTarget {
     pub type_id: EventTargetTypeId,
     pub reflector_: Reflector,
-    pub handlers: HashMap<DOMString, ~[EventListenerEntry]>,
+    pub handlers: HashMap<DOMString, Vec<EventListenerEntry>>,
 }
 
 impl EventTarget {
@@ -49,14 +49,14 @@ impl EventTarget {
         }
     }
 
-    pub fn get_listeners(&self, type_: &str) -> Option<~[EventListener]> {
+    pub fn get_listeners(&self, type_: &str) -> Option<Vec<EventListener>> {
         self.handlers.find_equiv(&type_).map(|listeners| {
             listeners.iter().map(|entry| entry.listener).collect()
         })
     }
 
     pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
-        -> Option<~[EventListener]> {
+        -> Option<Vec<EventListener>> {
         self.handlers.find_equiv(&type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener).collect()
@@ -68,13 +68,13 @@ impl EventTarget {
                             listener: Option<EventListener>,
                             capture: bool) {
         for &listener in listener.iter() {
-            let entry = self.handlers.find_or_insert_with(ty.clone(), |_| ~[]);
+            let entry = self.handlers.find_or_insert_with(ty.clone(), |_| vec!());
             let phase = if capture { Capturing } else { Bubbling };
             let new_entry = EventListenerEntry {
                 phase: phase,
                 listener: listener
             };
-            if entry.position_elem(&new_entry).is_none() {
+            if entry.as_slice().position_elem(&new_entry).is_none() {
                 entry.push(new_entry);
             }
         }
@@ -92,7 +92,7 @@ impl EventTarget {
                     phase: phase,
                     listener: listener
                 };
-                let position = entry.position_elem(&old_entry);
+                let position = entry.as_slice().position_elem(&old_entry);
                 for &position in position.iter() {
                     entry.remove(position);
                 }

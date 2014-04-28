@@ -58,7 +58,7 @@ pub struct Document {
     pub node: Node,
     pub reflector_: Reflector,
     pub window: JS<Window>,
-    pub idmap: HashMap<DOMString, ~[JS<Element>]>,
+    pub idmap: HashMap<DOMString, Vec<JS<Element>>>,
     pub implementation: Option<JS<DOMImplementation>>,
     pub content_type: DOMString,
     pub encoding_name: DOMString,
@@ -232,11 +232,9 @@ impl Document {
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     pub fn GetElementById(&self, id: DOMString) -> Option<JS<Element>> {
-        // TODO: "in tree order, within the context object's tree"
-        // http://dom.spec.whatwg.org/#dom-document-getelementbyid.
         match self.idmap.find_equiv(&id) {
             None => None,
-            Some(ref elements) => Some(elements[0].clone()),
+            Some(ref elements) => Some(elements.get(0).clone()),
         }
     }
 
@@ -388,10 +386,9 @@ impl Document {
                     }
                 });
         });
-        let v: ~[&str] = title.words().collect();
-        title = v.connect(" ");
-        title = title.trim().to_owned();
-        title
+        let v: Vec<&str> = title.words().collect();
+        let title = v.connect(" ");
+        title.trim().to_owned()
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
@@ -610,7 +607,7 @@ impl Document {
     }
 
     pub fn createNodeList(&self, callback: |node: &JS<Node>| -> bool) -> JS<NodeList> {
-        let mut nodes: ~[JS<Node>] = ~[];
+        let mut nodes = vec!();
         match self.GetDocumentElement() {
             None => {},
             Some(root) => {
@@ -679,7 +676,7 @@ impl Document {
                 for node in root.traverse_preorder() {
                     match ElementCast::to(&node) {
                         Some(elem) => {
-                            if elements[head] == elem {
+                            if elements.get(head) == &elem {
                                 head = head + 1;
                             }
                             if new_node == node || head == elements.len() {
@@ -694,6 +691,6 @@ impl Document {
             },
             None => (),
         }
-        self.idmap.insert(id, ~[element.clone()]);
+        self.idmap.insert(id, vec!(element.clone()));
     }
 }

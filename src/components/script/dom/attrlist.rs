@@ -35,7 +35,7 @@ impl AttrList {
     }
 
     pub fn Item(&self, index: u32) -> Option<JS<Attr>> {
-        self.owner.get().attrs.get(index as uint).map(|x| x.clone())
+        self.owner.get().attrs.as_slice().get(index as uint).map(|x| x.clone())
     }
 
     pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<JS<Attr>> {
