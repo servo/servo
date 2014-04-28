@@ -7,10 +7,12 @@ use dom::bindings::codegen::DocumentFragmentBinding;
 use dom::bindings::js::JS;
 use dom::bindings::error::Fallible;
 use dom::document::Document;
+use dom::element::Element;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{DocumentFragmentNodeTypeId, Node};
 use dom::window::Window;
+use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct DocumentFragment {
@@ -46,10 +48,17 @@ impl DocumentFragment {
     }
 }
 
+// http://dom.spec.whatwg.org/#interface-parentnode
 impl DocumentFragment {
+    // http://dom.spec.whatwg.org/#dom-parentnode-children
     pub fn Children(&self, abstract_self: &JS<DocumentFragment>) -> JS<HTMLCollection> {
         let doc = self.node.owner_doc();
         let doc = doc.get();
         HTMLCollection::children(&doc.window, &NodeCast::from(abstract_self))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    pub fn QuerySelector(&self, abstract_self: &JS<DocumentFragment>, selectors: DOMString) -> Fallible<Option<JS<Element>>> {
+        Ok(None)
     }
 }

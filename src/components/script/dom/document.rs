@@ -602,13 +602,24 @@ impl Document {
     pub fn Location(&mut self, abstract_self: &JS<Document>) -> JS<Location> {
         self.window.get_mut().Location(&abstract_self.get().window)
     }
+}
 
+// http://dom.spec.whatwg.org/#interface-parentnode
+impl Document {
+    // http://dom.spec.whatwg.org/#dom-parentnode-children
     pub fn Children(&self, abstract_self: &JS<Document>) -> JS<HTMLCollection> {
         let doc = self.node.owner_doc();
         let doc = doc.get();
         HTMLCollection::children(&doc.window, &NodeCast::from(abstract_self))
     }
 
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    pub fn QuerySelector(&self, abstract_self: &JS<Document>, selectors: DOMString) -> Fallible<Option<JS<Element>>> {
+        Ok(None)
+    }
+}
+
+impl Document {
     pub fn createNodeList(&self, callback: |node: &JS<Node>| -> bool) -> JS<NodeList> {
         let mut nodes: ~[JS<Node>] = ~[];
         match self.GetDocumentElement() {

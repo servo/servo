@@ -671,11 +671,20 @@ impl Element {
     pub fn GetOuterHTML(&self, abstract_self: &JS<Element>) -> Fallible<DOMString> {
         Ok(serialize(&mut NodeIterator::new(NodeCast::from(abstract_self), true, false)))
     }
+}
 
+// http://dom.spec.whatwg.org/#interface-parentnode
+impl Element {
+    // http://dom.spec.whatwg.org/#dom-parentnode-children
     pub fn Children(&self, abstract_self: &JS<Element>) -> JS<HTMLCollection> {
         let doc = self.node.owner_doc();
         let doc = doc.get();
         HTMLCollection::children(&doc.window, &NodeCast::from(abstract_self))
+    }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    pub fn QuerySelector(&self, abstract_self: &JS<Element>, selectors: DOMString) -> Fallible<Option<JS<Element>>> {
+        Ok(None)
     }
 }
 
