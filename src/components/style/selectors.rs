@@ -42,7 +42,7 @@ pub enum PseudoElement {
 
 #[deriving(Eq, Clone)]
 pub struct CompoundSelector {
-    pub simple_selectors: ~[SimpleSelector],
+    pub simple_selectors: Vec<SimpleSelector>,
     pub next: Option<(~CompoundSelector, Combinator)>,  // c.next is left of c
 }
 
@@ -71,7 +71,7 @@ pub enum SimpleSelector {
     AttrSuffixMatch(AttrSelector, ~str),  // [foo$=bar]
 
     // Pseudo-classes
-    Negation(~[SimpleSelector]),
+    Negation(Vec<SimpleSelector>),
     AnyLink,
     Link,
     Visited,
@@ -197,18 +197,18 @@ fn compute_specificity(mut selector: &CompoundSelector,
     };
     if pseudo_element.is_some() { specificity.element_selectors += 1 }
 
-    simple_selectors_specificity(selector.simple_selectors, &mut specificity);
+    simple_selectors_specificity(&selector.simple_selectors, &mut specificity);
     loop {
         match selector.next {
             None => break,
             Some((ref next_selector, _)) => {
                 selector = &**next_selector;
-                simple_selectors_specificity(selector.simple_selectors, &mut specificity)
+                simple_selectors_specificity(&selector.simple_selectors, &mut specificity)
             }
         }
     }
 
-    fn simple_selectors_specificity(simple_selectors: &[SimpleSelector],
+    fn simple_selectors_specificity(simple_selectors: &Vec<SimpleSelector>,
                                     specificity: &mut Specificity) {
         for simple_selector in simple_selectors.iter() {
             match simple_selector {
@@ -226,7 +226,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
                 => specificity.class_like_selectors += 1,
                 &NamespaceSelector(..) => (),
                 &Negation(ref negated)
-                => simple_selectors_specificity(negated.as_slice(), specificity),
+                => simple_selectors_specificity(negated, specificity),
             }
         }
     }
@@ -244,11 +244,11 @@ fn compute_specificity(mut selector: &CompoundSelector,
 ///
 /// None means invalid selector
 fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
-                           -> Option<(~[SimpleSelector], Option<PseudoElement>)> {
+                           -> Option<(Vec<SimpleSelector>, Option<PseudoElement>)> {
     let mut empty = true;
     let mut simple_selectors = match parse_type_selector(iter, namespaces) {
         InvalidTypeSelector => return None,
-        NotATypeSelector => ~[],
+        NotATypeSelector => Vec::new(),
         TypeSelector(s) => { empty = false; s }
     };
 
@@ -269,7 +269,7 @@ fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
 enum TypeSelectorParseResult {
     InvalidTypeSelector,
     NotATypeSelector,
-    TypeSelector(~[SimpleSelector]),  // Length 0 (*|*), 1 (*|E or ns|*) or 2 (|E or ns|E)
+    TypeSelector(Vec<SimpleSelector>),  // Length 0 (*|*), 1 (*|E or ns|*) or 2 (|E or ns|E)
 }
 
 fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
@@ -279,7 +279,7 @@ fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
         InvalidQualifiedName => InvalidTypeSelector,
         NotAQualifiedName => NotATypeSelector,
         QualifiedName(namespace, local_name) => {
-            let mut simple_selectors = ~[];
+            let mut simple_selectors = Vec::new();
             match namespace {
                 SpecificNamespace(ns) => simple_selectors.push(NamespaceSelector(ns)),
                 AnyNamespace => (),
@@ -526,7 +526,7 @@ fn parse_pseudo_element(name: ~str) -> Option<PseudoElement> {
 }
 
 
-//fn parse_lang(arguments: ~[ComponentValue]) -> Option<SimpleSelector> {
+//fn parse_lang(arguments: vec!(ComponentValue)) -> Option<SimpleSelector> {
 //    let mut iter = arguments.move_skip_whitespace();
 //    match iter.next() {
 //        Some(Ident(value)) => {
@@ -547,7 +547,7 @@ fn parse_negation(arguments: ~[ComponentValue], namespaces: &NamespaceMap)
         TypeSelector(s) => s,
         NotATypeSelector => {
             match parse_one_simple_selector(iter, namespaces, /* inside_negation = */ true) {
-                SimpleSelectorResult(s) => ~[s],
+                SimpleSelectorResult(s) => vec!(s),
                 _ => return None
             }
         },
@@ -603,7 +603,7 @@ mod tests {
         assert!(parse("") == None)
         assert!(parse("e") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[LocalNameSelector("e".to_owned())],
+                simple_selectors: vec!(LocalNameSelector("e".to_owned())),
                 next: None,
             }),
             pseudo_element: None,
@@ -611,7 +611,7 @@ mod tests {
         })))
         assert!(parse(".foo") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[ClassSelector("foo".to_owned())],
+                simple_selectors: vec!(ClassSelector("foo".to_owned())),
                 next: None,
             }),
             pseudo_element: None,
@@ -619,7 +619,7 @@ mod tests {
         })))
         assert!(parse("#bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[IDSelector("bar".to_owned())],
+                simple_selectors: vec!(IDSelector("bar".to_owned())),
                 next: None,
             }),
             pseudo_element: None,
@@ -627,9 +627,9 @@ mod tests {
         })))
         assert!(parse("e.foo#bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[LocalNameSelector("e".to_owned()),
-                                    ClassSelector("foo".to_owned()),
-                                    IDSelector("bar".to_owned())],
+                simple_selectors: vec!(LocalNameSelector("e".to_owned()),
+                                       ClassSelector("foo".to_owned()),
+                                       IDSelector("bar".to_owned())),
                 next: None,
             }),
             pseudo_element: None,
@@ -637,10 +637,10 @@ mod tests {
         })))
         assert!(parse("e.foo #bar") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[IDSelector("bar".to_owned())],
+                simple_selectors: vec!(IDSelector("bar".to_owned())),
                 next: Some((~CompoundSelector {
-                    simple_selectors: ~[LocalNameSelector("e".to_owned()),
-                                        ClassSelector("foo".to_owned())],
+                    simple_selectors: vec!(LocalNameSelector("e".to_owned()),
+                                           ClassSelector("foo".to_owned())),
                     next: None,
                 }, Descendant)),
             }),
@@ -652,11 +652,11 @@ mod tests {
         let mut namespaces = NamespaceMap::new();
         assert!(parse_ns("[Foo]", &namespaces) == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[AttrExists(AttrSelector {
+                simple_selectors: vec!(AttrExists(AttrSelector {
                     name: "Foo".to_owned(),
                     lower_name: "foo".to_owned(),
                     namespace: SpecificNamespace(namespace::Null),
-                })],
+                })),
                 next: None,
             }),
             pseudo_element: None,
@@ -667,11 +667,11 @@ mod tests {
         namespaces.default = Some(namespace::MathML);
         assert!(parse_ns("[Foo]", &namespaces) == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[AttrExists(AttrSelector {
+                simple_selectors: vec!(AttrExists(AttrSelector {
                     name: "Foo".to_owned(),
                     lower_name: "foo".to_owned(),
                     namespace: SpecificNamespace(namespace::Null),
-                })],
+                })),
                 next: None,
             }),
             pseudo_element: None,
@@ -680,10 +680,10 @@ mod tests {
         // Default namespace does apply to type selectors
         assert!(parse_ns("e", &namespaces) == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[
+                simple_selectors: vec!( 
                     NamespaceSelector(namespace::MathML),
                     LocalNameSelector("e".to_owned()),
-                ],
+                ),
                 next: None,
             }),
             pseudo_element: None,
@@ -692,7 +692,7 @@ mod tests {
         // https://github.com/mozilla/servo/issues/1723
         assert!(parse("::before") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[],
+                simple_selectors: Vec::new(),
                 next: None,
             }),
             pseudo_element: Some(Before),
@@ -700,9 +700,9 @@ mod tests {
         })))
         assert!(parse("div :after") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: ~[],
+                simple_selectors: Vec::new(),
                 next: Some((~CompoundSelector {
-                    simple_selectors: ~[LocalNameSelector("div".to_owned())],
+                    simple_selectors: vec!(LocalNameSelector("div".to_owned())),
                     next: None,
                 }, Descendant)),
             }),
