@@ -32,7 +32,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery, C
                        LayoutChan, ReapLayoutDataMsg, TrustedNodeAddress, UntrustedNodeAddress};
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
-
+use style;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsfriendapi;
 use libc;
@@ -588,6 +588,51 @@ impl NodeHelpers for JS<Node> {
         let addr = self.to_trusted_node_address();
         let ContentBoxesResponse(rects) = page.query_layout(ContentBoxesQuery(addr, chan), port);
         rects
+    }
+}
+
+impl style::TNode<JS<Element>> for JS<Node> {
+    fn parent_node(&self) -> Option<JS<Node>> {
+        let node: &NodeHelpers = self; node.parent_node()
+    }
+
+    fn prev_sibling(&self) -> Option<JS<Node>> {
+        let node: &NodeHelpers = self; node.prev_sibling()
+    }
+
+    fn next_sibling(&self) -> Option<JS<Node>> {
+        let node: &NodeHelpers = self; node.next_sibling()
+    }
+
+    fn is_document(&self) -> bool {
+        let node: &NodeHelpers = self; node.is_document()
+    }
+
+    fn is_element(&self) -> bool {
+        let node: &NodeHelpers = self; node.is_element()
+    }
+
+    fn as_element(&self) -> JS<Element> {
+        let elem: JS<Element> = ElementCast::to(self).unwrap(); elem
+    }
+
+    fn match_attr(&self, attr: &(style::AttrSelector), test: |&str| -> bool) -> bool {
+        let elem: JS<Element> = ElementCast::to(self).unwrap();
+        let name = unsafe {
+            if elem.get().html_element_in_html_document_for_layout() {
+                attr.lower_name.as_slice()
+            } else {
+                attr.name.as_slice()
+            }
+        };
+        match attr.namespace {
+            style::SpecificNamespace(ref ns) => unsafe {
+                elem.get().get_attr_val_for_layout(ns, name)
+                    .map_or(false, |attr| test(attr))
+            },
+            // FIXME: https://github.com/mozilla/servo/issues/1558
+            style::AnyNamespace => false,
+        }
     }
 }
 
