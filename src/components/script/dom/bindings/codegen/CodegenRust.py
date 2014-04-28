@@ -610,7 +610,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
             template = wrapObjectTemplate(conversion, isDefinitelyObject, type,
                                           failureCode)
-            return (template, declType, isOptional, None)
+            return handleOptional(template, declType, isOptional)
 
         templateBody = ""
         if descriptor.interface.isConsequential():
