@@ -16,4 +16,4 @@ if [[ $* == *--update-manifest* ]]; then
 fi
 (python -c "import wptrunner"  &>/dev/null) || pip install wptrunner
 
-python $servo_root/src/test/wpt/run.py --binary $objdir/../servo "$@"
+python $servo_root/src/test/wpt/run.py --binary $objdir/../servo --log-mach - "$@"
