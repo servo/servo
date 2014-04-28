@@ -58,7 +58,7 @@ check-test:
 
 ifeq ($(CFG_OSTYPE),apple-darwin)
 .PHONY: check
-check: $(DEPS_CHECK_TARGETS_FAST) check-servo check-content check-ref tidy
+check: $(DEPS_CHECK_TARGETS_FAST) check-servo check-wpt check-content check-ref tidy
 	@$(call E, check: all)
 
 .PHONY: check-all
@@ -99,6 +99,7 @@ check-content: contenttest
 
 .PHONY: check-wpt
 check-wpt:
+	@$(call E, check: web-platform-tests)
 	bash $(S)src/test/wpt/run.sh $(S) $(B) $(WPTARGS)
 
 .PHONY: tidy
