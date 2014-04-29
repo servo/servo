@@ -1662,8 +1662,6 @@ def UnionTypes(descriptors):
 
     # Now find all the things we'll need as arguments and return values because
     # we need to wrap or unwrap them.
-    headers = set()
-    declarations = set()
     unionStructs = dict()
     for d in descriptors:
         for t in getTypes(d):
@@ -1672,20 +1670,8 @@ def UnionTypes(descriptors):
                 name = str(t)
                 if not name in unionStructs:
                     unionStructs[name] = CGUnionStruct(t, d)
-                    for f in t.flatMemberTypes:
-                        f = f.unroll()
-                        if f.isInterface():
-                            if f.isSpiderMonkeyInterface():
-                                headers.add("jsfriendapi.h")
-                                headers.add("mozilla/dom/TypedArray.h")
-                            else:
-                                typeDesc = d.getDescriptor(f.inner.identifier.name)
-                                if typeDesc is not None:
-                                    declarations.add((typeDesc.nativeType, False))
-                        elif f.isDictionary():
-                            declarations.add((f.inner.identifier.name, True))
 
-    return (headers, declarations, CGList(SortedDictValues(unionStructs), "\n"))
+    return CGList(SortedDictValues(unionStructs), "\n")
 
 def UnionConversions(descriptors):
     """
@@ -5343,49 +5329,11 @@ class GlobalGenRoots():
     @staticmethod
     def UnionTypes(config):
 
-        (includes, declarations, unions) = UnionTypes(config.getDescriptors())
-        includes.add("mozilla/dom/BindingUtils.h")
-
-        # Wrap all of that in our namespaces.
-        #curr = CGNamespace.build(['mozilla', 'dom'], unions, public=True)
-        curr = unions
+        curr = UnionTypes(config.getDescriptors())
 
         curr = CGWrapper(curr, post='\n')
 
-        namespaces = []
-        stack = [CGList([])]
-        for (clazz, isStruct) in SortedTuples(declarations):
-            elements = clazz.split("::")
-            elements.pop()
-            #clazz = CGClassForwardDeclare(elements.pop(), isStruct=isStruct)
-            i = 0
-            if len(elements) > 0:
-                common = min(len(namespaces), len(elements))
-                while i < common and namespaces[i] == elements[i]:
-                    i += 1
-
-            # pop all the namespaces that should be closed
-            namespaces = namespaces[:i]
-
-            # add all the namespaces that should be opened
-            for j, namespace in enumerate(elements[i:]):
-                namespaces.append(namespace)
-                # every CGNamespace that we add holds a CGList
-                list = CGList([])
-                # add the new namespace to the list on top of the stack
-                stack[i + j].append(CGNamespace(namespace, list))
-                # set the top of the namespace stack to the list of the new
-                # namespace
-                stack[i + j + 1:] = [list]
-
-            #stack[len(elements)].append(clazz)
-
-        curr = CGList([stack[0], curr, UnionConversions(config.getDescriptors())], "\n")
-
-        #curr = CGHeaders([], [], includes, [], curr)
-
-        # Add include guards.
-        #curr = CGIncludeGuard('UnionTypes', curr)
+        curr = CGList([curr, UnionConversions(config.getDescriptors())], "\n")
 
         curr = CGImports(curr, [
             'dom::bindings::utils::unwrap_jsmanaged',
