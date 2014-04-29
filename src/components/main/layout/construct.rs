@@ -260,7 +260,7 @@ impl<T> OptNewVector<T> for Option<Vec<T>> {
     #[inline]
     fn to_vec(self) -> Vec<T> {
         match self {
-            None => Vec::new(),
+            None => vec!(),
             Some(vector) => vector, 
         }
     }
@@ -449,7 +449,7 @@ impl<'a> FlowConstructor<'a> {
                         consecutive_siblings,
                         node);
                     if !consecutive_siblings.is_empty() {
-                        let consecutive_siblings = mem::replace(consecutive_siblings, Vec::new());
+                        let consecutive_siblings = mem::replace(consecutive_siblings, vec!());
                         self.generate_anonymous_missing_child(consecutive_siblings,
                                                               flow,
                                                               node);
@@ -533,7 +533,7 @@ impl<'a> FlowConstructor<'a> {
                                  -> ConstructionResult {
         // Gather up boxes for the inline flows we might need to create.
         let mut opt_boxes_for_inline_flow = None;
-        let mut consecutive_siblings = Vec::new();
+        let mut consecutive_siblings = vec!();
         let mut first_box = true;
 
         // List of absolute descendants, in tree order.
@@ -679,7 +679,7 @@ impl<'a> FlowConstructor<'a> {
                 match opt_box_accumulator {
                     Some(ref boxes) => {
                         // Both
-                        let mut total: Vec<&Box> = Vec::new();
+                        let mut total: Vec<&Box> = vec!();
                         for split in splits.iter() {
                             for box_ in split.predecessor_boxes.iter() {
                                 total.push(box_);
@@ -692,7 +692,7 @@ impl<'a> FlowConstructor<'a> {
 
                     },
                     None => {
-                        let mut total: Vec<&Box> = Vec::new();
+                        let mut total: Vec<&Box> = vec!();
                         for split in splits.iter() {
                             for box_ in split.predecessor_boxes.iter() {
                                 total.push(box_);
@@ -705,7 +705,7 @@ impl<'a> FlowConstructor<'a> {
             None => {
                 match opt_box_accumulator {
                     Some(ref boxes) => {
-                        let mut total: Vec<&Box> = Vec::new();
+                        let mut total: Vec<&Box> = vec!();
                         for box_ in boxes.iter() {
                             total.push(box_);
                         }
@@ -850,7 +850,7 @@ impl<'a> FlowConstructor<'a> {
                                         flow: &mut ~Flow,
                                         node: &ThreadSafeLayoutNode) {
         let mut anonymous_flow = flow.generate_missing_child_flow(node);
-        let mut consecutive_siblings = Vec::new();
+        let mut consecutive_siblings = vec!();
         for kid_flow in child_flows.move_iter() {
             if anonymous_flow.need_anonymous_flow(kid_flow) {
                 consecutive_siblings.push(kid_flow);
@@ -858,7 +858,7 @@ impl<'a> FlowConstructor<'a> {
             }
             if !consecutive_siblings.is_empty() {
                 self.generate_anonymous_missing_child(consecutive_siblings, &mut anonymous_flow, node);
-                consecutive_siblings = Vec::new();
+                consecutive_siblings = vec!();
             }
             anonymous_flow.add_new_child(kid_flow);
         }
@@ -970,7 +970,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_table_colgroup(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         let box_ = Box::new_from_specific_info(node,
                                                TableColumnBox(TableColumnBoxInfo::new(node)));
-        let mut col_boxes = Vec::new();
+        let mut col_boxes = vec!();
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child boxes of `table-column-group`
             // as `display: none`.
@@ -1258,7 +1258,7 @@ fn strip_ignorable_whitespace_from_start(opt_boxes: &mut Option<Vec<Box>>) {
         Some(boxes) => {
             // FIXME(pcwalton): This is slow because vector shift is broken. :(
             let mut found_nonwhitespace = false;
-            let mut result = Vec::new(); 
+            let mut result = vec!(); 
             let mut last_removed_box: Option<Box> = None;
             for box_ in boxes.move_iter() {
                 if !found_nonwhitespace && box_.is_whitespace_only() {

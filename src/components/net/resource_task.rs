@@ -101,7 +101,7 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
     resource_task.send(Load(url, start_chan));
     let response = start_port.recv();
 
-    let mut buf = Vec::new();
+    let mut buf = vec!();
     loop {
         match response.progress_port.recv() {
             Payload(data) => buf.push_all(data.as_slice()),

@@ -34,7 +34,7 @@ impl TableColGroupFlow {
             base: BaseFlow::new((*node).clone()),
             box_: Some(box_),
             cols: boxes,
-            widths: Vec::new(),
+            widths: vec!(),
         }
     }
 
@@ -43,8 +43,8 @@ impl TableColGroupFlow {
             box_.teardown();
         }
         self.box_ = None;
-        self.cols = Vec::new();
-        self.widths = Vec::new();
+        self.cols = vec!();
+        self.widths = vec!();
     }
 }
 

@@ -960,7 +960,7 @@ mod tests {
                     selector: s.compound_selectors.clone(),
                     property: MatchedProperty {
                         specificity: s.specificity,
-                        declarations: Arc::new(Vec::new()),
+                        declarations: Arc::new(vec!()),
                         source_order: i,
                     }
                 }

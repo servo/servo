@@ -69,14 +69,14 @@ impl LineboxScanner {
     pub fn new(float_ctx: Floats) -> LineboxScanner {
         LineboxScanner {
             floats: float_ctx,
-            new_boxes: Vec::new(),
+            new_boxes: vec!(),
             work_list: RingBuf::new(),
             pending_line: LineBox {
                 range: Range::empty(),
                 bounds: Rect(Point2D(Au::new(0), Au::new(0)), Size2D(Au::new(0), Au::new(0))),
                 green_zone: Size2D(Au::new(0), Au::new(0))
             },
-            lines: Vec::new(),
+            lines: vec!(),
             cur_y: Au::new(0)
         }
     }
@@ -87,8 +87,8 @@ impl LineboxScanner {
 
     fn reset_scanner(&mut self) {
         debug!("Resetting line box scanner's state for flow.");
-        self.lines = Vec::new();
-        self.new_boxes = Vec::new();
+        self.lines = vec!();
+        self.new_boxes = vec!();
         self.cur_y = Au::new(0);
         self.reset_linebox();
     }
@@ -469,7 +469,7 @@ impl InlineFlow {
         InlineFlow {
             base: BaseFlow::new(node),
             boxes: boxes,
-            lines: Vec::new(),
+            lines: vec!(),
             elems: ElementMapping::new(),
         }
     }
@@ -478,7 +478,7 @@ impl InlineFlow {
         for box_ in self.boxes.iter() {
             box_.teardown();
         }
-        self.boxes = Vec::new();
+        self.boxes = vec!();
     }
 
     pub fn build_display_list_inline(&self,

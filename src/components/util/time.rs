@@ -63,21 +63,21 @@ impl ProfilerCategory {
     // enumeration of all ProfilerCategory types
     fn empty_buckets() -> ProfilerBuckets {
         let mut buckets = TreeMap::new();
-        buckets.insert(CompositingCategory, Vec::new());
-        buckets.insert(LayoutQueryCategory, Vec::new());
-        buckets.insert(LayoutPerformCategory, Vec::new());
-        buckets.insert(LayoutStyleRecalcCategory, Vec::new());
-        buckets.insert(LayoutSelectorMatchCategory, Vec::new());
-        buckets.insert(LayoutTreeBuilderCategory, Vec::new());
-        buckets.insert(LayoutMainCategory, Vec::new());
-        buckets.insert(LayoutParallelWarmupCategory, Vec::new());
-        buckets.insert(LayoutShapingCategory, Vec::new());
-        buckets.insert(LayoutDamagePropagateCategory, Vec::new());
-        buckets.insert(LayoutDispListBuildCategory, Vec::new());
-        buckets.insert(GfxRegenAvailableFontsCategory, Vec::new());
-        buckets.insert(RenderingDrawingCategory, Vec::new());
-        buckets.insert(RenderingPrepBuffCategory, Vec::new());
-        buckets.insert(RenderingCategory, Vec::new());
+        buckets.insert(CompositingCategory, vec!());
+        buckets.insert(LayoutQueryCategory, vec!());
+        buckets.insert(LayoutPerformCategory, vec!());
+        buckets.insert(LayoutStyleRecalcCategory, vec!());
+        buckets.insert(LayoutSelectorMatchCategory, vec!());
+        buckets.insert(LayoutTreeBuilderCategory, vec!());
+        buckets.insert(LayoutMainCategory, vec!());
+        buckets.insert(LayoutParallelWarmupCategory, vec!());
+        buckets.insert(LayoutShapingCategory, vec!());
+        buckets.insert(LayoutDamagePropagateCategory, vec!());
+        buckets.insert(LayoutDispListBuildCategory, vec!());
+        buckets.insert(GfxRegenAvailableFontsCategory, vec!());
+        buckets.insert(RenderingDrawingCategory, vec!());
+        buckets.insert(RenderingPrepBuffCategory, vec!());
+        buckets.insert(RenderingCategory, vec!());
 
         buckets
     }

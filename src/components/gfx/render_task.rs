@@ -293,7 +293,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
     fn render(&mut self, tiles: Vec<BufferRequest>, scale: f32, layer_id: LayerId) {
         time::profile(time::RenderingCategory, self.profiler_chan.clone(), || {
             // FIXME: Try not to create a new array here.
-            let mut new_buffers = Vec::new();
+            let mut new_buffers = vec!();
 
             // Find the appropriate render layer.
             let render_layer = match self.render_layers.iter().find(|layer| layer.id == layer_id) {

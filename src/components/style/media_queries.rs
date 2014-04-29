@@ -58,7 +58,7 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>,
             return
         }
     };
-    let mut rules = Vec::new();
+    let mut rules = vec!();
     for rule in ErrorLoggerIterator(parse_rule_list(block.move_iter())) {
         match rule {
             QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces, base_url),
@@ -79,7 +79,7 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
     if next.is_none() {
         return MediaQueryList{ media_queries: vec!(MediaQuery{media_type: All}) }
     }
-    let mut queries = Vec::new();
+    let mut queries = vec!();
     loop {
         let mq = match next {
             Some(&Ident(ref value)) => {

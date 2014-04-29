@@ -170,7 +170,7 @@ impl CompositorLayer {
             bounds: bounds,
             page_size: page_size,
             scroll_offset: Point2D(0f32, 0f32),
-            children: Vec::new(),
+            children: vec!(),
             quadtree: match page_size {
                 None => NoTree(tile_size, Some(MAX_TILE_MEMORY_PER_LAYER)),
                 Some(page_size) => {
@@ -203,7 +203,7 @@ impl CompositorLayer {
             bounds: Rect(Point2D(0f32, 0f32), page_size),
             page_size: Some(page_size),
             scroll_offset: Point2D(0f32, 0f32),
-            children: Vec::new(),
+            children: vec!(),
             quadtree: NoTree(tile_size, Some(MAX_TILE_MEMORY_PER_LAYER)),
             root_layer: Rc::new(ContainerLayer()),
             hidden: false,
@@ -841,7 +841,7 @@ impl CompositorLayer {
                 Tree(ref mut quadtree) => quadtree,
             };
 
-            let mut unused_tiles = Vec::new();
+            let mut unused_tiles = vec!();
             for buffer in new_buffers.buffers.move_iter() {
                 unused_tiles.push_all_move(quadtree.add_tile_pixel(buffer.screen_pos.origin.x,
                                                                    buffer.screen_pos.origin.y,

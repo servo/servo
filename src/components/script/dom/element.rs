@@ -145,7 +145,7 @@ impl Element {
             local_name: local_name,
             namespace: namespace,
             prefix: prefix,
-            attrs: Vec::new(),
+            attrs: vec!(),
             attr_list: None,
             style_attribute: None,
         }

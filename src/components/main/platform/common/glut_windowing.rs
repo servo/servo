@@ -70,7 +70,7 @@ impl WindowMethods<Application> for Window {
         let window = Window {
             glut_window: glut_window,
 
-            event_queue: RefCell::new(Vec::new()),
+            event_queue: RefCell::new(vec!()),
 
             drag_origin: Point2D(0 as c_int, 0),
 

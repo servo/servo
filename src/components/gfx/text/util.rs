@@ -149,7 +149,7 @@ fn test_transform_compress_none() {
     let mode = CompressNone;
 
     for i in range(0, test_strs.len()) {
-        let mut new_line_pos = Vec::new();
+        let mut new_line_pos = vec!();
         let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
         assert_eq!(&trimmed_str, &test_strs[i])
     }
@@ -178,7 +178,7 @@ fn test_transform_discard_newline() {
     let mode = DiscardNewline;
 
     for i in range(0, test_strs.len()) {
-        let mut new_line_pos = Vec::new();
+        let mut new_line_pos = vec!();
         let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
         assert_eq!(&trimmed_str, &oracle_strs[i])
     }
@@ -266,7 +266,7 @@ fn test_transform_compress_whitespace_newline_no_incoming() {
     let mode = CompressWhitespaceNewline;
 
     for i in range(0, test_strs.len()) {
-        let mut new_line_pos = Vec::new();
+        let mut new_line_pos = vec!();
         let (trimmed_str, _out) = transform_text(test_strs[i], mode, false, &mut new_line_pos);
         assert_eq!(&trimmed_str, &oracle_strs[i])
     }

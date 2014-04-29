@@ -116,7 +116,7 @@ impl<'a> TextRun {
     pub fn break_and_shape(font: &mut Font, text: &str) -> Vec<Arc<GlyphStore>> {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
 
-        let mut glyphs = Vec::new();
+        let mut glyphs = vec!();
         let mut byte_i = 0u;
         let mut cur_slice_is_whitespace = false;
         let mut byte_last_boundary = 0;

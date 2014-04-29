@@ -127,7 +127,7 @@ pub struct LRUCache<K, V> {
 impl<K: Clone + Eq, V: Clone> LRUCache<K,V> {
     pub fn new(size: uint) -> LRUCache<K, V> {
         LRUCache {
-          entries: Vec::new(),
+          entries: vec!(),
           cache_size: size,
         }
     }

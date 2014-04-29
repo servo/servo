@@ -43,7 +43,7 @@ pub struct ElementMapping {
 impl ElementMapping {
     pub fn new() -> ElementMapping {
         ElementMapping {
-            entries: Vec::new(),
+            entries: vec!(),
         }
     }
 
@@ -92,7 +92,7 @@ impl ElementMapping {
             begin_idx: uint,
             entry_idx: uint,
         };
-        let mut repair_stack : Vec<WorkItem> = Vec::new();
+        let mut repair_stack : Vec<WorkItem> = vec!();
 
             // index into entries
             let mut entries_k = 0;

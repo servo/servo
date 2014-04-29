@@ -269,7 +269,7 @@ impl<T: Tile> QuadtreeNode<T> {
 
     /// Get all tiles in the tree, parents first.
     fn get_all_tiles<'r>(&'r self) -> Vec<&'r T> {
-        let mut ret = Vec::new();
+        let mut ret = vec!();
 
         match self.tile {
             Some(ref tile) => ret.push(tile),
@@ -303,7 +303,7 @@ impl<T: Tile> QuadtreeNode<T> {
             self.tile_mem = tile.get_mem();
             let mut unused_tiles = match replace(&mut self.tile, Some(tile)) {
                 Some(old_tile) => vec!(old_tile),
-                None => Vec::new(),
+                None => vec!(),
             };
             for child in self.quadrants.mut_iter() {
                 match *child {
@@ -479,7 +479,7 @@ impl<T: Tile> QuadtreeNode<T> {
         if w_x + w_width < s_x || w_x > s_x + s_size
                 || w_y + w_height < s_y || w_y > s_y + s_size
                 || w_x >= clip.width || w_y >= clip.height {
-            return (Vec::new(), Vec::new(), 0);
+            return (vec!(), vec!(), 0);
         }
 
         // clip window to visible region
@@ -488,7 +488,7 @@ impl<T: Tile> QuadtreeNode<T> {
 
         if s_size <= tile_size { // We are the child
             return match self.tile {
-                _ if self.status == Rendering || self.status == Hidden => (Vec::new(), Vec::new(), 0),
+                _ if self.status == Rendering || self.status == Hidden => (vec!(), vec!(), 0),
                 Some(ref tile) if tile.is_valid(scale) && !override
                 && self.status != Invalid => {
                     let redisplay = match self.quadrants {
@@ -496,7 +496,7 @@ impl<T: Tile> QuadtreeNode<T> {
                         _ => true,
                     };
                     let mut delta = 0;
-                    let mut unused_tiles = Vec::new();
+                    let mut unused_tiles = vec!();
                     if redisplay {
                         let old_mem = self.tile_mem;
                         for child in self.quadrants.mut_iter() {
@@ -512,9 +512,9 @@ impl<T: Tile> QuadtreeNode<T> {
                         delta = self.tile_mem as int - old_mem as int;
 
                     }
-                    (Vec::new(), unused_tiles, delta)
+                    (vec!(), unused_tiles, delta)
                 }
-                _ => (vec!(self.get_tile_rect(s_x, s_y, clip.width, clip.height, scale, tile_size)), Vec::new(), 0),
+                _ => (vec!(self.get_tile_rect(s_x, s_y, clip.width, clip.height, scale, tile_size)), vec!(), 0),
             }
         }
 
@@ -548,8 +548,8 @@ impl<T: Tile> QuadtreeNode<T> {
 
         let quads_to_check = slice::build(Some(4), builder);
 
-        let mut request = Vec::new();
-        let mut unused = Vec::new();
+        let mut request = vec!();
+        let mut unused = vec!();
         let mut delta = 0;
 
         for quad in quads_to_check.iter() {
@@ -607,7 +607,7 @@ impl<T: Tile> QuadtreeNode<T> {
     fn collect_tiles(&mut self) -> Vec<T> {
         let mut ret = match replace(&mut self.tile, None) {
             Some(tile) => vec!(tile),
-            None => Vec::new(),
+            None => vec!(),
         };
         for child in self.quadrants.mut_iter() {
             match *child {

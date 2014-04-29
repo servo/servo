@@ -765,7 +765,7 @@ impl LayoutTask {
                     }
                 }
 
-                let mut boxes = Vec::new();
+                let mut boxes = vec!();
                 match self.display_list {
                     None => fail!("no display list!"),
                     Some(ref display_list) => {
@@ -856,7 +856,7 @@ impl LayoutTask {
                     }
                 }
 
-                let mut mouse_over_list:Vec<UntrustedNodeAddress> = Vec::new();
+                let mut mouse_over_list:Vec<UntrustedNodeAddress> = vec!();
                 let (x, y) = (Au::from_frac_px(point.x as f64),
                               Au::from_frac_px(point.y as f64));
                 match self.display_list {

@@ -86,7 +86,7 @@ impl<T: Tile> BufferMap<T> {
         // use lazy insertion function to prevent unnecessary allocation
         let counter = &self.counter;
         self.map.find_or_insert_with(new_key, |_| BufferValue {
-            buffers: Vec::new(),
+            buffers: vec!(),
             last_action: *counter
         }).buffers.push(new_buffer);
 

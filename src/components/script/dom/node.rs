@@ -517,14 +517,14 @@ impl NodeHelpers for JS<Node> {
 
     /// Iterates over this node and all its descendants, in preorder.
     fn traverse_preorder(&self) -> TreeIterator {
-        let mut nodes = Vec::new();
+        let mut nodes = vec!();
         gather_abstract_nodes(self, &mut nodes, false);
         TreeIterator::new(nodes)
     }
 
     /// Iterates over this node and all its descendants, in postorder.
     fn sequential_traverse_postorder(&self) -> TreeIterator {
-        let mut nodes = Vec::new();
+        let mut nodes = vec!();
         gather_abstract_nodes(self, &mut nodes, true);
         TreeIterator::new(nodes)
     }
@@ -1246,7 +1246,7 @@ impl Node {
 
         // Step 3.
         let addedNodes = match node {
-            None => Vec::new(),
+            None => vec!(),
             Some(ref node) => match node.type_id() {
                 DocumentFragmentNodeTypeId => node.children().collect(),
                 _ => vec!(node.clone()),

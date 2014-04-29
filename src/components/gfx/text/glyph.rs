@@ -310,8 +310,8 @@ struct DetailedGlyphStore {
 impl<'a> DetailedGlyphStore {
     fn new() -> DetailedGlyphStore {
         DetailedGlyphStore {
-            detail_buffer: Vec::new(), // TODO: default size?
-            detail_lookup: Vec::new(),
+            detail_buffer: vec!(), // TODO: default size?
+            detail_lookup: vec!(),
             lookup_is_sorted: false
         }
     }
@@ -403,7 +403,7 @@ impl<'a> DetailedGlyphStore {
         // immutable locations thus don't play well with freezing.
 
         // Thar be dragons here. You have been warned. (Tips accepted.)
-        let mut unsorted_records: Vec<DetailedGlyphRecord> = Vec::new();
+        let mut unsorted_records: Vec<DetailedGlyphRecord> = vec!();
         mem::swap(&mut self.detail_lookup, &mut unsorted_records);
         let mut mut_records : Vec<DetailedGlyphRecord> = unsorted_records;
         mut_records.sort_by(|a, b| {

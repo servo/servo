@@ -21,7 +21,7 @@ use dom::text::Text;
 
 pub fn serialize(iterator: &mut NodeIterator) -> ~str {
     let mut html = ~"";
-    let mut open_elements: Vec<~str> = Vec::new();
+    let mut open_elements: Vec<~str> = vec!();
 
     for node in *iterator {
         while open_elements.len() > iterator.depth {

@@ -159,7 +159,7 @@ impl FontGroup {
     }
 
     pub fn teardown(&mut self) {
-        self.fonts = Vec::new();
+        self.fonts = vec!();
     }
 
     pub fn create_textrun(&self, text: ~str, decoration: text_decoration::T) -> TextRun {
@@ -360,7 +360,7 @@ impl Font {
         };
 
         let mut origin = baseline_origin.clone();
-        let mut azglyphs = Vec::new();
+        let mut azglyphs = vec!();
         azglyphs.reserve(range.length());
 
         for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {

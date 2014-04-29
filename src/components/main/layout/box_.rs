@@ -437,7 +437,7 @@ impl Box {
             specific: constructor.build_specific_box_info_for_node(node),
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: RefCell::new(None),
-            new_line_pos: Vec::new(),
+            new_line_pos: vec!(),
         }
     }
 
@@ -453,7 +453,7 @@ impl Box {
             specific: specific,
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: RefCell::new(None),
-            new_line_pos: Vec::new(),
+            new_line_pos: vec!(),
         }
     }
 
@@ -480,7 +480,7 @@ impl Box {
             specific: specific,
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: RefCell::new(None),
-            new_line_pos: Vec::new(),
+            new_line_pos: vec!(),
         }
     }
 
@@ -499,7 +499,7 @@ impl Box {
             specific: specific,
             position_offsets: RefCell::new(Zero::zero()),
             inline_info: RefCell::new(None),
-            new_line_pos: Vec::new(),
+            new_line_pos: vec!(),
         }
     }
 
@@ -1470,7 +1470,7 @@ impl Box {
                     let new_text_box_info = ScannedTextBoxInfo::new(text_box_info.run.clone(), left_range);
                     let new_metrics = new_text_box_info.run.metrics_for_range(&left_range);
                     let mut new_box = self.transform(new_metrics.bounding_box.size, ScannedTextBox(new_text_box_info));
-                    new_box.new_line_pos = Vec::new();
+                    new_box.new_line_pos = vec!();
                     Some(new_box)
                 };
 
