@@ -600,7 +600,7 @@ impl InlineFlow {
 
         for i in line.range.eachi() {
             let box_ = boxes.get(i);
-            let mut border_box = box_.border_box.borrow_mut()
+            let mut border_box = box_.border_box.borrow_mut();
             let size = border_box.size;
             *border_box = Rect(Point2D(offset_x, border_box.origin.y), size);
             offset_x = offset_x + size.width;

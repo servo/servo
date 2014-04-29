@@ -633,13 +633,8 @@ impl Iterator<JS<Node>> for AncestorIterator {
 // FIXME: Do this without precomputing a vector of refs.
 // Easy for preorder; harder for postorder.
 pub struct TreeIterator {
-<<<<<<< HEAD
     nodes: Vec<JS<Node>>,
     index: uint,
-=======
-    priv nodes: Vec<JS<Node>>,
-    priv index: uint,
->>>>>>> ~[] to Vec in script/dom/node.rs
 }
 
 impl TreeIterator {

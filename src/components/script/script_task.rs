@@ -156,12 +156,6 @@ pub struct PageTree {
 
 pub struct PageTreeIterator<'a> {
     stack: Vec<&'a mut PageTree>,
-    page: Rc<Page>,
-    inner: Vec<PageTree>,
-}
-
-pub struct PageTreeIterator<'a> {
-    priv stack: Vec<&'a mut PageTree>,
 }
 
 impl PageTree {

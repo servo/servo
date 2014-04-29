@@ -175,7 +175,7 @@ impl<'a> TextRun {
     }
 
     pub fn glyphs(&'a self) -> &'a Vec<Arc<GlyphStore>> {
-        self.glyphs.get()
+        &*self.glyphs
     }
 
     pub fn range_is_trimmable_whitespace(&self, range: &Range) -> bool {

@@ -24,7 +24,6 @@ pub fn dispatch_event(target: &JS<EventTarget>,
     }
 
     let type_ = event.get().type_.clone();
-    let mut chain = Vec::new();
 
     //TODO: no chain if not participating in a tree
     let chain: Vec<JS<EventTarget>> = if target.get().is_node() {

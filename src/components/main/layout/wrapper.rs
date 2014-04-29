@@ -296,8 +296,8 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeChildrenIterator<'a> {
 //
 // FIXME(pcwalton): Parallelism! Eventually this should just be nuked.
 pub struct LayoutTreeIterator<'a> {
-    priv nodes: Vec<LayoutNode<'a>>,
-    priv index: uint,
+    nodes: Vec<LayoutNode<'a>>,
+    index: uint,
 }
 
 impl<'a> LayoutTreeIterator<'a> {

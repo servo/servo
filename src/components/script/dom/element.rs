@@ -145,11 +145,7 @@ impl Element {
             local_name: local_name,
             namespace: namespace,
             prefix: prefix,
-<<<<<<< HEAD
-            attrs: vec!(),
-=======
             attrs: Vec::new(),
->>>>>>> ~[] to Vec in script/dom/attrlist.rs and script/dom/element.rs
             attr_list: None,
             style_attribute: None,
         }
