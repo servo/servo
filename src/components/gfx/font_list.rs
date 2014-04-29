@@ -91,7 +91,7 @@ impl FontFamily {
     pub fn new(family_name: &str) -> FontFamily {
         FontFamily {
             family_name: family_name.to_str(),
-            entries: Vec::new(),
+            entries: vec!(),
         }
     }
 

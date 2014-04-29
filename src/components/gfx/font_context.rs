@@ -116,7 +116,7 @@ impl FontContext {
     }
 
     fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> Rc<RefCell<FontGroup>> {
-        let mut fonts = Vec::new();
+        let mut fonts = vec!();
 
         debug!("(create font group) --- starting ---");
 

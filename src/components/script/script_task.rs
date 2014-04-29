@@ -671,7 +671,7 @@ impl ScriptTask {
 
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
-        let mut resizes = Vec::new();
+        let mut resizes = vec!();
 
         {
             let mut page_tree = self.page_tree.borrow_mut();
@@ -693,7 +693,7 @@ impl ScriptTask {
         }
 
         // Store new resizes, and gather all other events.
-        let mut sequential = Vec::new();
+        let mut sequential = vec!();
 
         // Receive at least one message so we don't spinloop.
         let mut event = self.port.recv();
@@ -1133,7 +1133,7 @@ impl ScriptTask {
                 match page.get_nodes_under_mouse(&point) {
                     Some(node_address) => {
 
-                        let mut target_list: Vec<JS<Node>> = Vec::new();
+                        let mut target_list: Vec<JS<Node>> = vec!();
                         let mut target_compare = false;
 
                         let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();

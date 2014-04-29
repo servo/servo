@@ -106,7 +106,7 @@ spawned, collates them, and sends them to the given result channel.
 */
 fn css_link_listener(to_parent: Sender<HtmlDiscoveryMessage>,
                      from_parent: Receiver<CSSMessage>) {
-    let mut result_vec = Vec::new();
+    let mut result_vec = vec!();
 
     loop {
         match from_parent.recv_opt() {
@@ -129,7 +129,7 @@ fn css_link_listener(to_parent: Sender<HtmlDiscoveryMessage>,
 fn js_script_listener(to_parent: Sender<HtmlDiscoveryMessage>,
                       from_parent: Receiver<JSMessage>,
                       resource_task: ResourceTask) {
-    let mut result_vec = Vec::new();
+    let mut result_vec = vec!();
 
     loop {
         match from_parent.recv_opt() {

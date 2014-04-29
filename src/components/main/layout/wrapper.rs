@@ -204,7 +204,7 @@ impl<'ln> LayoutNode<'ln> {
     ///
     /// FIXME(pcwalton): Terribly inefficient. We should use parallelism.
     pub fn traverse_preorder(&self) -> LayoutTreeIterator<'ln> {
-        let mut nodes = Vec::new();
+        let mut nodes = vec!();
         gather_layout_nodes(self, &mut nodes, false);
         LayoutTreeIterator::new(nodes)
     }

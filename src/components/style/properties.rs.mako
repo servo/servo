@@ -549,7 +549,7 @@ pub mod longhands {
                     },
                     _ => ()
                 }
-                let mut content = Vec::new();
+                let mut content = vec!();
                 for component_value in input.skip_whitespace() {
                     match component_value {
                         &String(ref value)
@@ -716,7 +716,7 @@ pub mod longhands {
             from_iter(input.skip_whitespace())
         }
         pub fn from_iter<'a>(mut iter: SkipWhitespaceIterator<'a>) -> Option<SpecifiedValue> {
-            let mut result = Vec::new();
+            let mut result = vec!();
             macro_rules! add(
                 ($value: expr, $b: expr) => {
                     {
@@ -1349,8 +1349,8 @@ pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclaration
 
 
 pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &Url) -> PropertyDeclarationBlock {
-    let mut important = Vec::new();
-    let mut normal = Vec::new();
+    let mut important = vec!();
+    let mut normal = vec!();
     for item in ErrorLoggerIterator(parse_declaration_list(input)) {
         match item {
             DeclAtRule(rule) => log_css_error(

@@ -248,7 +248,7 @@ fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
     let mut empty = true;
     let mut simple_selectors = match parse_type_selector(iter, namespaces) {
         InvalidTypeSelector => return None,
-        NotATypeSelector => Vec::new(),
+        NotATypeSelector => vec!(),
         TypeSelector(s) => { empty = false; s }
     };
 
@@ -279,7 +279,7 @@ fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
         InvalidQualifiedName => InvalidTypeSelector,
         NotAQualifiedName => NotATypeSelector,
         QualifiedName(namespace, local_name) => {
-            let mut simple_selectors = Vec::new();
+            let mut simple_selectors = vec!();
             match namespace {
                 SpecificNamespace(ns) => simple_selectors.push(NamespaceSelector(ns)),
                 AnyNamespace => (),
@@ -692,7 +692,7 @@ mod tests {
         // https://github.com/mozilla/servo/issues/1723
         assert!(parse("::before") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: Vec::new(),
+                simple_selectors: vec!(),
                 next: None,
             }),
             pseudo_element: Some(Before),
@@ -700,7 +700,7 @@ mod tests {
         })))
         assert!(parse("div :after") == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: Vec::new(),
+                simple_selectors: vec!(),
                 next: Some((~CompoundSelector {
                     simple_selectors: vec!(LocalNameSelector("div".to_owned())),
                     next: None,

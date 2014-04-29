@@ -14,7 +14,7 @@ static READ_SIZE: uint = 1;
 fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
         -> Result<(), ()> {
     loop {
-        let mut buf = Vec::new();
+        let mut buf = vec!();
         match reader.push_exact(&mut buf, READ_SIZE) {
             Ok(_) => progress_chan.send(Payload(buf)),
             Err(e) => match e.kind {

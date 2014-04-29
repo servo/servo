@@ -137,7 +137,7 @@ impl TextRunScanner {
                     white_space::pre => CompressNone,
                 };
 
-                let mut new_line_pos = Vec::new();
+                let mut new_line_pos = vec!();
 
                 let (transformed_text, whitespace) = transform_text(*text,
                                                                     compression,
@@ -181,7 +181,7 @@ impl TextRunScanner {
                     white_space::pre => CompressNone,
                 };
 
-                let mut new_line_positions: Vec<NewLinePositions> = Vec::new();
+                let mut new_line_positions: Vec<NewLinePositions> = vec!();
 
                 // First, transform/compress text of all the nodes.
                 let mut last_whitespace_in_clump = new_whitespace;
@@ -195,7 +195,7 @@ impl TextRunScanner {
                         _ => fail!("Expected an unscanned text box!"),
                     };
 
-                    let mut new_line_pos = Vec::new();
+                    let mut new_line_pos = vec!();
 
                     let (new_str, new_whitespace) = transform_text(*in_box,
                                                                    compression,
@@ -211,7 +211,7 @@ impl TextRunScanner {
                 // Next, concatenate all of the transformed strings together, saving the new
                 // character indices.
                 let mut run_str: ~str = "".to_owned();
-                let mut new_ranges: Vec<Range> = Vec::new();
+                let mut new_ranges: Vec<Range> = vec!();
                 let mut char_total = 0;
                 for i in range(0, transformed_strs.len()) {
                     let added_chars = transformed_strs.get(i).char_len();

@@ -47,7 +47,7 @@ impl TableWrapperFlow {
         };
         TableWrapperFlow {
             block_flow: block_flow,
-            col_widths: Vec::new(),
+            col_widths: vec!(),
             table_layout: table_layout
         }
     }
@@ -64,7 +64,7 @@ impl TableWrapperFlow {
         };
         TableWrapperFlow {
             block_flow: block_flow,
-            col_widths: Vec::new(),
+            col_widths: vec!(),
             table_layout: table_layout
         }
     }
@@ -82,7 +82,7 @@ impl TableWrapperFlow {
         };
         TableWrapperFlow {
             block_flow: block_flow,
-            col_widths: Vec::new(),
+            col_widths: vec!(),
             table_layout: table_layout
         }
     }
@@ -93,7 +93,7 @@ impl TableWrapperFlow {
 
     pub fn teardown(&mut self) {
         self.block_flow.teardown();
-        self.col_widths = Vec::new();
+        self.col_widths = vec!();
     }
 
     /// Assign height for table-wrapper flow.
@@ -257,8 +257,8 @@ impl TableWrapper {
                 let mut cap_min = Au(0);
                 let mut cols_min = Au(0);
                 let mut cols_max = Au(0);
-                let mut col_min_widths = &Vec::new();
-                let mut col_pref_widths = &Vec::new();
+                let mut col_min_widths = &vec!();
+                let mut col_pref_widths = &vec!();
                 for kid in table_wrapper.block_flow.base.child_iter() {
                     if kid.is_table_caption() {
                         cap_min = kid.as_block().base.intrinsic_widths.minimum_width;

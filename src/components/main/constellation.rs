@@ -185,8 +185,8 @@ struct NavigationContext {
 impl NavigationContext {
     fn new() -> NavigationContext {
         NavigationContext {
-            previous: Vec::new(),
-            next: Vec::new(),
+            previous: vec!(),
+            next: vec!(),
             current: None,
         }
     }
@@ -211,7 +211,7 @@ impl NavigationContext {
     /// Loads a new set of page frames, returning all evicted frame trees
     fn load(&mut self, frame_tree: Rc<FrameTree>) -> Vec<Rc<FrameTree>> {
         debug!("navigating to {:?}", frame_tree.pipeline.id);
-        let evicted = replace(&mut self.next, Vec::new());
+        let evicted = replace(&mut self.next, vec!());
         if self.current.is_some() {
             self.previous.push(self.current.take_unwrap());
         }
@@ -265,7 +265,7 @@ impl Constellation {
                 pipelines: HashMap::new(),
                 navigation_context: NavigationContext::new(),
                 next_pipeline_id: PipelineId(0),
-                pending_frames: Vec::new(),
+                pending_frames: vec!(),
                 pending_sizes: HashMap::new(),
                 profiler_chan: profiler_chan,
                 window_size: Size2D(800u, 600u),
@@ -438,7 +438,7 @@ impl Constellation {
             after: Rc::new(FrameTree {
                 pipeline: pipeline_wrapped.clone(),
                 parent: RefCell::new(None),
-                children: RefCell::new(Vec::new()),
+                children: RefCell::new(vec!()),
             }),
             navigation_type: constellation_msg::Load,
         });
@@ -464,7 +464,7 @@ impl Constellation {
             after: Rc::new(FrameTree {
                 pipeline: pipeline_wrapped.clone(),
                 parent: RefCell::new(None),
-                children: RefCell::new(Vec::new()),
+                children: RefCell::new(vec!()),
             }),
             navigation_type: constellation_msg::Load,
         });
@@ -611,7 +611,7 @@ impl Constellation {
                 frame_tree: Rc::new(FrameTree {
                     pipeline: pipeline_wrapped.clone(),
                     parent: RefCell::new(Some(source_pipeline.clone())),
-                    children: RefCell::new(Vec::new()),
+                    children: RefCell::new(vec!()),
                 }),
                 rect: rect,
             });
@@ -664,7 +664,7 @@ impl Constellation {
             after: Rc::new(FrameTree {
                 pipeline: pipeline_wrapped.clone(),
                 parent: parent,
-                children: RefCell::new(Vec::new()),
+                children: RefCell::new(vec!()),
             }),
             navigation_type: constellation_msg::Load,
         });

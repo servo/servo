@@ -44,7 +44,7 @@ impl Stylesheet {
     pub fn from_bytes_iter<I: Iterator<Vec<u8>>>(
             mut input: I, base_url: Url, protocol_encoding_label: Option<&str>,
             environment_encoding: Option<EncodingRef>) -> Stylesheet {
-        let mut bytes = Vec::new(); 
+        let mut bytes = vec!(); 
         // TODO: incremental decoding and tokinization/parsing
         for chunk in input {
             bytes.push_all(chunk.as_slice())
@@ -68,7 +68,7 @@ impl Stylesheet {
         static STATE_BODY: uint = 4;
         let mut state: uint = STATE_CHARSET;
 
-        let mut rules = Vec::new();
+        let mut rules = vec!();
         let mut namespaces = NamespaceMap::new();
 
         for rule in ErrorLoggerIterator(parse_stylesheet_rules(tokenize(css))) {

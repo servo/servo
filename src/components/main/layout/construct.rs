@@ -502,7 +502,7 @@ impl<'a> FlowConstructor<'a> {
                         whitespace_stripping,
                         node);
                     if !consecutive_siblings.is_empty() {
-                        let consecutive_siblings = mem::replace(consecutive_siblings, Vec::new());
+                        let consecutive_siblings = mem::replace(consecutive_siblings, vec!());
                         self.generate_anonymous_missing_child(consecutive_siblings,
                                                               flow,
                                                               node);
@@ -588,7 +588,7 @@ impl<'a> FlowConstructor<'a> {
                                  -> ConstructionResult {
         // Gather up boxes for the inline flows we might need to create.
         let mut inline_box_accumulator = InlineBoxAccumulator::new();
-        let mut consecutive_siblings = Vec::new();
+        let mut consecutive_siblings = vec!();
         let mut first_box = true;
 
         // List of absolute descendants, in tree order.
@@ -811,7 +811,7 @@ impl<'a> FlowConstructor<'a> {
                                         flow: &mut ~Flow:Share,
                                         node: &ThreadSafeLayoutNode) {
         let mut anonymous_flow = flow.generate_missing_child_flow(node);
-        let mut consecutive_siblings = Vec::new();
+        let mut consecutive_siblings = vec!();
         for kid_flow in child_flows.move_iter() {
             if anonymous_flow.need_anonymous_flow(kid_flow) {
                 consecutive_siblings.push(kid_flow);
@@ -819,7 +819,7 @@ impl<'a> FlowConstructor<'a> {
             }
             if !consecutive_siblings.is_empty() {
                 self.generate_anonymous_missing_child(consecutive_siblings, &mut anonymous_flow, node);
-                consecutive_siblings = Vec::new();
+                consecutive_siblings = vec!();
             }
             anonymous_flow.add_new_child(kid_flow);
         }
@@ -931,7 +931,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_table_colgroup(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         let box_ = Box::new_from_specific_info(node,
                                                TableColumnBox(TableColumnBoxInfo::new(node)));
-        let mut col_boxes = Vec::new();
+        let mut col_boxes = vec!();
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child boxes of `table-column-group`
             // as `display: none`.

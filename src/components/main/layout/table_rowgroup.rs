@@ -37,9 +37,9 @@ impl TableRowGroupFlow {
                              -> TableRowGroupFlow {
         TableRowGroupFlow {
             block_flow: BlockFlow::from_node_and_box(node, box_),
-            col_widths: Vec::new(),
-            col_min_widths: Vec::new(),
-            col_pref_widths: Vec::new(),
+            col_widths: vec!(),
+            col_min_widths: vec!(),
+            col_pref_widths: vec!(),
         }
     }
 
@@ -48,17 +48,17 @@ impl TableRowGroupFlow {
                      -> TableRowGroupFlow {
         TableRowGroupFlow {
             block_flow: BlockFlow::from_node(constructor, node),
-            col_widths: Vec::new(),
-            col_min_widths: Vec::new(),
-            col_pref_widths: Vec::new(),
+            col_widths: vec!(),
+            col_min_widths: vec!(),
+            col_pref_widths: vec!(),
         }
     }
 
     pub fn teardown(&mut self) {
         self.block_flow.teardown();
-        self.col_widths = Vec::new();
-        self.col_min_widths = Vec::new();
-        self.col_pref_widths = Vec::new();
+        self.col_widths = vec!();
+        self.col_min_widths = vec!();
+        self.col_pref_widths = vec!();
     }
 
     pub fn box_<'a>(&'a mut self) -> &'a Box {

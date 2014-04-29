@@ -58,7 +58,7 @@ struct FloatList {
 impl FloatList {
     fn new() -> FloatList {
         FloatList {
-            floats: Vec::new(),
+            floats: vec!(),
             max_top: Au(0),
         }
     }
