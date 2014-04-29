@@ -73,7 +73,7 @@ putvar() {
     else
         printf "configure: %-20s := %s %s\n" $1 "$T" "$2"
     fi
-    printf "%-20s ?= %s\n" $1 "$T" >>${CFG_SRC_DIR}config.tmp
+    printf "%-20s ?= %s\n" $1 "$T" >>${CFG_BUILD_HOME}config.tmp
 }
 
 probe() {
@@ -192,10 +192,10 @@ split_triple() {
     eval $VENDOR=$(echo "$TRIPLE" | cut -d'-' -f2)
     eval $OS=$(echo "$TRIPLE" | cut -d'-' -f3)
 
-        if [ $(echo "$TRIPLE" | cut -d'-' -f3) = "androideabi" ]
-        then
-            eval $OS="android"
-        fi
+    if [ $(echo "$TRIPLE" | cut -d'-' -f3) = "androideabi" ]
+    then
+        eval $OS="android"
+    fi
 }
 
 os_type() {
@@ -300,7 +300,7 @@ fi
 os_type CFG_BUILD_OSTYPE ${OSTYPE}
 cpu_type CFG_BUILD_CPUTYPE ${CPUTYPE}
 
-DEFAULT_TARGET_TRIPLE="${CFG_BUILD_CPUTYPE}-${CFG_BUILD_OSTYPE}"
+DEFAULT_TARGET="${CFG_BUILD_CPUTYPE}-${CFG_BUILD_OSTYPE}"
 
 CFG_SRC_DIR="$(cd $(dirname $0) && pwd)/"
 CFG_BUILD_HOME="$(pwd)/"
@@ -329,7 +329,7 @@ then
     echo ""
 else
     msg "recreating config.tmp"
-    echo '' >${CFG_SRC_DIR}config.tmp
+    echo '' >${CFG_BUILD_HOME}config.tmp
 
     step_msg "processing $CFG_SELF args"
 fi
@@ -341,7 +341,7 @@ opt fast-make 0 "use .gitmodules as timestamp for submodule deps"
 opt debug 0 "build with debugging code and symbols"
 opt debug-skia 0 "build Skia and Azure for debugging (significant performance hit)"
 valopt local-rust-root "" "set prefix for local rust binary"
-valopt target-triples "${DEFAULT_TARGET_TRIPLE}" "target triple to be compiled"
+valopt target "${DEFAULT_TARGET}" "target to be compiled"
 valopt android-cross-path "/opt/ndk_standalone" "Android NDK cross compiler path"
 valopt android-ndk-path "/opt/android-ndk" "Android NDK path"
 valopt android-sdk-path "/opt/android-sdk" "Android SDK path"
@@ -355,7 +355,7 @@ then
 fi
 
 # Split target triple
-split_triple "${CFG_TARGET_TRIPLES}" TARGET_CPUTYPE TARGET_VENDOR TARGET_OSTYPE
+split_triple "${CFG_TARGET}" TARGET_CPUTYPE TARGET_VENDOR TARGET_OSTYPE
 
 # Set target os and cpu type
 os_type CFG_OSTYPE ${TARGET_OSTYPE}
@@ -399,7 +399,7 @@ esac
 
 probe CFG_CLANG            clang++
 
-CFG_BUILD_DIR="${CFG_BUILD_HOME}${CFG_TARGET_TRIPLES}/"
+CFG_BUILD_DIR="${CFG_BUILD_HOME}${CFG_TARGET}/"
 make_dir "${CFG_BUILD_DIR}"
 
 if [ ! -z "$CFG_LOCAL_RUST_ROOT" ]
@@ -417,8 +417,8 @@ then
 else
     step_msg "using in-tree rust compiler"
     # The Rust compiler we're going to build
-    CFG_RUSTC="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET_TRIPLE}/stage2/bin/rustc"
-    CFG_RUST_HOME="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET_TRIPLE}/stage2"
+    CFG_RUSTC="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET}/stage2/bin/rustc"
+    CFG_RUST_HOME="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET}/stage2"
 fi
 
 if [ -z "$CFG_ENABLE_CLANG" -a -z "$CFG_CC" ]
@@ -544,7 +544,7 @@ fi
 
 step_msg "writing configuration"
 
-putvar CFG_TARGET_TRIPLES
+putvar CFG_TARGET
 putvar CFG_CPUTYPE
 putvar CFG_OSTYPE
 putvar CFG_SRC_DIR
@@ -564,10 +564,10 @@ putvar CFG_ENABLE_DEBUG_SKIA
 
 msg
 copy_if_changed ${CFG_SRC_DIR}Makefile.in ${CFG_BUILD_HOME}Makefile
-move_if_changed ${CFG_SRC_DIR}config.tmp ${CFG_SRC_DIR}config.mk
-copy_if_changed ${CFG_SRC_DIR}config.mk ${CFG_BUILD_HOME}config.mk
-rm -f ${CFG_SRC_DIR}config.tmp
-touch ${CFG_SRC_DIR}config.stamp
+move_if_changed ${CFG_BUILD_HOME}config.tmp ${CFG_BUILD_HOME}config.mk
+copy_if_changed ${CFG_BUILD_HOME}config.mk ${CFG_SRC_DIR}/.config.mk.last
+rm -f ${CFG_BUILD_HOME}config.tmp
+touch ${CFG_BUILD_HOME}config.stamp
 
 export CFG_CONFIG_MK="${CFG_BUILD_HOME}config.mk"
 
@@ -720,8 +720,7 @@ do
         CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-debug"
     fi
 
-    if [ -f ${CONFIGURE_SCRIPT} ]
-    then
+    if [ -f ${CONFIGURE_SCRIPT} ]; then
 	(sh ${CONFIGURE_SCRIPT} ${CONFIGURE_ARGS}) || exit $?
     fi
 done

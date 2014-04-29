@@ -7,11 +7,12 @@
 #
 # restore-rust is run after configure and before invoking make. if it fails, we must abort.
 
-include config.mk
+-include .config.mk.last
 
-.PHONY: backup-rust restore-rust
+.PHONY: backup-rust
 backup-rust:
-	-mv $(CFG_BUILD_DIR)src/compiler/rust ../$(CFG_TARGET_TRIPLES)
+	@if [ ! -z "$(CFG_BUILD_DIR)" ]; then echo "Backing up Rust"; mv $(CFG_BUILD_DIR)src/compiler/rust ../$(CFG_TARGET); else echo "Skipping Rust backup"; fi
 
+.PHONY: restore-rust
 restore-rust:
-	if [ -d ../$(CFG_TARGET_TRIPLES) ]; then rm -rf $(CFG_BUILD_DIR)src/compiler/rust; mv ../$(CFG_TARGET_TRIPLES) $(CFG_BUILD_DIR)src/compiler/rust; fi
+	@if [ ! -z "$(CFG_BUILD_DIR)" -a -d ../$(CFG_TARGET) ]; then echo "Restoring Rust from backup"; rm -rf $(CFG_BUILD_DIR)src/compiler/rust; mv ../$(CFG_TARGET) $(CFG_BUILD_DIR)src/compiler/rust; else echo "Skipping Rust restore"; fi
