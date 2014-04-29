@@ -4,14 +4,13 @@
 
 //! Element nodes.
 
-use cssparser::tokenize;
 use dom::attr::{Attr, AttrSettingType, ReplacedAttr, FirstSetAttr};
 use dom::attrlist::AttrList;
 use dom::bindings::codegen::ElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementDerived, ElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter, TypeError};
+use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
@@ -27,9 +26,6 @@ use style;
 use servo_util::namespace;
 use servo_util::namespace::{Namespace, Null};
 use servo_util::str::{DOMString, null_str_as_empty_ref, split_html_space_chars};
-use style::parse_selector_list;
-use style::matches_compound_selector;
-use style::NamespaceMap;
 
 use std::ascii::StrAsciiExt;
 use std::cast;
@@ -674,42 +670,6 @@ impl Element {
 
     pub fn GetOuterHTML(&self, abstract_self: &JS<Element>) -> Fallible<DOMString> {
         Ok(serialize(&mut NodeIterator::new(NodeCast::from(abstract_self), true, false)))
-    }
-}
-
-// http://dom.spec.whatwg.org/#interface-parentnode
-impl Element {
-    // http://dom.spec.whatwg.org/#dom-parentnode-children
-    pub fn Children(&self, abstract_self: &JS<Element>) -> JS<HTMLCollection> {
-        let doc = self.node.owner_doc();
-        let doc = doc.get();
-        HTMLCollection::children(&doc.window, &NodeCast::from(abstract_self))
-    }
-
-    // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
-    pub fn QuerySelector(&self, abstract_self: &JS<Element>, selectors: DOMString) -> Fallible<Option<JS<Element>>> {
-        // Step 1.
-        let namespace = NamespaceMap::new();
-        let maybe_selectors = parse_selector_list(tokenize(selectors).map(|(token, _)| token).to_owned_vec(), &namespace);
-        match maybe_selectors {
-            // Step 2.
-            None => return Err(TypeError),
-            // Step 3.
-            Some(ref selectors) => {
-                for selector in selectors.iter() {
-                    assert!(selector.pseudo_element.is_none());
-                    let root: JS<Node> = NodeCast::from(abstract_self);
-                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
-                        let elem: JS<Element> = ElementCast::to(&node).unwrap();
-                        let mut shareable: bool = false;
-                        if matches_compound_selector(selector.compound_selectors.get(), &node, &mut shareable) {
-                            return Ok(Some(elem));
-                        }
-                    }
-                }
-            }
-        }
-        Ok(None)
     }
 }
 

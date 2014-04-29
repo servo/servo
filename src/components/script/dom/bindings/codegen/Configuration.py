@@ -20,11 +20,15 @@ class Configuration:
         # |parseData|.
         self.descriptors = []
         self.interfaces = {}
+        self.inheritableInterfaces = []
         self.maxProtoChainLength = 0;
         for thing in parseData:
             if not thing.isInterface(): continue
             iface = thing
-            if iface.identifier.name not in config: continue
+            if iface.identifier.name not in config:
+                if iface.isConsequential():
+                    self.inheritableInterfaces.append(iface)
+                continue
             self.interfaces[iface.identifier.name] = iface
             entry = config[iface.identifier.name]
             if not isinstance(entry, list):
@@ -50,6 +54,10 @@ class Configuration:
 
     def getInterface(self, ifname):
         return self.interfaces[ifname]
+
+    def getInheritableInterfaces(self):
+        return self.inheritableInterfaces
+
     def getDescriptors(self, **filters):
         """Gets the descriptors that match the given filters."""
         curr = self.descriptors

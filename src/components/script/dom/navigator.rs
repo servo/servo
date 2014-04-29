@@ -26,9 +26,17 @@ impl Navigator {
                            window,
                            NavigatorBinding::Wrap)
     }
+}
 
+impl Navigator {
     pub fn DoNotTrack(&self) -> DOMString {
         ~"unspecified"
+    }
+}
+
+impl Navigator {
+    pub fn GetAppCodeName(&self) -> Fallible<DOMString> {
+        Ok(~"Mozilla") // Like Gecko/Webkit
     }
 
     pub fn Vendor(&self) -> DOMString {
@@ -37,10 +45,6 @@ impl Navigator {
 
     pub fn VendorSub(&self) -> DOMString {
         ~"" // Like Gecko
-    }
-
-    pub fn Product(&self) -> DOMString {
-        ~"Gecko"
     }
 
     pub fn ProductSub(&self) -> DOMString {
@@ -61,34 +65,6 @@ impl Navigator {
 
     pub fn TaintEnabled(&self) -> bool {
         false
-    }
-
-    pub fn AppName(&self) -> DOMString {
-        ~"Netscape" // Like Gecko/Webkit
-    }
-
-    pub fn GetAppCodeName(&self) -> Fallible<DOMString> {
-        Ok(~"Mozilla") // Like Gecko/Webkit
-    }
-
-    pub fn GetAppVersion(&self) -> Fallible<DOMString> {
-        Ok(~"")
-    }
-
-    pub fn GetPlatform(&self) -> Fallible<DOMString> {
-        Ok(~"")
-    }
-
-    pub fn GetUserAgent(&self) -> Fallible<DOMString> {
-        Ok(~"")
-    }
-
-    pub fn GetLanguage(&self) -> Option<DOMString> {
-        None
-    }
-
-    pub fn OnLine(&self) -> bool {
-        true
     }
 }
 

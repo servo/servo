@@ -13,6 +13,7 @@ use dom::eventtarget::{EventTarget, WindowTypeId};
 use dom::console::Console;
 use dom::location::Location;
 use dom::navigator::Navigator;
+use dom::windowtimers::WindowTimers;
 
 use layout_interface::{ReflowForDisplay, DocumentDamageLevel};
 use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan};
@@ -263,12 +264,14 @@ impl Window {
         self.active_timers.insert(handle, TimerHandle { handle: handle, cancel_chan: Some(cancel_chan) });
         handle
     }
+}
 
-    pub fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+impl WindowTimers for Window {
+    fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, false)
     }
 
-    pub fn ClearTimeout(&mut self, handle: i32) {
+    fn ClearTimeout(&mut self, handle: i32) {
         let timer_handle = self.active_timers.pop(&handle);
         match timer_handle {
             Some(handle) => handle.cancel(),
@@ -276,14 +279,16 @@ impl Window {
         }
     }
 
-    pub fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetInterval(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
         self.set_timeout_or_interval(callback, timeout, true)
     }
 
-    pub fn ClearInterval(&mut self, handle: i32) {
+    fn ClearInterval(&mut self, handle: i32) {
         self.ClearTimeout(handle);
     }
+}
 
+impl Window {
     pub fn Window(&self, abstract_self: &JS<Window>) -> JS<Window> {
         abstract_self.clone()
     }

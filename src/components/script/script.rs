@@ -152,14 +152,20 @@ pub mod dom {
     pub mod location;
     pub mod mouseevent;
     pub mod navigator;
+    pub mod navigatorid;
+    pub mod navigatorlanguage;
+    pub mod navigatoronline;
     pub mod node;
     pub mod nodelist;
+    pub mod parentnode;
     pub mod processinginstruction;
-    pub mod uievent;
     pub mod text;
+    pub mod uievent;
+    pub mod urlutils;
     pub mod validitystate;
     pub mod virtualmethods;
     pub mod window;
+    pub mod windowtimers;
 
     pub mod testbinding;
 }
