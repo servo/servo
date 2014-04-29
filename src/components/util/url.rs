@@ -4,7 +4,6 @@
 
 use collections::HashMap;
 use std::os;
-use std::vec::Vec;
 use std_url;
 use std_url::Url;
 
