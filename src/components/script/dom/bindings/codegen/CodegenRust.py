@@ -1669,30 +1669,10 @@ def UnionTypes(descriptors):
             if t.isUnion():
                 name = str(t)
                 if not name in unionStructs:
-                    unionStructs[name] = CGUnionStruct(t, d)
+                    unionStructs[name] = CGList([CGUnionStruct(t, d), CGUnionConversionStruct(t, d)])
 
-    return CGList(SortedDictValues(unionStructs), "\n")
+    return CGList(SortedDictValues(unionStructs), "\n\n")
 
-def UnionConversions(descriptors):
-    """
-    Returns a CGThing to declare all union argument conversion helper structs.
-    """
-    # Now find all the things we'll need as arguments because we
-    # need to unwrap them.
-    unionConversions = dict()
-    for d in descriptors:
-        def addUnionTypes(type):
-            if type.isUnion():
-                type = type.unroll()
-                name = str(type)
-                if not name in unionConversions:
-                    unionConversions[name] = CGUnionConversionStruct(type, d)
-
-        for t in getTypes(d):
-            addUnionTypes(t)
-
-    return CGWrapper(CGList(SortedDictValues(unionConversions), "\n"),
-                     post="\n\n")
 
 class Argument():
     """
@@ -5319,10 +5299,6 @@ class GlobalGenRoots():
     def UnionTypes(config):
 
         curr = UnionTypes(config.getDescriptors())
-
-        curr = CGWrapper(curr, post='\n')
-
-        curr = CGList([curr, UnionConversions(config.getDescriptors())], "\n")
 
         curr = CGImports(curr, [
             'dom::bindings::utils::unwrap_jsmanaged',
