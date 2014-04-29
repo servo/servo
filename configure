@@ -565,6 +565,7 @@ putvar CFG_ENABLE_DEBUG_SKIA
 msg
 copy_if_changed ${CFG_SRC_DIR}Makefile.in ${CFG_BUILD_HOME}Makefile
 move_if_changed ${CFG_BUILD_HOME}config.tmp ${CFG_BUILD_HOME}config.mk
+copy_if_changed ${CFG_BUILD_HOME}config.mk ${CFG_SRC_DIR}/.config.mk.last
 rm -f ${CFG_BUILD_HOME}config.tmp
 touch ${CFG_BUILD_HOME}config.stamp
 

@@ -13,6 +13,7 @@
 .DS_Store
 servo-test
 Servo.app
+.config.mk.last
 build*
 objdir
 parser.out
