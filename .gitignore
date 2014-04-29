@@ -12,13 +12,10 @@
 *.swo
 .DS_Store
 servo-test
-Makefile
 Servo.app
+.config.mk.last
 build*
 objdir
-config.mk
-config.stamp
-config.tmp
 parser.out
 src/components/script/dom/bindings/codegen/*.rs
 src/components/script/dom/bindings/codegen/_cache/
