@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use libc::{c_uint, c_ushort, c_int, c_double, size_t, c_void, c_longlong};
 
 pub type cef_string_map_t = c_void;
