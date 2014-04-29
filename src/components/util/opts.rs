@@ -25,7 +25,7 @@ pub struct Opts {
     /// How many threads to use for CPU rendering (`-t`).
     ///
     /// FIXME(pcwalton): This is not currently used. All rendering is sequential.
-    n_render_threads: uint,
+    pub n_render_threads: uint,
 
     /// True to use CPU painting, false to use GPU painting via Skia-GL (`-c`). Note that
     /// compositing is always done on the GPU.
