@@ -1688,19 +1688,8 @@ def UnionConversions(descriptors):
                 if not name in unionConversions:
                     unionConversions[name] = CGUnionConversionStruct(type, d)
 
-        members = [m for m in d.interface.members]
-        if d.interface.ctor():
-            members.append(d.interface.ctor())
-        signatures = [s for m in members if m.isMethod() for s in m.signatures()]
-        for s in signatures:
-            assert len(s) == 2
-            (_, arguments) = s
-            for a in arguments:
-                addUnionTypes(a.type)
-
-        for m in members:
-            if m.isAttr() and not m.readonly:
-                addUnionTypes(m.type)
+        for t in getTypes(d):
+            addUnionTypes(t)
 
     return CGWrapper(CGList(SortedDictValues(unionConversions), "\n"),
                      post="\n\n")
