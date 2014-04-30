@@ -24,6 +24,7 @@ extern crate js;
 extern crate libc;
 extern crate native;
 extern crate serialize;
+extern crate time;
 #[phase(syntax)]
 extern crate servo_macros = "macros";
 extern crate servo_net = "net";

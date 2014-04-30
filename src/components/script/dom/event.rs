@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate time;
-
 use dom::bindings::codegen::EventBinding;
 use dom::bindings::codegen::EventBinding::EventConstants;
 use dom::bindings::js::JS;
@@ -14,6 +12,8 @@ use dom::window::Window;
 use servo_util::str::DOMString;
 
 use geom::point::Point2D;
+
+use time;
 
 pub enum Event_ {
     ResizeEvent(uint, uint),
@@ -130,7 +130,7 @@ impl Event {
     }
 
     pub fn TimeStamp(&self) -> u64 {
-        return self.timestamp;
+        self.timestamp
     }
 
     pub fn InitEvent(&mut self,
