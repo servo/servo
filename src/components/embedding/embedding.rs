@@ -9,6 +9,8 @@
 
 #![feature(globs, macro_rules, phase, thread_local)]
 
+#![allow(experimental)]
+
 #![feature(phase)]
 #[phase(plugin, link)]
 extern crate log;

@@ -104,6 +104,35 @@ probe() {
     putvar $V "$VER"
 }
 
+probe_ext() {
+    local V=$1
+    local E=$2
+    shift 2
+    local P
+    local T
+    for P
+    do
+        T=$(which $P 2>&1)
+        if [ $? -eq 0 ]
+        then
+            VER0=$($P --version 2>/dev/null | head -1 \
+                |  sed -e 's/[^0-9]*\([vV]\?[0-9.]\+[^ ]*\).*/\1/' )
+            if [ $? -eq 0 -a "x${VER0}" != "x" ]
+            then
+              VER="($VER0)"
+            else
+              VER=""
+            fi
+            break
+        else
+            VER=""
+            T=""
+        fi
+    done
+    eval $V="'$T $E'"
+    putvar $V "$VER"
+}
+
 probe_need() {
     local V=$1
     probe $*
@@ -394,8 +423,13 @@ case ${TARGET_OSTYPE} in
         ;;
     *)
         CFG_PATH=$PATH
-        probe CFG_CC               gcc
-        probe CFG_CXX              g++
+        if [ "$CFG_CPUTYPE" = "i686" ]; then
+            probe_ext CFG_CC -m32 gcc
+            probe_ext CFG_CXX -m32 g++
+        else
+            probe CFG_CC               gcc
+            probe CFG_CXX              g++
+        fi
         probe CFG_LD               ld
         probe CFG_AR               ar
         probe CFG_RANLIB	   ranlib
@@ -655,9 +689,9 @@ done
 if [ -z "$CFG_LOCAL_RUST_ROOT" -a ${do_reconfigure} -ne 0 ]
 then
     cd ${CFG_BUILD_DIR}src/compiler/rust
-    RUST_CONFIGURE_ARGS="--enable-debug"
+    RUST_CONFIGURE_ARGS="--target=${CFG_TARGET} --enable-debug"
     if [ $CFG_OSTYPE = "linux-androideabi" ]; then
-        RUST_CONFIGURE_ARGS="--target=arm-linux-androideabi --android-cross-path=${CFG_ANDROID_CROSS_PATH}"
+        RUST_CONFIGURE_ARGS="${RUST_CONFIGURE_ARGS} --android-cross-path=${CFG_ANDROID_CROSS_PATH}"
     fi
     ${CFG_SRC_DIR}src/compiler/rust/configure ${RUST_CONFIGURE_ARGS}
     cd ${CFG_BUILD_DIR}
@@ -680,7 +714,7 @@ then
 fi
 
 # cross compile configurations
-EXTRA_CONFIGURE_ARGS="CC=${CFG_CC} CXX=${CFG_CXX} LD=${CFG_LD} AR=${CFG_AR} RANLIB=${CFG_RANLIB}"
+EXTRA_CONFIGURE_ARGS="CC=\"${CFG_CC}\" CXX=\"${CFG_CXX}\" LD=${CFG_LD} AR=${CFG_AR} RANLIB=${CFG_RANLIB} CFLAGS=\"${CFLAGS}\" CXXFLAGS=\"${CXXFLAGS}\""
 
 for i in ${CFG_SUBMODULES}
 do
@@ -697,13 +731,11 @@ do
             CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/expat/configure"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux-androideabi"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-sysroot=${CFG_ANDROID_CROSS_PATH}/sysroot"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
             ;;
         platform/android/libfreetype2)
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-sysroot=${CFG_ANDROID_CROSS_PATH}/sysroot"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --without-zlib"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
             ;;
         platform/linux/fontconfig)
             CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/autogen.sh"
@@ -716,7 +748,8 @@ do
                 # pkg-config files for expat: https://bugzilla.redhat.com/show_bug.cgi?id=833338
                 CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-expat=/usr"
             fi
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
+            # --enable-debug isn't supported by fontconfig
+            ENABLE_DEBUG=
             ;;
         platform/android/fontconfig)
             CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/autogen.sh"
@@ -728,13 +761,19 @@ do
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-cache-dir=${CFG_ANDROID_RESOURCE_PATH}/.fccache"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-confdir=${CFG_ANDROID_RESOURCE_PATH}/.fcconfig"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-default-fonts=${CFG_ANDROID_FONT_PATH}"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
+            # --enable-debug isn't supported by fontconfig
+            ENABLE_DEBUG=
             ;;
         support/spidermonkey/mozjs)
             # needed because Spidermonkey configure is in non-standard location
-                CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/js/src/configure"
+            CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/js/src/configure"
+            if [ ! ${DEFAULT_TARGET} = ${CFG_TARGET} ]; then
+                # Only pass --target if different from the build host because
+                # spidermonkey will trigger a cross compile even on minor
+                # differences here.
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --target=${CFG_TARGET}"
+            fi
             if [ ${CFG_OSTYPE} = "linux-androideabi" ]; then
-                CONFIGURE_ARGS="${CONFIGURE_ARGS} --target=arm-linux-androideabi"
                 CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-ndk=${CFG_ANDROID_NDK_PATH}"
                 CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-toolchain=${CFG_ANDROID_CROSS_PATH}"
             fi
@@ -768,12 +807,13 @@ do
             ;;
     esac
 
+
     if [ -n "$ENABLE_DEBUG" ]; then
         CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-debug"
     fi
 
     if [ -f ${CONFIGURE_SCRIPT} ]; then
-	(sh ${CONFIGURE_SCRIPT} ${CONFIGURE_ARGS}) || exit $?
+	(sh -c "${EXTRA_CONFIGURE_ARGS} ${CONFIGURE_SCRIPT} ${CONFIGURE_ARGS}") || exit $?
     fi
 done
 

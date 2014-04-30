@@ -21,7 +21,7 @@ static mut GLOBAL_CMDLINE: Option<*mut command_line_t> = None;
 fn command_line_new() -> *mut command_line_t {
     unsafe {
         let cl = calloc(1, mem::size_of::<command_line>() as size_t) as *mut command_line_t;
-        (*cl).cl.base.size = mem::size_of::<cef_command_line_t>() as u64;
+        (*cl).cl.base.size = mem::size_of::<cef_command_line_t>() as size_t;
         cl
     }
 }
@@ -59,7 +59,7 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
                 let string = cef_string_userfree_utf16_alloc() as *mut cef_string_utf16_t;
                 let arg = o.slice_from(opt.len() + 1).as_bytes();
                 arg.with_c_str(|c_str| {
-                    cef_string_utf16_set(mem::transmute(c_str), arg.len() as u64, string, 1);
+                    cef_string_utf16_set(mem::transmute(c_str), arg.len() as size_t, string, 1);
                 });
                 return string as *mut cef_string_userfree_t
             }
