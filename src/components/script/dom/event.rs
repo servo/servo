@@ -13,6 +13,8 @@ use servo_util::str::DOMString;
 
 use geom::point::Point2D;
 
+use time;
+
 pub enum Event_ {
     ResizeEvent(uint, uint),
     ReflowEvent,
@@ -54,6 +56,7 @@ pub struct Event {
     pub trusted: bool,
     pub dispatching: bool,
     pub initialized: bool,
+    pub timestamp: u64,
 }
 
 impl Event {
@@ -73,6 +76,7 @@ impl Event {
             stop_propagation: false,
             stop_immediate: false,
             initialized: false,
+            timestamp: time::get_time().sec as u64,
         }
     }
 
@@ -126,7 +130,7 @@ impl Event {
     }
 
     pub fn TimeStamp(&self) -> u64 {
-        0
+        self.timestamp
     }
 
     pub fn InitEvent(&mut self,
