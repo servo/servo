@@ -36,7 +36,7 @@ impl TextRunScanner {
         let mut out_boxes = vec!();
         for box_i in range(0, flow.as_immutable_inline().boxes.len()) {
             debug!("TextRunScanner: considering box: {:u}", box_i);
-            if box_i > 0 && !can_coalesce_text_nodes(&flow.as_immutable_inline().boxes,
+            if box_i > 0 && !can_coalesce_text_nodes(flow.as_immutable_inline().boxes.as_slice(),
                                                      box_i - 1,
                                                      box_i) {
                 last_whitespace = self.flush_clump_to_list(font_context,
@@ -57,11 +57,11 @@ impl TextRunScanner {
         flow.as_inline().boxes = out_boxes;
 
         // A helper function.
-        fn can_coalesce_text_nodes(boxes: &Vec<Box>, left_i: uint, right_i: uint) -> bool {
+        fn can_coalesce_text_nodes(boxes: &[Box], left_i: uint, right_i: uint) -> bool {
             assert!(left_i < boxes.len());
             assert!(right_i > 0 && right_i < boxes.len());
             assert!(left_i != right_i);
-            boxes.get(left_i).can_merge_with_box(boxes.get(right_i))
+            boxes[left_i].can_merge_with_box(&boxes[right_i])
         }
     }
 

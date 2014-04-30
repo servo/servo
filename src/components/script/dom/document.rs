@@ -607,7 +607,7 @@ impl Document {
     }
 
     pub fn createNodeList(&self, callback: |node: &JS<Node>| -> bool) -> JS<NodeList> {
-        let mut nodes: Vec<JS<Node>> = vec!();
+        let mut nodes = vec!();
         match self.GetDocumentElement() {
             None => {},
             Some(root) => {

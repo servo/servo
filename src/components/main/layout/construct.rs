@@ -253,7 +253,7 @@ pub trait OptNewVector<T> {
     fn push_all_move(&mut self, values: Vec<T>);
 
     /// Returns the length of this optional vector.
-    fn len(&self) -> uint;        
+    fn len(&self) -> uint;
 }
 
 impl<T> OptNewVector<T> for Option<Vec<T>> {
@@ -261,7 +261,7 @@ impl<T> OptNewVector<T> for Option<Vec<T>> {
     fn to_vec(self) -> Vec<T> {
         match self {
             None => vec!(),
-            Some(vector) => vector, 
+            Some(vector) => vector,
         }
     }
 
@@ -272,7 +272,7 @@ impl<T> OptNewVector<T> for Option<Vec<T>> {
             Some(ref mut vector) => vector.push(value),
         }
     }
-    
+
     #[inline]
     fn push_all_move(&mut self, values: Vec<T>) {
         match *self {
@@ -1258,7 +1258,7 @@ fn strip_ignorable_whitespace_from_start(opt_boxes: &mut Option<Vec<Box>>) {
         Some(boxes) => {
             // FIXME(pcwalton): This is slow because vector shift is broken. :(
             let mut found_nonwhitespace = false;
-            let mut result = vec!(); 
+            let mut result = vec!();
             let mut last_removed_box: Option<Box> = None;
             for box_ in boxes.move_iter() {
                 if !found_nonwhitespace && box_.is_whitespace_only() {

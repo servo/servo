@@ -41,7 +41,7 @@ pub fn dispatch_event(target: &JS<EventTarget>,
     //FIXME: The "callback this value" should be currentTarget
 
     /* capturing */
-    for cur_target in chain.iter().rev() {
+    for cur_target in chain.as_slice().rev_iter() {
         let stopped = match cur_target.get().get_listeners_for(type_, Capturing) {
             Some(listeners) => {
                 event.get_mut().current_target = Some(cur_target.clone());

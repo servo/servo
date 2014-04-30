@@ -425,7 +425,7 @@ impl Shaper {
                 }
 
                 // now add the detailed glyph entry.
-                glyphs.add_glyphs_for_char_index(char_idx, &datas);
+                glyphs.add_glyphs_for_char_index(char_idx, datas.as_slice());
 
                 // set the other chars, who have no glyphs
                 let mut i = covered_byte_span.begin();

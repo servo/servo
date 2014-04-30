@@ -1101,7 +1101,7 @@ impl ScriptTask {
                 match page.get_nodes_under_mouse(&point) {
                     Some(node_address) => {
 
-                        let mut target_list: Vec<JS<Node>> = vec!();
+                        let mut target_list = vec!();
                         let mut target_compare = false;
 
                         let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();

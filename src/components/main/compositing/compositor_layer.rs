@@ -842,7 +842,7 @@ impl CompositorLayer {
             };
 
             let mut unused_tiles = vec!();
-            for buffer in new_buffers.buffers.move_iter() {
+            for buffer in new_buffers.buffers.move_iter().rev() {
                 unused_tiles.push_all_move(quadtree.add_tile_pixel(buffer.screen_pos.origin.x,
                                                                    buffer.screen_pos.origin.y,
                                                                    buffer.resolution,

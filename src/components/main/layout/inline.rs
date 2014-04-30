@@ -137,7 +137,7 @@ impl LineboxScanner {
             self.flush_current_line();
         }
 
-        flow.elems.repair_for_box_changes(&flow.boxes, &self.new_boxes);
+        flow.elems.repair_for_box_changes(flow.boxes.as_slice(), self.new_boxes.as_slice());
 
         self.swap_out_results(flow);
     }
@@ -582,7 +582,7 @@ impl InlineFlow {
     }
 
     /// Sets box X positions based on alignment for one line.
-    fn set_horizontal_box_positions(boxes: &Vec<Box>, line: &LineBox, linebox_align: text_align::T) {
+    fn set_horizontal_box_positions(boxes: &[Box], line: &LineBox, linebox_align: text_align::T) {
         // Figure out how much width we have.
         let slack_width = Au::max(Au(0), line.green_zone.width - line.bounds.size.width);
 
@@ -599,7 +599,7 @@ impl InlineFlow {
         };
 
         for i in line.range.eachi() {
-            let box_ = boxes.get(i);
+            let box_ = &boxes[i];
             let mut border_box = box_.border_box.borrow_mut();
             let size = border_box.size;
             *border_box = Rect(Point2D(offset_x, border_box.origin.y), size);
@@ -715,7 +715,7 @@ impl Flow for InlineFlow {
         // Now, go through each line and lay out the boxes inside.
         for line in self.lines.mut_iter() {
             // Lay out boxes horizontally.
-            InlineFlow::set_horizontal_box_positions(&self.boxes, line, text_align);
+            InlineFlow::set_horizontal_box_positions(self.boxes.as_slice(), line, text_align);
 
             // Set the top y position of the current linebox.
             // `line_height_offset` is updated at the end of the previous loop.

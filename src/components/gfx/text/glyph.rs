@@ -555,20 +555,20 @@ impl<'a> GlyphStore {
         self.entry_buffer[i] = entry;
     }
 
-    pub fn add_glyphs_for_char_index(&mut self, i: uint, data_for_glyphs: &Vec<GlyphData>) {
+    pub fn add_glyphs_for_char_index(&mut self, i: uint, data_for_glyphs: &[GlyphData]) {
         assert!(i < self.entry_buffer.len());
         assert!(data_for_glyphs.len() > 0);
 
         let glyph_count = data_for_glyphs.len();
 
-        let first_glyph_data = data_for_glyphs.get(0);
+        let first_glyph_data = data_for_glyphs[0];
         let entry = match first_glyph_data.is_missing {
             true  => GlyphEntry::missing(glyph_count),
             false => {
                 let glyphs_vec = slice::from_fn(glyph_count, |i| {
-                    DetailedGlyph::new(data_for_glyphs.get(i).index,
-                                       data_for_glyphs.get(i).advance,
-                                       data_for_glyphs.get(i).offset)
+                    DetailedGlyph::new(data_for_glyphs[i].index,
+                                       data_for_glyphs[i].advance,
+                                       data_for_glyphs[i].offset)
                 });
 
                 self.detail_store.add_detailed_glyphs_for_entry(i, glyphs_vec);
