@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate time;
+
 use dom::bindings::codegen::EventBinding;
 use dom::bindings::codegen::EventBinding::EventConstants;
 use dom::bindings::js::JS;
@@ -54,6 +56,7 @@ pub struct Event {
     pub trusted: bool,
     pub dispatching: bool,
     pub initialized: bool,
+    pub timestamp: u64,
 }
 
 impl Event {
@@ -73,6 +76,7 @@ impl Event {
             stop_propagation: false,
             stop_immediate: false,
             initialized: false,
+            timestamp: time::get_time().sec as u64,
         }
     }
 
@@ -126,7 +130,7 @@ impl Event {
     }
 
     pub fn TimeStamp(&self) -> u64 {
-        0
+        return self.timestamp;
     }
 
     pub fn InitEvent(&mut self,
