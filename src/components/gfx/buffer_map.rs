@@ -54,7 +54,7 @@ impl BufferKey {
 /// A helper struct to keep track of buffers in the HashMap
 struct BufferValue<T> {
     /// An array of buffers, all the same size
-    buffers: Vec<T>, 
+    buffers: Vec<T>,
     /// The counter when this size was last requested
     last_action: uint,
 }

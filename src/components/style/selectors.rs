@@ -197,18 +197,18 @@ fn compute_specificity(mut selector: &CompoundSelector,
     };
     if pseudo_element.is_some() { specificity.element_selectors += 1 }
 
-    simple_selectors_specificity(&selector.simple_selectors, &mut specificity);
+    simple_selectors_specificity(selector.simple_selectors.as_slice(), &mut specificity);
     loop {
         match selector.next {
             None => break,
             Some((ref next_selector, _)) => {
                 selector = &**next_selector;
-                simple_selectors_specificity(&selector.simple_selectors, &mut specificity)
+                simple_selectors_specificity(selector.simple_selectors.as_slice(), &mut specificity)
             }
         }
     }
 
-    fn simple_selectors_specificity(simple_selectors: &Vec<SimpleSelector>,
+    fn simple_selectors_specificity(simple_selectors: &[SimpleSelector],
                                     specificity: &mut Specificity) {
         for simple_selector in simple_selectors.iter() {
             match simple_selector {
@@ -226,7 +226,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
                 => specificity.class_like_selectors += 1,
                 &NamespaceSelector(..) => (),
                 &Negation(ref negated)
-                => simple_selectors_specificity(negated, specificity),
+                => simple_selectors_specificity(negated.as_slice(), specificity),
             }
         }
     }
@@ -680,7 +680,7 @@ mod tests {
         // Default namespace does apply to type selectors
         assert!(parse_ns("e", &namespaces) == Some(vec!(Selector{
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!( 
+                simple_selectors: vec!(
                     NamespaceSelector(namespace::MathML),
                     LocalNameSelector("e".to_owned()),
                 ),

@@ -256,7 +256,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                     }
                 }
                 UnusedBufferMsg(unused_buffers) => {
-                    for buffer in unused_buffers.move_iter() {
+                    for buffer in unused_buffers.move_iter().rev() {
                         self.buffer_map.insert(native_graphics_context!(self), buffer);
                     }
                 }
