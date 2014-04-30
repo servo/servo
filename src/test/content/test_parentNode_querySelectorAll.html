@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="harness.js"></script>
+        <script>
+            let foo = document.getElementById("foo");
+            let bar = document.getElementById("bar");
+            let baz = document.getElementById("baz");
+
+            { // document.querySelector
+                let nodelist = document.querySelectorAll(".test");
+                is_a(nodelist, NodeList);
+                is(nodelist.length, 3);
+                is(nodelist.item(0), foo);
+                is(nodelist.item(1), bar);
+                is(nodelist.item(2), baz);
+
+                nodelist = document.querySelectorAll("div > .test");
+                is(nodelist.length, 3);
+            }
+
+            { // element.querySelector
+                let div = document.getElementById("parent");
+                let nodelist = div.querySelectorAll(".test");
+                is(nodelist.length, 3);
+
+                nodelist = div.querySelectorAll("div:nth-of-type(1)");
+                is(nodelist.item(0), div);
+            }
+
+            { // docfrag.querySelector
+                let docfrag = document.createDocumentFragment();
+
+                let div = document.createElement("div");
+                div.id = "foo";
+                div.className = "myClass";
+
+                let child = document.createElement("div");
+                div.appendChild(child);
+                docfrag.appendChild(div);
+
+                let nodelist = docfrag.querySelectorAll("#foo");
+                is(nodelist.item(0), div);
+
+                nodelist = docfrag.querySelectorAll("#foo:nth-child(1)");
+                is(nodelist.item(0), div);
+            }
+
+            finish();
+        </script>
+    </head>
+    <body>
+        <div id="parent">
+            <div id="foo" class="test"></div>
+            <div id="bar" class="test"></div>
+            <div id="baz" class="test"></div>
+        </div>
+    </body>
+</html>
