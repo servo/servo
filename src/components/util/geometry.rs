@@ -12,37 +12,14 @@ use std::fmt;
 // An Au is an "App Unit" and represents 1/60th of a CSS pixel.  It was
 // originally proposed in 2002 as a standard unit of measure in Gecko.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
+#[deriving(Clone, Eq, Ord, Zero)]
 pub struct Au(pub i32);
-
-// We don't use #[deriving] here for inlining.
-impl Clone for Au {
-    #[inline]
-    fn clone(&self) -> Au {
-        let Au(i) = *self;
-        Au(i)
-    }
-}
 
 impl fmt::Show for Au {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let Au(n) = *self;
         write!(f.buf, "Au({})", n)
     }}
-
-impl Eq for Au {
-    #[inline]
-    fn eq(&self, other: &Au) -> bool {
-        let Au(s) = *self;
-        let Au(o) = *other;
-        s == o
-    }
-    #[inline]
-    fn ne(&self, other: &Au) -> bool {
-        let Au(s) = *self;
-        let Au(o) = *other;
-        s != o
-    }
-}
 
 impl Add<Au,Au> for Au {
     #[inline]
@@ -98,46 +75,9 @@ impl Neg<Au> for Au {
     }
 }
 
-impl Ord for Au {
-    #[inline]
-    fn lt(&self, other: &Au) -> bool {
-        let Au(s) = *self;
-        let Au(o) = *other;
-        s < o
-    }
-    #[inline]
-    fn le(&self, other: &Au) -> bool {
-        let Au(s) = *self;
-        let Au(o) = *other;
-        s <= o
-    }
-    #[inline]
-    fn ge(&self, other: &Au) -> bool {
-        let Au(s) = *self;
-        let Au(o) = *other;
-        s >= o
-    }
-    #[inline]
-    fn gt(&self, other: &Au) -> bool {
-        let Au(s) = *self;
-        let Au(o) = *other;
-        s > o
-    }
-}
-
 impl One for Au {
     #[inline]
     fn one() -> Au { Au(1) }
-}
-
-impl Zero for Au {
-    #[inline]
-    fn zero() -> Au { Au(0) }
-    #[inline]
-    fn is_zero(&self) -> bool {
-        let Au(s) = *self;
-        s == 0
-    }
 }
 
 impl Num for Au {}
