@@ -29,7 +29,6 @@ interface ParentNode {
   */
   [Throws]
   Element? querySelector(DOMString selectors);
-  /*
-  [NewObject] NodeList querySelectorAll(DOMString selectors);
-  */
+  [Throws]
+  NodeList querySelectorAll(DOMString selectors);
 };

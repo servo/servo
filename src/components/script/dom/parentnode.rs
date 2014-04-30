@@ -7,6 +7,7 @@ use dom::bindings::js::JS;
 use dom::bindings::error::{Fallible, TypeError};
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeBase, NodeCast};
 use dom::node::{Node, NodeHelpers};
+use dom::nodelist::NodeList;
 use dom::element::Element;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
@@ -50,6 +51,35 @@ pub trait ParentNode : NodeBase {
             }
         }
         Ok(None)
+    }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    fn QuerySelectorAll(&self, abstract_self: &JS<Self>, selectors: DOMString) -> Fallible<JS<NodeList>> {
+        // Step 1.
+        let namespace = NamespaceMap::new();
+        let root: JS<Node> = NodeCast::from(abstract_self);
+        let mut nodes: ~[JS<Node>] = ~[];
+        let maybe_selectors = parse_selector_list(tokenize(selectors).map(|(token, _)| token).collect(), &namespace);
+        match maybe_selectors {
+            // Step 2.
+            None => return Err(TypeError),
+            // Step 3.
+            Some(ref selectors) => {
+                for selector in selectors.iter() {
+                    assert!(selector.pseudo_element.is_none());
+                    for node in root.traverse_preorder().filter(|node| node.is_element()) {
+                        let elem: JS<Element> = ElementCast::to(&node).unwrap();
+                        let mut shareable: bool = false;
+                        if matches_compound_selector(&*(selector.compound_selectors), &node, &mut shareable) {
+                            nodes.push(node.clone());
+                        }
+                    }
+                }
+            }
+        }
+        let doc = root.get().owner_doc();
+        let doc = doc.get();
+        Ok(NodeList::new_simple_list(&doc.window, nodes))
     }
 }
 
