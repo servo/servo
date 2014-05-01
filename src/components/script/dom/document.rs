@@ -6,7 +6,7 @@ use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLEleme
 use dom::bindings::codegen::InheritTypes::{DocumentBase, NodeCast, DocumentCast};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, TextCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast};
-use dom::bindings::codegen::DocumentBinding;
+use dom::bindings::codegen::BindingDeclarations::DocumentBinding;
 use dom::bindings::js::JS;
 use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};

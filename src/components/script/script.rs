@@ -44,7 +44,6 @@ pub mod dom {
         pub mod proxyhandler;
         pub mod trace;
         pub mod codegen {
-            pub use self::BindingDeclarations::*;
             pub mod InterfaceTypes;
             pub mod InheritTypes;
             pub mod PrototypeList;

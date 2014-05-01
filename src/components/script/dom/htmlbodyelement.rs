@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::HTMLBodyElementBinding;
+use dom::bindings::codegen::BindingDeclarations::HTMLBodyElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBodyElementDerived;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::js::JS;

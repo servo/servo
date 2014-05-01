@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
-use dom::bindings::codegen::DocumentFragmentBinding;
+use dom::bindings::codegen::BindingDeclarations::DocumentFragmentBinding;
 use dom::bindings::js::JS;
 use dom::bindings::error::Fallible;
 use dom::document::Document;

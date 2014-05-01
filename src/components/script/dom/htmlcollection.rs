@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
-use dom::bindings::codegen::HTMLCollectionBinding;
+use dom::bindings::codegen::BindingDeclarations::HTMLCollectionBinding;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
