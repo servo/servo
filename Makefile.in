@@ -287,7 +287,6 @@ include $(S)mk/clean.mk
 
 .DEFAULT_GOAL := all
 .PHONY:	all
-all: servo
 
 # Servo helper libraries
 
@@ -338,16 +337,22 @@ $(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) \
 # Servo binaries
 
 ifneq ($(CFG_OSTYPE),linux-androideabi)
+all: servo servo-embedding
 servo:	$(DEPS_servo)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_servo) -o $@ $<
-
-libservo.dummy: $(DEPS_servo)
-	@$(call E, compile: $@)
+	$(Q)$(RUSTC) $(RFLAGS_servo) -o servo $< --crate-type bin
 	$(Q)$(RUSTC) $(RFLAGS_servo) $< --crate-type dylib,rlib
-	touch libservo.dummy
 
+RFLAGS_embedding = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script -L $(B)src/components/style -L $(B)src/components/msg -L $(B).. -L $(B)src/components/main -L $(B)src/components/macros -A non_camel_case_types -A unused_variable
+SRC_embedding = $(call rwildcard,$(S)src/components/embedding/,*.rs)
+CRATE_embedding = $(S)src/components/embedding/embedding.rs
+
+servo-embedding: servo $(SRC_embedding) $(CRATE_embedding)
+	@$(call E, compile: $@)
+	$(Q)$(RUSTC) $(RFLAGS_embedding) $(CRATE_embedding)
+	touch servo-embedding
 else
+all: servo
 servo:  $(DEPS_servo)
 	@$(call E, compile: $@)
 	$(Q)$(RUSTC) $(RFLAGS_servo) $< -o libservo.so --crate-type dylib
