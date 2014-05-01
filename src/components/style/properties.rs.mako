@@ -4,7 +4,7 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
-#[allow(non_camel_case_types, uppercase_variables)];
+#![allow(non_camel_case_types, uppercase_variables)]
 
 pub use std::ascii::StrAsciiExt;
 
