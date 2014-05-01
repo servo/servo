@@ -14,10 +14,12 @@ use alert::{Alert, AlertMethods};
 use libc::{c_int, c_uchar};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
-use geom::point::Point2D;
-use geom::size::Size2D;
+use geom::point::{Point2D, TypedPoint2D};
+use geom::scale_factor::ScaleFactor;
+use geom::size::TypedSize2D;
 use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
 use servo_msg::compositor_msg::{FinishedLoading, Blank, ReadyState};
+use servo_util::geometry::{ScreenPx, DevicePixel};
 
 use glut::glut::{ACTIVE_SHIFT, DOUBLE, WindowHeight};
 use glut::glut::WindowWidth;
@@ -118,11 +120,15 @@ impl WindowMethods<Application> for Window {
                     match button {
                         3 => {
                             let tmp = local_window();
-                            tmp.event_queue.borrow_mut().push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32)));
+                            tmp.event_queue.borrow_mut().push(ScrollWindowEvent(
+                                    TypedPoint2D(0.0, 5.0 as f32),
+                                    TypedPoint2D(0.0 as i32, 5.0 as i32)));
                         },
                         4 => {
                             let tmp = local_window();
-                            tmp.event_queue.borrow_mut().push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32)));
+                            tmp.event_queue.borrow_mut().push(ScrollWindowEvent(
+                                    TypedPoint2D(0.0, -5.0 as f32),
+                                    TypedPoint2D(0.0 as i32, -5.0 as i32)));
                         },
                         _ => {}
                     }
@@ -139,8 +145,8 @@ impl WindowMethods<Application> for Window {
     }
 
     /// Returns the size of the window.
-    fn size(&self) -> Size2D<f32> {
-        Size2D(glut::get(WindowWidth) as f32, glut::get(WindowHeight) as f32)
+    fn size(&self) -> TypedSize2D<DevicePixel, f32> {
+        TypedSize2D(glut::get(WindowWidth) as f32, glut::get(WindowHeight) as f32)
     }
 
     /// Presents the window to the screen (perhaps by page flipping).
@@ -179,9 +185,9 @@ impl WindowMethods<Application> for Window {
         //self.update_window_title()
     }
 
-    fn hidpi_factor(&self) -> f32 {
+    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         //FIXME: Do nothing in GLUT now.
-    1f32
+        ScaleFactor(1.0)
     }
 }
 
@@ -218,8 +224,10 @@ impl Window {
             42 => self.load_url(),
             43 => self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1)),
             45 => self.event_queue.borrow_mut().push(ZoomWindowEvent(0.909090909)),
-            56 => self.event_queue.borrow_mut().push(ScrollWindowEvent(Point2D(0.0, 5.0 as f32), Point2D(0.0 as i32, 5.0 as i32))),
-            50 => self.event_queue.borrow_mut().push(ScrollWindowEvent(Point2D(0.0, -5.0 as f32), Point2D(0.0 as i32, -5.0 as i32))),
+            56 => self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0, 5.0 as f32),
+                                                                       TypedPoint2D(0.0 as i32, 5.0 as i32))),
+            50 => self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0, -5.0 as f32),
+                                                                       TypedPoint2D(0.0 as i32, -5.0 as i32))),
             127 => {
                 if (modifiers & ACTIVE_SHIFT) != 0 {
                     self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));
@@ -240,7 +248,7 @@ impl Window {
             glut::MOUSE_DOWN => {
                 self.mouse_down_point.set(Point2D(x, y));
                 self.mouse_down_button.set(button);
-                MouseWindowMouseDownEvent(button as uint, Point2D(x as f32, y as f32))
+                MouseWindowMouseDownEvent(button as uint, TypedPoint2D(x as f32, y as f32))
             }
             glut::MOUSE_UP => {
                 if self.mouse_down_button.get() == button {
@@ -249,11 +257,11 @@ impl Window {
                                        pixel_dist.y * pixel_dist.y) as f32).sqrt();
                     if pixel_dist < max_pixel_dist {
                         let click_event = MouseWindowClickEvent(button as uint,
-                                                           Point2D(x as f32, y as f32));
+                                                           TypedPoint2D(x as f32, y as f32));
                         self.event_queue.borrow_mut().push(MouseWindowEventClass(click_event));
                     }
                 }
-                MouseWindowMouseUpEvent(button as uint, Point2D(x as f32, y as f32))
+                MouseWindowMouseUpEvent(button as uint, TypedPoint2D(x as f32, y as f32))
             }
             _ => fail!("I cannot recognize the type of mouse action that occured. :-(")
         };

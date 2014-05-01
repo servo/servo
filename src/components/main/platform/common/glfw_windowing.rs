@@ -19,10 +19,12 @@ use std::cell::{Cell, RefCell};
 use std::comm::Receiver;
 use std::rc::Rc;
 
-use geom::point::Point2D;
-use geom::size::Size2D;
+use geom::point::{Point2D, TypedPoint2D};
+use geom::scale_factor::ScaleFactor;
+use geom::size::TypedSize2D;
 use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
 use servo_msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
+use servo_util::geometry::{ScreenPx, DevicePixel};
 
 use glfw;
 use glfw::Context;
@@ -144,9 +146,9 @@ impl WindowMethods<Application> for Window {
     }
 
     /// Returns the size of the window.
-    fn size(&self) -> Size2D<f32> {
+    fn size(&self) -> TypedSize2D<DevicePixel, f32> {
         let (width, height) = self.glfw_window.get_framebuffer_size();
-        Size2D(width as f32, height as f32)
+        TypedSize2D(width as f32, height as f32)
     }
 
     /// Presents the window to the screen (perhaps by page flipping).
@@ -193,10 +195,10 @@ impl WindowMethods<Application> for Window {
         self.update_window_title()
     }
 
-    fn hidpi_factor(&self) -> f32 {
+    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         let (backing_size, _) = self.glfw_window.get_framebuffer_size();
         let (window_size, _) = self.glfw_window.get_size();
-        (backing_size as f32) / (window_size as f32)
+        ScaleFactor((backing_size as f32) / (window_size as f32))
     }
 }
 
@@ -227,7 +229,8 @@ impl Window {
                 }
             },
             glfw::CursorPosEvent(xpos, ypos) => {
-                self.event_queue.borrow_mut().push(MouseWindowMoveEventClass(Point2D(xpos as f32, ypos as f32)));
+                self.event_queue.borrow_mut().push(
+                    MouseWindowMoveEventClass(TypedPoint2D(xpos as f32, ypos as f32)));
             },
             glfw::ScrollEvent(xpos, ypos) => {
                 let dx = (xpos as f32) * 30.0;
@@ -241,7 +244,8 @@ impl Window {
                 let x = x as f32 * hidpi;
                 let y = y as f32 * hidpi;
 
-                self.event_queue.borrow_mut().push(ScrollWindowEvent(Point2D(dx, dy), Point2D(x as i32, y as i32)));
+                self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(dx, dy),
+                                                                     TypedPoint2D(x as i32, y as i32)));
             },
             _ => {}
         }
@@ -307,7 +311,7 @@ impl Window {
             glfw::Press => {
                 self.mouse_down_point.set(Point2D(x, y));
                 self.mouse_down_button.set(Some(button));
-                MouseWindowMouseDownEvent(button as uint, Point2D(x as f32, y as f32))
+                MouseWindowMouseDownEvent(button as uint, TypedPoint2D(x as f32, y as f32))
             }
             glfw::Release => {
                 match self.mouse_down_button.get() {
@@ -318,13 +322,13 @@ impl Window {
                                            pixel_dist.y * pixel_dist.y) as f64).sqrt();
                         if pixel_dist < max_pixel_dist {
                             let click_event = MouseWindowClickEvent(button as uint,
-                                                                    Point2D(x as f32, y as f32));
+                                                                    TypedPoint2D(x as f32, y as f32));
                             self.event_queue.borrow_mut().push(MouseWindowEventClass(click_event));
                         }
                     }
                     Some(_) => (),
                 }
-                MouseWindowMouseUpEvent(button as uint, Point2D(x as f32, y as f32))
+                MouseWindowMouseUpEvent(button as uint, TypedPoint2D(x as f32, y as f32))
             }
             _ => fail!("I cannot recognize the type of mouse action that occured. :-(")
         };

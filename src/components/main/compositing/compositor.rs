@@ -16,9 +16,10 @@ use windowing::{WindowEvent, WindowMethods, WindowNavigateMsg, ZoomWindowEvent};
 use azure::azure_hl::{SourceSurfaceMethods, Color};
 use azure::azure_hl;
 use geom::matrix::identity;
-use geom::point::Point2D;
+use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::Rect;
-use geom::size::Size2D;
+use geom::size::{Size2D, TypedSize2D};
+use geom::scale_factor::ScaleFactor;
 use layers::layers::{ContainerLayer, ContainerLayerKind};
 use layers::platform::surface::NativeCompositingGraphicsContext;
 use layers::rendergl;
@@ -31,6 +32,7 @@ use servo_msg::compositor_msg::{LayerId, ReadyState, RenderState, ScrollPolicy, 
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
 use servo_msg::constellation_msg::{PipelineId, ResizedWindowMsg};
 use servo_msg::constellation_msg;
+use servo_util::geometry::{DevicePixel, PagePx, ScreenPx};
 use servo_util::opts::Opts;
 use servo_util::time::{profile, ProfilerChan};
 use servo_util::{time, url};
@@ -60,7 +62,10 @@ pub struct IOCompositor {
     scene: Scene,
 
     /// The application window size.
-    window_size: Size2D<uint>,
+    window_size: TypedSize2D<DevicePixel, uint>,
+
+    /// The device pixel ratio for this window.
+    hidpi_factor: ScaleFactor<ScreenPx, DevicePixel, f32>,
 
     /// The platform-specific graphics context.
     graphics_context: NativeCompositingGraphicsContext,
@@ -78,7 +83,7 @@ pub struct IOCompositor {
     recomposite: bool,
 
     /// Keeps track of the current zoom factor.
-    world_zoom: f32,
+    world_zoom: ScaleFactor<PagePx, ScreenPx, f32>,
 
     /// Tracks whether the zoom action has happend recently.
     zoom_action: bool,
@@ -124,16 +129,7 @@ impl IOCompositor {
         // list. This is only here because we don't have that logic in the renderer yet.
         let root_layer = Rc::new(ContainerLayer());
         let window_size = window.size();
-
-        let hidpi_factor = match opts.device_pixels_per_px {
-            Some(dppx) => dppx,
-            None => match opts.output_file {
-                Some(_) => 1.0,
-                None => window.hidpi_factor(),
-            }
-        };
-
-        root_layer.common.borrow_mut().set_transform(identity().scale(hidpi_factor, hidpi_factor, 1f32));
+        let hidpi_factor = window.hidpi_factor();
 
         IOCompositor {
             window: window,
@@ -142,14 +138,15 @@ impl IOCompositor {
             context: rendergl::init_render_context(),
             root_layer: root_layer.clone(),
             root_pipeline: None,
-            scene: Scene(ContainerLayerKind(root_layer), window_size, identity()),
-            window_size: Size2D(window_size.width as uint, window_size.height as uint),
+            scene: Scene(ContainerLayerKind(root_layer), window_size.to_untyped(), identity()),
+            window_size: window_size.as_uint(),
+            hidpi_factor: hidpi_factor,
             graphics_context: CompositorTask::create_graphics_context(),
             composite_ready: false,
             shutting_down: false,
             done: false,
             recomposite: false,
-            world_zoom: hidpi_factor,
+            world_zoom: ScaleFactor(1.0),
             zoom_action: false,
             zoom_time: 0f64,
             ready_state: Blank,
@@ -171,6 +168,7 @@ impl IOCompositor {
                                                port,
                                                constellation_chan,
                                                profiler_chan);
+        compositor.update_zoom_transform();
 
         // Starts the compositor, which listens for messages on the specified port.
         compositor.run();
@@ -180,7 +178,7 @@ impl IOCompositor {
         // Tell the constellation about the initial window size.
         {
             let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ResizedWindowMsg(self.window_size));
+            chan.send(ResizedWindowMsg(self.window_size.to_untyped()));
         }
 
         // Enter the main event loop.
@@ -341,12 +339,10 @@ impl IOCompositor {
         self.root_pipeline = Some(frame_tree.pipeline.clone());
 
         // Initialize the new constellation channel by sending it the root window size.
-        let window_size = self.window.size();
-        let window_size = Size2D(window_size.width as uint,
-                                 window_size.height as uint);
+        let window_size = self.window.size().as_uint();
         {
             let ConstellationChan(ref chan) = new_constellation_chan;
-            chan.send(ResizedWindowMsg(window_size));
+            chan.send(ResizedWindowMsg(window_size.to_untyped()));
         }
 
         self.constellation_chan = new_constellation_chan;
@@ -424,17 +420,19 @@ impl IOCompositor {
         self.ask_for_tiles();
     }
 
+    /// The size of the content area in CSS px at the current zoom level
+    fn page_window(&self) -> TypedSize2D<PagePx, f32> {
+        self.window_size.as_f32() / self.device_pixels_per_page_px()
+    }
+
     fn set_layer_page_size(&mut self,
                            pipeline_id: PipelineId,
                            layer_id: LayerId,
                            new_size: Size2D<f32>,
                            epoch: Epoch) {
+        let page_window = self.page_window();
         let (ask, move): (bool, bool) = match self.compositor_layer {
             Some(ref mut layer) => {
-                let window_size = &self.window_size;
-                let world_zoom = self.world_zoom;
-                let page_window = Size2D(window_size.width as f32 / world_zoom,
-                                         window_size.height as f32 / world_zoom);
                 layer.resize(pipeline_id, layer_id, new_size, page_window, epoch);
                 let move = self.fragment_point.take().map_or(false, |point| {
                     layer.move(pipeline_id, layer_id, point, page_window)
@@ -503,13 +501,9 @@ impl IOCompositor {
                                 pipeline_id: PipelineId,
                                 layer_id: LayerId,
                                 point: Point2D<f32>) {
-        let world_zoom = self.world_zoom;
-        let page_window = Size2D(self.window_size.width as f32 / world_zoom,
-                                 self.window_size.height as f32 / world_zoom);
-
+        let page_window = self.page_window();
         let (ask, move): (bool, bool) = match self.compositor_layer {
             Some(ref mut layer) if layer.pipeline.id == pipeline_id && !layer.hidden => {
-
                 (true, layer.move(pipeline_id, layer_id, point, page_window))
             }
             Some(_) | None => {
@@ -581,14 +575,20 @@ impl IOCompositor {
     }
 
     fn on_resize_window_event(&mut self, width: uint, height: uint) {
-        let new_size = Size2D(width, height);
+        let new_size: TypedSize2D<DevicePixel, uint> = TypedSize2D(width, height);
         if self.window_size != new_size {
             debug!("osmain: window resized to {:u}x{:u}", width, height);
             self.window_size = new_size;
             let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ResizedWindowMsg(new_size))
+            chan.send(ResizedWindowMsg(new_size.to_untyped()))
         } else {
             debug!("osmain: dropping window resize since size is still {:u}x{:u}", width, height);
+        }
+        // A size change could also mean a resolution change.
+        let new_hidpi_factor = self.window.hidpi_factor();
+        if self.hidpi_factor != new_hidpi_factor {
+            self.hidpi_factor = new_hidpi_factor;
+            self.update_zoom_transform();
         }
     }
 
@@ -606,31 +606,32 @@ impl IOCompositor {
     }
 
     fn on_mouse_window_event_class(&self, mouse_window_event: MouseWindowEvent) {
-        let world_zoom = self.world_zoom;
+        let scale = self.device_pixels_per_page_px();
         let point = match mouse_window_event {
-            MouseWindowClickEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
-            MouseWindowMouseDownEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
-            MouseWindowMouseUpEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
+            MouseWindowClickEvent(_, p) => p / scale,
+            MouseWindowMouseDownEvent(_, p) => p / scale,
+            MouseWindowMouseUpEvent(_, p) => p / scale,
         };
         for layer in self.compositor_layer.iter() {
             layer.send_mouse_event(mouse_window_event, point);
         }
     }
 
-    fn on_mouse_window_move_event_class(&self, cursor: Point2D<f32>) {
+    fn on_mouse_window_move_event_class(&self, cursor: TypedPoint2D<DevicePixel, f32>) {
+        let scale = self.device_pixels_per_page_px();
         for layer in self.compositor_layer.iter() {
-            layer.send_mouse_move_event(cursor);
+            layer.send_mouse_move_event(cursor / scale);
         }
     }
 
-    fn on_scroll_window_event(&mut self, delta: Point2D<f32>, cursor: Point2D<i32>) {
-        let world_zoom = self.world_zoom;
+    fn on_scroll_window_event(&mut self,
+                              delta: TypedPoint2D<DevicePixel, f32>,
+                              cursor: TypedPoint2D<DevicePixel, i32>) {
+        let scale = self.device_pixels_per_page_px();
         // TODO: modify delta to snap scroll to pixels.
-        let page_delta = Point2D(delta.x as f32 / world_zoom, delta.y as f32 / world_zoom);
-        let page_cursor: Point2D<f32> = Point2D(cursor.x as f32 / world_zoom,
-                                                cursor.y as f32 / world_zoom);
-        let page_window = Size2D(self.window_size.width as f32 / world_zoom,
-                                 self.window_size.height as f32 / world_zoom);
+        let page_delta = delta / scale;
+        let page_cursor = cursor.as_f32() / scale;
+        let page_window = self.page_window();
         let mut scroll = false;
         for layer in self.compositor_layer.mut_iter() {
             scroll = layer.handle_scroll_event(page_delta, page_cursor, page_window) || scroll;
@@ -639,27 +640,45 @@ impl IOCompositor {
         self.ask_for_tiles();
     }
 
+    fn device_pixels_per_screen_px(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+        match self.opts.device_pixels_per_px {
+            Some(device_pixels_per_px) => device_pixels_per_px,
+            None => match self.opts.output_file {
+                Some(_) => ScaleFactor(1.0),
+                None => self.hidpi_factor
+            }
+        }
+    }
+
+    fn device_pixels_per_page_px(&self) -> ScaleFactor<PagePx, DevicePixel, f32> {
+        self.world_zoom * self.device_pixels_per_screen_px()
+    }
+
+    fn update_zoom_transform(&mut self) {
+        let scale = self.device_pixels_per_page_px();
+        self.root_layer.common.borrow_mut().set_transform(identity().scale(scale.get(), scale.get(), 1f32));
+    }
+
     fn on_zoom_window_event(&mut self, magnification: f32) {
         self.zoom_action = true;
         self.zoom_time = precise_time_s();
         let old_world_zoom = self.world_zoom;
-        let window_size = &self.window_size;
+        let window_size = self.window_size.as_f32();
 
         // Determine zoom amount
-        self.world_zoom = (self.world_zoom * magnification).max(1.0);
+        self.world_zoom = ScaleFactor((self.world_zoom.get() * magnification).max(1.0));
         let world_zoom = self.world_zoom;
 
-        {
-            self.root_layer.common.borrow_mut().set_transform(identity().scale(world_zoom, world_zoom, 1f32));
-        }
+        self.update_zoom_transform();
 
         // Scroll as needed
-        let page_delta = Point2D(window_size.width as f32 * (1.0 / world_zoom - 1.0 / old_world_zoom) * 0.5,
-                                 window_size.height as f32 * (1.0 / world_zoom - 1.0 / old_world_zoom) * 0.5);
+        let page_delta = TypedPoint2D(
+            window_size.width.get() * (world_zoom.inv() - old_world_zoom.inv()).get() * 0.5,
+            window_size.height.get() * (world_zoom.inv() - old_world_zoom.inv()).get() * 0.5);
         // TODO: modify delta to snap scroll to pixels.
-        let page_cursor = Point2D(-1f32, -1f32); // Make sure this hits the base layer
-        let page_window = Size2D(window_size.width as f32 / world_zoom,
-                                 window_size.height as f32 / world_zoom);
+        let page_cursor = TypedPoint2D(-1f32, -1f32); // Make sure this hits the base layer
+        let page_window = self.page_window();
+
         for layer in self.compositor_layer.mut_iter() {
             layer.handle_scroll_event(page_delta, page_cursor, page_window);
         }
@@ -678,15 +697,14 @@ impl IOCompositor {
 
     /// Get BufferRequests from each layer.
     fn ask_for_tiles(&mut self) {
-        let world_zoom = self.world_zoom;
-        let window_size_page = Size2D(self.window_size.width as f32 / world_zoom,
-                                      self.window_size.height as f32 / world_zoom);
+        let scale = self.device_pixels_per_page_px();
+        let page_window = self.page_window();
         for layer in self.compositor_layer.mut_iter() {
             if !layer.hidden {
-                let rect = Rect(Point2D(0f32, 0f32), window_size_page);
+                let rect = Rect(Point2D(0f32, 0f32), page_window.to_untyped());
                 let recomposite = layer.get_buffer_request(&self.graphics_context,
                                                            rect,
-                                                           world_zoom) ||
+                                                           scale.get()) ||
                                   self.recomposite;
                 self.recomposite = recomposite;
             } else {
@@ -699,7 +717,7 @@ impl IOCompositor {
         profile(time::CompositingCategory, self.profiler_chan.clone(), || {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
-            self.scene.size = self.window.size();
+            self.scene.size = self.window.size().to_untyped();
             // Render the scene.
             match self.compositor_layer {
                 Some(ref mut layer) => {
@@ -717,7 +735,7 @@ impl IOCompositor {
         // self.window.present()) as OpenGL ES 2 does not have glReadBuffer().
         if self.load_complete && self.ready_state == FinishedLoading
             && self.opts.output_file.is_some() {
-            let (width, height) = (self.window_size.width as uint, self.window_size.height as uint);
+            let (width, height) = (self.window_size.width.get(), self.window_size.height.get());
             let path = from_str::<Path>(self.opts.output_file.get_ref().as_slice()).unwrap();
             let mut pixels = gl2::read_pixels(0, 0,
                                               width as gl2::GLsizei,
