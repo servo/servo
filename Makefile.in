@@ -351,7 +351,7 @@ CRATE_embedding = $(S)src/components/embedding/embedding.rs
 
 servo-embedding: servo $(SRC_embedding) $(CRATE_embedding)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_embedding) $(CRATE_embedding)
+	$(Q)$(RUSTC) $(RFLAGS_embedding) $(CRATE_embedding) --crate-type dylib,rlib
 	touch servo-embedding
 else
 all: servo
