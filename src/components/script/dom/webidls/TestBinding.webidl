@@ -66,6 +66,7 @@ interface TestBinding {
            attribute float floatAttribute;
            attribute double doubleAttribute;
            attribute DOMString stringAttribute;
+           attribute ByteString byteStringAttribute;
            attribute TestEnum enumAttribute;
            attribute Blob interfaceAttribute;
   //         attribute (HTMLElement or long) unionAttribute;
@@ -83,6 +84,7 @@ interface TestBinding {
            attribute float? floatAttributeNullable;
            attribute double? doubleAttributeNullable;
            attribute DOMString? stringAttributeNullable;
+           attribute ByteString? byteStringAttributeNullable;
   readonly attribute TestEnum? enumAttributeNullable;
            attribute Blob? interfaceAttributeNullable;
   //         attribute (HTMLElement or long)? unionAttributeNullable;
@@ -99,6 +101,7 @@ interface TestBinding {
   void passFloat(float arg);
   void passDouble(double arg);
   void passString(DOMString arg);
+  void passByteString(ByteString arg);
   void passEnum(TestEnum arg);
   void passInterface(Blob arg);
   void passUnion((HTMLElement or long) arg);
@@ -116,6 +119,7 @@ interface TestBinding {
   void passNullableFloat(float? arg);
   void passNullableDouble(double? arg);
   void passNullableString(DOMString? arg);
+  void passNullableByteString(ByteString? arg);
   // void passNullableEnum(TestEnum? arg);
   void passNullableInterface(Blob? arg);
   void passNullableUnion((HTMLElement or long)? arg);
@@ -132,6 +136,7 @@ interface TestBinding {
   void passOptionalFloat(optional float arg);
   void passOptionalDouble(optional double arg);
   void passOptionalString(optional DOMString arg);
+  void passOptionalByteString(optional ByteString arg);
   void passOptionalEnum(optional TestEnum arg);
   void passOptionalInterface(optional Blob arg);
   void passOptionalUnion(optional (HTMLElement or long) arg);
@@ -149,6 +154,7 @@ interface TestBinding {
   void passOptionalNullableFloat(optional float? arg);
   void passOptionalNullableDouble(optional double? arg);
   void passOptionalNullableString(optional DOMString? arg);
+  void passOptionalNullableByteString(optional ByteString? arg);
   // void passOptionalNullableEnum(optional TestEnum? arg);
   void passOptionalNullableInterface(optional Blob? arg);
   void passOptionalNullableUnion(optional (HTMLElement or long)? arg);
@@ -176,6 +182,7 @@ interface TestBinding {
   void passOptionalNullableLongLongWithDefault(optional long long? arg = null);
   void passOptionalNullableUnsignedLongLongWithDefault(optional unsigned long long? arg = null);
   void passOptionalNullableStringWithDefault(optional DOMString? arg = null);
+  void passOptionalNullableByteStringWithDefault(optional ByteString? arg = null);
   // void passOptionalNullableEnumWithDefault(optional TestEnum? arg = null);
   void passOptionalNullableInterfaceWithDefault(optional Blob? arg = null);
   void passOptionalNullableUnionWithDefault(optional (HTMLElement or long)? arg = null);

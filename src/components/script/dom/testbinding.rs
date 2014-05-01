@@ -7,6 +7,7 @@ use dom::bindings::codegen::TestBindingBinding;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use self::TestBindingBinding::TestEnum;
 use self::TestBindingBinding::TestEnumValues::_empty;
+use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::blob::Blob;
 use dom::window::Window;
@@ -46,6 +47,8 @@ impl TestBinding {
     pub fn SetDoubleAttribute(&self, _: f64) {}
     pub fn StringAttribute(&self) -> DOMString { ~"" }
     pub fn SetStringAttribute(&self, _: DOMString) {}
+    pub fn ByteStringAttribute(&self) -> ByteString { ByteString::new(vec!()) }
+    pub fn SetByteStringAttribute(&self, _: ByteString) {}
     pub fn EnumAttribute(&self) -> TestEnum { _empty }
     pub fn SetEnumAttribute(&self, _: TestEnum) {}
     pub fn InterfaceAttribute(&self) -> JS<Blob> { Blob::new(&self.window) }
@@ -75,6 +78,8 @@ impl TestBinding {
     pub fn SetFloatAttributeNullable(&self, _: Option<f32>) {}
     pub fn GetDoubleAttributeNullable(&self) -> Option<f64> { Some(0.) }
     pub fn SetDoubleAttributeNullable(&self, _: Option<f64>) {}
+    pub fn GetByteStringAttributeNullable(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
+    pub fn SetByteStringAttributeNullable(&self, _: Option<ByteString>) {}
     pub fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some(~"") }
     pub fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
     pub fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
@@ -93,6 +98,7 @@ impl TestBinding {
     pub fn PassFloat(&self, _: f32) {}
     pub fn PassDouble(&self, _: f64) {}
     pub fn PassString(&self, _: DOMString) {}
+    pub fn PassByteString(&self, _: ByteString) {}
     pub fn PassEnum(&self, _: TestEnum) {}
     pub fn PassInterface(&self, _: &JS<Blob>) {}
     pub fn PassUnion(&self, _: HTMLElementOrLong) {}
@@ -110,6 +116,7 @@ impl TestBinding {
     pub fn PassNullableFloat(&self, _: Option<f32>) {}
     pub fn PassNullableDouble(&self, _: Option<f64>) {}
     pub fn PassNullableString(&self, _: Option<DOMString>) {}
+    pub fn PassNullableByteString(&self, _: Option<ByteString>) {}
     // pub fn PassNullableEnum(&self, _: Option<TestEnum>) {}
     pub fn PassNullableInterface(&self, _: Option<JS<Blob>>) {}
     pub fn PassNullableUnion(&self, _: Option<HTMLElementOrLong>) {}
@@ -127,6 +134,7 @@ impl TestBinding {
     pub fn PassOptionalFloat(&self, _: Option<f32>) {}
     pub fn PassOptionalDouble(&self, _: Option<f64>) {}
     pub fn PassOptionalString(&self, _: Option<DOMString>) {}
+    pub fn PassOptionalByteString(&self, _: Option<ByteString>) {}
     pub fn PassOptionalEnum(&self, _: Option<TestEnum>) {}
     pub fn PassOptionalInterface(&self, _: Option<JS<Blob>>) {}
     pub fn PassOptionalUnion(&self, _: Option<HTMLElementOrLong>) {}
@@ -144,6 +152,7 @@ impl TestBinding {
     pub fn PassOptionalNullableFloat(&self, _: Option<Option<f32>>) {}
     pub fn PassOptionalNullableDouble(&self, _: Option<Option<f64>>) {}
     pub fn PassOptionalNullableString(&self, _: Option<Option<DOMString>>) {}
+    pub fn PassOptionalNullableByteString(&self, _: Option<Option<ByteString>>) {}
     // pub fn PassOptionalNullableEnum(&self, _: Option<Option<TestEnum>>) {}
     pub fn PassOptionalNullableInterface(&self, _: Option<Option<JS<Blob>>>) {}
     pub fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>) {}
@@ -172,6 +181,7 @@ impl TestBinding {
     pub fn PassOptionalNullableFloatWithDefault(&self, _: Option<f32>) {}
     pub fn PassOptionalNullableDoubleWithDefault(&self, _: Option<f64>) {}
     pub fn PassOptionalNullableStringWithDefault(&self, _: Option<DOMString>) {}
+    pub fn PassOptionalNullableByteStringWithDefault(&self, _: Option<ByteString>) {}
     // pub fn PassOptionalNullableEnumWithDefault(&self, _: Option<TestEnum>) {}
     pub fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<JS<Blob>>) {}
     pub fn PassOptionalNullableUnionWithDefault(&self, _: Option<HTMLElementOrLong>) {}
