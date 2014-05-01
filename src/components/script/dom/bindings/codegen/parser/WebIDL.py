@@ -384,7 +384,7 @@ class IDLObjectWithIdentifier(IDLObject):
             identifier = attr.identifier()
             value = attr.value()
             if identifier == "TreatNullAs":
-                if not self.type.isString() or self.type.nullable():
+                if not self.type.isDOMString() or self.type.nullable():
                     raise WebIDLError("[TreatNullAs] is only allowed on "
                                       "arguments or attributes whose type is "
                                       "DOMString",
@@ -398,7 +398,7 @@ class IDLObjectWithIdentifier(IDLObject):
                                       [self.location])
                 self.treatNullAs = value
             elif identifier == "TreatUndefinedAs":
-                if not self.type.isString():
+                if not self.type.isDOMString():
                     raise WebIDLError("[TreatUndefinedAs] is only allowed on "
                                       "arguments or attributes whose type is "
                                       "DOMString or DOMString?",
@@ -3321,8 +3321,8 @@ class Parser(Tokenizer):
             if len(arguments) != 0:
                 raise WebIDLError("stringifier has wrong number of arguments",
                                   [self.getLocation(p, 2)])
-            if not returnType.isString():
-                raise WebIDLError("stringifier must have string return type",
+            if not returnType.isDOMString():
+                raise WebIDLError("stringifier must have DOMString return type",
                                   [self.getLocation(p, 2)])
 
         inOptionalArguments = False
