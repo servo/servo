@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::js::JS;
+use dom::bindings::str::ByteString;
 use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::jsstring_to_str;
 use dom::bindings::utils::unwrap_jsmanaged;
@@ -12,7 +13,8 @@ use js::jsapi::{JSBool, JSContext};
 use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
 use js::jsapi::{JS_ValueToECMAUint32, JS_ValueToECMAInt32};
 use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
-use js::jsapi::{JS_NewUCStringCopyN, JS_ValueToString};
+use js::jsapi::{JS_ValueToString, JS_GetStringCharsAndLength};
+use js::jsapi::{JS_NewUCStringCopyN, JS_NewStringCopyN};
 use js::jsapi::{JS_WrapValue};
 use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
@@ -20,6 +22,7 @@ use js::jsval::{StringValue, ObjectValue};
 use js::glue::RUST_JS_NumberValue;
 use libc;
 use std::default::Default;
+use std::slice;
 
 use dom::bindings::codegen::PrototypeList;
 
@@ -249,6 +252,43 @@ impl FromJSValConvertible<StringificationBehavior> for DOMString {
             } else {
                 Ok(jsstring_to_str(cx, jsstr))
             }
+        }
+    }
+}
+
+impl ToJSValConvertible for ByteString {
+    fn to_jsval(&self, cx: *JSContext) -> JSVal {
+        unsafe {
+            let slice = self.as_slice();
+            let jsstr = JS_NewStringCopyN(cx, slice.as_ptr() as *libc::c_char,
+                                          slice.len() as libc::size_t);
+            if jsstr.is_null() {
+                fail!("JS_NewStringCopyN failed");
+            }
+            StringValue(&*jsstr)
+        }
+    }
+}
+
+impl FromJSValConvertible<()> for ByteString {
+    fn from_jsval(cx: *JSContext, value: JSVal, _option: ()) -> Result<ByteString, ()> {
+        unsafe {
+            let string = JS_ValueToString(cx, value);
+            if string.is_null() {
+                debug!("JS_ValueToString failed");
+                return Err(());
+            }
+
+            let mut length = 0;
+            let chars = JS_GetStringCharsAndLength(cx, string, &mut length as *mut _ as *_);
+            slice::raw::buf_as_slice(chars, length as uint, |char_vec| {
+                if char_vec.iter().any(|&c| c > 0xFF) {
+                    // XXX Throw
+                    Err(())
+                } else {
+                    Ok(ByteString::new(char_vec.iter().map(|&c| c as u8).collect()))
+                }
+            })
         }
     }
 }

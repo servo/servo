@@ -42,6 +42,7 @@ pub mod dom {
         pub mod error;
         pub mod conversions;
         pub mod proxyhandler;
+        pub mod str;
         pub mod trace;
         pub mod codegen {
             pub use self::BindingDeclarations::*;

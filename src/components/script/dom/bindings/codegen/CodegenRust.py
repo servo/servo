@@ -640,7 +640,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if type.isSpiderMonkeyInterface():
         raise TypeError("Can't handle SpiderMonkey interface arguments yet")
 
-    if type.isString():
+    if type.isDOMString():
         assert not isEnforceRange and not isClamp
 
         treatAs = {
@@ -686,6 +686,24 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             declType = "Option<%s>" % declType
 
         return handleOptional(getConversionCode(), CGGeneric(declType), isOptional)
+
+    if type.isByteString():
+        assert not isEnforceRange and not isClamp
+
+        conversionCode = (
+            "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
+            "  Ok(strval) => strval,\n"
+            "  Err(_) => { %s },\n"
+            "}" % exceptionCode)
+
+        declType = CGGeneric("ByteString")
+        if type.nullable():
+            declType = CGWrapper(declType, pre="Option<", post=">")
+            conversionCode = handleDefaultNull(conversionCode, "None")
+        else:
+            assert defaultValue is None
+
+        return handleOptional(conversionCode, declType, isOptional)
 
     if type.isEnum():
         assert not isEnforceRange and not isClamp
@@ -991,8 +1009,13 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
-    if returnType.isString():
+    if returnType.isDOMString():
         result = CGGeneric("DOMString")
+        if returnType.nullable():
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
+    if returnType.isByteString():
+        result = CGGeneric("ByteString")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -4283,11 +4306,12 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult}',
             'dom::bindings::error::{throw_method_failed_with_details}',
             'dom::bindings::error::throw_type_error',
-            'script_task::JSPageInfo',
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{_obj_toString, defineProperty}',
             'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
             'dom::bindings::proxyhandler::{getPropertyDescriptor}',
+            'dom::bindings::str::ByteString',
+            'script_task::JSPageInfo',
             'libc',
             'servo_util::str::DOMString',
             'servo_util::vec::zip_copies',
