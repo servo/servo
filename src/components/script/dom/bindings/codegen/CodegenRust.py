@@ -640,7 +640,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     if type.isSpiderMonkeyInterface():
         raise TypeError("Can't handle SpiderMonkey interface arguments yet")
 
-    if type.isString():
+    if type.isDOMString():
         assert not isEnforceRange and not isClamp
 
         treatAs = {
@@ -991,7 +991,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
-    if returnType.isString():
+    if returnType.isDOMString():
         result = CGGeneric("DOMString")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
