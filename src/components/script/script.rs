@@ -53,9 +53,8 @@ pub mod dom {
         }
     }
 
-    pub mod types {
-        pub use super::bindings::codegen::InterfaceTypes::*;
-    }
+    #[path="bindings/codegen/InterfaceTypes.rs"]
+    pub mod types;
 
     pub mod attr;
     pub mod attrlist;
