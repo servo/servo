@@ -287,7 +287,6 @@ include $(S)mk/clean.mk
 
 .DEFAULT_GOAL := all
 .PHONY:	all
-all: servo servo-embedding
 
 # Servo helper libraries
 
@@ -338,6 +337,7 @@ $(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) \
 # Servo binaries
 
 ifneq ($(CFG_OSTYPE),linux-androideabi)
+all: servo servo-embedding
 servo:	$(DEPS_servo)
 	@$(call E, compile: $@)
 	$(Q)$(RUSTC) $(RFLAGS_servo) -o servo $< --crate-type bin
@@ -352,6 +352,7 @@ servo-embedding: servo $(SRC_embedding) $(CRATE_embedding)
 	$(Q)$(RUSTC) $(RFLAGS_embedding) $(CRATE_embedding)
 	touch servo-embedding
 else
+all: servo
 servo:  $(DEPS_servo)
 	@$(call E, compile: $@)
 	$(Q)$(RUSTC) $(RFLAGS_servo) $< -o libservo.so --crate-type dylib
