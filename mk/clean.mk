@@ -29,6 +29,10 @@ clean-util:
 	@$(call E, "cleaning util")
 	$(Q)cd $(B)/src/components/util/ && rm -rf libutil*.dylib libutil*.rlib libutil*.dSYM libutil*.so $(DONE_util)
 
+clean-embedding:
+	@$(call E, "cleaning embedding")
+	$(Q)cd $(B)/src/components/embedding/ && rm -rf libembedding*.dylib libembedding*.dSYM libembedding*.so $(DONE_embedding)
+
 clean-msg:
 	@$(call E, "cleaning msg")
 	$(Q)cd $(B)/src/components/msg/ && rm -rf libmsg*.dylib libmsg*.rlib libmsg*.dSYM libmsg*.so $(DONE_msg)
@@ -53,7 +57,7 @@ clean-wpt:
 	$(Q)rm -r _virtualenv
 	$(Q)rm $(S)/src/test/wpt/metadata/MANIFEST.json
 
-clean-servo: clean-gfx clean-util clean-net clean-script clean-msg clean-style
+clean-servo: clean-gfx clean-util clean-embedding clean-net clean-script clean-msg clean-style
 	@$(call E, "cleaning servo")
 	$(Q)rm -f servo servo-test $(foreach lib_crate,$(SERVO_LIB_CRATES),servo-test-$(lib_crate)) libservo*.so libservo*.a
 	$(Q)cd $(BINDINGS_SRC) && rm -f *.pkl *.rs
