@@ -1,0 +1,28 @@
+<html>
+<head>
+  <title></title>
+  <script src="harness.js"></script>
+</head>
+<body>
+<script>
+  is_not(window.performance, undefined);
+  is_a(window.performance, Performance);
+
+  is_not(window.performance.timing, undefined);
+  is_a(window.performance.timing, PerformanceTiming);
+
+  gt(window.performance.timing.navigationStart, 0);
+
+  var last = window.performance.now();
+  gt(last, 0);
+
+  // Check that window.performance.now() is monotonically increasing
+  for (var i = 0; i < 100; i++) {
+    var next = window.performance.now();
+    gt(next, last);
+    last = next;
+  }
+  finish();
+</script>
+</body>
+</html>
