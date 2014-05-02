@@ -228,6 +228,16 @@ pub struct SolidColorDisplayItem {
     pub color: Color,
 }
 
+/// Text decoration information.
+pub struct TextDecorations {
+    /// The color to use for underlining, if any.
+    pub underline: Option<Color>,
+    /// The color to use for overlining, if any.
+    pub overline: Option<Color>,
+    /// The color to use for line-through, if any.
+    pub line_through: Option<Color>,
+}
+
 /// Renders text.
 pub struct TextDisplayItem {
     /// Fields common to all display items.
@@ -242,30 +252,9 @@ pub struct TextDisplayItem {
     /// The color of the text.
     pub text_color: Color,
 
-    /// A bitfield of flags for text display items.
-    pub flags: TextDisplayItemFlags,
-
-    /// The color of text-decorations
-    pub underline_color: Color,
-    pub overline_color: Color,
-    pub line_through_color: Color,
+    /// Text decorations in effect.
+    pub text_decorations: TextDecorations,
 }
-
-/// Flags for text display items.
-pub struct TextDisplayItemFlags(pub u8);
-
-impl TextDisplayItemFlags {
-    pub fn new() -> TextDisplayItemFlags {
-        TextDisplayItemFlags(0)
-    }
-}
-
-// Whether underlining is forced on.
-bitfield!(TextDisplayItemFlags, override_underline, set_override_underline, 0x01)
-// Whether overlining is forced on.
-bitfield!(TextDisplayItemFlags, override_overline, set_override_overline, 0x02)
-// Whether line-through is forced on.
-bitfield!(TextDisplayItemFlags, override_line_through, set_override_line_through, 0x04)
 
 /// Renders an image.
 pub struct ImageDisplayItem {
@@ -369,22 +358,24 @@ impl DisplayItem {
                 let strikeout_size = font_metrics.strikeout_size;
                 let strikeout_offset = font_metrics.strikeout_offset;
 
-                if text_run.decoration.underline || text.flags.override_underline() {
+                for underline_color in text.text_decorations.underline.iter() {
                     let underline_y = baseline_origin.y - underline_offset;
                     let underline_bounds = Rect(Point2D(baseline_origin.x, underline_y),
                                                 Size2D(width, underline_size));
-                    render_context.draw_solid_color(&underline_bounds, text.underline_color);
+                    render_context.draw_solid_color(&underline_bounds, *underline_color);
                 }
-                if text_run.decoration.overline || text.flags.override_overline() {
+
+                for overline_color in text.text_decorations.overline.iter() {
                     let overline_bounds = Rect(Point2D(baseline_origin.x, origin.y),
                                                Size2D(width, underline_size));
-                    render_context.draw_solid_color(&overline_bounds, text.overline_color);
+                    render_context.draw_solid_color(&overline_bounds, *overline_color);
                 }
-                if text_run.decoration.line_through || text.flags.override_line_through() {
+
+                for line_through_color in text.text_decorations.line_through.iter() {
                     let strikeout_y = baseline_origin.y - strikeout_offset;
                     let strikeout_bounds = Rect(Point2D(baseline_origin.x, strikeout_y),
                                                 Size2D(width, strikeout_size));
-                    render_context.draw_solid_color(&strikeout_bounds, text.line_through_color);
+                    render_context.draw_solid_color(&strikeout_bounds, *line_through_color);
                 }
             }
 

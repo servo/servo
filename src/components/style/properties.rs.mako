@@ -38,7 +38,10 @@ class Longhand(object):
         self.name = name
         self.ident = to_rust_ident(name)
         self.style_struct = THIS_STYLE_STRUCT
-        self.derived_from = None if derived_from is None else to_rust_ident(derived_from)
+        if derived_from is None:
+            self.derived_from = None
+        else:
+            self.derived_from = [ to_rust_ident(name) for name in derived_from ]
 
 class Shorthand(object):
     def __init__(self, name, sub_properties):
@@ -87,11 +90,17 @@ pub mod longhands {
 
     <%def name="raw_longhand(name, no_super=False, derived_from=None)">
     <%
+        if derived_from is not None:
+            derived_from = derived_from.split()
+
         property = Longhand(name, derived_from=derived_from)
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
         LONGHANDS_BY_NAME[name] = property
-        DERIVED_LONGHANDS.setdefault(derived_from, []).append(property)
+
+        if derived_from is not None:
+            for name in derived_from:
+                DERIVED_LONGHANDS.setdefault(name, []).append(property)
     %>
         pub mod ${property.ident} {
             % if not no_super:
@@ -419,8 +428,9 @@ pub mod longhands {
         }
 
         #[inline]
-        pub fn derive(value: line_height::computed_value::T, context: &computed::Context)
-                      -> Au {
+        pub fn derive_from_line_height(value: line_height::computed_value::T,
+                                       context: &computed::Context)
+                                       -> Au {
             if context.display != display::computed_value::inline {
                 match value {
                     line_height::Normal => context.font_size.scale_by(DEFAULT_LINE_HEIGHT),
@@ -935,6 +945,82 @@ pub mod longhands {
     </%self:longhand>
 
     ${switch_to_style_struct("InheritedText")}
+
+    <%self:longhand name="-servo-text-decorations-in-effect"
+                    derived_from="display text-decoration">
+        use super::RGBA;
+        use super::super::longhands::display;
+
+        pub use to_computed_value = super::computed_as_specified;
+
+        #[deriving(Clone, Eq)]
+        pub struct SpecifiedValue {
+            pub underline: Option<RGBA>,
+            pub overline: Option<RGBA>,
+            pub line_through: Option<RGBA>,
+        }
+
+        pub mod computed_value {
+            pub type T = super::SpecifiedValue;
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            SpecifiedValue {
+                underline: None,
+                overline: None,
+                line_through: None,
+            }
+        }
+
+        fn maybe(flag: bool, context: &computed::Context) -> Option<RGBA> {
+            if flag {
+                Some(context.color)
+            } else {
+                None
+            }
+        }
+
+        fn derive(context: &computed::Context) -> computed_value::T {
+            // Start with no declarations if this is a block; otherwise, start with the
+            // declarations in effect and add in the text decorations that this inline specifies.
+            let mut result = match context.display {
+                display::computed_value::inline => context.inherited_text_decorations_in_effect,
+                _ => {
+                    SpecifiedValue {
+                        underline: None,
+                        overline: None,
+                        line_through: None,
+                    }
+                }
+            };
+
+            if result.underline.is_none() {
+                result.underline = maybe(context.text_decoration.underline, context)
+            }
+            if result.overline.is_none() {
+                result.overline = maybe(context.text_decoration.overline, context)
+            }
+            if result.line_through.is_none() {
+                result.line_through = maybe(context.text_decoration.line_through, context)
+            }
+
+            result
+        }
+
+        #[inline]
+        pub fn derive_from_text_decoration(_: text_decoration::computed_value::T,
+                                           context: &computed::Context)
+                                           -> computed_value::T {
+            derive(context)
+        }
+
+        #[inline]
+        pub fn derive_from_display(_: display::computed_value::T, context: &computed::Context)
+                                   -> computed_value::T {
+            derive(context)
+        }
+    </%self:longhand>
 
     ${single_keyword("white-space", "normal pre")}
 
@@ -1486,9 +1572,11 @@ fn cascade_with_cached_declarations(applicable_declarations: &[MatchedProperty],
                                     % if property.name in DERIVED_LONGHANDS:
                                         % for derived in DERIVED_LONGHANDS[property.name]:
                                             style_${derived.style_struct.name}.get_mut()
-                                                .${derived.ident} =
-                                                longhands::${derived.ident}::derive(computed_value,
-                                                                                    context);
+                                                                              .${derived.ident} =
+                                                longhands::${derived.ident}
+                                                         ::derive_from_${property.ident}(
+                                                             computed_value,
+                                                             context);
                                         % endfor
                                     % endif
                                 }
@@ -1552,10 +1640,13 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
             inherited_minimum_line_height: inherited_style.InheritedBox
                                                           .get()
                                                           ._servo_minimum_line_height,
+            inherited_text_decorations_in_effect:
+                inherited_style.InheritedText.get()._servo_text_decorations_in_effect,
             // To be overridden by applicable declarations:
             font_size: inherited_font_style.font_size,
             display: longhands::display::get_initial_value(),
             color: inherited_style.Color.get().color,
+            text_decoration: longhands::text_decoration::get_initial_value(),
             positioned: false,
             floated: false,
             border_top_present: false,
@@ -1602,6 +1693,9 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                 }
                 float_declaration(ref value) => {
                     context.floated = get_specified!(Box, float, value) != longhands::float::none;
+                }
+                text_decoration_declaration(ref value) => {
+                    context.text_decoration = get_specified!(Text, text_decoration, value);
                 }
                 % for side in ["top", "right", "bottom", "left"]:
                     border_${side}_style_declaration(ref value) => {
@@ -1673,9 +1767,11 @@ pub fn cascade(applicable_declarations: &[MatchedProperty],
                                 % if property.name in DERIVED_LONGHANDS:
                                     % for derived in DERIVED_LONGHANDS[property.name]:
                                         style_${derived.style_struct.name}.get_mut()
-                                            .${derived.ident} =
-                                            longhands::${derived.ident}::derive(computed_value,
-                                                                                &context);
+                                                                          .${derived.ident} =
+                                            longhands::${derived.ident}
+                                                     ::derive_from_${property.ident}(
+                                                         computed_value,
+                                                         &context);
                                     % endfor
                                 % endif
                             }

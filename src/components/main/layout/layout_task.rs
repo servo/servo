@@ -42,6 +42,7 @@ use script::layout_interface::{ReflowForDisplay, ReflowMsg};
 use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
 use servo_msg::compositor_msg::Scrollable;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
+use servo_net::image::holder::LocalImageCacheHandle;
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_util::geometry::Au;
@@ -87,8 +88,7 @@ pub struct LayoutTask {
     pub image_cache_task: ImageCacheTask,
 
     /// The local image cache.
-    // FIXME(rust#13125): Remove the *() for the real type.
-    pub local_image_cache: Arc<Mutex<*()>>,
+    pub local_image_cache: LocalImageCacheHandle,
 
     /// The size of the viewport.
     pub screen_size: Size2D<Au>,
@@ -160,7 +160,7 @@ impl PreorderFlowTraversal for FlowTreeVerificationTraversal {
     #[inline]
     fn process(&mut self, flow: &mut Flow) -> bool {
         let base = flow::base(flow);
-        if !base.flags_info.flags.is_leaf() && !base.flags_info.flags.is_nonleaf() {
+        if !base.flags.is_leaf() && !base.flags.is_nonleaf() {
             println("flow tree verification failed: flow wasn't a leaf or a nonleaf!");
             flow.dump();
             fail!("flow tree verification failed")
@@ -225,7 +225,7 @@ impl<'a> PostorderFlowTraversal for AssignHeightsAndStoreOverflowTraversal<'a> {
 
     #[inline]
     fn should_process(&mut self, flow: &mut Flow) -> bool {
-        !flow::base(flow).flags_info.flags.inorder()
+        !flow::base(flow).flags.inorder()
     }
 }
 
@@ -291,9 +291,11 @@ impl LayoutTask {
            profiler_chan: ProfilerChan)
            -> LayoutTask {
         let local_image_cache = ~LocalImageCache(image_cache_task.clone());
-        let local_image_cache = Arc::new(Mutex::new(unsafe {
-                    cast::transmute::<~LocalImageCache, *()>(local_image_cache)
-                }));
+        let local_image_cache = unsafe {
+            let cache = Arc::new(Mutex::new(cast::transmute::<~LocalImageCache,
+                                                              *()>(local_image_cache)));
+            LocalImageCacheHandle::new(cast::transmute::<Arc<Mutex<*()>>,Arc<*()>>(cache))
+        };
         let screen_size = Size2D(Au(0), Au(0));
         let parallel_traversal = if opts.layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", opts.layout_threads, ptr::mut_null()))
@@ -429,7 +431,7 @@ impl LayoutTask {
     }
 
     /// Retrieves the flow tree root from the root node.
-    fn get_layout_root(&self, node: LayoutNode) -> ~Flow {
+    fn get_layout_root(&self, node: LayoutNode) -> ~Flow:Share {
         let mut layout_data_ref = node.mutate_layout_data();
         let result = match &mut *layout_data_ref {
             &Some(ref mut layout_data) => {
@@ -495,7 +497,7 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints_parallel(&mut self,
-                                  layout_root: &mut ~Flow,
+                                  layout_root: &mut ~Flow:Share,
                                   layout_context: &mut LayoutContext) {
         if layout_context.opts.bubble_widths_separately {
             let mut traversal = BubbleWidthsTraversal {
@@ -521,13 +523,13 @@ impl LayoutTask {
     /// This is only on in debug builds.
     #[inline(never)]
     #[cfg(debug)]
-    fn verify_flow_tree(&mut self, layout_root: &mut ~Flow) {
+    fn verify_flow_tree(&mut self, layout_root: &mut ~Flow:Share) {
         let mut traversal = FlowTreeVerificationTraversal;
         layout_root.traverse_preorder(&mut traversal);
     }
 
     #[cfg(not(debug))]
-    fn verify_flow_tree(&mut self, _: &mut ~Flow) {
+    fn verify_flow_tree(&mut self, _: &mut ~Flow:Share) {
     }
 
     /// The high-level routine that performs layout tasks.
@@ -545,10 +547,7 @@ impl LayoutTask {
 
         {
             // Reset the image cache.
-            let val = self.local_image_cache.lock();
-            let local_image_cache = unsafe {
-                cast::transmute::<*(), &mut LocalImageCache>(*val)
-            };
+            let mut local_image_cache = self.local_image_cache.get().lock();
             local_image_cache.next_round(self.make_on_image_available_cb());
         }
 

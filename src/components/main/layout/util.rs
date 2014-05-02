@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use layout::box_::Box;
 use layout::construct::{ConstructionResult, NoConstructionResult};
 use layout::parallel::DomParallelInfo;
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
@@ -13,121 +12,10 @@ use script::dom::bindings::js::JS;
 use script::dom::bindings::utils::Reflectable;
 use script::dom::node::Node;
 use script::layout_interface::{LayoutChan, UntrustedNodeAddress, TrustedNodeAddress};
-use servo_util::range::Range;
 use std::cast;
 use std::cell::{Ref, RefMut};
-use std::iter::Enumerate;
-use std::slice::Items;
 use style::ComputedValues;
 use sync::Arc;
-
-/// A range of nodes.
-pub struct NodeRange {
-    pub node: OpaqueNode,
-    pub range: Range,
-}
-
-impl NodeRange {
-    pub fn new(node: OpaqueNode, range: &Range) -> NodeRange {
-        NodeRange {
-            node: node,
-            range: (*range).clone()
-        }
-    }
-}
-
-pub struct ElementMapping {
-    entries: ~[NodeRange],
-}
-
-impl ElementMapping {
-    pub fn new() -> ElementMapping {
-        ElementMapping {
-            entries: ~[],
-        }
-    }
-
-    pub fn add_mapping(&mut self, node: OpaqueNode, range: &Range) {
-        self.entries.push(NodeRange::new(node, range))
-    }
-
-    pub fn each(&self, callback: |nr: &NodeRange| -> bool) -> bool {
-        for nr in self.entries.iter() {
-            if !callback(nr) {
-                break
-            }
-        }
-        true
-    }
-
-    pub fn eachi<'a>(&'a self) -> Enumerate<Items<'a, NodeRange>> {
-        self.entries.iter().enumerate()
-    }
-
-    pub fn repair_for_box_changes(&mut self, old_boxes: &[Box], new_boxes: &[Box]) {
-        let entries = &mut self.entries;
-
-        debug!("--- Old boxes: ---");
-        for (i, box_) in old_boxes.iter().enumerate() {
-            debug!("{:u} --> {:s}", i, box_.debug_str());
-        }
-        debug!("------------------");
-
-        debug!("--- New boxes: ---");
-        for (i, box_) in new_boxes.iter().enumerate() {
-            debug!("{:u} --> {:s}", i, box_.debug_str());
-        }
-        debug!("------------------");
-
-        debug!("--- Elem ranges before repair: ---");
-        for (i, nr) in entries.iter().enumerate() {
-            debug!("{:u}: {} --> {:?}", i, nr.range, nr.node.id());
-        }
-        debug!("----------------------------------");
-
-        let mut old_i = 0;
-        let mut new_j = 0;
-
-        struct WorkItem {
-            begin_idx: uint,
-            entry_idx: uint,
-        };
-        let mut repair_stack : ~[WorkItem] = ~[];
-
-            // index into entries
-            let mut entries_k = 0;
-
-            while old_i < old_boxes.len() {
-                debug!("repair_for_box_changes: Considering old box {:u}", old_i);
-                // possibly push several items
-                while entries_k < entries.len() && old_i == entries[entries_k].range.begin() {
-                    let item = WorkItem {begin_idx: new_j, entry_idx: entries_k};
-                    debug!("repair_for_box_changes: Push work item for elem {:u}: {:?}", entries_k, item);
-                    repair_stack.push(item);
-                    entries_k += 1;
-                }
-                while new_j < new_boxes.len() && old_boxes[old_i].node != new_boxes[new_j].node {
-                    debug!("repair_for_box_changes: Slide through new box {:u}", new_j);
-                    new_j += 1;
-                }
-
-                old_i += 1;
-
-                // possibly pop several items
-                while repair_stack.len() > 0 && old_i == entries[repair_stack.last().get_ref().entry_idx].range.end() {
-                    let item = repair_stack.pop().unwrap();
-                    debug!("repair_for_box_changes: Set range for {:u} to {}",
-                           item.entry_idx, Range::new(item.begin_idx, new_j - item.begin_idx));
-                    entries[item.entry_idx].range = Range::new(item.begin_idx, new_j - item.begin_idx);
-                }
-            }
-        debug!("--- Elem ranges after repair: ---");
-        for (i, nr) in entries.iter().enumerate() {
-            debug!("{:u}: {} --> {:?}", i, nr.range, nr.node.id());
-        }
-        debug!("----------------------------------");
-    }
-}
 
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {

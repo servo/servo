@@ -6,14 +6,27 @@
 
 use layout::box_::{Box, ScannedTextBox, ScannedTextBoxInfo, UnscannedTextBox};
 use layout::flow::Flow;
+use layout::inline::InlineBoxes;
 
 use gfx::font_context::FontContext;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{CompressWhitespaceNewline, transform_text, CompressNone};
 use servo_util::range::Range;
+use servo_util::smallvec::{SmallVec, SmallVec0};
+use std::mem;
 use std::slice;
 use style::computed_values::white_space;
 use sync::Arc;
+
+struct NewLinePositions {
+    new_line_pos: ~[uint],
+}
+
+// A helper function.
+fn can_coalesce_text_nodes(boxes: &[Box], left_i: uint, right_i: uint) -> bool {
+    assert!(left_i != right_i);
+    boxes[left_i].can_merge_with_box(&boxes[right_i])
+}
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextBox`es.
 pub struct TextRunScanner {
@@ -33,36 +46,40 @@ impl TextRunScanner {
             debug!("TextRunScanner: scanning {:u} boxes for text runs...", inline.boxes.len());
         }
 
+        let InlineBoxes {
+            boxes: old_boxes,
+            map: mut map
+        } = mem::replace(&mut flow.as_inline().boxes, InlineBoxes::new());
+
         let mut last_whitespace = true;
-        let mut out_boxes = ~[];
-        for box_i in range(0, flow.as_immutable_inline().boxes.len()) {
+        let mut new_boxes = SmallVec0::new();
+        for box_i in range(0, old_boxes.len()) {
             debug!("TextRunScanner: considering box: {:u}", box_i);
-            if box_i > 0 && !can_coalesce_text_nodes(flow.as_immutable_inline().boxes,
-                                                     box_i - 1,
-                                                     box_i) {
+            if box_i > 0 && !can_coalesce_text_nodes(old_boxes.as_slice(), box_i - 1, box_i) {
                 last_whitespace = self.flush_clump_to_list(font_context,
-                                                           flow,
-                                                           last_whitespace,
-                                                           &mut out_boxes);
+                                                           old_boxes.as_slice(),
+                                                           &mut new_boxes,
+                                                           last_whitespace);
             }
+
             self.clump.extend_by(1);
         }
-        // handle remaining clumps
+
+        // Handle remaining clumps.
         if self.clump.length() > 0 {
-            self.flush_clump_to_list(font_context, flow, last_whitespace, &mut out_boxes);
+            drop(self.flush_clump_to_list(font_context,
+                                          old_boxes.as_slice(),
+                                          &mut new_boxes,
+                                          last_whitespace))
         }
 
         debug!("TextRunScanner: swapping out boxes.");
 
         // Swap out the old and new box list of the flow.
-        flow.as_inline().boxes = out_boxes;
-
-        // A helper function.
-        fn can_coalesce_text_nodes(boxes: &[Box], left_i: uint, right_i: uint) -> bool {
-            assert!(left_i < boxes.len());
-            assert!(right_i > 0 && right_i < boxes.len());
-            assert!(left_i != right_i);
-            boxes[left_i].can_merge_with_box(&boxes[right_i])
+        map.fixup(old_boxes.as_slice(), new_boxes.as_slice());
+        flow.as_inline().boxes = InlineBoxes {
+            boxes: new_boxes,
+            map: map,
         }
     }
 
@@ -73,17 +90,14 @@ impl TextRunScanner {
     /// for correct painting order. Since we compress several leaf boxes here, the mapping must be
     /// adjusted.
     ///
-    /// FIXME(pcwalton): Stop cloning boxes. Instead we will need to consume the `in_box`es as we
-    /// iterate over them.
+    /// FIXME(#2267, pcwalton): Stop cloning boxes. Instead we will need to replace each `in_box`
+    /// with some smaller stub.
     pub fn flush_clump_to_list(&mut self,
                                font_context: &mut FontContext,
-                               flow: &mut Flow,
-                               last_whitespace: bool,
-                               out_boxes: &mut ~[Box])
+                               in_boxes: &[Box],
+                               out_boxes: &mut SmallVec0<Box>,
+                               last_whitespace: bool)
                                -> bool {
-        let inline = flow.as_inline();
-        let in_boxes = &mut inline.boxes;
-
         assert!(self.clump.length() > 0);
 
         debug!("TextRunScanner: flushing boxes in range={}", self.clump);
@@ -122,7 +136,6 @@ impl TextRunScanner {
                 };
 
                 let mut new_line_pos = ~[];
-
                 let (transformed_text, whitespace) = transform_text(*text,
                                                                     compression,
                                                                     last_whitespace,
@@ -135,7 +148,8 @@ impl TextRunScanner {
                     // font group fonts. This is probably achieved by creating the font group above
                     // and then letting `FontGroup` decide which `Font` to stick into the text run.
                     let fontgroup = font_context.get_resolved_font_for_style(&font_style);
-                    let run = ~fontgroup.borrow().create_textrun(transformed_text.clone(), decoration);
+                    let run = ~fontgroup.borrow().create_textrun(transformed_text.clone(),
+                                                                 decoration);
 
                     debug!("TextRunScanner: pushing single text box in range: {} ({})",
                            self.clump,
@@ -147,14 +161,6 @@ impl TextRunScanner {
                                                     ScannedTextBox(new_text_box_info));
                     new_box.new_line_pos = new_line_pos;
                     out_boxes.push(new_box)
-
-                } else {
-                    if self.clump.begin() + 1 < in_boxes.len() {
-                        // if the this box has border,margin,padding of inline,
-                        // we should copy that stuff to next box.
-                        in_boxes[self.clump.begin() + 1]
-                            .merge_noncontent_inline_left(&in_boxes[self.clump.begin()]);
-                    }
                 }
             },
             (false, true) => {
@@ -171,10 +177,6 @@ impl TextRunScanner {
                     white_space::normal => CompressWhitespaceNewline,
                     white_space::pre => CompressNone,
                 };
-
-                struct NewLinePositions {
-                    new_line_pos: ~[uint],
-                }
 
                 let mut new_line_positions: ~[NewLinePositions] = ~[];
 
@@ -235,41 +237,18 @@ impl TextRunScanner {
                         debug!("Elided an `UnscannedTextbox` because it was zero-length after \
                                 compression; {:s}",
                                in_boxes[i].debug_str());
-                        // in this case, in_boxes[i] is elided
-                        // so, we should merge inline info with next index of in_boxes
-                        if i + 1 < in_boxes.len() {
-                            in_boxes[i + 1].merge_noncontent_inline_left(&in_boxes[i]);
-                        }
                         continue
                     }
 
                     let new_text_box_info = ScannedTextBoxInfo::new(run.get_ref().clone(), range);
                     let new_metrics = new_text_box_info.run.metrics_for_range(&range);
                     let mut new_box = in_boxes[i].transform(new_metrics.bounding_box.size,
-                                                        ScannedTextBox(new_text_box_info));
+                                                            ScannedTextBox(new_text_box_info));
                     new_box.new_line_pos = new_line_positions[logical_offset].new_line_pos.clone();
                     out_boxes.push(new_box)
                 }
             }
         } // End of match.
-
-        debug!("--- In boxes: ---");
-        for (i, box_) in in_boxes.iter().enumerate() {
-            debug!("{:u} --> {:s}", i, box_.debug_str());
-        }
-        debug!("------------------");
-
-        debug!("--- Out boxes: ---");
-        for (i, box_) in out_boxes.iter().enumerate() {
-            debug!("{:u} --> {:s}", i, box_.debug_str());
-        }
-        debug!("------------------");
-
-        debug!("--- Elem ranges: ---");
-        for (i, nr) in inline.elems.eachi() {
-            debug!("{:u}: {} --> {:?}", i, nr.range, nr.node.id()); ()
-        }
-        debug!("--------------------");
 
         let end = self.clump.end(); // FIXME: borrow checker workaround
         self.clump.reset(end, 0);

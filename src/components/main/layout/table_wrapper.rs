@@ -170,8 +170,8 @@ impl Flow for TableWrapperFlow {
         let width_computer = TableWrapper;
         width_computer.compute_used_width_table_wrapper(self, ctx, containing_block_width);
 
-        let left_content_edge = self.block_flow.box_.border_box.borrow().origin.x;
-        let content_width = self.block_flow.box_.border_box.borrow().size.width;
+        let left_content_edge = self.block_flow.box_.border_box.origin.x;
+        let content_width = self.block_flow.box_.border_box.size.width;
 
         match self.table_layout {
             FixedLayout | _ if self.is_float() =>
@@ -222,16 +222,17 @@ impl Flow for TableWrapperFlow {
 }
 
 struct TableWrapper;
+
 impl TableWrapper {
     fn compute_used_width_table_wrapper(&self,
                                         table_wrapper: &mut TableWrapperFlow,
                                         ctx: &mut LayoutContext,
                                         parent_flow_width: Au) {
         let input = self.compute_width_constraint_inputs_table_wrapper(table_wrapper,
-                                                                           parent_flow_width,
-                                                                           ctx);
+                                                                       parent_flow_width,
+                                                                       ctx);
 
-        let solution = self.solve_width_constraints(&mut table_wrapper.block_flow, input);
+        let solution = self.solve_width_constraints(&mut table_wrapper.block_flow, &input);
 
         self.set_width_constraint_solutions(&mut table_wrapper.block_flow, solution);
         self.set_flow_x_coord_if_necessary(&mut table_wrapper.block_flow, solution);
@@ -334,9 +335,7 @@ impl TableWrapper {
 
 impl WidthAndMarginsComputer for TableWrapper {
     /// Solve the width and margins constraints for this block flow.
-    fn solve_width_constraints(&self,
-                               block: &mut BlockFlow,
-                               input: WidthConstraintInput)
+    fn solve_width_constraints(&self, block: &mut BlockFlow, input: &WidthConstraintInput)
                                -> WidthConstraintSolution {
         self.solve_block_width_constraints(block, input)
     }

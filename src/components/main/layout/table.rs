@@ -241,7 +241,6 @@ impl Flow for TableFlow {
             let child_base = flow::mut_base(kid);
             num_floats = num_floats + child_base.num_floats;
         }
-        self.block_flow.box_.compute_borders(self.block_flow.box_.style());
         self.block_flow.base.num_floats = num_floats;
         self.block_flow.base.intrinsic_widths.minimum_width = min_width;
         self.block_flow.base.intrinsic_widths.preferred_width = geometry::max(min_width, pref_width);
@@ -268,10 +267,9 @@ impl Flow for TableFlow {
         let width_computer = InternalTable;
         width_computer.compute_used_width(&mut self.block_flow, ctx, containing_block_width);
 
-        let left_content_edge = self.block_flow.box_.padding.borrow().left + self.block_flow.box_.border.borrow().left;
-        let padding_and_borders = self.block_flow.box_.padding.borrow().left + self.block_flow.box_.padding.borrow().right +
-                                  self.block_flow.box_.border.borrow().left + self.block_flow.box_.border.borrow().right;
-        let content_width = self.block_flow.box_.border_box.borrow().size.width - padding_and_borders;
+        let left_content_edge = self.block_flow.box_.border_padding.left;
+        let padding_and_borders = self.block_flow.box_.border_padding.horizontal();
+        let content_width = self.block_flow.box_.border_box.size.width - padding_and_borders;
 
         match self.table_layout {
             FixedLayout => {
@@ -320,8 +318,8 @@ impl Flow for TableFlow {
 /// Table, TableRowGroup, TableRow, TableCell types.
 /// Their widths are calculated in the same way and do not have margins.
 pub struct InternalTable;
-impl WidthAndMarginsComputer for InternalTable {
 
+impl WidthAndMarginsComputer for InternalTable {
     /// Compute the used value of width, taking care of min-width and max-width.
     ///
     /// CSS Section 10.4: Minimum and Maximum widths
@@ -330,16 +328,12 @@ impl WidthAndMarginsComputer for InternalTable {
                           ctx: &mut LayoutContext,
                           parent_flow_width: Au) {
         let input = self.compute_width_constraint_inputs(block, parent_flow_width, ctx);
-
-        let solution = self.solve_width_constraints(block, input);
-
+        let solution = self.solve_width_constraints(block, &input);
         self.set_width_constraint_solutions(block, solution);
     }
 
     /// Solve the width and margins constraints for this block flow.
-    fn solve_width_constraints(&self,
-                               _: &mut BlockFlow,
-                               input: WidthConstraintInput)
+    fn solve_width_constraints(&self, _: &mut BlockFlow, input: &WidthConstraintInput)
                                -> WidthConstraintSolution {
         WidthConstraintSolution::new(input.available_width, Au::new(0), Au::new(0))
     }

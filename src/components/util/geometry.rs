@@ -5,6 +5,7 @@
 use geom::point::Point2D;
 use geom::rect::Rect;
 
+use std::default::Default;
 use std::num::{NumCast, One, Zero};
 use std::fmt;
 
@@ -13,6 +14,13 @@ use std::fmt;
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
 #[deriving(Clone, Eq, Ord, Zero)]
 pub struct Au(pub i32);
+
+impl Default for Au {
+    #[inline]
+    fn default() -> Au {
+        Au(0)
+    }
+}
 
 impl fmt::Show for Au {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
