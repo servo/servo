@@ -9,14 +9,11 @@ use layout::block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
 use layout::block::{WidthConstraintInput, WidthConstraintSolution};
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
-use layout::floats::{FloatKind};
+use layout::floats::FloatKind;
 use layout::flow::{TableFlowClass, FlowClass, Flow, ImmutableFlowUtils};
-use layout::flow;
 use layout::table_wrapper::{TableLayout, FixedLayout, AutoLayout};
 use layout::wrapper::ThreadSafeLayoutNode;
 
-use gfx::display_list::StackingContext;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use style::computed_values::table_layout;
@@ -132,16 +129,13 @@ impl TableFlow {
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_height_table_base(&mut self, layout_context: &mut LayoutContext, inorder: bool) {
-        self.block_flow.assign_height_block_base(layout_context, inorder, MarginsMayNotCollapse);
+    fn assign_height_table_base(&mut self, layout_context: &mut LayoutContext) {
+        self.block_flow.assign_height_block_base(layout_context, MarginsMayNotCollapse);
     }
 
-    pub fn build_display_list_table(&mut self,
-                                    stacking_context: &mut StackingContext,
-                                    builder: &mut DisplayListBuilder,
-                                    info: &DisplayListBuildingInfo) {
+    pub fn build_display_list_table(&mut self, layout_context: &LayoutContext) {
         debug!("build_display_list_table: same process as block flow");
-        self.block_flow.build_display_list_block(stacking_context, builder, info);
+        self.block_flow.build_display_list_block(layout_context);
     }
 }
 
@@ -178,7 +172,6 @@ impl Flow for TableFlow {
         let mut min_width = Au(0);
         let mut pref_width = Au(0);
         let mut did_first_row = false;
-        let mut num_floats = 0;
 
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_proper_table_child());
@@ -238,12 +231,10 @@ impl Flow for TableFlow {
                     }
                 }
             }
-            let child_base = flow::mut_base(kid);
-            num_floats = num_floats + child_base.num_floats;
         }
-        self.block_flow.base.num_floats = num_floats;
         self.block_flow.base.intrinsic_widths.minimum_width = min_width;
-        self.block_flow.base.intrinsic_widths.preferred_width = geometry::max(min_width, pref_width);
+        self.block_flow.base.intrinsic_widths.preferred_width =
+            geometry::max(min_width, pref_width);
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
@@ -295,18 +286,13 @@ impl Flow for TableFlow {
         self.block_flow.propagate_assigned_width_to_children(left_content_edge, content_width, Some(self.col_widths.clone()));
     }
 
-    /// This is called on kid flows by a parent.
-    ///
-    /// Hence, we can assume that assign_height has already been called on the
-    /// kid (because of the bottom-up traversal).
-    fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height_inorder: assigning height for table");
-        self.assign_height_table_base(ctx, true);
-    }
-
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height: assigning height for table");
-        self.assign_height_table_base(ctx, false);
+        self.assign_height_table_base(ctx);
+    }
+
+    fn compute_absolute_position(&mut self) {
+        self.block_flow.compute_absolute_position()
     }
 
     fn debug_str(&self) -> ~str {

@@ -9,14 +9,12 @@ use layout::block::BlockFlow;
 use layout::block::WidthAndMarginsComputer;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
 use layout::flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::flow;
 use layout::table::InternalTable;
 use layout::model::{MaybeAuto, Specified, Auto};
 use layout::wrapper::ThreadSafeLayoutNode;
 
-use gfx::display_list::StackingContext;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 
@@ -81,7 +79,7 @@ impl TableRowFlow {
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_height_table_row_base(&mut self, layout_context: &mut LayoutContext, inorder: bool) {
+    fn assign_height_table_row_base(&mut self, layout_context: &mut LayoutContext) {
         let (top_offset, _, _) = self.initialize_offsets();
 
         let /* mut */ cur_y = top_offset;
@@ -89,9 +87,7 @@ impl TableRowFlow {
         // Per CSS 2.1 § 17.5.3, find max_y = max( computed `height`, minimum height of all cells )
         let mut max_y = Au::new(0);
         for kid in self.block_flow.base.child_iter() {
-            if inorder {
-                kid.assign_height_inorder(layout_context)
-            }
+            kid.assign_height_for_inorder_child_if_necessary(layout_context);
 
             {
                 let child_box = kid.as_table_cell().box_();
@@ -136,12 +132,9 @@ impl TableRowFlow {
         }
     }
 
-    pub fn build_display_list_table_row(&mut self,
-                                        stacking_context: &mut StackingContext,
-                                        builder: &mut DisplayListBuilder,
-                                        info: &DisplayListBuildingInfo) {
+    pub fn build_display_list_table_row(&mut self, layout_context: &LayoutContext) {
         debug!("build_display_list_table_row: same process as block flow");
-        self.block_flow.build_display_list_block(stacking_context, builder, info)
+        self.block_flow.build_display_list_block(layout_context)
     }
 }
 
@@ -179,7 +172,6 @@ impl Flow for TableRowFlow {
     fn bubble_widths(&mut self, _: &mut LayoutContext) {
         let mut min_width = Au(0);
         let mut pref_width = Au(0);
-        let mut num_floats = 0;
         /* find the specified widths from child table-cell contexts */
         for kid in self.block_flow.base.child_iter() {
             assert!(kid.is_table_cell());
@@ -198,9 +190,7 @@ impl Flow for TableRowFlow {
             self.col_pref_widths.push(child_base.intrinsic_widths.preferred_width);
             min_width = min_width + child_base.intrinsic_widths.minimum_width;
             pref_width = pref_width + child_base.intrinsic_widths.preferred_width;
-            num_floats = num_floats + child_base.num_floats;
         }
-        self.block_flow.base.num_floats = num_floats;
         self.block_flow.base.intrinsic_widths.minimum_width = min_width;
         self.block_flow.base.intrinsic_widths.preferred_width = geometry::max(min_width,
                                                                               pref_width);
@@ -222,18 +212,13 @@ impl Flow for TableRowFlow {
         self.block_flow.propagate_assigned_width_to_children(left_content_edge, Au(0), Some(self.col_widths.clone()));
     }
 
-    /// This is called on kid flows by a parent.
-    ///
-    /// Hence, we can assume that assign_height has already been called on the
-    /// kid (because of the bottom-up traversal).
-    fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height_inorder: assigning height for table_row");
-        self.assign_height_table_row_base(ctx, true);
-    }
-
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height: assigning height for table_row");
-        self.assign_height_table_row_base(ctx, false);
+        self.assign_height_table_row_base(ctx);
+    }
+
+    fn compute_absolute_position(&mut self) {
+        self.block_flow.compute_absolute_position()
     }
 
     fn debug_str(&self) -> ~str {

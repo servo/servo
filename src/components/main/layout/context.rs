@@ -6,6 +6,7 @@
 
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
+use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::display_list::OpaqueNode;
 use gfx::font_context::{FontContext, FontContextInfo};
@@ -87,6 +88,9 @@ pub struct LayoutContext {
 
     /// The command line options.
     pub opts: Opts,
+
+    /// The dirty rectangle, used during display list building.
+    pub dirty: Rect<Au>,
 }
 
 #[cfg(not(target_os="android"))]

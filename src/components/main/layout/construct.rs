@@ -396,7 +396,9 @@ impl<'a> FlowConstructor<'a> {
             }
         }
 
-        let mut inline_flow = ~InlineFlow::from_boxes((*node).clone(), boxes) as ~Flow:Share;
+        let mut inline_flow = ~InlineFlow::from_boxes((*node).clone(), boxes);
+        inline_flow.compute_minimum_ascent_and_descent(self.font_context(), &**node.style());
+        let mut inline_flow = inline_flow as ~Flow:Share;
         TextRunScanner::new().scan_for_runs(self.font_context(), inline_flow);
         inline_flow.finish(self.layout_context);
 

@@ -8,14 +8,17 @@ use layout::box_::{Box, ScannedTextBox, ScannedTextBoxInfo, UnscannedTextBox};
 use layout::flow::Flow;
 use layout::inline::InlineBoxes;
 
+use gfx::font::{FontMetrics, FontStyle};
 use gfx::font_context::FontContext;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{CompressWhitespaceNewline, transform_text, CompressNone};
+use servo_util::geometry::Au;
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec0};
 use std::mem;
 use std::slice;
-use style::computed_values::white_space;
+use style::ComputedValues;
+use style::computed_values::{font_family, line_height, white_space};
 use sync::Arc;
 
 struct NewLinePositions {
@@ -256,3 +259,53 @@ impl TextRunScanner {
         new_whitespace
     } // End of `flush_clump_to_list`.
 }
+
+/// Returns the metrics of the font represented by the given `FontStyle`, respectively.
+///
+/// `#[inline]` because often the caller only needs a few fields from the font metrics.
+#[inline]
+pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: &FontStyle)
+                              -> FontMetrics {
+    let fontgroup = font_context.get_resolved_font_for_style(font_style);
+    fontgroup.borrow().fonts[0].borrow().metrics.clone()
+}
+
+/// Converts a computed style to a font style used for rendering.
+///
+/// FIXME(pcwalton): This should not be necessary; just make the font part of the style sharable
+/// with the display list somehow. (Perhaps we should use an ARC.)
+pub fn computed_style_to_font_style(style: &ComputedValues) -> FontStyle {
+    debug!("(font style) start");
+
+    // FIXME: Too much allocation here.
+    let mut font_families = style.Font.get().font_family.iter().map(|family| {
+        match *family {
+            font_family::FamilyName(ref name) => (*name).clone(),
+        }
+    });
+    debug!("(font style) font families: `{:?}`", font_families);
+
+    let font_size = style.Font.get().font_size.to_f64().unwrap() / 60.0;
+    debug!("(font style) font size: `{:f}px`", font_size);
+
+    FontStyle {
+        pt_size: font_size,
+        weight: style.Font.get().font_weight,
+        style: style.Font.get().font_style,
+        families: font_families.collect(),
+    }
+}
+
+/// Returns the line height needed by the given computed style and font size.
+///
+/// FIXME(pcwalton): I believe this should not take a separate `font-size` parameter.
+pub fn line_height_from_style(style: &ComputedValues, font_size: Au) -> Au {
+    let from_inline = match style.InheritedBox.get().line_height {
+        line_height::Normal => font_size.scale_by(1.14),
+        line_height::Number(l) => font_size.scale_by(l),
+        line_height::Length(l) => l
+    };
+    let minimum = style.InheritedBox.get()._servo_minimum_line_height;
+    Au::max(from_inline, minimum)
+}
+

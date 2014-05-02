@@ -9,13 +9,11 @@ use layout::block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
 use layout::block::{WidthConstraintInput, WidthConstraintSolution};
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
 use layout::floats::FloatKind;
 use layout::flow::{TableWrapperFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use layout::model::{Specified, Auto, specified};
 use layout::wrapper::ThreadSafeLayoutNode;
 
-use gfx::display_list::StackingContext;
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use style::computed_values::table_layout;
@@ -104,18 +102,13 @@ impl TableWrapperFlow {
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_height_table_wrapper_base(&mut self,
-                                        layout_context: &mut LayoutContext,
-                                        inorder: bool) {
-        self.block_flow.assign_height_block_base(layout_context, inorder, MarginsMayNotCollapse);
+    fn assign_height_table_wrapper_base(&mut self, layout_context: &mut LayoutContext) {
+        self.block_flow.assign_height_block_base(layout_context, MarginsMayNotCollapse);
     }
 
-    pub fn build_display_list_table_wrapper(&mut self,
-                                            stacking_context: &mut StackingContext,
-                                            builder: &mut DisplayListBuilder,
-                                            info: &DisplayListBuildingInfo) {
+    pub fn build_display_list_table_wrapper(&mut self, layout_context: &LayoutContext) {
         debug!("build_display_list_table_wrapper: same process as block flow");
-        self.block_flow.build_display_list_block(stacking_context, builder, info);
+        self.block_flow.build_display_list_block(layout_context);
     }
 }
 
@@ -187,28 +180,18 @@ impl Flow for TableWrapperFlow {
         self.block_flow.propagate_assigned_width_to_children(left_content_edge, content_width, assigned_col_widths);
     }
 
-    /// This is called on kid flows by a parent.
-    ///
-    /// Hence, we can assume that assign_height has already been called on the
-    /// kid (because of the bottom-up traversal).
-    fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
-        if self.is_float() {
-            debug!("assign_height_inorder_float: assigning height for floated table_wrapper");
-            self.block_flow.assign_height_float_inorder();
-        } else {
-            debug!("assign_height_inorder: assigning height for table_wrapper");
-            self.assign_height_table_wrapper_base(ctx, true);
-        }
-    }
-
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         if self.is_float() {
             debug!("assign_height_float: assigning height for floated table_wrapper");
             self.block_flow.assign_height_float(ctx);
         } else {
             debug!("assign_height: assigning height for table_wrapper");
-            self.assign_height_table_wrapper_base(ctx, false);
+            self.assign_height_table_wrapper_base(ctx);
         }
+    }
+
+    fn compute_absolute_position(&mut self) {
+        self.block_flow.compute_absolute_position()
     }
 
     fn debug_str(&self) -> ~str {
