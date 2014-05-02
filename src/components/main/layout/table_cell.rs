@@ -39,6 +39,10 @@ impl TableCellFlow {
         &self.block_flow.box_
     }
 
+    pub fn mut_box<'a>(&'a mut self) -> &'a mut Box {
+        &mut self.block_flow.box_
+    }
+
     /// Assign height for table-cell flow.
     ///
     /// TODO(#2015, pcwalton): This doesn't handle floats right.
@@ -100,12 +104,14 @@ impl Flow for TableCellFlow {
         let width_computer = InternalTable;
         width_computer.compute_used_width(&mut self.block_flow, ctx, containing_block_width);
 
-        let left_content_edge = self.block_flow.box_.border_box.borrow().origin.x + self.block_flow.box_.padding.borrow().left + self.block_flow.box_.border.borrow().left;
-        let padding_and_borders = self.block_flow.box_.padding.borrow().left + self.block_flow.box_.padding.borrow().right +
-                                  self.block_flow.box_.border.borrow().left + self.block_flow.box_.border.borrow().right;
-        let content_width = self.block_flow.box_.border_box.borrow().size.width - padding_and_borders;
+        let left_content_edge = self.block_flow.box_.border_box.origin.x +
+            self.block_flow.box_.border_padding.left;
+        let padding_and_borders = self.block_flow.box_.border_padding.horizontal();
+        let content_width = self.block_flow.box_.border_box.size.width - padding_and_borders;
 
-        self.block_flow.propagate_assigned_width_to_children(left_content_edge, content_width, None);
+        self.block_flow.propagate_assigned_width_to_children(left_content_edge,
+                                                             content_width,
+                                                             None);
     }
 
     /// This is called on kid flows by a parent.

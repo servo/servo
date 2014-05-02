@@ -93,9 +93,9 @@ impl TableRowGroupFlow {
 
         let height = cur_y - top_offset;
 
-        let mut position = *self.block_flow.box_.border_box.borrow();
+        let mut position = self.block_flow.box_.border_box;
         position.size.height = height;
-        *self.block_flow.box_.border_box.borrow_mut() = position;
+        self.block_flow.box_.border_box = position;
         self.block_flow.base.position.size.height = height;
     }
 

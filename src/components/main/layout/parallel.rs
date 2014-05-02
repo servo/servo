@@ -63,13 +63,13 @@ fn null_unsafe_flow() -> UnsafeFlow {
     (0, 0)
 }
 
-pub fn owned_flow_to_unsafe_flow(flow: *~Flow) -> UnsafeFlow {
+pub fn owned_flow_to_unsafe_flow(flow: *~Flow:Share) -> UnsafeFlow {
     unsafe {
         cast::transmute_copy(&*flow)
     }
 }
 
-pub fn mut_owned_flow_to_unsafe_flow(flow: *mut ~Flow) -> UnsafeFlow {
+pub fn mut_owned_flow_to_unsafe_flow(flow: *mut ~Flow:Share) -> UnsafeFlow {
     unsafe {
         cast::transmute_copy(&*flow)
     }
@@ -138,7 +138,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
         loop {
             unsafe {
                 // Get a real flow.
-                let flow: &mut ~Flow = cast::transmute(&unsafe_flow);
+                let flow: &mut ~Flow:Share = cast::transmute(&unsafe_flow);
 
                 // Perform the appropriate traversal.
                 if self.should_process(*flow) {
@@ -160,7 +160,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                 // No, we're not at the root yet. Then are we the last child
                 // of our parent to finish processing? If so, we can continue
                 // on with our parent; otherwise, we've gotta wait.
-                let parent: &mut ~Flow = cast::transmute(&unsafe_parent);
+                let parent: &mut ~Flow:Share = cast::transmute(&unsafe_parent);
                 let parent_base = flow::mut_base(*parent);
                 if parent_base.parallel.children_count.fetch_sub(1, SeqCst) == 1 {
                     // We were the last child of our parent. Reflow our parent.
@@ -192,7 +192,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
         let mut had_children = false;
         unsafe {
             // Get a real flow.
-            let flow: &mut ~Flow = cast::transmute(&unsafe_flow);
+            let flow: &mut ~Flow:Share = cast::transmute(&unsafe_flow);
 
             // Perform the appropriate traversal.
             self.process(*flow);
@@ -423,7 +423,7 @@ pub fn recalc_style_for_subtree(root_node: &LayoutNode,
     queue.data = ptr::mut_null()
 }
 
-pub fn traverse_flow_tree_preorder(root: &mut ~Flow,
+pub fn traverse_flow_tree_preorder(root: &mut ~Flow:Share,
                                    profiler_chan: ProfilerChan,
                                    layout_context: &mut LayoutContext,
                                    queue: &mut WorkQueue<*mut LayoutContext,PaddedUnsafeFlow>) {
