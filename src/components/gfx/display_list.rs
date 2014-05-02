@@ -18,12 +18,15 @@ use color::Color;
 use render_context::RenderContext;
 use text::TextRun;
 
+use collections::deque::Deque;
+use collections::dlist::DList;
+use collections::dlist;
 use geom::{Point2D, Rect, SideOffsets2D, Size2D};
 use libc::uintptr_t;
 use servo_net::image::base::Image;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
-use servo_util::smallvec::{SmallVec, SmallVec0, SmallVecIterator};
+use servo_util::smallvec::{SmallVec, SmallVec0};
 use std::mem;
 use std::slice::Items;
 use style::computed_values::border_style;
@@ -46,11 +49,35 @@ impl OpaqueNode {
     }
 }
 
-/// A stacking context. See CSS 2.1 § E.2. "Steps" below refer to steps in that section of the
-/// specification.
-///
-/// TODO(pcwalton): Outlines.
-pub struct StackingContext {
+/// "Steps" as defined by CSS 2.1 § E.2.
+#[deriving(Eq)]
+pub enum StackingLevel {
+    /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
+    BackgroundAndBordersStackingLevel,
+    /// Borders and backgrounds for block-level descendants: step 4.
+    BlockBackgroundsAndBordersStackingLevel,
+    /// Floats: step 5. These are treated as pseudo-stacking contexts.
+    FloatStackingLevel,
+    /// All other content.
+    ContentStackingLevel,
+    /// Positioned descendant stacking contexts, along with their `z-index` levels.
+    ///
+    /// TODO(pcwalton): `z-index` should be the actual CSS property value in order to handle
+    /// `auto`, not just an integer.
+    PositionedDescendantStackingLevel(i32)
+}
+
+impl StackingLevel {
+    pub fn from_background_and_border_level(level: BackgroundAndBorderLevel) -> StackingLevel {
+        match level {
+            RootOfStackingContextLevel => BackgroundAndBordersStackingLevel,
+            BlockLevel => BlockBackgroundsAndBordersStackingLevel,
+            ContentLevel => ContentStackingLevel,
+        }
+    }
+}
+
+struct StackingContext {
     /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
     pub background_and_borders: DisplayList,
     /// Borders and backgrounds for block-level descendants: step 4.
@@ -59,47 +86,208 @@ pub struct StackingContext {
     pub floats: DisplayList,
     /// All other content.
     pub content: DisplayList,
-
     /// Positioned descendant stacking contexts, along with their `z-index` levels.
     ///
     /// TODO(pcwalton): `z-index` should be the actual CSS property value in order to handle
-    /// `auto`, not just an integer. In this case we should store an actual stacking context, not
-    /// a flattened display list.
-    pub positioned_descendants: SmallVec0<(int, DisplayList)>,
+    /// `auto`, not just an integer.
+    pub positioned_descendants: SmallVec0<(i32, DisplayList)>,
 }
 
 impl StackingContext {
-    pub fn new() -> StackingContext {
-        StackingContext {
+    /// Creates a stacking context from a display list.
+    fn new(list: DisplayList) -> StackingContext {
+        let DisplayList {
+            list: mut list
+        } = list;
+
+        let mut stacking_context = StackingContext {
             background_and_borders: DisplayList::new(),
             block_backgrounds_and_borders: DisplayList::new(),
             floats: DisplayList::new(),
             content: DisplayList::new(),
             positioned_descendants: SmallVec0::new(),
+        };
+
+        for item in list.move_iter() {
+            match item {
+                ClipDisplayItemClass(~ClipDisplayItem {
+                    base: base,
+                    children: sublist
+                }) => {
+                    let sub_stacking_context = StackingContext::new(sublist);
+                    stacking_context.merge_with_clip(sub_stacking_context, &base.bounds, base.node)
+                }
+                item => {
+                    match item.base().level {
+                        BackgroundAndBordersStackingLevel => {
+                            stacking_context.background_and_borders.push(item)
+                        }
+                        BlockBackgroundsAndBordersStackingLevel => {
+                            stacking_context.block_backgrounds_and_borders.push(item)
+                        }
+                        FloatStackingLevel => stacking_context.floats.push(item),
+                        ContentStackingLevel => stacking_context.content.push(item),
+                        PositionedDescendantStackingLevel(z_index) => {
+                            match stacking_context.positioned_descendants
+                                                  .mut_iter()
+                                                  .find(|& &(z, _)| z_index == z) {
+                                Some(&(_, ref mut my_list)) => {
+                                    my_list.push(item);
+                                    continue
+                                }
+                                None => {}
+                            }
+
+                            let mut new_list = DisplayList::new();
+                            new_list.list.push_back(item);
+                            stacking_context.positioned_descendants.push((z_index, new_list))
+                        }
+                    }
+                }
+            }
         }
+
+        stacking_context
     }
 
-    pub fn list_for_background_and_border_level<'a>(
-                                                &'a mut self,
-                                                level: BackgroundAndBorderLevel)
-                                                -> &'a mut DisplayList {
-        match level {
-            RootOfStackingContextLevel => &mut self.background_and_borders,
-            BlockLevel => &mut self.block_backgrounds_and_borders,
-            ContentLevel => &mut self.content,
-        }
-    }
-
-    /// Flattens a stacking context into a display list according to the steps in CSS 2.1 § E.2.
-    pub fn flatten(self) -> DisplayList {
-        // Steps 1 and 2: Borders and background for the root.
+    /// Merges another stacking context into this one, with the given clipping rectangle and DOM
+    /// node that supplies it.
+    fn merge_with_clip(&mut self,
+                       other: StackingContext,
+                       clip_rect: &Rect<Au>,
+                       clipping_dom_node: OpaqueNode) {
         let StackingContext {
-            background_and_borders: mut result,
+            background_and_borders,
             block_backgrounds_and_borders,
             floats,
             content,
             positioned_descendants: mut positioned_descendants
-        } = self;
+        } = other;
+
+        let push = |destination: &mut DisplayList, source: DisplayList, level| {
+            if !source.is_empty() {
+                let base = BaseDisplayItem::new(*clip_rect, clipping_dom_node, level);
+                destination.push(ClipDisplayItemClass(~ClipDisplayItem::new(base, source)))
+            }
+        };
+
+        push(&mut self.background_and_borders,
+             background_and_borders,
+             BackgroundAndBordersStackingLevel);
+        push(&mut self.block_backgrounds_and_borders,
+             block_backgrounds_and_borders,
+             BlockBackgroundsAndBordersStackingLevel);
+        push(&mut self.floats, floats, FloatStackingLevel);
+        push(&mut self.content, content, ContentStackingLevel);
+
+        for (z_index, list) in positioned_descendants.move_iter() {
+            match self.positioned_descendants
+                      .mut_iter()
+                      .find(|& &(existing_z_index, _)| z_index == existing_z_index) {
+                Some(&(_, ref mut existing_list)) => {
+                    push(existing_list, list, PositionedDescendantStackingLevel(z_index));
+                    continue
+                }
+                None => {}
+            }
+
+            let mut new_list = DisplayList::new();
+            push(&mut new_list, list, PositionedDescendantStackingLevel(z_index));
+            self.positioned_descendants.push((z_index, new_list));
+        }
+    }
+}
+
+/// Which level to place backgrounds and borders in.
+pub enum BackgroundAndBorderLevel {
+    RootOfStackingContextLevel,
+    BlockLevel,
+    ContentLevel,
+}
+
+/// A list of rendering operations to be performed.
+pub struct DisplayList {
+    pub list: DList<DisplayItem>,
+}
+
+pub enum DisplayListIterator<'a> {
+    EmptyDisplayListIterator,
+    ParentDisplayListIterator(Items<'a,DisplayList>),
+}
+
+impl<'a> Iterator<&'a DisplayList> for DisplayListIterator<'a> {
+    #[inline]
+    fn next(&mut self) -> Option<&'a DisplayList> {
+        match *self {
+            EmptyDisplayListIterator => None,
+            ParentDisplayListIterator(ref mut subiterator) => subiterator.next(),
+        }
+    }
+}
+
+impl DisplayList {
+    /// Creates a new display list.
+    pub fn new() -> DisplayList {
+        DisplayList {
+            list: DList::new(),
+        }
+    }
+
+    fn dump(&self) {
+        for item in self.list.iter() {
+            item.debug_with_level(0);
+        }
+    }
+
+    /// Appends the given item to the display list.
+    pub fn push(&mut self, item: DisplayItem) {
+        self.list.push_back(item)
+    }
+
+    /// Appends the given display list to this display list, consuming the other display list in
+    /// the process.
+    pub fn push_all_move(&mut self, other: DisplayList) {
+        self.list.append(other.list)
+    }
+
+    /// Draws the display list into the given render context. The display list must be flattened
+    /// first for correct painting.
+    pub fn draw_into_context(&self, render_context: &mut RenderContext) {
+        debug!("Beginning display list.");
+        for item in self.list.iter() {
+            item.draw_into_context(render_context)
+        }
+        debug!("Ending display list.");
+    }
+
+    /// Returns a preorder iterator over the given display list.
+    pub fn iter<'a>(&'a self) -> DisplayItemIterator<'a> {
+        ParentDisplayItemIterator(self.list.iter())
+    }
+
+    /// Returns true if this list is empty and false otherwise.
+    fn is_empty(&self) -> bool {
+        self.list.len() == 0
+    }
+
+    /// Flattens a display list into a display list with a single stacking level according to the
+    /// steps in CSS 2.1 § E.2.
+    ///
+    /// This must be called before `draw_into_context()` is for correct results.
+    pub fn flatten(self, resulting_level: StackingLevel) -> DisplayList {
+        // TODO(pcwalton): Sort positioned children according to z-index.
+
+        let mut result = DisplayList::new();
+        let StackingContext {
+            background_and_borders,
+            block_backgrounds_and_borders,
+            floats,
+            content,
+            positioned_descendants: mut positioned_descendants
+        } = StackingContext::new(self);
+
+        // Steps 1 and 2: Borders and background for the root.
+        result.push_all_move(background_and_borders);
 
         // TODO(pcwalton): Sort positioned children according to z-index.
 
@@ -130,74 +318,19 @@ impl StackingContext {
 
         // TODO(pcwalton): Step 10: Outlines.
 
+        result.set_stacking_level(resulting_level);
         result
     }
-}
 
-/// Which level to place backgrounds and borders in.
-pub enum BackgroundAndBorderLevel {
-    RootOfStackingContextLevel,
-    BlockLevel,
-    ContentLevel,
-}
-
-/// A list of rendering operations to be performed.
-pub struct DisplayList {
-    pub list: SmallVec0<DisplayItem>,
-}
-
-pub enum DisplayListIterator<'a> {
-    EmptyDisplayListIterator,
-    ParentDisplayListIterator(Items<'a,DisplayList>),
-}
-
-impl<'a> Iterator<&'a DisplayList> for DisplayListIterator<'a> {
-    #[inline]
-    fn next(&mut self) -> Option<&'a DisplayList> {
-        match *self {
-            EmptyDisplayListIterator => None,
-            ParentDisplayListIterator(ref mut subiterator) => subiterator.next(),
+    /// Sets the stacking level for this display list and all its subitems.
+    fn set_stacking_level(&mut self, new_level: StackingLevel) {
+        for item in self.list.mut_iter() {
+            item.mut_base().level = new_level;
+            match item.mut_sublist() {
+                None => {}
+                Some(sublist) => sublist.set_stacking_level(new_level),
+            }
         }
-    }
-}
-
-impl DisplayList {
-    /// Creates a new display list.
-    pub fn new() -> DisplayList {
-        DisplayList {
-            list: SmallVec0::new(),
-        }
-    }
-
-    fn dump(&self) {
-        for item in self.list.iter() {
-            item.debug_with_level(0);
-        }
-    }
-
-    /// Appends the given item to the display list.
-    pub fn push(&mut self, item: DisplayItem) {
-        self.list.push(item)
-    }
-
-    /// Appends the given display list to this display list, consuming the other display list in
-    /// the process.
-    pub fn push_all_move(&mut self, other: DisplayList) {
-        self.list.push_all_move(other.list)
-    }
-
-    /// Draws the display list into the given render context.
-    pub fn draw_into_context(&self, render_context: &mut RenderContext) {
-        debug!("Beginning display list.");
-        for item in self.list.iter() {
-            item.draw_into_context(render_context)
-        }
-        debug!("Ending display list.");
-    }
-
-    /// Returns a preorder iterator over the given display list.
-    pub fn iter<'a>(&'a self) -> DisplayItemIterator<'a> {
-        ParentDisplayItemIterator(self.list.iter())
     }
 }
 
@@ -208,7 +341,14 @@ pub enum DisplayItem {
     ImageDisplayItemClass(~ImageDisplayItem),
     BorderDisplayItemClass(~BorderDisplayItem),
     LineDisplayItemClass(~LineDisplayItem),
-    ClipDisplayItemClass(~ClipDisplayItem)
+    ClipDisplayItemClass(~ClipDisplayItem),
+
+    /// A pseudo-display item that exists only so that queries like `ContentBoxQuery` and
+    /// `ContentBoxesQuery` can be answered.
+    ///
+    /// FIXME(pcwalton): This is really bogus. Those queries should not consult the display list
+    /// but should instead consult the flow/box tree.
+    PseudoDisplayItemClass(~BaseDisplayItem),
 }
 
 /// Information common to all display items.
@@ -220,6 +360,19 @@ pub struct BaseDisplayItem {
 
     /// The originating DOM node.
     pub node: OpaqueNode,
+
+    /// The stacking level in which this display item lives.
+    pub level: StackingLevel,
+}
+
+impl BaseDisplayItem {
+    pub fn new(bounds: Rect<Au>, node: OpaqueNode, level: StackingLevel) -> BaseDisplayItem {
+        BaseDisplayItem {
+            bounds: bounds,
+            node: node,
+            level: level,
+        }
+    }
 }
 
 /// Renders a solid color.
@@ -292,15 +445,27 @@ pub struct LineDisplayItem {
     pub style: border_style::T
 }
 
+/// Clips a list of child display items to this display item's boundaries.
 pub struct ClipDisplayItem {
+    /// The base information.
     pub base: BaseDisplayItem,
-    pub child_list: SmallVec0<DisplayItem>,
-    pub need_clip: bool
+
+    /// The child nodes.
+    pub children: DisplayList,
+}
+
+impl ClipDisplayItem {
+    pub fn new(base: BaseDisplayItem, children: DisplayList) -> ClipDisplayItem {
+        ClipDisplayItem {
+            base: base,
+            children: children,
+        }
+    }
 }
 
 pub enum DisplayItemIterator<'a> {
     EmptyDisplayItemIterator,
-    ParentDisplayItemIterator(SmallVecIterator<'a,DisplayItem>),
+    ParentDisplayItemIterator(dlist::Items<'a,DisplayItem>),
 }
 
 impl<'a> Iterator<&'a DisplayItem> for DisplayItemIterator<'a> {
@@ -316,21 +481,20 @@ impl<'a> Iterator<&'a DisplayItem> for DisplayItemIterator<'a> {
 impl DisplayItem {
     /// Renders this display item into the given render context.
     fn draw_into_context(&self, render_context: &mut RenderContext) {
+        // This should have been flattened to the content stacking level first.
+        assert!(self.base().level == ContentStackingLevel);
+
         match *self {
             SolidColorDisplayItemClass(ref solid_color) => {
                 render_context.draw_solid_color(&solid_color.base.bounds, solid_color.color)
             }
 
             ClipDisplayItemClass(ref clip) => {
-                if clip.need_clip {
-                    render_context.draw_push_clip(&clip.base.bounds);
-                }
-                for item in clip.child_list.iter() {
+                render_context.draw_push_clip(&clip.base.bounds);
+                for item in clip.children.iter() {
                     (*item).draw_into_context(render_context);
                 }
-                if clip.need_clip {
-                    render_context.draw_pop_clip();
-                }
+                render_context.draw_pop_clip();
             }
 
             TextDisplayItemClass(ref text) => {
@@ -412,6 +576,8 @@ impl DisplayItem {
                                           line.color,
                                           line.style)
             }
+
+            PseudoDisplayItemClass(_) => {}
         }
     }
 
@@ -423,6 +589,19 @@ impl DisplayItem {
             BorderDisplayItemClass(ref border) => &border.base,
             LineDisplayItemClass(ref line) => &line.base,
             ClipDisplayItemClass(ref clip) => &clip.base,
+            PseudoDisplayItemClass(ref base) => &**base,
+        }
+    }
+
+    pub fn mut_base<'a>(&'a mut self) -> &'a mut BaseDisplayItem {
+        match *self {
+            SolidColorDisplayItemClass(ref mut solid_color) => &mut solid_color.base,
+            TextDisplayItemClass(ref mut text) => &mut text.base,
+            ImageDisplayItemClass(ref mut image_item) => &mut image_item.base,
+            BorderDisplayItemClass(ref mut border) => &mut border.base,
+            LineDisplayItemClass(ref mut line) => &mut line.base,
+            ClipDisplayItemClass(ref mut clip) => &mut clip.base,
+            PseudoDisplayItemClass(ref mut base) => &mut **base,
         }
     }
 
@@ -432,12 +611,26 @@ impl DisplayItem {
 
     pub fn children<'a>(&'a self) -> DisplayItemIterator<'a> {
         match *self {
-            ClipDisplayItemClass(ref clip) => ParentDisplayItemIterator(clip.child_list.iter()),
+            ClipDisplayItemClass(ref clip) => ParentDisplayItemIterator(clip.children.list.iter()),
             SolidColorDisplayItemClass(..) |
             TextDisplayItemClass(..) |
             ImageDisplayItemClass(..) |
             BorderDisplayItemClass(..) |
-            LineDisplayItemClass(..) => EmptyDisplayItemIterator,
+            LineDisplayItemClass(..) |
+            PseudoDisplayItemClass(..) => EmptyDisplayItemIterator,
+        }
+    }
+
+    /// Returns a mutable reference to the sublist contained within this display list item, if any.
+    fn mut_sublist<'a>(&'a mut self) -> Option<&'a mut DisplayList> {
+        match *self {
+            ClipDisplayItemClass(ref mut clip) => Some(&mut clip.children),
+            SolidColorDisplayItemClass(..) |
+            TextDisplayItemClass(..) |
+            ImageDisplayItemClass(..) |
+            BorderDisplayItemClass(..) |
+            LineDisplayItemClass(..) |
+            PseudoDisplayItemClass(..) => None,
         }
     }
 
@@ -460,8 +653,9 @@ impl DisplayItem {
             BorderDisplayItemClass(_) => "Border",
             LineDisplayItemClass(_) => "Line",
             ClipDisplayItemClass(_) => "Clip",
+            PseudoDisplayItemClass(_) => "Pseudo",
         };
-        format!("{} @ {:?}", class, self.base().bounds)
+        format!("{} @ {} ({:x})", class, self.base().bounds, self.base().node.id())
     }
 }
 

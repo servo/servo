@@ -7,13 +7,11 @@
 use layout::box_::Box;
 use layout::block::{BlockFlow, MarginsMayNotCollapse, WidthAndMarginsComputer};
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
 use layout::flow::{TableCellFlowClass, FlowClass, Flow};
 use layout::model::{MaybeAuto};
 use layout::table::InternalTable;
 use layout::wrapper::ThreadSafeLayoutNode;
 
-use gfx::display_list::StackingContext;
 use servo_util::geometry::Au;
 
 /// A table formatting context.
@@ -23,9 +21,7 @@ pub struct TableCellFlow {
 }
 
 impl TableCellFlow {
-    pub fn from_node_and_box(node: &ThreadSafeLayoutNode,
-                             box_: Box)
-                             -> TableCellFlow {
+    pub fn from_node_and_box(node: &ThreadSafeLayoutNode, box_: Box) -> TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_node_and_box(node, box_)
         }
@@ -50,18 +46,13 @@ impl TableCellFlow {
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_height_table_cell_base(&mut self,
-                                     layout_context: &mut LayoutContext,
-                                     inorder: bool) {
-        self.block_flow.assign_height_block_base(layout_context, inorder, MarginsMayNotCollapse)
+    fn assign_height_table_cell_base(&mut self, layout_context: &mut LayoutContext) {
+        self.block_flow.assign_height_block_base(layout_context, MarginsMayNotCollapse)
     }
 
-    pub fn build_display_list_table_cell(&mut self,
-                                         stacking_context: &mut StackingContext,
-                                         builder: &mut DisplayListBuilder,
-                                         info: &DisplayListBuildingInfo) {
+    pub fn build_display_list_table_cell(&mut self, layout_context: &LayoutContext) {
         debug!("build_display_list_table: same process as block flow");
-        self.block_flow.build_display_list_block(stacking_context, builder, info)
+        self.block_flow.build_display_list_block(layout_context)
     }
 }
 
@@ -114,18 +105,13 @@ impl Flow for TableCellFlow {
                                                              None);
     }
 
-    /// This is called on kid flows by a parent.
-    ///
-    /// Hence, we can assume that assign_height has already been called on the
-    /// kid (because of the bottom-up traversal).
-    fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height_inorder: assigning height for table_cell");
-        self.assign_height_table_cell_base(ctx, true);
-    }
-
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height: assigning height for table_cell");
-        self.assign_height_table_cell_base(ctx, false);
+        self.assign_height_table_cell_base(ctx);
+    }
+
+    fn compute_absolute_position(&mut self) {
+        self.block_flow.compute_absolute_position()
     }
 
     fn debug_str(&self) -> ~str {

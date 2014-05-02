@@ -7,11 +7,8 @@
 use layout::block::BlockFlow;
 use layout::construct::FlowConstructor;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, DisplayListBuildingInfo};
 use layout::flow::{TableCaptionFlowClass, FlowClass, Flow};
 use layout::wrapper::ThreadSafeLayoutNode;
-
-use gfx::display_list::StackingContext;
 
 /// A table formatting context.
 pub struct TableCaptionFlow {
@@ -31,12 +28,9 @@ impl TableCaptionFlow {
         self.block_flow.teardown();
     }
 
-    pub fn build_display_list_table_caption(&mut self,
-                                            stacking_context: &mut StackingContext,
-                                            builder: &mut DisplayListBuilder,
-                                            info: &DisplayListBuildingInfo) {
+    pub fn build_display_list_table_caption(&mut self, layout_context: &LayoutContext) {
         debug!("build_display_list_table_caption: same process as block flow");
-        self.block_flow.build_display_list_block(stacking_context, builder, info)
+        self.block_flow.build_display_list_block(layout_context)
     }
 }
 
@@ -62,18 +56,13 @@ impl Flow for TableCaptionFlow {
         self.block_flow.assign_widths(ctx);
     }
 
-    /// This is called on kid flows by a parent.
-    ///
-    /// Hence, we can assume that assign_height has already been called on the
-    /// kid (because of the bottom-up traversal).
-    fn assign_height_inorder(&mut self, ctx: &mut LayoutContext) {
-        debug!("assign_height_inorder: assigning height for table_caption");
-        self.block_flow.assign_height_inorder(ctx);
-    }
-
     fn assign_height(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height: assigning height for table_caption");
         self.block_flow.assign_height(ctx);
+    }
+
+    fn compute_absolute_position(&mut self) {
+        self.block_flow.compute_absolute_position()
     }
 
     fn debug_str(&self) -> ~str {

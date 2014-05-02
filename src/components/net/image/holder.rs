@@ -109,6 +109,11 @@ impl ImageHolder {
         })
     }
 
+    pub fn get_image_if_present(&self) -> Option<Arc<~Image>> {
+        debug!("get_image_if_present() {}", self.url.to_str());
+        self.image.clone()
+    }
+
     pub fn get_image(&mut self) -> Option<Arc<~Image>> {
         debug!("get_image() {}", self.url.to_str());
 

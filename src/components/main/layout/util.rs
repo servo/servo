@@ -7,6 +7,7 @@ use layout::parallel::DomParallelInfo;
 use layout::wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
+use gfx;
 use libc::uintptr_t;
 use script::dom::bindings::js::JS;
 use script::dom::bindings::utils::Reflectable;
@@ -15,6 +16,7 @@ use script::layout_interface::{LayoutChan, UntrustedNodeAddress, TrustedNodeAddr
 use std::cast;
 use std::cell::{Ref, RefMut};
 use style::ComputedValues;
+use style;
 use sync::Arc;
 
 /// Data that layout associates with a node.
@@ -148,6 +150,17 @@ impl OpaqueNodeMethods for OpaqueNode {
             addr
         }
     }
+}
 
+/// Allows a CSS color to be converted into a graphics color.
+pub trait ToGfxColor {
+    /// Converts a CSS color to a graphics color.
+    fn to_gfx_color(&self) -> gfx::color::Color;
+}
+
+impl ToGfxColor for style::computed_values::RGBA {
+    fn to_gfx_color(&self) -> gfx::color::Color {
+        gfx::color::rgba(self.red, self.green, self.blue, self.alpha)
+    }
 }
 
