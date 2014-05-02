@@ -5,7 +5,7 @@
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
-use dom::bindings::codegen::BlobBinding;
+use dom::bindings::codegen::BindingDeclarations::BlobBinding;
 use dom::window::Window;
 use servo_util::str::DOMString;
 

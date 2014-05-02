@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{CommentCast, DocumentCast, DocumentTy
 use dom::bindings::codegen::InheritTypes::{ElementCast, TextCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
-use dom::bindings::codegen::NodeBinding::NodeConstants;
+use dom::bindings::codegen::BindingDeclarations::NodeBinding::NodeConstants;
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::{ErrorResult, Fallible, NotFound, HierarchyRequest};

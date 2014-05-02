@@ -6,7 +6,7 @@
 
 use dom::attr::{Attr, AttrSettingType, ReplacedAttr, FirstSetAttr};
 use dom::attrlist::AttrList;
-use dom::bindings::codegen::ElementBinding;
+use dom::bindings::codegen::BindingDeclarations::ElementBinding;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, NodeCast};
 use dom::bindings::js::JS;
 use dom::bindings::utils::{Reflectable, Reflector};

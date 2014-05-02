@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::WindowBinding;
+use dom::bindings::codegen::BindingDeclarations::WindowBinding;
 use dom::bindings::js::JS;
 use dom::bindings::trace::Untraceable;
 use dom::bindings::utils::{Reflectable, Reflector};
