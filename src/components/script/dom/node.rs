@@ -902,9 +902,7 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#dom-node-parentelement
     pub fn GetParentElement(&self) -> Option<JS<Element>> {
-        self.parent_node.clone()
-                        .filtered(|parent| parent.is_element())
-                        .map(|node| ElementCast::to(&node).unwrap())
+        self.parent_node.clone().and_then(|parent| ElementCast::to(&parent))
     }
 
     // http://dom.spec.whatwg.org/#dom-node-haschildnodes
