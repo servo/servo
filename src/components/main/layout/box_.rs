@@ -430,7 +430,7 @@ impl Box {
         Box {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: node.style().clone(),
-            border_box: RefCell::new(Au::zero_rect()),
+            border_box: RefCell::new(Rect::zero()),
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
@@ -446,7 +446,7 @@ impl Box {
         Box {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: node.style().clone(),
-            border_box: RefCell::new(Au::zero_rect()),
+            border_box: RefCell::new(Rect::zero()),
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
@@ -473,7 +473,7 @@ impl Box {
         Box {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: Arc::new(node_style),
-            border_box: RefCell::new(Au::zero_rect()),
+            border_box: RefCell::new(Rect::zero()),
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
@@ -492,7 +492,7 @@ impl Box {
         Box {
             node: node,
             style: style,
-            border_box: RefCell::new(Au::zero_rect()),
+            border_box: RefCell::new(Rect::zero()),
             border: RefCell::new(Zero::zero()),
             padding: RefCell::new(Zero::zero()),
             margin: RefCell::new(Zero::zero()),
