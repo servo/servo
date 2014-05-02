@@ -4,7 +4,6 @@
 
 use geom::point::Point2D;
 use geom::rect::Rect;
-use geom::size::Size2D;
 
 use std::num::{NumCast, One, Zero};
 use std::fmt;
@@ -153,17 +152,6 @@ impl Au {
     }
 
     #[inline]
-    pub fn zero_point() -> Point2D<Au> {
-        Point2D(Au(0), Au(0))
-    }
-
-    #[inline]
-    pub fn zero_rect() -> Rect<Au> {
-        let z = Au(0);
-        Rect(Point2D(z, z), Size2D(z, z))
-    }
-
-    #[inline]
     pub fn from_pt(pt: f64) -> Au {
         from_px(pt_to_px(pt) as int)
     }
@@ -196,19 +184,6 @@ pub fn pt_to_px(pt: f64) -> f64 {
 // assumes 72 points per inch, and 96 px per inch
 pub fn px_to_pt(px: f64) -> f64 {
     px / 96f64 * 72f64
-}
-
-pub fn zero_rect() -> Rect<Au> {
-    let z = Au(0);
-    Rect(Point2D(z, z), Size2D(z, z))
-}
-
-pub fn zero_point() -> Point2D<Au> {
-    Point2D(Au(0), Au(0))
-}
-
-pub fn zero_size() -> Size2D<Au> {
-    Size2D(Au(0), Au(0))
 }
 
 pub fn from_frac_px(px: f64) -> Au {

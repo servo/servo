@@ -749,7 +749,7 @@ impl LayoutTask {
                         union_boxes_for_node(&mut rect, display_list.iter(), node)
                     }
                 }
-                reply_chan.send(ContentBoxResponse(rect.unwrap_or(Au::zero_rect())))
+                reply_chan.send(ContentBoxResponse(rect.unwrap_or(Rect::zero())))
             }
             ContentBoxesQuery(node, reply_chan) => {
                 let node: OpaqueNode = OpaqueNodeMethods::from_script_node(node);

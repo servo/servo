@@ -7,6 +7,7 @@ use azure::azure_hl::{BackendType, ColorPattern};
 use azure::scaled_font::ScaledFont;
 use geom::{Point2D, Rect, Size2D};
 use std::cast;
+use std::num::Zero;
 use std::ptr;
 use std::str;
 use std::rc::Rc;
@@ -366,7 +367,7 @@ impl Font {
         for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
             for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
                 let glyph_advance = glyph.advance();
-                let glyph_offset = glyph.offset().unwrap_or(Au::zero_point());
+                let glyph_offset = glyph.offset().unwrap_or(Zero::zero());
 
                 let azglyph = struct__AzGlyph {
                     mIndex: glyph.index() as uint32_t,
