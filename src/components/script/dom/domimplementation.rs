@@ -16,25 +16,24 @@ use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{Node, INode};
 use dom::text::Text;
-use dom::window::Window;
 use servo_util::str::DOMString;
 
 #[deriving(Encodable)]
 pub struct DOMImplementation {
-    pub owner: JS<Window>,
+    pub owner: JS<Document>,
     pub reflector_: Reflector,
 }
 
 impl DOMImplementation {
-    pub fn new_inherited(owner: JS<Window>) -> DOMImplementation {
+    pub fn new_inherited(owner: JS<Document>) -> DOMImplementation {
         DOMImplementation {
             owner: owner,
             reflector_: Reflector::new(),
         }
     }
 
-    pub fn new(owner: &JS<Window>) -> JS<DOMImplementation> {
-        reflect_dom_object(~DOMImplementation::new_inherited(owner.clone()), owner,
+    pub fn new(owner: &JS<Document>) -> JS<DOMImplementation> {
+        reflect_dom_object(~DOMImplementation::new_inherited(owner.clone()), &owner.get().window,
                            DOMImplementationBinding::Wrap)
     }
 }
@@ -59,7 +58,7 @@ impl DOMImplementation {
             // Step 2.
             Name => Err(NamespaceError),
             // Step 3.
-            QName => Ok(DocumentType::new(qname, Some(pubid), Some(sysid), &self.owner.get().Document()))
+            QName => Ok(DocumentType::new(qname, Some(pubid), Some(sysid), &self.owner))
         }
     }
 
@@ -67,7 +66,7 @@ impl DOMImplementation {
     pub fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
                           maybe_doctype: Option<JS<DocumentType>>) -> Fallible<JS<Document>> {
         // Step 1.
-        let doc = Document::new(&self.owner, None, NonHTMLDocument, None);
+        let doc = Document::new(&self.owner.get().window, None, NonHTMLDocument, None);
         let mut doc_node: JS<Node> = NodeCast::from(&doc);
 
         // Step 2-3.
@@ -102,7 +101,7 @@ impl DOMImplementation {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     pub fn CreateHTMLDocument(&self, title: Option<DOMString>) -> JS<Document> {
         // Step 1-2.
-        let doc = Document::new(&self.owner, None, HTMLDocument, None);
+        let doc = Document::new(&self.owner.get().window, None, HTMLDocument, None);
         let mut doc_node: JS<Node> = NodeCast::from(&doc);
 
         {

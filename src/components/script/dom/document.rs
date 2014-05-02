@@ -153,9 +153,9 @@ impl Reflectable for Document {
 
 impl Document {
     // http://dom.spec.whatwg.org/#dom-document-implementation
-    pub fn Implementation(&mut self) -> JS<DOMImplementation> {
+    pub fn Implementation(&mut self, abstract_self: &JS<Document>) -> JS<DOMImplementation> {
         if self.implementation.is_none() {
-            self.implementation = Some(DOMImplementation::new(&self.window));
+            self.implementation = Some(DOMImplementation::new(abstract_self));
         }
         self.implementation.get_ref().clone()
     }
