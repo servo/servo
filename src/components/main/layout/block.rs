@@ -1389,7 +1389,7 @@ impl BlockFlow {
     pub fn propagate_assigned_width_to_children(&mut self,
                                                 left_content_edge: Au,
                                                 content_width: Au,
-                                                opt_col_widths: Option<~[Au]>) {
+                                                opt_col_widths: Option<Vec<Au>>) {
         let has_inorder_children = if self.is_float() {
             self.base.num_floats > 0
         } else {
@@ -1451,10 +1451,10 @@ impl BlockFlow {
                         kid_left_margin_edge = if i == 0 {
                             Au(0)
                         } else {
-                            kid_left_margin_edge + col_widths[i-1]
+                            kid_left_margin_edge + *col_widths.get(i-1)
                         };
 
-                        kid_width = col_widths[i]
+                        kid_width = *col_widths.get(i)
                     } else {
                         // Width of kid flow is our content width.
                         kid_width = content_width

@@ -54,7 +54,7 @@ impl BufferKey {
 /// A helper struct to keep track of buffers in the HashMap
 struct BufferValue<T> {
     /// An array of buffers, all the same size
-    buffers: ~[T],
+    buffers: Vec<T>,
     /// The counter when this size was last requested
     last_action: uint,
 }
@@ -86,7 +86,7 @@ impl<T: Tile> BufferMap<T> {
         // use lazy insertion function to prevent unnecessary allocation
         let counter = &self.counter;
         self.map.find_or_insert_with(new_key, |_| BufferValue {
-            buffers: ~[],
+            buffers: vec!(),
             last_action: *counter
         }).buffers.push(new_buffer);
 

@@ -58,10 +58,10 @@ pub struct LineBox {
 
 struct LineboxScanner {
     pub floats: Floats,
-    pub new_boxes: ~[Box],
+    pub new_boxes: Vec<Box>,
     pub work_list: RingBuf<Box>,
     pub pending_line: LineBox,
-    pub lines: ~[LineBox],
+    pub lines: Vec<LineBox>,
     pub cur_y: Au,
 }
 
@@ -69,14 +69,14 @@ impl LineboxScanner {
     pub fn new(float_ctx: Floats) -> LineboxScanner {
         LineboxScanner {
             floats: float_ctx,
-            new_boxes: ~[],
+            new_boxes: vec!(),
             work_list: RingBuf::new(),
             pending_line: LineBox {
                 range: Range::empty(),
                 bounds: Rect(Point2D(Au::new(0), Au::new(0)), Size2D(Au::new(0), Au::new(0))),
                 green_zone: Size2D(Au::new(0), Au::new(0))
             },
-            lines: ~[],
+            lines: vec!(),
             cur_y: Au::new(0)
         }
     }
@@ -87,8 +87,8 @@ impl LineboxScanner {
 
     fn reset_scanner(&mut self) {
         debug!("Resetting line box scanner's state for flow.");
-        self.lines = ~[];
-        self.new_boxes = ~[];
+        self.lines = vec!();
+        self.new_boxes = vec!();
         self.cur_y = Au::new(0);
         self.reset_linebox();
     }
@@ -137,7 +137,7 @@ impl LineboxScanner {
             self.flush_current_line();
         }
 
-        flow.elems.repair_for_box_changes(flow.boxes, self.new_boxes);
+        flow.elems.repair_for_box_changes(flow.boxes.as_slice(), self.new_boxes.as_slice());
 
         self.swap_out_results(flow);
     }
@@ -451,12 +451,12 @@ pub struct InlineFlow {
     pub base: BaseFlow,
 
     /// A vector of all inline render boxes. Several boxes may correspond to one node/element.
-    pub boxes: ~[Box],
+    pub boxes: Vec<Box>,
 
     // vec of ranges into boxes that represents line positions.
     // these ranges are disjoint, and are the result of inline layout.
     // also some metadata used for positioning lines
-    pub lines: ~[LineBox],
+    pub lines: Vec<LineBox>,
 
     // vec of ranges into boxes that represent elements. These ranges
     // must be well-nested, and are only related to the content of
@@ -465,11 +465,11 @@ pub struct InlineFlow {
 }
 
 impl InlineFlow {
-    pub fn from_boxes(node: ThreadSafeLayoutNode, boxes: ~[Box]) -> InlineFlow {
+    pub fn from_boxes(node: ThreadSafeLayoutNode, boxes: Vec<Box>) -> InlineFlow {
         InlineFlow {
             base: BaseFlow::new(node),
             boxes: boxes,
-            lines: ~[],
+            lines: vec!(),
             elems: ElementMapping::new(),
         }
     }
@@ -478,7 +478,7 @@ impl InlineFlow {
         for box_ in self.boxes.iter() {
             box_.teardown();
         }
-        self.boxes = ~[];
+        self.boxes = vec!();
     }
 
     pub fn build_display_list_inline(&self,
@@ -715,7 +715,7 @@ impl Flow for InlineFlow {
         // Now, go through each line and lay out the boxes inside.
         for line in self.lines.mut_iter() {
             // Lay out boxes horizontally.
-            InlineFlow::set_horizontal_box_positions(self.boxes, line, text_align);
+            InlineFlow::set_horizontal_box_positions(self.boxes.as_slice(), line, text_align);
 
             // Set the top y position of the current linebox.
             // `line_height_offset` is updated at the end of the previous loop.
@@ -728,7 +728,7 @@ impl Flow for InlineFlow {
             let (mut biggest_top, mut biggest_bottom) = (Au(0), Au(0));
 
             for box_i in line.range.eachi() {
-                let cur_box = &self.boxes[box_i];
+                let cur_box = self.boxes.get(box_i);
                 let top = cur_box.noncontent_top();
 
                 // FIXME(pcwalton): Move into `box.rs` like the rest of box-specific layout code?
@@ -844,7 +844,7 @@ impl Flow for InlineFlow {
 
             // All boxes' y position is updated following the new baseline offset.
             for box_i in line.range.eachi() {
-                let cur_box = &self.boxes[box_i];
+                let cur_box = &self.boxes.get(box_i);
                 let adjust_offset = match cur_box.vertical_align() {
                     vertical_align::top => Au::new(0),
                     vertical_align::bottom => baseline_offset + bottommost,

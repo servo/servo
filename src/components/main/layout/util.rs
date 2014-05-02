@@ -37,13 +37,13 @@ impl NodeRange {
 }
 
 pub struct ElementMapping {
-    entries: ~[NodeRange],
+    entries: Vec<NodeRange>,
 }
 
 impl ElementMapping {
     pub fn new() -> ElementMapping {
         ElementMapping {
-            entries: ~[],
+            entries: vec!(),
         }
     }
 
@@ -92,7 +92,7 @@ impl ElementMapping {
             begin_idx: uint,
             entry_idx: uint,
         };
-        let mut repair_stack : ~[WorkItem] = ~[];
+        let mut repair_stack : Vec<WorkItem> = vec!();
 
             // index into entries
             let mut entries_k = 0;
@@ -100,7 +100,7 @@ impl ElementMapping {
             while old_i < old_boxes.len() {
                 debug!("repair_for_box_changes: Considering old box {:u}", old_i);
                 // possibly push several items
-                while entries_k < entries.len() && old_i == entries[entries_k].range.begin() {
+                while entries_k < entries.len() && old_i == entries.get(entries_k).range.begin() {
                     let item = WorkItem {begin_idx: new_j, entry_idx: entries_k};
                     debug!("repair_for_box_changes: Push work item for elem {:u}: {:?}", entries_k, item);
                     repair_stack.push(item);
@@ -114,11 +114,11 @@ impl ElementMapping {
                 old_i += 1;
 
                 // possibly pop several items
-                while repair_stack.len() > 0 && old_i == entries[repair_stack.last().get_ref().entry_idx].range.end() {
+                while repair_stack.len() > 0 && old_i == entries.get(repair_stack.last().get_ref().entry_idx).range.end() {
                     let item = repair_stack.pop().unwrap();
                     debug!("repair_for_box_changes: Set range for {:u} to {}",
                            item.entry_idx, Range::new(item.begin_idx, new_j - item.begin_idx));
-                    entries[item.entry_idx].range = Range::new(item.begin_idx, new_j - item.begin_idx);
+                    entries.get_mut(item.entry_idx).range = Range::new(item.begin_idx, new_j - item.begin_idx);
                 }
             }
         debug!("--- Elem ranges after repair: ---");

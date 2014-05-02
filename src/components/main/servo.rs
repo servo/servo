@@ -138,7 +138,7 @@ fn start(argc: int, argv: **u8) -> int {
 #[no_mangle]
 pub extern "C" fn android_start(argc: int, argv: **u8) -> int {
     native::start(argc, argv, proc() {
-        let mut args:~[~str] = ~[];
+        let mut args: Vec<~str> = vec!();
         for i in range(0u, argc as uint) {
             unsafe {
                 args.push(str::raw::from_c_str(*argv.offset(i as int) as *i8));
@@ -194,7 +194,7 @@ fn run(opts: opts::Opts) {
                 // As a hack for easier command-line testing,
                 // assume that data URLs are not URL-encoded.
                 Url::new(~"data", None, ~"", None,
-                    filename.slice_from(5).to_owned(), Vec::new(), None)
+                    filename.slice_from(5).to_owned(), vec!(), None)
             } else {
                 parse_url(*filename, None)
             };

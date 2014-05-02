@@ -109,7 +109,7 @@ impl<T: Tile> Quadtree<T> {
     /// Add a tile associated with a given pixel position and scale.
     /// If the tile pushes the total memory over its maximum, tiles will be removed
     /// until total memory is below the maximum again. These tiles are returned.
-    pub fn add_tile_pixel(&mut self, x: uint, y: uint, scale: f32, tile: T) -> ~[T] {
+    pub fn add_tile_pixel(&mut self, x: uint, y: uint, scale: f32, tile: T) -> Vec<T> {
         let (_, tiles) = self.root.add_tile(x as f32 / scale, y as f32 / scale, tile,
                                             self.max_tile_size as f32 / scale);
         let mut tiles = tiles;
@@ -129,7 +129,7 @@ impl<T: Tile> Quadtree<T> {
     }
 
     /// Get all the tiles in the tree.
-    pub fn get_all_tiles<'r>(&'r self) -> ~[&'r T] {
+    pub fn get_all_tiles<'r>(&'r self) -> Vec<&'r T> {
         self.root.get_all_tiles()
     }
 
@@ -139,7 +139,7 @@ impl<T: Tile> Quadtree<T> {
     /// user zooms out and cached tiles need to be displayed on top of higher resolution tiles.
     /// When this happens, higher resolution tiles will be removed from the quadtree.
     #[cfg(test)]
-    pub fn get_tile_rects_pixel(&mut self, window: Rect<int>, scale: f32) -> (~[BufferRequest], ~[T]) {
+    pub fn get_tile_rects_pixel(&mut self, window: Rect<int>, scale: f32) -> (Vec<BufferRequest>, Vec<T>) {
         let (ret, unused, _) = self.root.get_tile_rects(
             Rect(Point2D(window.origin.x as f32 / scale, window.origin.y as f32 / scale),
                  Size2D(window.size.width as f32 / scale, window.size.height as f32 / scale)),
@@ -149,7 +149,7 @@ impl<T: Tile> Quadtree<T> {
     }
 
     /// Same function as above, using page coordinates for the window.
-    pub fn get_tile_rects_page(&mut self, window: Rect<f32>, scale: f32) -> (~[BufferRequest], ~[T]) {
+    pub fn get_tile_rects_page(&mut self, window: Rect<f32>, scale: f32) -> (Vec<BufferRequest>, Vec<T>) {
         let (ret, unused, _) = self.root.get_tile_rects(
             window,
             Size2D(self.clip_size.width as f32, self.clip_size.height as f32),
@@ -158,7 +158,7 @@ impl<T: Tile> Quadtree<T> {
     }
 
     /// Creates a new quadtree at the specified size. This should be called when the window changes size.
-    pub fn resize(&mut self, width: uint, height: uint) -> ~[T] {
+    pub fn resize(&mut self, width: uint, height: uint) -> Vec<T> {
         // Spaces must be squares and powers of 2, so expand the space until it is
         let longer = cmp::max(width, height);
         let num_tiles = div_ceil(longer, self.max_tile_size);
@@ -234,7 +234,7 @@ impl<T: Tile> Quadtree<T> {
 
     /// Remove and return all tiles in the tree. Use this before deleting the quadtree to prevent
     /// a GC pause.
-    pub fn collect_tiles(&mut self) -> ~[T] {
+    pub fn collect_tiles(&mut self) -> Vec<T> {
         self.root.collect_tiles()
     }
 }
@@ -268,17 +268,17 @@ impl<T: Tile> QuadtreeNode<T> {
     }
 
     /// Get all tiles in the tree, parents first.
-    fn get_all_tiles<'r>(&'r self) -> ~[&'r T] {
-        let mut ret = ~[];
+    fn get_all_tiles<'r>(&'r self) -> Vec<&'r T> {
+        let mut ret = vec!();
 
         match self.tile {
-            Some(ref tile) => ret = ret + ~[tile],
+            Some(ref tile) => ret.push(tile),
             None => {}
         }
 
         for quad in self.quadrants.iter() {
             match *quad {
-                Some(ref child) => ret = ret + child.get_all_tiles(),
+                Some(ref child) => ret.push_all_move(child.get_all_tiles()),
                 None => {}
             }
         }
@@ -290,7 +290,7 @@ impl<T: Tile> QuadtreeNode<T> {
     /// the node will be split and the method will recurse until the tile size is within limits.
     /// Returns an the difference in tile memory between the new quadtree node and the old quadtree node,
     /// along with any deleted tiles.
-    fn add_tile(&mut self, x: f32, y: f32, tile: T, tile_size: f32) -> (int, ~[T]) {
+    fn add_tile(&mut self, x: f32, y: f32, tile: T, tile_size: f32) -> (int, Vec<T>) {
         debug!("Quadtree: Adding: ({}, {}) size:{}px", self.origin.x, self.origin.y, self.size);
 
         if x >= self.origin.x + self.size || x < self.origin.x
@@ -302,8 +302,8 @@ impl<T: Tile> QuadtreeNode<T> {
             let old_size = self.tile_mem;
             self.tile_mem = tile.get_mem();
             let mut unused_tiles = match replace(&mut self.tile, Some(tile)) {
-                Some(old_tile) => ~[old_tile],
-                None => ~[],
+                Some(old_tile) => vec!(old_tile),
+                None => vec!(),
             };
             for child in self.quadrants.mut_iter() {
                 match *child {
@@ -466,7 +466,7 @@ impl<T: Tile> QuadtreeNode<T> {
                       scale: f32,
                       tile_size: f32,
                       override: bool)
-                      -> (~[BufferRequest], ~[T], int) {
+                      -> (Vec<BufferRequest>, Vec<T>, int) {
         let w_x = window.origin.x;
         let w_y = window.origin.y;
         let w_width = window.size.width;
@@ -479,7 +479,7 @@ impl<T: Tile> QuadtreeNode<T> {
         if w_x + w_width < s_x || w_x > s_x + s_size
                 || w_y + w_height < s_y || w_y > s_y + s_size
                 || w_x >= clip.width || w_y >= clip.height {
-            return (~[], ~[], 0);
+            return (vec!(), vec!(), 0);
         }
 
         // clip window to visible region
@@ -488,7 +488,7 @@ impl<T: Tile> QuadtreeNode<T> {
 
         if s_size <= tile_size { // We are the child
             return match self.tile {
-                _ if self.status == Rendering || self.status == Hidden => (~[], ~[], 0),
+                _ if self.status == Rendering || self.status == Hidden => (vec!(), vec!(), 0),
                 Some(ref tile) if tile.is_valid(scale) && !override
                 && self.status != Invalid => {
                     let redisplay = match self.quadrants {
@@ -496,7 +496,7 @@ impl<T: Tile> QuadtreeNode<T> {
                         _ => true,
                     };
                     let mut delta = 0;
-                    let mut unused_tiles = ~[];
+                    let mut unused_tiles = vec!();
                     if redisplay {
                         let old_mem = self.tile_mem;
                         for child in self.quadrants.mut_iter() {
@@ -512,9 +512,9 @@ impl<T: Tile> QuadtreeNode<T> {
                         delta = self.tile_mem as int - old_mem as int;
 
                     }
-                    (~[], unused_tiles, delta)
+                    (vec!(), unused_tiles, delta)
                 }
-                _ => (~[self.get_tile_rect(s_x, s_y, clip.width, clip.height, scale, tile_size)], ~[], 0),
+                _ => (vec!(self.get_tile_rect(s_x, s_y, clip.width, clip.height, scale, tile_size)), vec!(), 0),
             }
         }
 
@@ -548,8 +548,8 @@ impl<T: Tile> QuadtreeNode<T> {
 
         let quads_to_check = slice::build(Some(4), builder);
 
-        let mut request = ~[];
-        let mut unused = ~[];
+        let mut request = vec!();
+        let mut unused = vec!();
         let mut delta = 0;
 
         for quad in quads_to_check.iter() {
@@ -596,7 +596,7 @@ impl<T: Tile> QuadtreeNode<T> {
             };
 
             delta = delta + c_delta;
-            request = request + c_request;
+            request.push_all(c_request.as_slice());
             unused.push_all_move(c_unused);
         }
         self.tile_mem = (self.tile_mem as int + delta) as uint;
@@ -604,10 +604,10 @@ impl<T: Tile> QuadtreeNode<T> {
     }
 
     /// Remove all tiles from the tree. Use this to collect all tiles before deleting a branch.
-    fn collect_tiles(&mut self) -> ~[T] {
+    fn collect_tiles(&mut self) -> Vec<T> {
         let mut ret = match replace(&mut self.tile, None) {
-            Some(tile) => ~[tile],
-            None => ~[],
+            Some(tile) => vec!(tile),
+            None => vec!(),
         };
         for child in self.quadrants.mut_iter() {
             match *child {

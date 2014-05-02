@@ -411,7 +411,7 @@ impl Shaper {
                 glyphs.add_glyph_for_char_index(char_idx, &data);
             } else {
                 // collect all glyphs to be assigned to the first character.
-                let mut datas = ~[];
+                let mut datas = vec!();
 
                 for glyph_i in glyph_span.eachi() {
                     let shape = glyph_data.get_entry_for_glyph(glyph_i, &mut y_pos);
@@ -425,7 +425,7 @@ impl Shaper {
                 }
 
                 // now add the detailed glyph entry.
-                glyphs.add_glyphs_for_char_index(char_idx, datas);
+                glyphs.add_glyphs_for_char_index(char_idx, datas.as_slice());
 
                 // set the other chars, who have no glyphs
                 let mut i = covered_byte_span.begin();

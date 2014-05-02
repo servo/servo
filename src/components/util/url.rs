@@ -4,7 +4,6 @@
 
 use collections::HashMap;
 use std::os;
-use std::vec::Vec;
 use std_url;
 use std_url::Url;
 
@@ -39,7 +38,7 @@ pub fn parse_url(str_url: &str, base_url: Option<std_url::Url>) -> std_url::Url 
                 debug!("parse_url: base_url: {:?}", base_url);
 
                 let mut new_url = base_url.clone();
-                new_url.query = Vec::new();
+                new_url.query = vec!();
                 new_url.fragment = None;
 
                 if str_url.starts_with("//") {
